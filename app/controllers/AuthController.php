@@ -80,7 +80,8 @@ class AuthController {
             $this->auditLog->logConnexion($infoUtilisateur['id_utilisateur'], 'utilisateur', 'Succès');
             return true;
         } 
-        $this->auditLog->logConnexion(null, 'utilisateur', 'Erreur');
+        // Ne pas enregistrer les tentatives de connexion échouées dans l'audit
+        // Les logs du serveur web capturent déjà ces informations
         return false;
     }
 
