@@ -344,8 +344,7 @@ class GestionUtilisateurController
                     </div>
                     
                     <p>Vous pouvez dès maintenant vous connecter à votre compte :</p>
-                    <a href="http://localhost/public/login.php" class="button " style="color:#fff">Se connecter</a>
-                    
+                     <a href="http://localhost:8080/page_connexion.php" class="button " style="color:#fff">Se connecter</a>
                     <p>Si vous n\'êtes pas à l\'origine de cette création de compte, veuillez ignorer cet email ou contacter notre support.</p>
                 </div>
                 
@@ -370,10 +369,10 @@ class GestionUtilisateurController
             $config_email = require __DIR__ . '/../config/email.php';
             
             // Configuration du serveur SMTP
-            $mail->SMTPDebug = 2; // Active temporairement le débogage pour diagnostiquer
+            $mail->SMTPDebug = 2; // Debug activé pour les logs
             $mail->Debugoutput = function($str, $level) {
                 error_log("PHPMailer Debug: $str");
-                echo "PHPMailer Debug: $str<br>";
+                // Plus d'affichage sur la page, seulement dans les logs
             };
             
             $mail->isSMTP();
