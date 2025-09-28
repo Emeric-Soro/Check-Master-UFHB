@@ -7,8 +7,8 @@ require_once __DIR__ . "/../models/TypeUtilisateur.php";
 require_once __DIR__ . "/../models/GroupeUtilisateur.php";
 require_once __DIR__ . "/../models/NiveauAccesDonnees.php";
 require_once __DIR__ . "/../models/AuditLog.php";
-use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\PHPMailer;
 
 require_once '../vendor/autoload.php';
 
@@ -105,6 +105,9 @@ class GestionUtilisateurController
                                 if($this->envoyerEmailInscriptionPHPMailer($login_utilisateur, $nom_utilisateur, $login_utilisateur, $mdp)){
                                     $messageSuccess = "Utilisateur ajouté avec succès et email envoyé.";
                                     $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
+                                } else {
+                                    $messageSuccess = "Utilisateur ajouté avec succès mais erreur lors de l'envoi de l'email.";
+                                    $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'utilisateur', 'Partiel');
                                 }
                             } else {
                                 $messageErreur = "Erreur lors de l'ajout de l'utilisateur.";
@@ -341,8 +344,7 @@ class GestionUtilisateurController
                     </div>
                     
                     <p>Vous pouvez dès maintenant vous connecter à votre compte :</p>
-                    <a href="http://localhost:8080/page_connexion.php" class="button " style="color:#fff">Se connecter</a>
-                    
+                     <a href="http://localhost:8080/page_connexion.php" class="button " style="color:#fff">Se connecter</a>
                     <p>Si vous n\'êtes pas à l\'origine de cette création de compte, veuillez ignorer cet email ou contacter notre support.</p>
                 </div>
                 
@@ -363,25 +365,29 @@ class GestionUtilisateurController
         $mail = new PHPMailer(true);
 
         try {
+            // Charger la configuration SMTP depuis le fichier de config
+            $config_email = require __DIR__ . '/../config/email.php';
+            
             // Configuration du serveur SMTP
-            $mail->SMTPDebug = 2; // Active le débogage détaillé
+            $mail->SMTPDebug = 2; // Debug activé pour les logs
             $mail->Debugoutput = function($str, $level) {
                 error_log("PHPMailer Debug: $str");
+                // Plus d'affichage sur la page, seulement dans les logs
             };
             
             $mail->isSMTP();
-            $mail->Host = 'smtp.gmail.com';
+            $mail->Host = $config_email['smtp']['host'];
             $mail->SMTPAuth = true;
-            $mail->Username = 'managersoutenance@gmail.com';
-            $mail->Password = 'iweglnpanhpkoqfe';
+            $mail->Username = $config_email['smtp']['username'];
+            $mail->Password = $config_email['smtp']['password'];
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
+            $mail->Port = $config_email['smtp']['port'];
             $mail->CharSet = 'UTF-8';
 
             // Destinataires
-            $mail->setFrom('managersoutenance@gmail.com', 'Soutenance Manager'); // Utiliser une adresse email valide
+            $mail->setFrom($config_email['smtp']['from_email'], $config_email['smtp']['from_name']);
             $mail->addAddress($email, $nom);
-            $mail->addReplyTo('managersoutenance@gmail.com', 'Support technique');
+            $mail->addReplyTo($config_email['smtp']['from_email'], 'Support technique');
 
             // Contenu
             $mail->isHTML(true);
@@ -395,10 +401,21 @@ class GestionUtilisateurController
             error_log("Tentative d'envoi d'email à : " . $email);
             $result = $mail->send();
             error_log("Email envoyé avec succès à : " . $email);
+            
+            // Écrire aussi dans un fichier de log personnalisé
+            file_put_contents(__DIR__ . '/../../logs/email.log', 
+                date('Y-m-d H:i:s') . " - Email envoyé avec succès à : $email\n", 
+                FILE_APPEND | LOCK_EX);
+            
             return true;
         } catch (Exception $e) {
             error_log("Erreur PHPMailer détaillée: " . $e->getMessage());
             error_log("Erreur PHPMailer: {$mail->ErrorInfo}");
+            
+            // Écrire l'erreur dans un fichier de log personnalisé
+            $logMessage = date('Y-m-d H:i:s') . " - ERREUR Email à $email: " . $e->getMessage() . "\n";
+            file_put_contents(__DIR__ . '/../../logs/email.log', $logMessage, FILE_APPEND | LOCK_EX);
+            
             return false;
         }
     }
