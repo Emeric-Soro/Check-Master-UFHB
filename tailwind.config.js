@@ -10,19 +10,19 @@ export default {
         extend: {
             colors: {
                 primary: {
-                    50: '#eff6ff',
-                    100: '#dbeafe',
-                    200: '#bfdbfe',
-                    300: '#93c5fd',
-                    400: '#60a5fa',
-                    500: '#3b82f6',
-                    600: '#2563eb',
-                    700: '#1d4ed8',
-                    800: '#1e40af',
-                    900: '#1e3a8a',
+                    50: '#f0fdfa',
+                    100: '#ccfbf1',
+                    200: '#99f6e4',
+                    300: '#5eead4',
+                    400: '#2dd4bf',
+                    500: '#14b8a6',
+                    600: '#0F766E',
+                    700: '#0d9488',
+                    800: '#115e59',
+                    900: '#134e4a',
                 },
 
-                neutral: {
+                secondary: {
                     50: '#f8fafc',
                     100: '#f1f5f9',
                     200: '#e2e8f0',
@@ -32,20 +32,20 @@ export default {
                     600: '#475569',
                     700: '#334155',
                     800: '#1e293b',
-                    900: '#0f172a',
+                    900: '#1F2937',
                 },
 
-                accent: {
-                    50: '#fff7ed',
-                    100: '#ffedd5',
-                    200: '#fed7aa',
-                    300: '#fdba74',
-                    400: '#fb923c',
-                    500: '#f97316',
-                    600: '#ea580c',
-                    700: '#c2410c',
-                    800: '#9a3412',
-                    900: '#7c2d12',
+                neutral: {
+                    50: '#f9fafb',
+                    100: '#f3f4f6',
+                    200: '#e5e7eb',
+                    300: '#d1d5db',
+                    400: '#9ca3af',
+                    500: '#6B7280',
+                    600: '#4b5563',
+                    700: '#374151',
+                    800: '#1f2937',
+                    900: '#111827',
                 },
 
                 success: {
@@ -85,16 +85,8 @@ export default {
                 },
 
                 surface: '#ffffff',
-                'surface-hover': '#f8fafc',
-                'surface-active': '#f1f5f9',
-
-                green: {
-                    50: '#f0fdf4',
-                    100: '#dcfce7',
-                    500: '#10b981',
-                    600: '#2563eb',
-                    700: '#1d4ed8',
-                }
+                'surface-hover': '#f9fafb',
+                'surface-active': '#f3f4f6',
             },
 
             fontFamily: {
@@ -126,13 +118,14 @@ export default {
             },
 
             boxShadow: {
-                'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                'sm': '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                'md': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                'lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                'xl': '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-                'primary': '0 10px 15px -3px rgba(37, 99, 235, 0.1)',
-                'accent': '0 10px 15px -3px rgba(249, 115, 22, 0.1)',
+                'xs': '0 1px 2px 0 rgba(31, 41, 55, 0.05)',
+                'sm': '0 1px 3px 0 rgba(31, 41, 55, 0.1)',
+                'md': '0 4px 6px -1px rgba(31, 41, 55, 0.1)',
+                'lg': '0 10px 15px -3px rgba(31, 41, 55, 0.1)',
+                'xl': '0 20px 25px -5px rgba(31, 41, 55, 0.1)',
+                'primary': '0 10px 15px -3px rgba(15, 118, 110, 0.1)',
+                'secondary': '0 10px 15px -3px rgba(31, 41, 55, 0.1)',
+                'neutral': '0 10px 15px -3px rgba(107, 114, 128, 0.1)',
                 'success': '0 10px 15px -3px rgba(16, 185, 129, 0.1)',
                 'error': '0 10px 15px -3px rgba(239, 68, 68, 0.1)',
             },
@@ -232,12 +225,12 @@ export default {
             },
 
             backgroundImage: {
-                'gradient-primary': 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                'gradient-primary': 'linear-gradient(135deg, #14b8a6, #0d9488)',
                 'gradient-secondary': 'linear-gradient(135deg, #f1f5f9, #cbd5e1)',
-                'gradient-accent': 'linear-gradient(135deg, #fb923c, #ea580c)',
+                'gradient-neutral': 'linear-gradient(135deg, #9ca3af, #4b5563)',
                 'gradient-success': 'linear-gradient(135deg, #10b981, #047857)',
                 'gradient-warm': 'linear-gradient(135deg, #fed7aa, #fb923c)',
-                'gradient-cool': 'linear-gradient(135deg, #dbeafe, #93c5fd)',
+                'gradient-cool': 'linear-gradient(135deg, #ccfbf1, #5eead4)',
             }
         },
     },
@@ -268,14 +261,14 @@ export default {
                 },
                 '.hover-glow': {
                     '&:hover': {
-                        boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.1)',
+                        boxShadow: '0 10px 15px -3px rgba(15, 118, 110, 0.1)',
                         transition: 'box-shadow 200ms ease-out',
                     }
                 },
                 '.focus-ring': {
                     '&:focus': {
                         outline: 'none',
-                        boxShadow: '0 0 0 3px rgba(37, 99, 235, 0.1)',
+                        boxShadow: '0 0 0 3px rgba(15, 118, 110, 0.1)',
                     }
                 },
                 '.scrollbar-hidden': {
@@ -290,15 +283,15 @@ export default {
                         width: '6px',
                     },
                     '&::-webkit-scrollbar-track': {
-                        background: '#f1f5f9',
+                        background: '#f3f4f6',
                         borderRadius: '3px',
                     },
                     '&::-webkit-scrollbar-thumb': {
-                        background: '#94a3b8',
+                        background: '#9ca3af',
                         borderRadius: '3px',
                     },
                     '&::-webkit-scrollbar-thumb:hover': {
-                        background: '#64748b',
+                        background: '#6B7280',
                     }
                 },
             });

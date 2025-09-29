@@ -1,71 +1,70 @@
 <?php
 /**
- * STYLEMANAGER - GESTIONNAIRE CENTRALISÉ DU DESIGN SYSTEM
+ * STYLEMANAGER FINAL - DESIGN SYSTEM COMPLET BASÉ SUR LE LOGO
  *
- * Système professionnel 3 couleurs harmonisées:
- * - BLEU: Couleur principale (remplace le vert)
- * - GRIS: Couleur neutre (arrière-plans doux)
- * - ORANGE: Couleur d'accent
+ * Système 3 couleurs du logo :
+ * - TEAL PRINCIPAL (#0F766E) : Couleur principale du logo
+ * - CHARCOAL SECONDAIRE (#1F2937) : Couleur sombre du logo
+ * - GRIS NEUTRE (#6B7280) : Couleur grise d'accompagnement
  *
- * Mode sombre/clair automatique + basculement manuel
- * Tout harmonisé au pixel près pour un design professionnel
+ * Couleurs d'état conservées : Vert/Rouge pour succès/erreur
+ * Mode sombre automatique + basculement manuel
  *
- * @version 2.0
+ * @version 3.0 FINAL
  * @author Design System Team
  * @compatibility Tailwind CSS v4+
  */
 class StyleManager {
 
     /**
-     * Configuration des couleurs du design system
-     * Système 3 couleurs professionnel complet
+     * Configuration des couleurs basée sur le logo
      */
     private static $colorSystem = [
-        // COULEUR PRINCIPALE - BLEU PROFESSIONNEL
+        // COULEUR PRINCIPALE - TEAL DU LOGO
         'primary' => [
-            '50'  => '#eff6ff',
-            '100' => '#dbeafe',
-            '200' => '#bfdbfe',
-            '300' => '#93c5fd',
-            '400' => '#60a5fa',
-            '500' => '#3b82f6',
-            '600' => '#2563eb',  // Couleur principale
-            '700' => '#1d4ed8',
-            '800' => '#1e40af',
-            '900' => '#1e3a8a'
+            '50'  => '#f0fdfa',
+            '100' => '#ccfbf1',
+            '200' => '#99f6e4',
+            '300' => '#5eead4',
+            '400' => '#2dd4bf',
+            '500' => '#14b8a6',
+            '600' => '#0F766E',  // Couleur exacte du logo
+            '700' => '#0d9488',
+            '800' => '#115e59',
+            '900' => '#134e4a'
         ],
 
-        // COULEUR NEUTRE - GRIS DOUX
-        'neutral' => [
+        // COULEUR SECONDAIRE - CHARCOAL DU LOGO
+        'secondary' => [
             '50'  => '#f8fafc',
             '100' => '#f1f5f9',
             '200' => '#e2e8f0',
             '300' => '#cbd5e1',
             '400' => '#94a3b8',
             '500' => '#64748b',
-            '600' => '#475569',  // Gris principal
+            '600' => '#475569',
             '700' => '#334155',
             '800' => '#1e293b',
-            '900' => '#0f172a'
+            '900' => '#1F2937'  // Couleur exacte du logo
         ],
 
-        // COULEUR D'ACCENT - ORANGE PROFESSIONNEL
-        'accent' => [
-            '50'  => '#fff7ed',
-            '100' => '#ffedd5',
-            '200' => '#fed7aa',
-            '300' => '#fdba74',
-            '400' => '#fb923c',
-            '500' => '#f97316',  // Orange principal
-            '600' => '#ea580c',
-            '700' => '#c2410c',
-            '800' => '#9a3412',
-            '900' => '#7c2d12'
+        // COULEUR NEUTRE - GRIS DU LOGO
+        'neutral' => [
+            '50'  => '#f9fafb',
+            '100' => '#f3f4f6',
+            '200' => '#e5e7eb',
+            '300' => '#d1d5db',
+            '400' => '#9ca3af',
+            '500' => '#6B7280',  // Couleur exacte du logo
+            '600' => '#4b5563',
+            '700' => '#374151',
+            '800' => '#1f2937',
+            '900' => '#111827'
         ]
     ];
 
     /**
-     * États sémantiques harmonisés avec le système
+     * Couleurs d'état sémantiques (conservées)
      */
     private static $semanticColors = [
         'success' => [
@@ -84,19 +83,19 @@ class StyleManager {
             'text' => '#991b1b'
         ],
         'info' => [
-            'light' => '#3b82f6',
-            'background' => '#dbeafe',
-            'text' => '#1d4ed8'
+            'light' => '#0ea5e9',
+            'background' => '#e0f2fe',
+            'text' => '#0369a1'
         ]
     ];
 
     /**
-     * Génère les variables CSS complètes pour le système
+     * Génère les variables CSS complètes avec les couleurs du logo
      */
     public static function generateCSSVariables() {
         $css = ":root {\n";
 
-        // Couleurs système
+        // Couleurs système basées sur le logo
         foreach (self::$colorSystem as $colorName => $shades) {
             foreach ($shades as $shade => $value) {
                 $css .= "  --color-{$colorName}-{$shade}: {$value};\n";
@@ -114,21 +113,21 @@ class StyleManager {
         $css .= "  
   /* Couleurs fonctionnelles - Mode clair */
   --color-bg-primary: #ffffff;
-  --color-bg-secondary: #f8fafc;
-  --color-bg-tertiary: #f1f5f9;
+  --color-bg-secondary: #f9fafb;
+  --color-bg-tertiary: #f3f4f6;
   --color-surface: #ffffff;
-  --color-surface-hover: #f8fafc;
-  --color-surface-active: #f1f5f9;
+  --color-surface-hover: #f9fafb;
+  --color-surface-active: #f3f4f6;
   
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-tertiary: #64748b;
-  --color-text-quaternary: #94a3b8;
+  --color-text-primary: #1F2937;
+  --color-text-secondary: #374151;
+  --color-text-tertiary: #6B7280;
+  --color-text-quaternary: #9ca3af;
   --color-text-inverse: #ffffff;
   
-  --color-border-primary: #e2e8f0;
-  --color-border-secondary: #cbd5e1;
-  --color-border-focus: #3b82f6;
+  --color-border-primary: #e5e7eb;
+  --color-border-secondary: #d1d5db;
+  --color-border-focus: #0F766E;
 ";
 
         $css .= "}\n";
@@ -137,21 +136,21 @@ class StyleManager {
         $css .= "
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg-primary: #1e293b;
-    --color-bg-secondary: #0f172a;
-    --color-bg-tertiary: #334155;
-    --color-surface: #1e293b;
-    --color-surface-hover: #334155;
-    --color-surface-active: #475569;
+    --color-bg-primary: #1F2937;
+    --color-bg-secondary: #111827;
+    --color-bg-tertiary: #374151;
+    --color-surface: #1F2937;
+    --color-surface-hover: #374151;
+    --color-surface-active: #4b5563;
     
-    --color-text-primary: #f8fafc;
-    --color-text-secondary: #cbd5e1;
-    --color-text-tertiary: #94a3b8;
-    --color-text-quaternary: #64748b;
-    --color-text-inverse: #0f172a;
+    --color-text-primary: #f9fafb;
+    --color-text-secondary: #e5e7eb;
+    --color-text-tertiary: #9ca3af;
+    --color-text-quaternary: #6B7280;
+    --color-text-inverse: #1F2937;
     
-    --color-border-primary: #334155;
-    --color-border-secondary: #475569;
+    --color-border-primary: #374151;
+    --color-border-secondary: #4b5563;
   }
 }
 ";
@@ -160,7 +159,7 @@ class StyleManager {
     }
 
     /**
-     * Retourne les classes pour un bouton harmonisé
+     * Retourne les classes pour un bouton harmonisé avec les couleurs du logo
      */
     public static function getButtonClass($variant = 'primary', $size = 'md') {
         $baseClasses = [
@@ -174,7 +173,8 @@ class StyleManager {
             'focus:ring-2',
             'focus:ring-offset-2',
             'disabled:opacity-50',
-            'disabled:cursor-not-allowed'
+            'disabled:cursor-not-allowed',
+            'transition-fast'
         ];
 
         // Tailles
@@ -186,13 +186,13 @@ class StyleManager {
             'xl' => ['px-8', 'py-4', 'text-lg', 'rounded-lg']
         ];
 
-        // Variantes
+        // Variantes basées sur les couleurs du logo
         $variantClasses = [
             'primary' => ['bg-primary-600', 'text-white', 'hover:bg-primary-700', 'focus:ring-primary-500', 'shadow-sm', 'hover:shadow-md'],
-            'secondary' => ['bg-neutral-100', 'text-neutral-900', 'hover:bg-neutral-200', 'focus:ring-neutral-500', 'border-neutral-300'],
-            'accent' => ['bg-accent-500', 'text-white', 'hover:bg-accent-600', 'focus:ring-accent-500', 'shadow-sm'],
+            'secondary' => ['bg-secondary-100', 'text-secondary-900', 'hover:bg-secondary-200', 'focus:ring-secondary-500', 'border-neutral-300'],
+            'neutral' => ['bg-neutral-100', 'text-neutral-900', 'hover:bg-neutral-200', 'focus:ring-neutral-500'],
             'success' => ['bg-green-600', 'text-white', 'hover:bg-green-700', 'focus:ring-green-500'],
-            'warning' => ['bg-yellow-500', 'text-yellow-900', 'hover:bg-yellow-600', 'focus:ring-yellow-500'],
+            'warning' => ['bg-yellow-500', 'text-white', 'hover:bg-yellow-600', 'focus:ring-yellow-500'],
             'error' => ['bg-red-600', 'text-white', 'hover:bg-red-700', 'focus:ring-red-500'],
             'outline' => ['bg-transparent', 'text-primary-600', 'border-primary-600', 'hover:bg-primary-50', 'focus:ring-primary-500'],
             'ghost' => ['bg-transparent', 'text-neutral-600', 'hover:bg-neutral-100', 'hover:text-neutral-900']
@@ -262,14 +262,15 @@ class StyleManager {
             'lg' => ['px-3', 'py-1', 'text-sm']
         ];
 
-        // Variantes de status
+        // Variantes de status avec couleurs du logo
         $statusClasses = [
             'success' => ['bg-green-100', 'text-green-800'],
             'warning' => ['bg-yellow-100', 'text-yellow-800'],
             'error' => ['bg-red-100', 'text-red-800'],
             'info' => ['bg-blue-100', 'text-blue-800'],
-            'neutral' => ['bg-gray-100', 'text-gray-800'],
-            'primary' => ['bg-primary-100', 'text-primary-800']
+            'neutral' => ['bg-neutral-100', 'text-neutral-800'],
+            'primary' => ['bg-primary-100', 'text-primary-800'],
+            'secondary' => ['bg-secondary-100', 'text-secondary-800']
         ];
 
         $classes = array_merge(
@@ -297,7 +298,8 @@ class StyleManager {
             'focus:ring-primary-500',
             'focus:border-primary-500',
             'disabled:bg-gray-50',
-            'disabled:text-gray-500'
+            'disabled:text-gray-500',
+            'transition-fast'
         ];
 
         // Tailles
@@ -320,7 +322,6 @@ class StyleManager {
         );
 
         if ($state && isset($stateClasses[$state])) {
-            // Remplacer les classes de bordure par défaut
             $classes = array_filter($classes, function($class) {
                 return !in_array($class, ['border-gray-300', 'focus:ring-primary-500', 'focus:border-primary-500']);
             });
@@ -352,7 +353,7 @@ class StyleManager {
     }
 
     /**
-     * Retourne les classes pour la navigation
+     * Retourne les classes pour la navigation avec couleurs du logo
      */
     public static function getNavLinkClass($active = false) {
         $baseClasses = [
@@ -373,9 +374,9 @@ class StyleManager {
             $classes = array_merge($baseClasses, $activeClasses);
         } else {
             $inactiveClasses = [
-                'text-gray-600',
-                'hover:bg-gray-100',
-                'hover:text-gray-900'
+                'text-neutral-600',
+                'hover:bg-primary-50',
+                'hover:text-primary-700'
             ];
             $classes = array_merge($baseClasses, $inactiveClasses);
         }
@@ -430,12 +431,37 @@ class StyleManager {
     }
 
     /**
+     * Retourne une grille responsive harmonisée
+     */
+    public static function getGridClass($cols = 3, $gap = 'md') {
+        $gapClasses = [
+            'sm' => 'gap-4',
+            'md' => 'gap-6',
+            'lg' => 'gap-8',
+            'xl' => 'gap-10'
+        ];
+
+        $gridClasses = [
+            1 => 'grid grid-cols-1',
+            2 => 'grid grid-cols-1 md:grid-cols-2',
+            3 => 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+            4 => 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4',
+            5 => 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5',
+            6 => 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6'
+        ];
+
+        $baseGrid = $gridClasses[$cols] ?? $gridClasses[3];
+        $gapClass = $gapClasses[$gap] ?? $gapClasses['md'];
+
+        return $baseGrid . ' ' . $gapClass;
+    }
+
+    /**
      * Génère le script JavaScript pour la gestion du thème
      */
     public static function getThemeToggleScript() {
         return '
 <script>
-// Gestionnaire de thème sombre/clair automatique
 class ThemeManager {
     constructor() {
         this.theme = localStorage.getItem("app-theme") || "auto";
@@ -455,7 +481,6 @@ class ThemeManager {
         } else if (this.theme === "light") {
             root.classList.remove("dark");
         } else {
-            // Mode auto: suivre les préférences système
             const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
             if (prefersDark) {
                 root.classList.add("dark");
@@ -464,7 +489,6 @@ class ThemeManager {
             }
         }
         
-        // Mettre à jour le bouton toggle si il existe
         this.updateToggleButton();
     }
     
@@ -508,17 +532,14 @@ class ThemeManager {
     }
 }
 
-// Initialiser le gestionnaire de thème
 const themeManager = new ThemeManager();
-
-// Fonctions globales
 window.toggleTheme = () => themeManager.toggle();
 window.setTheme = (theme) => themeManager.setTheme(theme);
 </script>';
     }
 
     /**
-     * Retourne le bouton de basculement de thème
+     * Retourne le bouton de basculement de thème avec couleurs du logo
      */
     public static function getThemeToggleButton() {
         $buttonClass = self::getButtonClass('ghost', 'sm');
@@ -537,41 +558,15 @@ window.setTheme = (theme) => themeManager.setTheme(theme);
     }
 
     /**
-     * Génère les meta tags pour le thème
+     * Génère les meta tags pour le thème avec couleurs du logo
      */
     public static function getThemeMetaTags() {
         return '
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#2563eb" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1e293b" media="(prefers-color-scheme: dark)">
-<meta name="msapplication-TileColor" content="#2563eb">
-<meta name="msapplication-navbutton-color" content="#2563eb">';
-    }
-
-    /**
-     * Retourne une grille responsive harmonisée
-     */
-    public static function getGridClass($cols = 3, $gap = 'md') {
-        $gapClasses = [
-            'sm' => 'gap-4',
-            'md' => 'gap-6',
-            'lg' => 'gap-8',
-            'xl' => 'gap-10'
-        ];
-
-        $gridClasses = [
-            1 => 'grid grid-cols-1',
-            2 => 'grid grid-cols-1 md:grid-cols-2',
-            3 => 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
-            4 => 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4',
-            5 => 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5',
-            6 => 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6'
-        ];
-
-        $baseGrid = $gridClasses[$cols] ?? $gridClasses[3];
-        $gapClass = $gapClasses[$gap] ?? $gapClasses['md'];
-
-        return $baseGrid . ' ' . $gapClass;
+<meta name="theme-color" content="#0F766E" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1F2937" media="(prefers-color-scheme: dark)">
+<meta name="msapplication-TileColor" content="#0F766E">
+<meta name="msapplication-navbutton-color" content="#0F766E">';
     }
 
     /**
@@ -594,18 +589,20 @@ window.setTheme = (theme) => themeManager.setTheme(theme);
     public static function getSystemInfo() {
         return [
             'colors' => [
-                'primary' => 'Bleu professionnel - Actions principales',
-                'neutral' => 'Gris doux - Arrière-plans et textes',
-                'accent' => 'Orange - Éléments d\'accent et CTA'
+                'primary' => 'Teal principal #0F766E - Couleur 1 du logo',
+                'secondary' => 'Charcoal #1F2937 - Couleur 2 du logo',
+                'neutral' => 'Gris neutre #6B7280 - Couleur 3 du logo'
             ],
             'features' => [
                 'dark_mode' => 'Automatique basé sur les préférences système',
                 'components' => 'Boutons, cartes, formulaires, badges, navigation',
                 'responsive' => 'Grilles et espacements adaptatifs',
-                'animations' => 'Transitions fluides et professionnelles'
+                'animations' => 'Transitions fluides et professionnelles',
+                'logo_colors' => 'Couleurs extraites directement du logo'
             ],
-            'version' => '2.0',
-            'compatibility' => 'Tailwind CSS v4+'
+            'version' => '3.0 FINAL',
+            'compatibility' => 'Tailwind CSS v4+',
+            'logo_source' => 'Couleurs basées sur logo_cm_sbg.jpg'
         ];
     }
 }
@@ -622,11 +619,11 @@ if (!function_exists('getAdditionalCSS')) {
 }
 
 .table-striped tbody tr:nth-child(even) {
-    background-color: #f8fafc;
+    background-color: #f9fafb;
 }
 
 .table-hover tbody tr:hover {
-    background-color: #f1f5f9;
+    background-color: #f3f4f6;
 }
 
 /* Animations fluides */
@@ -642,13 +639,13 @@ if (!function_exists('getAdditionalCSS')) {
     transition-duration: 200ms;
 }
 
-/* Dark mode support */
+/* Dark mode support avec couleurs du logo */
 @media (prefers-color-scheme: dark) {
-    .bg-white { background-color: var(--color-surface) !important; }
-    .text-gray-700 { color: var(--color-text-secondary) !important; }
-    .text-gray-600 { color: var(--color-text-tertiary) !important; }
-    .border-gray-200 { border-color: var(--color-border-primary) !important; }
-    .border-gray-300 { border-color: var(--color-border-secondary) !important; }
+    .bg-white { background-color: #1F2937 !important; }
+    .text-gray-700 { color: #e5e7eb !important; }
+    .text-gray-600 { color: #9ca3af !important; }
+    .border-gray-200 { border-color: #374151 !important; }
+    .border-gray-300 { border-color: #4b5563 !important; }
 }
 </style>';
     }
