@@ -20,7 +20,7 @@ class Utilisateur
 
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($user && password_verify(  $password,$user['mdp_utilisateur'] ) && $user['statut_utilisateur'] == 'Actif') {
+        if ($user && password_verify($password, $user['mdp_utilisateur']) && $user['statut_utilisateur'] == 'Actif') {
             // Vérification du mot de passe
             return $user;
         }
@@ -126,7 +126,7 @@ class Utilisateur
                 LEFT JOIN groupe_utilisateur gu ON u.id_GU = gu.id_GU
                 LEFT JOIN niveau_acces_donnees nad ON u.id_niv_acces_donnee = nad.id_niveau_acces_donnees
                 ORDER BY u.nom_utilisateur";
-        
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -174,7 +174,7 @@ class Utilisateur
         return $stmt->execute();
     }
 
-    public function updateUtilisateur($nom, $id_type_utilisateur, $id_GU, $id_niv_acces_donnees, $statut_utilisateur, $login,  $id)
+    public function updateUtilisateur($nom, $id_type_utilisateur, $id_GU, $id_niv_acces_donnees, $statut_utilisateur, $login, $id)
     {
         $query = "UPDATE utilisateur SET nom_utilisateur = :nom, login_utilisateur = :login, id_GU = :id_GU, id_type_utilisateur = :id_type_utilisateur, id_niv_acces_donnee = :id_niv_acces_donnees,statut_utilisateur = :statut  WHERE id_utilisateur = :id";
         $stmt = $this->db->prepare($query);
@@ -332,7 +332,7 @@ class Utilisateur
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
-   public function getEtudiantActif()
+    public function getEtudiantActif()
     {
         $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
                     u.statut_utilisateur,
@@ -456,7 +456,8 @@ class Utilisateur
     }
 
     // Récupérer les enseignants non enregistrés comme utilisateurs
-    public function getEnseignantsNonUtilisateurs() {
+    public function getEnseignantsNonUtilisateurs()
+    {
         $query = "SELECT e.id_enseignant, e.nom_enseignant, e.prenom_enseignant, e.mail_enseignant 
                  FROM enseignants e 
                  LEFT JOIN utilisateur u ON e.mail_enseignant = u.login_utilisateur 
@@ -468,7 +469,8 @@ class Utilisateur
     }
 
     // Récupérer le personnel administratif non enregistré comme utilisateur
-    public function getPersonnelNonUtilisateurs() {
+    public function getPersonnelNonUtilisateurs()
+    {
         $query = "SELECT pa.id_pers_admin, pa.nom_pers_admin, pa.prenom_pers_admin, pa.email_pers_admin 
                  FROM personnel_admin pa 
                  LEFT JOIN utilisateur u ON pa.email_pers_admin = u.login_utilisateur 
@@ -480,7 +482,8 @@ class Utilisateur
     }
 
     // Récupérer les étudiants non enregistrés comme utilisateurs
-    public function getEtudiantsNonUtilisateurs() {
+    public function getEtudiantsNonUtilisateurs()
+    {
         $query = "SELECT e.num_etu, e.nom_etu, e.prenom_etu,e.email_etu
                  FROM etudiants e 
                  LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur 
@@ -491,20 +494,16 @@ class Utilisateur
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
-    // Récupérer les étudiants en Master 2 non enregistrés comme utilisateurs
-    public function getEtudiantsMaster2NonUtilisateurs() {
-        $query = "SELECT e.num_etu, e.nom_etu, e.prenom_etu, e.email_etu, n.lib_niv_etude
-                 FROM etudiants e 
+
+
+    // Récupérer les étudiants qui ont au moins une inscription et ne sont pas encore utilisateurs
+    public function getEtudiantsInscritsNonUtilisateurs()
+    {
+        $query = "SELECT DISTINCT e.num_etu, e.nom_etu, e.prenom_etu, e.email_etu
+                 FROM etudiants e
                  INNER JOIN inscriptions i ON e.num_etu = i.id_etudiant
-                 INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
-                 LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur 
-                 WHERE u.id_utilisateur IS NULL 
-                 AND n.id_niv_etude = 9
-                 AND i.id_inscription = (
-                     SELECT i2.id_inscription FROM inscriptions i2
-                     WHERE i2.id_etudiant = e.num_etu
-                     ORDER BY i2.date_inscription DESC LIMIT 1
-                 )
+                 LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur
+                 WHERE u.id_utilisateur IS NULL
                  ORDER BY e.nom_etu, e.prenom_etu";
         $stmt = $this->db->prepare($query);
         $stmt->execute();
@@ -512,7 +511,8 @@ class Utilisateur
     }
 
     // Vérifier si un login (email) est déjà utilisé
-    public function isLoginUsed($login) {
+    public function isLoginUsed($login)
+    {
         $query = "SELECT COUNT(*) as count FROM utilisateur WHERE login_utilisateur = :login";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':login', $login);
@@ -520,7 +520,7 @@ class Utilisateur
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result['count'] > 0;
     }
- // Fonction pour générer un mot de passe aléatoire
+    // Fonction pour générer un mot de passe aléatoire
     function generateRandomPassword($length = 12)
     {
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+';
@@ -531,23 +531,26 @@ class Utilisateur
         return $password;
     }
     // Ajouter plusieurs utilisateurs en masse
-    public function ajouterUtilisateursEnMasse($utilisateurs) {
+    public function ajouterUtilisateursEnMasse($utilisateurs)
+    {
         $this->db->beginTransaction();
         try {
             $utilisateursAjoutes = [];
             foreach ($utilisateurs as $utilisateur) {
                 $mdp = $this->generateRandomPassword();
                 $mdp_hash = password_hash($mdp, PASSWORD_DEFAULT);
-                
-                if ($this->ajouterUtilisateur(
-                    $utilisateur['nom'],
-                    $utilisateur['id_type'],
-                    $utilisateur['id_groupe'],
-                    $utilisateur['id_niveau'],
-                    $utilisateur['statut'],
-                    $utilisateur['login'],
-                    $mdp_hash
-                )) {
+
+                if (
+                    $this->ajouterUtilisateur(
+                        $utilisateur['nom'],
+                        $utilisateur['id_type'],
+                        $utilisateur['id_groupe'],
+                        $utilisateur['id_niveau'],
+                        $utilisateur['statut'],
+                        $utilisateur['login'],
+                        $mdp_hash
+                    )
+                ) {
                     $utilisateursAjoutes[] = [
                         'nom' => $utilisateur['nom'],
                         'login' => $utilisateur['login'],
@@ -566,7 +569,8 @@ class Utilisateur
     }
 
     // Récupérer un enseignant par son ID
-    public function getEnseignantById($id) {
+    public function getEnseignantById($id)
+    {
         $sql = "SELECT * FROM enseignants WHERE id_enseignant = :id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['id' => $id]);
@@ -574,7 +578,8 @@ class Utilisateur
     }
 
     // Récupérer un membre du personnel par son ID
-    public function getPersonnelById($id) {
+    public function getPersonnelById($id)
+    {
         $sql = "SELECT * FROM personnel_admin WHERE id_pers_admin = :id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['id' => $id]);
@@ -582,14 +587,15 @@ class Utilisateur
     }
 
     // Récupérer un étudiant par son ID
-    public function getEtudiantById($id) {
+    public function getEtudiantById($id)
+    {
         $sql = "SELECT * FROM etudiants WHERE num_etu = :id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['id' => $id]);
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
-    
-    
-    
+
+
+
 }

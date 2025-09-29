@@ -34,168 +34,182 @@ include __DIR__ . '/../ressources/routes/archivesCompteRenduRoutes.php';
 if (!isset($_SESSION['id_utilisateur'])) {
     header('Location: page_connexion.php');
     exit;
-}
-else {
+} else {
 
-// Récupérer les traitements autorisés pour le groupe d'utilisateur
-$menuController = new MenuController();
-$traitements = $menuController->genererMenu($_SESSION['id_GU']);
+    // Récupérer les traitements autorisés pour le groupe d'utilisateur
+    $menuController = new MenuController();
+    $traitements = $menuController->genererMenu($_SESSION['id_GU']);
 
-// Déterminer la page actuelle
-$currentMenuSlug = ''; // Page par défaut
-$currentPageLabel=''; // Label par défaut
+    // Déterminer la page actuelle
+    $currentMenuSlug = ''; // Page par défaut
+    $currentPageLabel = ''; // Label par défaut
 
-if (isset($_GET['page'])) {
-    // Vérifier que la page demandée est bien dans les traitements autorisés
-    foreach ($traitements as $traitement) {
-        if ($traitement['lib_traitement'] === $_GET['page']) {
-            $currentMenuSlug = $traitement['lib_traitement'];
-            $currentPageLabel = $traitement['label_traitement'];
-            break;
-        }
-    }
-    
-    // Exception pour les pages spéciales qui ne sont pas dans les traitements
-    if (empty($currentMenuSlug)) {
-        $specialPages = ['archive_comptes_rendus', 'redaction_compte_rendu'];
-        if (in_array($_GET['page'], $specialPages)) {
-            $currentMenuSlug = $_GET['page'];
-            $currentPageLabel = ($_GET['page'] === 'archive_comptes_rendus') ? 'Archives des comptes rendus' : 'Rédaction de compte rendu';
-        }
-    }
-}
-
-// Si aucune page valide n'a été trouvée, utiliser la première page autorisée
-if (empty($currentMenuSlug) && !empty($traitements)) {
-    $currentMenuSlug = $traitements[0]['lib_traitement'];
-    $currentPageLabel = $traitements[0]['label_traitement'];
-
-    // Rediriger vers la première page avec le paramètre page pour éviter les problèmes de rechargement
-    if (!isset($_GET['page'])) {
-        header('Location: layout.php?page=' . urlencode($currentMenuSlug));
-        exit;
-    }
-}
-
-// Générer le HTML du menu
-$menuView = new MenuView();
-$menuHTML = $menuView->afficherMenu($traitements, $currentMenuSlug);
-
-// Initialiser les variables
-$currentAction = null;
-$contentFile = '';
-
-
-$partialsBasePath= '..' . DIRECTORY_SEPARATOR . 'ressources' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR ;
-
-    
-
-// Utilisation d'une structure switch...case 
-switch ($currentMenuSlug) {
-    case 'parametres_generaux':
-        include __DIR__ . '/../ressources/routes/parametreGenerauxRouteur.php'; // ajuste le chemin selon ta structure
-        if (isset($_GET['action'])) {
-            $allowedActions = [
-                'annees_academiques', 'grades', 'fonctions', 'fonction_utilisateur', 'specialites', 'niveaux_etude',
-                'ue', 'ecue', 'statut_jury', 'niveaux_approbation', 'semestres',
-                'niveaux_acces', 'traitements', 'entreprises', 'actions', 'fonctions_enseignants', 'messages','gestion_attribution',
-            ];
-            if (in_array($_GET['action'], $allowedActions)) {
-                $currentAction = $_GET['action'];
-                $contentFile = $partialsBasePath . 'parametres_generaux' . DIRECTORY_SEPARATOR . $currentAction . '.php';
-                $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
+    if (isset($_GET['page'])) {
+        // Vérifier que la page demandée est bien dans les traitements autorisés
+        foreach ($traitements as $traitement) {
+            if ($traitement['lib_traitement'] === $_GET['page']) {
+                $currentMenuSlug = $traitement['lib_traitement'];
+                $currentPageLabel = $traitement['label_traitement'];
+                break;
             }
-        } else {
+        }
+
+        // Exception pour les pages spéciales qui ne sont pas dans les traitements
+        if (empty($currentMenuSlug)) {
+            $specialPages = ['archive_comptes_rendus', 'redaction_compte_rendu'];
+            if (in_array($_GET['page'], $specialPages)) {
+                $currentMenuSlug = $_GET['page'];
+                $currentPageLabel = ($_GET['page'] === 'archive_comptes_rendus') ? 'Archives des comptes rendus' : 'Rédaction de compte rendu';
+            }
+        }
+    }
+
+    // Si aucune page valide n'a été trouvée, utiliser la première page autorisée
+    if (empty($currentMenuSlug) && !empty($traitements)) {
+        $currentMenuSlug = $traitements[0]['lib_traitement'];
+        $currentPageLabel = $traitements[0]['label_traitement'];
+
+        // Rediriger vers la première page avec le paramètre page pour éviter les problèmes de rechargement
+        if (!isset($_GET['page'])) {
+            header('Location: layout.php?page=' . urlencode($currentMenuSlug));
+            exit;
+        }
+    }
+
+    // Générer le HTML du menu
+    $menuView = new MenuView();
+    $menuHTML = $menuView->afficherMenu($traitements, $currentMenuSlug);
+
+    // Initialiser les variables
+    $currentAction = null;
+    $contentFile = '';
+
+
+    $partialsBasePath = '..' . DIRECTORY_SEPARATOR . 'ressources' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR;
+
+
+
+    // Utilisation d'une structure switch...case 
+    switch ($currentMenuSlug) {
+        case 'parametres_generaux':
+            include __DIR__ . '/../ressources/routes/parametreGenerauxRouteur.php'; // ajuste le chemin selon ta structure
+            if (isset($_GET['action'])) {
+                $allowedActions = [
+                    'annees_academiques',
+                    'grades',
+                    'fonctions',
+                    'fonction_utilisateur',
+                    'specialites',
+                    'niveaux_etude',
+                    'ue',
+                    'ecue',
+                    'statut_jury',
+                    'niveaux_approbation',
+                    'semestres',
+                    'niveaux_acces',
+                    'traitements',
+                    'entreprises',
+                    'actions',
+                    'fonctions_enseignants',
+                    'messages',
+                    'gestion_attribution',
+                ];
+                if (in_array($_GET['action'], $allowedActions)) {
+                    $currentAction = $_GET['action'];
+                    $contentFile = $partialsBasePath . 'parametres_generaux' . DIRECTORY_SEPARATOR . $currentAction . '.php';
+                    $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
+                }
+            } else {
                 // Action non valide, afficher la page des cartes par défaut ou une erreur
                 $contentFile = $partialsBasePath . 'parametres_generaux_content.php';
                 $currentPageLabel = 'Paramètres Généraux';
                 // Optionnel: afficher un message d'erreur pour action non valide
             }
-    break;
+            break;
 
-    case 'gestion_reclamations':
-        include __DIR__ . '/../ressources/routes/gestionReclamationsRouteur.php'; // Ajustez le chemin si nécessaire
-        
-        $allowedActions = ['soumettre_reclamation', 'suivi_historique_reclamation'];
-        $ajaxActions = ['get_reclamation_details'];
-        
-        if (isset($_GET['action'])) {
-            if (in_array($_GET['action'], $ajaxActions)) {
-                // Les actions AJAX sont déjà traitées dans les routes, pas besoin de fichier de vue
-                exit;
-            } elseif (in_array($_GET['action'], $allowedActions)) {
-                $currentAction = $_GET['action'];
-                $contentFile = $partialsBasePath. 'gestion_reclamations/' . $currentAction . '.php';
-                $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
+        case 'gestion_reclamations':
+            include __DIR__ . '/../ressources/routes/gestionReclamationsRouteur.php'; // Ajustez le chemin si nécessaire
+
+            $allowedActions = ['soumettre_reclamation', 'suivi_historique_reclamation'];
+            $ajaxActions = ['get_reclamation_details'];
+
+            if (isset($_GET['action'])) {
+                if (in_array($_GET['action'], $ajaxActions)) {
+                    // Les actions AJAX sont déjà traitées dans les routes, pas besoin de fichier de vue
+                    exit;
+                } elseif (in_array($_GET['action'], $allowedActions)) {
+                    $currentAction = $_GET['action'];
+                    $contentFile = $partialsBasePath . 'gestion_reclamations/' . $currentAction . '.php';
+                    $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
+                } else {
+                    // Si aucune action valide n'est spécifiée, affichez la page par défaut
+                    $contentFile = $partialsBasePath . 'gestion_reclamations_content.php';
+                    $currentPageLabel = 'Gestion des réclamations';
+                }
             } else {
                 // Si aucune action valide n'est spécifiée, affichez la page par défaut
                 $contentFile = $partialsBasePath . 'gestion_reclamations_content.php';
                 $currentPageLabel = 'Gestion des réclamations';
             }
-        } else {
-            // Si aucune action valide n'est spécifiée, affichez la page par défaut
-            $contentFile = $partialsBasePath . 'gestion_reclamations_content.php';
-            $currentPageLabel = 'Gestion des réclamations';
-        }
-        
-    break;
 
-    case 'gestion_rapports':
-        // Ajustez le chemin si nécessaire
-        include __DIR__ . '/../ressources/routes/gestionRapportsRoutes.php';
-        
-        $allowedActions = ['creer_rapport', 'suivi_rapport', 'commentaire_rapport'];
-        $ajaxActions = ['get_commentaires', 'get_rapport'];
-        
-        if (isset($_GET['action'])) {
-            if (in_array($_GET['action'], $ajaxActions)) {
-                // Les actions AJAX sont déjà traitées dans les routes, pas besoin de fichier de vue
-                exit;
-            } elseif (in_array($_GET['action'], $allowedActions)) {
-                $currentAction = $_GET['action'];
-                $contentFile = $partialsBasePath . 'gestion_rapports/' . $currentAction . '.php';
-                $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
+            break;
+
+        case 'gestion_rapports':
+            // Ajustez le chemin si nécessaire
+            include __DIR__ . '/../ressources/routes/gestionRapportsRoutes.php';
+
+            $allowedActions = ['creer_rapport', 'suivi_rapport', 'commentaire_rapport'];
+            $ajaxActions = ['get_commentaires', 'get_rapport'];
+
+            if (isset($_GET['action'])) {
+                if (in_array($_GET['action'], $ajaxActions)) {
+                    // Les actions AJAX sont déjà traitées dans les routes, pas besoin de fichier de vue
+                    exit;
+                } elseif (in_array($_GET['action'], $allowedActions)) {
+                    $currentAction = $_GET['action'];
+                    $contentFile = $partialsBasePath . 'gestion_rapports/' . $currentAction . '.php';
+                    $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
+                } else {
+                    // Si aucune action valide n'est spécifiée, affichez la page par défaut
+                    $contentFile = $partialsBasePath . 'gestion_rapports_content.php';
+                    $currentPageLabel = 'Gestion des rapports';
+                }
             } else {
-                // Si aucune action valide n'est spécifiée, affichez la page par défaut
+                // Si aucune action n'est spécifiée, affichez la page par défaut
                 $contentFile = $partialsBasePath . 'gestion_rapports_content.php';
                 $currentPageLabel = 'Gestion des rapports';
             }
-        } else {
-            // Si aucune action n'est spécifiée, affichez la page par défaut
-            $contentFile = $partialsBasePath . 'gestion_rapports_content.php';
-            $currentPageLabel = 'Gestion des rapports';
-        }
-        
-    break;
+
+            break;
         case 'candidature_soutenance':
-             // Ajustez le chemin si nécessaire
-        include __DIR__ . '/../ressources/routes/candidatureSoutenanceRoutes.php';
-        
-        $allowedActions = [ 'compte_rendu_etudiant'];
-        
-        if (isset($_GET['action']) && in_array($_GET['action'], $allowedActions)) {
-            $currentAction = $_GET['action'];
-            $contentFile = $partialsBasePath . 'candidature_soutenance/' . $currentAction . '.php';
-            $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
-        } else {
-            // Si aucune action valide n'est spécifiée, affichez la page par défaut
-            $contentFile = $partialsBasePath . 'candidature_soutenance_content.php';
+            // Ajustez le chemin si nécessaire
+            include __DIR__ . '/../ressources/routes/candidatureSoutenanceRoutes.php';
+
+            $allowedActions = ['compte_rendu_etudiant'];
+
+            if (isset($_GET['action']) && in_array($_GET['action'], $allowedActions)) {
+                $currentAction = $_GET['action'];
+                $contentFile = $partialsBasePath . 'candidature_soutenance/' . $currentAction . '.php';
+                $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
+            } else {
+                // Si aucune action valide n'est spécifiée, affichez la page par défaut
+                $contentFile = $partialsBasePath . 'candidature_soutenance_content.php';
                 $currentPageLabel = 'Candidater pour la soutenance';
-        }
+            }
 
 
             break;
         case 'gestion_etudiants':
             // Ajustez le chemin si nécessaire
             include __DIR__ . '/../ressources/routes/gestionEtudiantRoutes.php';
-        
+
             // Gérer l'action d'impression de reçu PDF
             if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'imprimer_recu' && isset($_GET['id_inscription'])) {
                 // Inclure l'autoloader de Composer pour Dompdf
                 require_once __DIR__ . '/../vendor/autoload.php'; // Assurez-vous que ce chemin est correct
 
                 $id_inscription = $_GET['id_inscription'];
-                
+
                 // Démarrer la mise en mémoire tampon de sortie
                 ob_start();
 
@@ -205,18 +219,28 @@ switch ($currentMenuSlug) {
                 // Capturer le contenu de la mémoire tampon et le stocker dans $html
                 $html = ob_get_clean();
 
-                // Instancier Dompdf
-                $dompdf = new Dompdf\Dompdf();
+
+                // Instancier Dompdf avec options (autoriser images distantes)
+                if (class_exists('\Dompdf\Options')) {
+                    $options = new \Dompdf\Options();
+                    $options->set('isRemoteEnabled', true);
+                    $dompdf = new Dompdf\Dompdf($options);
+                } else {
+                    $dompdf = new Dompdf\Dompdf();
+                }
 
                 // Définir le répertoire de base pour les ressources (images, css)
-                $dompdf->setBasePath(__DIR__ . '../public/images/');
+                // Utiliser le dossier public racine
+                $publicPath = realpath(__DIR__ . '/../');
+                if ($publicPath) {
+                    $dompdf->setBasePath($publicPath);
+                }
 
                 // Charger le HTML
-                
                 $dompdf->loadHtml($html);
 
-                // (Optionnel) Définir la taille et l\'orientation du papier
-                $dompdf->setPaper('A4', 'portrait');
+                // Définir la taille et l'orientation du papier en A4 paysage
+                $dompdf->setPaper('A4', 'landscape');
 
                 // Rendre le PDF
                 $dompdf->render();
@@ -229,21 +253,20 @@ switch ($currentMenuSlug) {
             }
 
             $allowedActions = ['ajouter_des_etudiants', 'inscrire_des_etudiants'];
-    
-            
+
+
             if (isset($_GET['action']) && in_array($_GET['action'], $allowedActions)) {
                 $currentAction = $_GET['action'];
                 $contentFile = $partialsBasePath . 'gestion_etudiants/' . $currentAction . '.php';
                 $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
-            } 
-            else {
+            } else {
                 // Si aucune action valide n'est spécifiée, affichez la page par défaut
                 $contentFile = $partialsBasePath . 'gestion_etudiants_content.php';
                 $currentPageLabel = 'Gestion des étudiants';
             }
             break;
         case 'gestion_scolarite':
-             // Gérer l'action d'impression de reçu PDF
+            // Gérer l'action d'impression de reçu PDF
             if (isset($_GET['action']) && $_GET['action'] === 'imprimer_recu' && isset($_GET['id'])) {
                 // Inclure l'autoloader de Composer pour Dompdf
                 require_once __DIR__ . '/../vendor/autoload.php'; // Assurez-vous que ce chemin est correct
@@ -259,18 +282,27 @@ switch ($currentMenuSlug) {
                 // Capturer le contenu de la mémoire tampon et le stocker dans $html
                 $html = ob_get_clean();
 
-                // Instancier Dompdf
-                $dompdf = new Dompdf\Dompdf();
+
+                // Instancier Dompdf avec options (autoriser images distantes)
+                if (class_exists('\Dompdf\Options')) {
+                    $options = new \Dompdf\Options();
+                    $options->set('isRemoteEnabled', true);
+                    $dompdf = new Dompdf\Dompdf($options);
+                } else {
+                    $dompdf = new Dompdf\Dompdf();
+                }
 
                 // Définir le répertoire de base pour les ressources (images, css)
-                $dompdf->setBasePath(__DIR__ . '../public/images/');
+                $publicPath = realpath(__DIR__ . '/../');
+                if ($publicPath) {
+                    $dompdf->setBasePath($publicPath);
+                }
 
                 // Charger le HTML
-                
                 $dompdf->loadHtml($html);
 
-                // (Optionnel) Définir la taille et l\'orientation du papier
-                $dompdf->setPaper('A4', 'portrait');
+                // Définir la taille et l'orientation du papier en A4 paysage
+                $dompdf->setPaper('A4', 'landscape');
 
                 // Rendre le PDF
                 $dompdf->render();
@@ -281,14 +313,14 @@ switch ($currentMenuSlug) {
 
                 exit; // Arrêter l\'exécution pour ne pas charger le reste de la page
             }
-                // Afficher la vue par défaut
-                $contentFile = $partialsBasePath . 'gestion_scolarite_content.php';
-                $currentPageLabel = 'Gestion de la scolarité';
+            // Afficher la vue par défaut
+            $contentFile = $partialsBasePath . 'gestion_scolarite_content.php';
+            $currentPageLabel = 'Gestion de la scolarité';
 
             break;
 
-            case 'gestion_notes_evaluations':
-             // Gérer l'action d'impression de reçu PDF
+        case 'gestion_notes_evaluations':
+            // Gérer l'action d'impression de reçu PDF
             if (isset($_GET['action']) && $_GET['action'] === 'imprimer_releve' && isset($_GET['student']) && isset($_GET['niveau'])) {
                 // Inclure l'autoloader de Composer pour Dompdf
                 require_once __DIR__ . '/../vendor/autoload.php'; // Assurez-vous que ce chemin est correct
@@ -327,9 +359,9 @@ switch ($currentMenuSlug) {
 
                 exit; // Arrêter l\'exécution pour ne pas charger le reste de la page
             }
-                // Afficher la vue par défaut
-                $contentFile = $partialsBasePath . 'gestion_notes_evaluations_content.php';
-                $currentPageLabel = 'Gestion des notes et évaluations';
+            // Afficher la vue par défaut
+            $contentFile = $partialsBasePath . 'gestion_notes_evaluations_content.php';
+            $currentPageLabel = 'Gestion des notes et évaluations';
 
             break;
 
@@ -355,162 +387,163 @@ switch ($currentMenuSlug) {
             break;
 
         default:
-       
-   $groupeUtilisateur = $_SESSION['lib_GU'];
+
+            $groupeUtilisateur = $_SESSION['lib_GU'];
 
 
-        if($groupeUtilisateur) {
-            
+            if ($groupeUtilisateur) {
+
                 $contentFile = $partialsBasePath . $currentMenuSlug . '_content.php';
-             
+
+            }
+
+            // Vérification du fichier de contenu
+            if (empty($contentFile) || !file_exists($contentFile)) {
+                $contentFile = ''; // Réinitialiser si le fichier n'existe pas
+            }
+            break;
+    }
+
+    // Debug temporaire
+    if (isset($_GET['page'])) {
+        error_log('PAGE DEMANDEE : ' . $_GET['page']);
+        foreach ($traitements as $t) {
+            error_log('TRAITEMENT AUTORISE : ' . $t['lib_traitement']);
         }
- 
-    // Vérification du fichier de contenu
-    if (empty($contentFile) || !file_exists($contentFile)) {
-        $contentFile = ''; // Réinitialiser si le fichier n'existe pas
     }
-break;
-}
-
-// Debug temporaire
-if (isset($_GET['page'])) {
-    error_log('PAGE DEMANDEE : ' . $_GET['page']);
-    foreach ($traitements as $t) {
-        error_log('TRAITEMENT AUTORISE : ' . $t['lib_traitement']);
-    }
-}
 
 
 
 
-// Tableau de données pour vos cartes avec des titres et descriptions personnalisés.
+    // Tableau de données pour vos cartes avec des titres et descriptions personnalisés.
 // Chaque élément du tableau représente une carte pour .
-$cardPGeneraux = [
-    [
-        'title' => 'Années Académiques',
-        'description' => 'Gérer les années académiques, les dates de début et de fin.',
-        'link' => '?page=parametres_generaux&action=annees_academiques', // Adaptez le lien
-        'icon' => './images/date-du-calendrier.png' // Optionnel: vous pouvez ajouter une icône
-    ],
-    [
-        'title' => 'Gestion des Grades',
-        'description' => 'Définir et administrer les différents grades académiques.',
-        'link' => '?page=parametres_generaux&action=grades',
-        'icon' => './images/diplome.png'
-    ],
-    [
-        'title' => 'Fonctions Utilisateurs',
-        'description' => 'Configurer les rôles et fonctions des utilisateurs du système.',
-        'link' => '?page=parametres_generaux&action=fonction_utilisateur&tab=groupes',
-        'icon' => './images/equipe.png'
-    ],
-    [
-        'title' => 'Spécialités des enseignants',
-        'description' => 'Administrer les spécialités et filières proposées.',
-        'link' => '?page=parametres_generaux&action=specialites',
-        'icon' => './images/marche-de-niche.png'
-    ],
-    [
-        'title' => 'Niveaux d\'Étude',
-        'description' => 'Gérer les différents niveaux d\'étude (Licence, Master, etc.).',
-        'link' => '?page=parametres_generaux&action=niveaux_etude',
-        'icon' => './images/livre.png'
-    ],
-    [
-        'title' => 'Unités d\'Enseignement (UE)',
-        'description' => 'Définir les unités d\'enseignement et leurs crédits.',
-        'link' => '?page=parametres_generaux&action=ue',
-        'icon' => './images/livre-ouvert.png'
-    ],
-    [
-        'title' => 'Éléments Constitutifs (ECUE)',
-        'description' => 'Gérer les éléments constitutifs des unités d\'enseignement.',
-        'link' => '?page=parametres_generaux&action=ecue',
-        'icon' => './images/piece-de-puzzle.png'
-    ],
-    [
-        'title' => 'Statuts du Jury',
-        'description' => 'Configurer les différents statuts possibles pour les membres du jury.',
-        'link' => '?page=parametres_generaux&action=statut_jury',
-        'icon' => './images/droit.png'
-    ],
+    $cardPGeneraux = [
+        [
+            'title' => 'Années Académiques',
+            'description' => 'Gérer les années académiques, les dates de début et de fin.',
+            'link' => '?page=parametres_generaux&action=annees_academiques', // Adaptez le lien
+            'icon' => './images/date-du-calendrier.png' // Optionnel: vous pouvez ajouter une icône
+        ],
+        [
+            'title' => 'Gestion des Grades',
+            'description' => 'Définir et administrer les différents grades académiques.',
+            'link' => '?page=parametres_generaux&action=grades',
+            'icon' => './images/diplome.png'
+        ],
+        [
+            'title' => 'Fonctions Utilisateurs',
+            'description' => 'Configurer les rôles et fonctions des utilisateurs du système.',
+            'link' => '?page=parametres_generaux&action=fonction_utilisateur&tab=groupes',
+            'icon' => './images/equipe.png'
+        ],
+        [
+            'title' => 'Spécialités des enseignants',
+            'description' => 'Administrer les spécialités et filières proposées.',
+            'link' => '?page=parametres_generaux&action=specialites',
+            'icon' => './images/marche-de-niche.png'
+        ],
+        [
+            'title' => 'Niveaux d\'Étude',
+            'description' => 'Gérer les différents niveaux d\'étude (Licence, Master, etc.).',
+            'link' => '?page=parametres_generaux&action=niveaux_etude',
+            'icon' => './images/livre.png'
+        ],
+        [
+            'title' => 'Unités d\'Enseignement (UE)',
+            'description' => 'Définir les unités d\'enseignement et leurs crédits.',
+            'link' => '?page=parametres_generaux&action=ue',
+            'icon' => './images/livre-ouvert.png'
+        ],
+        [
+            'title' => 'Éléments Constitutifs (ECUE)',
+            'description' => 'Gérer les éléments constitutifs des unités d\'enseignement.',
+            'link' => '?page=parametres_generaux&action=ecue',
+            'icon' => './images/piece-de-puzzle.png'
+        ],
+        [
+            'title' => 'Statuts du Jury',
+            'description' => 'Configurer les différents statuts possibles pour les membres du jury.',
+            'link' => '?page=parametres_generaux&action=statut_jury',
+            'icon' => './images/droit.png'
+        ],
 
-    [
-        'title' => 'Niveaux d\'Approbation',
-        'description' => 'Définir les circuits et niveaux d\'approbation pour les documents.',
-        'link' => '?page=parametres_generaux&action=niveaux_approbation',
-        'icon' => './images/check.png'
-    ],
-     [
-        'title' => 'Semestres',
-        'description' => 'Définir les différents semestres et UE associées.',
-        'link' => '?page=parametres_generaux&action=semestres',
-        'icon' => './images/diplome.png'
-    ],
-     [
-        'title' => 'Niveaux d\'Accès',
-        'description' => 'Définir les différents niveaux d\'accès pour les utilisateurs',
-        'link' => '?page=parametres_generaux&action=niveaux_acces',
-        'icon' => './images/check.png',
-    ],
-     [
-        'title' => 'Traitements',
-        'description' => 'Définir les traitements à affecter aux différents utilisateurs.',
-        'link' => '?page=parametres_generaux&action=traitements',
-        'icon' => './images/bd.png'
-    ], [
-        'title' => 'Entreprises',
-        'description' => 'Gérer les entreprises partenaires et leurs informations.',
-        'link' => '?page=parametres_generaux&action=entreprises',
-        'icon' => './images/valise.png'
-    ],
-     [
-        'title' => 'Actions',
-        'description' => 'Définir les actions possibles pour les utilisateurs dans le système.',
-        'link' => '?page=parametres_generaux&action=actions',
-        'icon' => './images/cible.png'
-     ],
-     [
-        'title' => 'Fonctions',
-        'description' => 'Définir les fonctions exercées par les enseignants dans le système.',
-        'link' => '?page=parametres_generaux&action=fonctions',
-        'icon' => './images/valise.png'
-    ],
-    [
-        'title' => 'Messagerie',
-        'description' => 'Définition des messages d\'erreur à afficher dans le système.',
-        'link' => '?page=parametres_generaux&action=messages',
-        'icon' => './images/enveloppe.png'
-    ],
-    [
-        'title' => 'Gestion des Attributions',
-        'description' => 'Gérer les attributions de traitement pour chacun des groupes utilisateurs dans le système.',
-        'link' => '?page=parametres_generaux&action=gestion_attribution',
-        'icon' => './images/attribution.png'
-    ],
-];
+        [
+            'title' => 'Niveaux d\'Approbation',
+            'description' => 'Définir les circuits et niveaux d\'approbation pour les documents.',
+            'link' => '?page=parametres_generaux&action=niveaux_approbation',
+            'icon' => './images/check.png'
+        ],
+        [
+            'title' => 'Semestres',
+            'description' => 'Définir les différents semestres et UE associées.',
+            'link' => '?page=parametres_generaux&action=semestres',
+            'icon' => './images/diplome.png'
+        ],
+        [
+            'title' => 'Niveaux d\'Accès',
+            'description' => 'Définir les différents niveaux d\'accès pour les utilisateurs',
+            'link' => '?page=parametres_generaux&action=niveaux_acces',
+            'icon' => './images/check.png',
+        ],
+        [
+            'title' => 'Traitements',
+            'description' => 'Définir les traitements à affecter aux différents utilisateurs.',
+            'link' => '?page=parametres_generaux&action=traitements',
+            'icon' => './images/bd.png'
+        ],
+        [
+            'title' => 'Entreprises',
+            'description' => 'Gérer les entreprises partenaires et leurs informations.',
+            'link' => '?page=parametres_generaux&action=entreprises',
+            'icon' => './images/valise.png'
+        ],
+        [
+            'title' => 'Actions',
+            'description' => 'Définir les actions possibles pour les utilisateurs dans le système.',
+            'link' => '?page=parametres_generaux&action=actions',
+            'icon' => './images/cible.png'
+        ],
+        [
+            'title' => 'Fonctions',
+            'description' => 'Définir les fonctions exercées par les enseignants dans le système.',
+            'link' => '?page=parametres_generaux&action=fonctions',
+            'icon' => './images/valise.png'
+        ],
+        [
+            'title' => 'Messagerie',
+            'description' => 'Définition des messages d\'erreur à afficher dans le système.',
+            'link' => '?page=parametres_generaux&action=messages',
+            'icon' => './images/enveloppe.png'
+        ],
+        [
+            'title' => 'Gestion des Attributions',
+            'description' => 'Gérer les attributions de traitement pour chacun des groupes utilisateurs dans le système.',
+            'link' => '?page=parametres_generaux&action=gestion_attribution',
+            'icon' => './images/attribution.png'
+        ],
+    ];
 
-$cardReclamation = [
-    [
-        'title' => 'Soumettre une Réclamation',
-        'description' => 'Déposez une nouvelle réclamation en remplissant le formulaire dédié.',
-        'link' => '?page=gestion_reclamations&action=soumettre_reclamation', // Adaptez le lien
-        'icon' => 'fa-solid fa-circle-exclamation ', // Optionnel: vous pouvez ajouter une icône
-        'title_link' => 'Soumettre',
-        'bg_color' =>'bg-blue-300 ',
-        'text_color' => 'text-blue-500'
-    ],
-    [
-        'title' => 'Suivi et historique des réclamations',
-        'description' => 'Consultez l\'état actuel de vos réclamations en cours et accédez à l\'historique complet de vos réclamations passées.',
-        'link' => '?page=gestion_reclamations&action=suivi_historique_reclamation',
-        'icon' => 'fa-solid fa-eye ',
-        'title_link' => 'Suivi et historique',
-        'bg_color' =>'bg-yellow-500 ',
-        'text_color' =>'text-yellow-600'
-    ]
+    $cardReclamation = [
+        [
+            'title' => 'Soumettre une Réclamation',
+            'description' => 'Déposez une nouvelle réclamation en remplissant le formulaire dédié.',
+            'link' => '?page=gestion_reclamations&action=soumettre_reclamation', // Adaptez le lien
+            'icon' => 'fa-solid fa-circle-exclamation ', // Optionnel: vous pouvez ajouter une icône
+            'title_link' => 'Soumettre',
+            'bg_color' => 'bg-blue-300 ',
+            'text_color' => 'text-blue-500'
+        ],
+        [
+            'title' => 'Suivi et historique des réclamations',
+            'description' => 'Consultez l\'état actuel de vos réclamations en cours et accédez à l\'historique complet de vos réclamations passées.',
+            'link' => '?page=gestion_reclamations&action=suivi_historique_reclamation',
+            'icon' => 'fa-solid fa-eye ',
+            'title_link' => 'Suivi et historique',
+            'bg_color' => 'bg-yellow-500 ',
+            'text_color' => 'text-yellow-600'
+        ]
 
-];
+    ];
 
 
 
@@ -610,97 +643,97 @@ $cardReclamation = [
             <!-- Main content area -->
             <div class="flex-1 p-4 md:p-6 overflow-y-auto">
                 <?php
-                    // Déterminer le lien de retour
-                     $backLink = null;
-                     $backText = 'Retour';
+                // Déterminer le lien de retour
+                $backLink = null;
+                $backText = 'Retour';
 
-switch (true) {
-    case ($currentMenuSlug === 'parametres_generaux' && $currentAction):
-        $backLink = '?page=parametres_generaux';
-        $backText = 'Retour aux Paramètres';
-        break;
-        
-    case ($currentMenuSlug === 'gestion_rapports' && $currentAction):
-        $backLink = '?page=gestion_rapports';
-        break;
-        
-    case ($currentMenuSlug === 'gestion_reclamations' && $currentAction):
-        $backLink = '?page=gestion_reclamations';
-        break;
-    case ($currentMenuSlug === 'candidature_soutenance' && $currentAction):
-        $backLink = '?page=candidature_soutenance';
-         break;
-    case ($currentMenuSlug === 'gestion_etudiants' && $currentAction):
-            $backLink = '?page=gestion_etudiants';
-        break;
-    case ($currentMenuSlug === 'archives_dossiers_soutenance' && $currentAction):
-            $backLink = '?page=archives_dossiers_soutenance';
-        break;
-}
+                switch (true) {
+                    case ($currentMenuSlug === 'parametres_generaux' && $currentAction):
+                        $backLink = '?page=parametres_generaux';
+                        $backText = 'Retour aux Paramètres';
+                        break;
 
-// Afficher le bouton si un lien de retour a été défini
-if ($backLink): ?>
-                <div class="mb-6">
-                    <a href="<?= htmlspecialchars($backLink) ?>"
-                        class="inline-flex items-center px-4 py-2 text-sm font-medium text-green-500 transition-colors">
-                        <i class="fas fa-arrow-left mr-2"></i>
-                        <?= htmlspecialchars($backText) ?>
-                    </a>
-                </div>
+                    case ($currentMenuSlug === 'gestion_rapports' && $currentAction):
+                        $backLink = '?page=gestion_rapports';
+                        break;
+
+                    case ($currentMenuSlug === 'gestion_reclamations' && $currentAction):
+                        $backLink = '?page=gestion_reclamations';
+                        break;
+                    case ($currentMenuSlug === 'candidature_soutenance' && $currentAction):
+                        $backLink = '?page=candidature_soutenance';
+                        break;
+                    case ($currentMenuSlug === 'gestion_etudiants' && $currentAction):
+                        $backLink = '?page=gestion_etudiants';
+                        break;
+                    case ($currentMenuSlug === 'archives_dossiers_soutenance' && $currentAction):
+                        $backLink = '?page=archives_dossiers_soutenance';
+                        break;
+                }
+
+                // Afficher le bouton si un lien de retour a été défini
+                if ($backLink): ?>
+                    <div class="mb-6">
+                        <a href="<?= htmlspecialchars($backLink) ?>"
+                            class="inline-flex items-center px-4 py-2 text-sm font-medium text-green-500 transition-colors">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            <?= htmlspecialchars($backText) ?>
+                        </a>
+                    </div>
                 <?php endif; ?>
 
                 <?php
-            if (!empty($contentFile) && file_exists($contentFile)) {
-                include $contentFile;
-            } else {
-                echo "<div class='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative' role='alert'>";
-                echo "<strong class='font-bold'>Erreur de contenu !</strong>";
-                if (empty($contentFile)) {
-                    echo "<span class='block sm:inline'> Aucun fichier de contenu n'a été spécifié pour cette vue.</span>";
+                if (!empty($contentFile) && file_exists($contentFile)) {
+                    include $contentFile;
                 } else {
-                    echo "<span class='block sm:inline'> Le fichier de contenu pour '" . htmlspecialchars($currentPageLabel) . "' n'a pas été trouvé.</span>";
-                    echo "<p class='text-sm'>Chemin vérifié : " . htmlspecialchars($contentFile) . "</p>";
+                    echo "<div class='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative' role='alert'>";
+                    echo "<strong class='font-bold'>Erreur de contenu !</strong>";
+                    if (empty($contentFile)) {
+                        echo "<span class='block sm:inline'> Aucun fichier de contenu n'a été spécifié pour cette vue.</span>";
+                    } else {
+                        echo "<span class='block sm:inline'> Le fichier de contenu pour '" . htmlspecialchars($currentPageLabel) . "' n'a pas été trouvé.</span>";
+                        echo "<p class='text-sm'>Chemin vérifié : " . htmlspecialchars($contentFile) . "</p>";
+                    }
+                    echo "</div>";
                 }
-                echo "</div>";
-            }
-            ?>
+                ?>
             </div>
         </div>
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const mobileMenuButton = document.getElementById('mobileMenuButton'); // Utilisation de l'ID
-        const sidebar = document.querySelector(
-            '.hidden.md\\:flex.md\\:flex-shrink-0 > .flex.flex-col.w-64'); // Sélecteur plus précis
+        document.addEventListener('DOMContentLoaded', function () {
+            const mobileMenuButton = document.getElementById('mobileMenuButton'); // Utilisation de l'ID
+            const sidebar = document.querySelector(
+                '.hidden.md\\:flex.md\\:flex-shrink-0 > .flex.flex-col.w-64'); // Sélecteur plus précis
 
-        if (mobileMenuButton && sidebar) {
-            mobileMenuButton.addEventListener('click', function() {
-                sidebar.classList.toggle('hidden'); // Bascule la classe hidden sur la sidebar elle-même
-                // Si vous voulez que la sidebar se superpose sur mobile au lieu de pousser le contenu :
-                // sidebar.classList.toggle('absolute');
-                // sidebar.classList.toggle('z-20'); // Pour s'assurer qu'elle est au-dessus
-            });
-        }
+            if (mobileMenuButton && sidebar) {
+                mobileMenuButton.addEventListener('click', function () {
+                    sidebar.classList.toggle('hidden'); // Bascule la classe hidden sur la sidebar elle-même
+                    // Si vous voulez que la sidebar se superpose sur mobile au lieu de pousser le contenu :
+                    // sidebar.classList.toggle('absolute');
+                    // sidebar.classList.toggle('z-20'); // Pour s'assurer qu'elle est au-dessus
+                });
+            }
 
-        // Le reste de votre JS pour les cartes et la cloche de notification peut rester ici
-        const documentCards = document.querySelectorAll('.document-card');
-        documentCards.forEach(card => {
-            card.addEventListener('mouseenter', function() {
-                this.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
+            // Le reste de votre JS pour les cartes et la cloche de notification peut rester ici
+            const documentCards = document.querySelectorAll('.document-card');
+            documentCards.forEach(card => {
+                card.addEventListener('mouseenter', function () {
+                    this.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
+                });
             });
+
+            const notificationBell = document.querySelector('.fa-bell');
+            if (notificationBell) {
+                notificationBell.addEventListener('click', function () {
+                    this.classList.add('animate-pulse');
+                    setTimeout(() => {
+                        this.classList.remove('animate-pulse');
+                    }, 2000);
+                });
+            }
         });
-
-        const notificationBell = document.querySelector('.fa-bell');
-        if (notificationBell) {
-            notificationBell.addEventListener('click', function() {
-                this.classList.add('animate-pulse');
-                setTimeout(() => {
-                    this.classList.remove('animate-pulse');
-                }, 2000);
-            });
-        }
-    });
     </script>
     <script src="./js/suivi_reclamation.js"></script>
     <script src="./js/historique_reclamation.js"></script>

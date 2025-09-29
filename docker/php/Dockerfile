@@ -1,5 +1,16 @@
 FROM php:8.2-apache
 
+# Installer dépendances et activer GD + autres extensions utiles
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    zip \
+    unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && docker-php-ext-configure gd --with-jpeg --with-freetype \
+    && docker-php-ext-install gd pdo pdo_mysql mysqli
+
 # Extensions PHP essentielles
 RUN docker-php-ext-install pdo pdo_mysql mysqli
 

@@ -5,29 +5,32 @@ require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 
 
-class InscriptionController {
+class InscriptionController
+{
     private $db;
     private $scolarite;
     private $anneeAcademique;
     private $auditLog;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->db = Database::getConnection();
         $this->scolarite = new Scolarite($this->db);
         $this->anneeAcademique = new AnneeAcademique($this->db);
         $this->auditLog = new AuditLog($this->db);
     }
 
-    public function index() {
+    public function index()
+    {
         // Récupérer les étudiants non inscrits
         $GLOBALS['etudiantsNonInscrits'] = $this->scolarite->getEtudiantsNonInscrits();
-        
+
         // Récupérer les niveaux d'études
         $GLOBALS['niveaux'] = $this->scolarite->getNiveauxEtudes();
-        
+
         // Récupérer les étudiants déjà inscrits
         $GLOBALS['etudiantsInscrits'] = $this->scolarite->getEtudiantsInscrits();
-        
+
         // Récupérer les années académiques
         $GLOBALS['listeAnnees'] = $this->anneeAcademique->getAllAnneeAcademiques();
 
@@ -49,40 +52,57 @@ class InscriptionController {
             $inscription = $this->scolarite->getInscriptionById($_GET['id_inscription']);
             if ($inscription) {
                 $GLOBALS['inscriptionAModifier'] = $inscription;
-                
+
                 // Inclure l'autoloader de Composer pour Dompdf
                 require_once __DIR__ . '/../../vendor/autoload.php';
 
                 // Démarrer la mise en mémoire tampon de sortie
                 ob_start();
-                
+
                 // Inclure le fichier du modèle de reçu
                 include __DIR__ . '/../../ressources/views/gestion_etudiants/recu_inscription.php';
-                
+
                 // Capturer le contenu de la mémoire tampon
                 $html = ob_get_clean();
 
-                // Instancier Dompdf
-                $dompdf = new Dompdf\Dompdf();
-                
-                
-                // Définir le répertoire de base pour les ressources
-                $dompdf->setBasePath(__DIR__ . '/../../public');
-                
+                // Instancier Dompdf avec options utiles
+                if (class_exists('\Dompdf\Options')) {
+                    $options = new \Dompdf\Options();
+                    // Autoriser le chargement d'images distantes/HTTP (utile si vous utilisez des URLs absolues)
+                    $options->set('isRemoteEnabled', true);
+                    $dompdf = new \Dompdf\Dompdf($options);
+                } else {
+                    // Fallback si la classe Options n'est pas disponible
+                    $dompdf = new \Dompdf\Dompdf();
+                }
+
+                // Définir le répertoire de base pour les ressources (chemin absolu)
+                $basePathress = realpath(__DIR__ . '/../../public');
+                if ($basePathress) {
+                    $dompdf->setBasePath($basePathress);
+                }
+
                 // Charger le HTML
                 $dompdf->loadHtml($html);
-                
-                // Définir la taille et l'orientation du papier
-                $dompdf->setPaper('A4', 'portrait');
-                
-                // Rendre le PDF
-                $dompdf->render();
-                
-                // Envoyer le PDF au navigateur
-                $dompdf->stream("recu_paiement_" . $inscription['id_inscription'] . ".pdf", array("Attachment" => false));
+
+                // Définir la taille et l'orientation du papier (utiliser les valeurs anglaises attendues)
+                // Utilisation d'A4 en paysage
+                $dompdf->setPaper('A4', 'landscape');
+
+                // Rendre le PDF avec gestion d'erreur pour logguer clairement les problèmes
+                try {
+                    $dompdf->render();
+                    // Envoyer le PDF au navigateur (inline)
+                    $dompdf->stream("recu_paiement_" . $inscription['id_inscription'] . ".pdf", array("Attachment" => false));
+                } catch (Exception $e) {
+                    // Logger l'erreur et afficher un message d'erreur convivial
+                    error_log("Dompdf render error: " . $e->getMessage());
+                    $GLOBALS['messageErreur'] = "Erreur lors de la génération du PDF : " . $e->getMessage();
+                    $this->auditLog->logImpression($_SESSION['id_utilisateur'], 'inscriptions', 'Erreur');
+                }
 
                 $this->auditLog->logImpression($_SESSION['id_utilisateur'], 'inscriptions', 'Succès');
-                
+
                 exit;
             } else {
                 $GLOBALS['messageErreur'] = "Inscription non trouvée.";
@@ -114,39 +134,42 @@ class InscriptionController {
                 }
             }
         } else if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-             if (isset($_GET['action'])) {
+            if (isset($_GET['action'])) {
                 switch ($_GET['action']) {
                     case 'get_etudiant_info':
-                         $this->getEtudiantInfo();
-                         break;
+                        $this->getEtudiantInfo();
+                        break;
                     // Add other GET actions here if needed
                 }
-            } 
-            
+            }
+
 
             // Si un ID est passé pour modification, récupérer les données de l'inscription
             if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'modifier' && isset($_GET['id'])) {
                 $inscriptionAModifier = $this->scolarite->getInscriptionById($_GET['id']);
-                 // Peupler les informations de l'étudiant si l'inscription est trouvée
-                 if($inscriptionAModifier) {
-                     $GLOBALS['etudiantInfo'] = $this->scolarite->getInfoEtudiant($inscriptionAModifier['id_etudiant']);
-                 }
+                // Peupler les informations de l'étudiant si l'inscription est trouvée
+                if ($inscriptionAModifier) {
+                    $GLOBALS['etudiantInfo'] = $this->scolarite->getInfoEtudiant($inscriptionAModifier['id_etudiant']);
+                }
                 $GLOBALS['inscriptionAModifier'] = $inscriptionAModifier;
             }
 
-           
+
         }
 
         // Récupérer la liste mise à jour des étudiants inscrits après chaque action
         $GLOBALS['etudiantsInscrits'] = $this->scolarite->getEtudiantsInscrits();
     }
 
-    private function traiterInscription() {
+    private function traiterInscription()
+    {
         try {
             // Validation des données
-            if (empty($_POST['etudiant']) || empty($_POST['niveau']) || 
-                empty($_POST['premier_versement']) || empty($_POST['annee_academique']) || 
-                empty($_POST['methode_paiement'])) {
+            if (
+                empty($_POST['etudiant']) || empty($_POST['niveau']) ||
+                empty($_POST['premier_versement']) || empty($_POST['annee_academique']) ||
+                empty($_POST['methode_paiement'])
+            ) {
                 $GLOBALS['messageErreur'] = "Tous les champs sont obligatoires.";
                 return;
             }
@@ -169,10 +192,10 @@ class InscriptionController {
 
             // Créer l'inscription avec le premier versement
             $id_inscription = $this->scolarite->creerInscription(
-                $id_etudiant, 
-                $id_niveau, 
-                $id_annee_acad, 
-                $montant_premier_versement, 
+                $id_etudiant,
+                $id_niveau,
+                $id_annee_acad,
+                $montant_premier_versement,
                 $nombre_tranches,
                 $reste_a_payer,
                 $methode_paiement
@@ -196,7 +219,7 @@ class InscriptionController {
                 }
 
                 $GLOBALS['messageSuccess'] = "Inscription créée avec succès.";
-                $this->auditLog->logCreation($_SESSION['id_utilisateur']    , "inscriptions", 'Succès');
+                $this->auditLog->logCreation($_SESSION['id_utilisateur'], "inscriptions", 'Succès');
             } else {
                 $GLOBALS['messageErreur'] = "Erreur lors de la création de l'inscription.";
                 $this->auditLog->logCreation($_SESSION['id_utilisateur'], "inscriptions", 'Erreur');
@@ -206,7 +229,8 @@ class InscriptionController {
         }
     }
 
-    private function modifierInscription() {
+    private function modifierInscription()
+    {
         try {
             if (empty($_POST['id_inscription']) || empty($_POST['niveau']) || empty($_POST['premier_versement'])) {
                 $GLOBALS['messageErreur'] = "Tous les champs sont obligatoires.";
@@ -221,7 +245,7 @@ class InscriptionController {
             $methode_paiement = $_POST['methode_paiement'];
 
             // Mettre à jour l'inscription
-            if ($this->scolarite->modifierInscription($id_inscription, $id_niveau,$id_annee_acad,$montant_premier_versement,$nombre_tranches, $methode_paiement)) {
+            if ($this->scolarite->modifierInscription($id_inscription, $id_niveau, $id_annee_acad, $montant_premier_versement, $nombre_tranches, $methode_paiement)) {
                 // Supprimer les anciennes échéances
                 $this->scolarite->supprimerEcheances($id_inscription);
 
@@ -248,7 +272,8 @@ class InscriptionController {
             $GLOBALS['messageErreur'] = "Une erreur est survenue : " . $e->getMessage();
         }
     }
-    private function getEtudiantInfo() {
+    private function getEtudiantInfo()
+    {
         if (isset($_GET['num_etu'])) {
             $etudiant = $this->scolarite->getInfoEtudiant($_GET['num_etu']);
             if ($etudiant) {
@@ -265,4 +290,4 @@ class InscriptionController {
             exit;
         }
     }
-} 
+}
