@@ -207,6 +207,8 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                     <input type="hidden" name="id_inscription"
                         value="<?php echo $GLOBALS['inscriptionAModifier']['id_inscription']; ?>">
                     <?php endif; ?>
+                    <!-- Hidden montant_paye (somme des paiements à ce jour) -->
+                    <input type="hidden" id="montant_paye" name="montant_paye" value="<?php echo isset($GLOBALS['inscriptionAModifier']) ? (floatval($GLOBALS['inscriptionAModifier']['montant_paye']) ?? 0) : 0; ?>">
                     <!-- Section Année académique -->
                     <div
                         class="mb-8 border border-gray-200 rounded-lg bg-gray-50 p-6 transition-all duration-300 ease-in-out hover:shadow-md">
@@ -331,7 +333,8 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                         scolarité</label>
                                     <input type="text"
                                         class="w-full pl-3 h-10 border border-gray-300 rounded-md bg-gray-100 transition-all duration-300 ease-in-out outline-none"
-                                        id="montant_total" readonly>
+                                        id="montant_total" readonly
+                                        value="<?php echo isset($GLOBALS['inscriptionAModifier']) ? number_format($GLOBALS['inscriptionAModifier']['montant_total'] ?? $GLOBALS['inscriptionAModifier']['montant_scolarite'] ?? 0, 0, ',', ' ') : ''; ?>">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-600 mb-1">Premier
@@ -348,7 +351,8 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                     <label class="block text-sm font-medium text-gray-600 mb-1">Reste à payer</label>
                                     <input type="text"
                                         class="w-full pl-3 h-10 border border-gray-300 rounded-md bg-gray-100 transition-all duration-300 ease-in-out outline-none"
-                                        id="reste_payer" name="reste_payer" readonly>
+                                        id="reste_payer" name="reste_payer" readonly
+                                        value="<?php echo isset($GLOBALS['inscriptionAModifier']) ? number_format($GLOBALS['inscriptionAModifier']['reste_a_payer'] ?? 0, 0, ',', ' ') : ''; ?>">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-600 mb-1">Nombre de
@@ -512,7 +516,22 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                             class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200">
                                             <i class="fas fa-trash-alt mr-1"></i>
                                         </button>
-                                        <button onclick="imprimerRecu(<?php echo $inscrit['id_inscription']; ?>)"
+                                        <?php
+                                        // Déterminer l'identifiant à envoyer au script d'impression :
+                                        // préférer l'id du PREMIER versement si disponible (reçu du premier versement),
+                                        // sinon utiliser le last_versement_id, sinon l'id de l'inscription
+                                        if (!empty($inscrit['first_versement_id'])) {
+                                            $printId = $inscrit['first_versement_id'];
+                                            $isVersement = true;
+                                        } elseif (!empty($inscrit['last_versement_id'])) {
+                                            $printId = $inscrit['last_versement_id'];
+                                            $isVersement = true;
+                                        } else {
+                                            $printId = $inscrit['id_inscription'];
+                                            $isVersement = false;
+                                        }
+                                        ?>
+                                        <button onclick="imprimerRecu(<?php echo $printId; ?>, <?php echo $isVersement ? 'true' : 'false'; ?>, <?php echo $inscrit['id_inscription']; ?>)"
                                             class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2  transition-all duration-200">
                                             <i class="fas fa-print mr-1"></i>
                                         </button>
@@ -702,10 +721,40 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
         }
 
         // Fonction pour calculer le reste à payer
+        // Priorité : utiliser montant_paye (somme des paiements effectués jusqu'à aujourd'hui)
+        // Si montant_paye n'est pas disponible côté client, retomber sur le calcul à partir du premier versement
         function calculerResteAPayer() {
             const montantTotal = parseFloat(montantTotalInput.value.replace(/\s/g, '')) || 0;
+            // essayer de récupérer montant_paye depuis :
+            // 1) champ hidden #montant_paye (rempli côté serveur si édition)
+            // 2) dataset de l'option etudiant sélectionnée
+            let montantPayeDataset = 0;
+            try {
+                const hiddenMontantPaye = document.getElementById('montant_paye');
+                if (hiddenMontantPaye && hiddenMontantPaye.value) {
+                    montantPayeDataset = parseFloat(hiddenMontantPaye.value) || 0;
+                } else {
+                    const selectedEtudiant = document.getElementById('etudiant');
+                    if (selectedEtudiant && selectedEtudiant.options[selectedEtudiant.selectedIndex]) {
+                        montantPayeDataset = parseFloat(selectedEtudiant.options[selectedEtudiant.selectedIndex].dataset.montantPaye) || 0;
+                    }
+                }
+            } catch (err) {
+                montantPayeDataset = 0;
+            }
+
             const premierVersement = parseFloat(premierVersementInput.value) || 0;
-            const reste = montantTotal - premierVersement;
+
+            let reste = 0;
+            if (montantPayeDataset > 0) {
+                // reste = montant total - montant déjà payé (sommes passées)
+                reste = montantTotal - montantPayeDataset;
+            } else {
+                // fallback : reste = montant total - premier versement
+                reste = montantTotal - premierVersement;
+            }
+
+            if (reste < 0) reste = 0;
             restePayerInput.value = formaterMontant(reste);
         }
 
@@ -858,11 +907,14 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
     });
 
     // Fonction pour imprimer un reçu individuel
-    window.imprimerRecu = function(idInscription) {
-        // Rediriger vers un script PHP qui générera le PDF
-        window.open(
-            `?page=gestion_etudiants&action=inscrire_des_etudiants&modalAction=imprimer_recu&id_inscription=${idInscription}`,
-            '_blank');
+    // Signature compatible : imprimerRecu(id) or imprimerRecu(id, isVersement, idInscription)
+    window.imprimerRecu = function(id, isVersement, idInscription) {
+        // Si l'appel ne fournit qu'un seul argument, on l'interprète comme l'id à transmettre
+        const targetId = (typeof id !== 'undefined') ? id : '';
+
+        // Ouvrir la page d'impression. Le script serveur sait interpréter l'id
+        // comme id_versement ou id_inscription selon le contexte.
+        window.open(`?page=gestion_scolarite&action=imprimer_recu&id=${encodeURIComponent(targetId)}`, '_blank');
     };
 
     // Fonction pour supprimer une inscription

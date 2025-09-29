@@ -7,35 +7,38 @@ require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/EmailService.php';
 
-class VerificationRapportsController {
-    
+class VerificationRapportsController
+{
+
     private $rapportModel;
     private $approbationModel;
     private $persAdminModel;
     private $auditLog;
     private $pdo;
-    
-    public function __construct() {
+
+    public function __construct()
+    {
         $this->pdo = Database::getConnection();
         $this->rapportModel = new RapportEtudiant($this->pdo);
         $this->approbationModel = new Approuver($this->pdo);
         $this->persAdminModel = new PersAdmin($this->pdo);
         $this->auditLog = new AuditLog($this->pdo);
     }
-    
-    public function index() {
+
+    public function index()
+    {
         try {
             // Récupérer les rapports déposés depuis la table deposer
             $rapports = $this->rapportModel->getRapportsDeposes();
-            
+
             // Passer les données à la vue via les variables globales
             $GLOBALS['rapports'] = $rapports;
             $GLOBALS['nbRapports'] = count($rapports);
-            
+
             // Statistiques des rapports par statut
             $stats = $this->getStatsRapports();
             $GLOBALS['statsRapports'] = $stats;
-            
+
         } catch (Exception $e) {
             error_log("Erreur lors de la récupération des rapports: " . $e->getMessage());
             $GLOBALS['rapports'] = [];
@@ -43,11 +46,12 @@ class VerificationRapportsController {
             $GLOBALS['statsRapports'] = [];
         }
     }
-    
+
     /**
      * Récupère les statistiques des rapports par statut
      */
-    private function getStatsRapports() {
+    private function getStatsRapports()
+    {
         try {
             $rapports = $this->rapportModel->getRapportsDeposes();
             $stats = [
@@ -75,16 +79,33 @@ class VerificationRapportsController {
             ];
         }
     }
-    
+
     /**
      * Valider un rapport (approuver)
      */
-    public function validerRapport() {
+    public function validerRapport()
+    {
         try {
             $id_rapport = $_POST['id_rapport'] ?? 0;
             $commentaire = $_POST['commentaire'] ?? '';
             $id_approb = 4; // Niveau 2 (id_approb=4 dans la table niveau_approbation)
-            $id_admin = 7; // Forcé pour debug (Seri Marie Christine)
+
+            // Déterminer l'administrateur courant (personnel_admin) à partir de l'utilisateur connecté
+            $id_admin = null;
+            if (session_status() === PHP_SESSION_NONE) {
+                @session_start();
+            }
+            if (!empty($_SESSION['id_utilisateur'])) {
+                $pers = $this->persAdminModel->getByUserId($_SESSION['id_utilisateur']);
+                if ($pers) {
+                    // getByUserId peut retourner un assoc ou un objet selon l'implémentation
+                    if (is_object($pers) && isset($pers->id_pers_admin)) {
+                        $id_admin = $pers->id_pers_admin;
+                    } elseif (is_array($pers) && isset($pers['id_pers_admin'])) {
+                        $id_admin = $pers['id_pers_admin'];
+                    }
+                }
+            }
 
             if (!$id_rapport || !$commentaire || !$id_admin) {
                 return ['success' => false, 'message' => 'Paramètres manquants ou administrateur non reconnu'];
@@ -115,16 +136,32 @@ class VerificationRapportsController {
             return ['success' => false, 'message' => "Exception : " . $e->getMessage()];
         }
     }
-    
+
     /**
      * Rejeter un rapport (désapprouver)
      */
-    public function rejeterRapport() {
+    public function rejeterRapport()
+    {
         try {
             $id_rapport = $_POST['id_rapport'] ?? 0;
             $commentaire = $_POST['commentaire'] ?? '';
             $id_approb = 4; // Niveau 2 (id_approb=4 dans la table niveau_approbation)
-            $id_admin = 7; // Forcé pour debug (Seri Marie Christine)
+
+            // Déterminer l'administrateur courant (personnel_admin) à partir de l'utilisateur connecté
+            $id_admin = null;
+            if (session_status() === PHP_SESSION_NONE) {
+                @session_start();
+            }
+            if (!empty($_SESSION['id_utilisateur'])) {
+                $pers = $this->persAdminModel->getByUserId($_SESSION['id_utilisateur']);
+                if ($pers) {
+                    if (is_object($pers) && isset($pers->id_pers_admin)) {
+                        $id_admin = $pers->id_pers_admin;
+                    } elseif (is_array($pers) && isset($pers['id_pers_admin'])) {
+                        $id_admin = $pers['id_pers_admin'];
+                    }
+                }
+            }
 
             if (!$id_rapport || !$commentaire || !$id_admin) {
                 return ['success' => false, 'message' => 'Paramètres manquants ou administrateur non reconnu'];
@@ -155,11 +192,12 @@ class VerificationRapportsController {
             return ['success' => false, 'message' => "Exception : " . $e->getMessage()];
         }
     }
-    
+
     /**
      * Récupérer les détails d'un rapport
      */
-    public function getRapportDetail($id_rapport) {
+    public function getRapportDetail($id_rapport)
+    {
         try {
             return $this->rapportModel->getRapportDetail($id_rapport);
         } catch (Exception $e) {
@@ -171,7 +209,8 @@ class VerificationRapportsController {
     /**
      * Récupérer les décisions d'évaluation d'un rapport
      */
-    public function getDecisionsEvaluation($id_rapport) {
+    public function getDecisionsEvaluation($id_rapport)
+    {
         try {
             return $this->rapportModel->getDecisionsEvaluation($id_rapport);
         } catch (Exception $e) {
@@ -179,4 +218,4 @@ class VerificationRapportsController {
             return [];
         }
     }
-} 
+}

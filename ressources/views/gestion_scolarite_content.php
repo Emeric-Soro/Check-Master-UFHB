@@ -510,12 +510,28 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
 
 
     // Fonction pour imprimer le reçu
-    function imprimerRecu(idInscription) {
-        if (!idInscription) {
-            alert('ID de l\'inscription manquant');
+    // Supporte les appels rétrocompatibles : imprimerRecu(id) ou imprimerRecu(id, isVersement, idInscription)
+    function imprimerRecu(id, isVersement, idInscription) {
+        // Si appelé avec un seul argument, on le considère comme un id_versement
+        if (typeof isVersement === 'undefined') {
+            isVersement = true;
+        }
+
+        if (!id) {
+            alert('ID manquant pour l\'impression du reçu');
             return;
         }
-        window.open(`?page=gestion_scolarite&action=imprimer_recu&id=${idInscription}`, '_blank');
+
+        if (isVersement) {
+            // id est un id_versement
+            window.open(`?page=gestion_scolarite&action=imprimer_recu&id=${id}`, '_blank');
+            return;
+        }
+
+        // id est un id_inscription : si idInscription est fourni, on l'utilise, sinon on utilise id
+        var inscriptionId = idInscription || id;
+        // Ouvrir la page qui imprimera le dernier versement pour cette inscription (serveur fera le fallback)
+        window.open(`?page=gestion_scolarite&action=imprimer_recu&id=${inscriptionId}`, '_blank');
     }
 
     // Fonction pour exporter les versements

@@ -24,7 +24,7 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             <div class="grid md:grid-cols-2 items-center gap-6 max-w-6xl w-full">
                 <div
                     class="border border-slate-300 rounded-lg p-6 max-w-md shadow-[0_2px_22px_-4px_rgba(93,96,127,0.2)] max-md:mx-auto">
-                    <form action="page_connexion.php" method="POST" class="space-y-6">
+                    <form action="login.php" method="POST" class="space-y-6">
 
                         <div class="mb-12">
                             <div>

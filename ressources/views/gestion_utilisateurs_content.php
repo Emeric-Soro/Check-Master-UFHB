@@ -32,6 +32,11 @@ if (!empty($search)) {
     });
 }
 
+// Trier les utilisateurs par id décroissant pour afficher les plus récents en premier
+usort($allUtilisateurs, function($a, $b) {
+    return ($b->id_utilisateur ?? 0) <=> ($a->id_utilisateur ?? 0);
+});
+
 // Total pages calculation
 $total_items = count($allUtilisateurs);
 $total_pages = ceil($total_items / $limit);
@@ -633,8 +638,35 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                             </td>
                         </tr>
                         <?php else: ?>
-                        <?php foreach ($utilisateurs as $index => $user): ?>
-                        <tr class="table-row-hover">
+                        <?php
+                            // Grouper les utilisateurs affichés par groupe utilisateur (lib_GU)
+                            $grouped = [];
+                            foreach ($utilisateurs as $user) {
+                                $groupName = $user->lib_GU ?? 'Sans groupe';
+                                if (!isset($grouped[$groupName])) {
+                                    $grouped[$groupName] = [];
+                                }
+                                $grouped[$groupName][] = $user;
+                            }
+
+                            // Afficher chaque groupe avec un en-tête
+                            foreach ($grouped as $groupName => $usersGroup):
+                        ?>
+                        <tr class="bg-gray-50 group-header" data-group="<?php echo htmlspecialchars(md5($groupName)); ?>">
+                            <td colspan="7" class="px-6 py-3 text-sm font-semibold text-gray-700 cursor-pointer select-none">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        Groupe: <?php echo htmlspecialchars($groupName); ?>
+                                        <span class="text-xs text-gray-500">(<?php echo count($usersGroup); ?>)</span>
+                                    </div>
+                                    <div class="group-toggle">
+                                        <i class="fas fa-chevron-down text-gray-500"></i>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php foreach ($usersGroup as $user): ?>
+                        <tr class="table-row-hover group-row" data-group="<?php echo htmlspecialchars(md5($groupName)); ?>">
 
                             <td class="px-4 py-4 text-center">
                                 <input type="checkbox" name="selected_ids[]"
@@ -643,19 +675,16 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                 <div class="flex items-center">
-
                                     <span><?php echo htmlspecialchars($user->nom_utilisateur); ?></span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                 <div class="flex items-center">
-
                                     <span><?php echo htmlspecialchars($user->lib_GU); ?></span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                 <div class="flex items-center">
-
                                     <span><?php echo htmlspecialchars($user->statut_utilisateur); ?></span>
                                 </div>
                             </td>
@@ -676,6 +705,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                                 </div>
                             </td>
                         </tr>
+                        <?php endforeach; ?>
                         <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
@@ -1501,6 +1531,29 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
             }, 5000);
         });
     });
+
+    // Accordion pour grouper les utilisateurs par catégorie (déplier / replier)
+    (function() {
+        const headers = document.querySelectorAll('.group-header');
+        headers.forEach(header => {
+            header.style.cursor = 'pointer';
+            header.addEventListener('click', function() {
+                const group = this.getAttribute('data-group');
+                const rows = document.querySelectorAll('.group-row[data-group="' + group + '"]');
+                const chevron = this.querySelector('.group-toggle i');
+                let anyVisible = false;
+                rows.forEach(r => { if (getComputedStyle(r).display !== 'none') anyVisible = true; });
+                if (anyVisible) {
+                    rows.forEach(r => r.style.display = 'none');
+                    if (chevron) { chevron.classList.remove('fa-chevron-up'); chevron.classList.add('fa-chevron-down'); }
+                } else {
+                    rows.forEach(r => r.style.display = 'table-row');
+                    if (chevron) { chevron.classList.remove('fa-chevron-down'); chevron.classList.add('fa-chevron-up'); }
+                }
+            });
+        });
+    })();
+
     </script>
 
 </body>
