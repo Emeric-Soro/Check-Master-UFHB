@@ -1,4 +1,6 @@
 <?php
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 // Récupérer les données du contrôleur
 $rapportsVerifies = $GLOBALS['rapports_verifies'] ?? [];
 $statistiques = $GLOBALS['statistiques'] ?? ['total' => 0, 'approuves' => 0, 'desapprouves' => 0];
@@ -46,13 +48,13 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
 <body class="p-4 sm:p-6 md:p-8">
     <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden md:p-8 p-6">
         <h1 class="text-3xl font-bold text-gray-900 mb-6 text-center">Historique des Rapports Vérifiés <span
-                class="text-4xl text-green-500 font-bold">MIAGE</span></h1>
+                class="text-4xl text-primary-500 font-bold">MIAGE</span></h1>
 
         <!-- Statistiques -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-green-600"><?php echo $statistiques['total']; ?></div>
-                <div class="text-sm text-green-700">Total vérifiés</div>
+            <div class="bg-primary-50 border border-green-200 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-primary-600"><?php echo $statistiques['total']; ?></div>
+                <div class="text-sm text-primary-700">Total vérifiés</div>
             </div>
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
                 <div class="text-2xl font-bold text-blue-600"><?php echo $statistiques['approuves']; ?></div>
@@ -70,22 +72,22 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
             <input type="hidden" name="page" value="<?= htmlspecialchars($_GET['page']) ?>">
             <?php endif; ?>
             <input type="text" name="search" placeholder="Rechercher par étudiant, titre ou thème..."
-                class="outline-green-500 flex-1 min-w-[200px] p-3 pl-4 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm md:text-base text-sm"
+                class="outline-green-500 flex-1 min-w-[200px] p-3 pl-4 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-gray-700 shadow-sm md:text-base text-sm"
                 value="<?= htmlspecialchars($searchTerm) ?>">
             <select name="statut"
-                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm md:text-base text-sm">
+                class="p-3 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-gray-700 shadow-sm md:text-base text-sm">
                 <option value="all" <?php echo $statutFilter === 'all' ? 'selected' : ''; ?>>Tous les statuts</option>
                 <option value="approuve" <?php echo $statutFilter === 'approuve' ? 'selected' : ''; ?>>Approuvé</option>
                 <option value="desapprouve" <?php echo $statutFilter === 'desapprouve' ? 'selected' : ''; ?>>Désapprouvé
                 </option>
             </select>
             <button type="submit"
-                class="p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">Filtrer</button>
+                class="p-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition">Filtrer</button>
         </form>
 
         <!-- Tableau -->
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table class="<?= StyleManager::getTableClass(true, true) ?>">
                 <thead class="bg-gray-50">
                     <tr>
                         <th
@@ -118,7 +120,7 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
                     <tr class="table-row-hover">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 rounded-bl-lg">
                             <div class="flex items-center">
-                                <i class="fa-solid fa-user text-green-500 mr-2"></i>
+                                <i class="fa-solid fa-user text-primary-500 mr-2"></i>
                                 <?php echo htmlspecialchars($rapport['nom_etu'] . ' ' . $rapport['prenom_etu']); ?>
                             </div>
                         </td>
@@ -133,14 +135,14 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                             <?php echo date('d/m/Y', strtotime($rapport['date_depot'])); ?>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 hover:text-green-800">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-primary-600 hover:text-primary-800">
                             <?php echo htmlspecialchars($rapport['nom_pers_admin'] . ' ' . $rapport['prenom_pers_admin']); ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <span
-                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $rapport['statut_approbation'] === 'approuve' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700'; ?>">
+                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $rapport['statut_approbation'] === 'approuve' ? 'bg-primary-100 text-primary-800' : 'bg-red-100 text-red-700'; ?>">
                                 <i
-                                    class="<?php echo $rapport['statut_approbation'] === 'approuve' ? 'fa-solid fa-circle-check text-green-500' : 'fa-solid fa-circle-xmark text-red-400'; ?>"></i>
+                                    class="<?php echo $rapport['statut_approbation'] === 'approuve' ? 'fa-solid fa-circle-check text-primary-500' : 'fa-solid fa-circle-xmark text-red-400'; ?>"></i>
                                 <?php echo $rapport['statut_approbation'] === 'approuve' ? 'Approuvé' : 'Désapprouvé'; ?>
                             </span>
                         </td>
@@ -155,7 +157,7 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
                                 </a>
                                 <a href="?page=gestion_dossiers_candidatures&action=consulter_rapport&id_rapport=<?php echo $rapport['id_rapport']; ?>"
                                     target="_blank" title="Consulter le rapport"
-                                    class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 shadow transition-colors">
+                                    class="bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 shadow transition-colors">
                                     <i class="fa-solid fa-file-text"></i>
                                     Consulter
                                 </a>
@@ -197,7 +199,7 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
                         class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium <?= $p == 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50' ?> rounded-l-md">&laquo;</a>
                     <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                     <a href="<?= buildPageUrl($i) ?>"
-                        class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium <?= $i == $p ? 'bg-green-100 text-green-700 font-bold' : 'text-gray-700 hover:bg-gray-50' ?>"><?= $i ?></a>
+                        class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium <?= $i == $p ? 'bg-primary-100 text-primary-700 font-bold' : 'text-gray-700 hover:bg-gray-50' ?>"><?= $i ?></a>
                     <?php endfor; ?>
                     <a href="<?= $p < $totalPages ? buildPageUrl($p+1) : '#' ?>"
                         class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium <?= $p == $totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50' ?> rounded-r-md">&raquo;</a>
@@ -211,11 +213,11 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
     <div id="resumeModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl relative border border-green-100">
             <button onclick="closeResumeModal()"
-                class="absolute top-4 right-4 text-green-400 hover:text-green-700 text-xl transition-colors">
+                class="absolute top-4 right-4 text-green-400 hover:text-primary-700 text-xl transition-colors">
                 <i class="fa-solid fa-xmark"></i>
             </button>
-            <h3 class="text-xl font-bold text-green-700 mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-user-graduate text-green-600"></i> Détails du rapport
+            <h3 class="text-xl font-bold text-primary-700 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-user-graduate text-primary-600"></i> Détails du rapport
             </h3>
             <div id="modalContent" class="text-green-900 text-base">
                 <!-- Contenu dynamique du résumé à insérer ici -->
@@ -243,7 +245,7 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
                         <p class="mb-2"><span class="font-semibold">Thème :</span> ${data.theme_rapport}</p>
                         <p class="mb-2"><span class="font-semibold">Date de dépôt :</span> ${new Date(data.date_rapport).toLocaleDateString('fr-FR')}</p>
                         <p class="mb-2"><span class="font-semibold">Statut :</span> 
-                            <span class="inline-block px-3 py-1 rounded-full text-xs font-bold ${data.statut_approbation === 'approuve' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                            <span class="inline-block px-3 py-1 rounded-full text-xs font-bold ${data.statut_approbation === 'approuve' ? 'bg-primary-100 text-primary-700' : 'bg-red-100 text-red-700'}">
                                 ${data.statut_approbation === 'approuve' ? 'Approuvé' : 'Désapprouvé'}
                             </span>
                         </p>

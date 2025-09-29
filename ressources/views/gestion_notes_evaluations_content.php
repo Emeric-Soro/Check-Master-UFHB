@@ -1,5 +1,7 @@
 <?php
 
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 $students = $GLOBALS['listeEtudiants'];
 $niveauxEtude = $GLOBALS['niveauxEtude'];
 $selectedNiveau = $GLOBALS['selectedNiveau'];
@@ -181,7 +183,7 @@ $studentGrades = $GLOBALS['studentGrades'];
         <div class="flex-1 p-4 md:p-6 overflow-y-auto ">
             <div id="alertContainer">
                 <?php if (isset($_SESSION['success'])): ?>
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6"
+                <div class="bg-primary-100 border border-green-400 text-primary-700 px-4 py-3 rounded relative mb-6"
                     role="alert">
                     <span class="block sm:inline"><?php echo $_SESSION['success']; ?></span>
                 </div>
@@ -189,7 +191,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                 <?php endif; ?>
 
                 <?php if (isset($_SESSION['error'])): ?>
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
+                <div class="<?= StyleManager::getNotificationClass('error') ?> relative mb-6" role="alert">
                     <span class="block sm:inline"><?php echo $_SESSION['error']; ?></span>
                 </div>
                 <?php unset($_SESSION['error']); ?>
@@ -246,7 +248,7 @@ $studentGrades = $GLOBALS['studentGrades'];
 
                     <!-- Informations de l'étudiant -->
                     <?php if (!empty($GLOBALS['selectedStudent'])): ?>
-                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <div class="<?= StyleManager::getCardClass() ?> mb-6">
                         <div class="flex items-center space-x-4">
                             <div class="flex-shrink-0">
                                 <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
@@ -427,7 +429,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                             ?>
                                     <div class="flex justify-end mt-6">
                                         <button type="submit" name="btn_enregistrer_notes"
-                                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                            class="<?= StyleManager::getButtonClass('secondary') ?> focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                                             Enregistrer les notes
                                         </button>
                                     </div>
@@ -489,7 +491,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                             </div>
                             <div class="bg-white rounded-lg p-4 shadow-sm">
                                 <h3 class="text-sm font-medium text-gray-500 mb-1">Crédits Attribués</h3>
-                                <p class="text-2xl font-bold text-green-600">
+                                <p class="text-2xl font-bold text-primary-600">
                                     <?php
                                     // Validation du semestre selon les moyennes majeures/mineures
                                     $semestreValide = ($moyMaj !== '-' && $moyMin !== '-' && $moyMaj >= 10 && $moyMin >= 10);
@@ -511,7 +513,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                             <div class="bg-white rounded-lg p-4 shadow-sm">
                                 <h3 class="text-sm font-medium text-gray-500 mb-1">Validation Semestre</h3>
                                 <p
-                                    class="text-2xl font-bold <?php echo $semestreValide ? 'text-green-600' : 'text-red-600'; ?>">
+                                    class="text-2xl font-bold <?php echo $semestreValide ? 'text-primary-600' : 'text-red-600'; ?>">
                                     <?php echo $semestreValide ? 'Validé' : 'Non validé'; ?>
                                 </p>
                             </div>

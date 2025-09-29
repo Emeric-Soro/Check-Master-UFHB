@@ -1,4 +1,6 @@
 <?php
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 $nom_user = $_SESSION['nom_utilisateur'] ?? '';
 $login_user = $_SESSION['login_utilisateur'] ?? '';
 $statut_user = $_SESSION['statut_utilisateur'] ?? '';
@@ -107,7 +109,7 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
         <!-- Header -->
         <header class="mb-8">
             <h1 class="text-2xl font-bold text-gray-800">
-                <i class="fas fa-user-circle mr-2 text-green-600"></i> Mon Profil
+                <i class="fas fa-user-circle mr-2 text-primary-600"></i> Mon Profil
             </h1>
             <p class="text-gray-600 mt-1">Gérez vos informations personnelles</p>
         </header>
@@ -115,13 +117,13 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
         <!-- Tab Navigation -->
         <div class="flex border-b border-gray-200 mb-6">
             <button @click="currentTab = 'profile'"
-                :class="{'text-green-600 border-green-600': currentTab === 'profile', 'text-gray-500 hover:text-gray-700': currentTab !== 'profile'}"
+                :class="{'text-primary-600 border-primary-600': currentTab === 'profile', 'text-gray-500 hover:text-gray-700': currentTab !== 'profile'}"
                 class="py-2 px-4 font-medium text-sm border-b-2 -mb-px transition duration-150 ease-in-out"
                 data-tab="profile">
                 <i class="fas fa-user mr-2"></i> Informations
             </button>
             <button @click="currentTab = 'password'"
-                :class="{'text-green-600 border-green-600': currentTab === 'password', 'text-gray-500 hover:text-gray-700': currentTab !== 'password'}"
+                :class="{'text-primary-600 border-primary-600': currentTab === 'password', 'text-gray-500 hover:text-gray-700': currentTab !== 'password'}"
                 class="py-2 px-4 font-medium text-sm border-b-2 -mb-px transition duration-150 ease-in-out"
                 data-tab="password">
                 <i class="fas fa-lock mr-2"></i> Mot de passe
@@ -143,7 +145,7 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                         <!-- First Column -->
                         <div>
                             <div class="mb-5">
-                                <label class="block text-sm font-medium text-gray-700 mb-2" for="nom">Nom
+                                <label class="<?= StyleManager::getLabelClass() ?>" for="nom">Nom
                                     complet</label>
                                 <div class="relative">
                                     <div
@@ -151,23 +153,23 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                                         <i class="fas fa-user"></i>
                                     </div>
                                     <input id="nom" type="text" value="<?= $nom_user ?>" disabled
-                                        class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200">
+                                        class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition duration-200">
                                 </div>
                             </div>
 
                             <div class="mb-5">
-                                <label class="block text-sm font-medium text-gray-700 mb-2" for="email">Email</label>
+                                <label class="<?= StyleManager::getLabelClass() ?>" for="email">Email</label>
                                 <div class="relative">
                                     <div
                                         class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
                                         <i class="fas fa-envelope"></i>
                                     </div>
                                     <input id="email" type="email" value="<?= $login_user ?>" disabled
-                                        class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200">
+                                        class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition duration-200">
                                 </div>
                             </div>
                             <div class="mb-5">
-                                <label class="block text-sm font-medium text-gray-700 mb-2" for="gu">Groupe
+                                <label class="<?= StyleManager::getLabelClass() ?>" for="gu">Groupe
                                     utilisateur</label>
                                 <div class="relative">
                                     <div
@@ -175,7 +177,7 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                                         <i class="fas fa-envelope"></i>
                                     </div>
                                     <input id="gu" type="text" value="<?= $libelle_GU ?>" disabled
-                                        class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200">
+                                        class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition duration-200">
                                 </div>
                             </div>
 
@@ -184,7 +186,7 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                         <!-- Second Column -->
                         <div>
                             <div class="mb-5">
-                                <label class="block text-sm font-medium text-gray-700 mb-2"
+                                <label class="<?= StyleManager::getLabelClass() ?>"
                                     for="login">Identifiant</label>
                                 <div class="relative">
                                     <div
@@ -192,12 +194,12 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                                         <i class="fas fa-at"></i>
                                     </div>
                                     <input id="login" type="text" value="<?= $login_user ?>" disabled
-                                        class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200">
+                                        class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition duration-200">
                                 </div>
                             </div>
 
                             <div class="mb-5">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Type d'utilisateur</label>
+                                <label class="<?= StyleManager::getLabelClass() ?>">Type d'utilisateur</label>
                                 <div class="relative  rounded-lg pl-3 pr-4 py-2  border border-gray-200">
                                     <div class="flex items-center">
                                         <i class="fas fa-user-tag text-gray-400 mr-2"></i>
@@ -206,7 +208,7 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                                 </div>
                             </div>
                             <div class="mb-5">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Niveau d'accès</label>
+                                <label class="<?= StyleManager::getLabelClass() ?>">Niveau d'accès</label>
                                 <div class="relative rounded-lg pl-3 pr-4 py-2  border border-gray-200">
                                     <div class="flex items-center">
                                         <i class="fas fa-shield-alt text-gray-400 mr-2"></i>
@@ -226,7 +228,7 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <div class="mb-5">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Spécialité</label>
+                                    <label class="<?= StyleManager::getLabelClass() ?>">Spécialité</label>
                                     <div class="relative rounded-lg pl-3 pr-4 py-2 border border-gray-200">
                                         <div class="flex items-center">
                                             <i class="fas fa-graduation-cap text-gray-400 mr-2"></i>
@@ -235,7 +237,7 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                                     </div>
                                 </div>
                                 <div class="mb-5">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Grade</label>
+                                    <label class="<?= StyleManager::getLabelClass() ?>">Grade</label>
                                     <div class="relative rounded-lg pl-3 pr-4 py-2 border border-gray-200">
                                         <div class="flex items-center">
                                             <i class="fas fa-award text-gray-400 mr-2"></i>
@@ -246,7 +248,7 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                             </div>
                             <div>
                                 <div class="mb-5">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Fonction</label>
+                                    <label class="<?= StyleManager::getLabelClass() ?>">Fonction</label>
                                     <div class="relative rounded-lg pl-3 pr-4 py-2 border border-gray-200">
                                         <div class="flex items-center">
                                             <i class="fas fa-briefcase text-gray-400 mr-2"></i>
@@ -255,7 +257,7 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                                     </div>
                                 </div>
                                 <div class="mb-5">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Date d'obtention du
+                                    <label class="<?= StyleManager::getLabelClass() ?>">Date d'obtention du
                                         grade</label>
                                     <div class="relative rounded-lg pl-3 pr-4 py-2 border border-gray-200">
                                         <div class="flex items-center">
@@ -265,7 +267,7 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                                     </div>
                                 </div>
                                 <div class="mb-5">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Date d'occupation de la
+                                    <label class="<?= StyleManager::getLabelClass() ?>">Date d'occupation de la
                                         fonction</label>
                                     <div class="relative rounded-lg pl-3 pr-4 py-2 border border-gray-200">
                                         <div class="flex items-center">
@@ -285,7 +287,7 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <div class="mb-5">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Téléphone</label>
+                                    <label class="<?= StyleManager::getLabelClass() ?>">Téléphone</label>
                                     <div class="relative rounded-lg pl-3 pr-4 py-2 border border-gray-200">
                                         <div class="flex items-center">
                                             <i class="fas fa-phone text-gray-400 mr-2"></i>
@@ -294,7 +296,7 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                                     </div>
                                 </div>
                                 <div class="mb-5">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Poste</label>
+                                    <label class="<?= StyleManager::getLabelClass() ?>">Poste</label>
                                     <div class="relative rounded-lg pl-3 pr-4 py-2 border border-gray-200">
                                         <div class="flex items-center">
                                             <i class="fas fa-briefcase text-gray-400 mr-2"></i>
@@ -305,7 +307,7 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                             </div>
                             <div>
                                 <div class="mb-5">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Date d'embauche</label>
+                                    <label class="<?= StyleManager::getLabelClass() ?>">Date d'embauche</label>
                                     <div class="relative rounded-lg pl-3 pr-4 py-2 border border-gray-200">
                                         <div class="flex items-center">
                                             <i class="fas fa-calendar-alt text-gray-400 mr-2"></i>
@@ -345,7 +347,7 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                         <input type="hidden" name="id_utilisateur" value="<?php echo $_SESSION['id_utilisateur']; ?>">
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2" for="currentPassword">Mot de
+                                <label class="<?= StyleManager::getLabelClass() ?>" for="currentPassword">Mot de
                                     passe actuel</label>
                                 <div class="relative">
                                     <div
@@ -354,13 +356,13 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                                     </div>
                                     <input id="currentPassword" type="password" name="currentPassword" required
                                         style="outline: none;"
-                                        class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200">
+                                        class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition duration-200">
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2"
+                                    <label class="<?= StyleManager::getLabelClass() ?>"
                                         for="newPassword">Nouveau
                                         mot de passe</label>
                                     <div class="relative">
@@ -370,11 +372,11 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                                         </div>
                                         <input id="newPassword" type="password" name="newPassword" required
                                             style="outline: none;"
-                                            class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200">
+                                            class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition duration-200">
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2"
+                                    <label class="<?= StyleManager::getLabelClass() ?>"
                                         for="confirmPassword">Confirmer le mot de passe</label>
                                     <div class="relative">
                                         <div
@@ -383,14 +385,14 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                                         </div>
                                         <input id="confirmPassword" type="password" name="confirmPassword" required
                                             style="outline: none;"
-                                            class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200">
+                                            class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition duration-200">
                                     </div>
                                 </div>
                             </div>
 
                             <div class="mt-6">
                                 <button type="submit" name="update_password"
-                                    class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition duration-200 flex items-center justify-center">
+                                    class="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 transition duration-200 flex items-center justify-center">
                                     <i class="fas fa-save mr-2"></i>
                                     Mettre à jour le mot de passe
                                 </button>
@@ -405,13 +407,13 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
                     <i class="fas fa-info-circle mr-2"></i> Exigences pour le mot de passe
                 </h4>
                 <ul class="text-xs text-blue-700 space-y-1">
-                    <li class="flex items-center"><i class="fas fa-check-circle mr-2 text-green-500"></i>
+                    <li class="flex items-center"><i class="fas fa-check-circle mr-2 text-primary-500"></i>
                         Minimum 8 caractères</li>
-                    <li class="flex items-center"><i class="fas fa-check-circle mr-2 text-green-500"></i> Au
+                    <li class="flex items-center"><i class="fas fa-check-circle mr-2 text-primary-500"></i> Au
                         moins une majuscule</li>
-                    <li class="flex items-center"><i class="fas fa-check-circle mr-2 text-green-500"></i> Au
+                    <li class="flex items-center"><i class="fas fa-check-circle mr-2 text-primary-500"></i> Au
                         moins un chiffre</li>
-                    <li class="flex items-center"><i class="fas fa-check-circle mr-2 text-green-500"></i> Au
+                    <li class="flex items-center"><i class="fas fa-check-circle mr-2 text-primary-500"></i> Au
                         moins un caractère spécial</li>
                 </ul>
             </div>

@@ -2,6 +2,8 @@
 
 
 
+
+require_once __DIR__ . '/../app/utils/StyleManager.php';
 class MenuView {
     public function afficherMenu($traitements, $currentMenuSlug) {
         // Tri des traitements par ordre_traitement
@@ -19,7 +21,7 @@ class MenuView {
         foreach ($traitements as $traitement) {
             $isActive = ($currentMenuSlug === $traitement['lib_traitement']);
             $linkBaseClasses = "flex items-center px-2 py-3 text-sm font-medium rounded-md group";
-            $activeClasses = "text-white bg-green-500";
+            $activeClasses = "text-white bg-primary-500";
             $inactiveClasses = "text-gray-700 hover:text-gray-900 hover:bg-gray-100";
             $iconBaseClasses = "mr-3";
             $iconActiveClasses = "text-white";

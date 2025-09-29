@@ -1,4 +1,6 @@
 <?php
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 // Initialisation des variables avec des valeurs par défaut
 $etudiantsInscrits = isset($GLOBALS['etudiantsInscrits']) ? $GLOBALS['etudiantsInscrits'] : [];
 $listeAllEtudiant = $GLOBALS['listeAllEtudiant'];
@@ -92,15 +94,15 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
     <!-- Système de notification -->
     <?php if (isset($GLOBALS['messageSuccess']) && !empty($GLOBALS['messageSuccess'])): ?>
     <div id="successNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg flex items-center">
+        <div class="bg-primary-100 border-l-4 border-primary-500 text-primary-700 p-4 rounded shadow-lg flex items-center">
             <div class="flex-shrink-0">
-                <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                <i class="fas fa-check-circle text-primary-500 text-xl"></i>
             </div>
             <div class="ml-3">
                 <p class="text-sm font-medium"><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
             </div>
             <button onclick="this.parentElement.parentElement.remove()" class="ml-auto pl-3">
-                <i class="fas fa-times text-green-500 hover:text-green-700"></i>
+                <i class="fas fa-times text-primary-500 hover:text-primary-700"></i>
             </button>
         </div>
     </div>
@@ -143,7 +145,7 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                                 <p class="text-2xl font-bold text-gray-800"><?php echo $complete; ?></p>
                                 <p class="text-xs text-gray-500"><?php echo $pourcentageComplete; ?>% des étudiants</p>
                             </div>
-                            <div class="p-3 rounded-full bg-green-100 text-green-500">
+                            <div class="p-3 rounded-full bg-primary-100 text-primary-500">
                                 <i class="fas fa-check-circle text-xl"></i>
                             </div>
                         </div>
@@ -271,7 +273,7 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                             </div>
                             <div class="flex space-x-2">
                                 <button type="button" onclick="exporterVersements()"
-                                    class="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition">
+                                    class="px-3 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 transition">
                                     <i class="fas fa-file-excel mr-1"></i> Exporter
                                 </button>
                                 <button type="button" onclick="imprimerListeVersements()"
@@ -283,7 +285,7 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                     </div>
                     <form id="versementsForm" method="POST" action="?page=gestion_scolarite">
                         <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
+                            <table class="<?= StyleManager::getTableClass(true, true) ?>">
                                 <thead class="bg-gray-50">
                                     <tr>
 
@@ -348,7 +350,7 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                                                 <?php endif; ?>
                                                 <button
                                                     onclick="imprimerRecu(<?php echo $versement['id_versement']; ?>)"
-                                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2  transition-all duration-200">
+                                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-primary-500 focus:outline-none focus:ring-2 focus:ring-offset-2  transition-all duration-200">
                                                     <i class="fas fa-print mr-1"></i>
                                                 </button>
                                             </div>

@@ -1,5 +1,7 @@
 <?php
 
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 $stage_info = isset($GLOBALS['stage_info']) ? $GLOBALS['stage_info'] : [];
 $compte_rendu = isset($GLOBALS['compte_rendu']) ? $GLOBALS['compte_rendu'] : [];
 $has_candidature = isset($GLOBALS['has_candidature']) ? $GLOBALS['has_candidature'] : false;
@@ -38,7 +40,7 @@ foreach ($candidatures_etudiant as $cand) {
     <div class="container max-w-6xl mx-auto px-4 py-8 md:px-4 md:py-6">
         <!-- Messages de notification -->
         <?php if (isset($_SESSION['success'])): ?>
-        <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+        <div class="mb-4 p-4 bg-primary-100 border border-green-400 text-primary-700 rounded">
             <?php 
                 echo $_SESSION['success'];
                 unset($_SESSION['success']);
@@ -65,7 +67,7 @@ foreach ($candidatures_etudiant as $cand) {
         </div>
 
         <div class="header text-center mb-8">
-            <h1 class="text-3xl font-bold text-text-dark mb-3 md:text-2xl text-green-500">Candidature à la soutenance
+            <h1 class="text-3xl font-bold text-text-dark mb-3 md:text-2xl text-primary-500">Candidature à la soutenance
             </h1>
             <p class="text-base text-text-light max-w-2xl mx-auto md:text-sm">Faite votre demande de candidature à la
                 soutenance et accédez aux comptes rendus de la commission d'évaluation.</p>
@@ -104,7 +106,7 @@ foreach ($candidatures_etudiant as $cand) {
             <!-- Card 2 - Demande de candidature -->
             <div class="card bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <div class="card-content p-6 py-6 flex flex-col items-center text-center h-full">
-                    <div class="card-icon text-green-500 mb-3">
+                    <div class="card-icon text-primary-500 mb-3">
                         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -123,7 +125,7 @@ foreach ($candidatures_etudiant as $cand) {
                                 : 'openConfirmationModal()');
                         $btnClass = $disableCandidature
                             ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-green-500 hover:bg-green-600';
+                            : 'bg-primary-500 hover:bg-primary-600';
                     ?>
                     <button id="btnDemandeCandidature" onclick="<?php echo $onclick; ?>"
                         class="card-btn <?php echo $btnClass; ?> text-white px-4 py-2 rounded-lg transition-colors duration-300 text-sm"
@@ -159,7 +161,7 @@ foreach ($candidatures_etudiant as $cand) {
                     <button type="button" onclick="closeConfirmationModal()"
                         class="px-4 py-2 text-gray-600 hover:text-gray-800 shadow-2xs">Annuler</button>
                     <button type="submit"
-                        class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 shadow-2xs">Confirmer</button>
+                        class="px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 shadow-2xs">Confirmer</button>
                 </div>
             </form>
         </div>
@@ -185,7 +187,7 @@ foreach ($candidatures_etudiant as $cand) {
                             </div>
                             <input type="text" name="entreprise" required
                                 value="<?php echo isset($stage_info['nom_entreprise']) ? htmlspecialchars($stage_info['nom_entreprise']) : ''; ?>"
-                                class="pl-10 block w-full py-2 outline-green-500 rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                class="pl-10 block w-full py-2 outline-green-500 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
 
                         </div>
                     </div>
@@ -204,7 +206,7 @@ foreach ($candidatures_etudiant as $cand) {
                             </div>
                             <input type="date" name="date_debut" required
                                 value="<?php echo isset($stage_info['date_debut_stage']) ? htmlspecialchars($stage_info['date_debut_stage']) : ''; ?>"
-                                class="pl-10 block w-full py-2 outline-green-500 rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                class="pl-10 block w-full py-2 outline-green-500 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                         </div>
                     </div>
 
@@ -220,7 +222,7 @@ foreach ($candidatures_etudiant as $cand) {
                             </div>
                             <input type="date" name="date_fin" required
                                 value="<?php echo isset($stage_info['date_fin_stage']) ? htmlspecialchars($stage_info['date_fin_stage']) : ''; ?>"
-                                class="pl-10 block w-full py-2 outline-green-500 rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                class="pl-10 block w-full py-2 outline-green-500 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                         </div>
                     </div>
 
@@ -237,7 +239,7 @@ foreach ($candidatures_etudiant as $cand) {
                             </div>
                             <input type="text" name="sujet" required
                                 value="<?php echo isset($stage_info['sujet_stage']) ? htmlspecialchars($stage_info['sujet_stage']) : ''; ?>"
-                                class="pl-10 py-2 outline-green-500 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                class="pl-10 py-2 outline-green-500 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                                 placeholder="Ex: Développement d'une application web">
                         </div>
                     </div>
@@ -255,7 +257,7 @@ foreach ($candidatures_etudiant as $cand) {
                                 </svg>
                             </div>
                             <textarea name="description" required rows="4"
-                                class="pl-10 py-2 outline-green-500 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                class="pl-10 py-2 outline-green-500 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                                 placeholder="Décrivez les principales missions et objectifs de votre stage..."><?php echo isset($stage_info['description_stage']) ? htmlspecialchars($stage_info['description_stage']) : ''; ?></textarea>
                         </div>
                     </div>
@@ -274,7 +276,7 @@ foreach ($candidatures_etudiant as $cand) {
                             </div>
                             <input type="text" name="encadrant" required
                                 value="<?php echo isset($stage_info['encadrant_entreprise']) ? htmlspecialchars($stage_info['encadrant_entreprise']) : ''; ?>"
-                                class="pl-10 py-2 outline-green-500 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                class="pl-10 py-2 outline-green-500 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                                 placeholder="Nom complet de l'encadrant">
                         </div>
                     </div>
@@ -293,7 +295,7 @@ foreach ($candidatures_etudiant as $cand) {
                             </div>
                             <input type="email" name="email_encadrant" required
                                 value="<?php echo isset($stage_info['email_encadrant']) ? htmlspecialchars($stage_info['email_encadrant']) : ''; ?>"
-                                class="pl-10 py-2 outline-green-500 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                class="pl-10 py-2 outline-green-500 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                                 placeholder="email@entreprise.com">
                         </div>
                     </div>
@@ -312,7 +314,7 @@ foreach ($candidatures_etudiant as $cand) {
                             </div>
                             <input type="tel" name="telephone_encadrant" required
                                 value="<?php echo isset($stage_info['telephone_encadrant']) ? htmlspecialchars($stage_info['telephone_encadrant']) : ''; ?>"
-                                class="pl-10 block py-2 outline-green-500 w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                class="pl-10 block py-2 outline-green-500 w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                                 placeholder="+225 07 07 07 07 07">
                         </div>
                     </div>
@@ -324,7 +326,7 @@ foreach ($candidatures_etudiant as $cand) {
                         Annuler
                     </button>
                     <button type="submit" name="btn_enregistrer" value="1"
-                        class="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium transition-colors duration-200 flex items-center">
+                        class="px-6 py-2.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium transition-colors duration-200 flex items-center">
                         <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />

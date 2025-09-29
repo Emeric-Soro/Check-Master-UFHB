@@ -1,5 +1,7 @@
 <?php
 
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 // Récupération des données depuis le contrôleur
 $etudiant = $GLOBALS['etudiant'] ?? null;
 $moyenneGenerale = $GLOBALS['moyenneGenerale'] ?? null;
@@ -30,8 +32,8 @@ $semestres = $GLOBALS['semestres'] ?? [];
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
         <header class="mb-10 text-center animate-fade-in">
-            <h1 class="text-4xl font-bold text-green-800 mb-2">Mon Portail Académique</h1>
-            <p class="text-xl text-green-600">Consultez vos résultats et bulletins de notes</p>
+            <h1 class="text-4xl font-bold text-primary-800 mb-2">Mon Portail Académique</h1>
+            <p class="text-xl text-primary-600">Consultez vos résultats et bulletins de notes</p>
             <div class="flex justify-center mt-4">
                 <div class="bg-white rounded-full shadow-md px-6 py-2 inline-flex items-center">
                     <i class="fas fa-user-graduate text-indigo-500 mr-2"></i>
@@ -53,8 +55,8 @@ $semestres = $GLOBALS['semestres'] ?? [];
             </div>
 
             <div class="card-gradient-2 rounded-xl shadow-lg p-6 flex items-center animate-fade-in">
-                <div class="bg-green-100 p-3 rounded-full mr-4">
-                    <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                <div class="bg-primary-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-check-circle text-primary-600 text-xl"></i>
                 </div>
                 <div>
                     <p class="text-white text-sm">Modules Validés</p>
@@ -112,7 +114,7 @@ $semestres = $GLOBALS['semestres'] ?? [];
 
             <!-- Table -->
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200" id="gradesTable">
+                <table class="<?= StyleManager::getTableClass(true, true) ?>" id="gradesTable">
                     <thead class="bg-gray-50">
                         <tr>
                             <th scope="col"

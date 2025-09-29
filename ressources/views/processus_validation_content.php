@@ -1,4 +1,6 @@
 <?php
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 require_once __DIR__ . '/../../app/controllers/ProcessusValidationController.php';
 
 $controller = new ProcessusValidationController();
@@ -311,14 +313,14 @@ $membresCommission = $donnees['membres_commission'];
                 <p class="text-gray-700 mb-4">Voulez-vous vraiment finaliser la décision finale concernant ce rapport ?</p>
                 
                 <div class="mb-4">
-                    <label for="commentaireFinalisation" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="commentaireFinalisation" class="<?= StyleManager::getLabelClass() ?>">
                         <i class="fas fa-comment mr-2"></i>Commentaire de validation (optionnel)
                     </label>
                     <textarea 
                         id="commentaireFinalisation" 
                         name="commentaire_validation" 
                         rows="3" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         placeholder="Ajoutez un commentaire pour expliquer la décision finale..."
                     ></textarea>
                 </div>
@@ -337,7 +339,7 @@ $membresCommission = $donnees['membres_commission'];
                     <i class="fas fa-times mr-2"></i>
                     Annuler
                 </button>
-                <button type="button" class="px-4 py-2 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors duration-200 flex items-center" id="confirmFinalisation">
+                <button type="button" class="px-4 py-2 text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors duration-200 flex items-center" id="confirmFinalisation">
                     <i class="fas fa-check mr-2"></i>
                     Confirmer la finalisation
                 </button>

@@ -1,4 +1,6 @@
 <?php
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 // Récupérer les données du contrôleur
 global $stats;
 $dashboardData = $stats ?? [];
@@ -27,7 +29,7 @@ function getTimeAgo($date) {
 
 function getStatusClass($status) {
     switch ($status) {
-        case 'valider': return 'bg-green-100 text-green-800';
+        case 'valider': return 'bg-primary-100 text-primary-800';
         case 'rejeter': return 'bg-red-100 text-red-800';
         case 'en_attente': return 'bg-blue-100 text-blue-800';
         case 'en_cours': return 'bg-orange-100 text-orange-800';
@@ -135,7 +137,7 @@ foreach ($repartitionData as $data) {
             <div class="max-w-7xl mx-auto p-6">
                 <!-- KPI Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="stat-card bg-white rounded-lg shadow p-6 fade-in">
+                    <div class="stat-card <?= StyleManager::getCardClass() ?> fade-in">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm font-medium text-gray-600">Total Comptes Rendus</p>
@@ -148,20 +150,20 @@ foreach ($repartitionData as $data) {
                         </div>
                     </div>
 
-                    <div class="stat-card bg-white rounded-lg shadow p-6 fade-in">
+                    <div class="stat-card <?= StyleManager::getCardClass() ?> fade-in">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm font-medium text-gray-600">Taux de Validation</p>
                                 <p class="metric-value"><?php echo $tauxValidation; ?>%</p>
                                 
                             </div>
-                            <div class="p-3 rounded-full bg-green-100">
-                                <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                            <div class="p-3 rounded-full bg-primary-100">
+                                <i class="fas fa-check-circle text-primary-600 text-2xl"></i>
                             </div>
                         </div>
                     </div>
 
-                    <div class="stat-card bg-white rounded-lg shadow p-6 fade-in">
+                    <div class="stat-card <?= StyleManager::getCardClass() ?> fade-in">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm font-medium text-gray-600">Temps Moyen</p>
@@ -174,7 +176,7 @@ foreach ($repartitionData as $data) {
                         </div>
                     </div>
 
-                    <div class="stat-card bg-white rounded-lg shadow p-6 fade-in">
+                    <div class="stat-card <?= StyleManager::getCardClass() ?> fade-in">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm font-medium text-gray-600">En Attente</p>
@@ -191,11 +193,11 @@ foreach ($repartitionData as $data) {
                 <!-- Détails des Performances : évaluations_rapports -->
                 <div class="bg-white rounded-xl shadow-md p-6 mb-8">
                     <h3 class="text-gray-900 text-lg font-semibold mb-4">
-                        <i class="fas fa-list-alt text-green-500 mr-2"></i>
+                        <i class="fas fa-list-alt text-primary-500 mr-2"></i>
                         Détails des Performances (Évaluations des rapports)
                     </h3>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
+                        <table class="<?= StyleManager::getTableClass(true, true) ?>">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
@@ -212,7 +214,7 @@ foreach ($repartitionData as $data) {
                                     <?php foreach ($rapportsDetails as $rapport): ?>
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-4 py-2 text-sm">
-                                            <span class="px-2 py-1 text-xs rounded-full <?php echo $rapport['statut'] === 'valider' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
+                                            <span class="px-2 py-1 text-xs rounded-full <?php echo $rapport['statut'] === 'valider' ? 'bg-primary-100 text-primary-800' : 'bg-red-100 text-red-800'; ?>">
                                                 <?php echo ucfirst($rapport['statut']); ?>
                                             </span>
                                         </td>
@@ -232,7 +234,7 @@ foreach ($repartitionData as $data) {
                                             <button class="text-blue-600 hover:text-blue-900 mr-2">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <button class="text-green-600 hover:text-green-900">
+                                            <button class="text-primary-600 hover:text-green-900">
                                                 <i class="fas fa-download"></i>
                                             </button>
                                         </td>
@@ -254,7 +256,7 @@ foreach ($repartitionData as $data) {
                 <!-- Charts Row -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                     <!-- Evolution Chart -->
-                    <div class="bg-white rounded-lg shadow p-6 fade-in">
+                    <div class="<?= StyleManager::getCardClass() ?> fade-in">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-gray-800">
                                 <i class="fas fa-chart-line text-blue-600 mr-2"></i>
@@ -277,10 +279,10 @@ foreach ($repartitionData as $data) {
                     </div>
 
                     <!-- Status Distribution -->
-                    <div class="bg-white rounded-lg shadow p-6 fade-in">
+                    <div class="<?= StyleManager::getCardClass() ?> fade-in">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-gray-800">
-                                <i class="fas fa-chart-pie text-green-600 mr-2"></i>
+                                <i class="fas fa-chart-pie text-primary-600 mr-2"></i>
                                 Répartition par Statut
                             </h3>
                             <button onclick="refreshCharts()" class="text-gray-400 hover:text-gray-600">
@@ -294,7 +296,7 @@ foreach ($repartitionData as $data) {
                 </div>
 
                 <!-- Recent Activity -->
-                <div class="bg-white rounded-lg shadow p-6 fade-in mb-8">
+                <div class="<?= StyleManager::getCardClass() ?> fade-in mb-8">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">
                         <i class="fas fa-history text-indigo-600 mr-2"></i>
                         Activité Récente
@@ -303,7 +305,7 @@ foreach ($repartitionData as $data) {
                         <?php if (!empty($activitesData)): ?>
                             <?php foreach ($activitesData as $activite): ?>
                             <div class="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg">
-                                <div class="p-2 <?php echo $activite['statut'] === 'valider' ? 'bg-green-100' : 'bg-red-100'; ?> rounded-full">
+                                <div class="p-2 <?php echo $activite['statut'] === 'valider' ? 'bg-primary-100' : 'bg-red-100'; ?> rounded-full">
                                     <i class="fas fa-<?php echo $activite['statut'] === 'valider' ? 'check' : 'times'; ?> text-<?php echo $activite['statut'] === 'valider' ? 'green' : 'red'; ?>-600 text-xs"></i>
                                 </div>
                                 <div class="flex-1">
@@ -328,7 +330,7 @@ foreach ($repartitionData as $data) {
                 </div>
 
                 <!-- Performance Table -->
-                <div class="bg-white rounded-lg shadow p-6 fade-in">
+                <div class="<?= StyleManager::getCardClass() ?> fade-in">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold text-gray-800">
                             <i class="fas fa-table text-gray-600 mr-2"></i>
@@ -343,7 +345,7 @@ foreach ($repartitionData as $data) {
                         </div>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
+                        <table class="<?= StyleManager::getTableClass(true, true) ?>">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
@@ -359,7 +361,7 @@ foreach ($repartitionData as $data) {
                                     <?php foreach ($dashboardData['evaluations_rapports'] as $eval): ?>
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-4 py-2 text-sm">
-                                            <span class="px-2 py-1 text-xs rounded-full <?php echo $eval['decision_evaluation'] === 'valider' ? 'bg-green-100 text-green-800' : ($eval['decision_evaluation'] === 'rejeter' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'); ?>">
+                                            <span class="px-2 py-1 text-xs rounded-full <?php echo $eval['decision_evaluation'] === 'valider' ? 'bg-primary-100 text-primary-800' : ($eval['decision_evaluation'] === 'rejeter' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'); ?>">
                                                 <?php echo ucfirst($eval['decision_evaluation']); ?>
                                             </span>
                                         </td>
@@ -379,7 +381,7 @@ foreach ($repartitionData as $data) {
                                             <button class="text-blue-600 hover:text-blue-900 mr-2">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <button class="text-green-600 hover:text-green-900">
+                                            <button class="text-primary-600 hover:text-green-900">
                                                 <i class="fas fa-download"></i>
                                             </button>
                                         </td>
@@ -512,7 +514,7 @@ foreach ($repartitionData as $data) {
     function showNotification(message, type) {
         const notification = document.createElement('div');
         notification.className = `fixed top-4 right-4 px-4 py-2 rounded-md text-white text-sm font-medium z-50 ${
-                type === 'success' ? 'bg-green-600' : 
+                type === 'success' ? 'bg-primary-600' : 
                 type === 'error' ? 'bg-red-600' : 
                 type === 'info' ? 'bg-blue-600' : 'bg-gray-600'
             }`;

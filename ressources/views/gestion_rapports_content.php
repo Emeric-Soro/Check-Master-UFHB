@@ -1,4 +1,6 @@
 <?php
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 // Initialiser les variables globales
 $infosDepot = isset($GLOBALS['infosDepot']) ? $GLOBALS['infosDepot'] : [];
 
@@ -251,7 +253,7 @@ if (isset($_SESSION['num_etu'])) {
                 <div class="mt-auto">
                     <?php if ($candidature_validee): ?>
                     <button
-                        class="bg-white text-green-700 font-semibold py-2 px-6 rounded-lg hover:bg-opacity-90 transition duration-300 floating">
+                        class="bg-white text-primary-700 font-semibold py-2 px-6 rounded-lg hover:bg-opacity-90 transition duration-300 floating">
                         <a href="?page=gestion_rapports&action=suivi_rapport">Consulter</a>
                     </button>
                     <?php else: ?>
@@ -264,7 +266,7 @@ if (isset($_SESSION['num_etu'])) {
                 </div>
             </div>
             <div class="bg-gradient-to-r from-white to-transparent bg-opacity-10 h-1"></div>
-            <div class="px-6 py-4 bg-green-500 bg-opacity-10">
+            <div class="px-6 py-4 bg-primary-500 bg-opacity-10">
                 <div class="flex justify-between items-center">
                     <span class="text-xs text-white text-opacity-70">En temps réel</span>
                     <span class="text-xs font-medium bg-green-800 px-2 py-1 rounded-full">Étape 2</span>
@@ -370,7 +372,7 @@ if (isset($_SESSION['num_etu'])) {
                                 <?php if ($dejaDepose): ?>
                                 <!-- Rapport déjà déposé - bouton "Voir" seulement -->
                                 <button onclick="voirRapport(<?= $rapport->id_rapport ?>)"
-                                    class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 shadow transition-colors"
+                                    class="bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 shadow transition-colors"
                                     title="">
                                     <i class="fa-solid fa-eye"></i>
                                     Voir
@@ -378,7 +380,7 @@ if (isset($_SESSION['num_etu'])) {
                                 <?php else: ?>
                                 <!-- Rapport non déposé - bouton "Voir" -->
                                 <button onclick="voirRapport(<?= $rapport->id_rapport ?>)"
-                                    class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 shadow transition-colors"
+                                    class="bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 shadow transition-colors"
                                     title="Voir le rapport">
                                     <i class="fa-solid fa-eye"></i>
                                     Voir

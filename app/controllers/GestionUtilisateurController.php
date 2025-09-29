@@ -1,6 +1,8 @@
 <?php
 
 
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . "/../models/Utilisateur.php";
 require_once __DIR__ . "/../models/TypeUtilisateur.php";
@@ -297,7 +299,7 @@ class GestionUtilisateurController
     function construireMessageHTML($nom, $login, $motDePasse)
     {
         // Construction du sujet
-        $sujet = "Bienvenue sur Soutenance Manager, " . htmlspecialchars($nom) . " !";
+        $sujet = "Bienvenue sur CheckMaster, " . htmlspecialchars($nom) . " !";
 
         // Construction du corps du message HTML
         $message = '
@@ -349,7 +351,7 @@ class GestionUtilisateurController
                 </div>
                 
                 <div class="footer">
-                    <p>© ' . date('Y') . ' Soutenance Manager. Tous droits réservés.</p>
+                    <p>© ' . date('Y') . ' CheckMaster. Tous droits réservés.</p>
                 </div>
             </div>
         </body>

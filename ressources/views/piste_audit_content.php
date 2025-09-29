@@ -1,18 +1,20 @@
 <?php
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 function getActionColor($action) {
     switch ($action) {
         case 'Création':
-            return 'bg-green-100 text-green-800';
+            return 'bg-primary-100 text-primary-800';
         case 'Modification':
             return 'bg-blue-100 text-blue-800';
         case 'Suppression':
             return 'bg-red-100 text-red-800';
         case 'Connexion':
-            return 'bg-green-100 text-green-800';
+            return 'bg-primary-100 text-primary-800';
         case 'Déconnexion':
             return 'bg-gray-100 text-gray-800';
         case 'Validation':
-            return 'bg-green-100 text-green-800';
+            return 'bg-primary-100 text-primary-800';
         case 'Rejet':
             return 'bg-red-100 text-red-800';
         case 'Sauvegarde':
@@ -47,7 +49,7 @@ $auditLog = $GLOBALS['auditLog'];
         <!-- Header with Logo and Title -->
         <div class="flex justify-between items-center mb-8">
             <div class="flex items-center">
-                <div class="bg-green-500 text-white p-3 rounded-full mr-4">
+                <div class="bg-primary-500 text-white p-3 rounded-full mr-4">
                     <i class="fas fa-shield-alt text-xl"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-gray-800">Piste d'Audit</h1>
@@ -55,14 +57,14 @@ $auditLog = $GLOBALS['auditLog'];
             <div class="date-picker relative">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Date du jour</label>
                 <input type="text"
-                    class="w-40 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 focus:border-0 text-sm"
+                    class="w-40 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-primary-600 focus:border-0 text-sm"
                     readonly value="<?php echo date('d/m/Y'); ?>">
             </div>
         </div>
 
         <!-- Messages de notification -->
         <?php if (isset($_GET['success']) && $_GET['success'] === 'cleanup'): ?>
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6" role="alert">
+        <div class="bg-primary-100 border border-green-400 text-primary-700 px-4 py-3 rounded relative mb-6" role="alert">
             <strong class="font-bold">Succès !</strong>
             <span class="block sm:inline"><?php echo $_GET['deleted'] ?? 0; ?> enregistrements d'audit ont été
                 supprimés.</span>
@@ -70,14 +72,14 @@ $auditLog = $GLOBALS['auditLog'];
         <?php endif; ?>
 
         <?php if (isset($_GET['success']) && $_GET['success'] === 'log_deleted'): ?>
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6" role="alert">
+        <div class="bg-primary-100 border border-green-400 text-primary-700 px-4 py-3 rounded relative mb-6" role="alert">
             <strong class="font-bold">Succès !</strong>
             <span class="block sm:inline">Le log d'audit a été supprimé avec succès.</span>
         </div>
         <?php endif; ?>
 
         <?php if (isset($_GET['error'])): ?>
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
+        <div class="<?= StyleManager::getNotificationClass('error') ?> relative mb-6" role="alert">
             <strong class="font-bold">Erreur !</strong>
             <span class="block sm:inline">
                 <?php 
@@ -131,14 +133,14 @@ $auditLog = $GLOBALS['auditLog'];
                             <input type="text" name="date_debut" id="date_debut"
                                 value="<?php echo htmlspecialchars($_GET['date_debut'] ?? ''); ?>"
                                 placeholder="Date de début"
-                                class="w-full sm:w-28 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+                                class="w-full sm:w-28 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
                         </div>
                         <div class="w-full sm:w-auto">
                             <label class="block text-xs text-gray-500 mb-1">Date fin</label>
                             <input type="text" name="date_fin" id="date_fin"
                                 value="<?php echo htmlspecialchars($_GET['date_fin'] ?? ''); ?>"
                                 placeholder="Date de fin"
-                                class="w-full sm:w-28 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+                                class="w-full sm:w-28 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
                         </div>
                     </div>
 
@@ -146,7 +148,7 @@ $auditLog = $GLOBALS['auditLog'];
                     <div class="w-full sm:w-auto">
                         <label class="block text-xs text-gray-500 mb-1">Action</label>
                         <select name="action"
-                            class="w-full sm:w-32 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+                            class="w-full sm:w-32 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
                             <option value="">Toutes les actions</option>
                             <option value="Création"
                                 <?php echo (isset($_GET['action']) && $_GET['action'] === 'Création') ? 'selected' : ''; ?>>
@@ -188,7 +190,7 @@ $auditLog = $GLOBALS['auditLog'];
                     <div class="w-full sm:w-auto">
                         <label class="block text-xs text-gray-500 mb-1">Table</label>
                         <select name="table"
-                            class="w-full sm:w-32 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+                            class="w-full sm:w-32 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
                             <option value="">Toutes les tables</option>
                             <option value="utilisateur"
                                 <?php echo (isset($_GET['table']) && $_GET['table'] === 'utilisateur') ? 'selected' : ''; ?>>
@@ -224,7 +226,7 @@ $auditLog = $GLOBALS['auditLog'];
                     <div class="w-full sm:w-auto">
                         <label class="block text-xs text-gray-500 mb-1">Statut</label>
                         <select name="statut"
-                            class="w-full sm:w-28 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+                            class="w-full sm:w-28 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
                             <option value="">Tous les statuts</option>
                             <option value="Succès"
                                 <?php echo (isset($_GET['statut']) && $_GET['statut'] === 'Succès') ? 'selected' : ''; ?>>
@@ -240,13 +242,13 @@ $auditLog = $GLOBALS['auditLog'];
                         <label class="block text-xs text-gray-500 mb-1">Recherche</label>
                         <input type="text" name="search" id="search"
                             value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>" placeholder="Rechercher..."
-                            class="w-full sm:w-40 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+                            class="w-full sm:w-40 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
                     </div>
 
                     <!-- Filter Buttons -->
                     <div class="flex gap-2">
                         <button type="submit"
-                            class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm shadow-sm transition-all hover-scale focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center">
+                            class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg text-sm shadow-sm transition-all hover-scale focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 flex items-center">
                             <i class="fas fa-search mr-2"></i> Filtrer
                         </button>
                         <a href="?page=piste_audit"
@@ -272,7 +274,7 @@ $auditLog = $GLOBALS['auditLog'];
                         <i class="fas fa-print mr-2"></i> Imprimer
                     </button>
                     <a href="?page=piste_audit"
-                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm shadow-sm transition-all hover-scale focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center">
+                        class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg text-sm shadow-sm transition-all hover-scale focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 flex items-center">
                         <i class="fas fa-sync-alt mr-2"></i> Actualiser
                     </a>
                 </div>
@@ -316,7 +318,7 @@ $auditLog = $GLOBALS['auditLog'];
                             </td>
                             <td class="py-3 px-4">
                                 <span
-                                    class="px-2 py-1 text-xs font-semibold rounded-full <?php echo ($log['statut_action'] === 'Succès') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
+                                    class="px-2 py-1 text-xs font-semibold rounded-full <?php echo ($log['statut_action'] === 'Succès') ? 'bg-primary-100 text-primary-800' : 'bg-red-100 text-red-800'; ?>">
                                     <?php echo htmlspecialchars($log['statut_action']); ?>
                                 </span>
                             </td>
@@ -365,7 +367,7 @@ $auditLog = $GLOBALS['auditLog'];
 
                     <?php for ($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
                     <?php if ($i == $page): ?>
-                    <span class="pagination-item bg-green-500 text-white"><?php echo $i; ?></span>
+                    <span class="pagination-item bg-primary-500 text-white"><?php echo $i; ?></span>
                     <?php else: ?>
                     <a href="?page=piste_audit&page_num=<?php echo $i; ?>&<?php echo http_build_query(array_filter($_GET, function($key) { return !in_array($key, ['page', 'page_num']); }, ARRAY_FILTER_USE_KEY)); ?>"
                         class="pagination-item"><?php echo $i; ?></a>
@@ -399,7 +401,7 @@ $auditLog = $GLOBALS['auditLog'];
                 <form id="cleanupForm" method="POST" action="?page=piste_audit&action=cleanup"
                     class="flex items-end gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Supprimer les logs de plus
+                        <label class="<?= StyleManager::getLabelClass() ?>">Supprimer les logs de plus
                             de</label>
                         <input type="number" name="days" min="1" max="365" value="30" required
                             class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">

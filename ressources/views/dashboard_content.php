@@ -1,5 +1,7 @@
 <?php
 
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 $stat_etudiants = $GLOBALS['stats_etudiants'] ?? [
     'total' => 0,
     'actifs' => 0,
@@ -231,10 +233,10 @@ $stat_utilisateurs = $GLOBALS['stats_utilisateurs'] ?? [
                     <!-- Left Column - Graphiques et Tableau -->
                     <div class="lg:col-span-2">
                         <!-- Graphique d'évolution -->
-                        <div class="bg-white rounded-xl shadow-lg p-6 mb-6 card-hover">
+                        <div class="<?= StyleManager::getCardClass(true) ?> mb-6 card-hover">
                             <div class="flex justify-between items-center mb-6">
                                 <div>
-                                    <h2 class="text-lg font-bold text-green-800">Évolution des utilisateurs</h2>
+                                    <h2 class="text-lg font-bold text-primary-800">Évolution des utilisateurs</h2>
                                     <p class="text-sm text-indigo-500">Sur les 6 derniers mois</p>
                                 </div>
                                 <div class="flex space-x-1 text-xs bg-indigo-50 rounded-lg p-1">
@@ -254,8 +256,8 @@ $stat_utilisateurs = $GLOBALS['stats_utilisateurs'] ?? [
                         </div>
 
                         <!-- Tableau des statistiques -->
-                        <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
-                            <h2 class="text-lg font-bold text-green-800 mb-4">Statistiques détaillées</h2>
+                        <div class="<?= StyleManager::getCardClass(true) ?> card-hover">
+                            <h2 class="text-lg font-bold text-primary-800 mb-4">Statistiques détaillées</h2>
                             <div class="overflow-x-auto">
                                 <table class="stats-table w-full">
                                     <thead>
@@ -305,9 +307,9 @@ $stat_utilisateurs = $GLOBALS['stats_utilisateurs'] ?? [
                     <!-- Right Column - Calendrier et Activités -->
                     <div class="lg:col-span-1">
                         <!-- Calendrier -->
-                        <div class="bg-white rounded-xl shadow-lg p-6 mb-6 card-hover">
+                        <div class="<?= StyleManager::getCardClass(true) ?> mb-6 card-hover">
                             <div class="flex justify-between items-center mb-6">
-                                <h2 class="text-lg font-bold text-green-800">Calendrier</h2>
+                                <h2 class="text-lg font-bold text-primary-800">Calendrier</h2>
                                 <div class="flex space-x-2">
                                     <button id="prevMonth"
                                         class="w-8 h-8 rounded-md bg-indigo-50 flex items-center justify-center text-indigo-500 hover:bg-indigo-100">
@@ -338,9 +340,9 @@ $stat_utilisateurs = $GLOBALS['stats_utilisateurs'] ?? [
                         </div>
 
                         <!-- Activités récentes -->
-                        <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="<?= StyleManager::getCardClass(true) ?> card-hover">
                             <div class="flex justify-between items-center mb-6">
-                                <h2 class="text-lg font-bold text-green-800">Activités récentes</h2>
+                                <h2 class="text-lg font-bold text-primary-800">Activités récentes</h2>
                                 <button class="text-indigo-400 hover:text-indigo-600">
                                     <i class="fas fa-ellipsis-h"></i>
                                 </button>
@@ -352,9 +354,9 @@ $stat_utilisateurs = $GLOBALS['stats_utilisateurs'] ?? [
                                 <div class="flex items-start space-x-3">
                                     <div class="flex-shrink-0">
                                         <div
-                                            class="w-8 h-8 rounded-full <?php echo $activite['type'] === 'utilisateur' ? 'bg-indigo-100' : 'bg-green-100'; ?> flex items-center justify-center">
+                                            class="w-8 h-8 rounded-full <?php echo $activite['type'] === 'utilisateur' ? 'bg-indigo-100' : 'bg-primary-100'; ?> flex items-center justify-center">
                                             <i
-                                                class="fas <?php echo $activite['type'] === 'utilisateur' ? 'fa-user' : 'fa-cog'; ?> text-sm <?php echo $activite['type'] === 'utilisateur' ? 'text-indigo-600' : 'text-green-600'; ?>"></i>
+                                                class="fas <?php echo $activite['type'] === 'utilisateur' ? 'fa-user' : 'fa-cog'; ?> text-sm <?php echo $activite['type'] === 'utilisateur' ? 'text-indigo-600' : 'text-primary-600'; ?>"></i>
                                         </div>
                                     </div>
                                     <div class="flex-1 min-w-0">

@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <?php
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/controllers/DashboardScolariteController.php';
 
@@ -113,7 +115,7 @@ $inscriptionsParNiveau = $dashboardData['inscriptionsParNiveau'];
                                     <?php echo number_format($stats['paiements_complets']); ?></p>
                                 <p class="text-xs text-gray-500">Validés</p>
                             </div>
-                            <div class="p-3 rounded-full bg-green-100 text-green-500">
+                            <div class="p-3 rounded-full bg-primary-100 text-primary-500">
                                 <i class="fas fa-check-circle text-xl"></i>
                             </div>
                         </div>

@@ -1,5 +1,7 @@
 <?php
 
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . "/../models/RapportEtudiant.php";
 require_once __DIR__ . "/../models/EvaluationRapport.php";

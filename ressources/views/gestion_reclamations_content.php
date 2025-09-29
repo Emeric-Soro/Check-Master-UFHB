@@ -10,15 +10,17 @@
 <body class="bg-gradient-to-r from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center">
 
     <div class="container mx-auto py-10">
-        <?php if (isset($_SESSION['message'])): ?>
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6 text-center">
+        <?php 
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
+if (isset($_SESSION['message'])): ?>
+        <div class="bg-primary-100 border border-green-400 text-primary-700 px-4 py-3 rounded relative mb-6 text-center">
             <strong class="font-bold">
                 <?php if ($_SESSION['message']['type'] === 'success'): ?>Succès !<?php else: ?>Erreur !<?php endif; ?>
             </strong> <?= htmlspecialchars($_SESSION['message']['text']) ?>
         </div>
         <?php unset($_SESSION['message']); ?>
         <?php endif; ?>
-        <h1 class="text-3xl font-bold text-center text-green-800 mb-10">Gestion des Réclamations</h1>
+        <h1 class="text-3xl font-bold text-center text-primary-800 mb-10">Gestion des Réclamations</h1>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <?php foreach ($cardReclamation as $card): ?>
             <div

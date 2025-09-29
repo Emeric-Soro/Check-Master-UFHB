@@ -1,4 +1,6 @@
 <?php
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 // Récupérer les données du contrôleur
 global $archives;
 $archivesData = $archives ?? [];
@@ -11,7 +13,7 @@ $filtres = $archivesData['filtres'] ?? [];
 // Fonctions utilitaires
 function getStatusClass($status) {
     switch ($status) {
-        case 'valider': return 'bg-green-100 text-green-800 border-green-200';
+        case 'valider': return 'bg-primary-100 text-primary-800 border-green-200';
         case 'rejeter': return 'bg-red-100 text-red-800 border-red-200';
         default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -120,7 +122,7 @@ function getTimeAgo($date) {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <!-- Statistiques -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow p-6 fade-in">
+                <div class="<?= StyleManager::getCardClass() ?> fade-in">
                     <div class="flex items-center">
                         <div class="p-3 rounded-full bg-blue-100">
                             <i class="fas fa-archive text-blue-600 text-2xl"></i>
@@ -133,10 +135,10 @@ function getTimeAgo($date) {
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow p-6 fade-in">
+                <div class="<?= StyleManager::getCardClass() ?> fade-in">
                     <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-green-100">
-                            <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                        <div class="p-3 rounded-full bg-primary-100">
+                            <i class="fas fa-check-circle text-primary-600 text-2xl"></i>
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Validés</p>
@@ -158,7 +160,7 @@ function getTimeAgo($date) {
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow p-6 fade-in">
+                <div class="<?= StyleManager::getCardClass() ?> fade-in">
                     <div class="flex items-center">
                         <div class="p-3 rounded-full bg-red-100">
                             <i class="fas fa-times-circle text-red-600 text-2xl"></i>
@@ -183,7 +185,7 @@ function getTimeAgo($date) {
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow p-6 fade-in">
+                <div class="<?= StyleManager::getCardClass() ?> fade-in">
                     <div class="flex items-center">
                         <div class="p-3 rounded-full bg-purple-100">
                             <i class="fas fa-clock text-purple-600 text-2xl"></i>
@@ -330,7 +332,7 @@ function getTimeAgo($date) {
                     <div class="p-6">
                         <!-- Informations étudiant -->
                         <div class="mb-4">
-                            <h5 class="text-sm font-medium text-gray-700 mb-2">
+                            <h5 class="<?= StyleManager::getLabelClass() ?>">
                                 <i class="fas fa-user-graduate mr-1"></i>
                                 Étudiant
                             </h5>
@@ -344,7 +346,7 @@ function getTimeAgo($date) {
 
                         <!-- Informations enseignant -->
                         <div class="mb-4">
-                            <h5 class="text-sm font-medium text-gray-700 mb-2">
+                            <h5 class="<?= StyleManager::getLabelClass() ?>">
                                 <i class="fas fa-chalkboard-teacher mr-1"></i>
                                 Enseignant responsable
                             </h5>
@@ -358,7 +360,7 @@ function getTimeAgo($date) {
 
                         <!-- Dates et délais -->
                         <div class="mb-4">
-                            <h5 class="text-sm font-medium text-gray-700 mb-2">
+                            <h5 class="<?= StyleManager::getLabelClass() ?>">
                                 <i class="fas fa-calendar-alt mr-1"></i>
                                 Dates importantes
                             </h5>
@@ -381,7 +383,7 @@ function getTimeAgo($date) {
                         <!-- Commentaire -->
                         <?php if (!empty($rapport['commentaire_validation'])): ?>
                         <div class="mb-4">
-                            <h5 class="text-sm font-medium text-gray-700 mb-2">
+                            <h5 class="<?= StyleManager::getLabelClass() ?>">
                                 <i class="fas fa-comment mr-1"></i>
                                 Commentaire de validation
                             </h5>
@@ -393,7 +395,7 @@ function getTimeAgo($date) {
 
                         <!-- Statistiques -->
                         <div class="mb-4">
-                            <h5 class="text-sm font-medium text-gray-700 mb-2">
+                            <h5 class="<?= StyleManager::getLabelClass() ?>">
                                 <i class="fas fa-chart-bar mr-1"></i>
                                 Statistiques
                             </h5>
@@ -412,7 +414,7 @@ function getTimeAgo($date) {
                                 Détails
                             </button>
                             <button onclick="downloadRapport(<?php echo $rapport['id_rapport']; ?>)"
-                                class="text-green-600 hover:text-green-800 text-sm font-medium">
+                                class="text-primary-600 hover:text-primary-800 text-sm font-medium">
                                 <i class="fas fa-download mr-1"></i>
                                 Télécharger
                             </button>
@@ -434,7 +436,7 @@ function getTimeAgo($date) {
             <!-- Affichage en tableau (caché par défaut) -->
             <div id="tableView" class="hidden">
                 <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <table class="min-w-full divide-y divide-gray-200">
+                    <table class="<?= StyleManager::getTableClass(true, true) ?>">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th
@@ -502,7 +504,7 @@ function getTimeAgo($date) {
                                         <i class="fas fa-eye"></i>
                                     </button>
                                     <button onclick="downloadRapport(<?php echo $rapport['id_rapport']; ?>)"
-                                        class="text-green-600 hover:text-green-900">
+                                        class="text-primary-600 hover:text-green-900">
                                         <i class="fas fa-download"></i>
                                     </button>
                                 </td>

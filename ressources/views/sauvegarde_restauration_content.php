@@ -21,9 +21,11 @@
     <div class="container mx-auto px-4 py-8">
 
         <!-- Messages de notification -->
-        <?php if (isset($_GET['success'])): ?>
+        <?php 
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
+if (isset($_GET['success'])): ?>
         <div id="success-notification"
-            class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6 notification"
+            class="bg-primary-100 border border-green-400 text-primary-700 px-4 py-3 rounded relative mb-6 notification"
             role="alert">
             <strong class="font-bold">Succès !</strong>
             <span class="block sm:inline">La sauvegarde a été créée avec succès.</span>
@@ -50,7 +52,7 @@
 
         <?php if (isset($_GET['error'])): ?>
         <div id="error-notification"
-            class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6 notification"
+            class="<?= StyleManager::getNotificationClass('error') ?> relative mb-6 notification"
             role="alert">
             <strong class="font-bold">Erreur !</strong>
             <span class="block sm:inline">
@@ -85,10 +87,10 @@
                     <label for="backup_name" class="block text-sm font-medium text-gray-700 mb-3">Nom de la sauvegarde
                         (optionnel)</label>
                     <input type="text" name="backup_name" id="backup_name" placeholder="Ex: avant_mise_a_jour_v2"
-                        class="outline-green-500 w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500">
+                        class="outline-green-500 w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500">
                 </div>
                 <button type="submit"
-                    class="px-6 py-2 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-green-500 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    class="px-6 py-2 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-primary-500 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                     <i class="fas fa-database mr-2"></i>Lancer la Sauvegarde Manuelle
                 </button>
             </form>
@@ -100,7 +102,7 @@
                 <h2 class="text-2xl font-semibold text-gray-700">Sauvegardes Existantes</h2>
             </div>
             <div class="overflow-x-auto">
-                <table class="min-w-full w-full divide-y divide-gray-200">
+                <table class="<?= StyleManager::getTableClass() ?> w-full divide-y divide-gray-200">
                     <thead class="bg-gray-100">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -141,7 +143,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                <button type="button" class="text-green-600 hover:text-green-900 mr-3" title="Restaurer"
+                                <button type="button" class="text-primary-600 hover:text-green-900 mr-3" title="Restaurer"
                                     onclick="openRestoreModal('<?php echo htmlspecialchars($backup['filename']); ?>')">
                                     <i class="fas fa-undo-alt"></i> Restaurer
                                 </button>

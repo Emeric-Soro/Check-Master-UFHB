@@ -1,4 +1,6 @@
-<?php if (!empty($GLOBALS['selectedStudent'])): ?>
+<?php 
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
+if (!empty($GLOBALS['selectedStudent'])): ?>
 <!DOCTYPE html>
 <html lang="fr">
 

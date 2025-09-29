@@ -1,4 +1,6 @@
 <?php
+
+require_once __DIR__ . '/../../app/utils/StyleManager.php';
 $rapports_valides = $GLOBALS['rapports_valides'] ?? [];
 $enseignants = $GLOBALS['enseignants'] ?? [];
 $notifType = '';
@@ -141,14 +143,14 @@ if (!empty($_SESSION['success'])) {
                         <!-- Left column - Report selection and info -->
                         <div class="space-y-6">
                             <!-- Report Selection -->
-                            <div class="bg-white rounded-lg shadow p-6 fade-in">
+                            <div class="<?= StyleManager::getCardClass() ?> fade-in">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4">
                                     <i class="fas fa-file-alt text-blue-600 mr-2"></i>
                                     Sélection des rapports
                                 </h3>
                                 <div class="space-y-3">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Ajouter un rapport</label>
+                                        <label class="<?= StyleManager::getLabelClass() ?>">Ajouter un rapport</label>
                                         <div class="flex items-center space-x-2">
                                             <select id="reportSelect" class="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500" style="height:36px; width: 100px;">
                                             <option value="">Sélectionner un rapport...</option>
@@ -178,9 +180,9 @@ if (!empty($_SESSION['success'])) {
                             </div>
 
                             <!-- Report Info -->
-                            <div id="reportInfo" class="bg-white rounded-lg shadow p-6 fade-in">
+                            <div id="reportInfo" class="<?= StyleManager::getCardClass() ?> fade-in">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                                    <i class="fas fa-info-circle text-green-600 mr-2"></i>
+                                    <i class="fas fa-info-circle text-primary-600 mr-2"></i>
                                     Informations des rapports
                                 </h3>
                                 <div id="reportDetails" class="space-y-4">
@@ -189,7 +191,7 @@ if (!empty($_SESSION['success'])) {
                             </div>
 
                             <!-- Attribution dynamique des encadrants/directeurs -->
-                            <div id="attribution-enseignants" class="bg-white rounded-lg shadow p-6 fade-in mt-6 mb-8">
+                            <div id="attribution-enseignants" class="<?= StyleManager::getCardClass() ?> fade-in mt-6 mb-8">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-2">
                                     <i class="fas fa-user-tie text-blue-600 mr-2"></i>
                                     Attribution des encadrants et directeurs de mémoire
@@ -200,7 +202,7 @@ if (!empty($_SESSION['success'])) {
                             </div>
 
                             <!-- Evaluations Summary -->
-                            <div id="evaluationsSummary" class="bg-white rounded-lg shadow p-6 fade-in hidden">
+                            <div id="evaluationsSummary" class="<?= StyleManager::getCardClass() ?> fade-in hidden">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4">
                                     <i class="fas fa-users text-purple-600 mr-2"></i>
                                     Résumé des évaluations
@@ -230,7 +232,7 @@ if (!empty($_SESSION['success'])) {
                                         </h3>
                                         <div class="flex items-center space-x-2">
                                             <span class="text-sm text-gray-600">Dernière sauvegarde: </span>
-                                            <span id="lastSave" class="text-sm text-green-600">--:--</span>
+                                            <span id="lastSave" class="text-sm text-primary-600">--:--</span>
                                         </div>
                                     </div>
                                 </div>
@@ -401,7 +403,7 @@ if (!empty($_SESSION['success'])) {
             <div class="inline-block w-full max-w-4xl p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-medium text-gray-900">
-                        <i class="fas fa-eye text-green-600 mr-2"></i>
+                        <i class="fas fa-eye text-primary-600 mr-2"></i>
                         Aperçu du compte rendu
                     </h3>
                     <div class="flex items-center space-x-2">
@@ -431,7 +433,7 @@ if (!empty($_SESSION['success'])) {
         <input type="hidden" name="nom_CR" id="nom_CR" value="">
         <input type="hidden" name="contenu_CR" id="contenu_CR" value="">
         <div class="flex justify-end mt-6">
-            <button type="button" onclick="submitCR()" class="px-6 py-3 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition-colors font-semibold text-lg">
+            <button type="button" onclick="submitCR()" class="px-6 py-3 bg-primary-600 text-white rounded-lg shadow hover:bg-primary-700 transition-colors font-semibold text-lg">
                 <i class="fas fa-save mr-2"></i>Enregistrer le compte rendu
             </button>
         </div>
@@ -637,7 +639,7 @@ if (!empty($_SESSION['success'])) {
                         <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
                             <div class="flex items-center justify-between mb-3">
                                 <h4 class="font-semibold text-gray-800">Rapport ${index + 1} : ${data.title}</h4>
-                                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${data.status}</span>
+                                <span class="bg-primary-100 text-primary-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${data.status}</span>
                             </div>
                             <div class="grid grid-cols-2 gap-3 text-sm">
                                 <div><span class="font-medium text-gray-700">Étudiant :</span> <span class="text-gray-900">${data.student}</span></div>
@@ -656,8 +658,8 @@ if (!empty($_SESSION['success'])) {
                     `;
                     
                     data.evaluations.forEach(eval => {
-                    const bgColor = eval.decision === 'Validé' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
-                    const textColor = eval.decision === 'Validé' ? 'text-green-800' : 'text-red-800';
+                    const bgColor = eval.decision === 'Validé' ? 'bg-primary-50 border-green-200' : 'bg-red-50 border-red-200';
+                    const textColor = eval.decision === 'Validé' ? 'text-primary-800' : 'text-red-800';
                     
                         allEvaluationsHTML += `
                             <div class="p-3 border rounded-lg ${bgColor} mb-2">
@@ -817,8 +819,8 @@ if (!empty($_SESSION['success'])) {
                     break;
                 case 'recommendation':
                     sectionHTML = `
-                        <div class="mb-4 p-4 border-l-4 border-green-500 bg-green-50">
-                            <h4 class="font-semibold text-green-800 mb-2">Recommandation</h4>
+                        <div class="mb-4 p-4 border-l-4 border-primary-500 bg-primary-50">
+                            <h4 class="font-semibold text-primary-800 mb-2">Recommandation</h4>
                             <p>[Votre recommandation...]</p>
                         </div>
                     `;
@@ -896,7 +898,7 @@ if (!empty($_SESSION['success'])) {
                         .p-4 { padding: 16px; }
                         .border-l-4 { border-left: 4px solid #3b82f6; }
                         .bg-blue-50 { background-color: #eff6ff; }
-                        .bg-green-50 { background-color: #f0fdf4; }
+                        .bg-primary-50 { background-color: #f0fdf4; }
                         .text-center { text-align: center; }
                         .font-bold { font-weight: bold; }
                         .font-semibold { font-weight: 600; }
@@ -1084,7 +1086,7 @@ if (!empty($_SESSION['success'])) {
         function showNotification(message, type) {
             const notification = document.createElement('div');
             notification.className = `fixed top-4 right-4 px-4 py-2 rounded-md text-white text-sm font-medium z-50 ${
-                type === 'success' ? 'bg-green-600' : 
+                type === 'success' ? 'bg-primary-600' : 
                 type === 'error' ? 'bg-red-600' : 
                 type === 'info' ? 'bg-blue-600' : 'bg-gray-600'
             }`;
@@ -1265,7 +1267,7 @@ if (!empty($_SESSION['success'])) {
                 var toastMsg = document.getElementById('toastMsg');
                 toastMsg.textContent = notifMsg;
                 if (notifType === 'success') {
-                    toastContent.className = 'bg-green-500 text-white px-4 py-3 rounded shadow-lg flex items-center';
+                    toastContent.className = 'bg-primary-500 text-white px-4 py-3 rounded shadow-lg flex items-center';
                     toastIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
                 } else {
                     toastContent.className = 'bg-red-500 text-white px-4 py-3 rounded shadow-lg flex items-center';

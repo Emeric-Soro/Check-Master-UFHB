@@ -455,7 +455,7 @@ CREATE TABLE `messages` (
 --
 
 INSERT INTO `messages` (`id_message`, `contenu_message`, `lib_message`, `type_message`) VALUES
-(3, 'Bienvenue sur Soutenance Manager', 'message_bienvenue', 'info'),
+(3, 'Bienvenue sur CheckMaster', 'message_bienvenue', 'info'),
 (4, 'Erreur lors du traitement du fichier', 'messageErreur', 'error');
 
 -- --------------------------------------------------------

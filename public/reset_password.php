@@ -1,4 +1,6 @@
 <?php
+
+require_once __DIR__ . '/../app/utils/StyleManager.php';
 session_start();
 require_once __DIR__ . '/../app/config/database.php';
 require_once __DIR__ . '/../app/models/Utilisateur.php';
@@ -113,7 +115,7 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/output.css">
-    <link rel="shortcut icon" href="./images/dessin.svg" type="image/x-icon">
+    <link rel="shortcut icon" href="./images/logo_cm_sbg.png" type="image/x-icon">
     <title>Mot de passe oublié</title>
 </head>
 
@@ -124,13 +126,13 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
 
 
                 <div class="p-8 rounded-md bg-white shadow-xl">
-                    <a href="reset_password.php"><img src="./images/dessin.svg" class=" mx-auto block "
+                    <a href="reset_password.php"><img src="./images/logo_cm_sbg.png" class=" mx-auto block "
                             style="width:40%" />
                     </a>
-                    <h2 class="text-green-500 text-center text-xl font-semibold mb-6">Réinitialisation de mot de passe
+                    <h2 class="text-primary-500 text-center text-xl font-semibold mb-6">Réinitialisation de mot de passe
                     </h2>
                     <?php if ($success): ?>
-                    <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-2 mb-4 rounded text-sm"
+                    <div class="bg-primary-50 border-l-4 border-primary-500 text-primary-700 p-2 mb-4 rounded text-sm"
                         role="alert">
                         <?= htmlspecialchars($success) ?>
                     </div>
@@ -165,7 +167,7 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
 
                         <div class="!mt-12">
                             <button type="submit"
-                                class="w-full py-2 px-4 text-[15px] font-medium tracking-wide rounded-md text-white bg-green-500 hover:bg-green-700 focus:outline-none cursor-pointer">
+                                class="w-full py-2 px-4 text-[15px] font-medium tracking-wide rounded-md text-white bg-primary-500 hover:bg-primary-700 focus:outline-none cursor-pointer">
                                 Réinitialiser mon mot de passe
                             </button>
                         </div>
@@ -184,7 +186,7 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
 
                         <div class="!mt-12">
                             <button type="submit"
-                                class="w-full py-2 px-4 text-[15px] font-medium tracking-wide rounded-md text-white bg-green-500 hover:bg-green-700 focus:outline-none cursor-pointer">
+                                class="w-full py-2 px-4 text-[15px] font-medium tracking-wide rounded-md text-white bg-primary-500 hover:bg-primary-700 focus:outline-none cursor-pointer">
                                 Recevoir le lien de réinitialisation
                             </button>
                         </div>
@@ -192,7 +194,7 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
                     <?php endif; ?>
                     <div class="text-center mt-4">
 
-                        <a href="page_connexion.php" class="text-green-500 underline hover:underline font-medium">
+                        <a href="page_connexion.php" class="text-primary-500 underline hover:underline font-medium">
                             Retour à la connexion
 
                             </form>
