@@ -1,7 +1,7 @@
 <?php
 
 
-require_once __DIR__ . '/../../app/utils/StyleManager.php';
+// Récupérer
 include_once __DIR__ . '/../models/Traitement.php';
 
 class MenuController {
