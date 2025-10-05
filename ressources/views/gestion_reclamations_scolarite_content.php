@@ -1,6 +1,4 @@
 <?php
-
-require_once __DIR__ . '/../../app/utils/StyleManager.php';
 // Supposons que $reclamationsEnCours et $reclamationsTraitees sont passés par le contrôleur
 // $reclamationsEnCours : réclamations statut 'en attente' ou 'en cours'
 // $reclamationsTraitees : réclamations statut 'traitée' ou 'clôturée'
@@ -12,9 +10,9 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
 <div class="p-4 sm:p-6 md:p-8">
     <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
         <!-- En-tête de la page -->
-        <div class="bg-primary-600 px-6 py-8 text-white">
+        <div class="bg-green-600 px-6 py-8 text-white">
             <h1 class="text-3xl font-bold text-center mb-2">Gestion des Réclamations</h1>
-            <p class="text-primary-100 text-center">Service de la Scolarité</p>
+            <p class="text-green-100 text-center">Service de la Scolarité</p>
         </div>
 
         <div class="p-6 md:p-8">
@@ -23,7 +21,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                 <div class="flex-1 max-w-md">
                     <div class="relative">
                         <input type="text" id="searchInput" placeholder="Rechercher une réclamation..."
-                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-700 shadow-sm transition duration-200">
+                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm transition duration-200">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fa fa-search text-gray-400"></i>
                         </div>
@@ -45,10 +43,10 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                         </div>
                     </div>
                 </div>
-                <div class="bg-primary-500 rounded-lg p-6 text-white shadow-lg">
+                <div class="bg-green-500 rounded-lg p-6 text-white shadow-lg">
                     <div class="flex items-center">
                         <div class="flex-1">
-                            <p class="text-primary-100 text-sm font-medium">Résolue</p>
+                            <p class="text-green-100 text-sm font-medium">Résolue</p>
                             <p class="text-2xl font-bold" id="countResolue">0</p>
                         </div>
                         <div class="text-3xl opacity-75">
@@ -92,7 +90,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
 
                 <div class="bg-white rounded-lg shadow overflow-hidden">
                     <div class="overflow-x-auto">
-                        <table class="<?= StyleManager::getTableClass(true, true) ?>" id="tableReclamationsEnCours">
+                        <table class="min-w-full divide-y divide-gray-200" id="tableReclamationsEnCours">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th
@@ -157,7 +155,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                                                 action="?page=gestion_reclamations_scolarite&action=changer_statut&id=<?= $rec->id_reclamation ?>"
                                                 class="flex items-center space-x-2">
                                                 <select name="nouveau_statut"
-                                                    class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                                    class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-green-500 focus:border-green-500">
                                                     <option value="En attente"
                                                         <?= strtolower($rec->statut_reclamation) === 'En attente' ? 'selected' : '' ?>>
                                                         En attente</option>
@@ -169,7 +167,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                                                         Rejeté</option>
                                                 </select>
                                                 <button type="submit"
-                                                    class="inline-flex items-center px-3 py-1 bg-primary-600 text-white text-xs rounded-md hover:bg-primary-700 transition duration-200">
+                                                    class="inline-flex items-center px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition duration-200">
                                                     <i class="fa fa-check mr-1"></i>Valider
                                                 </button>
                                             </form>
@@ -222,7 +220,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
 
                 <div class="bg-white rounded-lg shadow overflow-hidden">
                     <div class="overflow-x-auto">
-                        <table class="<?= StyleManager::getTableClass(true, true) ?>" id="tableReclamationsTraitees">
+                        <table class="min-w-full divide-y divide-gray-200" id="tableReclamationsTraitees">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th
@@ -272,7 +270,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                                            <?php if(strtolower($rec->statut_reclamation) === 'résolue' || strtolower($rec->statut_reclamation) === 'traitée') echo 'bg-primary-100 text-primary-800';
+                                            <?php if(strtolower($rec->statut_reclamation) === 'résolue' || strtolower($rec->statut_reclamation) === 'traitée') echo 'bg-green-100 text-green-800';
                                                   elseif(strtolower($rec->statut_reclamation) === 'rejeté' || strtolower($rec->statut_reclamation) === 'rejetée') echo 'bg-red-100 text-red-800';
                                                   else echo 'bg-gray-100 text-gray-800'; ?>">
                                             <?= htmlspecialchars($rec->statut_reclamation) ?>
@@ -602,7 +600,7 @@ function showFeedback(message, type = 'info') {
     // Créer l'élément de notification
     const notification = document.createElement('div');
     notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 transform translate-x-full ${
-        type === 'success' ? 'bg-primary-500 text-white' : 
+        type === 'success' ? 'bg-green-500 text-white' : 
         type === 'error' ? 'bg-red-500 text-white' : 
         'bg-blue-500 text-white'
     }`;
@@ -692,7 +690,7 @@ function initializePagination() {
             const btn = document.createElement('button');
             btn.textContent = i;
             btn.className =
-                `px-3 py-2 border border-gray-300 text-sm font-medium ${i === currentPage ? 'bg-primary-100 text-primary-700 font-bold' : 'bg-white text-gray-700 hover:bg-gray-50'} transition duration-200`;
+                `px-3 py-2 border border-gray-300 text-sm font-medium ${i === currentPage ? 'bg-green-100 text-green-700 font-bold' : 'bg-white text-gray-700 hover:bg-gray-50'} transition duration-200`;
             btn.onclick = () => showPage(i);
             pagination.appendChild(btn);
         }
@@ -724,7 +722,7 @@ function showReclamationDetails(rec) {
                 <h4 class="font-semibold text-gray-900 mb-2">Statut</h4>
                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
                     ${rec.statut_reclamation === 'en attente' ? 'bg-yellow-100 text-yellow-800' : 
-                      rec.statut_reclamation === 'résolue' || rec.statut_reclamation === 'traitée' ? 'bg-primary-100 text-primary-800' :
+                      rec.statut_reclamation === 'résolue' || rec.statut_reclamation === 'traitée' ? 'bg-green-100 text-green-800' :
                       rec.statut_reclamation === 'rejeté' || rec.statut_reclamation === 'rejetée' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}">
                     ${rec.statut_reclamation}
                 </span>

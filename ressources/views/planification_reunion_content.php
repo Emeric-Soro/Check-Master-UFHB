@@ -66,7 +66,7 @@
                     </div>
                     <div class="flex space-x-2">
                         <button
-                            class="px-4 py-2 bg-primary-600 text-white rounded-md shadow-sm text-sm font-medium hover:bg-primary-700">
+                            class="px-4 py-2 bg-green-600 text-white rounded-md shadow-sm text-sm font-medium hover:bg-green-700">
                             <i class="fas fa-plus mr-2"></i> Nouvelle soutenance
                         </button>
                         <div class="relative">
@@ -162,7 +162,7 @@
                         <div class="bg-white h-24 p-1 calendar-day">
                             <div class="text-right text-sm p-1">9</div>
                             <div class="overflow-y-auto h-16 text-xs space-y-1">
-                                <div class="bg-primary-50 rounded p-1 truncate">
+                                <div class="bg-green-50 rounded p-1 truncate">
                                     <span class="font-medium">09h00</span> Soutenance Bio
                                 </div>
                             </div>
@@ -175,7 +175,7 @@
                         <div class="bg-white h-24 p-1 calendar-day today">
                             <div class="text-right text-sm p-1">
                                 <span
-                                    class="bg-primary-100 text-primary-800 rounded-full w-6 h-6 inline-flex items-center justify-center">11</span>
+                                    class="bg-green-100 text-green-800 rounded-full w-6 h-6 inline-flex items-center justify-center">11</span>
                             </div>
                             <div class="overflow-y-auto h-16 text-xs space-y-1">
                                 <div class="bg-red-50 rounded p-1 truncate">
@@ -245,7 +245,7 @@
                         <div class="bg-white h-24 p-1 calendar-day">
                             <div class="text-right text-sm p-1">26</div>
                             <div class="overflow-y-auto h-16 text-xs space-y-1">
-                                <div class="bg-primary-50 rounded p-1 truncate">
+                                <div class="bg-green-50 rounded p-1 truncate">
                                     <span class="font-medium">14h00</span> Soutenance Info
                                 </div>
                             </div>
@@ -273,7 +273,7 @@
                 <!-- Upcoming Events -->
                 <div class="mt-8 fade-in" style="animation-delay: 0.2s;">
                     <h2 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-list-ul text-primary-600 mr-2"></i>
+                        <i class="fas fa-list-ul text-green-600 mr-2"></i>
                         Prochaines soutenances
                     </h2>
 
@@ -283,14 +283,14 @@
                             class="bg-white rounded-lg shadow overflow-hidden event-card transition duration-150 ease-in-out">
                             <div class="p-4">
                                 <div class="flex items-start">
-                                    <div class="flex-shrink-0 bg-primary-100 p-3 rounded-full">
-                                        <i class="fas fa-graduation-cap text-primary-600"></i>
+                                    <div class="flex-shrink-0 bg-green-100 p-3 rounded-full">
+                                        <i class="fas fa-graduation-cap text-green-600"></i>
                                     </div>
                                     <div class="ml-4 flex-1">
                                         <div class="flex items-center justify-between">
                                             <h3 class="text-lg font-medium text-gray-900">Soutenance de Thèse</h3>
                                             <span
-                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                                 Confirmée
                                             </span>
                                         </div>
@@ -306,7 +306,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-4 flex justify-between">
-                                    <button class="text-sm text-primary-600 hover:text-primary-800 font-medium">
+                                    <button class="text-sm text-green-600 hover:text-green-800 font-medium">
                                         <i class="fas fa-eye mr-1"></i> Détails
                                     </button>
                                     <button class="text-sm text-blue-600 hover:text-blue-800 font-medium">
@@ -344,7 +344,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-4 flex justify-between">
-                                    <button class="text-sm text-primary-600 hover:text-primary-800 font-medium">
+                                    <button class="text-sm text-green-600 hover:text-green-800 font-medium">
                                         <i class="fas fa-eye mr-1"></i> Détails
                                     </button>
                                     <button class="text-sm text-blue-600 hover:text-blue-800 font-medium">
@@ -382,7 +382,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-4 flex justify-between">
-                                    <button class="text-sm text-primary-600 hover:text-primary-800 font-medium">
+                                    <button class="text-sm text-green-600 hover:text-green-800 font-medium">
                                         <i class="fas fa-eye mr-1"></i> Détails
                                     </button>
                                     <button class="text-sm text-blue-600 hover:text-blue-800 font-medium">

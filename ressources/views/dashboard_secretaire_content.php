@@ -1,7 +1,5 @@
 <!DOCTYPE html>
 <?php
-
-require_once __DIR__ . '/../../app/utils/StyleManager.php';
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/controllers/DashboardScolariteController.php';
 
@@ -183,7 +181,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
             </div>
             <!-- Carte 2: Étudiants Actifs -->
             <div class="bg-white p-6 rounded-xl shadow-lg flex items-center space-x-4">
-                <div class="bg-primary-100 p-3 rounded-full text-primary-600">
+                <div class="bg-green-100 p-3 rounded-full text-green-600">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                         <path fill-rule="evenodd"
                             d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
@@ -268,7 +266,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                 </div>
                 <div class="mt-4 text-center">
                     <div class="text-sm text-gray-600">Montant total perçu</div>
-                    <div class="text-lg font-bold text-primary-600">
+                    <div class="text-lg font-bold text-green-600">
                         <?php echo number_format($montantTotalPerçu, 0, ',', ' '); ?> FCFA</div>
                 </div>
             </div>
@@ -324,7 +322,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="<?= StyleManager::getTableClass(true, true) ?>">
+                    <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th
@@ -367,7 +365,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                                                     $statutText = 'En attente';
                                                     break;
                                                 case 'Résolue':
-                                                    $statutClass = 'bg-primary-100 text-primary-800';
+                                                    $statutClass = 'bg-green-100 text-green-800';
                                                     $statutText = 'Résolue';
                                                     break;
                                                 default:
@@ -447,7 +445,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span
-                                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-primary-100 text-primary-800">
+                                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                         Résolue
                                     </span>
                                 </td>

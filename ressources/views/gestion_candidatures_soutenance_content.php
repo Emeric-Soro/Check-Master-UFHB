@@ -1,6 +1,4 @@
 <?php
-
-require_once __DIR__ . '/../../app/utils/StyleManager.php';
 // NOTE : Ce fichier utilise un endpoint AJAX 'resume_candidature_ajax.php' à créer pour charger dynamiquement le résumé de candidature depuis la base.
 // Récupérer les données du contrôleur
 $candidatures = $GLOBALS['candidatures_soutenance'] ?? [];

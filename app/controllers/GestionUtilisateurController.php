@@ -349,10 +349,7 @@ class GestionUtilisateurController
                      <a href="http://localhost:8080/page_connexion.php" class="button " style="color:#fff">Se connecter</a>
                     <p>Si vous n\'êtes pas à l\'origine de cette création de compte, veuillez ignorer cet email ou contacter notre support.</p>
                 </div>
-                
-                <div class="footer">
-                    <p>© ' . date('Y') . ' CheckMaster. Tous droits réservés.</p>
-                </div>
+               
             </div>
         </body>
         </html>';

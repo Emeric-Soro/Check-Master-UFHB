@@ -1,6 +1,4 @@
 <?php
-
-require_once __DIR__ . '/../../app/utils/StyleManager.php';
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/models/AnneeAcademique.php';
 require_once __DIR__ . '/../../app/models/NiveauEtude.php';
@@ -51,16 +49,16 @@ $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
 <body class="p-4 sm:p-6 md:p-8">
     <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden md:p-8 p-6">
         <h1 class="text-3xl font-bold text-gray-900 mb-6 text-center">Liste des Étudiants <span
-                class="text-4xl text-primary-500 font-bold">MIAGE</span></h1>
+                class="text-4xl text-green-500 font-bold">MIAGE</span></h1>
         <form method="get" class="mb-6 flex flex-wrap gap-4 items-center">
             <?php if (isset($_GET['page'])): ?>
             <input type="hidden" name="page" value="<?= htmlspecialchars($_GET['page']) ?>">
             <?php endif; ?>
             <input type="text" name="search" placeholder="Rechercher par nom, prénom ou email..."
-                class="outline-green-500  flex-1 min-w-[200px] p-3 pl-4 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-gray-700 shadow-sm md:text-base text-sm"
+                class="outline-green-500  flex-1 min-w-[200px] p-3 pl-4 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm md:text-base text-sm"
                 value="<?= htmlspecialchars(isset($_GET['search']) ? $_GET['search'] : '') ?>">
             <select name="promotion"
-                class="p-3 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-gray-700 shadow-sm md:text-base text-sm">
+                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm md:text-base text-sm">
                 <option value="">Toutes les Années Académiques</option>
                 <?php foreach ($listeAnnees as $annee): ?>
                 <option value="<?= htmlspecialchars($annee->id_annee_acad) ?>"
@@ -70,7 +68,7 @@ $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
                 <?php endforeach; ?>
             </select>
             <select name="niveau"
-                class="p-3 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-gray-700 shadow-sm md:text-base text-sm">
+                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm md:text-base text-sm">
                 <option value="">Tous les Niveaux</option>
                 <?php foreach ($listeNiveaux as $niv): ?>
                 <option value="<?= htmlspecialchars($niv->id_niv_etude) ?>"
@@ -80,10 +78,10 @@ $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
                 <?php endforeach; ?>
             </select>
             <button type="submit"
-                class="p-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition">Filtrer</button>
+                class="p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">Filtrer</button>
         </form>
         <div class="overflow-x-auto">
-            <table class="<?= StyleManager::getTableClass(true, true) ?>">
+            <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
                         <th
@@ -117,7 +115,7 @@ $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
                             <?= htmlspecialchars($etudiant->nom_etu ?? '') ?></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                             <?= htmlspecialchars($etudiant->prenom_etu ?? '') ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-primary-600 hover:text-primary-800">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 hover:text-green-800">
                             <?= htmlspecialchars($etudiant->email_etu ?? '') ?></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                             <?= (isset($etudiant->date_deb, $etudiant->date_fin) ? htmlspecialchars(date('Y', strtotime($etudiant->date_deb)) . '-' . date('Y', strtotime($etudiant->date_fin))) : '') ?>
@@ -128,7 +126,7 @@ $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
                             <?= htmlspecialchars($etudiant->date_naiss_etu ?? '') ?></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <span
-                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= (isset($etudiant->status) && $etudiant->status === 'Actif') ? 'bg-primary-100 text-primary-800' : 'bg-red-100 text-red-800' ?>">
+                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= (isset($etudiant->status) && $etudiant->status === 'Actif') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' ?>">
                                 <?= htmlspecialchars($etudiant->status ?? 'Actif') ?>
                             </span>
                         </td>
@@ -166,7 +164,7 @@ $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
                         class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium <?= $p == 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50' ?> rounded-l-md">&laquo;</a>
                     <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                     <a href="<?= buildPageUrl($i) ?>"
-                        class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium <?= $i == $p ? 'bg-primary-100 text-primary-700 font-bold' : 'text-gray-700 hover:bg-gray-50' ?>"><?= $i ?></a>
+                        class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium <?= $i == $p ? 'bg-green-100 text-green-700 font-bold' : 'text-gray-700 hover:bg-gray-50' ?>"><?= $i ?></a>
                     <?php endfor; ?>
                     <a href="<?= $p < $totalPages ? buildPageUrl($p+1) : '#' ?>"
                         class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium <?= $p == $totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50' ?> rounded-r-md">&raquo;</a>

@@ -98,9 +98,7 @@
                 </div>
             </div>
 
-            <?php 
-require_once __DIR__ . '/../../app/utils/StyleManager.php';
-if (isset($detail)): ?>
+            <?php if (isset($detail)): ?>
                 <div class="max-w-3xl mx-auto mb-8 p-6 bg-white rounded-lg shadow-lg fade-in">
                     <h2 class="text-xl font-bold mb-4 text-gray-800">
                         <i class="fas fa-file-alt text-yellow-600 mr-2"></i>
@@ -146,7 +144,7 @@ if (isset($detail)): ?>
                             <div class="flex space-x-4">
                                 <label class="flex items-center">
                                     <input type="radio" name="decision" value="valider" class="mr-2 text-yellow-600 focus:ring-yellow-500">
-                                    <span class="text-primary-700 font-medium">
+                                    <span class="text-green-700 font-medium">
                                         <i class="fas fa-check-circle mr-1"></i>
                                         Valider le rapport
                                     </span>
@@ -161,7 +159,7 @@ if (isset($detail)): ?>
                             </div>
 
                             <div id="commentaireSection">
-                                <label for="commentaire" class="<?= StyleManager::getLabelClass() ?>">
+                                <label for="commentaire" class="block text-sm font-medium text-gray-700 mb-2">
                                     Commentaires :
                                 </label>
                                 <textarea
@@ -220,7 +218,7 @@ if (isset($detail)): ?>
                         // Créer la notification
                         const notification = document.createElement('div');
                         notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full ${
-                            type === 'success' ? 'bg-primary-500 text-white' : 'bg-red-500 text-white'
+                            type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
                         }`;
                         notification.innerHTML = `
                             <div class="flex items-center">
@@ -327,7 +325,7 @@ if (isset($detail)): ?>
 
             <!-- KPI Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="stat-card <?= StyleManager::getCardClass() ?> fade-in">
+                <div class="stat-card bg-white rounded-lg shadow p-6 fade-in">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600">Dossiers à évaluer</p>
@@ -339,19 +337,19 @@ if (isset($detail)): ?>
                     </div>
                 </div>
 
-                <div class="stat-card <?= StyleManager::getCardClass() ?> fade-in">
+                <div class="stat-card bg-white rounded-lg shadow p-6 fade-in">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600">Dossiers validés</p>
                             <p class="metric-value"><?= $stats['valides'] ?></p>
                         </div>
-                        <div class="p-3 rounded-full bg-primary-100">
-                            <i class="fas fa-check-circle text-primary-600 text-2xl"></i>
+                        <div class="p-3 rounded-full bg-green-100">
+                            <i class="fas fa-check-circle text-green-600 text-2xl"></i>
                         </div>
                     </div>
                 </div>
 
-                <div class="stat-card <?= StyleManager::getCardClass() ?> fade-in">
+                <div class="stat-card bg-white rounded-lg shadow p-6 fade-in">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600">Dossiers à corriger</p>
@@ -391,7 +389,7 @@ if (isset($detail)): ?>
                                     $statusText = 'Nouveau';
                                     break;
                                 case 'valide':
-                                    $statusClass = 'bg-primary-100 text-primary-800';
+                                    $statusClass = 'bg-green-100 text-green-800';
                                     $statusText = 'Validé';
                                     break;
                                 case 'desapprouve_commission':
@@ -424,7 +422,7 @@ if (isset($detail)): ?>
                             <div class="flex items-center">
                                 <span class="text-lg font-bold text-yellow-600 mr-2">16.5/20</span>
                                 <div class="flex-1 bg-gray-200 rounded-full h-2">
-                                    <div class="bg-primary-600 h-2 rounded-full" style="width: 82%"></div>
+                                    <div class="bg-green-600 h-2 rounded-full" style="width: 82%"></div>
                                 </div>
                             </div>
                             <?php elseif ($dossier['etape_validation'] === 'desapprouve_commission'): ?>

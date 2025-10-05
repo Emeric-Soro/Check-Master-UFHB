@@ -1,6 +1,4 @@
 <?php
-
-require_once __DIR__ . '/../../app/utils/StyleManager.php';
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/models/Etudiant.php';
 require_once __DIR__ . '/../../app/models/NiveauEtude.php';
@@ -55,14 +53,14 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
 
 <body class="bg-gradient-to-br from-blue-50 to-green-50 min-h-screen font-sans">
     <div class="max-w-5xl mx-auto py-10 ">
-        <h1 class="text-3xl font-bold text-primary-700 mb-8 flex items-center gap-3">
+        <h1 class="text-3xl font-bold text-green-700 mb-8 flex items-center gap-3">
             <i class="fas fa-folder-open text-green-400"></i> Dossiers académiques des étudiants
         </h1>
 
         <!-- Messages de succès/erreur en haut -->
         <?php
         if (isset($_GET['success']) && $_GET['success'] === '1') {
-            echo '<div id="successMessage" class="mb-6 p-4 bg-primary-100 border border-green-400 text-primary-700 rounded-lg flex items-center gap-2 transition-opacity duration-500">
+            echo '<div id="successMessage" class="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg flex items-center gap-2 transition-opacity duration-500">
                     <i class="fas fa-check-circle"></i>
                     <span class="font-semibold">Dossier enregistré avec succès !</span>
                   </div>';
@@ -80,9 +78,9 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                 <input type="text" name="search" id="searchInput" style="outline: none;"
                     placeholder="Rechercher par nom, email, niveau..."
                     value="<?= htmlspecialchars($_GET['search'] ?? '') ?>"
-                    class="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                    class="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">
                 <select name="niveau" style="outline: none;"
-                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500">
                     <option value="">Tous les niveaux</option>
                     <?php foreach($niveaux as $niv): ?>
                     <option value="<?= htmlspecialchars($niv->id_niv_etude) ?>"
@@ -91,24 +89,24 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                     </option>
                     <?php endforeach; ?>
                 </select>
-                <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg">Filtrer</button>
+                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg">Filtrer</button>
             </form>
         </div>
         <div class="bg-white rounded-xl shadow-lg overflow-x-auto">
-            <table class="<?= StyleManager::getTableClass(true, true) ?>">
-                <thead class="bg-primary-50">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-green-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-primary-700 uppercase tracking-wider">Nom
+                        <th class="px-6 py-3 text-left text-xs font-bold text-green-700 uppercase tracking-wider">Nom
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-primary-700 uppercase tracking-wider">
+                        <th class="px-6 py-3 text-left text-xs font-bold text-green-700 uppercase tracking-wider">
                             Prénom</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-primary-700 uppercase tracking-wider">
+                        <th class="px-6 py-3 text-left text-xs font-bold text-green-700 uppercase tracking-wider">
                             Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-primary-700 uppercase tracking-wider">
+                        <th class="px-6 py-3 text-left text-xs font-bold text-green-700 uppercase tracking-wider">
                             Niveau</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-primary-700 uppercase tracking-wider">
+                        <th class="px-6 py-3 text-left text-xs font-bold text-green-700 uppercase tracking-wider">
                             Promotion</th>
-                        <th class="px-6 py-3 text-center text-xs font-bold text-primary-700 uppercase tracking-wider">
+                        <th class="px-6 py-3 text-center text-xs font-bold text-green-700 uppercase tracking-wider">
                             Action</th>
                     </tr>
                 </thead>
@@ -140,7 +138,7 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                                 <div class="text-sm">Aucun résultat ne correspond à vos critères de recherche</div>
                                 <?php if (!empty($_GET['search']) || !empty($_GET['niveau'])): ?>
                                 <a href="?page=dossiers_academiques"
-                                    class="text-primary-600 hover:text-primary-700 font-medium">
+                                    class="text-green-600 hover:text-green-700 font-medium">
                                     <i class="fas fa-times mr-1"></i>Effacer les filtres
                                 </a>
                                 <?php endif; ?>
@@ -149,7 +147,7 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                     </tr>
                     <?php else: ?>
                     <?php foreach($etudiants as $etu): ?>
-                    <tr class="hover:bg-primary-50 transition">
+                    <tr class="hover:bg-green-50 transition">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             <?php echo htmlspecialchars($etu->nom_etu ?? ''); ?></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
@@ -165,7 +163,7 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                         ?></td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             <button
-                                class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-primary-700 transition open-dossier-modal"
+                                class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-green-700 transition open-dossier-modal"
                                 data-num-etu="<?= htmlspecialchars($etu->num_etu) ?>"
                                 data-nom="<?= htmlspecialchars($etu->nom_etu . ' ' . $etu->prenom_etu) ?>">
                                 <i class="fas fa-eye mr-2"></i> Visualiser le dossier
@@ -207,7 +205,7 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
 
                 <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                 <a href="?page=dossiers_academiques&p=<?= $i ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
-                    class="px-3 py-2 text-sm font-medium <?= $i == $currentPage ? 'text-white bg-primary-600 border-primary-600' : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50' ?> border rounded-md">
+                    class="px-3 py-2 text-sm font-medium <?= $i == $currentPage ? 'text-white bg-green-600 border-green-600' : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50' ?> border rounded-md">
                     <?= $i ?>
                 </a>
                 <?php endfor; ?>
@@ -234,13 +232,13 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 relative overflow-y-auto max-h-[90vh]">
             <button id="closeModalBtn" class="absolute top-4 left-4  text-gray-500 flex items-center justify-center"><i
                     class="fas fa-times text-lg"></i></button>
-            <h2 class="text-2xl font-bold mb-6 text-primary-700 text-center">Dossier académique de <span
+            <h2 class="text-2xl font-bold mb-6 text-green-700 text-center">Dossier académique de <span
                     id="modalNom"></span></h2>
 
             <!-- Indicateur de chargement -->
             <div id="loadingIndicator" class="hidden flex items-center justify-center py-8">
-                <div class="flex items-center gap-3 text-primary-600">
-                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                <div class="flex items-center gap-3 text-green-600">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
                     <span class="font-medium">Chargement des données...</span>
                 </div>
             </div>
@@ -249,31 +247,31 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                 <input type="hidden" name="num_etu" id="modalNumEtu">
                 <!-- Informations personnelles -->
                 <div class="mb-6">
-                    <h3 class="font-semibold text-primary-600 mb-3 text-base flex items-center gap-2"><i
+                    <h3 class="font-semibold text-green-600 mb-3 text-base flex items-center gap-2"><i
                             class="fas fa-user"></i> Informations personnelles</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-gray-700">Adresse</label>
                             <input type="text" name="adresse" id="modalAdresse"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-primary-500 focus:ring-primary-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
                                 disabled>
                         </div>
                         <div>
                             <label class="block text-gray-700">Téléphone</label>
                             <input type="tel" name="telephone" id="modalTelephone"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-primary-500 focus:ring-primary-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
                                 disabled>
                         </div>
                         <div>
                             <label class="block text-gray-700">Nationalité</label>
                             <input type="text" name="nationalite" id="modalNationalite"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-primary-500 focus:ring-primary-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
                                 disabled>
                         </div>
                         <div>
                             <label class="block text-gray-700">Situation familiale</label>
                             <input type="text" name="situation_familiale" id="modalSituationFamiliale"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-primary-500 focus:ring-primary-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
                                 disabled>
                         </div>
                     </div>
@@ -287,25 +285,25 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                         <div>
                             <label class="block text-gray-700">Dernier diplôme</label>
                             <input type="text" name="dernier_diplome" id="modalDernierDiplome"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-primary-500 focus:ring-primary-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
                                 disabled>
                         </div>
                         <div>
                             <label class="block text-gray-700">Établissement d'origine</label>
                             <input type="text" name="etablissement_origine" id="modalEtablissementOrigine"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-primary-500 focus:ring-primary-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
                                 disabled>
                         </div>
                         <div>
                             <label class="block text-gray-700">Année d'obtention du diplôme</label>
                             <input type="number" name="annee_obtention_diplome" id="modalAnneeObtentionDiplome"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-primary-500 focus:ring-primary-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
                                 min="1900" max="2030" placeholder="Ex: 2023" disabled>
                         </div>
                         <div>
                             <label class="block text-gray-700">Mention du diplôme</label>
                             <input type="text" name="mention_diplome" id="modalMentionDiplome"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-primary-500 focus:ring-primary-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
                                 disabled>
                         </div>
                     </div>
@@ -314,7 +312,7 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                     <button type="button" id="editBtn"
                         class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Modifier</button>
                     <button type="submit" id="saveBtn"
-                        class="bg-primary-600 text-white p-2 rounded-lg hover:bg-primary-700">Enregistrer</button>
+                        class="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700">Enregistrer</button>
                 </div>
             </form>
         </div>

@@ -1,6 +1,4 @@
 <?php
-
-require_once __DIR__ . '/../../app/utils/StyleManager.php';
 // Récupérer les données des rapports depuis le contrôleur
 $rapports = $GLOBALS['rapports'] ?? [];
 $nbRapports = $GLOBALS['nbRapports'] ?? 0;
@@ -10,7 +8,7 @@ $statsRapports = $GLOBALS['statsRapports'] ?? [];
 function getStatutClass($statut) {
     switch ($statut) {
         case 'valide':
-            return 'text-primary-500 ';
+            return 'text-green-500 ';
         case 'rejete':
             return 'text-red-500 ';
         case 'en_cours':
@@ -318,7 +316,7 @@ function traduireStatut($statut) {
         unset($_SESSION['message_type']);
         
         echo '<div id="notification" class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300 ' . 
-             (($messageType === 'success') ? 'bg-primary-500 text-white' : 
+             (($messageType === 'success') ? 'bg-green-500 text-white' : 
               (($messageType === 'error') ? 'bg-red-500 text-white' : 
               'bg-blue-500 text-white')) . '">';
         echo '<div class="flex items-center">';
@@ -349,11 +347,11 @@ function traduireStatut($statut) {
         <div class="glass-card rounded-2xl p-6 md:p-8 mb-8 fade-in">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 <div class="flex items-center gap-4">
-                    <div class="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center shadow-lg">
+                    <div class="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center shadow-lg">
                         <i class="fas fa-clipboard-check text-2xl text-white"></i>
                     </div>
                     <div>
-                        <h1 class="text-3xl md:text-4xl font-bold text-primary-600">
+                        <h1 class="text-3xl md:text-4xl font-bold text-green-600">
                             Vérification des Rapports
                         </h1>
                         <p class="text-gray-600 mt-2 text-lg">
@@ -378,7 +376,7 @@ function traduireStatut($statut) {
 
         <!-- Table Section -->
         <div class="table-container fade-in">
-            <div class="table-header bg-primary-600">
+            <div class="table-header bg-green-600">
                 <h2><i class="fas fa-list-ul mr-3"></i>Liste des Rapports</h2>
                 <p>Vérifiez, validez ou rejetez les rapports soumis par les étudiants</p>
             </div>
@@ -484,10 +482,10 @@ function traduireStatut($statut) {
                 <input type="hidden" name="valider" value="1">
                 <input type="hidden" id="validerRapportId" name="id_rapport">
                 <div class="mb-4">
-                    <label for="validerComment" class="<?= StyleManager::getLabelClass() ?>">Commentaire
+                    <label for="validerComment" class="block text-sm font-medium text-gray-700 mb-2">Commentaire
                         (obligatoire)</label>
                     <textarea id="validerComment" name="commentaire" rows="3"
-                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
                         placeholder="Entrez votre commentaire..." required></textarea>
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
@@ -496,7 +494,7 @@ function traduireStatut($statut) {
                         Annuler
                     </button>
                     <button type="submit"
-                        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium">
+                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">
                         Confirmer l'approbation
                     </button>
                 </div>
@@ -508,7 +506,7 @@ function traduireStatut($statut) {
                 <input type="hidden" name="rejeter" value="1">
                 <input type="hidden" id="rejeterRapportId" name="id_rapport">
                 <div class="mb-4">
-                    <label for="rejeterComment" class="<?= StyleManager::getLabelClass() ?>">Commentaire
+                    <label for="rejeterComment" class="block text-sm font-medium text-gray-700 mb-2">Commentaire
                         (obligatoire)</label>
                     <textarea id="rejeterComment" name="commentaire" rows="3"
                         class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
@@ -736,7 +734,7 @@ function traduireStatut($statut) {
     function showNotification(type, message) {
         const notification = document.createElement('div');
         notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full ${
-            type === 'success' ? 'bg-primary-500 text-white' : 
+            type === 'success' ? 'bg-green-500 text-white' : 
             type === 'error' ? 'bg-red-500 text-white' : 
             'bg-blue-500 text-white'
         }`;

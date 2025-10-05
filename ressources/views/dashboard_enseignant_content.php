@@ -1,6 +1,4 @@
 <?php
-
-require_once __DIR__ . '/../../app/utils/StyleManager.php';
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/models/Enseignant.php';
 require_once __DIR__ . '/../../app/models/NiveauEtude.php';
@@ -14,75 +12,16 @@ $niveauEtudeModel = new NiveauEtude($pdo);
 $etudiantModel = new Etudiant($pdo);
 $ueModel = new Ue($pdo);
 $ecueModel = new Ecue($pdo);
-
-// Récupération de l'enseignant connecté
 $enseignant = $enseignantModel->getEnseignantByLogin($_SESSION['login_utilisateur']);
 $enseignantId = $enseignant->id_enseignant;
 if (!$enseignantId) {
     die("Enseignant non trouvé ou non connecté.");
 }
 
-// --- SUPPRESSION de la logique locale basée sur les niveaux responsables ---
-// On utilise uniquement les variables globales calculées par le contrôleur
 $total_etudiants = $GLOBALS['total_etudiants'] ?? 0;
 $total_ues = $GLOBALS['total_ues'] ?? 0;
 $total_ecues = $GLOBALS['total_ecues'] ?? 0;
-$etudiantsNiveauData = $GLOBALS['etudiantsNiveauData'] ?? [];
 $mes_cours = $GLOBALS['mes_cours'] ?? [];
-
-// UE et ECUE pris en charge par l'enseignant
-$ues = $ueModel->getUesByEnseignant($enseignantId);
-$ecues = $ecueModel->getEcuesByEnseignant($enseignantId);
-
-// Répartition des étudiants par niveau
-$repartitionNiveaux = [];
-foreach ($niveauEtudeModel->getAllNiveauxEtudes() as $niv) {
-    $repartitionNiveaux[$niv->lib_niv_etude] = 0;
-}
-foreach ($etudiantModel->getAllListeEtudiants() as $etudiant) {
-    $lib = $etudiant->lib_niv_etude;
-    if (isset($repartitionNiveaux[$lib])) {
-        $repartitionNiveaux[$lib]++;
-    }
-}
-// Pour graphique JS
-$etudiantsNiveauData = [];
-foreach ($repartitionNiveaux as $niveau => $nb) {
-    $etudiantsNiveauData[] = ['niveau' => $niveau, 'nombre_etudiants' => $nb];
-}
-// Pour affichage des cours
-$mes_cours = [];
-$niveauIds = [];
-foreach ($ues as $ue) {
-    if (isset($ue->id_niveau_etude) && !in_array($ue->id_niveau_etude, $niveauIds)) {
-        $niveauIds[] = $ue->id_niveau_etude;
-    }
-    $mes_cours[] = [
-        'nom' => $ue->lib_ue,
-        'niveau' => $ue->lib_niv_etude,
-        'nombre_etudiants' => array_reduce($etudiantModel->getAllListeEtudiants(), function($carry, $etu) use ($ue) {
-            return $carry + ((isset($ue->id_niveau_etude) && $etu->id_niv_etude == $ue->id_niveau_etude) ? 1 : 0);
-        }, 0)
-    ];
-}
-foreach ($ecues as $ecue) {
-    if (isset($ecue->id_niveau_etude) && !in_array($ecue->id_niveau_etude, $niveauIds)) {
-        $niveauIds[] = $ecue->id_niveau_etude;
-    }
-    $mes_cours[] = [
-        'nom' => $ecue->lib_ecue,
-        'niveau' => $ecue->lib_niv_etude,
-        'nombre_etudiants' => array_reduce($etudiantModel->getAllListeEtudiants(), function($carry, $etu) use ($ecue) {
-            return $carry + ((isset($ecue->id_niveau_etude) && $etu->id_niv_etude == $ecue->id_niveau_etude) ? 1 : 0);
-        }, 0)
-    ];
-}
-// Variables globales pour le template
-$GLOBALS['total_etudiants'] = $total_etudiants;
-$GLOBALS['total_ues'] = $total_ues;
-$GLOBALS['total_ecues'] = $total_ecues;
-$GLOBALS['etudiantsNiveauData'] = $etudiantsNiveauData;
-$GLOBALS['mes_cours'] = $mes_cours;
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -95,140 +34,113 @@ $GLOBALS['mes_cours'] = $mes_cours;
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-    .stat-card {
-        transition: all 0.3s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    }
-
-    .chart-container {
-        position: relative;
-        height: 300px;
-    }
-
-    .metric-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #10b981, #059669);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-
-    .trend-up {
-        color: #10b981;
-    }
-
-    .trend-down {
-        color: #ef4444;
-    }
-
-    .trend-stable {
-        color: #6b7280;
-    }
+        :root{--primary:#0F4C75;--accent:#3282B8;--muted:#64748B;--success:#10b981}
+        .stat-card{transition:all .3s ease}
+        .stat-card:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(0,0,0,.1)}
+        .bg-gradient-to-br.from-blue-400{background:linear-gradient(135deg,var(--primary),var(--accent)) !important}
+        .bg-gradient-to-br.from-orange-300{background:linear-gradient(135deg,#fb923c,#fdba74) !important}
+        .bg-gradient-to-br.from-green-400{background:linear-gradient(135deg,#34d399,#10b981) !important}
+        .text-blue-500{color:var(--primary)}
     </style>
 </head>
 
 <body class="font-sans bg-[#F8F7FA] text-gray-600 leading-relaxed p-5">
 
-    <div class="container mx-auto px-4 max-w-screen-xl">
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-gray-600 text-3xl font-bold">Bonjour, Professeur!</h1>
-                <p class="text-gray-400 text-sm mt-1">Bienvenue à nouveau sur votre tableau de bord.</p>
-            </div>
-            <div class="flex items-center space-x-4">
-                <div class="text-right">
-                    <p class="text-sm text-gray-500"><?php echo date('d/m/Y'); ?></p>
-                    <p class="text-sm text-gray-400"><?php echo date('H:i'); ?></p>
-                </div>
-            </div>
+<div class="container mx-auto px-4 max-w-screen-xl">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-gray-600 text-3xl font-bold">Bonjour, Professeur!</h1>
+            <p class="text-gray-400 text-sm mt-1">Bienvenue à nouveau sur votre tableau de bord.</p>
         </div>
-
-        <!-- Statistiques principales -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <!-- Étudiants suivant les UE/ECUE pris en charge -->
-            <div class="stat-card bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-md p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-white text-sm font-medium">Étudiants (vos UE/ECUE)</h3>
-                    <i class="fas fa-users text-white text-xl opacity-80"></i>
-                </div>
-                <div class="text-white text-3xl font-bold mb-2">
-                    <?php echo $GLOBALS['total_etudiants'] ?? 0; ?>
-                </div>
-                <div class="text-white text-xs opacity-80">
-                    Étudiants suivant vos UE/ECUE (tous niveaux confondus)
-                </div>
-            </div>
-
-            <!-- UE prises en charge -->
-            <div class="stat-card bg-gradient-to-br from-orange-300 to-amber-400 rounded-xl shadow-md p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-white text-sm font-medium">UE prises en charge</h3>
-                    <i class="fas fa-book text-white text-xl opacity-80"></i>
-                </div>
-                <div class="text-white text-3xl font-bold mb-2">
-                    <?php echo $GLOBALS['total_ues'] ?? 0; ?>
-                </div>
-                <div class="text-white text-xs opacity-80">
-                    Total UE
-                </div>
-            </div>
-
-            <!-- ECUE pris en charge -->
-            <div class="stat-card bg-gradient-to-br from-green-400 to-teal-500 rounded-xl shadow-md p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-white text-sm font-medium">ECUE pris en charge</h3>
-                    <i class="fas fa-layer-group text-white text-xl opacity-80"></i>
-                </div>
-                <div class="text-white text-3xl font-bold mb-2">
-                    <?php echo $GLOBALS['total_ecues'] ?? 0; ?>
-                </div>
-                <div class="text-white text-xs opacity-80">
-                    Total ECUE
-                </div>
-            </div>
-
-
-        </div>
-
-        <!-- Mes cours -->
-        <div class="bg-white rounded-xl shadow-md p-6">
-            <h2 class="text-gray-900 text-xl font-bold mb-4 pb-3 border-b border-gray-200">
-                <i class="fas fa-book text-blue-500 mr-2"></i>
-                Mes Cours
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <?php if (!empty($GLOBALS['mes_cours'])): ?>
-                <?php foreach ($GLOBALS['mes_cours'] as $cours): ?>
-                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="text-gray-900 font-semibold"><?php echo htmlspecialchars($cours['nom']); ?></h3>
-                        <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                            <?php echo htmlspecialchars($cours['niveau']); ?>
-                        </span>
-                    </div>
-                    <p class="text-gray-500 text-sm mb-3"><?php echo $cours['nombre_etudiants']; ?> étudiants inscrits
-                    </p>
-
-                </div>
-                <?php endforeach; ?>
-                <?php else: ?>
-                <div class="col-span-full text-center text-gray-500 py-8">
-                    <i class="fas fa-chalkboard-teacher text-4xl mb-4"></i>
-                    <p>Aucun cours assigné</p>
-                </div>
-                <?php endif; ?>
+        <div class="flex items-center space-x-4">
+            <div class="text-right">
+                <p class="text-sm text-gray-500"><?php echo date('d/m/Y'); ?></p>
+                <p class="text-sm text-gray-400"><?php echo date('H:i'); ?></p>
             </div>
         </div>
     </div>
 
-    <!-- Scripts pour les graphiques -->
-    <script>
+    <!-- Statistiques principales -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Étudiants suivant les UE/ECUE pris en charge -->
+        <div class="stat-card bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-white text-sm font-medium">Étudiants (vos UE/ECUE)</h3>
+                <i class="fas fa-users text-white text-xl opacity-80"></i>
+            </div>
+            <div class="text-white text-3xl font-bold mb-2">
+                <?php echo $GLOBALS['total_etudiants'] ?? 0; ?>
+            </div>
+            <div class="text-white text-xs opacity-80">
+                Étudiants suivant vos UE/ECUE (tous niveaux confondus)
+            </div>
+        </div>
+
+        <!-- UE prises en charge -->
+        <div class="stat-card bg-gradient-to-br from-orange-300 to-amber-400 rounded-xl shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-white text-sm font-medium">UE prises en charge</h3>
+                <i class="fas fa-book text-white text-xl opacity-80"></i>
+            </div>
+            <div class="text-white text-3xl font-bold mb-2">
+                <?php echo $GLOBALS['total_ues'] ?? 0; ?>
+            </div>
+            <div class="text-white text-xs opacity-80">
+                Total UE
+            </div>
+        </div>
+
+        <!-- ECUE pris en charge -->
+        <div class="stat-card bg-gradient-to-br from-green-400 to-teal-500 rounded-xl shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-white text-sm font-medium">ECUE pris en charge</h3>
+                <i class="fas fa-layer-group text-white text-xl opacity-80"></i>
+            </div>
+            <div class="text-white text-3xl font-bold mb-2">
+                <?php echo $GLOBALS['total_ecues'] ?? 0; ?>
+            </div>
+            <div class="text-white text-xs opacity-80">
+                Total ECUE
+            </div>
+        </div>
+
+
+    </div>
+
+    <!-- Mes cours -->
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <h2 class="text-gray-900 text-xl font-bold mb-4 pb-3 border-b border-gray-200">
+            <i class="fas fa-book text-blue-500 mr-2"></i>
+            Mes Cours
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <?php if (!empty($mes_cours)): ?>
+                <?php foreach ($mes_cours as $cours): ?>
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-gray-900 font-semibold"><?php echo htmlspecialchars($cours['nom']); ?></h3>
+                            <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                            <?php echo htmlspecialchars($cours['niveau']); ?>
+                        </span>
+                        </div>
+                        <p class="text-gray-500 text-sm mb-3"><?php echo $cours['nombre_etudiants']; ?> étudiants inscrits
+                        </p>
+
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="col-span-full text-center text-gray-500 py-8">
+                    <i class="fas fa-chalkboard-teacher text-4xl mb-4"></i>
+                    <p>Aucun cours assigné</p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts pour les graphiques -->
+<script>
     // Données pour les graphiques (à remplacer par les vraies données PHP)
     const evaluationsData = <?php echo json_encode($GLOBALS['evaluations_par_mois'] ?? []); ?>;
     const typesEvaluationsData = <?php echo json_encode($GLOBALS['types_evaluations'] ?? []); ?>;
@@ -445,7 +357,7 @@ $GLOBALS['mes_cours'] = $mes_cours;
 
     // Rafraîchir les données toutes les 30 secondes
     setInterval(refreshStats, 30000);
-    </script>
+</script>
 </body>
 
 </html>

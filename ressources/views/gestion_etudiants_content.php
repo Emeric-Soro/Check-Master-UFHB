@@ -7,7 +7,7 @@
             <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
                 <div class="p-6">
                     <div class="flex items-center mb-4">
-                        <div class="w-12 h-12 bg-primary-500 rounded-full flex items-center justify-center mr-4">
+                        <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mr-4">
                             <i class="fas fa-user-plus text-white text-xl"></i>
                         </div>
                         <h2 class="text-xl font-semibold text-gray-800">Ajouter un Étudiant</h2>

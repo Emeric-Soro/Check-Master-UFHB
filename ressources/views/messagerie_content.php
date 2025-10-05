@@ -59,15 +59,15 @@
 <body class="bg-gray-50 min-h-screen">
     <div class="flex flex-col h-screen">
         <!-- Header -->
-        <header class="bg-primary-600 text-white shadow-md">
+        <header class="bg-green-600 text-white shadow-md">
             <div class="container mx-auto px-4 py-4 flex justify-between items-center">
                 <div class="flex items-center space-x-3">
                     <i class="fas fa-envelope text-2xl"></i>
                     <h1 class="text-xl font-bold">Messagerie Universitaire</h1>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <span class="bg-primary-500 px-3 py-1 rounded-full text-sm">Jean Dupont</span>
-                    <button class="bg-white text-primary-600 p-2 rounded-full hover:bg-primary-50 transition">
+                    <span class="bg-green-500 px-3 py-1 rounded-full text-sm">Jean Dupont</span>
+                    <button class="bg-white text-green-600 p-2 rounded-full hover:bg-green-50 transition">
                         <i class="fas fa-cog"></i>
                     </button>
                 </div>
@@ -80,7 +80,7 @@
             <div class="w-64 bg-white border-r border-gray-200 flex flex-col">
                 <!-- Composer Button -->
                 <button id="composeBtn"
-                    class="mx-4 my-4 bg-primary-600 hover:bg-primary-700 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center transition">
+                    class="mx-4 my-4 bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center transition">
                     <i class="fas fa-plus mr-2"></i> Nouveau message
                 </button>
 
@@ -89,10 +89,10 @@
                     <ul>
                         <li>
                             <a href="#"
-                                class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 border-l-4 border-primary-500 bg-primary-50">
-                                <i class="fas fa-inbox mr-3 text-primary-500"></i>
+                                class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 border-l-4 border-green-500 bg-green-50">
+                                <i class="fas fa-inbox mr-3 text-green-500"></i>
                                 <span>Boîte de réception</span>
-                                <span class="ml-auto bg-primary-500 text-white text-xs px-2 py-1 rounded-full">12</span>
+                                <span class="ml-auto bg-green-500 text-white text-xs px-2 py-1 rounded-full">12</span>
                             </a>
                         </li>
                         <li>
@@ -122,7 +122,7 @@
                             <li class="mb-1">
                                 <a href="#"
                                     class="flex items-center px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded">
-                                    <span class="w-3 h-3 bg-primary-500 rounded-full mr-2"></span>
+                                    <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
                                     <span>Université</span>
                                 </a>
                             </li>
@@ -151,7 +151,7 @@
                 <div class="border-b border-gray-200 px-4 py-3">
                     <div class="relative">
                         <input type="text" placeholder="Rechercher des messages..."
-                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
                         <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
                     </div>
                 </div>
@@ -177,7 +177,7 @@
                                     ferons un retour la semaine prochaine...</p>
                                 <div class="mt-1 flex space-x-2">
                                     <span
-                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-800">
+                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                                         Cours
                                     </span>
                                 </div>
@@ -190,7 +190,7 @@
                         <div class="flex items-start">
                             <div class="flex-shrink-0 pt-1">
                                 <div
-                                    class="bg-primary-500 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                                    class="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center">
                                     <span>SC</span>
                                 </div>
                             </div>
@@ -339,8 +339,8 @@
                                     </button>
                                 </div>
                                 <div class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                                    <div class="bg-primary-100 p-3 rounded-lg mr-3">
-                                        <i class="fas fa-file-code text-primary-600"></i>
+                                    <div class="bg-green-100 p-3 rounded-lg mr-3">
+                                        <i class="fas fa-file-code text-green-600"></i>
                                     </div>
                                     <div>
                                         <p class="text-sm font-medium text-gray-900 truncate">Exemples_algo.zip</p>
@@ -380,7 +380,7 @@
                                         </button>
                                     </div>
                                     <button
-                                        class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium">
+                                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium">
                                         Envoyer
                                     </button>
                                 </div>
@@ -417,7 +417,7 @@
                         <input type="text" class="flex-1 focus:outline-none">
                     </div>
                     <textarea
-                        class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-500"
                         rows="10" placeholder="Écrivez votre message ici..."></textarea>
                 </div>
             </div>
@@ -434,7 +434,7 @@
                     <button class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100">
                         Annuler
                     </button>
-                    <button class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium">
+                    <button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium">
                         Envoyer
                     </button>
                 </div>

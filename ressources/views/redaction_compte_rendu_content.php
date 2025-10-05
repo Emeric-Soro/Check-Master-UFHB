@@ -1,6 +1,4 @@
 <?php
-
-require_once __DIR__ . '/../../app/utils/StyleManager.php';
 $rapports_valides = $GLOBALS['rapports_valides'] ?? [];
 $enseignants = $GLOBALS['enseignants'] ?? [];
 $notifType = '';
@@ -65,7 +63,7 @@ if (!empty($_SESSION['success'])) {
             font-family: 'Times New Roman', serif;
             line-height: 1.6;
         }
-        
+
         /* Styles pour masquer les éléments lors de l'impression */
         @media print {
             /* Masquer seulement les éléments d'interface */
@@ -104,14 +102,14 @@ if (!empty($_SESSION['success'])) {
             .border-gray-200 {
                 display: none !important;
             }
-            
+
             /* Reset du body */
             body {
                 margin: 0 !important;
                 padding: 0 !important;
                 background: white !important;
             }
-            
+
             /* Formatage du contenu de l'éditeur */
             #editorContent {
                 position: static !important;
@@ -143,14 +141,14 @@ if (!empty($_SESSION['success'])) {
                         <!-- Left column - Report selection and info -->
                         <div class="space-y-6">
                             <!-- Report Selection -->
-                            <div class="<?= StyleManager::getCardClass() ?> fade-in">
+                            <div class="bg-white rounded-lg shadow p-6 fade-in">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4">
                                     <i class="fas fa-file-alt text-blue-600 mr-2"></i>
                                     Sélection des rapports
                                 </h3>
                                 <div class="space-y-3">
                                     <div>
-                                        <label class="<?= StyleManager::getLabelClass() ?>">Ajouter un rapport</label>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Ajouter un rapport</label>
                                         <div class="flex items-center space-x-2">
                                             <select id="reportSelect" class="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500" style="height:36px; width: 100px;">
                                             <option value="">Sélectionner un rapport...</option>
@@ -168,7 +166,7 @@ if (!empty($_SESSION['success'])) {
                                             </button>
                                         </div>
                                     </div>
-                                    
+
                                     <!-- Liste des rapports sélectionnés -->
                                     <div id="selectedReports" class="space-y-2">
                                         <h4 class="text-sm font-medium text-gray-700 mt-4">Rapports sélectionnés :</h4>
@@ -180,9 +178,9 @@ if (!empty($_SESSION['success'])) {
                             </div>
 
                             <!-- Report Info -->
-                            <div id="reportInfo" class="<?= StyleManager::getCardClass() ?> fade-in">
+                            <div id="reportInfo" class="bg-white rounded-lg shadow p-6 fade-in">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                                    <i class="fas fa-info-circle text-primary-600 mr-2"></i>
+                                    <i class="fas fa-info-circle text-green-600 mr-2"></i>
                                     Informations des rapports
                                 </h3>
                                 <div id="reportDetails" class="space-y-4">
@@ -191,7 +189,7 @@ if (!empty($_SESSION['success'])) {
                             </div>
 
                             <!-- Attribution dynamique des encadrants/directeurs -->
-                            <div id="attribution-enseignants" class="<?= StyleManager::getCardClass() ?> fade-in mt-6 mb-8">
+                            <div id="attribution-enseignants" class="bg-white rounded-lg shadow p-6 fade-in mt-6 mb-8">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-2">
                                     <i class="fas fa-user-tie text-blue-600 mr-2"></i>
                                     Attribution des encadrants et directeurs de mémoire
@@ -202,7 +200,7 @@ if (!empty($_SESSION['success'])) {
                             </div>
 
                             <!-- Evaluations Summary -->
-                            <div id="evaluationsSummary" class="<?= StyleManager::getCardClass() ?> fade-in hidden">
+                            <div id="evaluationsSummary" class="bg-white rounded-lg shadow p-6 fade-in hidden">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4">
                                     <i class="fas fa-users text-purple-600 mr-2"></i>
                                     Résumé des évaluations
@@ -232,7 +230,7 @@ if (!empty($_SESSION['success'])) {
                                         </h3>
                                         <div class="flex items-center space-x-2">
                                             <span class="text-sm text-gray-600">Dernière sauvegarde: </span>
-                                            <span id="lastSave" class="text-sm text-primary-600">--:--</span>
+                                            <span id="lastSave" class="text-sm text-green-600">--:--</span>
                                         </div>
                                     </div>
                                 </div>
@@ -278,7 +276,7 @@ if (!empty($_SESSION['success'])) {
                                                     <p><strong class="text-gray-700">Date d'évaluation :</strong><br><span class="text-gray-600">[À compléter]</span></p>
                                                 <p><strong class="text-gray-700">Membres de la commission d'évaluation :</strong><br><span class="text-gray-600">[À compléter]</span></p>
                                                 </div>
-                                            
+
                                             <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
                                                 <h4 class="font-semibold text-gray-700 mb-2">Rapports évalués :</h4>
                                                 <div class="text-gray-600">
@@ -306,7 +304,7 @@ if (!empty($_SESSION['success'])) {
                                         <div class="mb-8">
                                             <h3 class="text-xl font-bold border-b-2 border-gray-400 pb-3 mb-4 text-gray-800">III. ÉVALUATIONS PAR RAPPORT</h3>
                                             <p class="text-gray-600 italic mb-4">[Les évaluations détaillées de chaque rapport seront automatiquement insérées ici...]</p>
-                                            
+
                                             <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
                                                 <h4 class="font-semibold text-gray-700 mb-2">Résumé global des votes :</h4>
                                                 <p class="text-sm text-gray-600">Total des votes favorables : [X]/[Total]</p>
@@ -399,11 +397,11 @@ if (!empty($_SESSION['success'])) {
     <div id="previewModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 transition-opacity modal-overlay" onclick="closePreviewModal()"></div>
-            
+
             <div class="inline-block w-full max-w-4xl p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-medium text-gray-900">
-                        <i class="fas fa-eye text-primary-600 mr-2"></i>
+                        <i class="fas fa-eye text-green-600 mr-2"></i>
                         Aperçu du compte rendu
                     </h3>
                     <div class="flex items-center space-x-2">
@@ -433,7 +431,7 @@ if (!empty($_SESSION['success'])) {
         <input type="hidden" name="nom_CR" id="nom_CR" value="">
         <input type="hidden" name="contenu_CR" id="contenu_CR" value="">
         <div class="flex justify-end mt-6">
-            <button type="button" onclick="submitCR()" class="px-6 py-3 bg-primary-600 text-white rounded-lg shadow hover:bg-primary-700 transition-colors font-semibold text-lg">
+            <button type="button" onclick="submitCR()" class="px-6 py-3 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition-colors font-semibold text-lg">
                 <i class="fas fa-save mr-2"></i>Enregistrer le compte rendu
             </button>
         </div>
@@ -499,15 +497,15 @@ if (!empty($_SESSION['success'])) {
         function updateReportsList() {
             const reportsList = document.getElementById('reportsList');
             const selectedReportsDiv = document.getElementById('selectedReports');
-            
+
             if (selectedReports.length === 0) {
                 selectedReportsDiv.classList.add('hidden');
                 return;
             }
-            
+
             selectedReportsDiv.classList.remove('hidden');
             reportsList.innerHTML = '';
-            
+
             selectedReports.forEach((report, index) => {
                 const reportElement = document.createElement('div');
                 reportElement.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-md border border-gray-200';
@@ -528,7 +526,7 @@ if (!empty($_SESSION['success'])) {
         function updateReportInfo() {
             const reportDetails = document.getElementById('reportDetails');
             const evaluationsSummary = document.getElementById('evaluationsSummary');
-            
+
             if (selectedReports.length === 0) {
                 reportDetails.innerHTML = '<p class="text-gray-500 text-sm">Aucun rapport sélectionné</p>';
                 evaluationsSummary.classList.add('hidden');
@@ -628,10 +626,10 @@ if (!empty($_SESSION['success'])) {
                     ]
                 }
             };
-            
+
             let html = '';
             let allEvaluationsHTML = '';
-            
+
             selectedReports.forEach((report, index) => {
                 const data = reportData[report.id];
                 if (data) {
@@ -639,7 +637,7 @@ if (!empty($_SESSION['success'])) {
                         <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
                             <div class="flex items-center justify-between mb-3">
                                 <h4 class="font-semibold text-gray-800">Rapport ${index + 1} : ${data.title}</h4>
-                                <span class="bg-primary-100 text-primary-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${data.status}</span>
+                                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${data.status}</span>
                             </div>
                             <div class="grid grid-cols-2 gap-3 text-sm">
                                 <div><span class="font-medium text-gray-700">Étudiant :</span> <span class="text-gray-900">${data.student}</span></div>
@@ -650,17 +648,17 @@ if (!empty($_SESSION['success'])) {
                             </div>
                     </div>
                 `;
-                
+
                     // Ajouter les évaluations pour ce rapport
                     allEvaluationsHTML += `
                         <div class="mb-4">
                             <h5 class="font-semibold text-gray-700 mb-2">Évaluations - ${data.title}</h5>
                     `;
-                    
+
                     data.evaluations.forEach(eval => {
-                    const bgColor = eval.decision === 'Validé' ? 'bg-primary-50 border-green-200' : 'bg-red-50 border-red-200';
-                    const textColor = eval.decision === 'Validé' ? 'text-primary-800' : 'text-red-800';
-                    
+                    const bgColor = eval.decision === 'Validé' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
+                    const textColor = eval.decision === 'Validé' ? 'text-green-800' : 'text-red-800';
+
                         allEvaluationsHTML += `
                             <div class="p-3 border rounded-lg ${bgColor} mb-2">
                             <div class="flex items-center justify-between mb-1">
@@ -673,15 +671,15 @@ if (!empty($_SESSION['success'])) {
                         </div>
                     `;
                 });
-                
+
                     allEvaluationsHTML += `</div>`;
                 }
             });
-                
+
             reportDetails.innerHTML = html;
             document.getElementById('evaluationsContent').innerHTML = allEvaluationsHTML;
                 evaluationsSummary.classList.remove('hidden');
-                
+
             // Mettre à jour l'éditeur si le modèle de séance de validation est chargé
             const editor = document.getElementById('editorContent');
             if (editor.innerHTML.includes('Procès-Verbal de séance de validation de thèmes')) {
@@ -726,7 +724,7 @@ if (!empty($_SESSION['success'])) {
             const editor = document.getElementById('editorContent');
             let template = `
                 <style>
-                .editor-content { font-family: 'Times New Roman', Times, serif; }             
+                .editor-content { font-family: 'Times New Roman', Times, serif; }
                 .header-logos .right { float: right; }
                 .header-logos .center { text-align: center; margin: 0 auto; }
                 .editor-content h1 { font-size: 2.2em; font-weight: bold; margin-bottom: 0.5em; text-align: center; }
@@ -805,7 +803,7 @@ if (!empty($_SESSION['success'])) {
             const editor = document.getElementById('editorContent');
             const selection = window.getSelection();
             const range = selection.getRangeAt(0);
-            
+
             let sectionHTML = '';
             switch(sectionType) {
                 case 'evaluation':
@@ -819,14 +817,14 @@ if (!empty($_SESSION['success'])) {
                     break;
                 case 'recommendation':
                     sectionHTML = `
-                        <div class="mb-4 p-4 border-l-4 border-primary-500 bg-primary-50">
-                            <h4 class="font-semibold text-primary-800 mb-2">Recommandation</h4>
+                        <div class="mb-4 p-4 border-l-4 border-green-500 bg-green-50">
+                            <h4 class="font-semibold text-green-800 mb-2">Recommandation</h4>
                             <p>[Votre recommandation...]</p>
                         </div>
                     `;
                     break;
             }
-            
+
             const div = document.createElement('div');
             div.innerHTML = sectionHTML;
             range.insertNode(div.firstChild);
@@ -837,11 +835,11 @@ if (!empty($_SESSION['success'])) {
         function saveAsDraft() {
             const content = document.getElementById('editorContent').innerHTML;
             const reportId = document.getElementById('reportSelect').value;
-            
+
             // Simuler la sauvegarde
             localStorage.setItem(`draft_${reportId}`, content);
             updateLastSaveTime();
-            
+
             // Notification
             showNotification('Brouillon sauvegardé avec succès', 'success');
         }
@@ -898,7 +896,7 @@ if (!empty($_SESSION['success'])) {
                         .p-4 { padding: 16px; }
                         .border-l-4 { border-left: 4px solid #3b82f6; }
                         .bg-blue-50 { background-color: #eff6ff; }
-                        .bg-primary-50 { background-color: #f0fdf4; }
+                        .bg-green-50 { background-color: #f0fdf4; }
                         .text-center { text-align: center; }
                         .font-bold { font-weight: bold; }
                         .font-semibold { font-weight: 600; }
@@ -922,12 +920,12 @@ if (!empty($_SESSION['success'])) {
         // Impression du rapport
         function printReport() {
             const content = document.getElementById('editorContent').innerHTML;
-            
+
             if (!content || content.trim() === '') {
                 showNotification('Aucun contenu à imprimer', 'error');
                 return;
             }
-            
+
             // Créer une nouvelle fenêtre pour l'impression
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
@@ -1086,8 +1084,8 @@ if (!empty($_SESSION['success'])) {
         function showNotification(message, type) {
             const notification = document.createElement('div');
             notification.className = `fixed top-4 right-4 px-4 py-2 rounded-md text-white text-sm font-medium z-50 ${
-                type === 'success' ? 'bg-primary-600' : 
-                type === 'error' ? 'bg-red-600' : 
+                type === 'success' ? 'bg-green-600' :
+                type === 'error' ? 'bg-red-600' :
                 type === 'info' ? 'bg-blue-600' : 'bg-gray-600'
             }`;
             notification.innerHTML = `
@@ -1096,9 +1094,9 @@ if (!empty($_SESSION['success'])) {
                     ${message}
                 </div>
             `;
-            
+
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
                 notification.remove();
             }, 3000);
@@ -1110,7 +1108,7 @@ if (!empty($_SESSION['success'])) {
             // Sauvegarde automatique lors de la saisie
             const editor = document.getElementById('editorContent');
             let saveTimeout;
-            
+
             editor.addEventListener('input', function() {
                 clearTimeout(saveTimeout);
                 saveTimeout = setTimeout(() => {
@@ -1134,7 +1132,7 @@ if (!empty($_SESSION['success'])) {
                             break;
                     }
                 }
-                
+
                 if (e.key === 'Escape') {
                     closePreviewModal();
                 }
@@ -1267,7 +1265,7 @@ if (!empty($_SESSION['success'])) {
                 var toastMsg = document.getElementById('toastMsg');
                 toastMsg.textContent = notifMsg;
                 if (notifType === 'success') {
-                    toastContent.className = 'bg-primary-500 text-white px-4 py-3 rounded shadow-lg flex items-center';
+                    toastContent.className = 'bg-green-500 text-white px-4 py-3 rounded shadow-lg flex items-center';
                     toastIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
                 } else {
                     toastContent.className = 'bg-red-500 text-white px-4 py-3 rounded shadow-lg flex items-center';

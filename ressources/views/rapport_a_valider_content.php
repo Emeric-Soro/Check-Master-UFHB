@@ -41,10 +41,10 @@
         <!-- Sidebar -->
         <div class="hidden md:flex md:flex-shrink-0">
             <div class="flex flex-col w-64 border-r border-gray-200 bg-white">
-                <div class="flex items-center justify-center h-16 px-4 bg-primary-100 shadow-sm">
+                <div class="flex items-center justify-center h-16 px-4 bg-green-100 shadow-sm">
                     <div class="flex items-center">
-                        <i class="fas fa-users-cog text-primary-600 mr-2"></i>
-                        <span class="text-primary-600 font-bold">Commission</span>
+                        <i class="fas fa-users-cog text-green-600 mr-2"></i>
+                        <span class="text-green-600 font-bold">Commission</span>
                     </div>
                 </div>
                 <div class="flex flex-col flex-grow px-4 py-4 overflow-y-auto">
@@ -53,8 +53,8 @@
                             <i class="fas fa-tachometer-alt mr-3 text-gray-500"></i>
                             Tableau de bord
                         </a>
-                        <a href="#" class="flex items-center px-2 py-3 text-sm font-medium rounded-md sidebar-hover text-primary-700 bg-primary-50">
-                            <i class="fas fa-clipboard-check mr-3 text-primary-500"></i>
+                        <a href="#" class="flex items-center px-2 py-3 text-sm font-medium rounded-md sidebar-hover text-green-700 bg-green-50">
+                            <i class="fas fa-clipboard-check mr-3 text-green-500"></i>
                             Rapports à évaluer
                             <span class="ml-auto bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">8</span>
                         </a>
@@ -107,7 +107,7 @@
                 <div class="max-w-7xl mx-auto">
                     <!-- Stats -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div class="<?= StyleManager::getCardClass() ?> fade-in">
+                        <div class="bg-white rounded-lg shadow p-6 fade-in">
                             <div class="flex items-center">
                                 <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
                                     <i class="fas fa-file-alt text-lg"></i>
@@ -119,9 +119,9 @@
                             </div>
                         </div>
                         
-                        <div class="<?= StyleManager::getCardClass() ?> fade-in">
+                        <div class="bg-white rounded-lg shadow p-6 fade-in">
                             <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-primary-100 text-primary-600 mr-4">
+                                <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
                                     <i class="fas fa-check text-lg"></i>
                                 </div>
                                 <div>
@@ -131,7 +131,7 @@
                             </div>
                         </div>
                         
-                        <div class="<?= StyleManager::getCardClass() ?> fade-in">
+                        <div class="bg-white rounded-lg shadow p-6 fade-in">
                             <div class="flex items-center">
                                 <div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
                                     <i class="fas fa-clock text-lg"></i>
@@ -143,7 +143,7 @@
                             </div>
                         </div>
                         
-                        <div class="<?= StyleManager::getCardClass() ?> fade-in">
+                        <div class="bg-white rounded-lg shadow p-6 fade-in">
                             <div class="flex items-center">
                                 <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
                                     <i class="fas fa-gavel text-lg"></i>
@@ -161,7 +161,7 @@
                         <div class="px-6 py-4 border-b border-gray-200">
                             <div class="flex items-center justify-between">
                                 <h2 class="text-lg font-semibold text-gray-800">
-                                    <i class="fas fa-clipboard-check text-primary-600 mr-2"></i>
+                                    <i class="fas fa-clipboard-check text-green-600 mr-2"></i>
                                     Rapports approuvés - En attente d'évaluation
                                 </h2>
                                 <div class="flex items-center space-x-2">
@@ -179,14 +179,14 @@
                             <div class="px-6 py-4 evaluation-card hover:bg-gray-50">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center flex-1">
-                                        <div class="flex-shrink-0 bg-primary-100 p-3 rounded-lg">
-                                            <i class="fas fa-file-alt text-primary-600"></i>
+                                        <div class="flex-shrink-0 bg-green-100 p-3 rounded-lg">
+                                            <i class="fas fa-file-alt text-green-600"></i>
                                         </div>
                                         <div class="ml-4 flex-1">
                                             <div class="flex items-center justify-between">
                                                 <p class="text-sm font-medium text-gray-900">Intelligence Artificielle dans le Diagnostic Médical</p>
                                                 <div class="flex items-center space-x-2">
-                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-primary-100 text-primary-800">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                                                         <i class="fas fa-check-circle mr-1"></i>Approuvé par Miss Seri
                                                     </span>
                                                     <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -198,7 +198,7 @@
                                             <div class="mt-2 flex items-center text-xs text-gray-500">
                                                 <span>Approuvé le 20/05/2025</span>
                                                 <span class="mx-2">•</span>
-                                                <span class="text-primary-600">2 validations</span>
+                                                <span class="text-green-600">2 validations</span>
                                                 <span class="mx-2">•</span>
                                                 <span class="text-red-600">0 rejets</span>
                                             </div>
@@ -208,7 +208,7 @@
                                         <button onclick="viewReport(1)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors">
                                             <i class="fas fa-eye mr-1"></i>Consulter
                                         </button>
-                                        <button onclick="openEvaluationModal(1)" class="px-3 py-1 text-sm bg-primary-100 text-primary-700 rounded-md hover:bg-green-200 transition-colors">
+                                        <button onclick="openEvaluationModal(1)" class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors">
                                             <i class="fas fa-vote-yea mr-1"></i>Voter
                                         </button>
                                         <button onclick="viewEvaluations(1)" class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors">
@@ -225,14 +225,14 @@
                             <div class="px-6 py-4 evaluation-card hover:bg-gray-50">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center flex-1">
-                                        <div class="flex-shrink-0 bg-primary-100 p-3 rounded-lg">
-                                            <i class="fas fa-file-alt text-primary-600"></i>
+                                        <div class="flex-shrink-0 bg-green-100 p-3 rounded-lg">
+                                            <i class="fas fa-file-alt text-green-600"></i>
                                         </div>
                                         <div class="ml-4 flex-1">
                                             <div class="flex items-center justify-between">
                                                 <p class="text-sm font-medium text-gray-900">Système de Gestion des Ressources Humaines</p>
                                                 <div class="flex items-center space-x-2">
-                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-primary-100 text-primary-800">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                                                         <i class="fas fa-check-circle mr-1"></i>Approuvé par Miss Seri
                                                     </span>
                                                     <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
@@ -244,7 +244,7 @@
                                             <div class="mt-2 flex items-center text-xs text-gray-500">
                                                 <span>Approuvé le 18/05/2025</span>
                                                 <span class="mx-2">•</span>
-                                                <span class="text-primary-600">4 validations</span>
+                                                <span class="text-green-600">4 validations</span>
                                                 <span class="mx-2">•</span>
                                                 <span class="text-red-600">0 rejets</span>
                                             </div>
@@ -257,7 +257,7 @@
                                         <button onclick="viewEvaluations(2)" class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors">
                                             <i class="fas fa-users mr-1"></i>Votes
                                         </button>
-                                        <button onclick="makeFinalDecision(2)" class="px-3 py-1 text-sm bg-primary-100 text-primary-700 rounded-md hover:bg-green-200 transition-colors">
+                                        <button onclick="makeFinalDecision(2)" class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors">
                                             <i class="fas fa-gavel mr-1"></i>Finaliser
                                         </button>
                                     </div>
@@ -268,14 +268,14 @@
                             <div class="px-6 py-4 evaluation-card hover:bg-gray-50">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center flex-1">
-                                        <div class="flex-shrink-0 bg-primary-100 p-3 rounded-lg">
-                                            <i class="fas fa-file-alt text-primary-600"></i>
+                                        <div class="flex-shrink-0 bg-green-100 p-3 rounded-lg">
+                                            <i class="fas fa-file-alt text-green-600"></i>
                                         </div>
                                         <div class="ml-4 flex-1">
                                             <div class="flex items-center justify-between">
                                                 <p class="text-sm font-medium text-gray-900">Application Mobile de Commerce Électronique</p>
                                                 <div class="flex items-center space-x-2">
-                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-primary-100 text-primary-800">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                                                         <i class="fas fa-check-circle mr-1"></i>Approuvé par Miss Seri
                                                     </span>
                                                     <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
@@ -289,7 +289,7 @@
                                                 <span class="mx-2">•</span>
                                                 <span>Votes: 4/4 membres</span>
                                                 <span class="mx-2">•</span>
-                                                <span class="text-primary-600">2 validations</span>
+                                                <span class="text-green-600">2 validations</span>
                                                 <span class="mx-2">•</span>
                                                 <span class="text-red-600">2 rejets</span>
                                             </div>
@@ -350,13 +350,13 @@
                             <div class="space-y-3">
                                 <div class="flex items-center justify-between p-2 bg-white rounded">
                                     <span class="text-sm font-medium">Dr. Koné</span>
-                                    <span class="px-2 py-1 text-xs bg-primary-100 text-primary-800 rounded-full">
+                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
                                         <i class="fas fa-check mr-1"></i>Validé
                                     </span>
                                 </div>
                                 <div class="flex items-center justify-between p-2 bg-white rounded">
                                     <span class="text-sm font-medium">Pr. Assan</span>
-                                    <span class="px-2 py-1 text-xs bg-primary-100 text-primary-800 rounded-full">
+                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
                                         <i class="fas fa-check mr-1"></i>Validé
                                     </span>
                                 </div>
@@ -373,7 +373,7 @@
                     <!-- Formulaire d'évaluation -->
                     <div class="space-y-4">
                         <div>
-                            <label class="<?= StyleManager::getLabelClass() ?>">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Votre commentaire / Avis
                             </label>
                             <textarea id="evaluationComment" rows="6" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Veuillez donner votre avis détaillé sur ce rapport..."></textarea>
@@ -384,9 +384,9 @@
                                 Votre décision
                             </label>
                             <div class="space-y-2">
-                                <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-primary-50 cursor-pointer">
-                                    <input type="radio" name="decision" value="valider" class="text-primary-600 focus:ring-primary-500">
-                                    <span class="ml-3 flex items-center text-primary-700">
+                                <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-green-50 cursor-pointer">
+                                    <input type="radio" name="decision" value="valider" class="text-green-600 focus:ring-green-500">
+                                    <span class="ml-3 flex items-center text-green-700">
                                         <i class="fas fa-check-circle mr-2"></i>
                                         Valider le rapport
                                     </span>
@@ -438,26 +438,26 @@
                         <div class="bg-gray-50 p-4 rounded-lg">
                             <h4 class="font-semibold text-gray-800 mb-3">Résumé des évaluations</h4>
                             <div class="space-y-3">
-                                <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-primary-500">
+                                <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-green-500">
                                     <div>
                                         <p class="font-medium text-sm">Dr. Kouassi</p>
                                         <p class="text-xs text-gray-600">Très bon travail, méthodologie solide</p>
                                     </div>
-                                    <span class="px-2 py-1 text-xs bg-primary-100 text-primary-800 rounded-full">Validé</span>
+                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Validé</span>
                                 </div>
-                                <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-primary-500">
+                                <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-green-500">
                                     <div>
                                         <p class="font-medium text-sm">Dr. Koné</p>
                                         <p class="text-xs text-gray-600">Innovation intéressante, bien documenté</p>
                                     </div>
-                                    <span class="px-2 py-1 text-xs bg-primary-100 text-primary-800 rounded-full">Validé</span>
+                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Validé</span>
                                 </div>
-                                <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-primary-500">
+                                <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-green-500">
                                     <div>
                                         <p class="font-medium text-sm">Pr. Assan</p>
                                         <p class="text-xs text-gray-600">Contribution significative au domaine</p>
                                     </div>
-                                    <span class="px-2 py-1 text-xs bg-primary-100 text-primary-800 rounded-full">Validé</span>
+                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Validé</span>
                                 </div>
                                 <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-red-500">
                                     <div>
@@ -473,7 +473,7 @@
                             <h4 class="font-semibold text-gray-800 mb-2">Statistiques</h4>
                             <div class="grid grid-cols-2 gap-4 text-center">
                                 <div class="bg-white p-3 rounded">
-                                    <p class="text-2xl font-bold text-primary-600">3</p>
+                                    <p class="text-2xl font-bold text-green-600">3</p>
                                     <p class="text-sm text-gray-600">Validations</p>
                                 </div>
                                 <div class="bg-white p-3 rounded">
@@ -487,7 +487,7 @@
                     <!-- Décision finale -->
                     <div class="space-y-4">
                         <div>
-                            <label class="<?= StyleManager::getLabelClass() ?>">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Commentaire de la décision finale
                             </label>
                             <textarea id="finalComment" rows="4" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500" placeholder="Motivez votre décision finale en tenant compte des évaluations..."></textarea>
@@ -498,9 +498,9 @@
                                 Décision finale de la commission
                             </label>
                             <div class="space-y-3">
-                                <label class="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:bg-primary-50 hover:border-green-300 cursor-pointer transition-all">
-                                    <input type="radio" name="finalDecision" value="accepter" class="text-primary-600 focus:ring-primary-500">
-                                    <span class="ml-3 flex items-center text-primary-700">
+                                <label class="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 cursor-pointer transition-all">
+                                    <input type="radio" name="finalDecision" value="accepter" class="text-green-600 focus:ring-green-500">
+                                    <span class="ml-3 flex items-center text-green-700">
                                         <i class="fas fa-check-circle mr-2 text-lg"></i>
                                         <div>
                                             <p class="font-medium">Accepter définitivement</p>
@@ -564,7 +564,7 @@
 
                 <div class="space-y-6">
                     <!-- Évaluation 1 -->
-                    <div class="border border-green-200 rounded-lg p-4 bg-primary-50">
+                    <div class="border border-green-200 rounded-lg p-4 bg-green-50">
                         <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center">
                                 <img class="w-8 h-8 rounded-full mr-3" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Dr. Kouassi">
@@ -573,11 +573,11 @@
                                     <p class="text-sm text-gray-600">Évalué le 21/05/2025</p>
                                 </div>
                             </div>
-                            <span class="px-3 py-1 text-sm bg-primary-100 text-primary-800 rounded-full font-medium">
+                            <span class="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full font-medium">
                                 <i class="fas fa-check mr-1"></i>Validé
                             </span>
                         </div>
-                        <div class="bg-white p-3 rounded border-l-4 border-primary-500">
+                        <div class="bg-white p-3 rounded border-l-4 border-green-500">
                             <p class="text-sm text-gray-700">
                                 "Excellent travail sur l'implémentation de la blockchain pour la sécurité des données. La méthodologie est rigoureuse et les résultats sont probants. L'étudiant démontre une bonne compréhension des enjeux de sécurité. Je recommande vivement la validation de ce rapport."
                             </p>
@@ -585,7 +585,7 @@
                     </div>
 
                     <!-- Évaluation 2 -->
-                    <div class="border border-green-200 rounded-lg p-4 bg-primary-50">
+                    <div class="border border-green-200 rounded-lg p-4 bg-green-50">
                         <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center">
                                 <img class="w-8 h-8 rounded-full mr-3" src="https://randomuser.me/api/portraits/men/45.jpg" alt="Dr. Koné">
@@ -594,11 +594,11 @@
                                     <p class="text-sm text-gray-600">Évalué le 22/05/2025</p>
                                 </div>
                             </div>
-                            <span class="px-3 py-1 text-sm bg-primary-100 text-primary-800 rounded-full font-medium">
+                            <span class="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full font-medium">
                                 <i class="fas fa-check mr-1"></i>Validé
                             </span>
                         </div>
-                        <div class="bg-white p-3 rounded border-l-4 border-primary-500">
+                        <div class="bg-white p-3 rounded border-l-4 border-green-500">
                             <p class="text-sm text-gray-700">
                                 "Approche innovante et bien documentée. L'étudiant a su intégrer les concepts théoriques avec une application pratique pertinente. Quelques améliorations mineures pourraient être apportées à la présentation, mais le fond est solide. Validation recommandée."
                             </p>
@@ -606,7 +606,7 @@
                     </div>
 
                     <!-- Évaluation 3 -->
-                    <div class="border border-green-200 rounded-lg p-4 bg-primary-50">
+                    <div class="border border-green-200 rounded-lg p-4 bg-green-50">
                         <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center">
                                 <img class="w-8 h-8 rounded-full mr-3" src="https://randomuser.me/api/portraits/women/68.jpg" alt="Pr. Assan">
@@ -615,11 +615,11 @@
                                     <p class="text-sm text-gray-600">Évalué le 22/05/2025</p>
                                 </div>
                             </div>
-                            <span class="px-3 py-1 text-sm bg-primary-100 text-primary-800 rounded-full font-medium">
+                            <span class="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full font-medium">
                                 <i class="fas fa-check mr-1"></i>Validé
                             </span>
                         </div>
-                        <div class="bg-white p-3 rounded border-l-4 border-primary-500">
+                        <div class="bg-white p-3 rounded border-l-4 border-green-500">
                             <p class="text-sm text-gray-700">
                                 "Ce travail représente une contribution significative au domaine de la sécurité informatique. L'analyse comparative des différentes approches blockchain est particulièrement appréciable. L'étudiant montre une maturité scientifique remarquable."
                             </p>
