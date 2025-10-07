@@ -299,7 +299,7 @@ if (file_exists($qrPath) && is_readable($qrPath)) {
         .qr-code-container {
             position: absolute;
             right: 10px;
-            bottom: 35px;
+            bottom: 380px;
             width: 100px;
             height: 100px;
         }
@@ -390,6 +390,17 @@ if (file_exists($qrPath) && is_readable($qrPath)) {
             <tr>
                 <td>La somme de :</td>
                 <td><?php echo htmlspecialchars(number_format($montant, 0, ',', ' ')); ?> FCFA</td>
+                <td><?php if ($qrData): ?>
+                        <div class="qr-code-container">
+                            <img src="<?php echo $qrData; ?>" alt="QR code">
+                        </div>
+                    <?php else: ?>
+                        <?php // fallback to public image path if data URI not available ?>
+                        <div class="qr-code-container">
+                            <img src="<?php echo $baseUrl . '/image/Lien_vers_l_acceuil_de_CM-1024.png'; ?>" alt="QR code">
+                        </div>
+                    <?php endif; ?>
+                </td>
             </tr>
             <tr>
                 <td colspan="2" class="amount-text">(en toutes lettres :
@@ -433,16 +444,6 @@ if (file_exists($qrPath) && is_readable($qrPath)) {
         </div>
 
         <p class="note">N.B.: Aucun remboursement n'est possible après versement</p>
-        <?php if ($qrData): ?>
-            <div class="qr-code-container">
-                <img src="<?php echo $qrData; ?>" alt="QR code">
-            </div>
-        <?php else: ?>
-            <?php // fallback to public image path if data URI not available ?>
-            <div class="qr-code-container">
-                <img src="<?php echo $baseUrl . '/image/Lien_vers_l_acceuil_de_CM-1024.png'; ?>" alt="QR code">
-            </div>
-        <?php endif; ?>
     </div>
 
 
