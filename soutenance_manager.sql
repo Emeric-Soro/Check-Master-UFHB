@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : db
--- Généré le : lun. 29 sep. 2025 à 21:44
+-- Généré le : mar. 07 oct. 2025 à 21:05
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.2.27
 
@@ -59,6 +59,20 @@ CREATE TABLE `affecter` (
     `id_rapport` int NOT NULL,
     `id_jury` int DEFAULT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3 COLLATE = utf8mb3_general_mysql500_ci;
+
+--
+-- Déchargement des données de la table `affecter`
+--
+
+INSERT INTO
+    `affecter` (
+        `id_enseignant`,
+        `role`,
+        `id_rapport`,
+        `id_jury`
+    )
+VALUES (21, 'encadrant', 16, NULL),
+    (22, 'directeur', 16, NULL);
 
 -- --------------------------------------------------------
 
@@ -163,6 +177,28 @@ CREATE TABLE `approuver` (
     `id_approb` int NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3 COLLATE = utf8mb3_general_mysql500_ci;
 
+--
+-- Déchargement des données de la table `approuver`
+--
+
+INSERT INTO
+    `approuver` (
+        `id_pers_admin`,
+        `id_rapport`,
+        `decision`,
+        `date_approv`,
+        `commentaire_approv`,
+        `id_approb`
+    )
+VALUES (
+        10,
+        16,
+        'approuve',
+        '2025-09-29 22:34:21',
+        'Tout es bon ',
+        4
+    );
+
 -- --------------------------------------------------------
 
 --
@@ -185,7 +221,12 @@ INSERT INTO
         `id_enseignant`,
         `date_grade`
     )
-VALUES (7, 18, '1995-11-27');
+VALUES (7, 18, '1995-11-27'),
+    (7, 22, '1995-09-01'),
+    (12, 7, '1993-09-15'),
+    (12, 19, '2006-07-29'),
+    (12, 23, '2000-09-19'),
+    (15, 21, '2000-10-10');
 
 -- --------------------------------------------------------
 
@@ -207,6 +248,30 @@ CREATE TABLE `candidature_soutenance` (
     `commentaire_admin` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
+--
+-- Déchargement des données de la table `candidature_soutenance`
+--
+
+INSERT INTO
+    `candidature_soutenance` (
+        `id_candidature`,
+        `num_etu`,
+        `date_candidature`,
+        `statut_candidature`,
+        `date_traitement`,
+        `id_pers_admin`,
+        `commentaire_admin`
+    )
+VALUES (
+        14,
+        20220001,
+        '2025-09-29 22:21:31',
+        'Validée',
+        '2025-09-29 22:22:15',
+        9,
+        'Évaluation complète terminée'
+    );
+
 -- --------------------------------------------------------
 
 --
@@ -222,6 +287,28 @@ CREATE TABLE `compte_rendu` (
     `date_CR` datetime NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3 COLLATE = utf8mb3_general_mysql500_ci;
 
+--
+-- Déchargement des données de la table `compte_rendu`
+--
+
+INSERT INTO
+    `compte_rendu` (
+        `id_CR`,
+        `num_etu`,
+        `nom_CR`,
+        `contenu_CR`,
+        `chemin_fichier_pdf`,
+        `date_CR`
+    )
+VALUES (
+        30,
+        20220001,
+        'Compte rendu séance du 29/09/2025',
+        '\r\n                <style>\r\n                .editor-content { font-family: \'Times New Roman\', Times, serif; }             \r\n                .header-logos .right { float: right; }\r\n                .header-logos .center { text-align: center; margin: 0 auto; }\r\n                .editor-content h1 { font-size: 2.2em; font-weight: bold; margin-bottom: 0.5em; text-align: center; }\r\n                .editor-content h2 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; text-align: center; }\r\n                .editor-content h3 { font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em; }\r\n                .section-title { border-bottom: 2px solid #222; margin-bottom: 0.7em; margin-top: 1.5em; }\r\n                .editor-content p { margin-bottom: 0.7em; }\r\n                .editor-content ul { margin-left: 1.5em; margin-bottom: 0.7em; }\r\n                .encadre { background: #f6faff; border: 2px solid #b6d4fe; border-radius: 8px; padding: 1em; margin-bottom: 1em; }\r\n                .cas { background: #fff; border: 1px solid #b6d4fe; border-radius: 8px; padding: 1em; margin-bottom: 1em; }\r\n                .cas-titre { font-weight: bold; margin-bottom: 0.5em; }\r\n                .cas-footer { margin-top: 1em; font-size: 1em; }\r\n                .text-center { text-align: center; }\r\n                .italic { font-style: italic; }\r\n                </style>\r\n                <div class=\"header-logos\">\r\n                    <div class=\"center\">\r\n                        <div style=\"font-size:13px; font-weight:bold; letter-spacing:1px;\">REPUBLIQUE DE COTE D\'IVOIRE</div>\r\n                        <div style=\"font-size:12px;\">Ministère de l\'Enseignement Supérieur et de la Recherche Scientifique</div>\r\n                        </div>\r\n                        </div>\r\n                <h1>Procès-Verbal de séance de validation de thèmes</h1>\r\n                <h2>Thèmes de Soutenance - Filière MIAGE-GI</h2>\r\n                <div class=\"text-center\" style=\"margin-bottom:1em;\">\r\n                    Université Félix Houphouët-Boigny<br>\r\n                    UFR Mathématiques et Informatique\r\n                        </div>\r\n                <h3 class=\"section-title\">CONTEXTE DE LA SÉANCE</h3>\r\n                <p>Dans le bureau du Prof KOUA Brou à l\'UFR MI, le [DATE] s\'est tenue de 11 h 00 à 12 h 30 une séance de validation de thèmes de soutenance des étudiants en fin de cycle de la filière MIAGE-GI.</p>\r\n                <p>La réunion était animée par Prof KOUA Brou le responsable de ladite filière. Etaient présents Prof. KOUA Brou, Dr MAMADOU Diarra, M. WAH Médard et M. BROU Patrice. Les membres de la commission de validation ont examiné [N] dossiers.</p>\r\n                <div class=\"encadre\">\r\n                    <strong>Ordre du jour :</strong>\r\n                    <ul>\r\n                        <li>Informations</li>\r\n                        <li>Validation de thèmes</li>\r\n                        <li>Divers</li>\r\n                                </ul>\r\n                            </div>\r\n                <h3 class=\"section-title\">1. INFORMATIONS</h3>\r\n                <p class=\"italic\">[Le responsable de la filière a exposé sur l\'intérêt des séances de validation. Il a donné des informations sur le choix des thèmes niveau ingénieur et la tenue mensuelle des séances de validation.]</p>\r\n                <p class=\"italic\">[L\'organisation des séances de validation permet de faire le point des encadrements, le contenu potentiel de thèmes, et le suivi des mémoires par des encadreurs pédagogiques.]</p>\r\n                <h3 class=\"section-title\">2. VALIDATION DE THÈMES</h3>\r\n                <div id=\"casDynamique\">\r\n                <div class=\"cas\">\r\n                    <div class=\"cas-titre\">Cas 1</div>\r\n                    <strong>Étudiant :</strong> Adjo Jemima Irie<br>\r\n                    <strong>Thème :</strong> AUDIT ET CONTROLE<br>\r\n                    <strong>Recommandations de la commission :</strong>\r\n                    <ul>\r\n                        <li>thème valide</li>\r\n                        <li>bien décrire le processus de règlement de chèques</li>\r\n                        <li>décrire exactement le contexte</li>\r\n                    </ul>\r\n                    <div class=\"cas-footer\">\r\n                        <strong>Directeur de mémoire :</strong> Michael Foursov &nbsp;&nbsp;\r\n                        <strong>Encadrant pédagogique :</strong> Malan Nindjin\r\n                    </div>\r\n                </div>\r\n                </div>\r\n                <h3 class=\"section-title\">3. DIVERS</h3>\r\n                <p class=\"italic\">[La commission a recommandé au Directeur de la filière d\'améliorer le partenariat avec les entreprises car elles le souhaitent compte tenu du rendement des stagiaires déjà reçus.]</p>\r\n                <strong>Recommandations aux étudiants :</strong>\r\n                <ul>\r\n                    <li>Respecter toutes les rubriques du template de présentation de thème en possession de la chargée de communication</li>\r\n                    <li>Joindre un CV contenant une photo d\'identité</li>\r\n                    <li>Soutenir au plus tard à la session suivante pour ne pas tomber sous le coup d\'une pénalité</li>\r\n                                </ul>\r\n                <div class=\"text-center\" style=\"margin-top:2em;\">\r\n                    Les travaux de la commission ont pris fin à 12 h 30.<br>\r\n                    Fait à Abidjan, le [DATE]<br>\r\n                    <strong>La commission</strong>\r\n                        </div>\r\n                    ',
+        'ressources/uploads/comptes_rendus/CR_20250929_232200.pdf',
+        '2025-09-29 23:21:59'
+    );
+
 -- --------------------------------------------------------
 
 --
@@ -232,6 +319,57 @@ CREATE TABLE `compte_rendu_rapport` (
     `id_CR` int NOT NULL,
     `id_rapport` int NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `compte_rendu_rapport`
+--
+
+INSERT INTO
+    `compte_rendu_rapport` (`id_CR`, `id_rapport`)
+VALUES (30, 16);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `decisions_jury`
+--
+
+CREATE TABLE `decisions_jury` (
+    `id_decision` int NOT NULL,
+    `lib_decision` varchar(50) NOT NULL,
+    `description` text,
+    `actif` tinyint(1) DEFAULT '1'
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `decisions_jury`
+--
+
+INSERT INTO
+    `decisions_jury` (
+        `id_decision`,
+        `lib_decision`,
+        `description`,
+        `actif`
+    )
+VALUES (
+        1,
+        'Admis',
+        'Candidat admis définitivement',
+        1
+    ),
+    (
+        2,
+        'Ajourné',
+        'Candidat ajourné, peut repasser la soutenance',
+        1
+    ),
+    (
+        3,
+        'Refusé',
+        'Candidat refusé',
+        1
+    );
 
 -- --------------------------------------------------------
 
@@ -245,26 +383,21 @@ CREATE TABLE `deposer` (
     `date_depot` datetime NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3 COLLATE = utf8mb3_general_mysql500_ci;
 
--- --------------------------------------------------------
-
 --
--- Structure de la table `dossier_academique`
+-- Déchargement des données de la table `deposer`
 --
 
-CREATE TABLE `dossier_academique` (
-    `id_dossier` int NOT NULL,
-    `num_etu` int NOT NULL,
-    `date_creation` datetime DEFAULT CURRENT_TIMESTAMP,
-    `date_modification` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    `adresse` varchar(255) DEFAULT NULL,
-    `telephone` varchar(20) DEFAULT NULL,
-    `nationalite` varchar(50) DEFAULT NULL,
-    `situation_familiale` varchar(50) DEFAULT NULL,
-    `dernier_diplome` varchar(100) DEFAULT NULL,
-    `etablissement_origine` varchar(100) DEFAULT NULL,
-    `annee_obtention_diplome` year DEFAULT NULL,
-    `mention_diplome` varchar(50) DEFAULT NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+INSERT INTO
+    `deposer` (
+        `num_etu`,
+        `id_rapport`,
+        `date_depot`
+    )
+VALUES (
+        20220001,
+        16,
+        '2025-09-29 22:26:45'
+    );
 
 -- --------------------------------------------------------
 
@@ -370,6 +503,38 @@ VALUES (
         'wahmedar@gmail.com',
         2,
         'Administratif'
+    ),
+    (
+        19,
+        'Brou',
+        'Patrice',
+        'bpatrice@gmail.com',
+        2,
+        'Administratif'
+    ),
+    (
+        21,
+        'Nindjin',
+        'Malan',
+        'nindjinmalan.0@gmail.com',
+        2,
+        'Simple'
+    ),
+    (
+        22,
+        'Foursov',
+        'Michael',
+        'michaelfoufou@gmail.com',
+        2,
+        'Administratif'
+    ),
+    (
+        23,
+        'Diarra',
+        'prenom',
+        'Diarraprenom@gmail.com',
+        2,
+        'Administratif'
     );
 
 -- --------------------------------------------------------
@@ -392,7 +557,8 @@ INSERT INTO
         `id_entreprise`,
         `lib_entreprise`
     )
-VALUES (3, 'Deloitte Côte d\'Ivoire'),
+VALUES (11, 'Deloitte'),
+    (3, 'Deloitte Côte d\'Ivoire'),
     (9, 'DIGICORP'),
     (5, 'Orange Côte d\'Ivoire'),
     (8, 'QuanTech Côte d\'Ivoire'),
@@ -437,6 +603,15 @@ VALUES (
         '2001-01-01',
         'Femme',
         '2022-2023'
+    ),
+    (
+        20220002,
+        'Akandan Aho',
+        'Paul',
+        'ahopaul@gmail.com',
+        '2004-03-30',
+        'Homme',
+        '2022-2023'
     );
 
 -- --------------------------------------------------------
@@ -455,19 +630,56 @@ CREATE TABLE `evaluations_rapports` (
     `date_modification` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
--- --------------------------------------------------------
-
 --
--- Structure de la table `evaluer`
+-- Déchargement des données de la table `evaluations_rapports`
 --
 
-CREATE TABLE `evaluer` (
-    `num_etu` int NOT NULL,
-    `id_ecue` int NOT NULL,
-    `id_enseignant` int NOT NULL,
-    `date_evaluation` datetime NOT NULL,
-    `note` int NOT NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3 COLLATE = utf8mb3_general_mysql500_ci;
+INSERT INTO
+    `evaluations_rapports` (
+        `id_evaluation`,
+        `id_rapport`,
+        `id_evaluateur`,
+        `decision_evaluation`,
+        `commentaire`,
+        `date_evaluation`,
+        `date_modification`
+    )
+VALUES (
+        21,
+        16,
+        7,
+        'valider',
+        'il est bon ce rapport',
+        '2025-09-29 23:10:04',
+        NULL
+    ),
+    (
+        22,
+        16,
+        18,
+        'valider',
+        'c\'est bien',
+        '2025-09-29 23:11:48',
+        NULL
+    ),
+    (
+        23,
+        16,
+        19,
+        'valider',
+        'bon rapport\r\n',
+        '2025-09-29 23:13:08',
+        NULL
+    ),
+    (
+        24,
+        16,
+        23,
+        'valider',
+        'je suis impatien de le voir a sa soutenance',
+        '2025-09-29 23:19:58',
+        NULL
+    );
 
 -- --------------------------------------------------------
 
@@ -594,6 +806,36 @@ CREATE TABLE `informations_stage` (
     `telephone_encadrant` varchar(20) NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
+--
+-- Déchargement des données de la table `informations_stage`
+--
+
+INSERT INTO
+    `informations_stage` (
+        `id_info_stage`,
+        `num_etu`,
+        `id_entreprise`,
+        `date_debut_stage`,
+        `date_fin_stage`,
+        `sujet_stage`,
+        `description_stage`,
+        `encadrant_entreprise`,
+        `email_encadrant`,
+        `telephone_encadrant`
+    )
+VALUES (
+        10,
+        20220001,
+        11,
+        '2025-05-01',
+        '2025-09-01',
+        'Audit et contrôle de securité informatique',
+        'J\'ai fais de l\'audit et contrôle au niveau de la cybersécurité des entreprise ayant solicité deloitte ',
+        'Mme. Suzanne Didia',
+        'sdidagoat0.0@gmail.com',
+        '0303030303'
+    );
+
 -- --------------------------------------------------------
 
 --
@@ -642,7 +884,46 @@ VALUES (
         1,
         0.00,
         980000.00
+    ),
+    (
+        35,
+        20220002,
+        10,
+        22625,
+        '2025-09-29 22:06:37',
+        'En cours',
+        1,
+        420000.00,
+        560000.00
     );
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `mentions`
+--
+
+CREATE TABLE `mentions` (
+    `id_mention` int NOT NULL,
+    `lib_mention` varchar(50) NOT NULL,
+    `actif` tinyint(1) DEFAULT '1'
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `mentions`
+--
+
+INSERT INTO
+    `mentions` (
+        `id_mention`,
+        `lib_mention`,
+        `actif`
+    )
+VALUES (1, 'Passable', 1),
+    (2, 'Assez bien', 1),
+    (3, 'Bien', 1),
+    (4, 'Très bien', 1),
+    (5, 'Excellent', 1);
 
 -- --------------------------------------------------------
 
@@ -1004,7 +1285,12 @@ INSERT INTO
         `id_enseignant`,
         `date_occupation`
     )
-VALUES (9, 18, '2000-10-17');
+VALUES (2, 7, '2015-09-09'),
+    (9, 18, '2000-10-17'),
+    (9, 19, '1990-09-01'),
+    (9, 21, '1995-06-05'),
+    (9, 22, '1989-09-05'),
+    (9, 23, '1990-09-10');
 
 -- --------------------------------------------------------
 
@@ -1081,6 +1367,15 @@ VALUES (
         '0707070707',
         'Secretaire générale',
         '1992-09-10'
+    ),
+    (
+        10,
+        'Seri',
+        'Christiane',
+        'serichristiane@gmail.com',
+        '0505050505',
+        'Chargé de communication',
+        '1999-09-01'
     );
 
 -- --------------------------------------------------------
@@ -1622,6 +1917,486 @@ VALUES (
         'Succès',
         'inscriptions',
         '2025-09-29 20:45:35'
+    ),
+    (
+        201,
+        99,
+        'Création',
+        'Succès',
+        'etudiants',
+        '2025-09-29 22:06:12'
+    ),
+    (
+        202,
+        99,
+        'Création',
+        'Succès',
+        'inscriptions',
+        '2025-09-29 22:06:37'
+    ),
+    (
+        203,
+        5,
+        'Création',
+        'Succès',
+        'utilisateur',
+        '2025-09-29 22:14:17'
+    ),
+    (
+        204,
+        5,
+        'Création',
+        'Succès',
+        'utilisateur',
+        '2025-09-29 22:14:34'
+    ),
+    (
+        205,
+        5,
+        'Création',
+        'Succès',
+        'pers_admin',
+        '2025-09-29 22:16:04'
+    ),
+    (
+        206,
+        5,
+        'Création',
+        'Succès',
+        'utilisateur',
+        '2025-09-29 22:16:29'
+    ),
+    (
+        207,
+        102,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-09-29 22:17:55'
+    ),
+    (
+        208,
+        101,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-09-29 22:18:54'
+    ),
+    (
+        209,
+        101,
+        'Création',
+        'Succès',
+        'candidature_soutenance',
+        '2025-09-29 22:21:28'
+    ),
+    (
+        210,
+        101,
+        'Création',
+        'Succès',
+        'candidature_soutenance',
+        '2025-09-29 22:21:31'
+    ),
+    (
+        211,
+        99,
+        'Validation',
+        'Succès',
+        'candidature_soutenance',
+        '2025-09-29 22:21:54'
+    ),
+    (
+        212,
+        99,
+        'Validation',
+        'Succès',
+        'candidature_soutenance',
+        '2025-09-29 22:22:00'
+    ),
+    (
+        213,
+        99,
+        'Validation',
+        'Succès',
+        'candidature_soutenance',
+        '2025-09-29 22:22:08'
+    ),
+    (
+        214,
+        99,
+        'Envoi résultats',
+        'Succès',
+        'candidature_soutenance',
+        '2025-09-29 22:22:18'
+    ),
+    (
+        215,
+        101,
+        'Création',
+        'Succès',
+        'rapport_etudiants',
+        '2025-09-29 22:26:28'
+    ),
+    (
+        216,
+        101,
+        'Dépôt',
+        'Succès',
+        'rapport',
+        '2025-09-29 22:26:45'
+    ),
+    (
+        217,
+        5,
+        'Création',
+        'Succès',
+        'enseignant',
+        '2025-09-29 22:53:14'
+    ),
+    (
+        218,
+        5,
+        'Création',
+        'Succès',
+        'enseignant',
+        '2025-09-29 22:54:15'
+    ),
+    (
+        219,
+        5,
+        'Création',
+        'Succès',
+        'utilisateur',
+        '2025-09-29 22:55:00'
+    ),
+    (
+        220,
+        5,
+        'Création',
+        'Succès',
+        'enseignant',
+        '2025-09-29 23:06:36'
+    ),
+    (
+        221,
+        5,
+        'Création',
+        'Succès',
+        'enseignant',
+        '2025-09-29 23:08:28'
+    ),
+    (
+        222,
+        5,
+        'Création',
+        'Succès',
+        'utilisateur',
+        '2025-09-29 23:09:04'
+    ),
+    (
+        223,
+        5,
+        'Création',
+        'Succès',
+        'utilisateur',
+        '2025-09-29 23:09:08'
+    ),
+    (
+        224,
+        98,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-09-29 23:11:29'
+    ),
+    (
+        225,
+        103,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-09-29 23:12:54'
+    ),
+    (
+        226,
+        5,
+        'Création',
+        'Succès',
+        'enseignant',
+        '2025-09-29 23:17:29'
+    ),
+    (
+        227,
+        5,
+        'Création',
+        'Succès',
+        'utilisateur',
+        '2025-09-29 23:17:47'
+    ),
+    (
+        228,
+        108,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-09-29 23:19:21'
+    ),
+    (
+        229,
+        101,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-09-29 23:20:13'
+    ),
+    (
+        230,
+        5,
+        'Création',
+        'Succès',
+        'traitement',
+        '2025-09-29 23:32:49'
+    ),
+    (
+        231,
+        5,
+        'Modification',
+        'Succès',
+        'attribution',
+        '2025-09-29 23:33:37'
+    ),
+    (
+        232,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-01 19:46:15'
+    ),
+    (
+        233,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2025-10-01 19:46:16'
+    ),
+    (
+        234,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-01 23:05:46'
+    ),
+    (
+        235,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2025-10-01 23:05:47'
+    ),
+    (
+        236,
+        5,
+        'Déconnexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-02 12:29:36'
+    ),
+    (
+        237,
+        99,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-02 12:29:40'
+    ),
+    (
+        238,
+        99,
+        'Déconnexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-02 13:23:22'
+    ),
+    (
+        239,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-02 13:23:39'
+    ),
+    (
+        240,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2025-10-02 13:23:39'
+    ),
+    (
+        241,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-06 22:54:25'
+    ),
+    (
+        242,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2025-10-06 22:54:25'
+    ),
+    (
+        243,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2025-10-06 22:55:12'
+    ),
+    (
+        244,
+        5,
+        'Modification',
+        'Succès',
+        'traitement',
+        '2025-10-06 22:56:09'
+    ),
+    (
+        245,
+        5,
+        'Création',
+        'Succès',
+        'traitement',
+        '2025-10-06 23:45:39'
+    ),
+    (
+        246,
+        5,
+        'Modification',
+        'Succès',
+        'attribution',
+        '2025-10-06 23:46:03'
+    ),
+    (
+        247,
+        5,
+        'Modification',
+        'Succès',
+        'traitement',
+        '2025-10-06 23:51:37'
+    ),
+    (
+        248,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-07 10:38:19'
+    ),
+    (
+        249,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2025-10-07 10:38:19'
+    ),
+    (
+        250,
+        5,
+        'Déconnexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-07 10:41:25'
+    ),
+    (
+        251,
+        99,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-07 10:41:32'
+    ),
+    (
+        252,
+        99,
+        'Déconnexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-07 10:44:09'
+    ),
+    (
+        253,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-07 10:44:23'
+    ),
+    (
+        254,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2025-10-07 10:44:23'
+    ),
+    (
+        255,
+        5,
+        'Déconnexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-07 12:58:08'
+    ),
+    (
+        256,
+        99,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-07 12:58:10'
+    ),
+    (
+        257,
+        99,
+        'Déconnexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-07 13:08:18'
+    ),
+    (
+        258,
+        99,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-07 13:08:19'
+    ),
+    (
+        259,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-07 13:08:35'
+    ),
+    (
+        260,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2025-10-07 13:08:35'
     );
 
 -- --------------------------------------------------------
@@ -1659,6 +2434,38 @@ CREATE TABLE `rapport_etudiants` (
     ) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_mysql500_ci DEFAULT 'en_cours'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3 COLLATE = utf8mb3_general_mysql500_ci;
 
+--
+-- Déchargement des données de la table `rapport_etudiants`
+--
+
+INSERT INTO
+    `rapport_etudiants` (
+        `id_rapport`,
+        `num_etu`,
+        `nom_rapport`,
+        `date_rapport`,
+        `theme_rapport`,
+        `chemin_fichier`,
+        `statut_rapport`,
+        `date_modification`,
+        `taille_fichier`,
+        `version`,
+        `etape_validation`
+    )
+VALUES (
+        16,
+        20220001,
+        'L\'AUDIT AU CENTRE DE TOUTES LES ETAPES DE CONCEPTION',
+        '2025-09-29 22:26:28',
+        'AUDIT ET CONTROLE',
+        'rapport_16.html',
+        'valider',
+        '2025-09-29 22:26:45',
+        11561,
+        1,
+        'valide'
+    );
+
 -- --------------------------------------------------------
 
 --
@@ -1689,6 +2496,8 @@ VALUES (5, 5),
     (5, 39),
     (5, 42),
     (5, 43),
+    (5, 44),
+    (5, 45),
     (6, 19),
     (6, 29),
     (6, 33),
@@ -1788,6 +2597,77 @@ CREATE TABLE `resume_candidature` (
     `date_enregistrement` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
+--
+-- Déchargement des données de la table `resume_candidature`
+--
+
+INSERT INTO
+    `resume_candidature` (
+        `id`,
+        `num_etu`,
+        `id_candidature`,
+        `resume_json`,
+        `decision`,
+        `date_enregistrement`
+    )
+VALUES (
+        10,
+        20220001,
+        14,
+        '{\"scolarite\":{\"statut\":\"\\u00c0 jour\",\"montant_total\":\"980 000 FCFA\",\"montant_paye\":\"980 000 FCFA\",\"dernier_paiement\":\"29\\/09\\/2025\",\"validation\":\"valid\\u00e9\"},\"stage\":{\"entreprise\":\"Deloitte\",\"sujet\":\"Audit et contr\\u00f4le de securit\\u00e9 informatique\",\"periode\":\"01\\/05\\/2025 - 01\\/09\\/2025\",\"encadrant\":\"Mme. Suzanne Didia\",\"validation\":\"valid\\u00e9\"},\"semestre\":{\"semestre\":\"Semestre 7, Semestre 8\",\"moyenne\":\"12.63\\/20\",\"unites\":\"60\\/60 cr\\u00e9dits valid\\u00e9s\",\"validation\":\"valid\\u00e9\"}}',
+        'Validée',
+        '2025-09-29 22:22:15'
+    );
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `roles_jury`
+--
+
+CREATE TABLE `roles_jury` (
+    `id_role_jury` int NOT NULL,
+    `lib_role` varchar(50) NOT NULL,
+    `description` text,
+    `actif` tinyint(1) DEFAULT '1'
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `roles_jury`
+--
+
+INSERT INTO
+    `roles_jury` (
+        `id_role_jury`,
+        `lib_role`,
+        `description`,
+        `actif`
+    )
+VALUES (
+        1,
+        'Président du jury',
+        'Préside la soutenance et coordonne le jury',
+        1
+    ),
+    (
+        2,
+        'Assesseur',
+        'Assiste le président dans la conduite de la soutenance',
+        1
+    ),
+    (
+        3,
+        'Examinateur',
+        'Évalue la qualité scientifique du mémoire et la prestation de l’étudiant lors de la soutenance',
+        1
+    ),
+    (
+        4,
+        'Directeur de mémoire',
+        'Directeur scientifique du mémoire',
+        1
+    );
+
 -- --------------------------------------------------------
 
 --
@@ -1850,6 +2730,92 @@ VALUES (2, 'Informatique'),
     (14, 'Management'),
     (15, 'Finance'),
     (16, 'Marketing');
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `statuts_participation`
+--
+
+CREATE TABLE `statuts_participation` (
+    `id_statut_participation` int NOT NULL,
+    `lib_statut` varchar(50) NOT NULL,
+    `description` text,
+    `actif` tinyint(1) DEFAULT '1'
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `statuts_participation`
+--
+
+INSERT INTO
+    `statuts_participation` (
+        `id_statut_participation`,
+        `lib_statut`,
+        `description`,
+        `actif`
+    )
+VALUES (
+        1,
+        'En attente',
+        'Invitation envoyée, en attente de confirmation',
+        1
+    ),
+    (
+        2,
+        'Confirmé',
+        'Participation confirmée par le membre du jury',
+        1
+    ),
+    (
+        3,
+        'Décliné',
+        'Participation déclinée par le membre du jury',
+        1
+    );
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `statuts_soutenance`
+--
+
+CREATE TABLE `statuts_soutenance` (
+    `id_statut_soutenance` int NOT NULL,
+    `lib_statut` varchar(50) NOT NULL,
+    `description` text,
+    `actif` tinyint(1) DEFAULT '1'
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `statuts_soutenance`
+--
+
+INSERT INTO
+    `statuts_soutenance` (
+        `id_statut_soutenance`,
+        `lib_statut`,
+        `description`,
+        `actif`
+    )
+VALUES (
+        1,
+        'Planifiée',
+        'Soutenance planifiée, en attente',
+        1
+    ),
+    (
+        2,
+        'Terminée',
+        'Soutenance terminée avec succès',
+        1
+    ),
+    (
+        3,
+        'Annulée',
+        'Soutenance annulée ou reportée',
+        1
+    );
 
 -- --------------------------------------------------------
 
@@ -2134,6 +3100,20 @@ VALUES (
         'Archive des comptes rendus',
         'fa-book',
         9
+    ),
+    (
+        44,
+        'programation_soutenance',
+        'Programation de soutenance',
+        'fa-calendar',
+        13
+    ),
+    (
+        45,
+        'plannificaiton_soutenance',
+        'plannification de soutenance',
+        'fa-calendar',
+        14
     );
 
 -- --------------------------------------------------------
@@ -2406,6 +3386,76 @@ VALUES (
         'Actif',
         'kamenandurand@gmail.com',
         '$2y$10$zccgQfpM82czZg.Mg1VhJuaoa5Gspi15W6/4UGAnv0qzcQ9x4aZDm'
+    ),
+    (
+        100,
+        'Akandan Aho Paul',
+        7,
+        13,
+        5,
+        'Actif',
+        'ahopaul@gmail.com',
+        '$2y$10$2Jg6K.W8EPchM2HOXWgSxO.z1GFwsTxxS2nTeoKUKdjtva1BqzoHS'
+    ),
+    (
+        101,
+        'Irie Adjo Jemima',
+        7,
+        13,
+        5,
+        'Actif',
+        'iriejemima@gmail.com',
+        '$2y$10$av1M4Ym41a.jvterPHEg1OIRx1KjfCiT0sSMZunoClBb95iWvDC/q'
+    ),
+    (
+        102,
+        'Seri Christiane',
+        4,
+        7,
+        5,
+        'Actif',
+        'serichristiane@gmail.com',
+        '$2y$10$gvMP07YTYLrLnBWEpC3PLeKXFrWz33Cfy7yYoNnfA9AOCvhMDpd/2'
+    ),
+    (
+        103,
+        'Brou Patrice',
+        5,
+        11,
+        5,
+        'Actif',
+        'bpatrice@gmail.com',
+        '$2y$10$tDob7dnjKgShm5HQulw6QuQoM3gQsrZ1zitc4Z97.7qFkYd28DPlG'
+    ),
+    (
+        105,
+        'Foursov Michael',
+        6,
+        12,
+        5,
+        'Actif',
+        'michaelfoufou@gmail.com',
+        '$2y$10$GLmI5ZJFlIvnqJ4pJhSLFOE/H5FyjSrjHStotwwok9MQA1.LWec4a'
+    ),
+    (
+        106,
+        'Nindjin Malan',
+        6,
+        12,
+        5,
+        'Actif',
+        'nindjinmalan.0@gmail.com',
+        '$2y$10$E3SNJ9zlFQ8wQ3x8lI1B7uTR5j1gO2TtFGQlRqVCjQgVhizwzOYUy'
+    ),
+    (
+        108,
+        'Diarra prenom',
+        5,
+        11,
+        5,
+        'Actif',
+        'Diarraprenom@gmail.com',
+        '$2y$10$d8ULmH4sGq3II1sPwWeMFOsJsy4JAXEYu9NR79SU7wr8NzEiNzSK2'
     );
 
 -- --------------------------------------------------------
@@ -2421,6 +3471,26 @@ CREATE TABLE `valider` (
     `commentaire_validation` varchar(1000) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_mysql500_ci NOT NULL,
     `decision_validation` enum('valider', 'rejeter') CHARACTER SET utf8mb3 COLLATE utf8mb3_general_mysql500_ci NOT NULL DEFAULT 'valider'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3 COLLATE = utf8mb3_general_mysql500_ci;
+
+--
+-- Déchargement des données de la table `valider`
+--
+
+INSERT INTO
+    `valider` (
+        `id_enseignant`,
+        `id_rapport`,
+        `date_validation`,
+        `commentaire_validation`,
+        `decision_validation`
+    )
+VALUES (
+        19,
+        16,
+        '2025-09-29 23:20:50',
+        'nous somme impatient de vous voir a votre soutenance',
+        'valider'
+    );
 
 -- --------------------------------------------------------
 
@@ -2489,6 +3559,14 @@ VALUES (
         '2025-09-29 19:04:01',
         'Tranche',
         'Espèce'
+    ),
+    (
+        71,
+        35,
+        560000.00,
+        '2025-09-29 22:06:37',
+        'Premier versement',
+        'Chèque'
     );
 
 --
@@ -2554,19 +3632,19 @@ ADD PRIMARY KEY (`id_CR`, `id_rapport`),
 ADD KEY `id_rapport` (`id_rapport`);
 
 --
+-- Index pour la table `decisions_jury`
+--
+ALTER TABLE `decisions_jury`
+ADD PRIMARY KEY (`id_decision`),
+ADD UNIQUE KEY `lib_decision` (`lib_decision`);
+
+--
 -- Index pour la table `deposer`
 --
 ALTER TABLE `deposer`
 ADD PRIMARY KEY (`num_etu`, `id_rapport`),
 ADD KEY `Key_deposer_etudiant` (`num_etu`),
 ADD KEY `Key_deposer_rapport_etud` (`id_rapport`);
-
---
--- Index pour la table `dossier_academique`
---
-ALTER TABLE `dossier_academique`
-ADD PRIMARY KEY (`id_dossier`),
-ADD KEY `fk_dossier_etudiant` (`num_etu`);
 
 --
 -- Index pour la table `echeances`
@@ -2611,14 +3689,6 @@ ADD KEY `id_evaluateur` (`id_evaluateur`),
 ADD KEY `id_rapport` (`id_rapport`);
 
 --
--- Index pour la table `evaluer`
---
-ALTER TABLE `evaluer`
-ADD KEY `Key_evaluer_ecue` (`id_ecue`),
-ADD KEY `Key_evaluer_enseignant` (`id_enseignant`),
-ADD KEY `Key_evaluer_etudiant` (`num_etu`);
-
---
 -- Index pour la table `fonction`
 --
 ALTER TABLE `fonction` ADD PRIMARY KEY (`id_fonction`);
@@ -2651,6 +3721,13 @@ ADD PRIMARY KEY (`id_inscription`),
 ADD KEY `id_etudiant` (`id_etudiant`),
 ADD KEY `id_niveau` (`id_niveau`),
 ADD KEY `id_annee_acad` (`id_annee_acad`);
+
+--
+-- Index pour la table `mentions`
+--
+ALTER TABLE `mentions`
+ADD PRIMARY KEY (`id_mention`),
+ADD UNIQUE KEY `lib_mention` (`lib_mention`);
 
 --
 -- Index pour la table `messages`
@@ -2764,6 +3841,13 @@ ADD KEY `num_etu` (`num_etu`),
 ADD KEY `fk_candidature` (`id_candidature`);
 
 --
+-- Index pour la table `roles_jury`
+--
+ALTER TABLE `roles_jury`
+ADD PRIMARY KEY (`id_role_jury`),
+ADD UNIQUE KEY `lib_role` (`lib_role`);
+
+--
 -- Index pour la table `semestre`
 --
 ALTER TABLE `semestre`
@@ -2774,6 +3858,20 @@ ADD KEY `id_niv_etude` (`id_niv_etude`);
 -- Index pour la table `specialite`
 --
 ALTER TABLE `specialite` ADD PRIMARY KEY (`id_specialite`);
+
+--
+-- Index pour la table `statuts_participation`
+--
+ALTER TABLE `statuts_participation`
+ADD PRIMARY KEY (`id_statut_participation`),
+ADD UNIQUE KEY `lib_statut` (`lib_statut`);
+
+--
+-- Index pour la table `statuts_soutenance`
+--
+ALTER TABLE `statuts_soutenance`
+ADD PRIMARY KEY (`id_statut_soutenance`),
+ADD UNIQUE KEY `lib_statut` (`lib_statut`);
 
 --
 -- Index pour la table `statut_jury`
@@ -2849,21 +3947,21 @@ AUTO_INCREMENT = 29901;
 --
 ALTER TABLE `candidature_soutenance`
 MODIFY `id_candidature` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 14;
+AUTO_INCREMENT = 15;
 
 --
 -- AUTO_INCREMENT pour la table `compte_rendu`
 --
 ALTER TABLE `compte_rendu`
 MODIFY `id_CR` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 30;
+AUTO_INCREMENT = 31;
 
 --
--- AUTO_INCREMENT pour la table `dossier_academique`
+-- AUTO_INCREMENT pour la table `decisions_jury`
 --
-ALTER TABLE `dossier_academique`
-MODIFY `id_dossier` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 2;
+ALTER TABLE `decisions_jury`
+MODIFY `id_decision` int NOT NULL AUTO_INCREMENT,
+AUTO_INCREMENT = 4;
 
 --
 -- AUTO_INCREMENT pour la table `echeances`
@@ -2884,14 +3982,14 @@ AUTO_INCREMENT = 53;
 --
 ALTER TABLE `enseignants`
 MODIFY `id_enseignant` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 19;
+AUTO_INCREMENT = 24;
 
 --
 -- AUTO_INCREMENT pour la table `entreprises`
 --
 ALTER TABLE `entreprises`
 MODIFY `id_entreprise` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 11;
+AUTO_INCREMENT = 12;
 
 --
 -- AUTO_INCREMENT pour la table `etudiants`
@@ -2905,7 +4003,7 @@ AUTO_INCREMENT = 20250003;
 --
 ALTER TABLE `evaluations_rapports`
 MODIFY `id_evaluation` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 21;
+AUTO_INCREMENT = 25;
 
 --
 -- AUTO_INCREMENT pour la table `fonction`
@@ -2933,14 +4031,21 @@ AUTO_INCREMENT = 19;
 --
 ALTER TABLE `informations_stage`
 MODIFY `id_info_stage` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 10;
+AUTO_INCREMENT = 11;
 
 --
 -- AUTO_INCREMENT pour la table `inscriptions`
 --
 ALTER TABLE `inscriptions`
 MODIFY `id_inscription` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 35;
+AUTO_INCREMENT = 36;
+
+--
+-- AUTO_INCREMENT pour la table `mentions`
+--
+ALTER TABLE `mentions`
+MODIFY `id_mention` int NOT NULL AUTO_INCREMENT,
+AUTO_INCREMENT = 6;
 
 --
 -- AUTO_INCREMENT pour la table `messages`
@@ -2989,21 +4094,21 @@ AUTO_INCREMENT = 4;
 --
 ALTER TABLE `personnel_admin`
 MODIFY `id_pers_admin` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 10;
+AUTO_INCREMENT = 11;
 
 --
 -- AUTO_INCREMENT pour la table `pister`
 --
 ALTER TABLE `pister`
 MODIFY `id_piste` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 201;
+AUTO_INCREMENT = 261;
 
 --
 -- AUTO_INCREMENT pour la table `rapport_etudiants`
 --
 ALTER TABLE `rapport_etudiants`
 MODIFY `id_rapport` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 16;
+AUTO_INCREMENT = 17;
 
 --
 -- AUTO_INCREMENT pour la table `reclamations`
@@ -3017,7 +4122,14 @@ AUTO_INCREMENT = 5;
 --
 ALTER TABLE `resume_candidature`
 MODIFY `id` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 10;
+AUTO_INCREMENT = 11;
+
+--
+-- AUTO_INCREMENT pour la table `roles_jury`
+--
+ALTER TABLE `roles_jury`
+MODIFY `id_role_jury` int NOT NULL AUTO_INCREMENT,
+AUTO_INCREMENT = 5;
 
 --
 -- AUTO_INCREMENT pour la table `semestre`
@@ -3034,6 +4146,20 @@ MODIFY `id_specialite` int NOT NULL AUTO_INCREMENT,
 AUTO_INCREMENT = 17;
 
 --
+-- AUTO_INCREMENT pour la table `statuts_participation`
+--
+ALTER TABLE `statuts_participation`
+MODIFY `id_statut_participation` int NOT NULL AUTO_INCREMENT,
+AUTO_INCREMENT = 4;
+
+--
+-- AUTO_INCREMENT pour la table `statuts_soutenance`
+--
+ALTER TABLE `statuts_soutenance`
+MODIFY `id_statut_soutenance` int NOT NULL AUTO_INCREMENT,
+AUTO_INCREMENT = 4;
+
+--
 -- AUTO_INCREMENT pour la table `statut_jury`
 --
 ALTER TABLE `statut_jury`
@@ -3045,7 +4171,7 @@ AUTO_INCREMENT = 8;
 --
 ALTER TABLE `traitement`
 MODIFY `id_traitement` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 44;
+AUTO_INCREMENT = 46;
 
 --
 -- AUTO_INCREMENT pour la table `type_utilisateur`
@@ -3066,14 +4192,14 @@ AUTO_INCREMENT = 86;
 --
 ALTER TABLE `utilisateur`
 MODIFY `id_utilisateur` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 100;
+AUTO_INCREMENT = 109;
 
 --
 -- AUTO_INCREMENT pour la table `versements`
 --
 ALTER TABLE `versements`
 MODIFY `id_versement` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 71;
+AUTO_INCREMENT = 72;
 
 --
 -- Contraintes pour les tables déchargées
@@ -3128,12 +4254,6 @@ ADD CONSTRAINT `compte_rendu_rapport_ibfk_2` FOREIGN KEY (`id_rapport`) REFERENC
 ALTER TABLE `deposer`
 ADD CONSTRAINT `fk_deposer_etudiant` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_etu`) ON DELETE CASCADE ON UPDATE CASCADE,
 ADD CONSTRAINT `fk_deposer_rapport` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE;
-
---
--- Contraintes pour la table `dossier_academique`
---
-ALTER TABLE `dossier_academique`
-ADD CONSTRAINT `fk_dossier_etudiant` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_etu`) ON DELETE CASCADE;
 
 --
 -- Contraintes pour la table `echeances`
