@@ -27,8 +27,8 @@ $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
 if (!empty($search)) {
     $allUtilisateurs = array_filter($allUtilisateurs, function($utilisateur) use ($search) {
         return stripos($utilisateur->nom_utilisateur, $search) !== false ||
-               stripos($utilisateur->prenom_utilisateur, $search) !== false ||
-               stripos($utilisateur->email_utilisateur, $search) !== false;
+                stripos($utilisateur->prenom_utilisateur, $search) !== false ||
+                stripos($utilisateur->email_utilisateur, $search) !== false;
     });
 }
 
@@ -61,585 +61,649 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion des Utilisateurs</title>
     <style>
-    /* Styles pour les notifications */
-    .notification {
-        position: fixed;
-        top: 1rem;
-        right: 1rem;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        color: white;
-        max-width: 24rem;
-        z-index: 50;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        animation: slideIn 0.5s ease-out;
-    }
+        /* Styles pour les notifications */
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            max-width: 24rem;
+            z-index: 50;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            animation: slideIn 0.5s ease-out;
+        }
 
-    .notification.success {
-        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    }
+        .notification.success {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        }
 
-    .notification.error {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    }
+        .notification.error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
 
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+
+        /* Animations pour la modale de chargement */
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* Transition pour la modale */
+        .transform {
+            transition-property: transform, opacity;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 300ms;
+        }
+
+        .scale-95 {
+            transform: scale(0.95);
+        }
+
+        .scale-100 {
+            transform: scale(1);
+        }
+
+        .opacity-0 {
             opacity: 0;
         }
 
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-
-    @keyframes fadeOut {
-        from {
+        .opacity-100 {
             opacity: 1;
         }
 
-        to {
-            opacity: 0;
-        }
-    }
+        @keyframes progress {
+            0% {
+                width: 0%;
+            }
 
-    /* Animations pour la modale de chargement */
-    @keyframes spin {
-        from {
-            transform: rotate(0deg);
-        }
+            50% {
+                width: 70%;
+            }
 
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    @keyframes pulse {
-        0% {
-            opacity: 1;
+            100% {
+                width: 100%;
+            }
         }
 
-        50% {
-            opacity: 0.5;
+        .progress-bar {
+            animation: progress 2s ease-in-out infinite;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
         }
-
-        100% {
-            opacity: 1;
-        }
-    }
-
-    .animate-spin {
-        animation: spin 1s linear infinite;
-    }
-
-    .animate-pulse {
-        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    /* Transition pour la modale */
-    .transform {
-        transition-property: transform, opacity;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: 300ms;
-    }
-
-    .scale-95 {
-        transform: scale(0.95);
-    }
-
-    .scale-100 {
-        transform: scale(1);
-    }
-
-    .opacity-0 {
-        opacity: 0;
-    }
-
-    .opacity-100 {
-        opacity: 1;
-    }
-
-    @keyframes progress {
-        0% {
-            width: 0%;
-        }
-
-        50% {
-            width: 70%;
-        }
-
-        100% {
-            width: 100%;
-        }
-    }
-
-    .progress-bar {
-        animation: progress 2s ease-in-out infinite;
-        background: linear-gradient(90deg, #22c55e, #16a34a);
-    }
     </style>
+    <style>
+        :root {
+            --primary: #1a5276;
+            --primary-light: #2980b9;
+            --accent: #4caf50;
+            --secondary: #ff8c00;
+            --danger: #e74c3c;
+            --muted: #6b7280;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --card-radius: 12px;
+        }
 
+        body { background: var(--surface-2); font-family: Poppins, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color: #102a43; }
+
+        .bg-green-100 { background-color: rgba(26,82,118,0.06) !important; }
+        .bg-green-500 { background-color: var(--primary) !important; color: #fff !important; }
+        .bg-green-600 { background-color: #154360 !important; color: #fff !important; }
+        .text-green-500 { color: var(--primary) !important; }
+        .focus\:ring-green-500 { box-shadow: 0 0 0 3px rgba(26,82,118,0.12) !important; }
+        .border-green-500 { border-color: var(--primary) !important; }
+
+        .bg-blue-100 { background-color: rgba(41,128,185,0.06) !important; }
+        .bg-blue-500 { background-color: var(--primary-light) !important; color: #fff !important; }
+        .bg-blue-600 { background-color: #2471a3 !important; color: #fff !important; }
+        .text-blue-600 { color: var(--primary-light) !important; }
+
+        .bg-red-100 { background-color: rgba(231,76,60,0.06) !important; }
+        .bg-red-500 { background-color: var(--danger) !important; color: #fff !important; }
+        .bg-red-600 { background-color: #cb4335 !important; color: #fff !important; }
+
+        .bg-orange-500 { background-color: var(--secondary) !important; color: #fff !important; }
+        .bg-orange-600 { background-color: #d35400 !important; color: #fff !important; }
+
+        .notification.success { background: linear-gradient(135deg, var(--primary-light), var(--primary)) !important; }
+        .notification.error { background: linear-gradient(135deg, var(--danger), #cb4335) !important; }
+
+        .bg-gradient-to-r.from-green-600.to-green-800 { background: linear-gradient(90deg, var(--primary), var(--primary-light)) !important; }
+        .bg-gradient-to-r.from-primary.to-primary-light { background: linear-gradient(90deg, var(--primary), var(--primary-light)) !important; }
+
+        .shadow-card { box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06) !important; border-radius: var(--card-radius) !important; }
+        .card { background: var(--surface); border-radius: var(--card-radius); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04); }
+
+        .btn-primary, button[type="submit"], .bg-gradient { background: linear-gradient(90deg, var(--primary), var(--primary-light)) !important; color: #fff !important; border: none !important; }
+        .btn-primary:hover, .bg-gradient:hover { filter: brightness(0.96); }
+
+        .table-row-hover:hover { background-color: rgba(26,82,118,0.04); transition: background-color 0.15s ease; }
+
+        .btn-hover { transition: all 0.15s ease; }
+        .btn-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(26,82,118,0.08); }
+
+        .modal-transition { transition: opacity .25s ease, transform .25s ease; }
+
+        input[type="text"], input[type="email"], select { border-radius: 10px; border: 1px solid #e6eef6; box-shadow: none; }
+        .rounded-lg { border-radius: 10px; }
+        .rounded-xl { border-radius: 14px; }
+
+        .placeholder-empty { display:flex; align-items:center; justify-content:center; padding:24px; color:var(--muted); border-radius:8px; background:var(--surface); box-shadow:0 6px 18px rgba(15,23,42,0.03); }
+
+        .top-gradient { background: linear-gradient(90deg, rgba(26,82,118,0.95), rgba(41,128,185,0.95)); color: #fff; }
+
+        @media (max-width: 768px) {
+            .menu-wrapper { max-height: 46vh; overflow-y: auto; }
+        }
+    </style>
 </head>
 
 <body class="bg-gray-50">
 
-    <!-- Container pour les notifications -->
-    <?php if (!empty($GLOBALS['messageSuccess']) || !empty($GLOBALS['messageErreur'])): ?>
+<!-- Container pour les notifications -->
+<?php if (!empty($GLOBALS['messageSuccess']) || !empty($GLOBALS['messageErreur'])): ?>
     <div class="fixed top-4 right-4 z-50 space-y-4">
-    <?php if (!empty($GLOBALS['messageSuccess'])): ?>
-        <div class="notification success animate__animated animate__fadeIn">
-        <div class="flex items-center">
-            <i class="fas fa-check-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
-        </div>
-    </div>
-    <?php endif; ?>
+        <?php if (!empty($GLOBALS['messageSuccess'])): ?>
+            <div class="notification success animate__animated animate__fadeIn">
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+                </div>
+            </div>
+        <?php endif; ?>
 
-    <?php if (!empty($GLOBALS['messageErreur'])): ?>
-        <div class="notification error animate__animated animate__fadeIn">
-        <div class="flex items-center">
-            <i class="fas fa-exclamation-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
-        </div>
-        </div>
+        <?php if (!empty($GLOBALS['messageErreur'])): ?>
+            <div class="notification error animate__animated animate__fadeIn">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+                </div>
+            </div>
         <?php endif; ?>
     </div>
-    <?php endif; ?>
-    <div class="relative container mx-auto px-4 py-8">
-        <!-- Add/Edit User Modal -->
-        <div id="userModal"
-            class="fixed inset-0 bg-opacity-50 border border-gray-200 overflow-y-auto h-full w-full z-50 flex <?php echo $showModal ? 'add' : 'hidden'; ?> items-center justify-center modal-transition">
-            <div class="relative p-8  w-full max-w-2xl shadow-2xl rounded-xl bg-white fade-in transform">
-                <div class="absolute top-0 right-0 m-3">
-                    <button onclick="closeUserModal()"
+<?php endif; ?>
+<div class="relative container mx-auto px-4 py-8">
+    <!-- Add/Edit User Modal -->
+    <div id="userModal"
+         class="fixed inset-0 bg-opacity-50 border border-gray-200 overflow-y-auto h-full w-full z-50 flex <?php echo $showModal ? 'add' : 'hidden'; ?> items-center justify-center modal-transition">
+        <div class="relative p-8  w-full max-w-2xl shadow-2xl rounded-xl bg-white fade-in transform">
+            <div class="absolute top-0 right-0 m-3">
+                <button onclick="closeUserModal()"
                         class="text-gray-400 hover:text-gray-600 focus:outline-none btn-icon">
-                        <i class="fas fa-times fa-lg"></i>
-                    </button>
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <div class="flex items-center mb-6 pb-2 border-b border-gray-200">
+                <div class="bg-green-100 p-2 rounded-full mr-3">
+                    <i class="fas fa-user-plus text-green-500"></i>
                 </div>
-                <div class="flex items-center mb-6 pb-2 border-b border-gray-200">
-                    <div class="bg-green-100 p-2 rounded-full mr-3">
-                        <i class="fas fa-user-plus text-green-500"></i>
-                    </div>
-                    <h3 id="userModalTitle" class="text-2xl font-semibold text-gray-700">
-                        <?php echo isset($utilisateur_a_modifier) && $_GET['action']=='edit' ? 'Modifier un utilisateur' : 'Ajouter un Utilisateur' ?>
-                    </h3>
-                </div>
-                <form id="userForm" class="space-y-4" method="POST" action="?page=gestion_utilisateurs">
-                    <input type="hidden" id="userId" name="id_utilisateur"
-                        value="<?php echo $utilisateur_a_modifier ? $utilisateur_a_modifier->id_utilisateur : ''; ?>">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label for="nom_utilisateur" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-user text-green-500 mr-2"></i>Nom d'utilisateur
-                            </label>
-                            <?php if ($_GET['action'] === 'add'): ?>
+                <h3 id="userModalTitle" class="text-2xl font-semibold text-gray-700">
+                    <?php echo isset($utilisateur_a_modifier) && $_GET['action']=='edit' ? 'Modifier un utilisateur' : 'Ajouter un Utilisateur' ?>
+                </h3>
+            </div>
+            <form id="userForm" class="space-y-4" method="POST" action="?page=gestion_utilisateurs">
+                <input type="hidden" id="userId" name="id_utilisateur"
+                       value="<?php echo $utilisateur_a_modifier ? $utilisateur_a_modifier->id_utilisateur : ''; ?>">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="nom_utilisateur" class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-user text-green-500 mr-2"></i>Nom d'utilisateur
+                        </label>
+                        <?php if ($_GET['action'] === 'add'): ?>
                             <select name="nom_utilisateur" id="nom_utilisateur" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                    class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
                                 <option value="">Sélectionner une personne</option>
                                 <optgroup label="Enseignants">
                                     <?php foreach($enseignantsNonUtilisateurs as $enseignant): ?>
-                                    <option
-                                        value="<?php echo htmlspecialchars($enseignant->nom_enseignant . ' ' . $enseignant->prenom_enseignant); ?>"
-                                        data-login="<?php echo htmlspecialchars($enseignant->mail_enseignant); ?>">
-                                        <?php echo htmlspecialchars($enseignant->nom_enseignant . ' ' . $enseignant->prenom_enseignant); ?>
-                                    </option>
+                                        <option
+                                                value="<?php echo htmlspecialchars($enseignant->nom_enseignant . ' ' . $enseignant->prenom_enseignant); ?>"
+                                                data-login="<?php echo htmlspecialchars($enseignant->mail_enseignant); ?>">
+                                            <?php echo htmlspecialchars($enseignant->nom_enseignant . ' ' . $enseignant->prenom_enseignant); ?>
+                                        </option>
                                     <?php endforeach; ?>
                                 </optgroup>
                                 <optgroup label="Personnel Administratif">
                                     <?php foreach($personnelNonUtilisateurs as $personnel): ?>
-                                    <option
-                                        value="<?php echo htmlspecialchars($personnel->nom_pers_admin . ' ' . $personnel->prenom_pers_admin); ?>"
-                                        data-login="<?php echo htmlspecialchars($personnel->email_pers_admin); ?>">
-                                        <?php echo htmlspecialchars($personnel->nom_pers_admin . ' ' . $personnel->prenom_pers_admin); ?>
-                                    </option>
+                                        <option
+                                                value="<?php echo htmlspecialchars($personnel->nom_pers_admin . ' ' . $personnel->prenom_pers_admin); ?>"
+                                                data-login="<?php echo htmlspecialchars($personnel->email_pers_admin); ?>">
+                                            <?php echo htmlspecialchars($personnel->nom_pers_admin . ' ' . $personnel->prenom_pers_admin); ?>
+                                        </option>
                                     <?php endforeach; ?>
                                 </optgroup>
                                 <optgroup label="Étudiants">
                                     <?php foreach($etudiantsNonUtilisateurs as $etudiant): ?>
-                                    <option
-                                        value="<?php echo htmlspecialchars($etudiant->nom_etu . ' ' . $etudiant->prenom_etu); ?>"
-                                        data-login="<?php echo htmlspecialchars($etudiant->email_etu); ?>">
-                                        <?php echo htmlspecialchars($etudiant->nom_etu . ' ' . $etudiant->prenom_etu); ?>
-                                    </option>
+                                        <option
+                                                value="<?php echo htmlspecialchars($etudiant->nom_etu . ' ' . $etudiant->prenom_etu); ?>"
+                                                data-login="<?php echo htmlspecialchars($etudiant->email_etu); ?>">
+                                            <?php echo htmlspecialchars($etudiant->nom_etu . ' ' . $etudiant->prenom_etu); ?>
+                                        </option>
                                     <?php endforeach; ?>
                                 </optgroup>
                             </select>
-                            <?php else: ?>
-                            <input type="text" name="nom_utilisateur" id="nom_utilisateur" required
-                                value="<?php echo $utilisateur_a_modifier ? htmlspecialchars($utilisateur_a_modifier->nom_utilisateur) : ''; ?>"
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
-                            <?php endif; ?>
-                        </div>
-                        <div class="space-y-2">
-                            <label for="login_utilisateur" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-envelope text-green-500 mr-2"></i>Login
-                            </label>
-                            <input type="email" name="login_utilisateur" id="login_utilisateur" required
-                                value="<?php echo $utilisateur_a_modifier ? htmlspecialchars($utilisateur_a_modifier->login_utilisateur) : ''; ?>"
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label for="id_type_utilisateur" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-id-badge text-green-500 mr-2"></i>Type utilisateur
-                            </label>
-                            <select name="id_type_utilisateur" id="id_type_utilisateur" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
-                                <option value="">Sélectionner un type utilisateur</option>
-                                <?php foreach($types_utilisateur as $type): ?>
-                                <option value="<?php echo htmlspecialchars($type->id_type_utilisateur); ?>"
-                                    <?php echo ($utilisateur_a_modifier && $type->id_type_utilisateur == $utilisateur_a_modifier->id_type_utilisateur) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($type->lib_type_utilisateur); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="space-y-2">
-                            <label for="statut_utilisateur" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-toggle-on text-green-500 mr-2"></i>Statut
-                            </label>
-                            <select name="statut_utilisateur" id="statut_utilisateur" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
-                                <option value="">Sélectionner un statut</option>
-                                <option value="Actif"
-                                    <?php echo ($utilisateur_a_modifier && $utilisateur_a_modifier->statut_utilisateur === 'Actif') ? 'selected' : ''; ?>>
-                                    Actif</option>
-                                <option value="Inactif"
-                                    <?php echo ($utilisateur_a_modifier && $utilisateur_a_modifier->statut_utilisateur === 'Inactif') ? 'selected' : ''; ?>>
-                                    Inactif</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label for="id_GU" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-users text-green-500 mr-2"></i>Groupe utilisateur
-                            </label>
-                            <select name="id_GU" id="id_GU" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
-                                <option value="">Sélectionner un groupe utilisateur</option>
-                                <?php foreach($groupes_utilisateur as $groupe): ?>
-                                <option value="<?php echo htmlspecialchars($groupe->id_GU); ?>"
-                                    <?php echo ($utilisateur_a_modifier && $groupe->id_GU == $utilisateur_a_modifier->id_GU) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($groupe->lib_GU); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="space-y-2">
-                            <label for="id_niveau_acces" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-lock text-green-500 mr-2"></i>Niveau d'accès
-                            </label>
-                            <select name="id_niveau_acces" id="id_niveau_acces" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
-                                <option value="">Sélectionner un niveau</option>
-                                <?php foreach($niveau_acces as $niveau): ?>
-                                <option value="<?php echo htmlspecialchars($niveau->id_niveau_acces_donnees); ?>"
-                                    <?php echo ($utilisateur_a_modifier && $niveau->id_niveau_acces_donnees == $utilisateur_a_modifier->id_niv_acces_donnee) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($niveau->lib_niveau_acces_donnees); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    </div>
-
-
-                    <div class="flex justify-between">
-                        <button type="button" onclick="closeUserModal()"
-                            class="px-6 py-2.5 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">
-                            <i class="fas fa-times mr-2"></i>Annuler
-                        </button>
-                        <?php if (isset($utilisateur_a_modifier) && $_GET['action']=='edit'): ?>
-                        <button type="button" onclick="submitModifyForm()"
-                            class="px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-gradient hover:shadow-lg transition-all duration-200">
-                            <i class="fas fa-save mr-2"></i>Modifier
-                        </button>
                         <?php else: ?>
-                        <button type="submit" name="btn_add_utilisateur"
-                            class="px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-gradient hover:shadow-lg transition-all duration-200">
-                            <i class="fas fa-save mr-2"></i>Enregistrer
-                        </button>
+                            <input type="text" name="nom_utilisateur" id="nom_utilisateur" required
+                                   value="<?php echo $utilisateur_a_modifier ? htmlspecialchars($utilisateur_a_modifier->nom_utilisateur) : ''; ?>"
+                                   class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
                         <?php endif; ?>
                     </div>
-                </form>
-            </div>
-        </div>
-
-        <!--Ajouter en masse les utilisateurs-->
-        <div id="userMasseModal"
-            class="fixed inset-0 bg-opacity-50 border border-gray-200 overflow-y-auto h-full w-full z-50 flex hidden items-center justify-center modal-transition">
-            <div class="relative p-8 w-full max-w-2xl shadow-2xl rounded-xl bg-white fade-in transform">
-                <div class="absolute top-0 right-0 m-3">
-                    <button onclick="closeMasseModal()"
-                        class="text-gray-400 hover:text-gray-600 focus:outline-none btn-icon">
-                        <i class="fas fa-times fa-lg"></i>
-                    </button>
-                </div>
-                <div class="flex items-center mb-6 pb-2 border-b border-gray-200">
-                    <div class="bg-blue-100 p-2 rounded-full mr-3">
-                        <i class="fas fa-users text-blue-500"></i>
+                    <div class="space-y-2">
+                        <label for="login_utilisateur" class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-envelope text-green-500 mr-2"></i>Login
+                        </label>
+                        <input type="email" name="login_utilisateur" id="login_utilisateur" required
+                               value="<?php echo $utilisateur_a_modifier ? htmlspecialchars($utilisateur_a_modifier->login_utilisateur) : ''; ?>"
+                               class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
                     </div>
-                    <h3 class="text-2xl font-semibold text-gray-700">Ajout en masse d'utilisateurs</h3>
                 </div>
-                <form method="POST" action="?page=gestion_utilisateurs" class="space-y-4" id="userMasse">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-users text-green-500 mr-2"></i>Sélectionner les personnes
-                            </label>
-                            <select name="selected_persons[]" multiple size="10" required
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="id_type_utilisateur" class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-id-badge text-green-500 mr-2"></i>Type utilisateur
+                        </label>
+                        <select name="id_type_utilisateur" id="id_type_utilisateur" required
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                            <option value="">Sélectionner un type utilisateur</option>
+                            <?php foreach($types_utilisateur as $type): ?>
+                                <option value="<?php echo htmlspecialchars($type->id_type_utilisateur); ?>"
+                                        <?php echo ($utilisateur_a_modifier && $type->id_type_utilisateur == $utilisateur_a_modifier->id_type_utilisateur) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($type->lib_type_utilisateur); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="statut_utilisateur" class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-toggle-on text-green-500 mr-2"></i>Statut
+                        </label>
+                        <select name="statut_utilisateur" id="statut_utilisateur" required
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                            <option value="">Sélectionner un statut</option>
+                            <option value="Actif"
+                                    <?php echo ($utilisateur_a_modifier && $utilisateur_a_modifier->statut_utilisateur === 'Actif') ? 'selected' : ''; ?>>
+                                Actif</option>
+                            <option value="Inactif"
+                                    <?php echo ($utilisateur_a_modifier && $utilisateur_a_modifier->statut_utilisateur === 'Inactif') ? 'selected' : ''; ?>>
+                                Inactif</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="id_GU" class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-users text-green-500 mr-2"></i>Groupe utilisateur
+                        </label>
+                        <select name="id_GU" id="id_GU" required
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                            <option value="">Sélectionner un groupe utilisateur</option>
+                            <?php foreach($groupes_utilisateur as $groupe): ?>
+                                <option value="<?php echo htmlspecialchars($groupe->id_GU); ?>"
+                                        <?php echo ($utilisateur_a_modifier && $groupe->id_GU == $utilisateur_a_modifier->id_GU) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($groupe->lib_GU); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="id_niveau_acces" class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-lock text-green-500 mr-2"></i>Niveau d'accès
+                        </label>
+                        <select name="id_niveau_acces" id="id_niveau_acces" required
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                            <option value="">Sélectionner un niveau</option>
+                            <?php foreach($niveau_acces as $niveau): ?>
+                                <option value="<?php echo htmlspecialchars($niveau->id_niveau_acces_donnees); ?>"
+                                        <?php echo ($utilisateur_a_modifier && $niveau->id_niveau_acces_donnees == $utilisateur_a_modifier->id_niv_acces_donnee) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($niveau->lib_niveau_acces_donnees); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
+
+                <div class="flex justify-between">
+                    <button type="button" onclick="closeUserModal()"
+                            class="px-6 py-2.5 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">
+                        <i class="fas fa-times mr-2"></i>Annuler
+                    </button>
+                    <?php if (isset($utilisateur_a_modifier) && $_GET['action']=='edit'): ?>
+                        <button type="button" onclick="submitModifyForm()"
+                                class="px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-gradient hover:shadow-lg transition-all duration-200">
+                            <i class="fas fa-save mr-2"></i>Modifier
+                        </button>
+                    <?php else: ?>
+                        <button type="submit" name="btn_add_utilisateur"
+                                class="px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-gradient hover:shadow-lg transition-all duration-200">
+                            <i class="fas fa-save mr-2"></i>Enregistrer
+                        </button>
+                    <?php endif; ?>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!--Ajouter en masse les utilisateurs-->
+    <div id="userMasseModal"
+         class="fixed inset-0 bg-opacity-50 border border-gray-200 overflow-y-auto h-full w-full z-50 flex hidden items-center justify-center modal-transition">
+        <div class="relative p-8 w-full max-w-2xl shadow-2xl rounded-xl bg-white fade-in transform">
+            <div class="absolute top-0 right-0 m-3">
+                <button onclick="closeMasseModal()"
+                        class="text-gray-400 hover:text-gray-600 focus:outline-none btn-icon">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <div class="flex items-center mb-6 pb-2 border-b border-gray-200">
+                <div class="bg-blue-100 p-2 rounded-full mr-3">
+                    <i class="fas fa-users text-blue-500"></i>
+                </div>
+                <h3 class="text-2xl font-semibold text-gray-700">Ajout en masse d'utilisateurs</h3>
+            </div>
+            <form method="POST" action="?page=gestion_utilisateurs" class="space-y-4" id="userMasse">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-users text-green-500 mr-2"></i>Sélectionner les personnes
+                        </label>
+                        <select name="selected_persons[]" multiple size="10" required
                                 class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200"
                                 style="height: auto; min-height: 200px;">
-                                <optgroup label="Enseignants">
-                                    <?php foreach($enseignantsNonUtilisateurs as $enseignant): ?>
+                            <optgroup label="Enseignants">
+                                <?php foreach($enseignantsNonUtilisateurs as $enseignant): ?>
                                     <option value="ens_<?php echo $enseignant->id_enseignant; ?>"
-                                        class="py-1 px-2 hover:bg-green-50 cursor-pointer">
+                                            class="py-1 px-2 hover:bg-green-50 cursor-pointer">
                                         <?php echo htmlspecialchars($enseignant->nom_enseignant . ' ' . $enseignant->prenom_enseignant); ?>
                                     </option>
-                                    <?php endforeach; ?>
-                                </optgroup>
-                                <optgroup label="Personnel Administratif">
-                                    <?php foreach($personnelNonUtilisateurs as $personnel): ?>
+                                <?php endforeach; ?>
+                            </optgroup>
+                            <optgroup label="Personnel Administratif">
+                                <?php foreach($personnelNonUtilisateurs as $personnel): ?>
                                     <option value="pers_<?php echo $personnel->id_pers_admin; ?>"
-                                        class="py-1 px-2 hover:bg-green-50 cursor-pointer">
+                                            class="py-1 px-2 hover:bg-green-50 cursor-pointer">
                                         <?php echo htmlspecialchars($personnel->nom_pers_admin . ' ' . $personnel->prenom_pers_admin); ?>
                                     </option>
-                                    <?php endforeach; ?>
-                                </optgroup>
-                                <optgroup label="Étudiants">
-                                    <?php foreach($etudiantsNonUtilisateurs as $etudiant): ?>
+                                <?php endforeach; ?>
+                            </optgroup>
+                            <optgroup label="Étudiants">
+                                <?php foreach($etudiantsNonUtilisateurs as $etudiant): ?>
                                     <option value="etu_<?php echo $etudiant->num_etu; ?>"
-                                        class="py-1 px-2 hover:bg-green-50 cursor-pointer">
+                                            class="py-1 px-2 hover:bg-green-50 cursor-pointer">
                                         <?php echo htmlspecialchars($etudiant->nom_etu . ' ' . $etudiant->prenom_etu); ?>
                                     </option>
-                                    <?php endforeach; ?>
-                                </optgroup>
-                            </select>
-                            <p class="text-sm text-gray-500 mt-1">
-                                <i class="fas fa-info-circle mr-1"></i>
-                                Maintenez Shift ou Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs personnes
-                            </p>
-                        </div>
-                        <div class="space-y-4">
-                            <div class="space-y-2">
-                                <label for="mass_type_utilisateur" class="block text-sm font-medium text-gray-700">
-                                    <i class="fas fa-id-badge text-green-500 mr-2"></i>Type utilisateur
-                                </label>
-                                <select name="id_type_utilisateur" id="mass_type_utilisateur" required
+                                <?php endforeach; ?>
+                            </optgroup>
+                        </select>
+                        <p class="text-sm text-gray-500 mt-1">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Maintenez Shift ou Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs personnes
+                        </p>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                            <label for="mass_type_utilisateur" class="block text-sm font-medium text-gray-700">
+                                <i class="fas fa-id-badge text-green-500 mr-2"></i>Type utilisateur
+                            </label>
+                            <select name="id_type_utilisateur" id="mass_type_utilisateur" required
                                     class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
-                                    <option value="">Sélectionner un type utilisateur</option>
-                                    <?php foreach($types_utilisateur as $type): ?>
+                                <option value="">Sélectionner un type utilisateur</option>
+                                <?php foreach($types_utilisateur as $type): ?>
                                     <option value="<?php echo htmlspecialchars($type->id_type_utilisateur); ?>">
                                         <?php echo htmlspecialchars($type->lib_type_utilisateur); ?>
                                     </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="space-y-2">
-                                <label for="mass_groupe_utilisateur" class="block text-sm font-medium text-gray-700">
-                                    <i class="fas fa-users text-green-500 mr-2"></i>Groupe utilisateur
-                                </label>
-                                <select name="id_GU" id="mass_groupe_utilisateur" required
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label for="mass_groupe_utilisateur" class="block text-sm font-medium text-gray-700">
+                                <i class="fas fa-users text-green-500 mr-2"></i>Groupe utilisateur
+                            </label>
+                            <select name="id_GU" id="mass_groupe_utilisateur" required
                                     class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
-                                    <option value="">Sélectionner un groupe utilisateur</option>
-                                    <?php foreach($groupes_utilisateur as $groupe): ?>
+                                <option value="">Sélectionner un groupe utilisateur</option>
+                                <?php foreach($groupes_utilisateur as $groupe): ?>
                                     <option value="<?php echo htmlspecialchars($groupe->id_GU); ?>">
                                         <?php echo htmlspecialchars($groupe->lib_GU); ?>
                                     </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="space-y-2">
-                                <label for="mass_niveau_acces" class="block text-sm font-medium text-gray-700">
-                                    <i class="fas fa-lock text-green-500 mr-2"></i>Niveau d'accès
-                                </label>
-                                <select name="id_niveau_acces" id="mass_niveau_acces" required
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label for="mass_niveau_acces" class="block text-sm font-medium text-gray-700">
+                                <i class="fas fa-lock text-green-500 mr-2"></i>Niveau d'accès
+                            </label>
+                            <select name="id_niveau_acces" id="mass_niveau_acces" required
                                     class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
-                                    <option value="">Sélectionner un niveau</option>
-                                    <?php foreach($niveau_acces as $niveau): ?>
+                                <option value="">Sélectionner un niveau</option>
+                                <?php foreach($niveau_acces as $niveau): ?>
                                     <option value="<?php echo htmlspecialchars($niveau->id_niveau_acces_donnees); ?>">
                                         <?php echo htmlspecialchars($niveau->lib_niveau_acces_donnees); ?>
                                     </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="space-y-2">
-                                <label for="mass_statut" class="block text-sm font-medium text-gray-700">
-                                    <i class="fas fa-toggle-on text-green-500 mr-2"></i>Statut
-                                </label>
-                                <select name="statut_utilisateur" id="mass_statut" required
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label for="mass_statut" class="block text-sm font-medium text-gray-700">
+                                <i class="fas fa-toggle-on text-green-500 mr-2"></i>Statut
+                            </label>
+                            <select name="statut_utilisateur" id="mass_statut" required
                                     class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
-                                    <option value="">Sélectionner un statut</option>
-                                    <option value="Actif">Actif</option>
-                                    <option value="Inactif">Inactif</option>
-                                </select>
-                            </div>
+                                <option value="">Sélectionner un statut</option>
+                                <option value="Actif">Actif</option>
+                                <option value="Inactif">Inactif</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="flex justify-between gap-4">
-                        <button type="button" onclick="closeMasseModal()"
+                </div>
+                <div class="flex justify-between gap-4">
+                    <button type="button" onclick="closeMasseModal()"
                             class="px-6 py-2.5 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">
-                            <i class="fas fa-times mr-2"></i>Annuler
-                        </button>
-                        <button type="submit" name="btn_add_multiple"
+                        <i class="fas fa-times mr-2"></i>Annuler
+                    </button>
+                    <button type="submit" name="btn_add_multiple"
                             class="px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-gradient hover:shadow-lg transition-all duration-200">
-                            <i class="fas fa-users mr-2"></i>Ajouter en masse
+                        <i class="fas fa-users mr-2"></i>Ajouter en masse
 
-                        </button>
-                    </div>
-                </form>
-            </div>
+                    </button>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <!-- User Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow-card p-6 border border-gray-200">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-green-100 mr-4">
-                        <i class="fas fa-users text-green-600 text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500 mb-1">Total Utilisateurs</p>
-                        <h3 class="text-2xl font-bold text-gray-800"><?php echo $totalUtilisateurs; ?></h3>
-                    </div>
+    <!-- User Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-card p-6 border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100 mr-4">
+                    <i class="fas fa-users text-green-600 text-xl"></i>
                 </div>
-            </div>
-            <div class="bg-white rounded-lg shadow-card p-6 border border-gray-200">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-blue-100 mr-4">
-                        <i class="fas fa-user-check text-blue-600 text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500 mb-1">Utilisateurs Actifs</p>
-                        <h3 class="text-2xl font-bold text-gray-800"><?php echo $utilisateursActifs; ?></h3>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-lg shadow-card p-6 border border-gray-200">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-red-100 mr-4">
-                        <i class="fas fa-user-times text-red-600 text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500 mb-1">Utilisateurs Inactifs</p>
-                        <h3 class="text-2xl font-bold text-gray-800"><?php echo $utilisateursInactifs; ?></h3>
-                    </div>
+                <div>
+                    <p class="text-sm text-gray-500 mb-1">Total Utilisateurs</p>
+                    <h3 class="text-2xl font-bold text-gray-800"><?php echo $totalUtilisateurs; ?></h3>
                 </div>
             </div>
         </div>
+        <div class="bg-white rounded-lg shadow-card p-6 border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100 mr-4">
+                    <i class="fas fa-user-check text-blue-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 mb-1">Utilisateurs Actifs</p>
+                    <h3 class="text-2xl font-bold text-gray-800"><?php echo $utilisateursActifs; ?></h3>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-card p-6 border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-red-100 mr-4">
+                    <i class="fas fa-user-times text-red-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 mb-1">Utilisateurs Inactifs</p>
+                    <h3 class="text-2xl font-bold text-gray-800"><?php echo $utilisateursInactifs; ?></h3>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
-        <!-- Main Content -->
-        <div class="bg-white shadow-card rounded-lg overflow-hidden border border-gray-200 mb-8">
+    <!-- Main Content -->
+    <div class="bg-white shadow-card rounded-lg overflow-hidden border border-gray-200 mb-8">
 
-            <!-- Dashboard Header -->
-            <div class=" bg-gradient-to-r from-green-600 to-green-800 px-6 py-4 flex justify-between items-center">
-                <h2 class="text-xl font-bold text-white">Gestion des Utilisateurs</h2>
-                <div class="flex gap-4">
-                    <a href="?page=gestion_utilisateurs&action=add"
-                    class="bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+        <!-- Dashboard Header -->
+        <div class=" top-gradient px-6 py-4 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-white">Gestion des Utilisateurs</h2>
+            <div class="flex gap-4">
+                <a href="?page=gestion_utilisateurs&action=add"
+                   class="bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
                     <i class="fas fa-plus mr-2"></i>Ajouter un Utilisateur
-                    </a>
-                    <a href="?page=gestion_utilisateurs&action=addMasse"
-                        class="bg-blue-500  text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-                        <i class="fas fa-plus mr-2"></i>Ajouter en masse
-                    </a>
-                </div>
-
+                </a>
+                <a href="?page=gestion_utilisateurs&action=addMasse"
+                   class="bg-blue-500  text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                    <i class="fas fa-plus mr-2"></i>Ajouter en masse
+                </a>
             </div>
 
-            <!-- Action Bar for Table -->
-            <div class="px-6 py-4 flex flex-col sm:flex-row justify-between items-center border-b border-gray-200">
-                <div class="relative w-full sm:w-1/2 lg:w-1/3 mb-4 sm:mb-0">
-                    <input type="text" id="searchInput" placeholder="Rechercher un utilisateur..."
-                        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+        </div>
+
+        <!-- Action Bar for Table -->
+        <div class="px-6 py-4 flex flex-col sm:flex-row justify-between items-center border-b border-gray-200">
+            <div class="relative w-full sm:w-1/2 lg:w-1/3 mb-4 sm:mb-0">
+                <input type="text" id="searchInput" placeholder="Rechercher un utilisateur..."
+                       class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                         <i class="fas fa-search text-gray-400"></i>
                     </span>
-                </div>
-                <div class="flex flex-wrap gap-2 justify-center sm:justify-end">
-                    <button onclick="printTable()"
-                        class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-                        <i class="fas fa-print mr-2"></i>Imprimer
-                    </button>
-                    <button onclick="exportToExcel()"
-                        class="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50">
-                        <i class="fas fa-file-export mr-2"></i>Exporter
-                    </button>
-                    <button id="desactiverButton" type="button"
-                        class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
-                        <i class="fa-solid fa-eye-slash mr-2"></i>Désactiver
-                    </button>
-                    <button id="activerButton" type="button"
-                        class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
-                        <i class="fa-solid fa-eye-slash mr-2"></i>Activer
-                    </button>
-                </div>
             </div>
+            <div class="flex flex-wrap gap-2 justify-center sm:justify-end">
+                <button onclick="printTable()"
+                        class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                    <i class="fas fa-print mr-2"></i>Imprimer
+                </button>
+                <button onclick="exportToExcel()"
+                        class="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50">
+                    <i class="fas fa-file-export mr-2"></i>Exporter
+                </button>
+                <button id="desactiverButton" type="button"
+                        class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
+                    <i class="fa-solid fa-eye-slash mr-2"></i>Désactiver
+                </button>
+                <button id="activerButton" type="button"
+                        class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                    <i class="fa-solid fa-eye-slash mr-2"></i>Activer
+                </button>
+            </div>
+        </div>
 
-            <!-- Users Table -->
-            <form class="overflow-x-auto" method="POST" action="?page=gestion_utilisateurs" id="formListeUtilisateurs">
-                <input type="hidden" name="submit_disable_multiple" id="submitDisableHidden" value="0">
-                <input type="hidden" name="submit_enable_multiple" id="submitEnableHidden" value="0">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-4 py-3 text-center">
-                                <input type="checkbox" id="selectAllCheckbox"
-                                    class="form-checkbox h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer">
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                <div class="flex items-center">
-                                    <span>Nom d'utilisateur</span>
-                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
-                                </div>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                <div class="flex items-center">
-                                    <span>Groupe utilisateur</span>
-                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
-                                </div>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                <div class="flex items-center">
-                                    <span>Statut</span>
-                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
-                                </div>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                <div class="flex items-center">
-                                    <span>Login</span>
-                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
-                                </div>
-                            </th>
-                            <th
-                                class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200" id="usersTableBody">
-                        <?php if (empty($utilisateurs)): ?>
-                        <tr>
-                            <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                                <div class="flex flex-col items-center">
-                                    <i class="fas fa-users text-gray-300 text-4xl mb-4"></i>
-                                    <p>Aucun utilisateur trouvé.</p>
-                                    <p class="text-sm mt-2">Ajoutez de nouveaux utilisateurs en cliquant sur le bouton
-                                        "Ajouter un Utilisateur"</p>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php else: ?>
-                        <?php foreach ($utilisateurs as $index => $user): ?>
+        <!-- Users Table -->
+        <form class="overflow-x-auto" method="POST" action="?page=gestion_utilisateurs" id="formListeUtilisateurs">
+            <input type="hidden" name="submit_disable_multiple" id="submitDisableHidden" value="0">
+            <input type="hidden" name="submit_enable_multiple" id="submitEnableHidden" value="0">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-4 py-3 text-center">
+                        <input type="checkbox" id="selectAllCheckbox"
+                               class="form-checkbox h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer">
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <div class="flex items-center">
+                            <span>Nom d'utilisateur</span>
+                            <i class="fas fa-sort ml-1 text-gray-400"></i>
+                        </div>
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <div class="flex items-center">
+                            <span>Groupe utilisateur</span>
+                            <i class="fas fa-sort ml-1 text-gray-400"></i>
+                        </div>
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <div class="flex items-center">
+                            <span>Statut</span>
+                            <i class="fas fa-sort ml-1 text-gray-400"></i>
+                        </div>
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <div class="flex items-center">
+                            <span>Login</span>
+                            <i class="fas fa-sort ml-1 text-gray-400"></i>
+                        </div>
+                    </th>
+                    <th
+                            class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions</th>
+                </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200" id="usersTableBody">
+                <?php if (empty($utilisateurs)): ?>
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <i class="fas fa-users text-gray-300 text-4xl mb-4"></i>
+                                <p>Aucun utilisateur trouvé.</p>
+                                <p class="text-sm mt-2">Ajoutez de nouveaux utilisateurs en cliquant sur le bouton
+                                    "Ajouter un Utilisateur"</p>
+                            </div>
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($utilisateurs as $index => $user): ?>
                         <tr class="table-row-hover">
 
                             <td class="px-4 py-4 text-center">
                                 <input type="checkbox" name="selected_ids[]"
-                                    value="<?php echo htmlspecialchars($user->id_utilisateur); ?>"
-                                    class="user-checkbox form-checkbox h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer">
+                                       value="<?php echo htmlspecialchars($user->id_utilisateur); ?>"
+                                       class="user-checkbox form-checkbox h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer">
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                 <div class="flex items-center">
@@ -669,21 +733,21 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <div class="flex justify-center space-x-3">
                                     <a href="?page=gestion_utilisateurs&action=edit&id_utilisateur=<?php echo $user->id_utilisateur; ?>"
-                                        class="text-blue-500 hover:text-blue-700 transition-colors btn-icon"
-                                        title="Modifier">
+                                       class="text-blue-500 hover:text-blue-700 transition-colors btn-icon"
+                                       title="Modifier">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                 </div>
                             </td>
                         </tr>
-                        <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </form>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                </tbody>
+            </table>
+        </form>
 
-            <!-- Pagination -->
-            <?php if ($total_pages > 1): ?>
+        <!-- Pagination -->
+        <?php if ($total_pages > 1): ?>
             <div class="bg-white rounded-lg shadow-sm p-4 mt-6">
                 <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div class="text-sm text-gray-500">
@@ -692,35 +756,35 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                     </div>
                     <div class="flex flex-wrap justify-center gap-2">
                         <?php if ($page > 1): ?>
-                        <a href="?page=gestion_utilisateurs&p=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
-                            class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            <i class="fas fa-chevron-left mr-1"></i>Précédent
-                        </a>
+                            <a href="?page=gestion_utilisateurs&p=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                               class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                <i class="fas fa-chevron-left mr-1"></i>Précédent
+                            </a>
                         <?php endif; ?>
 
                         <?php
                         $start = max(1, $page - 2);
                         $end = min($total_pages, $page + 2);
-                        
+
                         if ($start > 1) {
                             echo '<a href="?page=gestion_utilisateurs&p=1' . (!empty($search) ? '&search=' . urlencode($search) : '') . '" class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">1</a>';
                             if ($start > 2) {
-                            echo '<span class="px-3 py-2 text-gray-500">...</span>';
+                                echo '<span class="px-3 py-2 text-gray-500">...</span>';
                             }
                         }
-                        
+
                         for ($i = $start; $i <= $end; $i++):
                             $searchParam = !empty($search) ? '&search=' . urlencode($search) : '';
-                        ?>
-                        <a href="?page=gestion_utilisateurs&p=<?= $i ?><?= $searchParam ?>"
-                            class="btn-hover px-3 py-2 <?= $i === $page ? 'bg-green-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50' ?> border border-gray-300 rounded-lg text-sm font-medium">
-                            <?= $i ?>
-                        </a>
+                            ?>
+                            <a href="?page=gestion_utilisateurs&p=<?= $i ?><?= $searchParam ?>"
+                               class="btn-hover px-3 py-2 <?= $i === $page ? 'bg-green-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50' ?> border border-gray-300 rounded-lg text-sm font-medium">
+                                <?= $i ?>
+                            </a>
                         <?php endfor;
 
                         if ($end < $total_pages) {
                             if ($end < $total_pages - 1) {
-                            echo '<span class="px-3 py-2 text-gray-500">...</span>';
+                                echo '<span class="px-3 py-2 text-gray-500">...</span>';
                             }
                             $searchParam = !empty($search) ? '&search=' . urlencode($search) : '';
                             echo '<a href="?page=gestion_utilisateurs&p=' . $total_pages . $searchParam . '" class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">' . $total_pages . '</a>';
@@ -728,104 +792,100 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                         ?>
 
                         <?php if ($page < $total_pages): ?>
-                        <a href="?page=gestion_utilisateurs&p=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
-                            class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            Suivant<i class="fas fa-chevron-right ml-1"></i>
-                        </a>
+                            <a href="?page=gestion_utilisateurs&p=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                               class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                Suivant<i class="fas fa-chevron-right ml-1"></i>
+                            </a>
                         <?php endif; ?>
                     </div>
                 </div>
             </div>
-            <?php endif; ?>
-        </div>
-        <!-- Footer -->
-        <div class="mt-8 text-center text-gray-500 text-sm">
-            <p>© 2025 Système de Gestion des Utilisateurs. Tous droits réservés.</p>
-        </div>
+        <?php endif; ?>
     </div>
+</div>
 
-    <!-- Modale de confirmation de désactivation -->
-    <div id="disableModal"
-        class="fixed inset-0 flex items-center justify-center z-50 hidden animate__animated animate__fadeIn">
-        <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4 animate__animated animate__zoomIn shadow-2xl">
-            <div class="text-center">
-                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
-                </div>
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Confirmation de désactivation</h3>
-                <p class="text-sm text-gray-500 mb-6">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    Êtes-vous sûr de vouloir désactiver les utilisateurs sélectionnées ?
-                </p>
-                <div class="flex justify-center gap-4">
-                    <button type="button" id="confirmDelete"
+<!-- Modale de confirmation de désactivation -->
+<div id="disableModal"
+     class="fixed inset-0 flex items-center justify-center z-50 hidden animate__animated animate__fadeIn">
+    <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4 animate__animated animate__zoomIn shadow-2xl">
+        <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Confirmation de désactivation</h3>
+            <p class="text-sm text-gray-500 mb-6">
+                <i class="fas fa-info-circle mr-2"></i>
+                Êtes-vous sûr de vouloir désactiver les utilisateurs sélectionnées ?
+            </p>
+            <div class="flex justify-center gap-4">
+                <button type="button" id="confirmDelete"
                         class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200">
-                        <i class="fas fa-check mr-2"></i>Confirmer
-                    </button>
-                    <button type="button" id="cancelDelete"
+                    <i class="fas fa-check mr-2"></i>Confirmer
+                </button>
+                <button type="button" id="cancelDelete"
                         class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200">
-                        <i class="fas fa-times mr-2"></i>Annuler
-                    </button>
-                </div>
+                    <i class="fas fa-times mr-2"></i>Annuler
+                </button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Modale de confirmation de réactivation -->
-    <div id="enableModal"
-        class="fixed inset-0 flex items-center justify-center z-50 hidden animate__animated animate__fadeIn">
-        <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4 animate__animated animate__zoomIn shadow-2xl">
-            <div class="text-center">
-                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-                    <i class="fas fa-exclamation-triangle text-green-600 text-xl"></i>
-                </div>
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Confirmation de réactivation</h3>
-                <p class="text-sm text-gray-500 mb-6">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    Êtes-vous sûr de vouloir réactiver les utilisateurs sélectionnées ?
-                </p>
-                <div class="flex justify-center gap-4">
-                    <button type="button" id="confirmEnable"
+<!-- Modale de confirmation de réactivation -->
+<div id="enableModal"
+     class="fixed inset-0 flex items-center justify-center z-50 hidden animate__animated animate__fadeIn">
+    <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4 animate__animated animate__zoomIn shadow-2xl">
+        <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <i class="fas fa-exclamation-triangle text-green-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Confirmation de réactivation</h3>
+            <p class="text-sm text-gray-500 mb-6">
+                <i class="fas fa-info-circle mr-2"></i>
+                Êtes-vous sûr de vouloir réactiver les utilisateurs sélectionnées ?
+            </p>
+            <div class="flex justify-center gap-4">
+                <button type="button" id="confirmEnable"
                         class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200">
-                        <i class="fas fa-check mr-2"></i>Confirmer
-                    </button>
-                    <button type="button" id="cancelEnable"
+                    <i class="fas fa-check mr-2"></i>Confirmer
+                </button>
+                <button type="button" id="cancelEnable"
                         class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200">
-                        <i class="fas fa-times mr-2"></i>Annuler
-                    </button>
-                </div>
+                    <i class="fas fa-times mr-2"></i>Annuler
+                </button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Modale de confirmation de modification -->
-    <div id="modifyModal"
-        class="fixed inset-0 flex items-center justify-center z-50 hidden animate__animated animate__fadeIn">
-        <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4 animate__animated animate__zoomIn shadow-2xl">
-            <div class="text-center">
-                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
-                    <i class="fas fa-edit text-blue-600 text-xl"></i>
-                </div>
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Confirmation de modification</h3>
-                <p class="text-sm text-gray-500 mb-6">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    Êtes-vous sûr de vouloir modifier cet utilisateur ?
-                </p>
-                <div class="flex justify-center gap-4">
-                    <button type="button" id="confirmModify"
+<!-- Modale de confirmation de modification -->
+<div id="modifyModal"
+     class="fixed inset-0 flex items-center justify-center z-50 hidden animate__animated animate__fadeIn">
+    <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4 animate__animated animate__zoomIn shadow-2xl">
+        <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                <i class="fas fa-edit text-blue-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Confirmation de modification</h3>
+            <p class="text-sm text-gray-500 mb-6">
+                <i class="fas fa-info-circle mr-2"></i>
+                Êtes-vous sûr de vouloir modifier cet utilisateur ?
+            </p>
+            <div class="flex justify-center gap-4">
+                <button type="button" id="confirmModify"
                         class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
-                        <i class="fas fa-check mr-2"></i>Confirmer
-                    </button>
-                    <button type="button" id="cancelModify"
+                    <i class="fas fa-check mr-2"></i>Confirmer
+                </button>
+                <button type="button" id="cancelModify"
                         class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200">
-                        <i class="fas fa-times mr-2"></i>Annuler
-                    </button>
-                </div>
+                    <i class="fas fa-times mr-2"></i>Annuler
+                </button>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
+<script>
     // Variables pour le modal utilisateur
     const userModal = document.getElementById('userModal');
     const userForm = document.getElementById('userForm');
@@ -883,11 +943,11 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
         // Récupérer tous les utilisateurs depuis PHP
         const allUsers = <?php echo json_encode(array_map(function($user) {
             return [
-                'id' => $user->id_utilisateur,
-                'username' => $user->nom_utilisateur,
-                'groupe' => $user->lib_GU,
-                'statut' => $user->statut_utilisateur,
-                'login' => $user->login_utilisateur
+                    'id' => $user->id_utilisateur,
+                    'username' => $user->nom_utilisateur,
+                    'groupe' => $user->lib_GU,
+                    'statut' => $user->statut_utilisateur,
+                    'login' => $user->login_utilisateur
             ];
         }, $allUtilisateurs)); ?>;
 
@@ -1058,10 +1118,10 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
         // Récupérer tous les utilisateurs depuis PHP
         const allUsers = <?php echo json_encode(array_map(function($user) {
             return [
-                'username' => $user->nom_utilisateur,
-                'groupe' => $user->lib_GU,
-                'statut' => $user->statut_utilisateur,
-                'login' => $user->login_utilisateur
+                    'username' => $user->nom_utilisateur,
+                    'groupe' => $user->lib_GU,
+                    'statut' => $user->statut_utilisateur,
+                    'login' => $user->login_utilisateur
             ];
         }, $allUtilisateurs)); ?>;
 
@@ -1102,10 +1162,10 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
         // Récupérer tous les utilisateurs depuis PHP
         const allUsers = <?php echo json_encode(array_map(function($user) {
             return [
-                'username' => $user->nom_utilisateur,
-                'groupe' => $user->lib_GU,
-                'statut' => $user->statut_utilisateur,
-                'login' => $user->login_utilisateur
+                    'username' => $user->nom_utilisateur,
+                    'groupe' => $user->lib_GU,
+                    'statut' => $user->statut_utilisateur,
+                    'login' => $user->login_utilisateur
             ];
         }, $allUtilisateurs)); ?>;
 
@@ -1472,9 +1532,9 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                     const checkForMessages = setInterval(() => {
                         console.log('Checking for messages...');
                         const successMessage =
-                            <?= json_encode($GLOBALS['messageSuccess'] ?? '') ?>;
+                                <?= json_encode($GLOBALS['messageSuccess'] ?? '') ?>;
                         const errorMessage =
-                            <?= json_encode($GLOBALS['messageErreur'] ?? '') ?>;
+                                <?= json_encode($GLOBALS['messageErreur'] ?? '') ?>;
 
                         if (successMessage || errorMessage) {
                             console.log('Message found:', successMessage || errorMessage);
@@ -1501,7 +1561,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
             }, 5000);
         });
     });
-    </script>
+</script>
 
 </body>
 

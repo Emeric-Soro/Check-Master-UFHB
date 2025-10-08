@@ -6,23 +6,23 @@ function getActionColor($action) {
         case 'Modification':
             return 'bg-blue-100 text-blue-800';
         case 'Suppression':
-            return 'bg-red-100 text-red-800';
+            return 'bg-blue-100 text-blue-800';
         case 'Connexion':
             return 'bg-green-100 text-green-800';
         case 'Déconnexion':
-            return 'bg-gray-100 text-gray-800';
+            return 'bg-blue-100 text-blue-800';
         case 'Validation':
             return 'bg-green-100 text-green-800';
         case 'Rejet':
-            return 'bg-red-100 text-red-800';
+            return 'bg-blue-100 text-blue-800';
         case 'Sauvegarde':
-            return 'bg-purple-100 text-purple-800';
+            return 'bg-blue-100 text-blue-800';
         case 'Restauration':
-            return 'bg-orange-100 text-orange-800';
+            return 'bg-blue-100 text-blue-800';
         case 'Impression':
             return 'bg-blue-100 text-blue-800';
         case 'Exportation':
-            return 'bg-amber-100 text-amber-800';
+            return 'bg-blue-100 text-blue-800';
         default:
             return 'bg-gray-100 text-gray-800';
     }
@@ -31,7 +31,6 @@ $auditLog = $GLOBALS['auditLog'];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -40,47 +39,114 @@ $auditLog = $GLOBALS['auditLog'];
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+    <style>
+        :root{
+            --ufhb-blue: #0F4C75;
+            --ufhb-blue-light: #3282B8;
+            --ufhb-green: #10b981;
+            --muted: #64748B;
+            --bg: #F7FAFC;
+            --card-shadow: rgba(15,76,117,0.06);
+        }
+
+        /* Reset / base */
+        html,body { height:100%; margin:0; padding:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: var(--bg); color:#1f2937; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+        .container { max-width: 1160px; margin: 0 auto; padding: 24px; }
+
+        /* Header */
+        .header-row { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:24px; }
+        .header-left { display:flex; align-items:center; gap:16px; }
+        .header-badge { background: var(--ufhb-blue); color: #fff; padding:10px; border-radius:8px; display:flex; align-items:center; justify-content:center; width:44px; height:44px; }
+        .page-title { font-size:20px; font-weight:600; color:#0f1720; margin:0; }
+
+        /* Card */
+        .card { background:#fff; border-radius:12px; box-shadow:0 8px 24px var(--card-shadow); overflow:hidden; }
+
+        /* Filter area */
+        .filters { padding:16px; display:flex; flex-direction:column; gap:12px; background: #fbfdff; border-bottom:1px solid rgba(15,76,117,0.04); }
+        .filters-row { display:flex; flex-wrap:wrap; gap:12px; align-items:end; }
+        .filter-group { display:flex; flex-direction:column; gap:6px; min-width:160px; }
+        .filter-input { border:1px solid rgba(15,76,117,0.08); border-radius:8px; padding:8px 10px; font-size:14px; background:#fff; color:#0f1720; }
+
+        /* Buttons layout */
+        .filter-actions { margin-left:auto; display:flex; gap:10px; align-items:center; }
+        .btn { border:0; cursor:pointer; padding:10px 14px; border-radius:8px; font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:8px; }
+        .btn:focus { outline:3px solid rgba(15,76,117,0.12); }
+        .btn-green { background:var(--ufhb-green); color:#fff; }
+        .btn-blue { background:var(--ufhb-blue); color:#fff; }
+        .btn-muted { background:#f3f4f6; color:#374151; border:1px solid rgba(15,76,117,0.04); }
+
+        /* Table area */
+        .table-wrap { overflow-x:auto; padding:16px; }
+        .table { width:100%; border-collapse:collapse; min-width:800px; }
+        .table thead th { text-align:left; font-size:12px; text-transform:uppercase; color:var(--muted); padding:12px 10px; border-bottom:1px solid rgba(15,76,117,0.04); }
+        .table tbody td { padding:12px 10px; border-bottom:1px solid rgba(15,76,117,0.04); vertical-align:middle; font-size:14px; color:#111827; }
+        .row-empty { text-align:center; padding:48px 0; color:#6b7280; }
+
+        /* Badges */
+        .badge { display:inline-flex; align-items:center; gap:6px; padding:6px 8px; border-radius:9999px; font-size:12px; font-weight:700; }
+        .badge-blue { background:rgba(15,76,117,0.08); color:var(--ufhb-blue); }
+        .badge-green { background:rgba(16,185,129,0.08); color:var(--ufhb-green); }
+
+        /* Actions row */
+        .actions-row { display:flex; gap:8px; align-items:center; }
+
+        /* Pagination */
+        .pagination { display:flex; gap:8px; align-items:center; padding:12px 16px; background: #fbfdff; border-top:1px solid rgba(15,76,117,0.04); justify-content:space-between; }
+        .page-info { color:#374151; font-size:14px; }
+
+        /* Modals */
+        .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:60; }
+        .modal { background:#fff; border-radius:10px; padding:20px; width:100%; max-width:520px; box-shadow:0 12px 36px rgba(2,6,23,0.2); }
+
+        /* Small helpers */
+        .small { font-size:13px; color:#6b7280; }
+
+
+        /* Responsive */
+        @media (max-width:880px){
+            .filters-row { flex-direction:column; align-items:stretch; }
+            .filter-actions { margin-left:0; justify-content:flex-end; width:100%; }
+        }
+    </style>
 </head>
-
-<body class="bg-gray-50 min-h-screen animated-bg font-sans">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Header with Logo and Title -->
-        <div class="flex justify-between items-center mb-8">
-            <div class="flex items-center">
-                <div class="bg-green-500 text-white p-3 rounded-full mr-4">
-                    <i class="fas fa-shield-alt text-xl"></i>
-                </div>
-                <h1 class="text-2xl font-bold text-gray-800">Piste d'Audit</h1>
+<body>
+<div class="container">
+    <div class="header-row">
+        <div class="header-left">
+            <div class="header-badge">
+                <i class="fas fa-shield-alt" aria-hidden="true" style="font-size:18px;"></i>
             </div>
-            <div class="date-picker relative">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Date du jour</label>
-                <input type="text"
-                    class="w-40 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 focus:border-0 text-sm"
-                    readonly value="<?php echo date('d/m/Y'); ?>">
+            <div>
+                <h1 class="page-title">Piste d'Audit</h1>
+                <div class="small">Historique des actions système</div>
             </div>
         </div>
-
-        <!-- Messages de notification -->
-        <?php if (isset($_GET['success']) && $_GET['success'] === 'cleanup'): ?>
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6" role="alert">
-            <strong class="font-bold">Succès !</strong>
-            <span class="block sm:inline"><?php echo $_GET['deleted'] ?? 0; ?> enregistrements d'audit ont été
-                supprimés.</span>
+        <div>
+            <label class="small" style="display:block;margin-bottom:6px;color:#374151;">Date du jour</label>
+            <input type="text" class="filter-input" readonly value="<?php echo date('d/m/Y'); ?>" style="width:140px;">
         </div>
-        <?php endif; ?>
+    </div>
 
-        <?php if (isset($_GET['success']) && $_GET['success'] === 'log_deleted'): ?>
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6" role="alert">
-            <strong class="font-bold">Succès !</strong>
-            <span class="block sm:inline">Le log d'audit a été supprimé avec succès.</span>
+    <?php if (isset($_GET['success']) && $_GET['success'] === 'cleanup'): ?>
+        <div style="background:rgba(16,185,129,0.08); border-left:4px solid var(--ufhb-green); padding:12px; border-radius:8px; margin-bottom:14px; color:#065F46;">
+            <strong>Succès !</strong>
+            <div><?php echo $_GET['deleted'] ?? 0; ?> enregistrements d'audit ont été supprimés.</div>
         </div>
-        <?php endif; ?>
+    <?php endif; ?>
 
-        <?php if (isset($_GET['error'])): ?>
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
-            <strong class="font-bold">Erreur !</strong>
-            <span class="block sm:inline">
-                <?php 
+    <?php if (isset($_GET['success']) && $_GET['success'] === 'log_deleted'): ?>
+        <div style="background:rgba(16,185,129,0.08); border-left:4px solid var(--ufhb-green); padding:12px; border-radius:8px; margin-bottom:14px; color:#065F46;">
+            <strong>Succès !</strong>
+            <div>Le log d'audit a été supprimé avec succès.</div>
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($_GET['error'])): ?>
+        <div style="background:rgba(15,76,117,0.04); border-left:4px solid var(--ufhb-blue); padding:12px; border-radius:8px; margin-bottom:14px; color:var(--ufhb-blue);">
+            <strong>Erreur !</strong>
+            <div>
+                <?php
                 switch ($_GET['error']) {
                     case 'invalid_days':
                         echo 'Nombre de jours invalide pour le nettoyage.';
@@ -104,482 +170,291 @@ $auditLog = $GLOBALS['auditLog'];
                         echo 'Une erreur s\'est produite.';
                 }
                 ?>
-            </span>
-        </div>
-        <?php endif; ?>
-
-        <!-- Main Content Card -->
-        <div class="bg-white shadow-lg rounded-xl overflow-hidden transition-all hover:shadow-xl">
-            <!-- Card Header -->
-            <div class="bg-gradient-to-r from-green-600 to-green-800 px-6 py-4">
-                <h2 class="text-lg font-semibold text-white flex items-center">
-                    <i class="fas fa-history mr-2"></i>
-                    Piste d'Audit - Historique des Actions
-                </h2>
             </div>
+        </div>
+    <?php endif; ?>
 
-            <!-- Filters Section -->
-            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <form method="GET" action="?page=piste_audit"
-                    class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-                    <input type="hidden" name="page" value="piste_audit">
+    <div class="card" role="region" aria-labelledby="audit-title">
+        <div style="padding:16px 20px; background: var(--ufhb-blue); color:#fff;">
+            <h2 id="audit-title" style="margin:0; font-size:16px; font-weight:700;">
+                <i class="fas fa-history" style="margin-right:8px;"></i>
+                Piste d'Audit - Historique des Actions
+            </h2>
+        </div>
 
-                    <!-- Date Range Filters -->
-                    <div class="flex flex-col sm:flex-row gap-4">
-                        <div class="w-full sm:w-auto">
-                            <label class="block text-xs text-gray-500 mb-1">Date début</label>
-                            <input type="text" name="date_debut" id="date_debut"
-                                value="<?php echo htmlspecialchars($_GET['date_debut'] ?? ''); ?>"
-                                placeholder="Date de début"
-                                class="w-full sm:w-28 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
-                        </div>
-                        <div class="w-full sm:w-auto">
-                            <label class="block text-xs text-gray-500 mb-1">Date fin</label>
-                            <input type="text" name="date_fin" id="date_fin"
-                                value="<?php echo htmlspecialchars($_GET['date_fin'] ?? ''); ?>"
-                                placeholder="Date de fin"
-                                class="w-full sm:w-28 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
-                        </div>
+        <div class="filters">
+            <form method="GET" action="?page=piste_audit" style="display:flex; flex-direction:column; gap:12px;">
+                <input type="hidden" name="page" value="piste_audit">
+                <div class="filters-row" role="group" aria-label="Filtres d'audit">
+                    <div class="filter-group">
+                        <label class="small">Date début</label>
+                        <input type="text" name="date_debut" id="date_debut" value="<?php echo htmlspecialchars($_GET['date_debut'] ?? ''); ?>" placeholder="Date de début" class="filter-input">
                     </div>
 
-                    <!-- Action Filter -->
-                    <div class="w-full sm:w-auto">
-                        <label class="block text-xs text-gray-500 mb-1">Action</label>
-                        <select name="action"
-                            class="w-full sm:w-32 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+                    <div class="filter-group">
+                        <label class="small">Date fin</label>
+                        <input type="text" name="date_fin" id="date_fin" value="<?php echo htmlspecialchars($_GET['date_fin'] ?? ''); ?>" placeholder="Date de fin" class="filter-input">
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="small">Action</label>
+                        <select name="action" class="filter-input">
                             <option value="">Toutes les actions</option>
-                            <option value="Création"
-                                <?php echo (isset($_GET['action']) && $_GET['action'] === 'Création') ? 'selected' : ''; ?>>
-                                Création</option>
-                            <option value="Modification"
-                                <?php echo (isset($_GET['action']) && $_GET['action'] === 'Modification') ? 'selected' : ''; ?>>
-                                Modification</option>
-                            <option value="Suppression"
-                                <?php echo (isset($_GET['action']) && $_GET['action'] === 'Suppression') ? 'selected' : ''; ?>>
-                                Suppression</option>
-                            <option value="Connexion"
-                                <?php echo (isset($_GET['action']) && $_GET['action'] === 'Connexion') ? 'selected' : ''; ?>>
-                                Connexion</option>
-                            <option value="Déconnexion"
-                                <?php echo (isset($_GET['action']) && $_GET['action'] === 'Déconnexion') ? 'selected' : ''; ?>>
-                                Déconnexion</option>
-                            <option value="Validation"
-                                <?php echo (isset($_GET['action']) && $_GET['action'] === 'Validation') ? 'selected' : ''; ?>>
-                                Validation</option>
-                            <option value="Rejet"
-                                <?php echo (isset($_GET['action']) && $_GET['action'] === 'Rejet') ? 'selected' : ''; ?>>
-                                Rejet</option>
-                            <option value="Sauvegarde"
-                                <?php echo (isset($_GET['action']) && $_GET['action'] === 'Sauvegarde') ? 'selected' : ''; ?>>
-                                Sauvegarde</option>
-                            <option value="Restauration"
-                                <?php echo (isset($_GET['action']) && $_GET['action'] === 'Restauration') ? 'selected' : ''; ?>>
-                                Restauration</option>
-                            <option value="Impression"
-                                <?php echo (isset($_GET['action']) && $_GET['action'] === 'Impression') ? 'selected' : ''; ?>>
-                                Impression</option>
-                            <option value="Exportation"
-                                <?php echo (isset($_GET['action']) && $_GET['action'] === 'Exportation') ? 'selected' : ''; ?>>
-                                Exportation</option>
+                            <option value="Création" <?php echo (isset($_GET['action']) && $_GET['action'] === 'Création') ? 'selected' : ''; ?>>Création</option>
+                            <option value="Modification" <?php echo (isset($_GET['action']) && $_GET['action'] === 'Modification') ? 'selected' : ''; ?>>Modification</option>
+                            <option value="Suppression" <?php echo (isset($_GET['action']) && $_GET['action'] === 'Suppression') ? 'selected' : ''; ?>>Suppression</option>
+                            <option value="Connexion" <?php echo (isset($_GET['action']) && $_GET['action'] === 'Connexion') ? 'selected' : ''; ?>>Connexion</option>
+                            <option value="Déconnexion" <?php echo (isset($_GET['action']) && $_GET['action'] === 'Déconnexion') ? 'selected' : ''; ?>>Déconnexion</option>
+                            <option value="Validation" <?php echo (isset($_GET['action']) && $_GET['action'] === 'Validation') ? 'selected' : ''; ?>>Validation</option>
+                            <option value="Rejet" <?php echo (isset($_GET['action']) && $_GET['action'] === 'Rejet') ? 'selected' : ''; ?>>Rejet</option>
+                            <option value="Sauvegarde" <?php echo (isset($_GET['action']) && $_GET['action'] === 'Sauvegarde') ? 'selected' : ''; ?>>Sauvegarde</option>
+                            <option value="Restauration" <?php echo (isset($_GET['action']) && $_GET['action'] === 'Restauration') ? 'selected' : ''; ?>>Restauration</option>
+                            <option value="Impression" <?php echo (isset($_GET['action']) && $_GET['action'] === 'Impression') ? 'selected' : ''; ?>>Impression</option>
+                            <option value="Exportation" <?php echo (isset($_GET['action']) && $_GET['action'] === 'Exportation') ? 'selected' : ''; ?>>Exportation</option>
                         </select>
                     </div>
 
-                    <!-- Table Filter -->
-                    <div class="w-full sm:w-auto">
-                        <label class="block text-xs text-gray-500 mb-1">Table</label>
-                        <select name="table"
-                            class="w-full sm:w-32 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+                    <div class="filter-group">
+                        <label class="small">Table</label>
+                        <select name="table" class="filter-input">
                             <option value="">Toutes les tables</option>
-                            <option value="utilisateur"
-                                <?php echo (isset($_GET['table']) && $_GET['table'] === 'utilisateur') ? 'selected' : ''; ?>>
-                                Utilisateur</option>
-                            <option value="etudiant"
-                                <?php echo (isset($_GET['table']) && $_GET['table'] === 'etudiant') ? 'selected' : ''; ?>>
-                                Étudiant</option>
-                            <option value="enseignant"
-                                <?php echo (isset($_GET['table']) && $_GET['table'] === 'enseignant') ? 'selected' : ''; ?>>
-                                Enseignant</option>
-                            <option value="rapport_etudiants"
-                                <?php echo (isset($_GET['table']) && $_GET['table'] === 'rapport_etudiants') ? 'selected' : ''; ?>>
-                                Rapport Étudiants</option>
-                            <option value="candidature_soutenance"
-                                <?php echo (isset($_GET['table']) && $_GET['table'] === 'candidature_soutenance') ? 'selected' : ''; ?>>
-                                Candidature Soutenance</option>
-                            <option value="versement"
-                                <?php echo (isset($_GET['table']) && $_GET['table'] === 'versement') ? 'selected' : ''; ?>>
-                                Versement</option>
-                            <option value="base_de_donnees"
-                                <?php echo (isset($_GET['table']) && $_GET['table'] === 'base_de_donnees') ? 'selected' : ''; ?>>
-                                Base de Données</option>
-                            <option value="sauvegarde"
-                                <?php echo (isset($_GET['table']) && $_GET['table'] === 'sauvegarde') ? 'selected' : ''; ?>>
-                                Sauvegarde</option>
-                            <option value="pister"
-                                <?php echo (isset($_GET['table']) && $_GET['table'] === 'pister') ? 'selected' : ''; ?>>
-                                Piste d'Audit</option>
+                            <option value="utilisateur" <?php echo (isset($_GET['table']) && $_GET['table'] === 'utilisateur') ? 'selected' : ''; ?>>Utilisateur</option>
+                            <option value="etudiant" <?php echo (isset($_GET['table']) && $_GET['table'] === 'etudiant') ? 'selected' : ''; ?>>Étudiant</option>
+                            <option value="enseignant" <?php echo (isset($_GET['table']) && $_GET['table'] === 'enseignant') ? 'selected' : ''; ?>>Enseignant</option>
+                            <option value="rapport_etudiants" <?php echo (isset($_GET['table']) && $_GET['table'] === 'rapport_etudiants') ? 'selected' : ''; ?>>Rapport Étudiants</option>
+                            <option value="candidature_soutenance" <?php echo (isset($_GET['table']) && $_GET['table'] === 'candidature_soutenance') ? 'selected' : ''; ?>>Candidature Soutenance</option>
+                            <option value="versement" <?php echo (isset($_GET['table']) && $_GET['table'] === 'versement') ? 'selected' : ''; ?>>Versement</option>
+                            <option value="base_de_donnees" <?php echo (isset($_GET['table']) && $_GET['table'] === 'base_de_donnees') ? 'selected' : ''; ?>>Base de Données</option>
+                            <option value="sauvegarde" <?php echo (isset($_GET['table']) && $_GET['table'] === 'sauvegarde') ? 'selected' : ''; ?>>Sauvegarde</option>
+                            <option value="pister" <?php echo (isset($_GET['table']) && $_GET['table'] === 'pister') ? 'selected' : ''; ?>>Piste d'Audit</option>
                         </select>
                     </div>
 
-                    <!-- Statut Filter -->
-                    <div class="w-full sm:w-auto">
-                        <label class="block text-xs text-gray-500 mb-1">Statut</label>
-                        <select name="statut"
-                            class="w-full sm:w-28 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+                    <div class="filter-group">
+                        <label class="small">Statut</label>
+                        <select name="statut" class="filter-input">
                             <option value="">Tous les statuts</option>
-                            <option value="Succès"
-                                <?php echo (isset($_GET['statut']) && $_GET['statut'] === 'Succès') ? 'selected' : ''; ?>>
-                                Succès</option>
-                            <option value="Erreur"
-                                <?php echo (isset($_GET['statut']) && $_GET['statut'] === 'Erreur') ? 'selected' : ''; ?>>
-                                Erreur</option>
+                            <option value="Succès" <?php echo (isset($_GET['statut']) && $_GET['statut'] === 'Succès') ? 'selected' : ''; ?>>Succès</option>
+                            <option value="Erreur" <?php echo (isset($_GET['statut']) && $_GET['statut'] === 'Erreur') ? 'selected' : ''; ?>>Erreur</option>
                         </select>
                     </div>
 
-                    <!-- Search Filter -->
-                    <div class="w-full sm:w-auto">
-                        <label class="block text-xs text-gray-500 mb-1">Recherche</label>
-                        <input type="text" name="search" id="search"
-                            value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>" placeholder="Rechercher..."
-                            class="w-full sm:w-40 px-2 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+                    <div class="filter-group" style="flex:1;">
+                        <label class="small">Recherche</label>
+                        <input type="text" name="search" id="search" value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>" placeholder="Rechercher..." class="filter-input" style="width:100%;">
                     </div>
 
-                    <!-- Filter Buttons -->
-                    <div class="flex gap-2">
-                        <button type="submit"
-                            class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm shadow-sm transition-all hover-scale focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center">
-                            <i class="fas fa-search mr-2"></i> Filtrer
+                    <div class="filter-actions" role="group" aria-label="Actions filtres">
+                        <button type="submit" class="btn btn-green" title="Filtrer">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                            <span>Filtrer</span>
                         </button>
-                        <a href="?page=piste_audit"
-                            class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm shadow-sm transition-all hover-scale focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 flex items-center">
-                            <i class="fas fa-times mr-2"></i> Réinitialiser
+                        <a href="?page=piste_audit" class="btn btn-blue" title="Réinitialiser">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                            <span>Réinitialiser</span>
                         </a>
                     </div>
-                </form>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex justify-between items-center px-6 py-3 bg-white border-b border-gray-200">
-                <div class="text-sm text-gray-500">
-                    <span class="font-medium"><?php echo count($auditLog); ?></span> enregistrements trouvés
                 </div>
-                <div class="flex space-x-2">
-                    <a href="?page=piste_audit&action=export&<?php echo http_build_query(array_filter($_GET, function($key) { return $key !== 'page'; }, ARRAY_FILTER_USE_KEY)); ?>"
-                        class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm shadow-sm transition-all hover-scale focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 flex items-center">
-                        <i class="fas fa-file-export mr-2"></i> Exporter
-                    </a>
-                    <button onclick="window.print()"
-                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm shadow-sm transition-all hover-scale focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center">
-                        <i class="fas fa-print mr-2"></i> Imprimer
-                    </button>
-                    <a href="?page=piste_audit"
-                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm shadow-sm transition-all hover-scale focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center">
-                        <i class="fas fa-sync-alt mr-2"></i> Actualiser
-                    </a>
-                </div>
-            </div>
+            </form>
+        </div>
 
-            <!-- Table Content -->
-            <div class="overflow-x-auto">
-                <table class="w-full table-hover">
-                    <thead class="bg-gray-50 text-gray-700 border-b border-gray-200">
+        <div class="flex justify-between items-center" style="padding:12px 16px;">
+            <div class="small"><strong><?php echo count($auditLog); ?></strong> enregistrements trouvés</div>
+            <div class="actions-row" style="margin-left:auto;">
+                <a href="?page=piste_audit&action=export&<?php echo http_build_query(array_filter($_GET, function($key) { return $key !== 'page'; }, ARRAY_FILTER_USE_KEY)); ?>" class="btn btn-blue" title="Exporter">
+                    <i class="fas fa-file-export"></i>
+                    <span>Exporter</span>
+                </a>
+                <button onclick="window.print()" class="btn btn-blue" title="Imprimer">
+                    <i class="fas fa-print"></i>
+                    <span>Imprimer</span>
+                </button>
+                <a href="?page=piste_audit" class="btn btn-green" title="Actualiser">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Actualiser</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table class="table" role="table" aria-label="Logs d'audit">
+                <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Heure</th>
+                    <th>Action</th>
+                    <th>Statut</th>
+                    <th>Table</th>
+                    <th>Utilisateur</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <?php if (empty($auditLog)): ?>
+                    <tr>
+                        <td colspan="7" class="row-empty">
+                            <div style="text-align:center;">
+                                <i class="fas fa-search" style="font-size:36px;color:#cbd5e1;margin-bottom:12px;"></i>
+                                <div>Aucun log d'audit trouvé pour les critères sélectionnés.</div>
+                            </div>
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($auditLog as $log): ?>
                         <tr>
-                            <th class="py-3 px-4 text-left text-xs font-medium uppercase tracking-wider">Date</th>
-                            <th class="py-3 px-4 text-left text-xs font-medium uppercase tracking-wider">Heure</th>
-                            <th class="py-3 px-4 text-left text-xs font-medium uppercase tracking-wider">Action</th>
-                            <th class="py-3 px-4 text-left text-xs font-medium uppercase tracking-wider">Statut</th>
-                            <th class="py-3 px-4 text-left text-xs font-medium uppercase tracking-wider">Table</th>
-                            <th class="py-3 px-4 text-left text-xs font-medium uppercase tracking-wider">Utilisateur
-                            </th>
-                            <th class="py-3 px-4 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        <?php if (empty($auditLog)): ?>
-                        <tr>
-                            <td colspan="7" class="py-8 px-4 text-center text-gray-500">
-                                <i class="fas fa-search text-4xl mb-4 text-gray-300"></i>
-                                <p>Aucun log d'audit trouvé pour les critères sélectionnés.</p>
+                            <td><?php echo date('d/m/Y', strtotime($log['date_creation'])); ?></td>
+                            <td><?php echo date('H:i:s', strtotime($log['date_creation'])); ?></td>
+                            <td><span class="badge <?php echo getActionColor($log['action']); ?>"><?php echo htmlspecialchars($log['action']); ?></span></td>
+                            <td>
+                                <?php if ($log['statut_action'] === 'Succès'): ?>
+                                    <span class="badge badge-green"><?php echo htmlspecialchars($log['statut_action']); ?></span>
+                                <?php else: ?>
+                                    <span class="badge badge-blue"><?php echo htmlspecialchars($log['statut_action']); ?></span>
+                                <?php endif; ?>
                             </td>
-                        </tr>
-                        <?php else: ?>
-                        <?php foreach ($auditLog as $log): ?>
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="py-3 px-4 text-sm"><?php echo date('d/m/Y', strtotime($log['date_creation'])); ?>
-                            </td>
-                            <td class="py-3 px-4 text-sm"><?php echo date('H:i:s', strtotime($log['date_creation'])); ?>
-                            </td>
-                            <td class="py-3 px-4">
-                                <span
-                                    class="px-2 py-1 text-xs font-semibold rounded-full <?php echo getActionColor($log['action']); ?>">
-                                    <?php echo htmlspecialchars($log['action']); ?>
-                                </span>
-                            </td>
-                            <td class="py-3 px-4">
-                                <span
-                                    class="px-2 py-1 text-xs font-semibold rounded-full <?php echo ($log['statut_action'] === 'Succès') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
-                                    <?php echo htmlspecialchars($log['statut_action']); ?>
-                                </span>
-                            </td>
-                            <td class="py-3 px-4 text-sm"><?php echo htmlspecialchars($log['nom_table']); ?></td>
-                            <td class="py-3 px-4 text-sm">
-                                <div>
-                                    <div class="font-medium">
-                                        <?php echo htmlspecialchars($log['login_utilisateur'] ?? 'N/A'); ?></div>
-                                    <div class="text-gray-500 text-xs">
-                                        <?php echo htmlspecialchars($log['nom_utilisateur'] ?? 'N/A'); ?></div>
+                            <td><?php echo htmlspecialchars($log['nom_table']); ?></td>
+                            <td>
+                                <div style="display:flex;flex-direction:column;">
+                                    <div style="font-weight:600;"><?php echo htmlspecialchars($log['login_utilisateur'] ?? 'N/A'); ?></div>
+                                    <div class="small"><?php echo htmlspecialchars($log['nom_utilisateur'] ?? 'N/A'); ?></div>
                                 </div>
                             </td>
-                            <td class="py-3 px-4 text-sm">
-                                <button type="button"
-                                    class="text-red-600 hover:text-red-800 transition-colors open-delete-modal"
-                                    data-log-id="<?php echo $log['id_piste']; ?>" title="Supprimer ce log">
-                                    <i class="fas fa-trash-alt"></i>
+                            <td>
+                                <button type="button" class="btn btn-muted open-delete-modal" data-log-id="<?php echo $log['id_piste']; ?>" title="Supprimer ce log" aria-label="Supprimer le log <?php echo $log['id_piste']; ?>">
+                                    <i class="fas fa-trash-alt" style="color:#374151;"></i>
                                 </button>
                             </td>
                         </tr>
-                        <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
 
-            <!-- Pagination -->
-            <?php if (($totalPages ?? 1) > 1): ?>
-            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-                <div class="text-sm text-gray-700">
-                    Affichage de <span class="font-medium"><?php echo (($page - 1) * $perPage) + 1; ?></span> à <span
-                        class="font-medium"><?php echo min($page * $perPage, $totalLogs); ?></span> sur <span
-                        class="font-medium"><?php echo $totalLogs; ?></span> enregistrements
+        <?php if (($totalPages ?? 1) > 1): ?>
+            <div class="pagination" role="navigation" aria-label="Pagination">
+                <div class="page-info">
+                    Affichage de <strong><?php echo (($page - 1) * $perPage) + 1; ?></strong> à <strong><?php echo min($page * $perPage, $totalLogs); ?></strong> sur <strong><?php echo $totalLogs; ?></strong> enregistrements
                 </div>
-                <div class="flex items-center space-x-1">
+                <div style="display:flex; gap:8px; align-items:center;">
                     <?php if ($page > 1): ?>
-                    <a href="?page=piste_audit&page_num=<?php echo $page - 1; ?>&<?php echo http_build_query(array_filter($_GET, function($key) { return !in_array($key, ['page', 'page_num']); }, ARRAY_FILTER_USE_KEY)); ?>"
-                        class="pagination-item">
-                        <i class="fas fa-chevron-left mr-2"></i>
-                    </a>
+                        <a href="?page=piste_audit&page_num=<?php echo $page - 1; ?>&<?php echo http_build_query(array_filter($_GET, function($key) { return !in_array($key, ['page', 'page_num']); }, ARRAY_FILTER_USE_KEY)); ?>" class="pagination-item"><i class="fas fa-chevron-left"></i></a>
                     <?php else: ?>
-                    <button class="pagination-item" disabled>
-                        <i class="fas fa-chevron-left mr-2"></i>
-                    </button>
+                        <span class="pagination-item" aria-hidden="true" style="opacity:0.5;"><i class="fas fa-chevron-left"></i></span>
                     <?php endif; ?>
 
                     <?php for ($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
-                    <?php if ($i == $page): ?>
-                    <span class="pagination-item bg-green-500 text-white"><?php echo $i; ?></span>
-                    <?php else: ?>
-                    <a href="?page=piste_audit&page_num=<?php echo $i; ?>&<?php echo http_build_query(array_filter($_GET, function($key) { return !in_array($key, ['page', 'page_num']); }, ARRAY_FILTER_USE_KEY)); ?>"
-                        class="pagination-item"><?php echo $i; ?></a>
-                    <?php endif; ?>
+                        <?php if ($i == $page): ?>
+                            <span class="pagination-item" style="background:var(--ufhb-green); color:#fff;"><?php echo $i; ?></span>
+                        <?php else: ?>
+                            <a href="?page=piste_audit&page_num=<?php echo $i; ?>&<?php echo http_build_query(array_filter($_GET, function($key) { return !in_array($key, ['page', 'page_num']); }, ARRAY_FILTER_USE_KEY)); ?>" class="pagination-item"><?php echo $i; ?></a>
+                        <?php endif; ?>
                     <?php endfor; ?>
 
                     <?php if ($page < $totalPages): ?>
-                    <a href="?page=piste_audit&page_num=<?php echo $page + 1; ?>&<?php echo http_build_query(array_filter($_GET, function($key) { return !in_array($key, ['page', 'page_num']); }, ARRAY_FILTER_USE_KEY)); ?>"
-                        class="pagination-item">
-                        <i class="fas fa-chevron-right ml-2"></i>
-                    </a>
+                        <a href="?page=piste_audit&page_num=<?php echo $page + 1; ?>&<?php echo http_build_query(array_filter($_GET, function($key) { return !in_array($key, ['page', 'page_num']); }, ARRAY_FILTER_USE_KEY)); ?>" class="pagination-item"><i class="fas fa-chevron-right"></i></a>
                     <?php else: ?>
-                    <button class="pagination-item" disabled>
-                        <i class="fas fa-chevron-right ml-2"></i>
-                    </button>
+                        <span class="pagination-item" aria-hidden="true" style="opacity:0.5;"><i class="fas fa-chevron-right"></i></span>
                     <?php endif; ?>
                 </div>
             </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- Cleanup Section -->
-        <div class="mt-6 bg-white shadow-lg rounded-xl overflow-hidden">
-            <div class="bg-gradient-to-r from-red-600 to-red-800 px-6 py-4">
-                <h3 class="text-lg font-semibold text-white flex items-center">
-                    <i class="fas fa-trash-alt mr-2"></i>
-                    Nettoyage des Logs
-                </h3>
-            </div>
-            <div class="px-6 py-4">
-                <form id="cleanupForm" method="POST" action="?page=piste_audit&action=cleanup"
-                    class="flex items-end gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Supprimer les logs de plus
-                            de</label>
-                        <input type="number" name="days" min="1" max="365" value="30" required
-                            class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                        <span class="text-sm text-gray-500 ml-2">jours</span>
-                    </div>
-                    <button type="button" id="openCleanupModalBtn"
-                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm shadow-sm transition-all hover-scale focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 flex items-center">
-                        <i class="fas fa-trash-alt mr-2"></i> Nettoyer
-                    </button>
-                </form>
-                <p class="text-sm text-gray-600 mt-2">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    Cette action supprimera définitivement tous les logs d'audit antérieurs à la période spécifiée.
-                </p>
-            </div>
-        </div>
+        <?php endif; ?>
     </div>
 
-    <!-- Modal de confirmation de suppression -->
-    <div id="deleteModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full">
-            <h2 class="text-lg font-semibold mb-4 text-gray-800 flex items-center"><i
-                    class="fas fa-exclamation-triangle text-red-500 mr-2"></i> Confirmation de suppression</h2>
-            <p class="mb-6 text-gray-700">Êtes-vous sûr de vouloir supprimer ce log d'audit ? Cette action est
-                irréversible.</p>
-            <form id="deleteLogForm" method="POST" action="?page=piste_audit&action=delete_log">
-                <input type="hidden" name="log_id" id="deleteLogId" value="">
-                <div class="flex justify-end gap-2">
-                    <button type="button" id="cancelDeleteBtn"
-                        class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Annuler</button>
-                    <button type="submit"
-                        class="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600">Supprimer</button>
+    <div style="margin-top:18px; background:#fff; border-radius:12px; box-shadow:0 8px 24px var(--card-shadow); overflow:hidden;">
+        <div style="padding:12px 16px; background:#eee; color:#111; font-weight:700;">Nettoyage des Logs</div>
+        <div style="padding:16px;">
+            <form id="cleanupForm" method="POST" action="?page=piste_audit&action=cleanup" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+                <div style="display:flex; flex-direction:column;">
+                    <label class="small">Supprimer les logs de plus de</label>
+                    <input type="number" name="days" min="1" max="365" value="30" required class="filter-input" style="width:140px;">
+                </div>
+                <div>
+                    <span class="small" style="display:block; margin-bottom:6px;">&nbsp;</span>
+                    <button type="button" id="openCleanupModalBtn" class="btn btn-blue"><i class="fas fa-trash-alt"></i> Nettoyer</button>
+                </div>
+                <div style="flex:1;">
+                    <p class="small" style="margin:0;">Cette action supprimera définitivement tous les logs d'audit antérieurs à la période spécifiée.</p>
                 </div>
             </form>
         </div>
     </div>
+</div>
 
-    <!-- Modal de confirmation de nettoyage -->
-    <div id="cleanupModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full">
-            <h2 class="text-lg font-semibold mb-4 text-gray-800 flex items-center"><i
-                    class="fas fa-exclamation-triangle text-red-500 mr-2"></i> Confirmation du nettoyage</h2>
-            <p class="mb-6 text-gray-700">Êtes-vous sûr de vouloir supprimer tous les logs d'audit plus anciens que la
-                période spécifiée ? Cette action est irréversible.</p>
-            <div class="flex justify-end gap-2">
-                <button type="button" id="cancelCleanupBtn"
-                    class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Annuler</button>
-                <button type="button" id="confirmCleanupBtn"
-                    class="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600">Nettoyer</button>
+<!-- Delete Modal -->
+<div id="deleteModal" class="modal-backdrop" style="display:none;">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+        <h2 id="delete-title" style="margin:0 0 12px 0; font-size:18px; color:#0f1720;"><i class="fas fa-exclamation-triangle" style="color:var(--ufhb-blue); margin-right:8px;"></i>Confirmation de suppression</h2>
+        <p style="margin:0 0 16px 0; color:#374151;">Êtes-vous sûr de vouloir supprimer ce log d'audit ? Cette action est irréversible.</p>
+        <form id="deleteLogForm" method="POST" action="?page=piste_audit&action=delete_log">
+            <input type="hidden" name="log_id" id="deleteLogId" value="">
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" id="cancelDeleteBtn" class="btn btn-muted">Annuler</button>
+                <button type="submit" class="btn btn-blue">Supprimer</button>
             </div>
+        </form>
+    </div>
+</div>
+
+<!-- Cleanup Modal -->
+<div id="cleanupModal" class="modal-backdrop" style="display:none;">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cleanup-title">
+        <h2 id="cleanup-title" style="margin:0 0 12px 0; font-size:18px; color:#0f1720;"><i class="fas fa-exclamation-triangle" style="color:var(--ufhb-blue); margin-right:8px;"></i>Confirmation du nettoyage</h2>
+        <p style="margin:0 0 16px 0; color:#374151;">Êtes-vous sûr de vouloir supprimer tous les logs d'audit plus anciens que la période spécifiée ? Cette action est irréversible.</p>
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button type="button" id="cancelCleanupBtn" class="btn btn-muted">Annuler</button>
+            <button type="button" id="confirmCleanupBtn" class="btn btn-blue">Nettoyer</button>
         </div>
     </div>
+</div>
 
-    <style>
-    .animated-bg {
-        background: linear-gradient(-45deg, #f0f9ff, #f0fdf4, #fefce8, #fef2f2);
-        background-size: 400% 400%;
-        animation: gradient 15s ease infinite;
-    }
-
-    @keyframes gradient {
-        0% {
-            background-position: 0% 50%;
-        }
-
-        50% {
-            background-position: 100% 50%;
-        }
-
-        100% {
-            background-position: 0% 50%;
-        }
-    }
-
-    .hover-scale:hover {
-        transform: scale(1.05);
-    }
-
-    .table-hover tbody tr:hover {
-        background-color: #f9fafb;
-    }
-
-    .pagination-item {
-        @apply px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover: bg-gray-50 hover:text-gray-700 transition-colors;
-    }
-
-    .pagination-item:disabled {
-        @apply opacity-50 cursor-not-allowed;
-    }
-
-    @media print {
-        .no-print {
-            display: none !important;
-        }
-
-        body {
-            background: white !important;
-        }
-
-        .bg-white {
-            background: white !important;
-        }
-    }
-    </style>
-
-    <script src="public/js/audit.js"></script>
-    <script>
+<script>
     document.addEventListener('DOMContentLoaded', function() {
-        flatpickr("#date_debut", {
-            locale: "fr",
-            dateFormat: "Y-m-d",
-            allowInput: true,
-            placeholder: "Date de début"
-        });
+        flatpickr("#date_debut", { locale: "fr", dateFormat: "Y-m-d", allowInput: true });
+        flatpickr("#date_fin", { locale: "fr", dateFormat: "Y-m-d", allowInput: true });
 
-        flatpickr("#date_fin", {
-            locale: "fr",
-            dateFormat: "Y-m-d",
-            allowInput: true,
-            placeholder: "Date de fin"
-        });
-    });
-
-    let searchTimeout;
-    document.getElementById('search').addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            this.form.submit();
-        }, 500);
-    });
-
-    // Modal logic
-    const deleteModal = document.getElementById('deleteModal');
-    const deleteLogForm = document.getElementById('deleteLogForm');
-    const deleteLogIdInput = document.getElementById('deleteLogId');
-    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
-
-    // Ouvre la modal quand on clique sur la poubelle
-    Array.from(document.getElementsByClassName('open-delete-modal')).forEach(btn => {
-        btn.addEventListener('click', function() {
-            const logId = this.getAttribute('data-log-id');
-            deleteLogIdInput.value = logId;
-            deleteModal.classList.remove('hidden');
-        });
-    });
-    // Ferme la modal
-    cancelDeleteBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        deleteModal.classList.add('hidden');
-    });
-    // Ferme la modal si on clique en dehors
-    window.addEventListener('click', function(e) {
-        if (e.target === deleteModal) {
-            deleteModal.classList.add('hidden');
+        let searchTimeout;
+        const searchEl = document.getElementById('search');
+        if (searchEl) {
+            searchEl.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(function() { searchEl.form.submit(); }, 500);
+            });
         }
-    });
 
-    // Modal de nettoyage
-    const cleanupModal = document.getElementById('cleanupModal');
-    const openCleanupModalBtn = document.getElementById('openCleanupModalBtn');
-    const cancelCleanupBtn = document.getElementById('cancelCleanupBtn');
-    const confirmCleanupBtn = document.getElementById('confirmCleanupBtn');
-    const cleanupForm = document.getElementById('cleanupForm');
+        const deleteModal = document.getElementById('deleteModal');
+        const deleteLogIdInput = document.getElementById('deleteLogId');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
 
-    openCleanupModalBtn.addEventListener('click', function() {
-        cleanupModal.classList.remove('hidden');
+        Array.from(document.getElementsByClassName('open-delete-modal')).forEach(function(btn){
+            btn.addEventListener('click', function() {
+                const logId = this.getAttribute('data-log-id');
+                deleteLogIdInput.value = logId;
+                deleteModal.style.display = 'flex';
+            });
+        });
+
+        cancelDeleteBtn.addEventListener('click', function(e){
+            e.preventDefault();
+            deleteModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', function(e){
+            if (e.target === deleteModal) deleteModal.style.display = 'none';
+        });
+
+        const cleanupModal = document.getElementById('cleanupModal');
+        const openCleanupModalBtn = document.getElementById('openCleanupModalBtn');
+        const cancelCleanupBtn = document.getElementById('cancelCleanupBtn');
+        const confirmCleanupBtn = document.getElementById('confirmCleanupBtn');
+        const cleanupForm = document.getElementById('cleanupForm');
+
+        openCleanupModalBtn.addEventListener('click', function(){ cleanupModal.style.display = 'flex'; });
+        cancelCleanupBtn.addEventListener('click', function(){ cleanupModal.style.display = 'none'; });
+        confirmCleanupBtn.addEventListener('click', function(){ cleanupModal.style.display = 'none'; cleanupForm.submit(); });
+
+        window.addEventListener('click', function(e){ if (e.target === cleanupModal) cleanupModal.style.display = 'none'; });
     });
-    cancelCleanupBtn.addEventListener('click', function() {
-        cleanupModal.classList.add('hidden');
-    });
-    confirmCleanupBtn.addEventListener('click', function() {
-        cleanupModal.classList.add('hidden');
-        cleanupForm.submit();
-    });
-    window.addEventListener('click', function(e) {
-        if (e.target === cleanupModal) {
-            cleanupModal.classList.add('hidden');
-        }
-    });
-    </script>
+</script>
 </body>
-
 </html>
