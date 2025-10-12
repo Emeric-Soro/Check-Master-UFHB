@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : db
--- Généré le : mar. 07 oct. 2025 à 21:05
+-- Généré le : dim. 12 oct. 2025 à 22:01
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.2.27
 
@@ -275,6 +275,35 @@ VALUES (
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `composer_jury`
+--
+
+CREATE TABLE `composer_jury` (
+    `num_jury` int NOT NULL,
+    `id_enseignant` int NOT NULL,
+    `id_qualite_jury` int NOT NULL,
+    `date_composer_jury` int NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `composer_jury`
+--
+
+INSERT INTO
+    `composer_jury` (
+        `num_jury`,
+        `id_enseignant`,
+        `id_qualite_jury`,
+        `date_composer_jury`
+    )
+VALUES (1, 18, 1, 1760233820),
+    (1, 21, 2, 1760233820),
+    (1, 22, 4, 1760233820),
+    (1, 23, 3, 1760233820);
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `compte_rendu`
 --
 
@@ -327,6 +356,67 @@ CREATE TABLE `compte_rendu_rapport` (
 INSERT INTO
     `compte_rendu_rapport` (`id_CR`, `id_rapport`)
 VALUES (30, 16);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `correspondre`
+--
+
+CREATE TABLE `correspondre` (
+    `id_annee_acad` int NOT NULL,
+    `id_critere` int NOT NULL,
+    `bareme` int NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `correspondre`
+--
+
+INSERT INTO
+    `correspondre` (
+        `id_annee_acad`,
+        `id_critere`,
+        `bareme`
+    )
+VALUES (22524, 8, 5),
+    (22524, 9, 5),
+    (22625, 3, 4),
+    (22625, 4, 5),
+    (22625, 5, 2),
+    (22625, 6, 4),
+    (22625, 7, 5);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `critere_evaluation`
+--
+
+CREATE TABLE `critere_evaluation` (
+    `id_critere` int NOT NULL,
+    `lib_critere` varchar(100) NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `critere_evaluation`
+--
+
+INSERT INTO
+    `critere_evaluation` (`id_critere`, `lib_critere`)
+VALUES (3, 'Exposé'),
+    (
+        4,
+        'Réponses aux questions posées'
+    ),
+    (5, 'Présentation du mémoire'),
+    (6, 'Contenu du mémoire'),
+    (7, 'Résolution du problème'),
+    (8, 'Résolution du problème'),
+    (
+        9,
+        'Réponses aux questions posées'
+    );
 
 -- --------------------------------------------------------
 
@@ -502,7 +592,7 @@ VALUES (
         'Medar',
         'wahmedar@gmail.com',
         2,
-        'Administratif'
+        'Simple'
     ),
     (
         19,
@@ -680,6 +770,31 @@ VALUES (
         '2025-09-29 23:19:58',
         NULL
     );
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `evaluer`
+--
+
+CREATE TABLE `evaluer` (
+    `num_etudiant` int NOT NULL,
+    `num_jury` int NOT NULL,
+    `id_critere` int NOT NULL,
+    `date_eval` date NOT NULL,
+    `note` int NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `filiere`
+--
+
+CREATE TABLE `filiere` (
+    `id_filiere` int NOT NULL,
+    `lib_filiere` varchar(100) NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -1286,7 +1401,7 @@ INSERT INTO
         `date_occupation`
     )
 VALUES (2, 7, '2015-09-09'),
-    (9, 18, '2000-10-17'),
+    (7, 18, '2000-10-17'),
     (9, 19, '1990-09-01'),
     (9, 21, '1995-06-05'),
     (9, 22, '1989-09-05'),
@@ -2397,6 +2512,118 @@ VALUES (
         'Succès',
         'tableau_de_bord',
         '2025-10-07 13:08:35'
+    ),
+    (
+        261,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-11 18:40:28'
+    ),
+    (
+        262,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2025-10-11 18:40:28'
+    ),
+    (
+        263,
+        5,
+        'Création',
+        'Succès',
+        'traitement',
+        '2025-10-11 19:23:26'
+    ),
+    (
+        264,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2025-10-11 19:23:32'
+    ),
+    (
+        265,
+        5,
+        'Modification',
+        'Succès',
+        'attribution',
+        '2025-10-11 19:24:02'
+    ),
+    (
+        266,
+        5,
+        'Modification',
+        'Succès',
+        'enseignant',
+        '2025-10-11 23:43:56'
+    ),
+    (
+        267,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-12 00:43:15'
+    ),
+    (
+        269,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-12 12:43:58'
+    ),
+    (
+        270,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2025-10-12 12:43:58'
+    );
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `programmer`
+--
+
+CREATE TABLE `programmer` (
+    `id_programmation` int NOT NULL,
+    `num_etud` int NOT NULL,
+    `num_jury` int NOT NULL,
+    `id_salle` int DEFAULT NULL,
+    `date_soutenance` date NOT NULL,
+    `heure_soutenance` time NOT NULL,
+    `theme_soutenance` varchar(200) NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `programmer`
+--
+
+INSERT INTO
+    `programmer` (
+        `id_programmation`,
+        `num_etud`,
+        `num_jury`,
+        `id_salle`,
+        `date_soutenance`,
+        `heure_soutenance`,
+        `theme_soutenance`
+    )
+VALUES (
+        2,
+        20220001,
+        1,
+        NULL,
+        '2025-10-12',
+        '01:50:20',
+        'r'
     );
 
 -- --------------------------------------------------------
@@ -2651,8 +2878,8 @@ VALUES (
     ),
     (
         2,
-        'Assesseur',
-        'Assiste le président dans la conduite de la soutenance',
+        'Encadrant',
+        'Encadre l\'etudiant dans le cadre de la redaction de son memoire',
         1
     ),
     (
@@ -2666,7 +2893,33 @@ VALUES (
         'Directeur de mémoire',
         'Directeur scientifique du mémoire',
         1
+    ),
+    (
+        5,
+        'Maitre de stage',
+        'Supervise, guide et évalue le stagiaire, et assure la liaison avec l’établissement.',
+        1
     );
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `salles`
+--
+
+CREATE TABLE `salles` (
+    `id_salle` int NOT NULL,
+    `lib_salle` varchar(100) NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `salles`
+--
+
+INSERT INTO
+    `salles` (`id_salle`, `lib_salle`)
+VALUES (1, 'Amphi A'),
+    (2, 'Amphi Irma');
 
 -- --------------------------------------------------------
 
@@ -2730,92 +2983,6 @@ VALUES (2, 'Informatique'),
     (14, 'Management'),
     (15, 'Finance'),
     (16, 'Marketing');
-
--- --------------------------------------------------------
-
---
--- Structure de la table `statuts_participation`
---
-
-CREATE TABLE `statuts_participation` (
-    `id_statut_participation` int NOT NULL,
-    `lib_statut` varchar(50) NOT NULL,
-    `description` text,
-    `actif` tinyint(1) DEFAULT '1'
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
-
---
--- Déchargement des données de la table `statuts_participation`
---
-
-INSERT INTO
-    `statuts_participation` (
-        `id_statut_participation`,
-        `lib_statut`,
-        `description`,
-        `actif`
-    )
-VALUES (
-        1,
-        'En attente',
-        'Invitation envoyée, en attente de confirmation',
-        1
-    ),
-    (
-        2,
-        'Confirmé',
-        'Participation confirmée par le membre du jury',
-        1
-    ),
-    (
-        3,
-        'Décliné',
-        'Participation déclinée par le membre du jury',
-        1
-    );
-
--- --------------------------------------------------------
-
---
--- Structure de la table `statuts_soutenance`
---
-
-CREATE TABLE `statuts_soutenance` (
-    `id_statut_soutenance` int NOT NULL,
-    `lib_statut` varchar(50) NOT NULL,
-    `description` text,
-    `actif` tinyint(1) DEFAULT '1'
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
-
---
--- Déchargement des données de la table `statuts_soutenance`
---
-
-INSERT INTO
-    `statuts_soutenance` (
-        `id_statut_soutenance`,
-        `lib_statut`,
-        `description`,
-        `actif`
-    )
-VALUES (
-        1,
-        'Planifiée',
-        'Soutenance planifiée, en attente',
-        1
-    ),
-    (
-        2,
-        'Terminée',
-        'Soutenance terminée avec succès',
-        1
-    ),
-    (
-        3,
-        'Annulée',
-        'Soutenance annulée ou reportée',
-        1
-    );
 
 -- --------------------------------------------------------
 
@@ -3618,6 +3785,18 @@ ADD KEY `num_etu` (`num_etu`),
 ADD KEY `id_pers_admin` (`id_pers_admin`);
 
 --
+-- Index pour la table `composer_jury`
+--
+ALTER TABLE `composer_jury`
+ADD PRIMARY KEY (
+    `num_jury`,
+    `id_enseignant`,
+    `id_qualite_jury`
+),
+ADD KEY `fk_composer_enseignant` (`id_enseignant`),
+ADD KEY `fk_composer_role` (`id_qualite_jury`);
+
+--
 -- Index pour la table `compte_rendu`
 --
 ALTER TABLE `compte_rendu`
@@ -3630,6 +3809,18 @@ ADD KEY `fk_etudiant` (`num_etu`);
 ALTER TABLE `compte_rendu_rapport`
 ADD PRIMARY KEY (`id_CR`, `id_rapport`),
 ADD KEY `id_rapport` (`id_rapport`);
+
+--
+-- Index pour la table `correspondre`
+--
+ALTER TABLE `correspondre`
+ADD PRIMARY KEY (`id_annee_acad`, `id_critere`),
+ADD KEY `id_critere` (`id_critere`);
+
+--
+-- Index pour la table `critere_evaluation`
+--
+ALTER TABLE `critere_evaluation` ADD PRIMARY KEY (`id_critere`);
 
 --
 -- Index pour la table `decisions_jury`
@@ -3687,6 +3878,23 @@ ALTER TABLE `evaluations_rapports`
 ADD PRIMARY KEY (`id_evaluation`),
 ADD KEY `id_evaluateur` (`id_evaluateur`),
 ADD KEY `id_rapport` (`id_rapport`);
+
+--
+-- Index pour la table `evaluer`
+--
+ALTER TABLE `evaluer`
+ADD PRIMARY KEY (
+    `num_etudiant`,
+    `num_jury`,
+    `id_critere`
+),
+ADD KEY `id_critere` (`id_critere`),
+ADD KEY `num_jury` (`num_jury`);
+
+--
+-- Index pour la table `filiere`
+--
+ALTER TABLE `filiere` ADD PRIMARY KEY (`id_filiere`);
 
 --
 -- Index pour la table `fonction`
@@ -3800,6 +4008,14 @@ ADD KEY `id_action` (`action`),
 ADD KEY `id_action_2` (`action`);
 
 --
+-- Index pour la table `programmer`
+--
+ALTER TABLE `programmer`
+ADD PRIMARY KEY (`id_programmation`),
+ADD KEY `num_etud` (`num_etud`),
+ADD KEY `id_salle` (`id_salle`);
+
+--
 -- Index pour la table `rapport_etudiants`
 --
 ALTER TABLE `rapport_etudiants`
@@ -3848,6 +4064,11 @@ ADD PRIMARY KEY (`id_role_jury`),
 ADD UNIQUE KEY `lib_role` (`lib_role`);
 
 --
+-- Index pour la table `salles`
+--
+ALTER TABLE `salles` ADD PRIMARY KEY (`id_salle`);
+
+--
 -- Index pour la table `semestre`
 --
 ALTER TABLE `semestre`
@@ -3858,20 +4079,6 @@ ADD KEY `id_niv_etude` (`id_niv_etude`);
 -- Index pour la table `specialite`
 --
 ALTER TABLE `specialite` ADD PRIMARY KEY (`id_specialite`);
-
---
--- Index pour la table `statuts_participation`
---
-ALTER TABLE `statuts_participation`
-ADD PRIMARY KEY (`id_statut_participation`),
-ADD UNIQUE KEY `lib_statut` (`lib_statut`);
-
---
--- Index pour la table `statuts_soutenance`
---
-ALTER TABLE `statuts_soutenance`
-ADD PRIMARY KEY (`id_statut_soutenance`),
-ADD UNIQUE KEY `lib_statut` (`lib_statut`);
 
 --
 -- Index pour la table `statut_jury`
@@ -3957,6 +4164,13 @@ MODIFY `id_CR` int NOT NULL AUTO_INCREMENT,
 AUTO_INCREMENT = 31;
 
 --
+-- AUTO_INCREMENT pour la table `critere_evaluation`
+--
+ALTER TABLE `critere_evaluation`
+MODIFY `id_critere` int NOT NULL AUTO_INCREMENT,
+AUTO_INCREMENT = 10;
+
+--
 -- AUTO_INCREMENT pour la table `decisions_jury`
 --
 ALTER TABLE `decisions_jury`
@@ -4004,6 +4218,12 @@ AUTO_INCREMENT = 20250003;
 ALTER TABLE `evaluations_rapports`
 MODIFY `id_evaluation` int NOT NULL AUTO_INCREMENT,
 AUTO_INCREMENT = 25;
+
+--
+-- AUTO_INCREMENT pour la table `filiere`
+--
+ALTER TABLE `filiere`
+MODIFY `id_filiere` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT pour la table `fonction`
@@ -4101,7 +4321,14 @@ AUTO_INCREMENT = 11;
 --
 ALTER TABLE `pister`
 MODIFY `id_piste` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 261;
+AUTO_INCREMENT = 271;
+
+--
+-- AUTO_INCREMENT pour la table `programmer`
+--
+ALTER TABLE `programmer`
+MODIFY `id_programmation` int NOT NULL AUTO_INCREMENT,
+AUTO_INCREMENT = 3;
 
 --
 -- AUTO_INCREMENT pour la table `rapport_etudiants`
@@ -4129,7 +4356,14 @@ AUTO_INCREMENT = 11;
 --
 ALTER TABLE `roles_jury`
 MODIFY `id_role_jury` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 5;
+AUTO_INCREMENT = 6;
+
+--
+-- AUTO_INCREMENT pour la table `salles`
+--
+ALTER TABLE `salles`
+MODIFY `id_salle` int NOT NULL AUTO_INCREMENT,
+AUTO_INCREMENT = 3;
 
 --
 -- AUTO_INCREMENT pour la table `semestre`
@@ -4146,20 +4380,6 @@ MODIFY `id_specialite` int NOT NULL AUTO_INCREMENT,
 AUTO_INCREMENT = 17;
 
 --
--- AUTO_INCREMENT pour la table `statuts_participation`
---
-ALTER TABLE `statuts_participation`
-MODIFY `id_statut_participation` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 4;
-
---
--- AUTO_INCREMENT pour la table `statuts_soutenance`
---
-ALTER TABLE `statuts_soutenance`
-MODIFY `id_statut_soutenance` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 4;
-
---
 -- AUTO_INCREMENT pour la table `statut_jury`
 --
 ALTER TABLE `statut_jury`
@@ -4171,7 +4391,7 @@ AUTO_INCREMENT = 8;
 --
 ALTER TABLE `traitement`
 MODIFY `id_traitement` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 46;
+AUTO_INCREMENT = 47;
 
 --
 -- AUTO_INCREMENT pour la table `type_utilisateur`
@@ -4236,6 +4456,13 @@ ADD CONSTRAINT `candidature_soutenance_ibfk_1` FOREIGN KEY (`num_etu`) REFERENCE
 ADD CONSTRAINT `candidature_soutenance_ibfk_2` FOREIGN KEY (`id_pers_admin`) REFERENCES `personnel_admin` (`id_pers_admin`);
 
 --
+-- Contraintes pour la table `composer_jury`
+--
+ALTER TABLE `composer_jury`
+ADD CONSTRAINT `fk_composer_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
+ADD CONSTRAINT `fk_composer_role` FOREIGN KEY (`id_qualite_jury`) REFERENCES `roles_jury` (`id_role_jury`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Contraintes pour la table `compte_rendu`
 --
 ALTER TABLE `compte_rendu`
@@ -4247,6 +4474,13 @@ ADD CONSTRAINT `fk_etudiant` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`nu
 ALTER TABLE `compte_rendu_rapport`
 ADD CONSTRAINT `compte_rendu_rapport_ibfk_1` FOREIGN KEY (`id_CR`) REFERENCES `compte_rendu` (`id_CR`) ON DELETE CASCADE,
 ADD CONSTRAINT `compte_rendu_rapport_ibfk_2` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE;
+
+--
+-- Contraintes pour la table `correspondre`
+--
+ALTER TABLE `correspondre`
+ADD CONSTRAINT `correspondre_ibfk_1` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE CASCADE ON UPDATE CASCADE,
+ADD CONSTRAINT `correspondre_ibfk_2` FOREIGN KEY (`id_critere`) REFERENCES `critere_evaluation` (`id_critere`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `deposer`
@@ -4280,6 +4514,13 @@ ADD CONSTRAINT `fk_enseignants_specialite` FOREIGN KEY (`id_specialite`) REFEREN
 ALTER TABLE `evaluations_rapports`
 ADD CONSTRAINT `evaluations_rapports_ibfk_1` FOREIGN KEY (`id_evaluateur`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
 ADD CONSTRAINT `evaluations_rapports_ibfk_2` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `evaluer`
+--
+ALTER TABLE `evaluer`
+ADD CONSTRAINT `evaluer_ibfk_1` FOREIGN KEY (`id_critere`) REFERENCES `critere_evaluation` (`id_critere`) ON DELETE CASCADE ON UPDATE CASCADE,
+ADD CONSTRAINT `evaluer_ibfk_2` FOREIGN KEY (`num_etudiant`) REFERENCES `etudiants` (`num_etu`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `informations_stage`
@@ -4322,6 +4563,12 @@ ADD CONSTRAINT `fk_occuper_fonction` FOREIGN KEY (`id_fonction`) REFERENCES `fon
 --
 ALTER TABLE `pister`
 ADD CONSTRAINT `fk_pister_utilisateur` FOREIGN KEY (`id_utilisateur`) REFERENCES `utilisateur` (`id_utilisateur`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `programmer`
+--
+ALTER TABLE `programmer`
+ADD CONSTRAINT `programmer_ibfk_1` FOREIGN KEY (`num_etud`) REFERENCES `etudiants` (`num_etu`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `rapport_etudiants`
