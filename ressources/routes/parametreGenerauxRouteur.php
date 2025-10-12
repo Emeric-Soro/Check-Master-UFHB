@@ -3,8 +3,8 @@ if ($_GET['page'] === 'parametres_generaux') {
     require_once __DIR__ . '/../../app/controllers/ParametreController.php';
     $controller = new ParametreController();
 
-    if(isset($_GET['action'])){
-        switch ($_GET['action']){
+    if (isset($_GET['action'])) {
+        switch ($_GET['action']) {
             case 'annees_academiques':
                 $controller->gestionAnnees();
                 break;
@@ -56,9 +56,11 @@ if ($_GET['page'] === 'parametres_generaux') {
             case 'gestion_attribution':
                 $controller->gestionAttribution();
                 break;
+            case 'salles':
+                $controller->gestionSalles();
+                break;
             default:
                 '';
         }
     }
-
 }

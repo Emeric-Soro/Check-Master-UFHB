@@ -29,6 +29,7 @@ include __DIR__ . '/../ressources/routes/archivesDossiersSoutenanceRoutes.php';
 include __DIR__ . '/../ressources/routes/auditRoutes.php';
 include __DIR__ . '/../ressources/routes/redactionCompteRenduRoutes.php';
 include __DIR__ . '/../ressources/routes/archivesCompteRenduRoutes.php';
+include __DIR__ . '/../ressources/routes/criteresEvaluationRoutes.php';
 
 // Si l'utilisateur n'est pas connecté, rediriger vers la page de login
 if (!isset($_SESSION['id_utilisateur'])) {
@@ -113,6 +114,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
                     'fonctions_enseignants',
                     'messages',
                     'gestion_attribution',
+                    'criteres_evaluation',
+                    'salles',
                 ];
                 if (in_array($_GET['action'], $allowedActions)) {
                     $currentAction = $_GET['action'];
@@ -402,6 +405,30 @@ if (!isset($_SESSION['id_utilisateur'])) {
                 $contentFile = ''; // Réinitialiser si le fichier n'existe pas
             }
             break;
+
+        case 'test_criteres':
+            $contentFile = $partialsBasePath . 'test_criteres_content.php';
+            break;
+
+        case 'programation_soutenance':
+            // Inclure les routes pour les actions AJAX
+            $ajaxActions = ['getEtudiants', 'getEnseignants', 'getAttributions', 'createAttribution', 'updateAttribution', 'deleteAttribution'];
+
+            if (isset($_GET['action']) && in_array($_GET['action'], $ajaxActions)) {
+                include __DIR__ . '/../ressources/routes/programmationSoutenanceRoutes.php';
+                return; // Important pour éviter l'affichage du layout pour les actions AJAX
+            } else {
+                // Afficher la vue principale
+                $contentFile = $partialsBasePath . 'Programation_soutenance_content.php';
+                $currentPageLabel = 'Programmation Soutenance';
+            }
+            break;
+
+        case 'plannification_soutenance':
+            // Afficher la vue principale de planification
+            $contentFile = $partialsBasePath . 'plannificaiton_soutenance_content_v2.php';
+            $currentPageLabel = 'Planification des Soutenances';
+            break;
     }
 
     // Debug temporaire
@@ -520,6 +547,18 @@ if (!isset($_SESSION['id_utilisateur'])) {
             'description' => 'Gérer les attributions de traitement pour chacun des groupes utilisateurs dans le système.',
             'link' => '?page=parametres_generaux&action=gestion_attribution',
             'icon' => './images/attribution.png'
+        ],
+        [
+            'title' => 'Critères d\'Évaluation',
+            'description' => 'Gérer les critères d\'évaluation des soutenances et leurs barèmes par année académique.',
+            'link' => '?page=parametres_generaux&action=criteres_evaluation',
+            'icon' => './images/check.png'
+        ],
+        [
+            'title' => 'Gestion des Salles',
+            'description' => 'Administrer les salles disponibles pour les soutenances avec leurs caractéristiques.',
+            'link' => '?page=parametres_generaux&action=salles',
+            'icon' => './images/livre.png'
         ],
     ];
 

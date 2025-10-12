@@ -1,66 +1,168 @@
+<?php
+// Initialiser le contrôleur et récupérer les données
+require_once __DIR__ . '/../../app/controllers/PlanificationSoutenanceController.php';
+$controller = new PlanificationSoutenanceController();
+
+// Traitement des actions POST
+$message = '';
+$messageType = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['action'])) {
+        switch ($_POST['action']) {
+            case 'planifier':
+                $result = $controller->planifierSoutenance();
+                $message = $result['message'];
+                $messageType = $result['success'] ? 'success' : 'error';
+                break;
+
+            case 'supprimer':
+                $result = $controller->supprimerPlanification();
+                $message = $result['message'];
+                $messageType = $result['success'] ? 'success' : 'error';
+                break;
+        }
+    }
+}
+
+$etudiantsAvecJury = $controller->getEtudiantsAvecJuryForView();
+$salles = $controller->getSallesForView();
+$planifications = $controller->getPlanificationsForView();
+
+
+?>
+
+<!-- Messages de notification -->
+<?php if ($message): ?>
+<div class="fixed top-4 right-4 z-50 max-w-sm">
+    <div class="<?= $messageType === 'success' ? 'bg-green-600' : 'bg-red-600' ?> text-white px-6 py-4 rounded-lg shadow-lg">
+        <div class="flex items-center">
+            <i class="fas <?= $messageType === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle' ?> mr-2"></i>
+            <?= htmlspecialchars($message) ?>
+        </div>
+    </div>
+</div>
+<script>
+    // Auto-hide notification after 5 seconds
+    setTimeout(() => {
+        const notification = document.querySelector('.fixed.top-4.right-4');
+        if (notification) {
+            notification.style.opacity = '0';
+            setTimeout(() => notification.style.display = 'none', 300);
+        }
+    }, 4000);
+</script>
+<?php endif; ?>
+
 <!-- Section de planification des soutenances -->
 <div class="bg-white shadow rounded-lg p-6 mb-6 relative">
+    <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3">
+        <span class="text-lg font-medium text-blue-600" id="form-title">
+            Planification Soutenance
+        </span>
+    </div>
 
-    <div class="space-y-4 mt-4">
-        <!-- Première ligne : Étudiant et Thème -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Étudiant -->
-            <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Étudiant</label>
-                <input type="text" id="etudiant"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                    placeholder="Nom de l'étudiant">
+    <?php if (empty($etudiantsAvecJury)): ?>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-info-circle text-blue-400"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">Information</h3>
+                    <div class="mt-1 text-sm text-blue-600">
+                        Tous les étudiants avec attribution de jury ont déjà été planifiés ou aucun jury n'a encore été attribué.
+                        <br>Consultez la page <strong>Programmation Soutenance</strong> pour attribuer des jurys aux étudiants.
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php else: ?>
+
+    <form method="POST" class="space-y-4 mt-4" id="planificationForm">
+        <input type="hidden" name="action" value="planifier" id="formAction">
+        <input type="hidden" name="edit_id" value="" id="editId">
+        
+        <div class="space-y-4">
+            <!-- Première ligne : Étudiant et Thème -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Étudiant -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Étudiant *</label>
+                    <select name="id_programmation" id="etudiant" required onchange="updateTheme(this)" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Sélectionner un étudiant</option>
+                        <?php if (empty($etudiantsAvecJury)): ?>
+                            <option value="" disabled>Aucun étudiant disponible pour planification</option>
+                        <?php else: ?>
+                            <?php foreach ($etudiantsAvecJury as $etudiant): ?>
+                                <option value="<?= htmlspecialchars($etudiant['id_programmation']) ?>"
+                                    data-theme="<?= htmlspecialchars($etudiant['theme_soutenance'] ?? '') ?>"
+                                    data-statut="<?= htmlspecialchars($etudiant['statut_planification'] ?? 'none') ?>">
+                                    <?= htmlspecialchars($etudiant['nom_complet']) ?>
+                                    (<?= htmlspecialchars($etudiant['matricule_etudiant']) ?>)
+                                    <?php if (isset($etudiant['statut_planification']) && $etudiant['statut_planification'] === 'partial'): ?>
+                                        - ⚠️ Jury assigné
+                                    <?php endif; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                </div>
+
+                <!-- Thème Soutenance -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Thème Soutenance</label>
+                    <div class="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
+                        <span id="theme-display" class="text-gray-500 italic">
+                            Sera affiché selon l'étudiant sélectionné
+                        </span>
+                    </div>
+                </div>
             </div>
 
-            <!-- Thème Soutenance -->
-            <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Thème Soutenance</label>
-                <input type="text" id="theme"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                    placeholder="Thème de la soutenance">
+            <!-- Deuxième ligne : Salle, Date et Heure -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Salle -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Salle *</label>
+                    <select name="id_salle" id="salle" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Sélectionner une salle</option>
+                        <?php foreach ($salles as $salle): ?>
+                            <option value="<?= htmlspecialchars($salle['id_salle']) ?>">
+                                <?= htmlspecialchars($salle['lib_salle']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- Date -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Date *</label>
+                    <input type="date" name="date_soutenance" id="date" required
+                        min="<?= date('Y-m-d') ?>"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <!-- Heure -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Heure *</label>
+                    <input type="time" name="heure_soutenance" id="heure" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
             </div>
         </div>
 
-        <!-- Deuxième ligne : Salle, Date et Heure -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Salle -->
-            <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Salle</label>
-                <select id="salle"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
-                    <option value="">Sélectionner une salle</option>
-                    <option value="Salle 101">Salle 101</option>
-                    <option value="Salle 102">Salle 102</option>
-                    <option value="Salle 201">Salle 201</option>
-                    <option value="Salle 202">Salle 202</option>
-                    <option value="Amphithéâtre A">Amphithéâtre A</option>
-                    <option value="Amphithéâtre B">Amphithéâtre B</option>
-                </select>
-            </div>
-
-            <!-- Date -->
-            <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Date</label>
-                <input type="date" id="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
-            </div>
-
-            <!-- Heure -->
-            <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Heure</label>
-                <input type="time" id="heure"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
-            </div>
+        <!-- Boutons d'action -->
+        <div class="absolute -bottom-4 right-4 flex space-x-3" id="buttonContainer">
+            <button type="submit" id="submitBtn"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-colors duration-200">
+                <i class="fas fa-calendar-plus mr-2"></i>Planifier
+            </button>
         </div>
-    </div>
-
-    <!-- Bouton Programmer -->
-    <div class="absolute -bottom-4 right-4">
-        <button onclick="addPlanification()"
-            class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-            <i class="fas fa-calendar-plus mr-2"></i>Programmer
-        </button>
-    </div>
+    </form>
+    <?php endif; ?>
 </div>
 
 <!-- Section tableau des planifications -->
@@ -68,236 +170,219 @@
     <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
         <h3 class="text-lg font-medium text-gray-900">Planning des Soutenances</h3>
         <div class="text-sm text-gray-500">
-            <span id="totalPlanifications">0</span> soutenance(s) programmée(s)
+            <span><?= count($planifications) ?></span> soutenance(s) programmée(s)
         </div>
     </div>
 
     <div class="overflow-x-auto">
-        <table id="planificationTable" class="min-w-full divide-y divide-gray-200">
+        <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N°</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Étudiant
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thème
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salle
-                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Étudiant</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thème</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salle</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Heure
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions
-                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Heure</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
             </thead>
-            <tbody id="planificationBody" class="bg-white divide-y divide-gray-200">
-                <!-- Les lignes seront ajoutées dynamiquement -->
+            <tbody class="bg-white divide-y divide-gray-200">
+                <?php if (empty($planifications)): ?>
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <svg class="h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4m-6 9l6-6m0 0l6 6M9 13h12" />
+                                </svg>
+                                <p class="text-sm text-gray-500">Aucune soutenance planifiée</p>
+                                <p class="text-xs text-gray-400 mt-1">Commencez par planifier une soutenance</p>
+                            </div>
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($planifications as $index => $planification): ?>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><?= $index + 1 ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">
+                                    <?= htmlspecialchars($planification['nom_etudiant']) ?>
+                                </div>
+                                <div class="text-sm text-gray-500"><?= htmlspecialchars($planification['matricule_etudiant']) ?></div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-gray-900 max-w-xs truncate" title="<?= htmlspecialchars($planification['theme_soutenance']) ?>">
+                                    <?= htmlspecialchars($planification['theme_soutenance']) ?>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    <?= htmlspecialchars($planification['nom_salle'] ?? 'Non définie') ?>
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <?= $planification['date_soutenance'] ? date('d/m/Y', strtotime($planification['date_soutenance'])) : '-' ?>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <?= $planification['heure_soutenance'] ? date('H:i', strtotime($planification['heure_soutenance'])) : '-' ?>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Planifiée
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <div class="flex justify-center space-x-2">
+                                    <button onclick="editPlanification(<?= $planification['id_programmation'] ?>)"
+                                        class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-medium py-1 px-3 rounded transition-colors duration-200">
+                                        Modifier
+                                    </button>
+                                    
+                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette planification ?');">
+                                        <input type="hidden" name="action" value="supprimer">
+                                        <input type="hidden" name="id_programmation" value="<?= $planification['id_programmation'] ?>">
+                                        <button type="submit"
+                                            class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium py-1 px-3 rounded transition-colors duration-200">
+                                            Supprimer
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
         </table>
-
-        <!-- État vide -->
-        <div id="emptyState" class="text-center py-12">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4m-6 9l6-6m0 0l6 6M9 13h12" />
-            </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">Aucune soutenance programmée</h3>
-            <p class="mt-1 text-sm text-gray-500">Commencez par programmer votre première soutenance.</p>
-        </div>
     </div>
 </div>
 
 <script>
-    let planificationCounter = 0;
+    // Variables globales pour le mode édition
+    let isEditMode = false;
+    let currentEditId = null;
 
-    function addPlanification() {
-        const etudiant = document.getElementById('etudiant').value.trim();
-        const theme = document.getElementById('theme').value.trim();
-        const salle = document.getElementById('salle').value;
-        const date = document.getElementById('date').value;
-        const heure = document.getElementById('heure').value;
+    // Données des planifications pour JavaScript
+    const planificationsData = <?= json_encode($planifications) ?>;
 
-        // Validation
-        if (!etudiant || !theme || !salle || !date || !heure) {
-            alert('Veuillez renseigner tous les champs obligatoires.');
-            return;
-        }
+    // Fonction pour mettre à jour le thème selon l'étudiant sélectionné
+    function updateTheme(selectElement) {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const themeDisplay = document.getElementById('theme-display');
 
-        // Validation de la date (ne doit pas être dans le passé)
-        const selectedDate = new Date(date + 'T' + heure);
-        const now = new Date();
-
-        if (selectedDate <= now) {
-            alert('La date et l\'heure de soutenance doivent être dans le futur.');
-            return;
-        }
-
-        // Vérifier les conflits de salle
-        if (checkSalleConflict(salle, date, heure)) {
-            if (!confirm('Attention : Cette salle est déjà occupée à cette date et heure. Voulez-vous continuer ?')) {
-                return;
+        if (selectedOption.value) {
+            const theme = selectedOption.getAttribute('data-theme');
+            if (theme) {
+                themeDisplay.textContent = theme;
+                themeDisplay.classList.remove('text-gray-500', 'italic');
+                themeDisplay.classList.add('text-gray-900');
+            } else {
+                themeDisplay.textContent = 'Aucun thème défini';
+                themeDisplay.classList.add('text-gray-500', 'italic');
+                themeDisplay.classList.remove('text-gray-900');
             }
+        } else {
+            themeDisplay.textContent = 'Sera affiché selon l\'étudiant sélectionné';
+            themeDisplay.classList.add('text-gray-500', 'italic');
+            themeDisplay.classList.remove('text-gray-900');
         }
-
-        const tbody = document.getElementById('planificationBody');
-        const emptyState = document.getElementById('emptyState');
-
-        // Masquer l'état vide
-        emptyState.style.display = 'none';
-
-        planificationCounter++;
-        const row = tbody.insertRow();
-        row.className = 'hover:bg-gray-50';
-        row.dataset.planificationId = planificationCounter;
-
-        // Formater la date pour l'affichage
-        const dateFormatted = formatDate(date);
-        const heureFormatted = formatTime(heure);
-
-        row.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${planificationCounter}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">${escapeHtml(etudiant)}</div>
-            </td>
-            <td class="px-6 py-4">
-                <div class="text-sm text-gray-900 max-w-xs truncate" title="${escapeHtml(theme)}">${escapeHtml(theme)}</div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    ${escapeHtml(salle)}
-                </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${dateFormatted}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${heureFormatted}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                    Programmée
-                </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                <button onclick="editPlanification(this)" 
-                        class="text-green-600 hover:text-green-900 transition-colors duration-200" title="Modifier">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button onclick="deletePlanification(this)" 
-                        class="text-red-600 hover:text-red-900 transition-colors duration-200" title="Supprimer">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-
-        // Reset form
-        resetForm();
-
-        // Mettre à jour le compteur
-        updateCounter();
-
-        // Show success message
-        showNotification('Soutenance programmée avec succès', 'success');
     }
 
-    function checkSalleConflict(salle, date, heure) {
-        const tbody = document.getElementById('planificationBody');
-        const rows = tbody.querySelectorAll('tr');
-
-        for (let row of rows) {
-            const rowSalle = row.cells[3].textContent.trim();
-            const rowDate = row.cells[4].textContent.trim();
-            const rowHeure = row.cells[5].textContent.trim();
-
-            if (rowSalle === salle && rowDate === formatDate(date) && rowHeure === formatTime(heure)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function deletePlanification(btn) {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer cette planification ?')) {
+    // Modifier une planification
+    function editPlanification(id) {
+        // Trouver les données de la planification
+        const planification = planificationsData.find(p => p.id_programmation == id);
+        if (!planification) {
+            showNotification('Planification non trouvée', 'error');
             return;
         }
 
-        const row = btn.closest('tr');
-        row.remove();
+        isEditMode = true;
+        currentEditId = id;
 
-        updateCounter();
-        showNotification('Planification supprimée', 'info');
+        // Remplir le formulaire
+        document.getElementById('etudiant').value = planification.id_programmation;
+        document.getElementById('salle').value = planification.id_salle || '';
+        document.getElementById('date').value = planification.date_soutenance || '';
+        document.getElementById('heure').value = planification.heure_soutenance || '';
+        document.getElementById('editId').value = planification.id_programmation;
 
-        // Afficher l'état vide si plus de lignes
-        const tbody = document.getElementById('planificationBody');
-        const emptyState = document.getElementById('emptyState');
+        // Mettre à jour l'affichage du thème
+        updateTheme(document.getElementById('etudiant'));
 
-        if (tbody.children.length === 0) {
-            emptyState.style.display = 'block';
+        // Changer le titre du formulaire
+        document.getElementById('form-title').textContent = 'Modifier la Planification';
+
+        // Changer l'action du formulaire et le bouton
+        document.getElementById('formAction').value = 'planifier';
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.innerHTML = '<i class="fas fa-edit mr-2"></i>Modifier';
+        submitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        submitBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+
+        // Ajouter un bouton d'annulation si pas déjà présent
+        if (!document.getElementById('cancelBtn')) {
+            const cancelBtn = document.createElement('button');
+            cancelBtn.id = 'cancelBtn';
+            cancelBtn.type = 'button';
+            cancelBtn.onclick = resetForm;
+            cancelBtn.className = 'bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-colors duration-200';
+            cancelBtn.innerHTML = '<i class="fas fa-times mr-2"></i>Annuler';
+            
+            const buttonContainer = document.getElementById('buttonContainer');
+            buttonContainer.insertBefore(cancelBtn, submitBtn);
         }
+
+        showNotification('Mode modification activé', 'info');
     }
 
-    function editPlanification(btn) {
-        const row = btn.closest('tr');
-        const cells = row.cells;
-
-        // Remplir le formulaire avec les données de la ligne
-        document.getElementById('etudiant').value = cells[1].textContent.trim();
-        document.getElementById('theme').value = cells[2].querySelector('div').title || cells[2].textContent.trim();
-        document.getElementById('salle').value = cells[3].textContent.trim();
-
-        // Reconvertir les dates/heures formatées
-        const dateFormatted = cells[4].textContent.trim();
-        const heureFormatted = cells[5].textContent.trim();
-
-        // Supprimer la ligne actuelle
-        row.remove();
-        updateCounter();
-
-        showNotification('Données chargées pour modification', 'info');
-    }
-
+    // Réinitialiser le formulaire
     function resetForm() {
+        // Reset form fields
         document.getElementById('etudiant').value = '';
-        document.getElementById('theme').value = '';
         document.getElementById('salle').value = '';
         document.getElementById('date').value = '';
         document.getElementById('heure').value = '';
+        document.getElementById('editId').value = '';
+
+        // Remettre à zéro l'affichage du thème
+        updateTheme(document.getElementById('etudiant'));
+
+        // Reset mode
+        isEditMode = false;
+        currentEditId = null;
+
+        // Changer le titre du formulaire
+        document.getElementById('form-title').textContent = 'Planification Soutenance';
+
+        // Reset button
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.innerHTML = '<i class="fas fa-calendar-plus mr-2"></i>Planifier';
+        submitBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-700');
+        submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+
+        // Remove cancel button
+        const cancelBtn = document.getElementById('cancelBtn');
+        if (cancelBtn) {
+            cancelBtn.remove();
+        }
     }
 
-    function updateCounter() {
-        const tbody = document.getElementById('planificationBody');
-        const count = tbody.children.length;
-        document.getElementById('totalPlanifications').textContent = count;
-    }
-
-    function formatDate(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('fr-FR', {
-            weekday: 'short',
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-    }
-
-    function formatTime(timeString) {
-        return timeString;
-    }
-
-    function escapeHtml(text) {
-        if (!text) return '';
-        return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-
+    // Fonction pour afficher les notifications
     function showNotification(message, type = 'info') {
+        // Supprimer toute notification existante
+        const existingNotification = document.querySelector('.notification-temp');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+
         const notification = document.createElement('div');
-        notification.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white text-sm z-50 transition-opacity duration-300 ${type === 'success' ? 'bg-green-600' :
+        notification.className = `notification-temp fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white text-sm z-50 transition-opacity duration-300 ${
+            type === 'success' ? 'bg-green-600' :
             type === 'error' ? 'bg-red-600' :
-                'bg-blue-600'
-            }`;
+            type === 'info' ? 'bg-blue-600' :
+            'bg-gray-600'
+        }`;
         notification.innerHTML = `
             <div class="flex items-center">
                 <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>
@@ -312,13 +397,4 @@
             setTimeout(() => notification.remove(), 300);
         }, 3000);
     }
-
-    // Initialisation
-    document.addEventListener('DOMContentLoaded', function () {
-        // Définir la date minimale à aujourd'hui
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('date').setAttribute('min', today);
-
-        updateCounter();
-    });
 </script>
