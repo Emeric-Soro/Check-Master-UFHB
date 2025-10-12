@@ -26,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $etudiantsAvecJury = $controller->getEtudiantsAvecJuryForView();
+$etudiantsDisponibles = $controller->getEtudiantsDisponiblesForView();
 $salles = $controller->getSallesForView();
 $planifications = $controller->getPlanificationsForView();
 
@@ -34,24 +35,25 @@ $planifications = $controller->getPlanificationsForView();
 
 <!-- Messages de notification -->
 <?php if ($message): ?>
-<div class="fixed top-4 right-4 z-50 max-w-sm">
-    <div class="<?= $messageType === 'success' ? 'bg-green-600' : 'bg-red-600' ?> text-white px-6 py-4 rounded-lg shadow-lg">
-        <div class="flex items-center">
-            <i class="fas <?= $messageType === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle' ?> mr-2"></i>
-            <?= htmlspecialchars($message) ?>
+    <div class="fixed top-4 right-4 z-50 max-w-sm">
+        <div
+            class="<?= $messageType === 'success' ? 'bg-green-600' : 'bg-red-600' ?> text-white px-6 py-4 rounded-lg shadow-lg">
+            <div class="flex items-center">
+                <i class="fas <?= $messageType === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle' ?> mr-2"></i>
+                <?= htmlspecialchars($message) ?>
+            </div>
         </div>
     </div>
-</div>
-<script>
-    // Auto-hide notification after 5 seconds
-    setTimeout(() => {
-        const notification = document.querySelector('.fixed.top-4.right-4');
-        if (notification) {
-            notification.style.opacity = '0';
-            setTimeout(() => notification.style.display = 'none', 300);
-        }
-    }, 4000);
-</script>
+    <script>
+        // Auto-hide notification after 5 seconds
+        setTimeout(() => {
+            const notification = document.querySelector('.fixed.top-4.right-4');
+            if (notification) {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.style.display = 'none', 300);
+            }
+        }, 4000);
+    </script>
 <?php endif; ?>
 
 <!-- Section de planification des soutenances -->
@@ -62,7 +64,8 @@ $planifications = $controller->getPlanificationsForView();
         </span>
     </div>
 
-    <?php if (empty($etudiantsAvecJury)): ?>
+    <!-- Message d'information -->
+    <?php if (empty($etudiantsDisponibles)): ?>
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
@@ -71,29 +74,31 @@ $planifications = $controller->getPlanificationsForView();
                 <div class="ml-3">
                     <h3 class="text-sm font-medium text-blue-800">Information</h3>
                     <div class="mt-1 text-sm text-blue-600">
-                        Tous les étudiants avec attribution de jury ont déjà été planifiés ou aucun jury n'a encore été attribué.
-                        <br>Consultez la page <strong>Programmation Soutenance</strong> pour attribuer des jurys aux étudiants.
+                        Tous les étudiants avec attribution de jury ont déjà été planifiés ou aucun jury n'a encore été
+                        attribué.
+                        <br>Consultez la page <strong>Programmation Soutenance</strong> pour attribuer des jurys aux
+                        étudiants.
                     </div>
                 </div>
             </div>
         </div>
-    <?php else: ?>
+    <?php endif; ?>
 
     <form method="POST" class="space-y-4 mt-4" id="planificationForm">
         <input type="hidden" name="action" value="planifier" id="formAction">
         <input type="hidden" name="edit_id" value="" id="editId">
-        
+
         <div class="space-y-4">
             <!-- Première ligne : Étudiant et Thème -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Étudiant -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Étudiant *</label>
-                    <select name="id_programmation" id="etudiant" required onchange="updateTheme(this)" 
+                    <select name="id_programmation" id="etudiant" required onchange="updateTheme(this)"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Sélectionner un étudiant</option>
                         <?php if (empty($etudiantsAvecJury)): ?>
-                            <option value="" disabled>Aucun étudiant disponible pour planification</option>
+                            <option value="" disabled>Aucun étudiant avec jury attribué</option>
                         <?php else: ?>
                             <?php foreach ($etudiantsAvecJury as $etudiant): ?>
                                 <option value="<?= htmlspecialchars($etudiant['id_programmation']) ?>"
@@ -101,7 +106,9 @@ $planifications = $controller->getPlanificationsForView();
                                     data-statut="<?= htmlspecialchars($etudiant['statut_planification'] ?? 'none') ?>">
                                     <?= htmlspecialchars($etudiant['nom_complet']) ?>
                                     (<?= htmlspecialchars($etudiant['matricule_etudiant']) ?>)
-                                    <?php if (isset($etudiant['statut_planification']) && $etudiant['statut_planification'] === 'partial'): ?>
+                                    <?php if (isset($etudiant['statut_planification']) && $etudiant['statut_planification'] === 'complete'): ?>
+                                        - ✅ Planifié
+                                    <?php elseif (isset($etudiant['statut_planification']) && $etudiant['statut_planification'] === 'partial'): ?>
                                         - ⚠️ Jury assigné
                                     <?php endif; ?>
                                 </option>
@@ -140,8 +147,7 @@ $planifications = $controller->getPlanificationsForView();
                 <!-- Date -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Date *</label>
-                    <input type="date" name="date_soutenance" id="date" required
-                        min="<?= date('Y-m-d') ?>"
+                    <input type="date" name="date_soutenance" id="date" required min="<?= date('Y-m-d') ?>"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 </div>
 
@@ -162,7 +168,6 @@ $planifications = $controller->getPlanificationsForView();
             </button>
         </div>
     </form>
-    <?php endif; ?>
 </div>
 
 <!-- Section tableau des planifications -->
@@ -179,13 +184,19 @@ $planifications = $controller->getPlanificationsForView();
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N°</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Étudiant</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thème</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salle</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Étudiant
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thème
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salle
+                    </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Heure</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Heure
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions
+                    </th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -193,8 +204,10 @@ $planifications = $controller->getPlanificationsForView();
                     <tr>
                         <td colspan="8" class="px-6 py-12 text-center text-gray-500">
                             <div class="flex flex-col items-center">
-                                <svg class="h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4m-6 9l6-6m0 0l6 6M9 13h12" />
+                                <svg class="h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4m-6 9l6-6m0 0l6 6M9 13h12" />
                                 </svg>
                                 <p class="text-sm text-gray-500">Aucune soutenance planifiée</p>
                                 <p class="text-xs text-gray-400 mt-1">Commencez par planifier une soutenance</p>
@@ -209,15 +222,18 @@ $planifications = $controller->getPlanificationsForView();
                                 <div class="text-sm font-medium text-gray-900">
                                     <?= htmlspecialchars($planification['nom_etudiant']) ?>
                                 </div>
-                                <div class="text-sm text-gray-500"><?= htmlspecialchars($planification['matricule_etudiant']) ?></div>
+                                <div class="text-sm text-gray-500"><?= htmlspecialchars($planification['matricule_etudiant']) ?>
+                                </div>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="text-sm text-gray-900 max-w-xs truncate" title="<?= htmlspecialchars($planification['theme_soutenance']) ?>">
+                                <div class="text-sm text-gray-900 max-w-xs truncate"
+                                    title="<?= htmlspecialchars($planification['theme_soutenance']) ?>">
                                     <?= htmlspecialchars($planification['theme_soutenance']) ?>
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                <span
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                     <?= htmlspecialchars($planification['nom_salle'] ?? 'Non définie') ?>
                                 </span>
                             </td>
@@ -228,7 +244,8 @@ $planifications = $controller->getPlanificationsForView();
                                 <?= $planification['heure_soutenance'] ? date('H:i', strtotime($planification['heure_soutenance'])) : '-' ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <span
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                     Planifiée
                                 </span>
                             </td>
@@ -238,10 +255,12 @@ $planifications = $controller->getPlanificationsForView();
                                         class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-medium py-1 px-3 rounded transition-colors duration-200">
                                         Modifier
                                     </button>
-                                    
-                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette planification ?');">
+
+                                    <form method="POST" style="display: inline;"
+                                        onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette planification ?');">
                                         <input type="hidden" name="action" value="supprimer">
-                                        <input type="hidden" name="id_programmation" value="<?= $planification['id_programmation'] ?>">
+                                        <input type="hidden" name="id_programmation"
+                                            value="<?= $planification['id_programmation'] ?>">
                                         <button type="submit"
                                             class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium py-1 px-3 rounded transition-colors duration-200">
                                             Supprimer
@@ -267,10 +286,15 @@ $planifications = $controller->getPlanificationsForView();
 
     // Fonction pour mettre à jour le thème selon l'étudiant sélectionné
     function updateTheme(selectElement) {
-        const selectedOption = selectElement.options[selectElement.selectedIndex];
-        const themeDisplay = document.getElementById('theme-display');
+        // Vérifier que les éléments existent
+        if (!selectElement) return;
 
-        if (selectedOption.value) {
+        const themeDisplay = document.getElementById('theme-display');
+        if (!themeDisplay) return;
+
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+
+        if (selectedOption && selectedOption.value) {
             const theme = selectedOption.getAttribute('data-theme');
             if (theme) {
                 themeDisplay.textContent = theme;
@@ -290,6 +314,13 @@ $planifications = $controller->getPlanificationsForView();
 
     // Modifier une planification
     function editPlanification(id) {
+        // Vérifier que le formulaire existe
+        const etudiantSelect = document.getElementById('etudiant');
+        if (!etudiantSelect) {
+            showNotification('Formulaire non disponible - aucun étudiant à planifier', 'error');
+            return;
+        }
+
         // Trouver les données de la planification
         const planification = planificationsData.find(p => p.id_programmation == id);
         if (!planification) {
@@ -301,35 +332,46 @@ $planifications = $controller->getPlanificationsForView();
         currentEditId = id;
 
         // Remplir le formulaire
-        document.getElementById('etudiant').value = planification.id_programmation;
-        document.getElementById('salle').value = planification.id_salle || '';
-        document.getElementById('date').value = planification.date_soutenance || '';
-        document.getElementById('heure').value = planification.heure_soutenance || '';
-        document.getElementById('editId').value = planification.id_programmation;
+        etudiantSelect.value = planification.id_programmation;
+
+        const salleSelect = document.getElementById('salle');
+        const dateInput = document.getElementById('date');
+        const heureInput = document.getElementById('heure');
+        const editIdInput = document.getElementById('editId');
+
+        if (salleSelect) salleSelect.value = planification.id_salle || '';
+        if (dateInput) dateInput.value = planification.date_soutenance || '';
+        if (heureInput) heureInput.value = planification.heure_soutenance || '';
+        if (editIdInput) editIdInput.value = planification.id_programmation;
 
         // Mettre à jour l'affichage du thème
-        updateTheme(document.getElementById('etudiant'));
+        updateTheme(etudiantSelect);
 
         // Changer le titre du formulaire
-        document.getElementById('form-title').textContent = 'Modifier la Planification';
+        const formTitle = document.getElementById('form-title');
+        if (formTitle) formTitle.textContent = 'Modifier la Planification';
 
         // Changer l'action du formulaire et le bouton
-        document.getElementById('formAction').value = 'planifier';
+        const formAction = document.getElementById('formAction');
+        if (formAction) formAction.value = 'planifier';
+
         const submitBtn = document.getElementById('submitBtn');
-        submitBtn.innerHTML = '<i class="fas fa-edit mr-2"></i>Modifier';
-        submitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-        submitBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-edit mr-2"></i>Modifier';
+            submitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            submitBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+        }
 
         // Ajouter un bouton d'annulation si pas déjà présent
-        if (!document.getElementById('cancelBtn')) {
+        const buttonContainer = document.getElementById('buttonContainer');
+        if (buttonContainer && !document.getElementById('cancelBtn')) {
             const cancelBtn = document.createElement('button');
             cancelBtn.id = 'cancelBtn';
             cancelBtn.type = 'button';
             cancelBtn.onclick = resetForm;
             cancelBtn.className = 'bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-colors duration-200';
             cancelBtn.innerHTML = '<i class="fas fa-times mr-2"></i>Annuler';
-            
-            const buttonContainer = document.getElementById('buttonContainer');
+
             buttonContainer.insertBefore(cancelBtn, submitBtn);
         }
 
@@ -338,28 +380,38 @@ $planifications = $controller->getPlanificationsForView();
 
     // Réinitialiser le formulaire
     function resetForm() {
-        // Reset form fields
-        document.getElementById('etudiant').value = '';
-        document.getElementById('salle').value = '';
-        document.getElementById('date').value = '';
-        document.getElementById('heure').value = '';
-        document.getElementById('editId').value = '';
+        // Vérifier que les éléments existent avant de les manipuler
+        const etudiantSelect = document.getElementById('etudiant');
+        const salleSelect = document.getElementById('salle');
+        const dateInput = document.getElementById('date');
+        const heureInput = document.getElementById('heure');
+        const editIdInput = document.getElementById('editId');
+
+        // Reset form fields si ils existent
+        if (etudiantSelect) etudiantSelect.value = '';
+        if (salleSelect) salleSelect.value = '';
+        if (dateInput) dateInput.value = '';
+        if (heureInput) heureInput.value = '';
+        if (editIdInput) editIdInput.value = '';
 
         // Remettre à zéro l'affichage du thème
-        updateTheme(document.getElementById('etudiant'));
+        if (etudiantSelect) updateTheme(etudiantSelect);
 
         // Reset mode
         isEditMode = false;
         currentEditId = null;
 
         // Changer le titre du formulaire
-        document.getElementById('form-title').textContent = 'Planification Soutenance';
+        const formTitle = document.getElementById('form-title');
+        if (formTitle) formTitle.textContent = 'Planification Soutenance';
 
         // Reset button
         const submitBtn = document.getElementById('submitBtn');
-        submitBtn.innerHTML = '<i class="fas fa-calendar-plus mr-2"></i>Planifier';
-        submitBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-700');
-        submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-calendar-plus mr-2"></i>Planifier';
+            submitBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-700');
+            submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        }
 
         // Remove cancel button
         const cancelBtn = document.getElementById('cancelBtn');
@@ -377,12 +429,11 @@ $planifications = $controller->getPlanificationsForView();
         }
 
         const notification = document.createElement('div');
-        notification.className = `notification-temp fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white text-sm z-50 transition-opacity duration-300 ${
-            type === 'success' ? 'bg-green-600' :
-            type === 'error' ? 'bg-red-600' :
-            type === 'info' ? 'bg-blue-600' :
-            'bg-gray-600'
-        }`;
+        notification.className = `notification-temp fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white text-sm z-50 transition-opacity duration-300 ${type === 'success' ? 'bg-green-600' :
+                type === 'error' ? 'bg-red-600' :
+                    type === 'info' ? 'bg-blue-600' :
+                        'bg-gray-600'
+            }`;
         notification.innerHTML = `
             <div class="flex items-center">
                 <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>

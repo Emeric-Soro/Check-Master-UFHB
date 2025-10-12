@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../app/controllers/ProgrammationSoutenanceController
 $controller = new ProgrammationSoutenanceController();
 
 $etudiants = $controller->getEtudiantsForView();
+$etudiantsDisponibles = $controller->getEtudiantsDisponiblesForView();
 $enseignants = $controller->getEnseignantsForView();
 $professeursTitulaires = $controller->getProfesseursTitulairesForView();
 $attributions = $controller->getAttributionsForView();
@@ -15,7 +16,8 @@ $attributions = $controller->getAttributionsForView();
         <span class="text-lg font-medium text-green-600">Attribution Jury</span>
     </div>
 
-    <?php if (empty($etudiants)): ?>
+    <!-- Message d'information -->
+    <?php if (empty($etudiantsDisponibles)): ?>
         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
@@ -33,111 +35,113 @@ $attributions = $controller->getAttributionsForView();
                 </div>
             </div>
         </div>
-    <?php else: ?>
+    <?php endif; ?>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-            <!-- Étudiant -->
-            <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Étudiant *</label>
-                <select id="etudiant" required onchange="updateMaitreStage()"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
-                    <option value="">Sélectionner un étudiant</option>
-                    <?php if (empty($etudiants)): ?>
-                        <option value="" disabled>Aucun étudiant disponible pour programmation</option>
-                    <?php else: ?>
-                        <?php foreach ($etudiants as $etudiant): ?>
-                            <option value="<?= htmlspecialchars($etudiant['id_etudiant']) ?>"
-                                data-maitre-stage="<?= htmlspecialchars($etudiant['maitre_stage_nom'] ?? '') ?>"
-                                data-directeur="<?= htmlspecialchars($etudiant['directeur_nom'] ?? '') ?>"
-                                data-directeur-id="<?= htmlspecialchars($etudiant['directeur_id'] ?? '') ?>"
-                                data-encadreur="<?= htmlspecialchars($etudiant['encadreur_nom'] ?? '') ?>"
-                                data-encadreur-id="<?= htmlspecialchars($etudiant['encadreur_id'] ?? '') ?>">
-                                <?= htmlspecialchars($etudiant['nom_complet']) ?>
-                                (<?= htmlspecialchars($etudiant['matricule_etudiant']) ?>)
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+        <!-- Étudiant -->
+        <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Étudiant *</label>
+            <select id="etudiant" required onchange="updateMaitreStage()"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
+                <option value="">Sélectionner un étudiant</option>
+                <?php if (empty($etudiants)): ?>
+                    <option value="" disabled>Aucun étudiant avec rapport validé</option>
+                <?php else: ?>
+                    <?php foreach ($etudiants as $etudiant): ?>
+                        <option value="<?= htmlspecialchars($etudiant['id_etudiant']) ?>"
+                            data-maitre-stage="<?= htmlspecialchars($etudiant['maitre_stage_nom'] ?? '') ?>"
+                            data-directeur="<?= htmlspecialchars($etudiant['directeur_nom'] ?? '') ?>"
+                            data-directeur-id="<?= htmlspecialchars($etudiant['directeur_id'] ?? '') ?>"
+                            data-encadreur="<?= htmlspecialchars($etudiant['encadreur_nom'] ?? '') ?>"
+                            data-encadreur-id="<?= htmlspecialchars($etudiant['encadreur_id'] ?? '') ?>">
+                            <?= htmlspecialchars($etudiant['nom_complet']) ?>
+                            (<?= htmlspecialchars($etudiant['matricule_etudiant']) ?>)
+                            <?php if (isset($etudiant['statut_programmation']) && $etudiant['statut_programmation'] === 'programmed'): ?>
+                                - ✅ Programmé
+                            <?php endif; ?>
+                        </option>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </select>
+        </div>
+
+        <!-- Thème Soutenance -->
+        <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Thème Soutenance</label>
+            <input type="text" id="theme"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                placeholder="Thème de la soutenance">
+        </div>
+
+        <!-- Jury -->
+        <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700 mb-3">Composition du Jury</label>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                <div class="flex items-center space-x-3">
+                    <select id="president" onchange="updateSelectOptions()"
+                        class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500">
+                        <option value="">Sélectionner un président</option>
+                        <?php foreach ($professeursTitulaires as $professeur): ?>
+                            <option value="<?= htmlspecialchars($professeur['id_enseignant']) ?>">
+                                <?= htmlspecialchars($professeur['nom_complet']) ?>
+                                (<?= htmlspecialchars($professeur['lib_fonction']) ?>)
                             </option>
                         <?php endforeach; ?>
-                    <?php endif; ?>
-                </select>
-            </div>
+                    </select>
+                    <span class="text-sm text-gray-600 min-w-0 w-20 text-right">Président</span>
+                </div>
 
-            <!-- Thème Soutenance -->
-            <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Thème Soutenance</label>
-                <input type="text" id="theme"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                    placeholder="Thème de la soutenance">
-            </div>
+                <div class="flex items-center space-x-3">
+                    <select id="examinateur" onchange="updateSelectOptions()"
+                        class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500">
+                        <option value="">Sélectionner un examinateur</option>
+                        <?php foreach ($enseignants as $enseignant): ?>
+                            <option value="<?= htmlspecialchars($enseignant['id_enseignant']) ?>">
+                                <?= htmlspecialchars($enseignant['nom_complet']) ?>
+                                <?= !empty($enseignant['lib_fonction']) ? '(' . htmlspecialchars($enseignant['lib_fonction']) . ')' : '' ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <span class="text-sm text-gray-600 min-w-0 w-20 text-right">Examinateur</span>
+                </div>
 
-            <!-- Jury -->
-            <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700 mb-3">Composition du Jury</label>
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
-                    <div class="flex items-center space-x-3">
-                        <select id="president" onchange="updateSelectOptions()"
-                            class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500">
-                            <option value="">Sélectionner un président</option>
-                            <?php foreach ($professeursTitulaires as $professeur): ?>
-                                <option value="<?= htmlspecialchars($professeur['id_enseignant']) ?>">
-                                    <?= htmlspecialchars($professeur['nom_complet']) ?>
-                                    (<?= htmlspecialchars($professeur['lib_fonction']) ?>)
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span class="text-sm text-gray-600 min-w-0 w-20 text-right">Président</span>
+                <div class="flex items-center space-x-3">
+                    <div class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-md bg-gray-50 text-gray-700"
+                        id="directeur-display">
+                        <span id="directeur-text" class="text-gray-500 italic">Sera déterminé automatiquement selon
+                            l'étudiant sélectionné</span>
                     </div>
+                    <span class="text-sm text-gray-600 min-w-0 w-20 text-right">Directeur de mémoire</span>
+                </div>
 
-                    <div class="flex items-center space-x-3">
-                        <select id="examinateur" onchange="updateSelectOptions()"
-                            class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500">
-                            <option value="">Sélectionner un examinateur</option>
-                            <?php foreach ($enseignants as $enseignant): ?>
-                                <option value="<?= htmlspecialchars($enseignant['id_enseignant']) ?>">
-                                    <?= htmlspecialchars($enseignant['nom_complet']) ?>
-                                    <?= !empty($enseignant['lib_fonction']) ? '(' . htmlspecialchars($enseignant['lib_fonction']) . ')' : '' ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span class="text-sm text-gray-600 min-w-0 w-20 text-right">Examinateur</span>
+                <div class="flex items-center space-x-3">
+                    <div class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-md bg-gray-50 text-gray-700"
+                        id="encadreur-display">
+                        <span id="encadreur-text" class="text-gray-500 italic">Sera déterminé automatiquement selon
+                            l'étudiant sélectionné</span>
                     </div>
+                    <span class="text-sm text-gray-600 min-w-0 w-20 text-right">Encadreur</span>
+                </div>
 
-                    <div class="flex items-center space-x-3">
-                        <div class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-md bg-gray-50 text-gray-700"
-                            id="directeur-display">
-                            <span id="directeur-text" class="text-gray-500 italic">Sera déterminé automatiquement selon
-                                l'étudiant sélectionné</span>
-                        </div>
-                        <span class="text-sm text-gray-600 min-w-0 w-20 text-right">Directeur de mémoire</span>
+                <div class="flex items-center space-x-3">
+                    <div class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-md bg-gray-50 text-gray-700"
+                        id="maitre-stage-display">
+                        <span id="maitre-stage-text" class="text-gray-500 italic">Sera déterminé automatiquement selon
+                            l'étudiant sélectionné</span>
                     </div>
-
-                    <div class="flex items-center space-x-3">
-                        <div class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-md bg-gray-50 text-gray-700"
-                            id="encadreur-display">
-                            <span id="encadreur-text" class="text-gray-500 italic">Sera déterminé automatiquement selon
-                                l'étudiant sélectionné</span>
-                        </div>
-                        <span class="text-sm text-gray-600 min-w-0 w-20 text-right">Encadreur</span>
-                    </div>
-
-                    <div class="flex items-center space-x-3">
-                        <div class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-md bg-gray-50 text-gray-700"
-                            id="maitre-stage-display">
-                            <span id="maitre-stage-text" class="text-gray-500 italic">Sera déterminé automatiquement selon
-                                l'étudiant sélectionné</span>
-                        </div>
-                        <span class="text-sm text-gray-600 min-w-0 w-20 text-right">Maître de Stage</span>
-                    </div>
+                    <span class="text-sm text-gray-600 min-w-0 w-20 text-right">Maître de Stage</span>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Bouton Enregistrer -->
-        <div class="absolute -bottom-4 right-4">
-            <button onclick="addRow()"
-                class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                Enregistrer
-            </button>
-        </div>
-    <?php endif; ?>
+    <!-- Bouton Enregistrer -->
+    <div class="absolute -bottom-4 right-4">
+        <button onclick="addRow()"
+            class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+            Enregistrer
+        </button>
+    </div>
 </div>
 
 <!-- Section tableau des soutenances -->

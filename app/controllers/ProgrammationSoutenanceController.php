@@ -3,9 +3,75 @@
 class ProgrammationSoutenanceController
 {
     /**
-     * Récupérer tous les étudiants disponibles pour PHP (sans header JSON)
+     * Récupérer tous les étudiants avec rapport validé (pour affichage et modification)
      */
     public function getEtudiantsForView()
+    {
+        try {
+            $pdo = Database::getConnection();
+
+            $sql = "
+                SELECT DISTINCT
+                    e.num_etu as id_etudiant,
+                    e.nom_etu as nom_etudiant,
+                    e.prenom_etu as prenom_etudiant,
+                    CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_complet,
+                    e.num_etu as matricule_etudiant,
+                    e.email_etu as email_etudiant,
+                    e.promotion_etu as lib_specialite,
+                    -- Récupérer le maître de stage depuis informations_stage
+                    ist.encadrant_entreprise as maitre_stage_nom,
+                    ist.email_encadrant as maitre_stage_email,
+                    -- Récupérer le directeur de mémoire depuis affecter
+                    (SELECT CONCAT(ens_dir.prenom_enseignant, ' ', ens_dir.nom_enseignant)
+                     FROM affecter af_dir
+                     JOIN enseignants ens_dir ON af_dir.id_enseignant = ens_dir.id_enseignant
+                     WHERE af_dir.id_rapport = r.id_rapport AND af_dir.role = 'directeur'
+                     LIMIT 1) as directeur_nom,
+                    (SELECT ens_dir.id_enseignant
+                     FROM affecter af_dir
+                     JOIN enseignants ens_dir ON af_dir.id_enseignant = ens_dir.id_enseignant
+                     WHERE af_dir.id_rapport = r.id_rapport AND af_dir.role = 'directeur'
+                     LIMIT 1) as directeur_id,
+                    -- Récupérer l'encadreur depuis affecter
+                    (SELECT CONCAT(ens_enc.prenom_enseignant, ' ', ens_enc.nom_enseignant)
+                     FROM affecter af_enc
+                     JOIN enseignants ens_enc ON af_enc.id_enseignant = ens_enc.id_enseignant
+                     WHERE af_enc.id_rapport = r.id_rapport AND af_enc.role = 'encadrant'
+                     LIMIT 1) as encadreur_nom,
+                    (SELECT ens_enc.id_enseignant
+                     FROM affecter af_enc
+                     JOIN enseignants ens_enc ON af_enc.id_enseignant = ens_enc.id_enseignant
+                     WHERE af_enc.id_rapport = r.id_rapport AND af_enc.role = 'encadrant'
+                     LIMIT 1) as encadreur_id,
+                    -- Statut de programmation
+                    CASE 
+                        WHEN p.num_etud IS NOT NULL THEN 'programmed'
+                        ELSE 'available'
+                    END as statut_programmation
+                FROM etudiants e
+                INNER JOIN rapport_etudiants r ON e.num_etu = r.num_etu
+                INNER JOIN valider v ON r.id_rapport = v.id_rapport
+                LEFT JOIN informations_stage ist ON e.num_etu = ist.num_etu
+                LEFT JOIN programmer p ON e.num_etu = p.num_etud
+                WHERE r.etape_validation = 'valide' 
+                AND v.decision_validation = 'valider'
+                ORDER BY e.nom_etu, e.prenom_etu
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log('Erreur getEtudiantsForView: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Récupérer les étudiants disponibles pour nouvelle programmation (non encore programmés)
+     */
+    public function getEtudiantsDisponiblesForView()
     {
         try {
             $pdo = Database::getConnection();
@@ -59,7 +125,7 @@ class ProgrammationSoutenanceController
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
-            error_log('Erreur getEtudiantsForView: ' . $e->getMessage());
+            error_log('Erreur getEtudiantsDisponiblesForView: ' . $e->getMessage());
             return [];
         }
     }

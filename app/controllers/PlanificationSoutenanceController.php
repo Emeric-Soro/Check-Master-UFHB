@@ -37,9 +37,51 @@ class PlanificationSoutenanceController
     }
 
     /**
-     * Récupérer les étudiants qui ont déjà une attribution de jury mais pas encore de planification complète
+     * Récupérer tous les étudiants qui ont une attribution de jury
      */
     public function getEtudiantsAvecJuryForView()
+    {
+        try {
+            $pdo = Database::getConnection();
+
+            $sql = "
+                SELECT DISTINCT
+                    p.id_programmation,
+                    p.num_etud as id_etudiant,
+                    e.nom_etu as nom_etudiant,
+                    e.prenom_etu as prenom_etudiant,
+                    CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_complet,
+                    e.num_etu as matricule_etudiant,
+                    p.theme_soutenance,
+                    p.date_soutenance,
+                    p.heure_soutenance,
+                    p.id_salle,
+                    s.lib_salle as nom_salle,
+                    CASE 
+                        WHEN p.id_salle IS NOT NULL AND p.date_soutenance IS NOT NULL AND p.heure_soutenance IS NOT NULL THEN 'complete'
+                        WHEN p.num_jury IS NOT NULL THEN 'partial'
+                        ELSE 'none'
+                    END as statut_planification
+                FROM programmer p
+                INNER JOIN etudiants e ON p.num_etud = e.num_etu
+                LEFT JOIN salles s ON p.id_salle = s.id_salle
+                WHERE p.num_jury IS NOT NULL
+                ORDER BY e.nom_etu ASC, e.prenom_etu ASC
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log('Erreur getEtudiantsAvecJuryForView: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Récupérer les étudiants disponibles pour nouvelle planification (non encore planifiés)
+     */
+    public function getEtudiantsDisponiblesForView()
     {
         try {
             $pdo = Database::getConnection();
@@ -74,7 +116,7 @@ class PlanificationSoutenanceController
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
-            error_log('Erreur getEtudiantsAvecJuryForView: ' . $e->getMessage());
+            error_log('Erreur getEtudiantsDisponiblesForView: ' . $e->getMessage());
             return [];
         }
     }
