@@ -86,12 +86,12 @@ class ParametreController
             $annee1 = date("Y", strtotime($dateDebut));
             $annee2 = date("Y", strtotime($dateFin));
 
-           if (($annee1 == $annee2) || ($dateDebut >= $dateFin)) {
+            if (($annee1 == $annee2) || ($dateDebut >= $dateFin)) {
                 $messageErreur = "Les dates de début et de fin ne sont pas valides.";
             } else {
                 // Calculer le nouvel ID basé sur les nouvelles dates
                 $nouvel_id = substr($annee2, 0, 1) . substr($annee2, 2, 2) . substr($annee1, 2, 2);
-                
+
                 if ($this->anneeAcademique->isAnneeAcademiqueExist($nouvel_id, $dateDebut, $dateFin)) {
                     $messageErreur = "Cette année académique existe déjà.";
                     $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'annee_academique', 'Erreur');
@@ -1167,7 +1167,7 @@ class ParametreController
             $selectedGroupe = $this->groupeUtilisateur->getGroupeUtilisateurById($selectedGroupeId);
             // Récupérer les traitements attribués au groupe
             $attributionsGroupe = $this->attribution->getTraitementsByGroupe($selectedGroupeId);
-            
+
             // Debug
             error_log("Groupe sélectionné: " . print_r($selectedGroupe, true));
             error_log("Attributions du groupe: " . print_r($attributionsGroupe, true));
@@ -1196,15 +1196,16 @@ class ParametreController
         $GLOBALS['messageSuccess'] = $messageSuccess;
         $GLOBALS['attribution_a_modifier'] = $attribution_a_modifier;
     }
-    
-    private function handleAttributionSubmit($postData) {
+
+    private function handleAttributionSubmit($postData)
+    {
         $groupeId = $postData['id_GU'];
         $selectedTraitements = isset($postData['traitements']) ? $postData['traitements'] : [];
-        
+
         try {
             // Supprimer toutes les attributions existantes pour ce groupe
             $this->attribution->deleteAttribution($groupeId);
-            
+
             // Ajouter les nouvelles attributions
             foreach ($selectedTraitements as $traitementId) {
                 $this->attribution->ajouterAttribution($groupeId, $traitementId);
@@ -1221,8 +1222,17 @@ class ParametreController
             exit;
         }
     }
+
+    //==============================GESTION SALLES==============================
+    public function gestionSalles()
+    {
+        // Cette méthode ne fait rien de spécial car la logique 
+        // est directement dans la vue salles.php pour simplifier
+        // On laisse juste la vue se charger
+    }
+    //==============================FIN GESTION SALLES==============================
 }
-    
+
 
 //==============================FIN GESTION ATTRIBUTION==============================
 
