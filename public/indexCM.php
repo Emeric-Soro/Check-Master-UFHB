@@ -384,7 +384,7 @@
                             <p class="text-gray-600 leading-relaxed mb-6">
                                 Gérez efficacement votre travail, accédez aux rapports et mémoires complets des étudiants et saisissez vos notes et commentaires dans un environnement de travail optimisé.
                             </p>
-                            <a href="page_connexion.php" class="inline-flex items-center text-accent hover:text-green-600 font-semibold transition-colors group">
+                            <a href="page_connexion.php" class="inline-flex items-center text-accent hover:text-primary-600 font-semibold transition-colors group">
                                 Accéder à mon espace 
                                 <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-2 transition-transform"></i>
                             </a>
