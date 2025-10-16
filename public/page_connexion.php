@@ -1,131 +1,148 @@
 <?php
-
 session_start();
-
-
 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-
+$errorMessage = isset($_SESSION['error']) ? htmlspecialchars($_SESSION['error']) : '';
 ?>
-
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="./css/output.css">
-    <link rel="shortcut icon" href="./images/dessin.svg" type="image/x-icon">
-    <title>Se connecter | Soutenance Manager</title>
+    <title>Connexion | CheckMaster</title>
+    <link rel="stylesheet" href="css/output.css">
+    <link rel="shortcut icon" href="image/logo_cm_sbg.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1a5276',
+                        'primary-light': '#2980b9',
+                        'primary-lighter': '#3498db',
+                        secondary: '#ff8c00',
+                        accent: '#4caf50',
+                        success: '#4caf50',
+                        danger: '#e74c3c'
+                    },
+                    fontFamily: {
+                        poppins: ['Poppins', 'sans-serif'],
+                        montserrat: ['Montserrat', 'sans-serif']
+                    },
+                    boxShadow: {
+                        elevate: '0 25px 60px -15px rgba(26,82,118,0.25)'
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-
-<body>
-    <div class="min-h-screen flex fle-col items-center justify-center">
-        <div class="py-6 px-4">
-            <div class="grid md:grid-cols-2 items-center gap-6 max-w-6xl w-full">
-                <div
-                    class="border border-slate-300 rounded-lg p-6 max-w-md shadow-[0_2px_22px_-4px_rgba(93,96,127,0.2)] max-md:mx-auto">
-                    <form action="login.php" method="POST" class="space-y-6">
-
-                        <div class="mb-12">
-                            <div>
-                                <a href="#"><img src="./images/dessin.svg" class="mx-auto block"
-                                        style="width:20%" /></a>
-                                <h3 class="text-green-500 text-3xl font-semibold">Se connecter</h3>
-                            </div>
-                            <p class="text-gray-800 text-sm mt-6 leading-relaxed">
-                                Connectez-vous à votre compte et explorez un monde de possibilités. Votre voyage
-                                commence ici.
-                            </p>
-                        </div>
-
-                        <div>
-                            <label class="text-green-500 text-sm font-medium mb-2 block">Login</label>
-                            <div class="relative flex items-center">
-                                <input name="login" type="email" required
-                                    class="w-full text-sm text-slate-800 border border-slate-300 pl-4 pr-10 py-3 rounded-lg focus:outline-green-600"
-                                    placeholder="Entrer votre login" />
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="#3c9e5f" stroke="#3c9e5f"
-                                    class="w-[18px] h-[18px] absolute right-4" viewBox="0 0 24 24">
-                                    <circle cx="10" cy="7" r="6" data-original="#000000"></circle>
-                                    <path
-                                        d="M14 15H6a5 5 0 0 0-5 5 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 5 5 0 0 0-5-5zm8-4h-2.59l.3-.29a1 1 0 0 0-1.42-1.42l-2 2a1 1 0 0 0 0 1.42l2 2a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.42l-.3-.29H22a1 1 0 0 0 0-2z"
-                                        data-original="#000000"></path>
-                                </svg>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="text-green-500 text-sm font-medium mb-2 block">Mot de passe</label>
-                            <div class="relative flex items-center">
-                                <input name="password" type="password" required
-                                    class="w-full text-sm text-slate-800 border border-slate-300 pl-4 pr-10 py-3 rounded-lg focus:outline-green-600"
-                                    placeholder="Entrer votre mot de passe" />
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="#3c9e5f" stroke="#3c9e5f"
-                                    class="w-[18px] h-[18px] absolute right-4 cursor-pointer" viewBox="0 0 128 128">
-                                    <path
-                                        d="M64 104C22.127 104 1.367 67.496.504 65.943a4 4 0 0 1 0-3.887C1.367 60.504 22.127 24 64 24s62.633 36.504 63.496 38.057a4 4 0 0 1 0 3.887C126.633 67.496 105.873 104 64 104zM8.707 63.994C13.465 71.205 32.146 96 64 96c31.955 0 50.553-24.775 55.293-31.994C114.535 56.795 95.854 32 64 32 32.045 32 13.447 56.775 8.707 63.994zM64 88c-13.234 0-24-10.766-24-24s10.766-24 24-24 24 10.766 24 24-10.766 24-24 24zm0-40c-8.822 0-16 7.178-16 16s7.178 16 16 16 16-7.178 16-16-7.178-16-16-16z"
-                                        data-original="#000000"></path>
-                                </svg>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-wrap items-center justify-between gap-4">
-                            <div class="text-sm">
-                                <a href="reset_password.php"
-                                    class="text-green-500 underline hover:underline font-medium">
-                                    Mot de passe oublié?
-                                </a>
-                            </div>
-                        </div>
-                        <?php if (isset($_SESSION['error'])) : ?>
-                        <div id="errorMessage"
-                            class=" bg-red-50 border-l-4 border-red-500 text-red-700 p-2 mb-4 rounded text-sm"
-                            role="alert">
-                            <?php echo htmlspecialchars($_SESSION['error']);?></div>
-                        <?php endif?>
-                        <div class="!mt-12">
-
-                            <button type="submit"
-                                class="w-full shadow-xl py-2.5 px-4 text-[15px] font-medium tracking-wide rounded-lg text-white bg-green-500 hover:bg-green-700 focus:outline-none">
-                                Se connecter
-                            </button>
-                        </div>
-                    </form>
+<body class="min-h-screen bg-white font-poppins text-slate-900">
+<div class="relative min-h-screen overflow-hidden">
+    <div class="absolute inset-0">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-white to-primary-light/10"></div>
+        <div class="absolute -top-24 -left-16 h-72 w-72 rounded-full bg-primary/10 blur-3xl"></div>
+        <div class="absolute -bottom-20 -right-10 h-80 w-80 rounded-full bg-primary-light/10 blur-3xl"></div>
+    </div>
+    <div class="relative flex min-h-screen items-center justify-center px-6 py-16">
+        <div class="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
+            <div class="space-y-10">
+                <a href="index.php" class="inline-flex items-center space-x-3 rounded-full border border-primary/20 bg-white/60 px-5 py-2 text-sm font-semibold text-primary shadow-sm backdrop-blur">
+                    <span class="inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-2 ring-primary/20">
+                        <img src="image/logo_cm_sbg.png" alt="UFHB" class="h-full w-full object-contain">
+                    </span>
+                    <span>Retourner sur l'accueil UFHB</span>
+                </a>
+                <div class="space-y-6">
+                    <h1 class="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+                        Accédez à votre espace CheckMaster
+                    </h1>
+                    <p class="max-w-xl text-lg text-slate-600">
+                        Retrouver toutes les fonctionnalités de gestion des soutenances MIAGE dans une interface unifiée, élégante et performante.
+                    </p>
                 </div>
-
-                <div class="max-md:mt-8">
-                    <img src="./images/undraw_secure-login_m11a.svg"
-                        class="w-full aspect-[71/50] max-md:w-4/5 mx-auto block object-cover" alt="login img" />
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur">
+                        <div class="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <i class="fas fa-shield-alt text-xl"></i>
+                        </div>
+                        <h2 class="text-lg font-semibold text-slate-900">Authentification sécurisée</h2>
+                        <p class="mt-2 text-sm text-slate-600">Connexion protégée et conforme aux standards de la plateforme.</p>
+                    </div>
+                    <div class="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur">
+                        <div class="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+                            <i class="fas fa-chart-line text-xl"></i>
+                        </div>
+                        <h2 class="text-lg font-semibold text-slate-900">Suivi centralisé</h2>
+                        <p class="mt-2 text-sm text-slate-600">Tableaux de bord dynamiques pour piloter chaque étape facilement.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="relative">
+                <div class="absolute -top-10 -right-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl"></div>
+                <div class="relative rounded-3xl border border-white/40 bg-white/90 p-10 shadow-elevate backdrop-blur-lg">
+                    <div class="mb-8 text-center">
+                        <div class="mb-5 flex items-center justify-center">
+                            <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-lg ring-2 ring-primary/10">
+                                <img src="image/logo_cm_sbg.png" alt="Logo CheckMaster" class="h-full w-full object-contain p-2">
+                            </div>
+                        </div>
+                        <h2 class="text-2xl font-semibold text-slate-900">Connexion</h2>
+                        <p class="mt-2 text-sm text-slate-600">Identifiez-vous pour poursuivre la gestion de vos soutenances.</p>
+                    </div>
+                    <?php if ($errorMessage): ?>
+                        <div id="errorMessage" class="mb-6 rounded-2xl border border-danger/20 bg-danger/10 px-4 py-3 text-sm font-medium text-danger" role="alert">
+                            <?= $errorMessage ?>
+                        </div>
+                    <?php endif; ?>
+                    <form action="login.php" method="POST" class="space-y-5" autocomplete="off">
+                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                        <div class="space-y-2">
+                            <label for="login" class="text-sm font-semibold text-slate-800">Adresse e-mail</label>
+                            <div class="relative">
+                                <input id="login" name="login" type="email" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10" placeholder="login@exemple.com">
+                                <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label for="password" class="text-sm font-semibold text-slate-800">Mot de passe</label>
+                                <a href="reset_password.php" class="text-sm font-semibold text-primary hover:text-primary-light">Mot de passe oublié ?</a>
+                            </div>
+                            <div class="relative">
+                                <input id="password" name="password" type="password" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10" placeholder="Votre mot de passe">
+                                <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
+                                    <i class="fas fa-key"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="inline-flex w-full items-center justify-center rounded-2xl bg-primary px-6 py-3 text-sm font-semibold tracking-wide text-white transition hover:bg-primary-light focus:outline-none focus:ring-4 focus:ring-primary/20">
+                            Se connecter
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
-
-    <script>
-    // Script pour faire disparaître le message après 3 secondes
-    document.addEventListener('DOMContentLoaded', function() {
-        const errorMessage = document.getElementById('errorMessage');
-
-        // Animation de disparition progressive
-        setTimeout(function() {
-            // Ajouter une transition pour l'opacité
-            errorMessage.style.transition = 'opacity 0.5s ease-out';
-            errorMessage.style.opacity = '0';
-
-            // Supprimer complètement l'élément après la transition
-            setTimeout(function() {
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var errorMessage = document.getElementById('errorMessage');
+        if (errorMessage) {
+            setTimeout(function () {
                 errorMessage.style.display = 'none';
-            }, 500);
-        }, 2000); // Disparaît après 3 secondes (3000ms)
+            }, 2400);
+        }
     });
-    </script>
-
-    <?php 
-    // Supprimer l'erreur de la session pour qu'elle ne réapparaisse pas lors du rechargement
-    unset($_SESSION['error']); 
-    ?>
-
-
+</script>
+<?php
+unset($_SESSION['error']);
+?>
 </body>
-
 </html>

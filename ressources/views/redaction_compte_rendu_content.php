@@ -63,7 +63,7 @@ if (!empty($_SESSION['success'])) {
             font-family: 'Times New Roman', serif;
             line-height: 1.6;
         }
-        
+
         /* Styles pour masquer les éléments lors de l'impression */
         @media print {
             /* Masquer seulement les éléments d'interface */
@@ -102,14 +102,14 @@ if (!empty($_SESSION['success'])) {
             .border-gray-200 {
                 display: none !important;
             }
-            
+
             /* Reset du body */
             body {
                 margin: 0 !important;
                 padding: 0 !important;
                 background: white !important;
             }
-            
+
             /* Formatage du contenu de l'éditeur */
             #editorContent {
                 position: static !important;
@@ -166,7 +166,7 @@ if (!empty($_SESSION['success'])) {
                                             </button>
                                         </div>
                                     </div>
-                                    
+
                                     <!-- Liste des rapports sélectionnés -->
                                     <div id="selectedReports" class="space-y-2">
                                         <h4 class="text-sm font-medium text-gray-700 mt-4">Rapports sélectionnés :</h4>
@@ -276,7 +276,7 @@ if (!empty($_SESSION['success'])) {
                                                     <p><strong class="text-gray-700">Date d'évaluation :</strong><br><span class="text-gray-600">[À compléter]</span></p>
                                                 <p><strong class="text-gray-700">Membres de la commission d'évaluation :</strong><br><span class="text-gray-600">[À compléter]</span></p>
                                                 </div>
-                                            
+
                                             <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
                                                 <h4 class="font-semibold text-gray-700 mb-2">Rapports évalués :</h4>
                                                 <div class="text-gray-600">
@@ -304,7 +304,7 @@ if (!empty($_SESSION['success'])) {
                                         <div class="mb-8">
                                             <h3 class="text-xl font-bold border-b-2 border-gray-400 pb-3 mb-4 text-gray-800">III. ÉVALUATIONS PAR RAPPORT</h3>
                                             <p class="text-gray-600 italic mb-4">[Les évaluations détaillées de chaque rapport seront automatiquement insérées ici...]</p>
-                                            
+
                                             <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
                                                 <h4 class="font-semibold text-gray-700 mb-2">Résumé global des votes :</h4>
                                                 <p class="text-sm text-gray-600">Total des votes favorables : [X]/[Total]</p>
@@ -397,7 +397,7 @@ if (!empty($_SESSION['success'])) {
     <div id="previewModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 transition-opacity modal-overlay" onclick="closePreviewModal()"></div>
-            
+
             <div class="inline-block w-full max-w-4xl p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-medium text-gray-900">
@@ -497,15 +497,15 @@ if (!empty($_SESSION['success'])) {
         function updateReportsList() {
             const reportsList = document.getElementById('reportsList');
             const selectedReportsDiv = document.getElementById('selectedReports');
-            
+
             if (selectedReports.length === 0) {
                 selectedReportsDiv.classList.add('hidden');
                 return;
             }
-            
+
             selectedReportsDiv.classList.remove('hidden');
             reportsList.innerHTML = '';
-            
+
             selectedReports.forEach((report, index) => {
                 const reportElement = document.createElement('div');
                 reportElement.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-md border border-gray-200';
@@ -526,7 +526,7 @@ if (!empty($_SESSION['success'])) {
         function updateReportInfo() {
             const reportDetails = document.getElementById('reportDetails');
             const evaluationsSummary = document.getElementById('evaluationsSummary');
-            
+
             if (selectedReports.length === 0) {
                 reportDetails.innerHTML = '<p class="text-gray-500 text-sm">Aucun rapport sélectionné</p>';
                 evaluationsSummary.classList.add('hidden');
@@ -626,10 +626,10 @@ if (!empty($_SESSION['success'])) {
                     ]
                 }
             };
-            
+
             let html = '';
             let allEvaluationsHTML = '';
-            
+
             selectedReports.forEach((report, index) => {
                 const data = reportData[report.id];
                 if (data) {
@@ -648,17 +648,17 @@ if (!empty($_SESSION['success'])) {
                             </div>
                     </div>
                 `;
-                
+
                     // Ajouter les évaluations pour ce rapport
                     allEvaluationsHTML += `
                         <div class="mb-4">
                             <h5 class="font-semibold text-gray-700 mb-2">Évaluations - ${data.title}</h5>
                     `;
-                    
+
                     data.evaluations.forEach(eval => {
                     const bgColor = eval.decision === 'Validé' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
                     const textColor = eval.decision === 'Validé' ? 'text-green-800' : 'text-red-800';
-                    
+
                         allEvaluationsHTML += `
                             <div class="p-3 border rounded-lg ${bgColor} mb-2">
                             <div class="flex items-center justify-between mb-1">
@@ -671,15 +671,15 @@ if (!empty($_SESSION['success'])) {
                         </div>
                     `;
                 });
-                
+
                     allEvaluationsHTML += `</div>`;
                 }
             });
-                
+
             reportDetails.innerHTML = html;
             document.getElementById('evaluationsContent').innerHTML = allEvaluationsHTML;
                 evaluationsSummary.classList.remove('hidden');
-                
+
             // Mettre à jour l'éditeur si le modèle de séance de validation est chargé
             const editor = document.getElementById('editorContent');
             if (editor.innerHTML.includes('Procès-Verbal de séance de validation de thèmes')) {
@@ -724,7 +724,7 @@ if (!empty($_SESSION['success'])) {
             const editor = document.getElementById('editorContent');
             let template = `
                 <style>
-                .editor-content { font-family: 'Times New Roman', Times, serif; }             
+                .editor-content { font-family: 'Times New Roman', Times, serif; }
                 .header-logos .right { float: right; }
                 .header-logos .center { text-align: center; margin: 0 auto; }
                 .editor-content h1 { font-size: 2.2em; font-weight: bold; margin-bottom: 0.5em; text-align: center; }
@@ -803,7 +803,7 @@ if (!empty($_SESSION['success'])) {
             const editor = document.getElementById('editorContent');
             const selection = window.getSelection();
             const range = selection.getRangeAt(0);
-            
+
             let sectionHTML = '';
             switch(sectionType) {
                 case 'evaluation':
@@ -824,7 +824,7 @@ if (!empty($_SESSION['success'])) {
                     `;
                     break;
             }
-            
+
             const div = document.createElement('div');
             div.innerHTML = sectionHTML;
             range.insertNode(div.firstChild);
@@ -835,11 +835,11 @@ if (!empty($_SESSION['success'])) {
         function saveAsDraft() {
             const content = document.getElementById('editorContent').innerHTML;
             const reportId = document.getElementById('reportSelect').value;
-            
+
             // Simuler la sauvegarde
             localStorage.setItem(`draft_${reportId}`, content);
             updateLastSaveTime();
-            
+
             // Notification
             showNotification('Brouillon sauvegardé avec succès', 'success');
         }
@@ -920,12 +920,12 @@ if (!empty($_SESSION['success'])) {
         // Impression du rapport
         function printReport() {
             const content = document.getElementById('editorContent').innerHTML;
-            
+
             if (!content || content.trim() === '') {
                 showNotification('Aucun contenu à imprimer', 'error');
                 return;
             }
-            
+
             // Créer une nouvelle fenêtre pour l'impression
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
@@ -1084,8 +1084,8 @@ if (!empty($_SESSION['success'])) {
         function showNotification(message, type) {
             const notification = document.createElement('div');
             notification.className = `fixed top-4 right-4 px-4 py-2 rounded-md text-white text-sm font-medium z-50 ${
-                type === 'success' ? 'bg-green-600' : 
-                type === 'error' ? 'bg-red-600' : 
+                type === 'success' ? 'bg-green-600' :
+                type === 'error' ? 'bg-red-600' :
                 type === 'info' ? 'bg-blue-600' : 'bg-gray-600'
             }`;
             notification.innerHTML = `
@@ -1094,9 +1094,9 @@ if (!empty($_SESSION['success'])) {
                     ${message}
                 </div>
             `;
-            
+
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
                 notification.remove();
             }, 3000);
@@ -1108,7 +1108,7 @@ if (!empty($_SESSION['success'])) {
             // Sauvegarde automatique lors de la saisie
             const editor = document.getElementById('editorContent');
             let saveTimeout;
-            
+
             editor.addEventListener('input', function() {
                 clearTimeout(saveTimeout);
                 saveTimeout = setTimeout(() => {
@@ -1132,7 +1132,7 @@ if (!empty($_SESSION['success'])) {
                             break;
                     }
                 }
-                
+
                 if (e.key === 'Escape') {
                     closePreviewModal();
                 }
