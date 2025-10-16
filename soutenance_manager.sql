@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : db
--- Généré le : dim. 12 oct. 2025 à 22:01
+-- Généré le : jeu. 16 oct. 2025 à 18:40
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.2.27
 
@@ -296,10 +296,10 @@ INSERT INTO
         `id_qualite_jury`,
         `date_composer_jury`
     )
-VALUES (1, 18, 1, 1760233820),
-    (1, 21, 2, 1760233820),
-    (1, 22, 4, 1760233820),
-    (1, 23, 3, 1760233820);
+VALUES (1, 7, 3, 1760307399),
+    (1, 18, 1, 1760307399),
+    (1, 21, 2, 1760307399),
+    (1, 22, 4, 1760307399);
 
 -- --------------------------------------------------------
 
@@ -520,35 +520,6 @@ CREATE TABLE `ecue` (
     `credit` int NOT NULL,
     `id_enseignant` int DEFAULT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3 COLLATE = utf8mb3_general_mysql500_ci;
-
---
--- Déchargement des données de la table `ecue`
---
-
-INSERT INTO
-    `ecue` (
-        `id_ecue`,
-        `id_ue`,
-        `lib_ecue`,
-        `credit`,
-        `id_enseignant`
-    )
-VALUES (49, 56, 'ISI', 2, NULL),
-    (50, 56, 'UML', 3, NULL),
-    (
-        51,
-        57,
-        'Files d\'attente et gestion de stock',
-        3,
-        NULL
-    ),
-    (
-        52,
-        57,
-        'Regression linéaire',
-        1,
-        NULL
-    );
 
 -- --------------------------------------------------------
 
@@ -782,8 +753,56 @@ CREATE TABLE `evaluer` (
     `num_jury` int NOT NULL,
     `id_critere` int NOT NULL,
     `date_eval` date NOT NULL,
-    `note` int NOT NULL
+    `note` double NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `evaluer`
+--
+
+INSERT INTO
+    `evaluer` (
+        `num_etudiant`,
+        `num_jury`,
+        `id_critere`,
+        `date_eval`,
+        `note`
+    )
+VALUES (
+        20220001,
+        1,
+        3,
+        '2025-10-15',
+        3
+    ),
+    (
+        20220001,
+        1,
+        4,
+        '2025-10-15',
+        5
+    ),
+    (
+        20220001,
+        1,
+        5,
+        '2025-10-15',
+        2
+    ),
+    (
+        20220001,
+        1,
+        6,
+        '2025-10-15',
+        2
+    ),
+    (
+        20220001,
+        1,
+        7,
+        '2025-10-15',
+        3.5
+    );
 
 -- --------------------------------------------------------
 
@@ -1008,8 +1027,8 @@ VALUES (
         '2025-09-29 22:06:37',
         'En cours',
         1,
-        420000.00,
-        560000.00
+        0.00,
+        1025000.00
     );
 
 -- --------------------------------------------------------
@@ -1149,10 +1168,10 @@ INSERT INTO
     )
 VALUES (
         10,
-        'Master 1',
+        'Master 2',
         7,
-        980000.00,
-        560000.00
+        1025000.00,
+        500000.00
     );
 
 -- --------------------------------------------------------
@@ -1188,194 +1207,184 @@ INSERT INTO
         `date_modification`
     )
 VALUES (
-        52,
-        20220001,
-        59,
-        NULL,
-        12.00,
-        '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
-    ),
-    (
-        53,
-        20220001,
-        63,
-        NULL,
-        14.00,
-        '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
-    ),
-    (
-        54,
-        20220001,
-        58,
-        NULL,
-        10.00,
-        '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
-    ),
-    (
-        55,
-        20220001,
-        64,
-        NULL,
-        13.00,
-        '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
-    ),
-    (
-        56,
-        20220001,
-        62,
-        NULL,
-        10.00,
-        '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
-    ),
-    (
-        57,
-        20220001,
-        61,
-        NULL,
-        14.00,
-        '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
-    ),
-    (
-        58,
-        20220001,
-        60,
-        NULL,
-        12.00,
-        '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
-    ),
-    (
-        59,
-        20220001,
-        72,
-        NULL,
-        16.00,
-        '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
-    ),
-    (
-        60,
-        20220001,
-        65,
-        NULL,
-        7.00,
-        '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
-    ),
-    (
-        61,
-        20220001,
-        69,
-        NULL,
-        16.00,
-        '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
-    ),
-    (
-        62,
-        20220001,
-        68,
-        NULL,
-        15.00,
-        '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
-    ),
-    (
-        63,
-        20220001,
-        70,
-        NULL,
-        15.00,
-        '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
-    ),
-    (
-        64,
-        20220001,
-        66,
-        NULL,
-        14.00,
-        '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
-    ),
-    (
-        65,
-        20220001,
         71,
+        20220002,
+        95,
+        NULL,
+        10.00,
+        '',
+        '2025-10-15 19:31:13',
+        '2025-10-15 19:31:13'
+    ),
+    (
+        72,
+        20220002,
+        103,
+        NULL,
+        12.00,
+        '',
+        '2025-10-15 19:31:13',
+        '2025-10-15 19:31:13'
+    ),
+    (
+        73,
+        20220002,
+        98,
+        NULL,
+        12.00,
+        '',
+        '2025-10-15 19:31:13',
+        '2025-10-15 19:31:13'
+    ),
+    (
+        74,
+        20220002,
+        101,
+        NULL,
+        13.00,
+        '',
+        '2025-10-15 19:31:13',
+        '2025-10-15 19:31:13'
+    ),
+    (
+        75,
+        20220002,
+        100,
+        NULL,
+        15.00,
+        '',
+        '2025-10-15 19:31:13',
+        '2025-10-15 19:31:13'
+    ),
+    (
+        76,
+        20220002,
+        102,
+        NULL,
+        15.00,
+        '',
+        '2025-10-15 19:31:13',
+        '2025-10-15 19:31:13'
+    ),
+    (
+        77,
+        20220002,
+        97,
+        NULL,
+        12.00,
+        '',
+        '2025-10-15 19:31:13',
+        '2025-10-15 19:31:13'
+    ),
+    (
+        78,
+        20220002,
+        99,
+        NULL,
+        20.00,
+        '',
+        '2025-10-15 19:31:13',
+        '2025-10-15 19:31:13'
+    ),
+    (
+        79,
+        20220002,
+        96,
+        NULL,
+        12.00,
+        '',
+        '2025-10-15 19:31:13',
+        '2025-10-15 19:31:13'
+    ),
+    (
+        80,
+        20220001,
+        95,
+        NULL,
+        12.00,
+        '',
+        '2025-10-15 19:32:13',
+        '2025-10-15 19:32:13'
+    ),
+    (
+        81,
+        20220001,
+        103,
+        NULL,
+        12.00,
+        '',
+        '2025-10-15 19:32:13',
+        '2025-10-15 19:32:13'
+    ),
+    (
+        82,
+        20220001,
+        98,
+        NULL,
+        10.00,
+        '',
+        '2025-10-15 19:32:13',
+        '2025-10-15 19:32:13'
+    ),
+    (
+        83,
+        20220001,
+        101,
+        NULL,
+        15.00,
+        '',
+        '2025-10-15 19:32:13',
+        '2025-10-15 19:32:13'
+    ),
+    (
+        84,
+        20220001,
+        100,
         NULL,
         16.00,
         '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
+        '2025-10-15 19:32:13',
+        '2025-10-15 19:32:13'
     ),
     (
-        66,
+        85,
         20220001,
-        67,
+        102,
         NULL,
         12.00,
         '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
+        '2025-10-15 19:32:13',
+        '2025-10-15 19:32:13'
     ),
     (
-        67,
+        86,
         20220001,
-        67,
-        51,
+        97,
+        NULL,
         10.00,
         '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
+        '2025-10-15 19:32:13',
+        '2025-10-15 19:32:13'
     ),
     (
-        68,
+        87,
         20220001,
-        67,
-        52,
+        99,
+        NULL,
         13.00,
         '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
+        '2025-10-15 19:32:13',
+        '2025-10-15 19:32:13'
     ),
     (
-        69,
+        88,
         20220001,
-        67,
-        49,
-        9.00,
+        96,
+        NULL,
+        15.00,
         '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
-    ),
-    (
-        70,
-        20220001,
-        67,
-        50,
-        12.00,
-        '',
-        '2025-09-29 19:14:16',
-        '2025-09-29 19:14:16'
+        '2025-10-15 19:32:13',
+        '2025-10-15 19:32:13'
     );
 
 -- --------------------------------------------------------
@@ -2584,6 +2593,302 @@ VALUES (
         'Succès',
         'tableau_de_bord',
         '2025-10-12 12:43:58'
+    ),
+    (
+        271,
+        99,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-15 19:01:38'
+    ),
+    (
+        272,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-15 19:03:39'
+    ),
+    (
+        273,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2025-10-15 19:03:39'
+    ),
+    (
+        274,
+        5,
+        'Suppression',
+        'Succès',
+        'ue',
+        '2025-10-15 19:04:06'
+    ),
+    (
+        275,
+        5,
+        'Suppression',
+        'Succès',
+        'ue',
+        '2025-10-15 19:04:14'
+    ),
+    (
+        276,
+        5,
+        'Création',
+        'Succès',
+        'niveau_etude',
+        '2025-10-15 19:09:45'
+    ),
+    (
+        277,
+        5,
+        'Création',
+        'Succès',
+        'semestre',
+        '2025-10-15 19:11:05'
+    ),
+    (
+        278,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:11:37'
+    ),
+    (
+        279,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:12:58'
+    ),
+    (
+        280,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:13:29'
+    ),
+    (
+        281,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:13:58'
+    ),
+    (
+        282,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:14:18'
+    ),
+    (
+        283,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:14:53'
+    ),
+    (
+        284,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:15:20'
+    ),
+    (
+        285,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:15:44'
+    ),
+    (
+        286,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:16:10'
+    ),
+    (
+        287,
+        99,
+        'Création',
+        'Succès',
+        'versements',
+        '2025-10-15 19:18:43'
+    ),
+    (
+        288,
+        5,
+        'Suppression',
+        'Succès',
+        'niveau_etude',
+        '2025-10-15 19:19:58'
+    ),
+    (
+        289,
+        5,
+        'Modification',
+        'Succès',
+        'niveau_etude',
+        '2025-10-15 19:20:40'
+    ),
+    (
+        290,
+        5,
+        'Suppression',
+        'Succès',
+        'semestre',
+        '2025-10-15 19:22:32'
+    ),
+    (
+        291,
+        5,
+        'Modification',
+        'Succès',
+        'semestre',
+        '2025-10-15 19:22:41'
+    ),
+    (
+        292,
+        99,
+        'Création',
+        'Succès',
+        'versements',
+        '2025-10-15 19:24:34'
+    ),
+    (
+        293,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:25:54'
+    ),
+    (
+        294,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:26:12'
+    ),
+    (
+        295,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:26:27'
+    ),
+    (
+        296,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:26:42'
+    ),
+    (
+        297,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:26:59'
+    ),
+    (
+        298,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:29:27'
+    ),
+    (
+        299,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:29:44'
+    ),
+    (
+        300,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:30:05'
+    ),
+    (
+        301,
+        5,
+        'Création',
+        'Succès',
+        'ue',
+        '2025-10-15 19:30:21'
+    ),
+    (
+        302,
+        99,
+        'Création',
+        'Succès',
+        'notes',
+        '2025-10-15 19:31:13'
+    ),
+    (
+        303,
+        99,
+        'Création',
+        'Succès',
+        'notes',
+        '2025-10-15 19:32:13'
+    ),
+    (
+        304,
+        5,
+        'Création',
+        'Succès',
+        'traitement',
+        '2025-10-15 19:34:13'
+    ),
+    (
+        305,
+        5,
+        'Modification',
+        'Succès',
+        'attribution',
+        '2025-10-15 19:34:22'
+    ),
+    (
+        306,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-16 18:33:55'
+    ),
+    (
+        307,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2025-10-16 18:33:55'
     );
 
 -- --------------------------------------------------------
@@ -2597,8 +2902,8 @@ CREATE TABLE `programmer` (
     `num_etud` int NOT NULL,
     `num_jury` int NOT NULL,
     `id_salle` int DEFAULT NULL,
-    `date_soutenance` date NOT NULL,
-    `heure_soutenance` time NOT NULL,
+    `date_soutenance` date DEFAULT NULL,
+    `heure_soutenance` time DEFAULT NULL,
     `theme_soutenance` varchar(200) NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -2620,10 +2925,10 @@ VALUES (
         2,
         20220001,
         1,
-        NULL,
-        '2025-10-12',
-        '01:50:20',
-        'r'
+        2,
+        '2025-10-15',
+        '15:00:00',
+        'Informatisation des techniques d\'audit grâce à l\'IA : Cas Deloitte'
     );
 
 -- --------------------------------------------------------
@@ -2725,6 +3030,7 @@ VALUES (5, 5),
     (5, 43),
     (5, 44),
     (5, 45),
+    (5, 47),
     (6, 19),
     (6, 29),
     (6, 33),
@@ -2943,8 +3249,7 @@ INSERT INTO
         `lib_semestre`,
         `id_niv_etude`
     )
-VALUES (20, 'Semestre 7', 10),
-    (21, 'Semestre 8', 10);
+VALUES (20, 'Semestre 9', 10);
 
 -- --------------------------------------------------------
 
@@ -3281,6 +3586,13 @@ VALUES (
         'plannification de soutenance',
         'fa-calendar',
         14
+    ),
+    (
+        47,
+        'evaluation_soutenance',
+        'Evaluation soutenance',
+        'fa-note',
+        16
     );
 
 -- --------------------------------------------------------
@@ -3339,157 +3651,85 @@ INSERT INTO
         `id_enseignant`
     )
 VALUES (
-        56,
-        'Modélisation système d\'information',
+        95,
+        'Analyse et conception à objet',
         10,
         20,
-        22524,
+        22625,
         5,
-        NULL
+        19
     ),
     (
-        57,
-        'Compléments de mathématiques',
+        96,
+        'Visualisation des données',
         10,
         20,
-        22423,
-        4,
-        NULL
+        22625,
+        3,
+        19
     ),
     (
-        58,
+        97,
+        'Management de projet et intégration d\'application',
+        10,
+        20,
+        22625,
+        4,
+        23
+    ),
+    (
+        98,
+        'Audit informatique',
+        10,
+        20,
+        22625,
+        3,
+        19
+    ),
+    (
+        99,
+        'Multimedia mobile',
+        10,
+        20,
+        22625,
+        3,
+        22
+    ),
+    (
+        100,
+        'Ingenierie des exigences',
+        10,
+        20,
+        22625,
+        3,
+        23
+    ),
+    (
+        101,
+        'Fouille de données statistiques',
+        10,
+        20,
+        22625,
+        3,
+        23
+    ),
+    (
+        102,
         'Intelligence Artificielle',
         10,
         20,
-        22423,
-        2,
-        NULL
-    ),
-    (
-        59,
-        'Base de données avancées',
-        10,
-        20,
-        22524,
+        22625,
         4,
-        NULL
+        19
     ),
     (
-        60,
-        'Programmation avancée Java',
-        10,
-        20,
-        22524,
-        4,
-        NULL
-    ),
-    (
-        61,
-        'Progiciel de comptabilité (SAGE)',
-        10,
-        20,
-        22423,
-        2,
-        NULL
-    ),
-    (
-        62,
-        'Management des entreprises',
-        10,
-        20,
-        22423,
-        3,
-        NULL
-    ),
-    (
-        63,
-        'Concurrence et coopération dans les systèmes et les réseaux',
-        10,
-        20,
-        22423,
-        4,
-        NULL
-    ),
-    (
-        64,
-        'Internet/Intranet',
-        10,
-        20,
-        22423,
-        2,
-        NULL
-    ),
-    (
-        65,
-        'Base de données décisionnelles ',
-        10,
-        21,
-        22524,
-        3,
-        NULL
-    ),
-    (
-        66,
-        'Programmation impérative et developpement d\'IHM ',
-        10,
-        21,
-        22524,
-        4,
-        NULL
-    ),
-    (
-        67,
-        'Système d\'information repartis',
-        10,
-        21,
-        22524,
-        5,
-        NULL
-    ),
-    (
-        68,
-        'Contrôle de gestion',
-        10,
-        21,
-        22524,
-        3,
-        NULL
-    ),
-    (
-        69,
-        'Comptabilité analytique',
-        10,
-        21,
-        22524,
-        4,
-        NULL
-    ),
-    (
-        70,
-        'Marketing',
-        10,
-        21,
-        22524,
-        3,
-        NULL
-    ),
-    (
-        71,
-        'Projet de developpement logiciel',
-        10,
-        21,
-        22524,
-        5,
-        NULL
-    ),
-    (
-        72,
+        103,
         'Anglais',
         10,
-        21,
-        22524,
-        3,
-        NULL
+        20,
+        22625,
+        2,
+        21
     );
 
 -- --------------------------------------------------------
@@ -3734,6 +3974,22 @@ VALUES (
         '2025-09-29 22:06:37',
         'Premier versement',
         'Chèque'
+    ),
+    (
+        72,
+        35,
+        420000.00,
+        '2025-10-15 19:18:43',
+        'Tranche',
+        'Espèce'
+    ),
+    (
+        73,
+        35,
+        45000.00,
+        '2025-10-15 19:24:34',
+        'Tranche',
+        'Espèce'
     );
 
 --
@@ -4293,14 +4549,14 @@ AUTO_INCREMENT = 7;
 --
 ALTER TABLE `niveau_etude`
 MODIFY `id_niv_etude` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 16;
+AUTO_INCREMENT = 17;
 
 --
 -- AUTO_INCREMENT pour la table `notes`
 --
 ALTER TABLE `notes`
 MODIFY `id` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 71;
+AUTO_INCREMENT = 90;
 
 --
 -- AUTO_INCREMENT pour la table `password_resets`
@@ -4321,7 +4577,7 @@ AUTO_INCREMENT = 11;
 --
 ALTER TABLE `pister`
 MODIFY `id_piste` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 271;
+AUTO_INCREMENT = 308;
 
 --
 -- AUTO_INCREMENT pour la table `programmer`
@@ -4370,7 +4626,7 @@ AUTO_INCREMENT = 3;
 --
 ALTER TABLE `semestre`
 MODIFY `id_semestre` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 23;
+AUTO_INCREMENT = 24;
 
 --
 -- AUTO_INCREMENT pour la table `specialite`
@@ -4391,7 +4647,7 @@ AUTO_INCREMENT = 8;
 --
 ALTER TABLE `traitement`
 MODIFY `id_traitement` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 47;
+AUTO_INCREMENT = 48;
 
 --
 -- AUTO_INCREMENT pour la table `type_utilisateur`
@@ -4405,7 +4661,7 @@ AUTO_INCREMENT = 12;
 --
 ALTER TABLE `ue`
 MODIFY `id_ue` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 86;
+AUTO_INCREMENT = 104;
 
 --
 -- AUTO_INCREMENT pour la table `utilisateur`
@@ -4419,7 +4675,7 @@ AUTO_INCREMENT = 109;
 --
 ALTER TABLE `versements`
 MODIFY `id_versement` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 72;
+AUTO_INCREMENT = 74;
 
 --
 -- Contraintes pour les tables déchargées

@@ -233,7 +233,14 @@ if (!isset($_SESSION['id_utilisateur'])) {
             break;
         case 'evaluations_dossiers_soutenance':
             $contentFile = $partialsBasePath . 'evaluations_dossiers_soutenance_content.php';
-            $currentPageLabel = 'Évaluations des dossiers de soutenance';
+            $currentPageLabel = 'Évaluation des Dossiers de Soutenance';
+            break;
+
+        case 'evaluation_soutenance':
+            // Inclure les routes pour l'évaluation des soutenances
+            include __DIR__ . '/../ressources/routes/evaluationSoutenanceRoutes.php';
+            $contentFile = $partialsBasePath . 'evaluation_soutenance_content.php';
+            $currentPageLabel = 'Évaluation des Soutenances';
             break;
         case 'archive_comptes_rendus':
             $contentFile = $partialsBasePath . 'redaction_compte_rendu/archives_compte_rendu_content.php';
