@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : db
--- Généré le : mer. 15 oct. 2025 à 22:43
+-- Généré le : jeu. 16 oct. 2025 à 18:40
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.2.27
 
@@ -2873,6 +2873,22 @@ VALUES (
         'Succès',
         'attribution',
         '2025-10-15 19:34:22'
+    ),
+    (
+        306,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2025-10-16 18:33:55'
+    ),
+    (
+        307,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2025-10-16 18:33:55'
     );
 
 -- --------------------------------------------------------
@@ -4561,7 +4577,7 @@ AUTO_INCREMENT = 11;
 --
 ALTER TABLE `pister`
 MODIFY `id_piste` int NOT NULL AUTO_INCREMENT,
-AUTO_INCREMENT = 306;
+AUTO_INCREMENT = 308;
 
 --
 -- AUTO_INCREMENT pour la table `programmer`
