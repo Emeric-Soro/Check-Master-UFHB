@@ -115,7 +115,7 @@ $auditLog = $GLOBALS['auditLog'];
     <div class="header-row">
         <div class="header-left">
             <div class="header-badge">
-                <i class="fas fa-shield-alt" aria-hidden="true" style="font-size:18px;"></i>
+                <i class="fas fa-shield-alt text-lg" aria-hidden="true"></i>
             </div>
             <div>
                 <h1 class="page-title">Piste d'Audit</h1>
@@ -123,27 +123,27 @@ $auditLog = $GLOBALS['auditLog'];
             </div>
         </div>
         <div>
-            <label class="small" style="display:block;margin-bottom:6px;color:#374151;">Date du jour</label>
-            <input type="text" class="filter-input" readonly value="<?php echo date('d/m/Y'); ?>" style="width:140px;">
+            <label class="small block mb-1.5 text-gray-700">Date du jour</label>
+            <input type="text" class="filter-input w-36" readonly value="<?php echo date('d/m/Y'); ?>">
         </div>
     </div>
 
     <?php if (isset($_GET['success']) && $_GET['success'] === 'cleanup'): ?>
-        <div style="background:rgba(16,185,129,0.08); border-left:4px solid var(--ufhb-green); padding:12px; border-radius:8px; margin-bottom:14px; color:#065F46;">
+        <div class="bg-accent/10 border-l-4 border-accent p-3 rounded-lg mb-3.5 text-green-900">
             <strong>Succès !</strong>
             <div><?php echo $_GET['deleted'] ?? 0; ?> enregistrements d'audit ont été supprimés.</div>
         </div>
     <?php endif; ?>
 
     <?php if (isset($_GET['success']) && $_GET['success'] === 'log_deleted'): ?>
-        <div style="background:rgba(16,185,129,0.08); border-left:4px solid var(--ufhb-green); padding:12px; border-radius:8px; margin-bottom:14px; color:#065F46;">
+        <div class="bg-accent/10 border-l-4 border-accent p-3 rounded-lg mb-3.5 text-green-900">
             <strong>Succès !</strong>
             <div>Le log d'audit a été supprimé avec succès.</div>
         </div>
     <?php endif; ?>
 
     <?php if (isset($_GET['error'])): ?>
-        <div style="background:rgba(15,76,117,0.04); border-left:4px solid var(--ufhb-blue); padding:12px; border-radius:8px; margin-bottom:14px; color:var(--ufhb-blue);">
+        <div class="bg-primary/5 border-l-4 border-primary p-3 rounded-lg mb-3.5 text-primary">
             <strong>Erreur !</strong>
             <div>
                 <?php
@@ -175,15 +175,15 @@ $auditLog = $GLOBALS['auditLog'];
     <?php endif; ?>
 
     <div class="card" role="region" aria-labelledby="audit-title">
-        <div style="padding:16px 20px; background: var(--ufhb-blue); color:#fff;">
-            <h2 id="audit-title" style="margin:0; font-size:16px; font-weight:700;">
-                <i class="fas fa-history" style="margin-right:8px;"></i>
+        <div class="px-5 py-4 bg-primary text-white">
+            <h2 id="audit-title" class="m-0 text-base font-bold">
+                <i class="fas fa-history mr-2"></i>
                 Piste d'Audit - Historique des Actions
             </h2>
         </div>
 
         <div class="filters">
-            <form method="GET" action="?page=piste_audit" style="display:flex; flex-direction:column; gap:12px;">
+            <form method="GET" action="?page=piste_audit" class="flex flex-col gap-3">
                 <input type="hidden" name="page" value="piste_audit">
                 <div class="filters-row" role="group" aria-label="Filtres d'audit">
                     <div class="filter-group">
@@ -239,9 +239,9 @@ $auditLog = $GLOBALS['auditLog'];
                         </select>
                     </div>
 
-                    <div class="filter-group" style="flex:1;">
+                    <div class="filter-group flex-1">
                         <label class="small">Recherche</label>
-                        <input type="text" name="search" id="search" value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>" placeholder="Rechercher..." class="filter-input" style="width:100%;">
+                        <input type="text" name="search" id="search" value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>" placeholder="Rechercher..." class="filter-input w-full">
                     </div>
 
                     <div class="filter-actions" role="group" aria-label="Actions filtres">
@@ -258,9 +258,9 @@ $auditLog = $GLOBALS['auditLog'];
             </form>
         </div>
 
-        <div class="flex justify-between items-center" style="padding:12px 16px;">
+        <div class="flex justify-between items-center px-4 py-3">
             <div class="small"><strong><?php echo count($auditLog); ?></strong> enregistrements trouvés</div>
-            <div class="actions-row" style="margin-left:auto;">
+            <div class="actions-row ml-auto">
                 <a href="?page=piste_audit&action=export&<?php echo http_build_query(array_filter($_GET, function($key) { return $key !== 'page'; }, ARRAY_FILTER_USE_KEY)); ?>" class="btn btn-blue" title="Exporter">
                     <i class="fas fa-file-export"></i>
                     <span>Exporter</span>
@@ -293,8 +293,8 @@ $auditLog = $GLOBALS['auditLog'];
                 <?php if (empty($auditLog)): ?>
                     <tr>
                         <td colspan="7" class="row-empty">
-                            <div style="text-align:center;">
-                                <i class="fas fa-search" style="font-size:36px;color:#cbd5e1;margin-bottom:12px;"></i>
+                            <div class="text-center">
+                                <i class="fas fa-search text-4xl text-gray-300 mb-3 block"></i>
                                 <div>Aucun log d'audit trouvé pour les critères sélectionnés.</div>
                             </div>
                         </td>
@@ -314,14 +314,14 @@ $auditLog = $GLOBALS['auditLog'];
                             </td>
                             <td><?php echo htmlspecialchars($log['nom_table']); ?></td>
                             <td>
-                                <div style="display:flex;flex-direction:column;">
-                                    <div style="font-weight:600;"><?php echo htmlspecialchars($log['login_utilisateur'] ?? 'N/A'); ?></div>
+                                <div class="flex flex-col">
+                                    <div class="font-semibold"><?php echo htmlspecialchars($log['login_utilisateur'] ?? 'N/A'); ?></div>
                                     <div class="small"><?php echo htmlspecialchars($log['nom_utilisateur'] ?? 'N/A'); ?></div>
                                 </div>
                             </td>
                             <td>
                                 <button type="button" class="btn btn-muted open-delete-modal" data-log-id="<?php echo $log['id_piste']; ?>" title="Supprimer ce log" aria-label="Supprimer le log <?php echo $log['id_piste']; ?>">
-                                    <i class="fas fa-trash-alt" style="color:#374151;"></i>
+                                    <i class="fas fa-trash-alt text-gray-700"></i>
                                 </button>
                             </td>
                         </tr>
@@ -336,16 +336,16 @@ $auditLog = $GLOBALS['auditLog'];
                 <div class="page-info">
                     Affichage de <strong><?php echo (($page - 1) * $perPage) + 1; ?></strong> à <strong><?php echo min($page * $perPage, $totalLogs); ?></strong> sur <strong><?php echo $totalLogs; ?></strong> enregistrements
                 </div>
-                <div style="display:flex; gap:8px; align-items:center;">
+                <div class="flex gap-2 items-center">
                     <?php if ($page > 1): ?>
                         <a href="?page=piste_audit&page_num=<?php echo $page - 1; ?>&<?php echo http_build_query(array_filter($_GET, function($key) { return !in_array($key, ['page', 'page_num']); }, ARRAY_FILTER_USE_KEY)); ?>" class="pagination-item"><i class="fas fa-chevron-left"></i></a>
                     <?php else: ?>
-                        <span class="pagination-item" aria-hidden="true" style="opacity:0.5;"><i class="fas fa-chevron-left"></i></span>
+                        <span class="pagination-item opacity-50" aria-hidden="true"><i class="fas fa-chevron-left"></i></span>
                     <?php endif; ?>
 
                     <?php for ($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
                         <?php if ($i == $page): ?>
-                            <span class="pagination-item" style="background:var(--ufhb-green); color:#fff;"><?php echo $i; ?></span>
+                            <span class="pagination-item bg-accent text-white"><?php echo $i; ?></span>
                         <?php else: ?>
                             <a href="?page=piste_audit&page_num=<?php echo $i; ?>&<?php echo http_build_query(array_filter($_GET, function($key) { return !in_array($key, ['page', 'page_num']); }, ARRAY_FILTER_USE_KEY)); ?>" class="pagination-item"><?php echo $i; ?></a>
                         <?php endif; ?>
@@ -354,27 +354,27 @@ $auditLog = $GLOBALS['auditLog'];
                     <?php if ($page < $totalPages): ?>
                         <a href="?page=piste_audit&page_num=<?php echo $page + 1; ?>&<?php echo http_build_query(array_filter($_GET, function($key) { return !in_array($key, ['page', 'page_num']); }, ARRAY_FILTER_USE_KEY)); ?>" class="pagination-item"><i class="fas fa-chevron-right"></i></a>
                     <?php else: ?>
-                        <span class="pagination-item" aria-hidden="true" style="opacity:0.5;"><i class="fas fa-chevron-right"></i></span>
+                        <span class="pagination-item opacity-50" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
                     <?php endif; ?>
                 </div>
             </div>
         <?php endif; ?>
     </div>
 
-    <div style="margin-top:18px; background:#fff; border-radius:12px; box-shadow:0 8px 24px var(--card-shadow); overflow:hidden;">
-        <div style="padding:12px 16px; background:#eee; color:#111; font-weight:700;">Nettoyage des Logs</div>
-        <div style="padding:16px;">
-            <form id="cleanupForm" method="POST" action="?page=piste_audit&action=cleanup" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
-                <div style="display:flex; flex-direction:column;">
+    <div class="mt-4.5 bg-white rounded-xl shadow-card overflow-hidden">
+        <div class="px-4 py-3 bg-gray-200 text-gray-900 font-bold">Nettoyage des Logs</div>
+        <div class="p-4">
+            <form id="cleanupForm" method="POST" action="?page=piste_audit&action=cleanup" class="flex gap-3 items-end flex-wrap">
+                <div class="flex flex-col">
                     <label class="small">Supprimer les logs de plus de</label>
-                    <input type="number" name="days" min="1" max="365" value="30" required class="filter-input" style="width:140px;">
+                    <input type="number" name="days" min="1" max="365" value="30" required class="filter-input w-36">
                 </div>
                 <div>
-                    <span class="small" style="display:block; margin-bottom:6px;">&nbsp;</span>
+                    <span class="small block mb-1.5">&nbsp;</span>
                     <button type="button" id="openCleanupModalBtn" class="btn btn-blue"><i class="fas fa-trash-alt"></i> Nettoyer</button>
                 </div>
-                <div style="flex:1;">
-                    <p class="small" style="margin:0;">Cette action supprimera définitivement tous les logs d'audit antérieurs à la période spécifiée.</p>
+                <div class="flex-1">
+                    <p class="small m-0">Cette action supprimera définitivement tous les logs d'audit antérieurs à la période spécifiée.</p>
                 </div>
             </form>
         </div>
@@ -382,13 +382,13 @@ $auditLog = $GLOBALS['auditLog'];
 </div>
 
 <!-- Delete Modal -->
-<div id="deleteModal" class="modal-backdrop" style="display:none;">
+<div id="deleteModal" class="modal-backdrop hidden">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-title">
-        <h2 id="delete-title" style="margin:0 0 12px 0; font-size:18px; color:#0f1720;"><i class="fas fa-exclamation-triangle" style="color:var(--ufhb-blue); margin-right:8px;"></i>Confirmation de suppression</h2>
-        <p style="margin:0 0 16px 0; color:#374151;">Êtes-vous sûr de vouloir supprimer ce log d'audit ? Cette action est irréversible.</p>
+        <h2 id="delete-title" class="m-0 mb-3 text-lg text-gray-900"><i class="fas fa-exclamation-triangle text-primary mr-2"></i>Confirmation de suppression</h2>
+        <p class="m-0 mb-4 text-gray-700">Êtes-vous sûr de vouloir supprimer ce log d'audit ? Cette action est irréversible.</p>
         <form id="deleteLogForm" method="POST" action="?page=piste_audit&action=delete_log">
             <input type="hidden" name="log_id" id="deleteLogId" value="">
-            <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <div class="flex justify-end gap-2">
                 <button type="button" id="cancelDeleteBtn" class="btn btn-muted">Annuler</button>
                 <button type="submit" class="btn btn-blue">Supprimer</button>
             </div>
