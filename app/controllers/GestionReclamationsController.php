@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Reclamation.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 
+require_once __DIR__ . '/../utils/CSRFProtection.php';
 class GestionReclamationsController {
 
     private $baseViewPath;
@@ -41,6 +42,9 @@ class GestionReclamationsController {
     public function soumettreReclamations()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Valider le jeton CSRF
+                CSRFProtection::verifyRequest();
+                
             $this->traiterSoumissionReclamation();
         } else {
             // Préparer les données pour la vue

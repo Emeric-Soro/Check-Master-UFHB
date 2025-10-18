@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../models/Action.php';
 
+require_once __DIR__ . '/../utils/CSRFProtection.php';
 class AuditController {
     private $db;
     private $auditLog;

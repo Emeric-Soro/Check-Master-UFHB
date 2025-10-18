@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/InfoStage.php';
 require_once __DIR__ . '/../models/AuditLog.php';   
 
 
+require_once __DIR__ . '/../utils/CSRFProtection.php';
 class CandidatureSoutenanceController {
 
     private $baseViewPath;
@@ -70,6 +71,9 @@ class CandidatureSoutenanceController {
     public function demande_candidature()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Valider le jeton CSRF
+                CSRFProtection::verifyRequest();
+                
             $etudiant_id = $_SESSION['num_etu'];
             
             // Vérifier si l'étudiant a déjà soumis une candidature
@@ -125,6 +129,9 @@ class CandidatureSoutenanceController {
       public function infoStage()
       {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Valider le jeton CSRF
+                CSRFProtection::verifyRequest();
+                
             $etudiant_id = $_SESSION['num_etu'];
 
             $nom_entreprise = $_POST['entreprise'];

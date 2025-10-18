@@ -25,6 +25,7 @@ Check Master UFHB est une application complète pour la gestion des soutenances 
 - 📊 Génération de documents officiels (PV, annexes, attestations)
 - 📧 Notifications par email
 - 🔐 Système d'authentification et gestion des droits d'accès
+- 🛡️ Protection CSRF sur tous les formulaires
 - 📈 Tableaux de bord pour le suivi des soutenances
 
 ## 🛠 Stack Technique
@@ -207,6 +208,56 @@ Check-Master-UFHB/
 - **[FAQ](./docs/FAQ.md)** - Questions fréquentes et résolution de problèmes
 - **[Déploiement](./docs/DEPLOIEMENT.md)** - Guide de déploiement en production
 - **[Contribution](./docs/CONTRIBUTION.md)** - Guide pour les contributeurs
+
+## 🔒 Sécurité
+
+### Protection CSRF
+
+L'application intègre un système complet de protection contre les attaques CSRF (Cross-Site Request Forgery) :
+
+#### Fonctionnement
+
+1. **Génération de jeton** : Un jeton CSRF unique est généré pour chaque session utilisateur lors de la connexion
+2. **Inclusion dans les formulaires** : Tous les formulaires incluent automatiquement un champ caché contenant le jeton CSRF
+3. **Validation côté serveur** : Chaque requête POST est validée pour s'assurer que le jeton CSRF est présent et valide
+4. **Régénération** : Le jeton est régénéré après une connexion réussie pour prévenir les attaques de fixation de session
+
+#### Utilisation dans le code
+
+**Dans les vues (formulaires)** :
+```php
+<form method="post" action="...">
+    <?= CSRFProtection::getTokenField() ?>
+    <!-- Autres champs du formulaire -->
+</form>
+```
+
+**Dans les contrôleurs** :
+```php
+// Valider le jeton CSRF avant de traiter la requête POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    CSRFProtection::verifyRequest();
+    // Traitement de la requête...
+}
+```
+
+#### API de la classe CSRFProtection
+
+- `generateToken()` : Génère un nouveau jeton CSRF
+- `getToken()` : Récupère le jeton CSRF actuel (ou en génère un si inexistant)
+- `validateToken($token)` : Valide un jeton fourni
+- `getTokenField()` : Génère le code HTML du champ caché
+- `verifyRequest()` : Vérifie automatiquement le jeton depuis $_POST (lance une erreur 403 si invalide)
+- `regenerateToken()` : Régénère le jeton (à utiliser après connexion)
+
+### Bonnes pratiques de sécurité
+
+- ✅ Tous les formulaires POST sont protégés par un jeton CSRF
+- ✅ Les mots de passe sont hashés avec `password_hash()` (bcrypt)
+- ✅ Validation et échappement des données utilisateur
+- ✅ Sessions sécurisées avec cookies httponly
+- ⚠️ **En production** : Modifiez les identifiants de base de données par défaut
+- ⚠️ **En production** : Configurez HTTPS pour toutes les communications
 
 ## 🤝 Contribution
 

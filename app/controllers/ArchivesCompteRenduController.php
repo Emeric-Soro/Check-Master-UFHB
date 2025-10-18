@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../models/CompteRendu.php';
 require_once __DIR__ . '/../config/database.php';
 
+require_once __DIR__ . '/../utils/CSRFProtection.php';
 class ArchivesCompteRenduController {
     
     public function index() {

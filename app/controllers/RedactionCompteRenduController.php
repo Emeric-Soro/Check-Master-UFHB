@@ -5,6 +5,7 @@ require_once __DIR__ . '/../models/CompteRendu.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 use Dompdf\Dompdf;
 
+require_once __DIR__ . '/../utils/CSRFProtection.php';
 class RedactionCompteRenduController {
     public function index() {
         $GLOBALS['rapports_valides'] = Valider::getRapportsValides();
@@ -16,6 +17,9 @@ class RedactionCompteRenduController {
 
     public function enregistrer() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Valider le jeton CSRF
+                CSRFProtection::verifyRequest();
+                
             $num_etu = $_POST['num_etu'] ?? null;
             $nom_CR = $_POST['nom_CR'] ?? '';
             $contenu_CR = $_POST['contenu_CR'] ?? '';

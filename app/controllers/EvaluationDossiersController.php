@@ -7,6 +7,7 @@ require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/EvaluationRapport.php';
 require_once __DIR__ . '/../models/AuditLog.php';   
 
+require_once __DIR__ . '/../utils/CSRFProtection.php';
 class EvaluationDossiersController {
     private $auditLog;
     private $db;
@@ -89,6 +90,9 @@ class EvaluationDossiersController {
             error_log("DEBUG: POST params: " . print_r($_POST, true));
             
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Valider le jeton CSRF
+                CSRFProtection::verifyRequest();
+                
                 $action = $_POST['action'] ?? $_GET['action'] ?? '';
                 error_log("DEBUG: Action récupérée: '$action'");
                 

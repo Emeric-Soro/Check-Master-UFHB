@@ -7,6 +7,7 @@ require_once __DIR__ . "/../models/TypeUtilisateur.php";
 require_once __DIR__ . "/../models/GroupeUtilisateur.php";
 require_once __DIR__ . "/../models/NiveauAccesDonnees.php";
 require_once __DIR__ . "/../models/AuditLog.php";
+require_once __DIR__ . "/../utils/CSRFProtection.php";
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
@@ -77,6 +78,9 @@ class GestionUtilisateurController
 
             // Gestion des actions POST
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Valider le jeton CSRF pour toutes les requêtes POST
+                CSRFProtection::verifyRequest();
+                
                 // Ajout d'un nouvel utilisateur
                 if (isset($_POST['btn_add_utilisateur'])) {
                     $nom_utilisateur = $_POST['nom_utilisateur'] ?? '';
