@@ -154,6 +154,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                                             <form method="post"
                                                 action="?page=gestion_reclamations_scolarite&action=changer_statut&id=<?= $rec->id_reclamation ?>"
                                                 class="flex items-center space-x-2">
+                                                <?= CSRFProtection::getTokenField() ?>
                                                 <select name="nouveau_statut"
                                                     class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-green-500 focus:border-green-500">
                                                     <option value="En attente"

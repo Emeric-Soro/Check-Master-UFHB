@@ -12,6 +12,7 @@ require_once __DIR__ . '/../models/AuditLog.php';
 
 
 
+require_once __DIR__ . '/../utils/CSRFProtection.php';
 class NotesController {
     private $noteModel;
     private $etudiantModel;
@@ -69,6 +70,9 @@ class NotesController {
 
     public function enregistrerNotes() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_enregistrer_notes'])) {
+            // Valider le jeton CSRF
+            CSRFProtection::verifyRequest();
+            
             $success = true;
             $studentId = $_GET['student'] ?? null;
             

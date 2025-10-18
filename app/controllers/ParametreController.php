@@ -21,6 +21,7 @@ require_once __DIR__ . '/../models/Attribution.php';
 require_once __DIR__ . '/../models/Enseignant.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 
+require_once __DIR__ . '/../utils/CSRFProtection.php';
 class ParametreController
 {
     private $baseViewPath;
@@ -1175,6 +1176,9 @@ class ParametreController
 
         // Traiter le formulaire de soumission
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_GU'])) {
+            // Valider le jeton CSRF
+            CSRFProtection::verifyRequest();
+            
             $this->handleAttributionSubmit($_POST);
         }
 

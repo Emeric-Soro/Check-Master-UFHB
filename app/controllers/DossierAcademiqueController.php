@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../models/AuditLog.php';   
 
 
+require_once __DIR__ . '/../utils/CSRFProtection.php';
 class DossierAcademiqueController {
     private $model;
     private $auditLog;
@@ -31,6 +32,9 @@ class DossierAcademiqueController {
     public function enregsitrer_dossier() {
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Valider le jeton CSRF
+                CSRFProtection::verifyRequest();
+                
             $data = $_POST;
             $success = $this->model->saveOrUpdate($data);
             if($success){

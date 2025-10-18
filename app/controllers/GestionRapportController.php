@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 
 
+require_once __DIR__ . '/../utils/CSRFProtection.php';
 class GestionRapportController {
 
     private $baseViewPath;
@@ -148,6 +149,9 @@ class GestionRapportController {
     public function creerRapport()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Valider le jeton CSRF
+                CSRFProtection::verifyRequest();
+                
             $this->traiterCreationRapport();
         } else {
             global $rapport, $erreurs, $isEditMode, $contenuRapport;

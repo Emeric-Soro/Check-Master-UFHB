@@ -4,6 +4,7 @@ require_once __DIR__ . '/../models/Scolarite.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 
+require_once __DIR__ . '/../utils/CSRFProtection.php';
 class GestionScolariteController {
     private $scolariteModel;
     private $anneeAcademique;
@@ -49,6 +50,9 @@ class GestionScolariteController {
 
         // Traiter la soumission du formulaire
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Valider le jeton CSRF
+                CSRFProtection::verifyRequest();
+                
             if (isset($_GET['action'])) {
                 switch ($_GET['action']) {
                     case 'enregistrer_versement':

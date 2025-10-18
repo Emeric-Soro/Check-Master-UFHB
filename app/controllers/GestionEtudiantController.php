@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . "/../models/Etudiant.php";
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/CSRFProtection.php';
 
 
 class GestionEtudiantController
@@ -85,6 +86,9 @@ class GestionEtudiantController
 
             // Gestion des actions POST
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Valider le jeton CSRF pour toutes les requêtes POST
+                CSRFProtection::verifyRequest();
+                
                 // Ajout d'un nouvel étudiant
                 if (isset($_POST['submit_add_etudiant'])) {
                     // Validation des champs

@@ -1,6 +1,9 @@
 <?php
 session_start();
-$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+require_once __DIR__.'/../app/utils/CSRFProtection.php';
+
+// Générer un jeton CSRF pour le formulaire de connexion
+CSRFProtection::generateToken();
 $errorMessage = isset($_SESSION['error']) ? htmlspecialchars($_SESSION['error']) : '';
 ?>
 <!DOCTYPE html>
@@ -100,7 +103,7 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars($_SESSION['error'])
                         </div>
                     <?php endif; ?>
                     <form action="login.php" method="POST" class="space-y-5" autocomplete="off">
-                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                        <?= CSRFProtection::getTokenField() ?>
                         <div class="space-y-2">
                             <label for="login" class="text-sm font-semibold text-slate-800">Adresse e-mail</label>
                             <div class="relative">
