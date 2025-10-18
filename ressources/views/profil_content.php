@@ -26,8 +26,8 @@ $date_embauche = $_SESSION['date_embauche'] ?? '';
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <style>
         :root {
-            --ufhb-blue: #0F4C75;
-            --ufhb-blue-light: #3282B8;
+            --ufhb-blue: #1a5276;
+            --ufhb-blue-light: #2980b9;
             --ufhb-green: #10b981;
             --muted: #64748B;
             --bg: #F8FAFC;

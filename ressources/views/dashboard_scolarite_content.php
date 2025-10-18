@@ -15,19 +15,19 @@ $inscriptionsParNiveau = $dashboardData['inscriptionsParNiveau'];
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root{--blue:#0F4C75;--blue-light:#3282B8;--green:#10b981;--warning:#f59e0b;--danger:#ef4444}
+        :root{--blue:#1a5276;--blue-light:#2980b9;--green:#10b981;--warning:#f59e0b;--danger:#ef4444}
         @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         .hover-scale{transition:transform .3s ease}
         .hover-scale:hover{transform:scale(1.03)}
-        .gradient-blue{background:linear-gradient(135deg,var(--blue),var(--blue-light))}
+        .gradient-blue{background:linear-gradient(135deg,var(--primary),var(--primary-light))}
         .gradient-green{background:linear-gradient(135deg,var(--green),#059669)}
-        .gradient-yellow{background:linear-gradient(135deg,var(--blue),var(--green))}
+        .gradient-yellow{background:linear-gradient(135deg,var(--primary),var(--green))}
         .gradient-red{background:linear-gradient(135deg,var(--green),#0b8b55)}
         .bg-blue-100{background-color:rgba(15,76,117,0.08)}
-        .text-blue-500{color:var(--blue)}
+        .text-blue-500{color:var(--primary)}
         </style>
 </head>
-<body class="font-sans antialiased bg-gray-50">
+<body class="font-poppins antialiased bg-gray-50">
 <div class="flex h-screen overflow-hidden">
     <div class="flex-1 p-4 md:p-6 overflow-y-auto">
         <div class="max-w-7xl mx-auto">
@@ -154,7 +154,7 @@ $inscriptionsParNiveau = $dashboardData['inscriptionsParNiveau'];
                 label: 'Nombre d\'inscriptions',
                 data: inscriptionsData,
                 backgroundColor: ['rgba(15,76,117,0.5)','rgba(16,185,129,0.5)','rgba(15,76,117,0.5)','rgba(15,76,117,0.5)','rgba(16,185,129,0.5)'],
-                borderColor: ['#0F4C75','#10b981','#0F4C75','#0F4C75','#10b981'],
+                borderColor: ['#1a5276','#10b981','#1a5276','#1a5276','#10b981'],
                 borderWidth: 1
             }]
         },

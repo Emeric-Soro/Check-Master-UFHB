@@ -133,12 +133,12 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                             <?php echo date('d/m/Y', strtotime($rapport['date_depot'])); ?>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 hover:text-green-800">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 hover:text-primary">
                             <?php echo htmlspecialchars($rapport['nom_pers_admin'] . ' ' . $rapport['prenom_pers_admin']); ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <span
-                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $rapport['statut_approbation'] === 'approuve' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700'; ?>">
+                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $rapport['statut_approbation'] === 'approuve' ? 'bg-green-100 text-primary' : 'bg-red-100 text-red-700'; ?>">
                                 <i
                                     class="<?php echo $rapport['statut_approbation'] === 'approuve' ? 'fa-solid fa-circle-check text-green-500' : 'fa-solid fa-circle-xmark text-red-400'; ?>"></i>
                                 <?php echo $rapport['statut_approbation'] === 'approuve' ? 'Approuvé' : 'Désapprouvé'; ?>

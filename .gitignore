@@ -4,4 +4,7 @@ public/assets/css/output_dashboard_admin.css
 .DS_Store
 /vendor/
 cache/
-*.cache
+*.cache*.bak
+*.backup
+src/input_old.css
+src/input.css.backup

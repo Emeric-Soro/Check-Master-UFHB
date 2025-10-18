@@ -303,7 +303,7 @@ $anneeAcademiqueCourante = $controller->getAnneeAcademiqueCourante();
 
                                     if ($noteTotale >= 16) {
                                         $mention = 'Très Bien';
-                                        $mentionClass = 'bg-green-100 text-green-800';
+                                        $mentionClass = 'bg-green-100 text-primary';
                                     } elseif ($noteTotale >= 14) {
                                         $mention = 'Bien';
                                         $mentionClass = 'bg-blue-100 text-blue-800';
@@ -329,7 +329,7 @@ $anneeAcademiqueCourante = $controller->getAnneeAcademiqueCourante();
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <?php if ($soutenance['est_evalue'] > 0): ?>
                                     <span
-                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-primary">
                                         <i class="fas fa-check-circle mr-1"></i>
                                         Évalué
                                     </span>

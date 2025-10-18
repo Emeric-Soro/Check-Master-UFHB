@@ -34,7 +34,7 @@ $mes_cours = $GLOBALS['mes_cours'] ?? [];
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root{--primary:#0F4C75;--accent:#3282B8;--muted:#64748B;--success:#10b981}
+        :root{--primary:#1a5276;--accent:#2980b9;--muted:#64748B;--success:#10b981}
         .stat-card{transition:all .3s ease}
         .stat-card:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(0,0,0,.1)}
         .bg-gradient-to-br.from-blue-400{background:linear-gradient(135deg,var(--primary),var(--accent)) !important}
@@ -44,7 +44,7 @@ $mes_cours = $GLOBALS['mes_cours'] ?? [];
     </style>
 </head>
 
-<body class="font-sans bg-[#F8F7FA] text-gray-600 leading-relaxed p-5">
+<body class="font-poppins bg-[#F8F7FA] text-gray-600 leading-relaxed p-5">
 
 <div class="container mx-auto px-4 max-w-screen-xl">
     <!-- Header -->

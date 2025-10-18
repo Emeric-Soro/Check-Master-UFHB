@@ -455,7 +455,7 @@ function traduireStatut($statut)
                                     <td class="text-center">
                                         <?php if ($approb === 'approuve'): ?>
                                             <span
-                                                class="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-semibold">
+                                                class="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-primary text-sm font-semibold">
                                                 <i class="fas fa-check mr-2"></i> Approuvé
                                             </span>
                                         <?php elseif ($approb === 'desapprouve' || $approb === 'rejete'): ?>

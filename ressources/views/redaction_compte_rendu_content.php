@@ -130,7 +130,7 @@ if (!empty($_SESSION['success'])) {
         }
     </style>
 </head>
-<body class="font-sans antialiased bg-gray-50">
+<body class="font-poppins antialiased bg-gray-50">
     <div class="flex h-screen overflow-hidden">
         <!-- Main content -->
         <div class="flex flex-col flex-1 overflow-hidden">
@@ -637,7 +637,7 @@ if (!empty($_SESSION['success'])) {
                         <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
                             <div class="flex items-center justify-between mb-3">
                                 <h4 class="font-semibold text-gray-800">Rapport ${index + 1} : ${data.title}</h4>
-                                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${data.status}</span>
+                                <span class="bg-green-100 text-primary text-xs font-medium px-2.5 py-0.5 rounded-full">${data.status}</span>
                             </div>
                             <div class="grid grid-cols-2 gap-3 text-sm">
                                 <div><span class="font-medium text-gray-700">Étudiant :</span> <span class="text-gray-900">${data.student}</span></div>
@@ -657,7 +657,7 @@ if (!empty($_SESSION['success'])) {
 
                     data.evaluations.forEach(eval => {
                     const bgColor = eval.decision === 'Validé' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
-                    const textColor = eval.decision === 'Validé' ? 'text-green-800' : 'text-red-800';
+                    const textColor = eval.decision === 'Validé' ? 'text-primary' : 'text-red-800';
 
                         allEvaluationsHTML += `
                             <div class="p-3 border rounded-lg ${bgColor} mb-2">
@@ -818,7 +818,7 @@ if (!empty($_SESSION['success'])) {
                 case 'recommendation':
                     sectionHTML = `
                         <div class="mb-4 p-4 border-l-4 border-green-500 bg-green-50">
-                            <h4 class="font-semibold text-green-800 mb-2">Recommandation</h4>
+                            <h4 class="font-semibold text-primary mb-2">Recommandation</h4>
                             <p>[Votre recommandation...]</p>
                         </div>
                     `;

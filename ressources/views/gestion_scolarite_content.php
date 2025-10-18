@@ -88,7 +88,7 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
     </style>
 </head>
 
-<body class="font-sans antialiased bg-gray-50">
+<body class="font-poppins antialiased bg-gray-50">
     <!-- Système de notification -->
     <?php if (isset($GLOBALS['messageSuccess']) && !empty($GLOBALS['messageSuccess'])): ?>
     <div id="successNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">

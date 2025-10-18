@@ -270,7 +270,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                                            <?php if(strtolower($rec->statut_reclamation) === 'résolue' || strtolower($rec->statut_reclamation) === 'traitée') echo 'bg-green-100 text-green-800';
+                                            <?php if(strtolower($rec->statut_reclamation) === 'résolue' || strtolower($rec->statut_reclamation) === 'traitée') echo 'bg-green-100 text-primary';
                                                   elseif(strtolower($rec->statut_reclamation) === 'rejeté' || strtolower($rec->statut_reclamation) === 'rejetée') echo 'bg-red-100 text-red-800';
                                                   else echo 'bg-gray-100 text-gray-800'; ?>">
                                             <?= htmlspecialchars($rec->statut_reclamation) ?>
@@ -722,7 +722,7 @@ function showReclamationDetails(rec) {
                 <h4 class="font-semibold text-gray-900 mb-2">Statut</h4>
                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
                     ${rec.statut_reclamation === 'en attente' ? 'bg-yellow-100 text-yellow-800' : 
-                      rec.statut_reclamation === 'résolue' || rec.statut_reclamation === 'traitée' ? 'bg-green-100 text-green-800' :
+                      rec.statut_reclamation === 'résolue' || rec.statut_reclamation === 'traitée' ? 'bg-green-100 text-primary' :
                       rec.statut_reclamation === 'rejeté' || rec.statut_reclamation === 'rejetée' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}">
                     ${rec.statut_reclamation}
                 </span>

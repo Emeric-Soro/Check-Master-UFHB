@@ -3,7 +3,7 @@
 <!-- Messages -->
 <?php if (isset($_SESSION['message'])): ?>
 <div
-    class="mb-6 p-4 rounded-lg <?php echo $_SESSION['message']['type'] === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'; ?>">
+    class="mb-6 p-4 rounded-lg <?php echo $_SESSION['message']['type'] === 'success' ? 'bg-green-100 text-primary border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'; ?>">
     <i
         class="fas <?php echo $_SESSION['message']['type'] === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'; ?> mr-2"></i>
     <?php echo htmlspecialchars($_SESSION['message']['text']); ?>
@@ -197,7 +197,7 @@
                                     <?php
                                 switch($rec['type_reclamation']) {
                                     case 'Académique': echo 'bg-blue-100 text-blue-800'; break;
-                                    case 'Financière': echo 'bg-green-100 text-green-800'; break;
+                                    case 'Financière': echo 'bg-green-100 text-primary'; break;
                                     case 'Administrative': echo 'bg-gray-100 text-gray-800'; break;
                                     case 'Technique': echo 'bg-purple-100 text-purple-800'; break;
                                     default: echo 'bg-gray-100 text-gray-800';
@@ -215,7 +215,7 @@
                                 switch($rec['statut_reclamation']) {
                                     case 'En attente': echo 'bg-yellow-100 text-yellow-800'; break;
                                     case 'En cours': echo 'bg-purple-100 text-purple-800'; break;
-                                    case 'Résolue': echo 'bg-green-100 text-green-800'; break;
+                                    case 'Résolue': echo 'bg-green-100 text-primary'; break;
                                     case 'Rejetée': echo 'bg-red-100 text-red-800'; break;
                                     default: echo 'bg-gray-100 text-gray-800';
                                 }

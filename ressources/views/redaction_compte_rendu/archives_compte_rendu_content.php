@@ -61,7 +61,7 @@
         }
     </style>
 </head>
-<body class="font-sans antialiased bg-gray-50">
+<body class="font-poppins antialiased bg-gray-50">
     <div class="flex h-screen overflow-hidden">
         <!-- Main content -->
         <div class="flex flex-col flex-1 overflow-hidden">
@@ -166,7 +166,7 @@
                                             <h4 class="text-lg font-semibold text-gray-900">
                                                 <?php echo htmlspecialchars($archive['nom_CR']); ?>
                                             </h4>
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-primary">
                                                 <i class="fas fa-check mr-1"></i>Finalisé
                                             </span>
                                         </div>
@@ -187,7 +187,7 @@
                                     </div>
                                     <div class="flex items-center space-x-2 ml-4">
                                         
-                                        <button onclick="window.location.href='layout.php?page=archive_comptes_rendus&action=download_pdf&chemin=<?php echo urlencode($archive['chemin_fichier_pdf']); ?>'" class="flex items-center px-3 py-1 text-sm text-green-600 hover:text-green-800">
+                                        <button onclick="window.location.href='layout.php?page=archive_comptes_rendus&action=download_pdf&chemin=<?php echo urlencode($archive['chemin_fichier_pdf']); ?>'" class="flex items-center px-3 py-1 text-sm text-green-600 hover:text-primary">
                                             <i class="fas fa-download mr-1"></i>PDF
                                         </button>
                                        

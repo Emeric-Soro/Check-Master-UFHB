@@ -105,7 +105,7 @@
                             <!-- Les barèmes seront ajoutés dynamiquement -->
                         </div>
                         <button type="button" onclick="addBaremeRow()"
-                            class="mt-3 text-green-600 hover:text-green-800 text-sm font-medium">
+                            class="mt-3 text-green-600 hover:text-primary text-sm font-medium">
                             <i class="fas fa-plus mr-1"></i>Ajouter une année
                         </button>
                     </div>
@@ -235,7 +235,7 @@
                         </div>
                     </td>
                     <td class="px-6 py-4">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${critere.baremes.length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${critere.baremes.length > 0 ? 'bg-green-100 text-primary' : 'bg-yellow-100 text-yellow-800'
                 }">
                             ${critere.baremes.length > 0 ? 'Configuré' : 'Non configuré'}
                         </span>

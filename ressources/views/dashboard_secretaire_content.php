@@ -365,7 +365,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                                                     $statutText = 'En attente';
                                                     break;
                                                 case 'Résolue':
-                                                    $statutClass = 'bg-green-100 text-green-800';
+                                                    $statutClass = 'bg-green-100 text-primary';
                                                     $statutText = 'Résolue';
                                                     break;
                                                 default:
@@ -445,7 +445,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span
-                                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-primary">
                                         Résolue
                                     </span>
                                 </td>

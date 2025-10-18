@@ -21,7 +21,7 @@ function getTimeAgo($date) {
 
 function getStatusClass($status) {
     switch ($status) {
-        case 'valider': return 'bg-green-100 text-green-800';
+        case 'valider': return 'bg-green-100 text-primary';
         case 'rejeter': return 'bg-red-100 text-red-800';
         case 'en_attente': return 'bg-blue-100 text-blue-800';
         case 'en_cours': return 'bg-blue-100 text-blue-800';
@@ -40,7 +40,7 @@ foreach ($evolutionData as $data) {
 
 $statusLabels = [];
 $statusData = [];
-$statusColors = ['#10b981','#0F4C75', '#f59e0b', '#6b7280', '#0F4C75'];
+$statusColors = ['#10b981','#1a5276', '#f59e0b', '#6b7280', '#1a5276'];
 
 foreach ($repartitionData as $data) {
     $statusLabels[] = ucfirst($data['statut']);
@@ -56,18 +56,18 @@ foreach ($repartitionData as $data) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
-        :root{--blue:#0F4C75;--blue-light:#3282B8;--green:#10b981;--muted:#64748B}
+        :root{--blue:#1a5276;--blue-light:#2980b9;--green:#10b981;--muted:#64748B}
         .fade-in{animation:fadeIn .3s ease-in}
         @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         .stat-card{transition:all .3s ease}
         .stat-card:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(0,0,0,.1)}
         .chart-container{position:relative;height:300px}
-        .metric-value{font-size:2.5rem;font-weight:700;background:linear-gradient(135deg,var(--blue),#155a84);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .metric-value{font-size:2.5rem;font-weight:700;background:linear-gradient(135deg,var(--primary),#155a84);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .bg-blue-100{background-color:rgba(15,76,117,0.08) !important}
-        .text-blue-600{color:var(--blue)}
+        .text-blue-600{color:var(--primary)}
         </style>
 </head>
-<body class="font-sans antialiased bg-gray-50">
+<body class="font-poppins antialiased bg-gray-50">
 <div class="flex h-screen overflow-hidden">
     <div class="flex-1 overflow-y-auto bg-gray-50">
         <div class="max-w-7xl mx-auto p-6">
@@ -144,7 +144,7 @@ foreach ($repartitionData as $data) {
                             <?php foreach ($rapportsDetails as $rapport): ?>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-sm">
-                                            <span class="px-2 py-1 text-xs rounded-full <?php echo $rapport['statut'] === 'valider' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
+                                            <span class="px-2 py-1 text-xs rounded-full <?php echo $rapport['statut'] === 'valider' ? 'bg-green-100 text-primary' : 'bg-red-100 text-red-800'; ?>">
                                                 <?php echo ucfirst($rapport['statut']); ?>
                                             </span>
                                     </td>
@@ -285,7 +285,7 @@ foreach ($repartitionData as $data) {
                             <?php foreach ($dashboardData['evaluations_rapports'] as $eval): ?>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-sm">
-                                            <span class="px-2 py-1 text-xs rounded-full <?php echo $eval['decision_evaluation'] === 'valider' ? 'bg-green-100 text-green-800' : ($eval['decision_evaluation'] === 'rejeter' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'); ?>">
+                                            <span class="px-2 py-1 text-xs rounded-full <?php echo $eval['decision_evaluation'] === 'valider' ? 'bg-green-100 text-primary' : ($eval['decision_evaluation'] === 'rejeter' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'); ?>">
                                                 <?php echo ucfirst($eval['decision_evaluation']); ?>
                                             </span>
                                     </td>
@@ -329,7 +329,7 @@ foreach ($repartitionData as $data) {
 
 <script>
     let evolutionChart, statusChart;
-    const evolutionData = { labels: <?php echo json_encode($evolutionLabels); ?>, datasets: [{ label: 'Finalisés', data: <?php echo json_encode($evolutionFinalises); ?>, borderColor: '#0F4C75', backgroundColor: 'rgba(15,76,117,0.08)', tension: 0.4, fill: true }, { label: 'Rejetés', data: <?php echo json_encode($evolutionRejetes); ?>, borderColor: '#0F4C75', backgroundColor: 'rgba(15,76,117,0.06)', tension: 0.4, fill: true }] };
+    const evolutionData = { labels: <?php echo json_encode($evolutionLabels); ?>, datasets: [{ label: 'Finalisés', data: <?php echo json_encode($evolutionFinalises); ?>, borderColor: '#1a5276', backgroundColor: 'rgba(15,76,117,0.08)', tension: 0.4, fill: true }, { label: 'Rejetés', data: <?php echo json_encode($evolutionRejetes); ?>, borderColor: '#1a5276', backgroundColor: 'rgba(15,76,117,0.06)', tension: 0.4, fill: true }] };
     const statusData = { labels: <?php echo json_encode($statusLabels); ?>, datasets: [{ data: <?php echo json_encode($statusData); ?>, backgroundColor: <?php echo json_encode($statusColors); ?>, borderWidth: 0 }] };
 
     function initCharts() {

@@ -20,13 +20,13 @@ foreach ($candidatures_etudiant as $cand) {
     <title>Candidater à la soutenance</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
-        :root{--blue:#0F4C75;--blue-light:#3282B8;--green:#10b981;--muted:#64748B}
-        .text-blue-500{color:var(--blue) !important}
-        .bg-blue-500{background-color:var(--blue) !important}
+        :root{--blue:#1a5276;--blue-light:#2980b9;--green:#10b981;--muted:#64748B}
+        .text-blue-500{color:var(--primary) !important}
+        .bg-blue-500{background-color:var(--primary) !important}
         .bg-green-500{background-color:var(--green) !important}
-        .card-btn{background:linear-gradient(135deg,var(--blue),var(--blue-light)) !important}
+        .card-btn{background:linear-gradient(135deg,var(--primary),var(--primary-light)) !important}
         .card{background:#ffffff}
-        .card-icon svg{color:var(--blue)}
+        .card-icon svg{color:var(--primary)}
         .bg-red-100{background-color:rgba(15,76,117,0.08)}
         .bg-yellow-100{background-color:rgba(16,185,129,0.08)}
         .rounded-lg{border-radius:0.5rem}

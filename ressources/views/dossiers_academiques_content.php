@@ -51,7 +51,7 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
-<body class="bg-gradient-to-br from-blue-50 to-green-50 min-h-screen font-sans">
+<body class="bg-gradient-to-br from-blue-50 to-green-50 min-h-screen font-poppins">
     <div class="max-w-5xl mx-auto py-10 ">
         <h1 class="text-3xl font-bold text-green-700 mb-8 flex items-center gap-3">
             <i class="fas fa-folder-open text-green-400"></i> Dossiers académiques des étudiants

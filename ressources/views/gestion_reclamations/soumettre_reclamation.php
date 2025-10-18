@@ -34,7 +34,7 @@
         <!-- Messages d'erreur -->
         <?php if (isset($_SESSION['message'])): ?>
         <div
-            class="p-4 <?php echo $_SESSION['message']['type'] === 'success' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'; ?> border">
+            class="p-4 <?php echo $_SESSION['message']['type'] === 'success' ? 'bg-green-100 text-primary border-green-300' : 'bg-red-100 text-red-800 border-red-300'; ?> border">
             <i
                 class="fas <?php echo $_SESSION['message']['type'] === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'; ?> mr-2"></i>
             <?php echo htmlspecialchars($_SESSION['message']['text']); ?>

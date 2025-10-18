@@ -2,17 +2,17 @@
 function getActionColor($action) {
     switch ($action) {
         case 'Création':
-            return 'bg-green-100 text-green-800';
+            return 'bg-green-100 text-primary';
         case 'Modification':
             return 'bg-blue-100 text-blue-800';
         case 'Suppression':
             return 'bg-blue-100 text-blue-800';
         case 'Connexion':
-            return 'bg-green-100 text-green-800';
+            return 'bg-green-100 text-primary';
         case 'Déconnexion':
             return 'bg-blue-100 text-blue-800';
         case 'Validation':
-            return 'bg-green-100 text-green-800';
+            return 'bg-green-100 text-primary';
         case 'Rejet':
             return 'bg-blue-100 text-blue-800';
         case 'Sauvegarde':
@@ -41,8 +41,8 @@ $auditLog = $GLOBALS['auditLog'];
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
     <style>
         :root{
-            --ufhb-blue: #0F4C75;
-            --ufhb-blue-light: #3282B8;
+            --ufhb-blue: #1a5276;
+            --ufhb-blue-light: #2980b9;
             --ufhb-green: #10b981;
             --muted: #64748B;
             --bg: #F7FAFC;
