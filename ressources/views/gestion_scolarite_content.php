@@ -92,15 +92,15 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
     <!-- Système de notification -->
     <?php if (isset($GLOBALS['messageSuccess']) && !empty($GLOBALS['messageSuccess'])): ?>
     <div id="successNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg flex items-center">
+        <div class="bg-green-100 border-l-4 border-accent text-green-700 p-4 rounded shadow-lg flex items-center">
             <div class="flex-shrink-0">
-                <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                <i class="fas fa-check-circle text-accent text-xl"></i>
             </div>
             <div class="ml-3">
                 <p class="text-sm font-medium"><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
             </div>
             <button onclick="this.parentElement.parentElement.remove()" class="ml-auto pl-3">
-                <i class="fas fa-times text-green-500 hover:text-green-700"></i>
+                <i class="fas fa-times text-accent hover:text-green-700"></i>
             </button>
         </div>
     </div>
@@ -108,15 +108,15 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
 
     <?php if (isset($GLOBALS['messageErreur']) && !empty($GLOBALS['messageErreur'])): ?>
     <div id="errorNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg flex items-center">
+        <div class="bg-red-100 border-l-4 border-danger text-red-700 p-4 rounded shadow-lg flex items-center">
             <div class="flex-shrink-0">
-                <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>
+                <i class="fas fa-exclamation-circle text-danger text-xl"></i>
             </div>
             <div class="ml-3">
                 <p class="text-sm font-medium"><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
             </div>
             <button onclick="this.parentElement.parentElement.remove()" class="ml-auto pl-3">
-                <i class="fas fa-times text-red-500 hover:text-red-700"></i>
+                <i class="fas fa-times text-danger hover:text-red-700"></i>
             </button>
         </div>
     </div>
@@ -143,7 +143,7 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                                 <p class="text-2xl font-bold text-gray-800"><?php echo $complete; ?></p>
                                 <p class="text-xs text-gray-500"><?php echo $pourcentageComplete; ?>% des étudiants</p>
                             </div>
-                            <div class="p-3 rounded-full bg-green-100 text-green-500">
+                            <div class="p-3 rounded-full bg-green-100 text-accent">
                                 <i class="fas fa-check-circle text-xl"></i>
                             </div>
                         </div>
@@ -169,7 +169,7 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                                 <p class="text-2xl font-bold text-gray-800"><?php echo $totalEtudiants; ?></p>
                                 <p class="text-xs text-gray-500"><?php echo $pourcentagePending; ?>% des étudiants</p>
                             </div>
-                            <div class="p-3 rounded-full bg-red-100 text-red-500">
+                            <div class="p-3 rounded-full bg-red-100 text-danger">
                                 <i class="fas fa-times-circle text-xl"></i>
                             </div>
                         </div>
@@ -194,9 +194,9 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                                 <div>
                                     <label for="studentSelect"
                                         class="block text-sm font-medium text-gray-700 mb-1">Étudiant <span
-                                            class="text-red-500">*</span></label>
+                                            class="text-danger">*</span></label>
                                     <select id="studentSelect" name="id_etudiant" required
-                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-primary">
                                         <option value="">Sélectionner un étudiant</option>
                                         <?php foreach ($etudiantsInscrits as $etudiant): ?>
                                         <option value="<?php echo $etudiant['id_etudiant']; ?>"
@@ -213,14 +213,14 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                                 <div>
                                     <label for="paymentAmount"
                                         class="block text-sm font-medium text-gray-700 mb-1">Montant <span
-                                            class="text-red-500">*</span></label>
+                                            class="text-danger">*</span></label>
                                     <div class="relative mt-1">
                                         <div
                                             class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <span class="text-gray-500">FCFA</span>
                                         </div>
                                         <input type="number" id="paymentAmount" name="montant" required
-                                            class="block w-full pl-16 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            class="block w-full pl-16 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-primary"
                                             placeholder="0"
                                             value="<?php echo isset($GLOBALS['versementAModifier']) ? $GLOBALS['versementAModifier']['montant'] : ''; ?>">
                                     </div>
@@ -229,9 +229,9 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                                 <div>
                                     <label for="paymentMethod"
                                         class="block text-sm font-medium text-gray-700 mb-1">Méthode <span
-                                            class="text-red-500">*</span></label>
+                                            class="text-danger">*</span></label>
                                     <select id="paymentMethod" name="methode_paiement" required
-                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-primary">
                                         <option value="">Sélectionner une méthode de paiement</option>
                                         <option value="Espèce"
                                             <?php echo (isset($GLOBALS['versementAModifier']) && $GLOBALS['versementAModifier']['methode_paiement'] == 'Espèce') ? 'selected' : ''; ?>>
@@ -250,7 +250,7 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                             </div>
                             <div class="flex justify-end mt-4">
                                 <button type="submit" id="submitButton"
-                                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                    class="bg-primary text-white px-4 py-2 rounded hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                                     <?php echo isset($GLOBALS['versementAModifier']) ? 'Mettre à jour' : 'Enregistrer'; ?>
                                 </button>
                             </div>
@@ -271,11 +271,11 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                             </div>
                             <div class="flex space-x-2">
                                 <button type="button" onclick="exporterVersements()"
-                                    class="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition">
+                                    class="px-3 py-2 bg-accent text-white rounded hover:bg-accent transition">
                                     <i class="fas fa-file-excel mr-1"></i> Exporter
                                 </button>
                                 <button type="button" onclick="imprimerListeVersements()"
-                                    class="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
+                                    class="px-3 py-2 bg-primary text-white rounded hover:bg-primary-light transition">
                                     <i class="fas fa-print mr-1"></i> Imprimer
                                 </button>
                             </div>
@@ -342,13 +342,13 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                                             <div class="flex items-center justify-center space-x-2">
                                                 <?php if ($versement['type_versement'] === 'Tranche'): ?>
                                                 <a href="?page=gestion_scolarite&action=mettre_a_jour_versement&id=<?php echo $versement['id_versement']; ?>"
-                                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200">
+                                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200">
                                                     <i class="fas fa-edit mr-1"></i>
                                                 </a>
                                                 <?php endif; ?>
                                                 <button
                                                     onclick="imprimerRecu(<?php echo $versement['id_versement']; ?>)"
-                                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2  transition-all duration-200">
+                                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-accent focus:outline-none focus:ring-2 focus:ring-offset-2  transition-all duration-200">
                                                     <i class="fas fa-print mr-1"></i>
                                                 </button>
                                             </div>

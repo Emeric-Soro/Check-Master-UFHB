@@ -189,7 +189,7 @@ if (isset($_SESSION['num_etu'])) {
                 <div class="flex justify-end space-x-4">
                     <button type="button" onclick="fermerModalSuppression()"
                         class="px-4 py-2 text-gray-600 hover:text-gray-800">Annuler</button>
-                    <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                    <button type="submit" class="px-4 py-2 bg-danger text-white rounded hover:bg-red-600">
                         <i class="fas fa-trash mr-2"></i>Supprimer définitivement
                     </button>
                 </div>
@@ -264,7 +264,7 @@ if (isset($_SESSION['num_etu'])) {
                 </div>
             </div>
             <div class="bg-gradient-to-r from-white to-transparent bg-opacity-10 h-1"></div>
-            <div class="px-6 py-4 bg-green-500 bg-opacity-10">
+            <div class="px-6 py-4 bg-accent bg-opacity-10">
                 <div class="flex justify-between items-center">
                     <span class="text-xs text-white text-opacity-70">En temps réel</span>
                     <span class="text-xs font-medium bg-green-800 px-2 py-1 rounded-full">Étape 2</span>
@@ -355,7 +355,7 @@ if (isset($_SESSION['num_etu'])) {
                                     <input type="hidden" name="id_rapport" value="<?= $rapport->id_rapport ?>">
                                     <input type="hidden" name="action" value="deposer_rapport">
                                     <button type="submit"
-                                        class="bg-blue-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                                        class="bg-primary hover:bg-purple-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                         <i class="fas fa-upload mr-1"></i> Déposer
                                     </button>
                                 </form>
@@ -370,7 +370,7 @@ if (isset($_SESSION['num_etu'])) {
                                 <?php if ($dejaDepose): ?>
                                 <!-- Rapport déjà déposé - bouton "Voir" seulement -->
                                 <button onclick="voirRapport(<?= $rapport->id_rapport ?>)"
-                                    class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 shadow transition-colors"
+                                    class="bg-accent hover:bg-accent text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 shadow transition-colors"
                                     title="">
                                     <i class="fa-solid fa-eye"></i>
                                     Voir
@@ -378,7 +378,7 @@ if (isset($_SESSION['num_etu'])) {
                                 <?php else: ?>
                                 <!-- Rapport non déposé - bouton "Voir" -->
                                 <button onclick="voirRapport(<?= $rapport->id_rapport ?>)"
-                                    class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 shadow transition-colors"
+                                    class="bg-accent hover:bg-accent text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 shadow transition-colors"
                                     title="Voir le rapport">
                                     <i class="fa-solid fa-eye"></i>
                                     Voir
@@ -389,7 +389,7 @@ if (isset($_SESSION['num_etu'])) {
                                 <!-- Bouton supprimer seulement si le rapport n'est pas déposé -->
                                 <button
                                     onclick="confirmerSuppression(<?= $rapport->id_rapport ?>, '<?= htmlspecialchars(addslashes($rapport->nom_rapport)) ?>')"
-                                    class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    class="bg-danger hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                     <i class="fas fa-trash mr-1"></i> Supprimer
                                 </button>
                                 <?php endif; ?>

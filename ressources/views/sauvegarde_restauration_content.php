@@ -88,7 +88,7 @@
                         class="outline-green-500 w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500">
                 </div>
                 <button type="submit"
-                    class="px-6 py-2 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-green-500 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    class="px-6 py-2 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-accent hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                     <i class="fas fa-database mr-2"></i>Lancer la Sauvegarde Manuelle
                 </button>
             </form>
@@ -179,7 +179,7 @@
                         Êtes-vous sûr de vouloir supprimer la sauvegarde <strong class="text-center"
                             id="deleteFileName"></strong> ?
                     </p>
-                    <p class="text-sm text-red-500 mt-2">
+                    <p class="text-sm text-danger mt-2">
                         Cette action est irréversible.
                     </p>
                 </div>

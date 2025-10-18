@@ -12,7 +12,7 @@
         <div class="bg-white rounded-lg shadow-lg p-8">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">Compte Rendu de Soutenance</h1>
-                <a href="?page=candidature_soutenance" class="text-blue-500 hover:text-blue-600">
+                <a href="?page=candidature_soutenance" class="text-primary hover:text-blue-600">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -71,7 +71,7 @@
                             </span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-blue-500 h-2 rounded-full"
+                            <div class="bg-primary h-2 rounded-full"
                                 style="width: <?php echo ($note_technique/20)*100; ?>%"></div>
                         </div>
                     </div>
@@ -91,7 +91,7 @@
                             </span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-blue-500 h-2 rounded-full"
+                            <div class="bg-primary h-2 rounded-full"
                                 style="width: <?php echo ($note_presentation/20)*100; ?>%"></div>
                         </div>
                     </div>

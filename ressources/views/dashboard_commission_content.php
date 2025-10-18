@@ -123,7 +123,7 @@ foreach ($repartitionData as $data) {
 
             <div class="bg-white rounded-xl shadow-md p-6 mb-8">
                 <h3 class="text-gray-900 text-lg font-semibold mb-4">
-                    <i class="fas fa-list-alt text-green-500 mr-2"></i>
+                    <i class="fas fa-list-alt text-accent mr-2"></i>
                     Détails des Performances (Évaluations des rapports)
                 </h3>
                 <div class="overflow-x-auto">

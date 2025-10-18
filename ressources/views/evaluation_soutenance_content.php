@@ -397,7 +397,7 @@ $anneeAcademiqueCourante = $controller->getAnneeAcademiqueCourante();
 
                 <div class="mb-4">
                     <label for="moyenne_master1" class="block text-sm font-medium text-gray-700 mb-2">
-                        Moyenne Générale Master 1 <span class="text-red-500">*</span>
+                        Moyenne Générale Master 1 <span class="text-danger">*</span>
                     </label>
                     <input type="number" id="moyenne_master1" name="moyenne_master1" min="0" max="20" step="0.01"
                         required

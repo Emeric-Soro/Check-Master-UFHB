@@ -206,7 +206,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                             <!-- Niveau d'étude -->
                             <div class="relative">
                                 <select id="niveauSelect"
-                                    class="block w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    class="block w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-primary">
                                     <option value="">Sélectionner un niveau</option>
                                     <?php foreach ($GLOBALS['niveaux'] as $niveau): ?>
                                     <option value="<?php echo htmlspecialchars($niveau->id_niv_etude); ?>"
@@ -219,7 +219,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                             <!-- Étudiant -->
                             <div class="relative">
                                 <select id="studentSelect"
-                                    class="block w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    class="block w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-primary">
                                     <option value="">Sélectionner un étudiant</option>
                                     <?php foreach ($GLOBALS['etudiants'] as $etudiant): ?>
                                     <option value="<?php echo htmlspecialchars($etudiant->num_etu); ?>"
@@ -291,7 +291,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                                             }
                                             ?>
                             <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                                <div class="px-6 py-4 bg-blue-500">
+                                <div class="px-6 py-4 bg-primary">
                                     <div class="flex justify-between items-center">
                                         <h3 class="text-lg font-semibold text-white">
                                             <?php echo htmlspecialchars($ue->lib_semestre); ?></h3>
@@ -342,7 +342,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                                                     }
                                                 }
                                                 echo $note_ecue !== null ? htmlspecialchars($note_ecue) : '';
-                                                echo '" class="note-input w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">';
+                                                echo '" class="note-input w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-primary">';
                                                 echo '</div>';
                                                 echo '<div class="flex-1 mx-4">';
                                                 echo '<input type="text" name="commentaires_ecue[' . $ecue->id_ecue . ']" value="';
@@ -356,7 +356,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                                                     }
                                                 }
                                                 echo $commentaire_ecue !== null ? htmlspecialchars($commentaire_ecue) : '';
-                                                echo '" placeholder="Commentaire" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">';
+                                                echo '" placeholder="Commentaire" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-primary">';
                                                 echo '</div>';
                                                 echo '</div>';
                                             }
@@ -396,7 +396,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                                                 }
                                             }
                                             echo $note !== null ? htmlspecialchars($note) : '';
-                                            echo '" class="note-input w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">';
+                                            echo '" class="note-input w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-primary">';
                                             echo '</div>';
                                             echo '<div class="flex-1 mx-4">';
                                             echo '<input type="text" name="commentaires[' . $ue->id_ue . ']" value="';
@@ -410,7 +410,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                                                 }
                                             }
                                             echo $commentaire !== null ? htmlspecialchars($commentaire) : '';
-                                            echo '" placeholder="Commentaire" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">';
+                                            echo '" placeholder="Commentaire" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-primary">';
                                             echo '</div>';
                                             echo '<div class="w-20 text-right ml-4">';
                                             echo '<span class="text-sm text-gray-500">' . $ue->credit . ' crédits</span>';

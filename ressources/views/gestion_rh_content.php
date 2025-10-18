@@ -133,14 +133,14 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                         class="px-6 py-4 flex flex-col sm:flex-row justify-between items-center border-b border-gray-200">
                         <div class="relative w-full sm:w-1/2 lg:w-1/3 mb-4 sm:mb-0">
                             <input type="text" id="searchInput" placeholder="Rechercher un personnel..."
-                                class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
+                                class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-accent transition-all duration-200">
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                 <i class="fas fa-search text-gray-400"></i>
                             </span>
                         </div>
                         <div class="flex flex-wrap gap-2 justify-center sm:justify-end">
                             <button type="button" onclick="printTable('pers_admin')"
-                                class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                                class="bg-primary hover:bg-primary-light text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                                 <i class="fas fa-print mr-2"></i>Imprimer
                             </button>
                             <button type="button" onclick="exportToExcel('pers_admin')"
@@ -149,7 +149,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                             </button>
                             <button type="button" onclick="showDeleteModal('pers_admin', 'multiple')"
                                 id="deleteButtonPersAdmin"
-                                class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                class="bg-danger hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled>
                                 <i class="fas fa-trash-alt mr-2"></i>Supprimer
                             </button>
@@ -159,7 +159,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                     <!-- Titre de la liste -->
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h4 class="text-lg font-semibold text-gray-700 flex items-center">
-                            <i class="fas fa-list-ul mr-2 text-green-500"></i>
+                            <i class="fas fa-list-ul mr-2 text-accent"></i>
                             Liste du personnel administratif
                         </h4>
                     </div>
@@ -332,7 +332,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                     </a>
                                     <button type="submit"
                                         name="<?= ($action === 'edit') ? 'btn_modifier_pers_admin' : 'btn_add_pers_admin' ?>"
-                                        class="px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors duration-200">
+                                        class="px-6 py-2.5 bg-accent hover:bg-accent text-white rounded-lg transition-colors duration-200">
                                         <?= ($action === 'edit' && isset($pers_admin_a_modifier)) ? 'Modifier' : 'Enregistrer' ?>
                                     </button>
                                 </div>
@@ -374,14 +374,14 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                         class="px-6 py-4 flex flex-col sm:flex-row justify-between items-center border-b border-gray-200">
                         <div class="relative w-full sm:w-1/2 lg:w-1/3 mb-4 sm:mb-0">
                             <input type="text" id="searchInputEnseignant" placeholder="Rechercher un enseignant..."
-                                class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
+                                class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-accent transition-all duration-200">
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                 <i class="fas fa-search text-gray-400"></i>
                             </span>
                         </div>
                         <div class="flex flex-wrap gap-2 justify-center sm:justify-end">
                             <button type="button" onclick="printTable('enseignant')"
-                                class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                                class="bg-primary hover:bg-primary-light text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                                 <i class="fas fa-print mr-2"></i>Imprimer
                             </button>
                             <button type="button" onclick="exportToExcel('enseignant')"
@@ -389,7 +389,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                 <i class="fas fa-file-export mr-2"></i>Exporter
                             </button>
                             <button type="button" onclick="showDeleteModal('enseignant')" id="deleteButtonEnseignant"
-                                class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                class="bg-danger hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled>
                                 <i class="fas fa-trash-alt mr-2"></i>Supprimer
                             </button>
@@ -399,7 +399,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                     <!-- Titre de la liste -->
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h4 class="text-lg font-semibold text-gray-700 flex items-center">
-                            <i class="fas fa-chalkboard-teacher mr-2 text-green-500"></i>
+                            <i class="fas fa-chalkboard-teacher mr-2 text-accent"></i>
                             Liste des enseignants
                         </h4>
                     </div>
@@ -612,7 +612,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                             Type d'enseignant
                                         </label>
                                         <select name="type_enseignant" id="type_enseignant" required
-                                            class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                            class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent bg-white transition-all duration-200">
                                             <option value="Simple"
                                                 <?php echo ($enseignant_a_modifier && $enseignant_a_modifier->type_enseignant) ? 'selected' : ''; ?>>
                                                 Simple</option>
@@ -631,7 +631,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                     </a>
                                     <button type="submit"
                                         name="<?= ($action === 'edit') ? 'btn_modifier_enseignant' : 'btn_add_enseignant' ?>"
-                                        class="px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors duration-200">
+                                        class="px-6 py-2.5 bg-accent hover:bg-accent text-white rounded-lg transition-colors duration-200">
                                         <?= ($action === 'edit' && isset($enseignant_a_modifier)) ? 'Modifier' : 'Ajouter' ?>
                                     </button>
                                 </div>

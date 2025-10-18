@@ -195,7 +195,7 @@ $listeSpecialites = array_slice($listeSpecialites, $offset, $limit);
             <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
                 <h3 class="text-lg font-semibold text-gray-600 mb-4 flex items-center">
                     <i
-                        class="fas <?= isset($_GET['id_specialite']) ? 'fa-edit text-green-500' : 'fa-plus-circle text-green-500' ?> mr-2"></i>
+                        class="fas <?= isset($_GET['id_specialite']) ? 'fa-edit text-green-500' : 'fa-plus-circle text-accent' ?> mr-2"></i>
                     <?php if(isset($_GET['id_specialite'])): ?>
                     Modifier la spécialité
                     <?php else: ?>
@@ -223,7 +223,7 @@ $listeSpecialites = array_slice($listeSpecialites, $offset, $limit);
                         <?php if(isset($_GET['id_specialite'])): ?>
                         <button type="button" name="btn_annuler" id="btnAnnuler"
                             onclick="window.location.href='?page=parametres_generaux&action=specialites'"
-                            class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                            class="btn-hover px-4 py-2 bg-danger text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                             <i class="fas fa-times mr-2"></i>Annuler
                         </button>
                         <button type="button" name="btn_modifier_specialite" id="btnModifier"
@@ -246,7 +246,7 @@ $listeSpecialites = array_slice($listeSpecialites, $offset, $limit);
             <!-- Zone de recherche et actions -->
             <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
                 <h3 class="text-lg font-semibold text-gray-600 mb-4 flex items-center">
-                    <i class="fas fa-list-ul text-green-500 mr-2"></i>
+                    <i class="fas fa-list-ul text-accent mr-2"></i>
                     Liste des spécialités
                 </h3>
 
@@ -279,7 +279,7 @@ $listeSpecialites = array_slice($listeSpecialites, $offset, $limit);
                             <i class="fas fa-print mr-2"></i>Imprimer
                         </button>
                         <button id="deleteSelectedBtn" disabled
-                            class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
+                            class="btn-hover px-4 py-2 bg-danger text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
                             <i class="fas fa-trash-alt mr-2"></i>Supprimer la sélection
                         </button>
                     </div>
@@ -358,7 +358,7 @@ $listeSpecialites = array_slice($listeSpecialites, $offset, $limit);
 
                         <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                         <a href="?page=parametres_generaux&action=specialites&p=<?= $i ?>&search=<?= urlencode($search) ?>"
-                            class="btn-hover px-3 py-2 <?= $i === $page ? 'bg-green-500 text-white' : 'bg-white text-gray-700 border border-gray-300' ?> rounded-lg text-sm font-medium hover:bg-gray-50">
+                            class="btn-hover px-3 py-2 <?= $i === $page ? 'bg-accent text-white' : 'bg-white text-gray-700 border border-gray-300' ?> rounded-lg text-sm font-medium hover:bg-gray-50">
                             <?= $i ?>
                         </a>
                         <?php endfor; ?>

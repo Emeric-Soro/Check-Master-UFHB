@@ -54,7 +54,7 @@
                             Tableau de bord
                         </a>
                         <a href="#" class="flex items-center px-2 py-3 text-sm font-medium rounded-md sidebar-hover text-green-700 bg-green-50">
-                            <i class="fas fa-clipboard-check mr-3 text-green-500"></i>
+                            <i class="fas fa-clipboard-check mr-3 text-accent"></i>
                             Rapports à évaluer
                             <span class="ml-auto bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">8</span>
                         </a>
@@ -376,7 +376,7 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Votre commentaire / Avis
                             </label>
-                            <textarea id="evaluationComment" rows="6" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Veuillez donner votre avis détaillé sur ce rapport..."></textarea>
+                            <textarea id="evaluationComment" rows="6" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-primary" placeholder="Veuillez donner votre avis détaillé sur ce rapport..."></textarea>
                         </div>
 
                         <div>
@@ -438,28 +438,28 @@
                         <div class="bg-gray-50 p-4 rounded-lg">
                             <h4 class="font-semibold text-gray-800 mb-3">Résumé des évaluations</h4>
                             <div class="space-y-3">
-                                <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-green-500">
+                                <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-accent">
                                     <div>
                                         <p class="font-medium text-sm">Dr. Kouassi</p>
                                         <p class="text-xs text-gray-600">Très bon travail, méthodologie solide</p>
                                     </div>
                                     <span class="px-2 py-1 text-xs bg-green-100 text-primary rounded-full">Validé</span>
                                 </div>
-                                <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-green-500">
+                                <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-accent">
                                     <div>
                                         <p class="font-medium text-sm">Dr. Koné</p>
                                         <p class="text-xs text-gray-600">Innovation intéressante, bien documenté</p>
                                     </div>
                                     <span class="px-2 py-1 text-xs bg-green-100 text-primary rounded-full">Validé</span>
                                 </div>
-                                <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-green-500">
+                                <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-accent">
                                     <div>
                                         <p class="font-medium text-sm">Pr. Assan</p>
                                         <p class="text-xs text-gray-600">Contribution significative au domaine</p>
                                     </div>
                                     <span class="px-2 py-1 text-xs bg-green-100 text-primary rounded-full">Validé</span>
                                 </div>
-                                <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-red-500">
+                                <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-danger">
                                     <div>
                                         <p class="font-medium text-sm">Dr. Bamba</p>
                                         <p class="text-xs text-gray-600">Quelques lacunes dans l'analyse</p>
@@ -577,7 +577,7 @@
                                 <i class="fas fa-check mr-1"></i>Validé
                             </span>
                         </div>
-                        <div class="bg-white p-3 rounded border-l-4 border-green-500">
+                        <div class="bg-white p-3 rounded border-l-4 border-accent">
                             <p class="text-sm text-gray-700">
                                 "Excellent travail sur l'implémentation de la blockchain pour la sécurité des données. La méthodologie est rigoureuse et les résultats sont probants. L'étudiant démontre une bonne compréhension des enjeux de sécurité. Je recommande vivement la validation de ce rapport."
                             </p>
@@ -598,7 +598,7 @@
                                 <i class="fas fa-check mr-1"></i>Validé
                             </span>
                         </div>
-                        <div class="bg-white p-3 rounded border-l-4 border-green-500">
+                        <div class="bg-white p-3 rounded border-l-4 border-accent">
                             <p class="text-sm text-gray-700">
                                 "Approche innovante et bien documentée. L'étudiant a su intégrer les concepts théoriques avec une application pratique pertinente. Quelques améliorations mineures pourraient être apportées à la présentation, mais le fond est solide. Validation recommandée."
                             </p>
@@ -619,7 +619,7 @@
                                 <i class="fas fa-check mr-1"></i>Validé
                             </span>
                         </div>
-                        <div class="bg-white p-3 rounded border-l-4 border-green-500">
+                        <div class="bg-white p-3 rounded border-l-4 border-accent">
                             <p class="text-sm text-gray-700">
                                 "Ce travail représente une contribution significative au domaine de la sécurité informatique. L'analyse comparative des différentes approches blockchain est particulièrement appréciable. L'étudiant montre une maturité scientifique remarquable."
                             </p>
@@ -640,7 +640,7 @@
                                 <i class="fas fa-times mr-1"></i>Rejeté
                             </span>
                         </div>
-                        <div class="bg-white p-3 rounded border-l-4 border-red-500">
+                        <div class="bg-white p-3 rounded border-l-4 border-danger">
                             <p class="text-sm text-gray-700">
                                 "Bien que le sujet soit intéressant, je note quelques lacunes dans l'analyse de sécurité. Les tests de performance ne sont pas assez approfondis et certaines vulnérabilités potentielles ne sont pas suffisamment abordées. Une révision serait souhaitable avant validation."
                             </p>

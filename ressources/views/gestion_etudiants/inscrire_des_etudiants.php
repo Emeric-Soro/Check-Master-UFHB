@@ -214,7 +214,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                         class="mb-8 border border-gray-200 rounded-lg bg-gray-50 p-6 transition-all duration-300 ease-in-out hover:shadow-md">
                         <h6 class="text-sm font-semibold text-green-600 mb-4 flex items-center">
                             <i
-                                class="fas fa-calendar-alt mr-2 transition-all duration-300 ease-in-out hover:scale-110 hover:text-green-500"></i>Année
+                                class="fas fa-calendar-alt mr-2 transition-all duration-300 ease-in-out hover:scale-110 hover:text-accent"></i>Année
                             académique
                         </h6>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -223,7 +223,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                     class="block text-sm font-medium text-gray-600 mb-1">Sélectionner l'année
                                     académique</label>
                                 <select
-                                    class="w-full h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-green-500 focus:shadow-sm hover:-translate-y-0.5"
+                                    class="w-full h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-accent focus:shadow-sm hover:-translate-y-0.5"
                                     id="annee_academique" name="annee_academique" required>
                                     <option value="">Choisir une année académique...</option>
                                     <?php foreach ($listeAnnees as $annee): ?>
@@ -241,7 +241,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                         class="mb-8 border border-gray-200 rounded-lg bg-gray-50 p-6 transition-all duration-300 ease-in-out hover:shadow-md">
                         <h6 class="text-sm font-semibold text-green-600 mb-4 flex items-center">
                             <i
-                                class="fas fa-user-graduate mr-2 transition-all duration-300 ease-in-out hover:scale-110 hover:text-green-500"></i>Informations
+                                class="fas fa-user-graduate mr-2 transition-all duration-300 ease-in-out hover:scale-110 hover:text-accent"></i>Informations
                             étudiant
                         </h6>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -249,7 +249,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                 <label for="etudiant" class="block text-sm font-medium text-gray-600 mb-1">Sélectionner
                                     un étudiant</label>
                                 <select
-                                    class="w-full h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-green-500 focus:shadow-sm hover:-translate-y-0.5"
+                                    class="w-full h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-accent focus:shadow-sm hover:-translate-y-0.5"
                                     id="etudiant" name="etudiant"
                                     <?php echo (isset($GLOBALS['inscriptionAModifier']) && isset($_GET['id'])) ? '' : 'required'; ?>>
                                     <option value="">Choisir un étudiant...</option>
@@ -265,7 +265,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                 <label for="niveau" class="block text-sm font-medium text-gray-600 mb-1">Niveau
                                     d'études</label>
                                 <select
-                                    class="w-full h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-green-500 focus:shadow-sm hover:-translate-y-0.5"
+                                    class="w-full h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-accent focus:shadow-sm hover:-translate-y-0.5"
                                     id="niveau" name="niveau" required>
                                     <option value="">Choisir un niveau...</option>
                                     <?php foreach ($niveaux as $niveau): ?>
@@ -287,7 +287,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                         class="mb-8 border border-gray-200 rounded-lg bg-gray-50 p-6 transition-all duration-300 ease-in-out hover:shadow-md">
                         <h6 class="text-sm font-semibold text-green-600 mb-4 flex items-center">
                             <i
-                                class="fas fa-id-card mr-2 transition-all duration-300 ease-in-out hover:scale-110 hover:text-green-500"></i>Détails
+                                class="fas fa-id-card mr-2 transition-all duration-300 ease-in-out hover:scale-110 hover:text-accent"></i>Détails
                             étudiant
                         </h6>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -322,7 +322,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                     <div class="mb-8">
                         <h6 class="text-sm font-semibold text-green-600 mb-4 flex items-center">
                             <i
-                                class="fas fa-money-bill-wave mr-2 transition-all duration-300 ease-in-out hover:scale-110 hover:text-green-500"></i>Détails
+                                class="fas fa-money-bill-wave mr-2 transition-all duration-300 ease-in-out hover:scale-110 hover:text-accent"></i>Détails
                             du paiement
                         </h6>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -340,7 +340,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                     <label class="block text-sm font-medium text-gray-600 mb-1">Premier
                                         versement</label>
                                     <input type="number"
-                                        class="w-full pl-3 h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-green-500 focus:shadow-sm hover:-translate-y-0.5"
+                                        class="w-full pl-3 h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-accent focus:shadow-sm hover:-translate-y-0.5"
                                         id="premier_versement" name="premier_versement" required
                                         value="<?php echo isset($GLOBALS['inscriptionAModifier']) ? $GLOBALS['inscriptionAModifier']['montant_premier_versement'] : ''; ?>">
                                 </div>
@@ -358,7 +358,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                     <label class="block text-sm font-medium text-gray-600 mb-1">Nombre de
                                         tranches</label>
                                     <select
-                                        class="w-full h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-green-500 focus:shadow-sm hover:-translate-y-0.5"
+                                        class="w-full h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-accent focus:shadow-sm hover:-translate-y-0.5"
                                         id="nombre_tranches" name="nombre_tranches">
                                         <option value="1"
                                             <?php echo (isset($GLOBALS['inscriptionAModifier']) && $GLOBALS['inscriptionAModifier']['nombre_tranche'] == 1) ? 'selected' : ''; ?>>
@@ -378,7 +378,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                     <label class="block text-sm font-medium text-gray-600 mb-1">Méthode de
                                         paiement</label>
                                     <select
-                                        class="w-full h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-green-500 focus:shadow-sm hover:-translate-y-0.5"
+                                        class="w-full h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-accent focus:shadow-sm hover:-translate-y-0.5"
                                         id="methode_paiement" name="methode_paiement" required>
                                         <option value="">Sélectionner une méthode de paiement</option>
                                         <option value="Espèce"
@@ -402,12 +402,12 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                     <div class="flex justify-between">
                         <button type="button" name="btn_annuler_insciption" id="btnAnnuler"
                             onclick="window.location.href='?page=gestion_etudiants&action=inscrire_des_etudiants'"
-                            class="inline-flex items-center px-6 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-500 hover:bg-red-500/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
+                            class="inline-flex items-center px-6 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-500 hover:bg-danger/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
                             <i class="fas fa-times mr-2"></i>Annuler
                         </button>
 
                         <button type="submit" name="btn_modifier_insciption" id="edit_inscription"
-                            class="inline-flex items-center px-6 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-blue-500/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                            class="inline-flex items-center px-6 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
                             <i class="fas fa-save mr-2"></i>Modifier l'inscription
                         </button>
                     </div>
@@ -417,7 +417,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                         <div>
                         </div>
                         <button type="submit" name="btn_add_insciption" id="add_inscription"
-                            class="inline-flex items-center px-6 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-blue-500/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                            class="inline-flex items-center px-6 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
                             <i class="fas fa-save mr-2"></i>Enregistrer l'inscription
                         </button>
                     </div>
@@ -445,7 +445,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                             <i class="fas fa-search text-gray-400"></i>
                         </div>
                         <input type="text" id="searchInput"
-                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500  focus:outline-green-500 focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500  focus:outline-green-500 focus:ring-2 focus:ring-green-500 focus:border-accent sm:text-sm"
                             placeholder="Rechercher un étudiant...">
                     </div>
 
@@ -508,12 +508,12 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
                                     <div class="flex items-center justify-center space-x-2">
                                         <button onclick="modifierInscription(<?php echo $inscrit['id_inscription']; ?>)"
-                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200">
+                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200">
                                             <i class="fas fa-edit mr-1"></i>
                                         </button>
                                         <button
                                             onclick="supprimerInscription(<?php echo $inscrit['id_inscription']; ?>)"
-                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200">
+                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-danger focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200">
                                             <i class="fas fa-trash-alt mr-1"></i>
                                         </button>
                                         <?php
@@ -532,7 +532,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                         }
                                         ?>
                                         <button onclick="imprimerRecu(<?php echo $printId; ?>, <?php echo $isVersement ? 'true' : 'false'; ?>, <?php echo $inscrit['id_inscription']; ?>)"
-                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2  transition-all duration-200">
+                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-accent focus:outline-none focus:ring-2 focus:ring-offset-2  transition-all duration-200">
                                             <i class="fas fa-print mr-1"></i>
                                         </button>
                                     </div>

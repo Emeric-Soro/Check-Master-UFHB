@@ -318,14 +318,14 @@ $membresCommission = $donnees['membres_commission'];
                         id="commentaireFinalisation" 
                         name="commentaire_validation" 
                         rows="3" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-accent"
                         placeholder="Ajoutez un commentaire pour expliquer la décision finale..."
                     ></textarea>
                 </div>
                 
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div class="flex items-start">
-                        <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
+                        <i class="fas fa-info-circle text-primary mt-1 mr-3"></i>
                         <p class="text-sm text-blue-700">
                             Cette action est irréversible. La décision sera automatiquement déterminée selon le nombre de votes favorables.
                         </p>

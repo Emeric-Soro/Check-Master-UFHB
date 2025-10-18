@@ -276,7 +276,7 @@ if (!empty($_SESSION['success'])) {
                                                 <p><strong class="text-gray-700">Membres de la commission d'évaluation :</strong><br><span class="text-gray-600">[À compléter]</span></p>
                                                 </div>
 
-                                            <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                                            <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-primary">
                                                 <h4 class="font-semibold text-gray-700 mb-2">Rapports évalués :</h4>
                                                 <div class="text-gray-600">
                                                     [À compléter]
@@ -304,7 +304,7 @@ if (!empty($_SESSION['success'])) {
                                             <h3 class="text-xl font-bold border-b-2 border-gray-400 pb-3 mb-4 text-gray-800">III. ÉVALUATIONS PAR RAPPORT</h3>
                                             <p class="text-gray-600 italic mb-4">[Les évaluations détaillées de chaque rapport seront automatiquement insérées ici...]</p>
 
-                                            <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                                            <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-primary">
                                                 <h4 class="font-semibold text-gray-700 mb-2">Résumé global des votes :</h4>
                                                 <p class="text-sm text-gray-600">Total des votes favorables : [X]/[Total]</p>
                                                 <p class="text-sm text-gray-600">Total des votes défavorables : [X]/[Total]</p>
@@ -475,7 +475,7 @@ if (!empty($_SESSION['success'])) {
             div.id = 'rapport-cas-' + id;
             div.className = 'p-2 bg-gray-100 rounded flex items-center justify-between';
             div.innerHTML = `<span><b>Thème :</b> ${rapport.theme_rapport} <br><b>Étudiant :</b> ${rapport.prenom_etu} ${rapport.nom_etu}</span>
-                <button onclick="removeReport('${id}')" class="ml-2 text-red-500 hover:text-red-700"><i class='fas fa-times'></i></button>`;
+                <button onclick="removeReport('${id}')" class="ml-2 text-danger hover:text-red-700"><i class='fas fa-times'></i></button>`;
             reportsList.appendChild(div);
             updateAttributionEnseignants();
             showReportDetails();
@@ -807,7 +807,7 @@ if (!empty($_SESSION['success'])) {
             switch(sectionType) {
                 case 'evaluation':
                     sectionHTML = `
-                        <div class="mb-4 p-4 border-l-4 border-blue-500 bg-blue-50">
+                        <div class="mb-4 p-4 border-l-4 border-primary bg-blue-50">
                             <h4 class="font-semibold text-blue-800 mb-2">Évaluation - [Nom de l'évaluateur]</h4>
                             <p><strong>Décision :</strong> [Validé/Rejeté]</p>
                             <p><strong>Commentaire :</strong> [Commentaire détaillé...]</p>
@@ -816,7 +816,7 @@ if (!empty($_SESSION['success'])) {
                     break;
                 case 'recommendation':
                     sectionHTML = `
-                        <div class="mb-4 p-4 border-l-4 border-green-500 bg-green-50">
+                        <div class="mb-4 p-4 border-l-4 border-accent bg-green-50">
                             <h4 class="font-semibold text-primary mb-2">Recommandation</h4>
                             <p>[Votre recommandation...]</p>
                         </div>

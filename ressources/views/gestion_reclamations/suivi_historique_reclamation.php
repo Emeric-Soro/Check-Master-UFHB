@@ -21,7 +21,7 @@
         <div class="flex-1 min-w-[200px]">
             <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
             <select name="status"
-                class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-primary">
                 <option value="all"
                     <?php echo (!isset($_GET['status']) || $_GET['status'] === 'all') ? 'selected' : ''; ?>>Tous les
                     statuts</option>
@@ -40,7 +40,7 @@
         <div class="flex-1 min-w-[200px]">
             <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
             <select name="type"
-                class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-primary">
                 <option value="all" <?php echo (!isset($_GET['type']) || $_GET['type'] === 'all') ? 'selected' : ''; ?>>
                     Tous les types</option>
                 <option value="academic"
@@ -150,7 +150,7 @@
             <?php endif; ?>
         </p>
         <a href="?page=gestion_reclamations&action=soumettre_reclamation"
-            class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+            class="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors">
             <i class="fas fa-plus mr-2"></i>
             Créer une réclamation
         </a>
@@ -284,7 +284,7 @@
     <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-xl font-semibold text-gray-800">
-                <i class="fas fa-file-alt mr-2 text-blue-500"></i>
+                <i class="fas fa-file-alt mr-2 text-primary"></i>
                 Détails de la réclamation
             </h2>
             <button onclick="fermerModalDetails()" class="text-gray-400 hover:text-gray-600">
@@ -308,7 +308,7 @@ function voirDetailsReclamation(reclamationId) {
     // Afficher un loader
     document.getElementById('modalContent').innerHTML = `
             <div class="flex justify-center items-center py-8">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 <span class="ml-2 text-gray-600">Chargement des détails...</span>
             </div>
         `;
@@ -327,7 +327,7 @@ function voirDetailsReclamation(reclamationId) {
         .catch(error => {
             console.error('Erreur:', error);
             document.getElementById('modalContent').innerHTML = `
-                    <div class="text-center py-8 text-red-500">
+                    <div class="text-center py-8 text-danger">
                         <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
                         <p>Erreur lors du chargement des détails</p>
                     </div>

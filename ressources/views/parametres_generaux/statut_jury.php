@@ -201,7 +201,7 @@ $listeStatuts = array_slice($listeStatuts, $offset, $limit);
             <div class="bg-white rounded-xl shadow-lg p-6 md:p-8 mb-8 transform transition-all duration-300 ">
                 <h3 class="text-xl font-semibold text-gray-700 mb-6 pb-3">
                     <i
-                        class="fas <?= isset($_GET['id_statut_jury']) ? 'fa-edit text-blue-500' : 'fa-plus-circle text-green-500' ?> mr-2"></i>
+                        class="fas <?= isset($_GET['id_statut_jury']) ? 'fa-edit text-primary' : 'fa-plus-circle text-accent' ?> mr-2"></i>
                     <?php if (isset($_GET['id_statut_jury'])): ?>
                     Modifier le statut du jury
                     <?php else: ?>
@@ -229,7 +229,7 @@ $listeStatuts = array_slice($listeStatuts, $offset, $limit);
                         <?php if (isset($_GET['id_statut_jury'])): ?>
                         <button type="button" name="btn_annuler" id="btnAnnuler"
                             onclick="window.location.href='?page=parametres_generaux&action=statut_jury'"
-                            class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-red-500 hover:bg-red-600 focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transform transition-all duration-300 hover:scale-105">
+                            class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-danger hover:bg-red-600 focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transform transition-all duration-300 hover:scale-105">
                             <i class="fas fa-times mr-2"></i>Annuler
                         </button>
                         <button type="button" name="btn_modifier_statut_jury" id="btnModifier"
@@ -254,7 +254,7 @@ $listeStatuts = array_slice($listeStatuts, $offset, $limit);
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="bg-gray-50 px-6 py-4 ">
                     <h2 class="text-xl font-semibold text-gray-700 mb-6">
-                        <i class="fas fa-list-ul mr-2 text-green-500"></i>
+                        <i class="fas fa-list-ul mr-2 text-accent"></i>
                         Liste des statuts du jury
                     </h2>
 
@@ -384,7 +384,7 @@ $listeStatuts = array_slice($listeStatuts, $offset, $limit);
                                     for ($i = $start; $i <= $end; $i++):
                                     ?>
                                         <a href="?page=parametres_generaux&action=statut_jury&p=<?= $i ?>&search=<?= urlencode($search) ?>"
-                                            class="relative inline-flex items-center px-4 py-2 border <?= $i === $page ? 'bg-green-50 text-green-600 border-green-500' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-300' ?>">
+                                            class="relative inline-flex items-center px-4 py-2 border <?= $i === $page ? 'bg-green-50 text-green-600 border-accent' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-300' ?>">
                                             <?= $i ?>
                                         </a>
                                         <?php endfor;

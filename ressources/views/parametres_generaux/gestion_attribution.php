@@ -337,7 +337,7 @@ if ($searchType === 'traitement' && !empty($searchTerm)) {
                             <div class="flex items-center mb-4">
                                 <div
                                     class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mr-3">
-                                    <i class="fas fa-user-group text-green-500"></i>
+                                    <i class="fas fa-user-group text-accent"></i>
                                 </div>
                                 <div>
                                     <h4 id="selectedGroupeName" class="text-lg font-semibold text-gray-900">

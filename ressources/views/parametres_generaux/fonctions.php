@@ -197,7 +197,7 @@ $listeFonctions = array_slice($listeFonctions, $offset, $limit);
             <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
                 <h3 class="text-lg font-semibold text-gray-600 mb-4 flex items-center">
                     <i
-                        class="fas <?= isset($_GET['id_fonction']) ? 'fa-edit text-green-500' : 'fa-plus-circle text-green-500' ?> mr-2"></i>
+                        class="fas <?= isset($_GET['id_fonction']) ? 'fa-edit text-green-500' : 'fa-plus-circle text-accent' ?> mr-2"></i>
                     <?= isset($_GET['id_fonction']) ? 'Modifier la fonction' : 'Ajouter une nouvelle fonction' ?>
                 </h3>
 
@@ -219,7 +219,7 @@ $listeFonctions = array_slice($listeFonctions, $offset, $limit);
                         <?php if (isset($_GET['id_fonction'])): ?>
                         <button type="button" name="btn_annuler" id="btnAnnuler"
                             onclick="window.location.href='?page=parametres_generaux&action=fonctions'"
-                            class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                            class="btn-hover px-4 py-2 bg-danger text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                             <i class="fas fa-times mr-2"></i>Annuler
                         </button>
                         <button type="submit" name="btn_modifier_fonction" id="btnModifier"
@@ -243,7 +243,7 @@ $listeFonctions = array_slice($listeFonctions, $offset, $limit);
             <div class="bg-white rounded-lg shadow-sm">
                 <div class="p-6">
                     <h3 class="text-lg font-semibold text-gray-600 mb-4 flex items-center">
-                        <i class="fas fa-list-ul text-green-500 mr-2"></i>
+                        <i class="fas fa-list-ul text-accent mr-2"></i>
                         Liste des fonctions
                     </h3>
                     <div class="flex items-center justify-between mb-6">

@@ -221,12 +221,12 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
                 <div class="flex justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-600 mb-4">
                         <i
-                            class="fas <?= $ecue_a_modifier ? 'fa-edit text-green-500' : 'fa-plus-circle text-green-500' ?> mr-2"></i>
+                            class="fas <?= $ecue_a_modifier ? 'fa-edit text-green-500' : 'fa-plus-circle text-accent' ?> mr-2"></i>
                         <?= $ecue_a_modifier ? 'Modifier l\'ECUE' : 'Ajouter un nouvel ECUE' ?>
                     </h3>
                     <div>
                         <label for="id_annee_acad" class="block text-sm font-medium text-gray-700 mb-3">
-                            <i class="fas fa-calendar text-green-500 mr-2"></i>Année académique
+                            <i class="fas fa-calendar text-accent mr-2"></i>Année académique
                         </label>
                         <input type="text" name="id_annee_acad" id="id_annee_acad" required disabled
                             value="<?= isset($ue_selected) ? htmlspecialchars($ue_selected->annee) : '' ?>"
@@ -242,7 +242,7 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
                     <div class="flex gap-6 items-center">
                         <div>
                             <label for="niveau_etude" class="block text-sm font-medium text-gray-700 mb-3">
-                                <i class="fas fa-graduation-cap text-green-500 mr-2"></i>Niveau d'étude
+                                <i class="fas fa-graduation-cap text-accent mr-2"></i>Niveau d'étude
                             </label>
                             <input type="text" name="niveau_etude" id="niveau_etude" required disabled
                                 value="<?= isset($ue_selected) ? htmlspecialchars($ue_selected->lib_niv_etude) : '' ?>"
@@ -250,7 +250,7 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
                         </div>
                         <div>
                             <label for="semestre" class="block text-sm font-medium text-gray-700 mb-3">
-                                <i class="fas fa-calendar-alt text-green-500 mr-2"></i>Semestre
+                                <i class="fas fa-calendar-alt text-accent mr-2"></i>Semestre
                             </label>
                             <input type="text" name="semestre" id="semestre" required disabled
                                 value="<?= isset($ue_selected) ? htmlspecialchars($ue_selected->lib_semestre) : '' ?>"
@@ -258,7 +258,7 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
                         </div>
                         <div>
                             <label for="id_ue" class="block text-sm font-medium text-gray-700 mb-4">
-                                <i class="fas fa-graduation-cap text-green-500 mr-2"></i>Unité d'Enseignement
+                                <i class="fas fa-graduation-cap text-accent mr-2"></i>Unité d'Enseignement
                             </label>
                             <select id="id_ue" name="id_ue" required onchange="updateFields(this.value)"
                                 class="form-select w-50 px-3 py-2 mb-3 border border-gray-300 rounded-md focus:outline-4 focus:outline-green-300 focus:ring-green-300 focus:border-green-300 focus:ring-opacity-50 transition-all duration-200">
@@ -275,10 +275,10 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
                         </div>
                         <div>
                             <label for="professeur_responsable" class="block text-sm font-medium text-gray-700 mb-3">
-                                <i class="fas fa-user-tie text-green-500 mr-2"></i>Professeur responsable
+                                <i class="fas fa-user-tie text-accent mr-2"></i>Professeur responsable
                             </label>
                             <select id="professeur_responsable" name="professeur_responsable"
-                                class="form-select w-50 px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-green-500 bg-white transition-all duration-200">
+                                class="form-select w-50 px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent focus:outline-green-500 bg-white transition-all duration-200">
                                 <option value="">Sélectionnez un professeur</option>
                                 <?php foreach ($GLOBALS['listeEnseignants'] ?? [] as $enseignant): ?>
                                 <option value="<?= $enseignant->id_enseignant ?>"
@@ -293,22 +293,22 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
                     <div class="space-y-2 mt-3 flex gap-6 w-full ">
                         <div class="w-full">
                             <label for="lib_ecue" class="block text-sm font-medium text-gray-700 mb-3">
-                                <i class="fas fa-book text-green-500 mr-2"></i>Libellé de l'ECUE
+                                <i class="fas fa-book text-accent mr-2"></i>Libellé de l'ECUE
                             </label>
                             <input type="text" name="lib_ecue" id="lib_ecue" required
                                 placeholder="Ex: Mathématiques appliquées"
                                 value="<?= $ecue_a_modifier ? htmlspecialchars($ecue_a_modifier->lib_ecue) : '' ?>"
-                                class="form-input w-full px-4 py-2.5  border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-green-500 outline-0 bg-white transition-all duration-200">
+                                class="form-input w-full px-4 py-2.5  border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent focus:outline-green-500 outline-0 bg-white transition-all duration-200">
                         </div>
 
 
                         <div>
                             <label for="credit" class="block text-sm font-medium text-gray-700 mb-3">
-                                <i class="fas fa-star text-green-500 mr-2"></i>Crédits
+                                <i class="fas fa-star text-accent mr-2"></i>Crédits
                             </label>
                             <input type="number" name="credit" id="credit" required min="1" max="10"
                                 value="<?= $ecue_a_modifier ? htmlspecialchars($ecue_a_modifier->credit) : '' ?>"
-                                class="form-input w-50 px-4 py-2.5  border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:outline-2 focus:outline-green-500  focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                class="form-input w-50 px-4 py-2.5  border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:outline-2 focus:outline-green-500  focus:ring-green-500 focus:border-accent bg-white transition-all duration-200">
                         </div>
 
 
@@ -320,7 +320,7 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
                     <?php if (isset($_GET['id_ecue'])): ?>
                     <button type="button" name="btn_annuler" id="btnAnnuler"
                         onclick="window.location.href='?page=parametres_generaux&action=ecue'"
-                        class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                        class="btn-hover px-4 py-2 bg-danger text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                         <i class="fas fa-times mr-2"></i>Annuler
                     </button>
                     <button type="button" id="btnModifier" name="btn_modifier_ecue"
@@ -344,7 +344,7 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
     <div class="bg-white rounded-lg shadow-sm">
         <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-600 mb-4">
-                <i class="fas fa-list-ul text-green-500 mr-2"></i>
+                <i class="fas fa-list-ul text-accent mr-2"></i>
                 Liste des ECUE
             </h3>
             <div class="flex justify-between items-center mb-4">
@@ -508,7 +508,7 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
                                 for ($i = $start; $i <= $end; $i++):
                                 ?>
                                 <a href="?page=parametres_generaux&action=ecue&p=<?= $i ?>&search=<?= urlencode($search) ?>"
-                                    class="relative inline-flex items-center px-4 py-2 border <?= $i === $page ? 'bg-green-50 text-green-600 border-green-500' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-300' ?>">
+                                    class="relative inline-flex items-center px-4 py-2 border <?= $i === $page ? 'bg-green-50 text-green-600 border-accent' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-300' ?>">
                                     <?= $i ?>
                                 </a>
                                 <?php endfor;
