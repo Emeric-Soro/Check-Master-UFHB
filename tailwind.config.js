@@ -1,45 +1,71 @@
 /** @type {import('tailwindcss').Config} */
 export const content = [
-  "./src/**/*.{html,js,jsx,ts,tsx,vue,php}", // Adaptez selon votre structure et types de fichiers
-  "./public/index.html",
-  "./public/*.{html,js,jsx,ts,tsx,vue,php}", // Si vous avez un fichier HTML principal
-  // Ajoutez ici tous les chemins vers vos templates
+  "./src/**/*.{html,js,jsx,ts,tsx,vue,php}",
+  "./public/**/*.{html,js,jsx,ts,tsx,vue,php}",
+  "./ressources/views/**/*.{html,js,jsx,ts,tsx,vue,php}",
 ];
+
 export const theme = {
   extend: {
     colors: {
+      // Couleurs officielles Check Master UFHB
       primary: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e',
-          600: '#16a34a',
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',
+          DEFAULT: '#1a5276',
+          light: '#2980b9',
+          lighter: '#3498db',
+          50: '#eaf2f8',
+          100: '#d4e6f1',
+          200: '#a9cce3',
+          300: '#5499c7',
+          400: '#2980b9',
+          500: '#1a5276',
+          600: '#2471a3',
+          700: '#1f618d',
+          800: '#1a5276',
+          900: '#154360',
       },
       secondary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          DEFAULT: '#ff8c00',
+          50: '#fff4e6',
+          100: '#fae5d3',
+          200: '#f5cba7',
+          300: '#f0b27a',
+          400: '#ff8c00',
+          500: '#ff8c00',
+          600: '#d35400',
+          700: '#af600f',
+          800: '#7e450b',
+          900: '#5a3308',
       },
       accent: {
-          400: '#f59e0b',
-          500: '#f97316',
-          600: '#ea580c',
-      }
-  }
+          DEFAULT: '#4caf50',
+          50: '#eafaf1',
+          100: '#d5f4e6',
+          200: '#7ddc80',
+          300: '#7ddc80',
+          400: '#4caf50',
+          500: '#4caf50',
+          600: '#449d48',
+          700: '#388e3c',
+          800: '#2e6b31',
+          900: '#1b5e20',
+      },
+      success: '#4caf50',
+      warning: '#f39c12',
+      danger: '#e74c3c',
+    },
+    fontFamily: {
+      'poppins': ['Poppins', 'sans-serif'],
+      'montserrat': ['Montserrat', 'sans-serif'],
+      'sans': ['Poppins', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+    },
+    boxShadow: {
+      'elevate': '0 25px 60px -15px rgba(26,82,118,0.25)',
+      'card': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    },
   },
 };
+
 export const plugins = [
   require('tailwindcss'),
   require('autoprefixer'),

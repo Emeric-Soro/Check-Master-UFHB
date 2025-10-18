@@ -10,31 +10,13 @@ $stat_utilisateurs = $GLOBALS['stats_utilisateurs'] ?? ['total' => 0,'actifs' =>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root{--blue:#0F4C75;--blue-light:#3282B8;--green:#10b981;--muted:#64748B}
-        .gradient-purple{background:linear-gradient(135deg,var(--blue),var(--blue-light)) !important}
-        .gradient-blue{background:linear-gradient(135deg,var(--blue),var(--blue-light)) !important}
-        .gradient-red{background:linear-gradient(135deg,var(--green),#0b8b55) !important}
-        .gradient-orange{background:linear-gradient(135deg,var(--blue),var(--blue-light)) !important}
-        .gradient-bg{background:linear-gradient(135deg,#F3F4F6 0%, #E5E7EB 100%)}
-        .card-hover{transition:all .3s ease}
-        .card-hover:hover{transform:translateY(-5px);box-shadow:0 10px 20px rgba(0,0,0,.1)}
-        .btn-tab{transition:all .3s ease}
-        .btn-tab.active{background-color:var(--blue);color:white}
-        .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;margin-top:.5rem}
-        .calendar-header{display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;margin-bottom:.5rem}
-        .calendar-header div{text-align:center;font-size:.75rem;color:var(--blue);font-weight:500}
-        .stats-table th{background-color:#F3F4F6;color:var(--blue);font-weight:600;padding:1rem;text-align:left}
-        .stats-table td{padding:1rem;border-bottom:1px solid #E5E7EB}
-        .stats-table tr:hover{background-color:#F9FAFB}
-    </style>
 </head>
-<body class="gradient-bg font-sans">
+<body class="bg-gray-50 font-poppins">
 <div class="flex min-h-screen">
     <div class="flex-grow">
         <div class="container mx-auto p-6">
             <div class="flex justify-between items-center mb-6">
-                <div class="bg-green-500 rounded-xl shadow-lg p-4 text-white">
+                <div class="bg-accent rounded-xl shadow-lg p-4 text-white">
                     <?php
                     $date = new DateTime();
                     $jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
