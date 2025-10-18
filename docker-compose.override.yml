@@ -7,6 +7,11 @@
 version: '3.8'
 
 services:
+  web:
+    # En développement, monter le code source pour le hot-reload
+    volumes:
+      - .:/var/www/html
+
   db:
     # Exposition du port MySQL pour accès direct depuis l'hôte en développement
     ports:

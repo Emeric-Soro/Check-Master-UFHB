@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Configurer et installer les extensions PHP
@@ -46,7 +47,10 @@ EXPOSE 80
 # ==================================
 # Stage 3: Composer Dependencies
 # ==================================
-FROM composer:2 AS composer-stage
+FROM base AS composer-stage
+
+# Installer Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 

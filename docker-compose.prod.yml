@@ -19,10 +19,12 @@ services:
       - APP_DEBUG=false
     # En production, uniquement le port 80 est exposé
     # HTTPS devrait être géré par un reverse proxy (nginx, traefik, etc.)
+    # Réinitialisation du tableau de ports (pour remplacer celui du docker-compose.yml de base)
     ports:
       - "80:80"
     # En production, pas de montage de volume pour le code
     # Le code est copié dans l'image lors du build
+    # Réinitialisation du tableau de volumes (pour supprimer celui du docker-compose.yml de base)
     volumes:
       # Seuls les dossiers de données persistantes sont montés
       - uploads_data:/var/www/html/public/uploads
