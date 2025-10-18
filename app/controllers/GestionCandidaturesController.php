@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/InfoStage.php';
 require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../utils/CSRFProtection.php';
 
 class GestionCandidaturesController {
     private $db;
@@ -43,6 +44,9 @@ class GestionCandidaturesController {
 
         // Gestion des actions - DOIT être avant tout output HTML
         if ($action === 'valider_etape' && $examiner) {
+            // Valider le jeton CSRF
+            CSRFProtection::verifyRequest();
+            
             $etapeValidee = $_POST['etape'] ?? '';
             $_SESSION['etapes_validation'][$examiner][$etapeValidee] = 'validé';
             
@@ -61,6 +65,9 @@ class GestionCandidaturesController {
         }
 
         if ($action === 'rejeter_etape' && $examiner) {
+            // Valider le jeton CSRF
+            CSRFProtection::verifyRequest();
+            
             $etapeRejetee = $_POST['etape'] ?? '';
             $_SESSION['etapes_validation'][$examiner][$etapeRejetee] = 'rejeté';
             
@@ -79,6 +86,9 @@ class GestionCandidaturesController {
 
         // Nouvelle action pour envoyer les résultats
         if ($action === 'envoyer_resultats' && $examiner) {
+            // Valider le jeton CSRF
+            CSRFProtection::verifyRequest();
+            
             $this->envoyerResultatsFinaux($examiner);
             $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Envoi résultats', 'candidature_soutenance', 'Succès');
             header("Location: ?page=gestion_candidatures_soutenance&examiner=$examiner&etape=4&email_envoye=1");

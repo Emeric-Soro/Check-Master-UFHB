@@ -2,6 +2,8 @@
 require_once __DIR__ . '/../models/Reclamation.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/CSRFProtection.php';
+
 class GestionReclamationsScolariteController {
     private $reclamationModel;
     private $auditLog;
@@ -34,6 +36,9 @@ class GestionReclamationsScolariteController {
     }
 
     public function changerStatut() {
+        // Valider le jeton CSRF
+        CSRFProtection::verifyRequest();
+        
         if (isset($_GET['id']) && isset($_POST['nouveau_statut'])) {
             $id = (int) $_GET['id'];
             $nouveauStatut = $_POST['nouveau_statut'];

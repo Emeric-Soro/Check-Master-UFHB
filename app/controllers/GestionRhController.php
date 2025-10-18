@@ -7,6 +7,7 @@ require_once __DIR__ . "/../models/Grade.php";
 require_once __DIR__ . "/../models/Fonction.php";
 require_once __DIR__ . "/../models/Specialite.php";
 require_once __DIR__ . "/../models/AuditLog.php";
+require_once __DIR__ . "/../utils/CSRFProtection.php";
 
 class GestionRhController
 {
@@ -31,6 +32,11 @@ class GestionRhController
 
     public function index()
     {
+        // Valider le jeton CSRF pour toutes les requêtes POST
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            CSRFProtection::verifyRequest();
+        }
+
         $messageErreur = '';
         $messageSuccess = '';
         $enseignant_a_modifier = null;

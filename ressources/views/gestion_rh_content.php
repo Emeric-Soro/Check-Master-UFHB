@@ -413,6 +413,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                     <!-- Table de listing des enseignants -->
                     <form class="bg-white shadow-md rounded-lg overflow-hidden mb-6" method="post"
                         action="?page=gestion_rh&tab=enseignant">
+                        <?= CSRFProtection::getTokenField() ?>
                         <input type="hidden" name="submit_delete_multiple" id="submitDeleteHidden" value="0">
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">

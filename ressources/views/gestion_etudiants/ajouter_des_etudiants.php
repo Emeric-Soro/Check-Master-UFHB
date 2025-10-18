@@ -125,6 +125,7 @@ error_log("View - All Etudiants Count: " . count($allEtudiants));
                 </div>
                 <form id="userForm" class="space-y-4" method="post"
                     action="?page=gestion_etudiants&action=ajouter_des_etudiants">
+                    <?= CSRFProtection::getTokenField() ?>
                     <input type="hidden" id="num_etu" name="num_etu"
                         value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->num_etu) : ''; ?>">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

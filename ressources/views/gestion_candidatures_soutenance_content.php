@@ -1245,12 +1245,14 @@ foreach ($candidatures as $c) {
                         <form method="post"
                             action="?page=gestion_candidatures_soutenance&action=rejeter_etape&examiner=<?php echo $examiner; ?>&etape=<?php echo $etape; ?>"
                             style="display: inline;">
+                            <?= CSRFProtection::getTokenField() ?>
                             <input type="hidden" name="etape" value="<?php echo $etape; ?>">
                             <button type="submit" class="btn-reject">Rejeter</button>
                         </form>
                         <form method="post"
                             action="?page=gestion_candidatures_soutenance&action=valider_etape&examiner=<?php echo $examiner; ?>&etape=<?php echo $etape; ?>"
                             style="display: inline;">
+                            <?= CSRFProtection::getTokenField() ?>
                             <input type="hidden" name="etape" value="<?php echo $etape; ?>">
                             <button type="submit" class="btn-validate">
                                 <?php echo $etape == 3 ? 'Terminer l\'évaluation' : 'Valider'; ?>
@@ -1261,6 +1263,7 @@ foreach ($candidatures as $c) {
                         <form method="post"
                             action="?page=gestion_candidatures_soutenance&action=envoyer_resultats&examiner=<?php echo $examiner; ?>"
                             style="display: inline;">
+                            <?= CSRFProtection::getTokenField() ?>
                             <button type="submit" class="btn-validate" style="background-color: #059669;">
                                 <i class="fas fa-envelope"></i> Envoyer les résultats
                             </button>

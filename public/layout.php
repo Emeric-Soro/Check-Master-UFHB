@@ -3,6 +3,7 @@ session_start();
 include '../app/config/database.php';
 include '../app/controllers/AuthController.php';
 include '../app/controllers/MenuController.php';
+include '../app/utils/CSRFProtection.php';
 include 'menu.php';
 include __DIR__ . '/../ressources/routes/gestionUtilisateurRoutes.php';
 include __DIR__ . '/../ressources/routes/gestionRhRoutes.php';
@@ -23,6 +24,10 @@ include __DIR__ . '/../ressources/routes/archivesDossiersSoutenanceRoutes.php';
 include __DIR__ . '/../ressources/routes/auditRoutes.php';
 include __DIR__ . '/../ressources/routes/redactionCompteRenduRoutes.php';
 include __DIR__ . '/../ressources/routes/archivesCompteRenduRoutes.php';
+
+// Générer ou récupérer le jeton CSRF pour la session
+CSRFProtection::getToken();
+
 if (!isset($_SESSION['id_utilisateur'])) {
     header('Location: page_connexion.php');
     exit;
