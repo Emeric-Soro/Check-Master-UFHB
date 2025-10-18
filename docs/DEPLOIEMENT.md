@@ -109,6 +109,46 @@ sudo systemctl restart sshd
 
 ## 🐳 Déploiement avec Docker
 
+### Architecture Docker
+
+Le projet utilise une **architecture Docker multi-environnement** :
+
+#### Fichiers de Configuration
+
+1. **`docker-compose.yml`** - Configuration de base
+   - Définit les services communs (web, db)
+   - Utilise des variables d'environnement pour la flexibilité
+   - Configuré pour le développement par défaut
+
+2. **`docker-compose.override.yml`** - Développement
+   - Appliqué automatiquement avec `docker-compose up`
+   - Expose les ports de la base de données et phpMyAdmin
+   - Monte le code source en volume pour le hot-reload
+
+3. **`docker-compose.prod.yml`** - Production
+   - Doit être spécifié explicitement avec `-f`
+   - Build multi-étages optimisé
+   - Ports sensibles NON exposés
+   - phpMyAdmin désactivé
+   - Volumes nommés pour la persistance
+
+#### Dockerfile Multi-Étapes
+
+Le `docker/php/Dockerfile` utilise un build multi-étapes :
+
+- **Stage 1 (base)** : Image de base avec PHP et Apache
+- **Stage 2 (development)** : Configuration pour le développement
+- **Stage 3 (composer-stage)** : Installation des dépendances Composer
+- **Stage 4 (node-stage)** : Build des assets avec npm
+- **Stage 5 (production)** : Image finale optimisée avec OPcache
+
+#### Avantages
+
+- ✅ **Sécurité** : Ports sensibles non exposés en production
+- ✅ **Performance** : OPcache activé, image optimisée
+- ✅ **Maintenabilité** : Séparation claire dev/prod
+- ✅ **Build Efficace** : Cache des dépendances, build rapide
+
 ### 1. Installation de Docker
 
 ```bash
@@ -174,66 +214,37 @@ SESSION_LIFETIME=7200
 CSRF_TOKEN_EXPIRY=3600
 ```
 
-#### b. Modifier `docker-compose.yml` pour Production
+#### b. Utiliser la configuration de production
 
-```bash
-nano docker-compose.yml
-```
+Le projet utilise désormais une configuration Docker modulaire :
 
-```yaml
-version: '3.8'
+- **`docker-compose.yml`** : Configuration de base
+- **`docker-compose.prod.yml`** : Surcharge pour la production
 
-services:
-  web:
-    build:
-      context: ./docker/php
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - .:/var/www/html
-      - ./logs:/var/log/apache2
-    depends_on:
-      - db
-    environment:
-      - APP_ENV=production
+La configuration de production inclut :
+- ✅ Build multi-étapes optimisé avec Composer et npm
+- ✅ OPcache activé pour PHP
+- ✅ Port de base de données NON exposé
+- ✅ phpMyAdmin désactivé
+- ✅ Apache configuré pour la sécurité
+- ✅ Volumes nommés pour la persistance des données
 
-  db:
-    image: mysql:8.3
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "127.0.0.1:3306:3306"  # Accessible uniquement en local
-    volumes:
-      - db_data:/var/lib/mysql
-      - ./backups:/backups
-
-volumes:
-  db_data:
-    driver: local
-```
+**Note** : Pas besoin de modifier `docker-compose.yml` manuellement, utilisez simplement la commande de déploiement avec `-f docker-compose.prod.yml`.
 
 ### 4. Construire et Démarrer
 
 ```bash
-# Installer les dépendances
-composer install --no-dev --optimize-autoloader
-npm install --production
-
-# Compiler les assets
-npm run build
-
-# Démarrer Docker
-docker-compose up -d --build
+# Construire et démarrer avec la configuration de production
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 # Vérifier que les conteneurs sont en cours d'exécution
-docker-compose ps
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml ps
+
+# Vérifier les logs
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml logs -f web
 ```
+
+**Note importante** : En production, les dépendances Composer et npm sont automatiquement installées et les assets compilés lors du build Docker. Vous n'avez plus besoin de les installer manuellement sur l'hôte.
 
 ### 5. Initialiser la Base de Données
 

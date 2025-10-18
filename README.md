@@ -91,19 +91,49 @@ docker run --rm -v $(pwd):/app composer install
 npm install
 ```
 
-### 4. Lancer l'application avec Docker
+### 4. Configurer l'environnement
+
+```bash
+# Copier le fichier d'exemple
+cp .env.example .env
+
+# Éditer le fichier .env avec vos paramètres
+nano .env
+```
+
+### 5. Lancer l'application avec Docker
+
+#### Environnement de Développement
 
 ```bash
 docker-compose up -d
 ```
 
 Cette commande va :
-- Construire l'image PHP avec Apache
-- Démarrer le conteneur MySQL
-- Démarrer phpMyAdmin
-- Monter les volumes nécessaires
+- Construire l'image PHP avec Apache (mode développement)
+- Démarrer le conteneur MySQL avec le port 3306 exposé
+- Démarrer phpMyAdmin sur le port 8081
+- Monter les volumes nécessaires pour le hot-reload
 
-### 5. Initialiser la base de données
+#### Environnement de Production
+
+```bash
+# Copier et configurer le fichier .env de production
+cp .env.prod.example .env
+nano .env  # Modifier les valeurs sensibles
+
+# Lancer avec la configuration de production
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+La configuration de production :
+- Utilise un build multi-étapes optimisé
+- Active OPcache pour de meilleures performances
+- N'expose PAS les ports de la base de données ni de phpMyAdmin
+- Utilise des volumes nommés pour la persistance des données
+- Configure Apache et PHP pour la sécurité
+
+### 6. Initialiser la base de données
 
 ```bash
 # Accéder au conteneur MySQL
@@ -118,7 +148,11 @@ mysql> source /var/lib/mysql/soutenance_manager.sql;
 2. Se connecter (user: `root`, password: `password`)
 3. Importer le fichier `soutenance_manager.sql`
 
-### 6. Compiler les assets CSS
+### 7. Compiler les assets CSS
+
+**Note**: En production, les assets sont automatiquement compilés lors du build Docker. Cette étape est uniquement nécessaire en développement.
+
+
 
 ```bash
 # Mode développement avec watch
@@ -130,11 +164,19 @@ npm run build
 
 ## 🌐 Accès à l'Application
 
+### Environnement de Développement
+
 Une fois démarrée, l'application est accessible via :
 
 - **Application principale** : http://localhost:8080
 - **phpMyAdmin** : http://localhost:8081
-- **Base de données** : localhost:3306
+- **Base de données** : localhost:3306 (accessible depuis l'hôte)
+
+### Environnement de Production
+
+- **Application principale** : http://localhost:80 (ou votre domaine configuré)
+- **phpMyAdmin** : Non disponible (désactivé pour la sécurité)
+- **Base de données** : Accessible uniquement via le réseau Docker interne
 
 ### Identifiants par défaut
 
@@ -144,12 +186,26 @@ Consultez la base de données pour les utilisateurs de test ou créez un nouvel 
 
 ### Configuration Docker
 
-Le fichier `docker-compose.yml` définit trois services :
+Le projet utilise une configuration Docker modulaire :
+
+- **`docker-compose.yml`** : Configuration de base commune
+- **`docker-compose.override.yml`** : Surcharge pour le développement (appliqué automatiquement)
+- **`docker-compose.prod.yml`** : Surcharge pour la production (doit être spécifié explicitement)
+
+#### Services en Développement
 
 ```yaml
 - web (PHP 8.2 + Apache) : Port 8080
-- db (MySQL 8.3) : Port 3306
-- phpmyadmin : Port 8081
+- db (MySQL 8.3) : Port 3306 (exposé)
+- phpmyadmin : Port 8081 (exposé)
+```
+
+#### Services en Production
+
+```yaml
+- web (PHP 8.2 + Apache + OPcache) : Port 80
+- db (MySQL 8.3) : Port NON exposé (sécurisé)
+- phpmyadmin : Non inclus (sécurité)
 ```
 
 ### Configuration Base de Données

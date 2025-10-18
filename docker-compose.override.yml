@@ -1,0 +1,34 @@
+# ================================================
+# Configuration Docker Compose - Développement
+# ================================================
+# Ce fichier surcharge docker-compose.yml pour le développement.
+# Il est automatiquement utilisé avec 'docker-compose up'.
+
+version: '3.8'
+
+services:
+  web:
+    # En développement, monter le code source pour le hot-reload
+    volumes:
+      - .:/var/www/html
+
+  db:
+    # Exposition du port MySQL pour accès direct depuis l'hôte en développement
+    ports:
+      - "${DOCKER_DB_PORT:-3306}:3306"
+
+  phpmyadmin:
+    # phpMyAdmin activé uniquement en développement
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: check-master-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_USER: ${DB_USER:-root}
+      PMA_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "${DOCKER_PHPMYADMIN_PORT:-8081}:80"
+    depends_on:
+      - db
+    networks:
+      - check-master-network

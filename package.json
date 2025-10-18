@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "tailwind:dev": "tailwindcss -i ./src/input.css -o ./public/css/output.css --watch",
+    "build": "tailwindcss -i ./src/input.css -o ./public/css/output.css --minify",
     "start": "...",
     "dev": "concurrently \"npm run tailwind:dev\" \"php -S localhost:8080 -t public\""
   },

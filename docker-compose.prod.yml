@@ -1,0 +1,72 @@
+# ================================================
+# Configuration Docker Compose - Production
+# ================================================
+# Ce fichier surcharge docker-compose.yml pour la production.
+# Utilisez: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: ./docker/php/Dockerfile
+      target: production
+    container_name: check-master-web-prod
+    restart: always
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+    # En production, uniquement le port 80 est exposé
+    # HTTPS devrait être géré par un reverse proxy (nginx, traefik, etc.)
+    # Réinitialisation du tableau de ports (pour remplacer celui du docker-compose.yml de base)
+    ports:
+      - "80:80"
+    # En production, pas de montage de volume pour le code
+    # Le code est copié dans l'image lors du build
+    # Réinitialisation du tableau de volumes (pour supprimer celui du docker-compose.yml de base)
+    volumes:
+      # Seuls les dossiers de données persistantes sont montés
+      - uploads_data:/var/www/html/public/uploads
+      - logs_data:/var/www/html/logs
+      - generated_docs:/var/www/html/public/documents/generated
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  db:
+    container_name: check-master-db-prod
+    restart: always
+    # Port de la base de données NON exposé en production
+    # La base est accessible uniquement via le réseau Docker interne
+    ports: []
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./backups:/backups:ro
+    # Configuration MySQL optimisée pour la production
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --max-connections=200
+      --innodb-buffer-pool-size=512M
+      --innodb-log-file-size=128M
+
+# phpMyAdmin n'est PAS inclus en production pour des raisons de sécurité
+# Utilisez un tunnel SSH ou un client MySQL local si nécessaire
+
+volumes:
+  db_data:
+    driver: local
+  uploads_data:
+    driver: local
+  logs_data:
+    driver: local
+  generated_docs:
+    driver: local
+
+networks:
+  check-master-network:
+    driver: bridge
