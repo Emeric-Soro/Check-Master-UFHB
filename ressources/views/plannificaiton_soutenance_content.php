@@ -256,7 +256,7 @@ $planifications = $controller->getPlanificationsForView();
                                         Modifier
                                     </button>
 
-                                    <form method="POST" style="display: inline;"
+                                    <form method="POST" class="inline"
                                         onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette planification ?');">
                                         <input type="hidden" name="action" value="supprimer">
                                         <input type="hidden" name="id_programmation"

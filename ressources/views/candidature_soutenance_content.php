@@ -64,7 +64,7 @@ foreach ($candidatures_etudiant as $cand) {
         Veuillez d'abord remplir les informations de stage pour accéder aux autres fonctionnalités.
     </div>
 
-    <div id="globalCandidatureError" style="display:none;z-index:9999;color:#b91c1c;background:#fee2e2;border:1px solid #fca5a5;margin-bottom:22px;padding:12px 24px;border-radius:6px;max-width:90vw;box-shadow:0 2px 8px rgba(0,0,0,0.08);font-size:1rem;opacity:0;transition:opacity 0.4s;">
+    <div id="globalCandidatureError" class="hidden z-[9999] text-red-800 bg-red-100 border border-red-300 mb-5 px-6 py-3 rounded-md max-w-[90vw] shadow-md text-base opacity-0 transition-opacity duration-400">
     </div>
 
     <div class="header text-center mb-8">
@@ -117,7 +117,7 @@ foreach ($candidatures_etudiant as $cand) {
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-green-500 hover:bg-green-600';
                 ?>
-                <button id="btnDemandeCandidature" onclick="<?php echo $onclick; ?>" class="card-btn <?php echo $btnClass; ?> text-white px-4 py-2 rounded-lg transition-colors duration-300 text-sm" style="<?php echo $disableCandidature ? 'opacity:0.6;cursor:not-allowed;' : ''; ?>">
+                <button id="btnDemandeCandidature" onclick="<?php echo $onclick; ?>" class="card-btn <?php echo $btnClass; ?> text-white px-4 py-2 rounded-lg transition-colors duration-300 text-sm <?php echo $disableCandidature ? 'opacity-60 cursor-not-allowed' : ''; ?>">
                         <span class="flex items-center">
                             Demande de candidature
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-2">
@@ -126,7 +126,7 @@ foreach ($candidatures_etudiant as $cand) {
                             </svg>
                         </span>
                 </button>
-                <div id="demandeCandidatureError" style="display:none;color:#b91c1c;background:#fee2e2;border:1px solid #fca5a5;padding:8px 12px;border-radius:4px;max-width:400px;margin-top:8px;">
+                <div id="demandeCandidatureError" class="hidden text-red-800 bg-red-100 border border-red-300 px-3 py-2 rounded max-w-md mt-2">
                 </div>
             </div>
         </div>

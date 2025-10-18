@@ -10,13 +10,13 @@ if (class_exists('Scolarite') && class_exists('Database')) {
     try {
         $scolarite = new Scolarite(Database::getConnection());
     } catch (Exception $e) {
-        echo '<div style="padding:20px;max-width:720px;margin:20px auto;background:#fff3cd;border:1px solid #ffeeba;color:#856404;">';
+        echo '<div class="p-5 max-w-3xl mx-5 my-5 bg-yellow-50 border border-yellow-300 text-yellow-800">';
         echo '<strong>Erreur :</strong> impossible de se connecter à la base de données pour générer le reçu.';
         echo '</div>';
         return;
     }
 } else {
-    echo '<div style="padding:20px;max-width:720px;margin:20px auto;background:#fff3cd;border:1px solid #ffeeba;color:#856404;">';
+    echo '<div class="p-5 max-w-3xl mx-5 my-5 bg-yellow-50 border border-yellow-300 text-yellow-800">';
     echo '<strong>Configuration manquante :</strong> composant requis indisponible pour générer le reçu.';
     echo '</div>';
     return;
@@ -59,7 +59,7 @@ if (empty($versement) || $versement === false) {
 
 // Si toujours rien, afficher un message clair et arrêter l'affichage pour éviter warnings
 if (empty($versement) || $versement === false) {
-    echo '<div style="padding:20px;max-width:720px;margin:20px auto;background:#fff3cd;border:1px solid #ffeeba;color:#856404;">';
+    echo '<div class="p-5 max-w-3xl mx-5 my-5 bg-yellow-50 border border-yellow-300 text-yellow-800">';
     echo '<strong>Reçu introuvable :</strong> le versement demandé est introuvable ou l\'identifiant fourni est invalide.';
     echo '</div>';
     return;
@@ -379,7 +379,7 @@ if (file_exists($qrPath) && is_readable($qrPath)) {
             </table>
         </div>
 
-        <h3 style="text-align: center; margin-bottom: 20px;">REÇU <span class="receipt-number">Nº
+        <h3 class="text-center mb-5">REÇU <span class="receipt-number">Nº
                 <?php echo $numeroRecu; ?></span></h3>
 
         <table class="info-table">

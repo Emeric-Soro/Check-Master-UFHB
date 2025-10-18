@@ -150,7 +150,7 @@ if (!empty($_SESSION['success'])) {
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Ajouter un rapport</label>
                                         <div class="flex items-center space-x-2">
-                                            <select id="reportSelect" class="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500" style="height:36px; width: 100px;">
+                                            <select id="reportSelect" class="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 h-9 w-25">
                                             <option value="">Sélectionner un rapport...</option>
                                                 <?php foreach (
                                                     $rapports_valides as $rapport): ?>
@@ -160,9 +160,8 @@ if (!empty($_SESSION['success'])) {
                                                 <?php endforeach; ?>
                                         </select>
                                             <button onclick="addReport()"
-                                                class="bg-blue-200 text-gray-700 rounded-full hover:bg-gray-300 focus:ring-2 focus:ring-blue-400 flex items-center justify-center"
-                                                style="height:28px; width:28px; min-width:28px;">
-                                                <i class="fas fa-plus" style="font-size:14px;"></i>
+                                                class="bg-blue-200 text-gray-700 rounded-full hover:bg-gray-300 focus:ring-2 focus:ring-blue-400 flex items-center justify-center h-7 w-7 min-w-7">
+                                                <i class="fas fa-plus text-sm"></i>
                                             </button>
                                         </div>
                                     </div>
@@ -260,7 +259,7 @@ if (!empty($_SESSION['success'])) {
 
                                 <!-- Editor Content -->
                                 <div class="p-6">
-                                    <div id="editorContent" class="editor-content w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500" contenteditable="true" style="min-height: 500px;">
+                                    <div id="editorContent" class="editor-content w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 min-h-[500px]" contenteditable="true">
                                         <div class="text-center mb-8">
                                             <h1 class="text-3xl font-bold mb-3 text-gray-800">COMPTE RENDU D'ÉVALUATION</h1>
                                             <h2 class="text-xl font-semibold text-gray-700 mb-2">Commission de Validation des Rapports de Soutenance</h2>
@@ -437,7 +436,7 @@ if (!empty($_SESSION['success'])) {
         </div>
     </form>
 
-    <div id="toastNotif" style="display:none; position:fixed; top:30px; right:30px; z-index:9999; min-width:250px;" class="transition-opacity duration-500">
+    <div id="toastNotif" class="hidden fixed top-8 right-8 z-[9999] min-w-[250px] transition-opacity duration-500">
         <div id="toastContent" class="px-4 py-3 rounded shadow-lg flex items-center">
             <span id="toastIcon" class="mr-3"></span>
             <span id="toastMsg"></span>
@@ -742,13 +741,13 @@ if (!empty($_SESSION['success'])) {
                 </style>
                 <div class="header-logos">
                     <div class="center">
-                        <div style="font-size:13px; font-weight:bold; letter-spacing:1px;">REPUBLIQUE DE COTE D'IVOIRE</div>
-                        <div style="font-size:12px;">Ministère de l'Enseignement Supérieur et de la Recherche Scientifique</div>
+                        <div class="text-sm font-bold tracking-wider">REPUBLIQUE DE COTE D'IVOIRE</div>
+                        <div class="text-xs">Ministère de l'Enseignement Supérieur et de la Recherche Scientifique</div>
                         </div>
                         </div>
                 <h1>Procès-Verbal de séance de validation de thèmes</h1>
                 <h2>Thèmes de Soutenance - Filière MIAGE-GI</h2>
-                <div class="text-center" style="margin-bottom:1em;">
+                <div class="text-center mb-4">
                     Université Félix Houphouët-Boigny<br>
                     UFR Mathématiques et Informatique
                         </div>
@@ -776,7 +775,7 @@ if (!empty($_SESSION['success'])) {
                     <li>Joindre un CV contenant une photo d'identité</li>
                     <li>Soutenir au plus tard à la session suivante pour ne pas tomber sous le coup d'une pénalité</li>
                                 </ul>
-                <div class="text-center" style="margin-top:2em;">
+                <div class="text-center mt-8">
                     Les travaux de la commission ont pris fin à 12 h 30.<br>
                     Fait à Abidjan, le [DATE]<br>
                     <strong>La commission</strong>

@@ -135,7 +135,7 @@ $membresCommission = $donnees['membres_commission'];
         </div>
 
         <?php if ($message): ?>
-            <div class="alert alert-<?= $message['success'] ? 'success' : 'danger' ?>" style="padding: 15px; margin-bottom: 20px; border-radius: 4px; <?= $message['success'] ? 'background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;' : 'background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;' ?>">
+            <div class="alert alert-<?= $message['success'] ? 'success' : 'danger' ?> p-4 mb-5 rounded <?= $message['success'] ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300' ?>">
                 <i class="fas fa-<?= $message['success'] ? 'check-circle' : 'exclamation-triangle' ?>"></i>
                 <?= htmlspecialchars($message['message']) ?>
             </div>
@@ -144,19 +144,19 @@ $membresCommission = $donnees['membres_commission'];
         <div class="stats">
             <div class="stat-card">
                 <h3><i class="fas fa-file-alt"></i> Total rapports approuvés</h3>
-                <p style="font-size: 24px; font-weight: bold; color: #007bff;"><?= $statistiques['total_rapports'] ?></p>
+                <p class="text-2xl font-bold text-blue-600"><?= $statistiques['total_rapports'] ?></p>
             </div>
             <div class="stat-card">
                 <h3><i class="fas fa-clock"></i> En cours d'évaluation</h3>
-                <p style="font-size: 24px; font-weight: bold; color: #ffc107;"><?= $statistiques['en_cours'] ?></p>
+                <p class="text-2xl font-bold text-warning"><?= $statistiques['en_cours'] ?></p>
             </div>
             <div class="stat-card">
                 <h3><i class="fas fa-check"></i> Validés par la commission</h3>
-                <p style="font-size: 24px; font-weight: bold; color: #28a745;"><?= $statistiques['valides'] ?></p>
+                <p class="text-2xl font-bold text-accent"><?= $statistiques['valides'] ?></p>
             </div>
             <div class="stat-card">
                 <h3><i class="fas fa-times"></i> Rejetés par la commission</h3>
-                <p style="font-size: 24px; font-weight: bold; color: #dc3545;"><?= $statistiques['rejetes'] ?></p>
+                <p class="text-2xl font-bold text-danger"><?= $statistiques['rejetes'] ?></p>
             </div>
         </div>
 
@@ -195,14 +195,14 @@ $membresCommission = $donnees['membres_commission'];
         </div>
 
         <div class="reports">
-            <div style="padding: 20px; border-bottom: 1px solid #eee;">
+            <div class="p-5 border-b border-gray-200">
                 <h3><i class="fas fa-list-check"></i> Rapports approuvés en cours de validation</h3>
                 <p id="reportCount"><?= count($rapports) ?> rapports trouvés</p>
             </div>
 
             <?php if (empty($rapports)): ?>
                 <div class="no-reports">
-                    <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 20px;"></i>
+                    <i class="fas fa-inbox text-5xl mb-5"></i>
                     <h3>Aucun rapport approuvé</h3>
                     <p>Aucun rapport n'a encore été approuvé par la chargée de communication.</p>
                 </div>
@@ -239,7 +239,7 @@ $membresCommission = $donnees['membres_commission'];
                                             <img src="https://ui-avatars.com/api/?name=<?= urlencode($evaluation['nom_enseignant'] . ' ' . $evaluation['prenom_enseignant']) ?>&background=random" 
                                                  alt="<?= htmlspecialchars($evaluation['nom_enseignant']) ?>">
                                             <strong><?= htmlspecialchars($evaluation['nom_enseignant'] . ' ' . $evaluation['prenom_enseignant']) ?></strong>
-                                            <span class="decision-<?= $evaluation['decision_evaluation'] === 'valider' ? 'valid' : 'reject' ?>" style="margin-left: auto;">
+                                            <span class="decision-<?= $evaluation['decision_evaluation'] === 'valider' ? 'valid' : 'reject' ?> ml-auto">
                                                 <?= $evaluation['decision_evaluation'] === 'valider' ? '✅ Validé' : '❌ Rejeté' ?>
                                             </span>
                                         </div>
@@ -260,7 +260,7 @@ $membresCommission = $donnees['membres_commission'];
                                         <img src="https://ui-avatars.com/api/?name=<?= urlencode($membre['nom_enseignant'] . ' ' . $membre['prenom_enseignant']) ?>&background=random" 
                                              alt="<?= htmlspecialchars($membre['nom_enseignant']) ?>">
                                         <strong><?= htmlspecialchars($membre['nom_enseignant'] . ' ' . $membre['prenom_enseignant']) ?></strong>
-                                        <span class="decision-pending" style="margin-left: auto;">⏳ En attente</span>
+                                        <span class="decision-pending ml-auto">⏳ En attente</span>
                                     </div>
                                     <p><em>Pas encore évalué</em></p>
                                 </div>
@@ -270,10 +270,10 @@ $membresCommission = $donnees['membres_commission'];
                             ?>
                         </div>
                         
-                        <div class="actions" style="margin-top: 15px;">
+                        <div class="actions mt-4">
                             <button onclick="viewReport(<?= $rapport['id_rapport'] ?>)" class="btn btn-primary"><i class="fas fa-file-lines"></i> Consulter</button>
                             <?php if ($rapport['statut_vote']['total_votes'] == 4 && !$rapport['statut_vote']['finalise']): ?>
-                                <form id="form-finaliser-<?= $rapport['id_rapport'] ?>" method="POST" style="display:inline;">
+                                <form id="form-finaliser-<?= $rapport['id_rapport'] ?>" method="POST" class="inline">
                                     <input type="hidden" name="action" value="finaliser">
                                     <input type="hidden" name="id_rapport" value="<?= $rapport['id_rapport'] ?>">
                                     <input type="hidden" name="commentaire_validation" id="commentaire-<?= $rapport['id_rapport'] ?>" value="">

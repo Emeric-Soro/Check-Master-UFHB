@@ -397,7 +397,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                             </label>
                             <select name="selected_persons[]" multiple size="10" required
                                 class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200"
-                                style="height: auto; min-height: 200px;">
+                                class="h-auto min-h-[200px]">
                                 <optgroup label="Enseignants">
                                     <?php foreach($enseignantsNonUtilisateurs as $enseignant): ?>
                                     <option value="ens_<?php echo $enseignant->id_enseignant; ?>"

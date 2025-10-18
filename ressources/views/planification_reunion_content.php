@@ -271,7 +271,7 @@
                 </div>
 
                 <!-- Upcoming Events -->
-                <div class="mt-8 fade-in" style="animation-delay: 0.2s;">
+                <div class="mt-8 fade-in" class="[animation-delay:0.2s]">
                     <h2 class="text-lg font-semibold text-gray-800 mb-4">
                         <i class="fas fa-list-ul text-green-600 mr-2"></i>
                         Prochaines soutenances

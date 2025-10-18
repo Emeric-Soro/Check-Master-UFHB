@@ -75,11 +75,11 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
         <div class="mb-6 flex flex-col md:flex-row md:items-center gap-4">
             <form method="get" class="flex gap-4 w-full">
                 <input type="hidden" name="page" value="dossiers_academiques">
-                <input type="text" name="search" id="searchInput" style="outline: none;"
+                <input type="text" name="search" id="searchInput" class="outline-none"
                     placeholder="Rechercher par nom, email, niveau..."
                     value="<?= htmlspecialchars($_GET['search'] ?? '') ?>"
                     class="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">
-                <select name="niveau" style="outline: none;"
+                <select name="niveau" class="outline-none"
                     class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500">
                     <option value="">Tous les niveaux</option>
                     <?php foreach($niveaux as $niv): ?>

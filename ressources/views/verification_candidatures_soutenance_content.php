@@ -515,7 +515,7 @@ function traduireStatut($statut)
 
             <!-- Formulaire PHP pour valider -->
             <form id="validerForm" method="POST" action="?page=verification_candidatures_soutenance"
-                style="display: none;">
+                class="hidden">
                 <input type="hidden" name="valider" value="1">
                 <input type="hidden" id="validerRapportId" name="id_rapport">
                 <div class="mb-4">
@@ -539,7 +539,7 @@ function traduireStatut($statut)
 
             <!-- Formulaire PHP pour rejeter -->
             <form id="rejeterForm" method="POST" action="?page=verification_candidatures_soutenance"
-                style="display: none;">
+                class="hidden">
                 <input type="hidden" name="rejeter" value="1">
                 <input type="hidden" id="rejeterRapportId" name="id_rapport">
                 <div class="mb-4">

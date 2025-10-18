@@ -350,7 +350,7 @@ if (isset($_SESSION['num_etu'])) {
                                 ?>
 
                                 <?php if ($peutDeposer): ?>
-                                <form method="POST" action="?page=gestion_rapports" style="display:inline;"
+                                <form method="POST" action="?page=gestion_rapports" class="inline"
                                     id="deposerForm-<?= $rapport->id_rapport ?>">
                                     <input type="hidden" name="id_rapport" value="<?= $rapport->id_rapport ?>">
                                     <input type="hidden" name="action" value="deposer_rapport">

@@ -152,7 +152,7 @@
         <div class="container">
             <table class="header-table">
                 <tr>
-                    <td style="width:20%;text-align:left">
+                    <td class="w-1/5 text-left">
                         <?php
                         // Logo left
                         $logoLeft = __DIR__ . '/../../public/image/logo_ufhb.png';
@@ -166,7 +166,7 @@
                         }
                         ?>
                     </td>
-                    <td style="width:60%" class="title-block">
+                    <td class="w-3/5" class="title-block">
                         <div class="title-sub">REPUBLIQUE DE CÔTE D'IVOIRE</div>
                         <div class="title-sub">MINISTERE DE L'ENSEIGNEMENT SUPERIEUR ET DE LA RECHERCHE SCIENTIFIQUE</div>
                         <div class="title-main">RELEVE DE NOTES</div>
@@ -174,7 +174,7 @@
                             <?= htmlspecialchars($GLOBALS['annee_universitaire'] ?? '2025-2026') ?>
                         </div>
                     </td>
-                    <td style="width:20%;text-align:right">
+                    <td class="w-1/5 text-right">
                         <?php
                         // Logo right
                         $logoRight = __DIR__ . '/../../public/image/logo_mi_sbg.png';
@@ -191,16 +191,16 @@
                 </tr>
             </table>
 
-            <div style="margin-bottom:10px">
+            <div class="mb-2.5">
                 <div class="student-info">
                     <strong>NOM :</strong> <?= htmlspecialchars($GLOBALS['selectedStudent']->nom_etu) ?>
-                    <strong style="margin-left:18px">PRENOMS :</strong>
+                    <strong class="ml-4.5">PRENOMS :</strong>
                     <?= htmlspecialchars($GLOBALS['selectedStudent']->prenom_etu) ?><br>
                     <strong>DATE DE NAISSANCE :</strong>
                     <?= htmlspecialchars($GLOBALS['selectedStudent']->date_naiss_etu) ?>
-                    <strong style="margin-left:18px">PARCOURS :</strong> MIAGE<br>
+                    <strong class="ml-4.5">PARCOURS :</strong> MIAGE<br>
                     <strong>NIVEAU :</strong> <?= htmlspecialchars($GLOBALS['niveau'] ?? '') ?>
-                    <strong style="margin-left:18px">N° CARTE ETUDIANT :</strong>
+                    <strong class="ml-4.5">N° CARTE ETUDIANT :</strong>
                     <?= htmlspecialchars($GLOBALS['selectedStudent']->num_etu) ?>
                 </div>
                 <div class="faculty">FILIERES PROFESSIONNALISEES (GI-MIAGE) —
@@ -326,7 +326,7 @@
                 </div>
                 <?php $semIndex++; endforeach; ?>
 
-            <div class="recap" style="margin-top:16px">
+            <div class="recap" class="mt-4">
                 <strong>RESULTAT GENERAL</strong><br>
                 Un Semestre n'est validé que si la moyenne des UE majeures et celle des UE mineures sont toutes >=10.<br>
                 La note plancher de chaque UE est de 05/20.<br>

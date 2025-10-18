@@ -397,11 +397,11 @@ $auditLog = $GLOBALS['auditLog'];
 </div>
 
 <!-- Cleanup Modal -->
-<div id="cleanupModal" class="modal-backdrop" style="display:none;">
+<div id="cleanupModal" class="modal-backdrop" class="hidden">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cleanup-title">
-        <h2 id="cleanup-title" style="margin:0 0 12px 0; font-size:18px; color:#0f1720;"><i class="fas fa-exclamation-triangle" style="color:var(--ufhb-blue); margin-right:8px;"></i>Confirmation du nettoyage</h2>
-        <p style="margin:0 0 16px 0; color:#374151;">Êtes-vous sûr de vouloir supprimer tous les logs d'audit plus anciens que la période spécifiée ? Cette action est irréversible.</p>
-        <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <h2 id="cleanup-title" class="m-0 mb-3 text-lg text-gray-900"><i class="fas fa-exclamation-triangle" class="text-primary mr-2"></i>Confirmation du nettoyage</h2>
+        <p class="m-0 mb-4 text-gray-700">Êtes-vous sûr de vouloir supprimer tous les logs d'audit plus anciens que la période spécifiée ? Cette action est irréversible.</p>
+        <div class="flex justify-end gap-2">
             <button type="button" id="cancelCleanupBtn" class="btn btn-muted">Annuler</button>
             <button type="button" id="confirmCleanupBtn" class="btn btn-blue">Nettoyer</button>
         </div>
