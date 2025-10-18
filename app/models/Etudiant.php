@@ -7,15 +7,73 @@ class Etudiant {
         $this->db = $db;
     }
 
-    public function getAllEtudiants() {
+    public function getAllEtudiants($limit = null, $offset = null, $searchTerm = '') {
         try {
-            $query = "SELECT * FROM etudiants ORDER BY nom_etu, prenom_etu";
+            $query = "SELECT * FROM etudiants WHERE 1=1";
+            $params = [];
+            
+            // Filtre de recherche
+            if (!empty($searchTerm)) {
+                $query .= " AND (LOWER(nom_etu) LIKE LOWER(:search) OR LOWER(prenom_etu) LIKE LOWER(:search))";
+                $params[':search'] = '%' . $searchTerm . '%';
+            }
+            
+            $query .= " ORDER BY nom_etu, prenom_etu";
+            
+            // Pagination
+            if ($limit !== null) {
+                $query .= " LIMIT :limit";
+                if ($offset !== null) {
+                    $query .= " OFFSET :offset";
+                }
+            }
+            
             $stmt = $this->db->prepare($query);
+            
+            // Bind des paramètres de recherche
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            
+            // Bind des paramètres de pagination
+            if ($limit !== null) {
+                $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+                if ($offset !== null) {
+                    $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+                }
+            }
+            
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération des étudiants : " . $e->getMessage());
             return [];
+        }
+    }
+    
+    public function countEtudiants($searchTerm = '') {
+        try {
+            $query = "SELECT COUNT(*) as total FROM etudiants WHERE 1=1";
+            $params = [];
+            
+            // Filtre de recherche
+            if (!empty($searchTerm)) {
+                $query .= " AND (LOWER(nom_etu) LIKE LOWER(:search) OR LOWER(prenom_etu) LIKE LOWER(:search))";
+                $params[':search'] = '%' . $searchTerm . '%';
+            }
+            
+            $stmt = $this->db->prepare($query);
+            
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_OBJ);
+            return (int)$result->total;
+        } catch (PDOException $e) {
+            error_log("Erreur lors du comptage des étudiants : " . $e->getMessage());
+            return 0;
         }
     }
 
