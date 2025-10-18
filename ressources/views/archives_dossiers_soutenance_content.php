@@ -7,7 +7,7 @@ $filtres = $archivesData['filtres'] ?? [];
 
 function getStatusClass($status) {
     switch ($status) {
-        case 'valider': return 'bg-green-100 text-green-800 border-green-200';
+        case 'valider': return 'bg-green-100 text-primary border-green-200';
         case 'rejeter': return 'bg-red-100 text-red-800 border-red-200';
         default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -42,9 +42,9 @@ function getTimeAgo($date) {
     <title>Archives des Dossiers de Soutenance</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root{--blue:#0F4C75;--blue-light:#3282B8;--green:#10b981;--muted:#64748B;--bg:#F8FAFC}
-        .text-blue-600,.text-indigo-600,.text-blue-500{color:var(--blue) !important}
-        .bg-blue-600,.bg-indigo-600{background-color:var(--blue) !important}
+        :root{--blue:#1a5276;--blue-light:#2980b9;--green:#10b981;--muted:#64748B;--bg:#F8FAFC}
+        .text-blue-600,.text-indigo-600,.text-blue-500{color:var(--primary) !important}
+        .bg-blue-600,.bg-indigo-600{background-color:var(--primary) !important}
         .bg-blue-100{background-color:rgba(15,76,117,0.08) !important}
         .bg-green-100{background-color:rgba(16,185,129,0.08) !important}
         .bg-red-100{background-color:rgba(15,76,117,0.08) !important}
@@ -62,7 +62,7 @@ function getTimeAgo($date) {
         .card-hover:hover{transform:translateY(-5px);box-shadow:0 10px 25px rgba(0,0,0,.15)}
     </style>
 </head>
-<body class="font-sans antialiased bg-gray-50">
+<body class="font-poppins antialiased bg-gray-50">
 <div class="min-h-screen">
     <div class="bg-white shadow-sm border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -374,7 +374,7 @@ function getTimeAgo($date) {
                                     Détails
                                 </button>
                                 <button onclick="downloadRapport(<?php echo $rapport['id_rapport']; ?>)"
-                                        class="text-green-600 hover:text-green-800 text-sm font-medium">
+                                        class="text-green-600 hover:text-primary text-sm font-medium">
                                     <i class="fas fa-download mr-1"></i>
                                     Télécharger
                                 </button>

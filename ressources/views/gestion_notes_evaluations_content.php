@@ -175,7 +175,7 @@ $studentGrades = $GLOBALS['studentGrades'];
     </script>
 </head>
 
-<body class="font-sans antialiased bg-gray-50">
+<body class="font-poppins antialiased bg-gray-50">
     <div class="flex h-screen overflow-hidden">
         <!-- Main content area -->
         <div class="flex-1 p-4 md:p-6 overflow-y-auto ">

@@ -26,11 +26,11 @@ $semestres = $GLOBALS['semestres'] ?? [];
     <title>Portail Étudiant - Mes Résultats</title>
 </head>
 
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+<body class="bg-gradient-to-br bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
         <header class="mb-10 text-center animate-fade-in">
-            <h1 class="text-4xl font-bold text-green-800 mb-2">Mon Portail Académique</h1>
+            <h1 class="text-4xl font-bold text-primary mb-2">Mon Portail Académique</h1>
             <p class="text-xl text-green-600">Consultez vos résultats et bulletins de notes</p>
             <div class="flex justify-center mt-4">
                 <div class="bg-white rounded-full shadow-md px-6 py-2 inline-flex items-center">

@@ -350,7 +350,7 @@ $listeMessages = array_slice($listeMessages, $offset, $limit);
                                                 echo 'bg-blue-100 text-blue-800';
                                                 break;
                                             case 'success':
-                                                echo 'bg-green-100 text-green-800';
+                                                echo 'bg-green-100 text-primary';
                                                 break;
                                             case 'warning':
                                                 echo 'bg-yellow-100 text-yellow-800';

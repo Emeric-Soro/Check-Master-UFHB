@@ -376,19 +376,19 @@ if (!isset($_SESSION['id_utilisateur'])) {
             'title' => 'Soumettre une Réclamation',
             'description' => 'Déposez une nouvelle réclamation en remplissant le formulaire dédié.',
             'link' => '?page=gestion_reclamations&action=soumettre_reclamation',
-            'icon' => 'fa-solid fa-circle-exclamation ',
+            'icon' => 'fa-solid fa-circle-exclamation',
             'title_link' => 'Soumettre',
-            'bg_color' => 'bg-accent-lighter',
+            'bg_color' => 'bg-accent/10',
             'text_color' => 'text-accent'
         ],
         [
             'title' => 'Suivi et historique des réclamations',
             'description' => 'Consultez l\'état actuel de vos réclamations en cours et accédez à l\'historique complet de vos réclamations passées.',
             'link' => '?page=gestion_reclamations&action=suivi_historique_reclamation',
-            'icon' => 'fa-solid fa-eye ',
+            'icon' => 'fa-solid fa-eye',
             'title_link' => 'Suivi et historique',
-            'bg_color' => 'bg-warning/20',
-            'text_color' => 'text-warning'
+            'bg_color' => 'bg-secondary/10',
+            'text_color' => 'text-secondary'
         ]
     ];
 }

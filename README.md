@@ -203,11 +203,17 @@ Check-Master-UFHB/
 
 ## 📖 Documentation
 
+### Guides Utilisateurs
 - **[Guide Utilisateur](./docs/GUIDE_UTILISATEUR.md)** - Guide complet pour les utilisateurs
 - **[Configuration](./docs/CONFIGURATION.md)** - Configuration détaillée de l'environnement
 - **[FAQ](./docs/FAQ.md)** - Questions fréquentes et résolution de problèmes
 - **[Déploiement](./docs/DEPLOIEMENT.md)** - Guide de déploiement en production
-- **[Contribution](./docs/CONTRIBUTION.md)** - Guide pour les contributeurs
+
+### Guides Développeurs
+- **[Guide de la Charte Graphique](./STYLE_GUIDE.md)** - 🎨 Guide complet de la charte graphique et des styles
+- **[Composants Réutilisables](./COMPONENTS.md)** - 📦 Documentation des composants HTML/PHP réutilisables
+- **[Guide de Contribution Style](./CONTRIBUTING_STYLE.md)** - 🚀 Guide rapide pour respecter la charte graphique
+- **[Contribution Générale](./docs/CONTRIBUTION.md)** - Guide pour les contributeurs
 
 ## 🔒 Sécurité
 

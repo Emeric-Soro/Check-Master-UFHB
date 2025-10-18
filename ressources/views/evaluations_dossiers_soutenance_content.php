@@ -72,7 +72,7 @@
     </style>
 </head>
 
-<body class="font-sans antialiased bg-gray-50">
+<body class="font-poppins antialiased bg-gray-50">
 <div class="flex h-screen overflow-hidden">
     <!-- Main content area -->
     <div class="flex-1 overflow-y-auto bg-gray-50">
@@ -389,7 +389,7 @@
                                     $statusText = 'Nouveau';
                                     break;
                                 case 'valide':
-                                    $statusClass = 'bg-green-100 text-green-800';
+                                    $statusClass = 'bg-green-100 text-primary';
                                     $statusText = 'Validé';
                                     break;
                                 case 'desapprouve_commission':

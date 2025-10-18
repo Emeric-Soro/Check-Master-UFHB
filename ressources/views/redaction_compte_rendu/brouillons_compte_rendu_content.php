@@ -33,7 +33,7 @@
         }
     </style>
 </head>
-<body class="font-sans antialiased bg-gray-50">
+<body class="font-poppins antialiased bg-gray-50">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <div class="hidden md:flex md:flex-shrink-0">
@@ -256,7 +256,7 @@
                                     <span class="text-sm font-medium text-gray-600">Brouillon</span>
                                 </div>
                                 <div class="flex items-center space-x-2">
-                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Prêt</span>
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-primary">Prêt</span>
                                     <div class="relative">
                                         <button onclick="toggleDropdown(2)" class="text-gray-400 hover:text-gray-600">
                                             <i class="fas fa-ellipsis-v"></i>

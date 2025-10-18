@@ -10,31 +10,13 @@ $stat_utilisateurs = $GLOBALS['stats_utilisateurs'] ?? ['total' => 0,'actifs' =>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root{--blue:#0F4C75;--blue-light:#3282B8;--green:#10b981;--muted:#64748B}
-        .gradient-purple{background:linear-gradient(135deg,var(--blue),var(--blue-light)) !important}
-        .gradient-blue{background:linear-gradient(135deg,var(--blue),var(--blue-light)) !important}
-        .gradient-red{background:linear-gradient(135deg,var(--green),#0b8b55) !important}
-        .gradient-orange{background:linear-gradient(135deg,var(--blue),var(--blue-light)) !important}
-        .gradient-bg{background:linear-gradient(135deg,#F3F4F6 0%, #E5E7EB 100%)}
-        .card-hover{transition:all .3s ease}
-        .card-hover:hover{transform:translateY(-5px);box-shadow:0 10px 20px rgba(0,0,0,.1)}
-        .btn-tab{transition:all .3s ease}
-        .btn-tab.active{background-color:var(--blue);color:white}
-        .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;margin-top:.5rem}
-        .calendar-header{display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;margin-bottom:.5rem}
-        .calendar-header div{text-align:center;font-size:.75rem;color:var(--blue);font-weight:500}
-        .stats-table th{background-color:#F3F4F6;color:var(--blue);font-weight:600;padding:1rem;text-align:left}
-        .stats-table td{padding:1rem;border-bottom:1px solid #E5E7EB}
-        .stats-table tr:hover{background-color:#F9FAFB}
-    </style>
 </head>
-<body class="gradient-bg font-sans">
+<body class="bg-gray-50 font-poppins">
 <div class="flex min-h-screen">
     <div class="flex-grow">
         <div class="container mx-auto p-6">
             <div class="flex justify-between items-center mb-6">
-                <div class="bg-green-500 rounded-xl shadow-lg p-4 text-white">
+                <div class="bg-accent rounded-xl shadow-lg p-4 text-white">
                     <?php
                     $date = new DateTime();
                     $jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
@@ -102,7 +84,7 @@ $stat_utilisateurs = $GLOBALS['stats_utilisateurs'] ?? ['total' => 0,'actifs' =>
                     <div class="bg-white rounded-xl shadow-lg p-6 mb-6 card-hover">
                         <div class="flex justify-between items-center mb-6">
                             <div>
-                                <h2 class="text-lg font-bold text-green-800">Évolution des utilisateurs</h2>
+                                <h2 class="text-lg font-bold text-primary">Évolution des utilisateurs</h2>
                                 <p class="text-sm text-blue-600">Sur les 6 derniers mois</p>
                             </div>
                             <div class="flex space-x-1 text-xs bg-blue-100 rounded-lg p-1">
@@ -118,7 +100,7 @@ $stat_utilisateurs = $GLOBALS['stats_utilisateurs'] ?? ['total' => 0,'actifs' =>
                     </div>
 
                     <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
-                        <h2 class="text-lg font-bold text-green-800 mb-4">Statistiques détaillées</h2>
+                        <h2 class="text-lg font-bold text-primary mb-4">Statistiques détaillées</h2>
                         <div class="overflow-x-auto">
                             <table class="stats-table w-full">
                                 <thead>
@@ -168,7 +150,7 @@ $stat_utilisateurs = $GLOBALS['stats_utilisateurs'] ?? ['total' => 0,'actifs' =>
                 <div class="lg:col-span-1">
                     <div class="bg-white rounded-xl shadow-lg p-6 mb-6 card-hover">
                         <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-lg font-bold text-green-800">Calendrier</h2>
+                            <h2 class="text-lg font-bold text-primary">Calendrier</h2>
                             <div class="flex space-x-2">
                                 <button id="prevMonth" class="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center text-blue-600 hover:bg-blue-200"><i class="fas fa-chevron-left text-xs"></i></button>
                                 <button id="nextMonth" class="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center text-blue-600 hover:bg-blue-200"><i class="fas fa-chevron-right text-xs"></i></button>
@@ -193,7 +175,7 @@ $stat_utilisateurs = $GLOBALS['stats_utilisateurs'] ?? ['total' => 0,'actifs' =>
 
                     <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
                         <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-lg font-bold text-green-800">Activités récentes</h2>
+                            <h2 class="text-lg font-bold text-primary">Activités récentes</h2>
                             <button class="text-blue-400 hover:text-blue-600"><i class="fas fa-ellipsis-h"></i></button>
                         </div>
 
@@ -240,13 +222,13 @@ $stat_utilisateurs = $GLOBALS['stats_utilisateurs'] ?? ['total' => 0,'actifs' =>
         type: 'line',
         data: {
             labels: chartData.utilisateurs.labels,
-            datasets: [{ label: 'Utilisateurs', data: chartData.utilisateurs.data, borderColor: '#0F4C75', backgroundColor: 'rgba(15,76,117,0.08)', fill: true, tension: 0.4 }]
+            datasets: [{ label: 'Utilisateurs', data: chartData.utilisateurs.data, borderColor: '#1a5276', backgroundColor: 'rgba(15,76,117,0.08)', fill: true, tension: 0.4 }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { position: 'top', labels: { color: '#0F4C75', font: { size: 12 } } } },
-            scales: { y: { beginAtZero: true, grid: { color: 'rgba(79,70,229,0.1)' }, ticks: { color: '#0F4C75' } }, x: { grid: { color: 'rgba(79,70,229,0.1)' }, ticks: { color: '#0F4C75' } } }
+            plugins: { legend: { position: 'top', labels: { color: '#1a5276', font: { size: 12 } } } },
+            scales: { y: { beginAtZero: true, grid: { color: 'rgba(79,70,229,0.1)' }, ticks: { color: '#1a5276' } }, x: { grid: { color: 'rgba(79,70,229,0.1)' }, ticks: { color: '#1a5276' } } }
         }
     });
 

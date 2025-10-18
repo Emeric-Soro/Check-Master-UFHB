@@ -44,7 +44,7 @@
     </style>
 </head>
 
-<body class="font-sans antialiased bg-gray-50">
+<body class="font-poppins antialiased bg-gray-50">
     <div class="flex h-screen overflow-hidden">
 
 
@@ -175,7 +175,7 @@
                         <div class="bg-white h-24 p-1 calendar-day today">
                             <div class="text-right text-sm p-1">
                                 <span
-                                    class="bg-green-100 text-green-800 rounded-full w-6 h-6 inline-flex items-center justify-center">11</span>
+                                    class="bg-green-100 text-primary rounded-full w-6 h-6 inline-flex items-center justify-center">11</span>
                             </div>
                             <div class="overflow-y-auto h-16 text-xs space-y-1">
                                 <div class="bg-red-50 rounded p-1 truncate">
@@ -290,7 +290,7 @@
                                         <div class="flex items-center justify-between">
                                             <h3 class="text-lg font-medium text-gray-900">Soutenance de Thèse</h3>
                                             <span
-                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-primary">
                                                 Confirmée
                                             </span>
                                         </div>
@@ -306,7 +306,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-4 flex justify-between">
-                                    <button class="text-sm text-green-600 hover:text-green-800 font-medium">
+                                    <button class="text-sm text-green-600 hover:text-primary font-medium">
                                         <i class="fas fa-eye mr-1"></i> Détails
                                     </button>
                                     <button class="text-sm text-blue-600 hover:text-blue-800 font-medium">
@@ -344,7 +344,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-4 flex justify-between">
-                                    <button class="text-sm text-green-600 hover:text-green-800 font-medium">
+                                    <button class="text-sm text-green-600 hover:text-primary font-medium">
                                         <i class="fas fa-eye mr-1"></i> Détails
                                     </button>
                                     <button class="text-sm text-blue-600 hover:text-blue-800 font-medium">
@@ -382,7 +382,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-4 flex justify-between">
-                                    <button class="text-sm text-green-600 hover:text-green-800 font-medium">
+                                    <button class="text-sm text-green-600 hover:text-primary font-medium">
                                         <i class="fas fa-eye mr-1"></i> Détails
                                     </button>
                                     <button class="text-sm text-blue-600 hover:text-blue-800 font-medium">

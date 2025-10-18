@@ -38,7 +38,7 @@
                             class="px-3 py-1 rounded-full text-sm font-medium
                             <?php 
                             $statut = $compte_rendu['statut'] ?? 'en_attente';
-                            echo $statut === 'accepté' ? 'bg-green-100 text-green-800' : 
+                            echo $statut === 'accepté' ? 'bg-green-100 text-primary' : 
                                     ($statut === 'refusé' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'); 
                             ?>">
                             <?php echo ucfirst($statut); ?>

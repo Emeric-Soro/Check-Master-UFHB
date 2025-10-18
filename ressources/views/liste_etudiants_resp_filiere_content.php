@@ -115,7 +115,7 @@ $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
                             <?= htmlspecialchars($etudiant->nom_etu ?? '') ?></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                             <?= htmlspecialchars($etudiant->prenom_etu ?? '') ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 hover:text-green-800">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 hover:text-primary">
                             <?= htmlspecialchars($etudiant->email_etu ?? '') ?></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                             <?= (isset($etudiant->date_deb, $etudiant->date_fin) ? htmlspecialchars(date('Y', strtotime($etudiant->date_deb)) . '-' . date('Y', strtotime($etudiant->date_fin))) : '') ?>
@@ -126,7 +126,7 @@ $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
                             <?= htmlspecialchars($etudiant->date_naiss_etu ?? '') ?></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <span
-                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= (isset($etudiant->status) && $etudiant->status === 'Actif') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' ?>">
+                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= (isset($etudiant->status) && $etudiant->status === 'Actif') ? 'bg-green-100 text-primary' : 'bg-red-100 text-red-800' ?>">
                                 <?= htmlspecialchars($etudiant->status ?? 'Actif') ?>
                             </span>
                         </td>

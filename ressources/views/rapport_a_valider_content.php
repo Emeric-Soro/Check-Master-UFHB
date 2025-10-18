@@ -36,7 +36,7 @@
         }
     </style>
 </head>
-<body class="font-sans antialiased bg-gray-50">
+<body class="font-poppins antialiased bg-gray-50">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <div class="hidden md:flex md:flex-shrink-0">
@@ -186,7 +186,7 @@
                                             <div class="flex items-center justify-between">
                                                 <p class="text-sm font-medium text-gray-900">Intelligence Artificielle dans le Diagnostic Médical</p>
                                                 <div class="flex items-center space-x-2">
-                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-primary">
                                                         <i class="fas fa-check-circle mr-1"></i>Approuvé par Miss Seri
                                                     </span>
                                                     <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -232,7 +232,7 @@
                                             <div class="flex items-center justify-between">
                                                 <p class="text-sm font-medium text-gray-900">Système de Gestion des Ressources Humaines</p>
                                                 <div class="flex items-center space-x-2">
-                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-primary">
                                                         <i class="fas fa-check-circle mr-1"></i>Approuvé par Miss Seri
                                                     </span>
                                                     <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
@@ -275,7 +275,7 @@
                                             <div class="flex items-center justify-between">
                                                 <p class="text-sm font-medium text-gray-900">Application Mobile de Commerce Électronique</p>
                                                 <div class="flex items-center space-x-2">
-                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-primary">
                                                         <i class="fas fa-check-circle mr-1"></i>Approuvé par Miss Seri
                                                     </span>
                                                     <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
@@ -350,13 +350,13 @@
                             <div class="space-y-3">
                                 <div class="flex items-center justify-between p-2 bg-white rounded">
                                     <span class="text-sm font-medium">Dr. Koné</span>
-                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                                    <span class="px-2 py-1 text-xs bg-green-100 text-primary rounded-full">
                                         <i class="fas fa-check mr-1"></i>Validé
                                     </span>
                                 </div>
                                 <div class="flex items-center justify-between p-2 bg-white rounded">
                                     <span class="text-sm font-medium">Pr. Assan</span>
-                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                                    <span class="px-2 py-1 text-xs bg-green-100 text-primary rounded-full">
                                         <i class="fas fa-check mr-1"></i>Validé
                                     </span>
                                 </div>
@@ -443,21 +443,21 @@
                                         <p class="font-medium text-sm">Dr. Kouassi</p>
                                         <p class="text-xs text-gray-600">Très bon travail, méthodologie solide</p>
                                     </div>
-                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Validé</span>
+                                    <span class="px-2 py-1 text-xs bg-green-100 text-primary rounded-full">Validé</span>
                                 </div>
                                 <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-green-500">
                                     <div>
                                         <p class="font-medium text-sm">Dr. Koné</p>
                                         <p class="text-xs text-gray-600">Innovation intéressante, bien documenté</p>
                                     </div>
-                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Validé</span>
+                                    <span class="px-2 py-1 text-xs bg-green-100 text-primary rounded-full">Validé</span>
                                 </div>
                                 <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-green-500">
                                     <div>
                                         <p class="font-medium text-sm">Pr. Assan</p>
                                         <p class="text-xs text-gray-600">Contribution significative au domaine</p>
                                     </div>
-                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Validé</span>
+                                    <span class="px-2 py-1 text-xs bg-green-100 text-primary rounded-full">Validé</span>
                                 </div>
                                 <div class="flex items-center justify-between p-3 bg-white rounded border-l-4 border-red-500">
                                     <div>
@@ -573,7 +573,7 @@
                                     <p class="text-sm text-gray-600">Évalué le 21/05/2025</p>
                                 </div>
                             </div>
-                            <span class="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full font-medium">
+                            <span class="px-3 py-1 text-sm bg-green-100 text-primary rounded-full font-medium">
                                 <i class="fas fa-check mr-1"></i>Validé
                             </span>
                         </div>
@@ -594,7 +594,7 @@
                                     <p class="text-sm text-gray-600">Évalué le 22/05/2025</p>
                                 </div>
                             </div>
-                            <span class="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full font-medium">
+                            <span class="px-3 py-1 text-sm bg-green-100 text-primary rounded-full font-medium">
                                 <i class="fas fa-check mr-1"></i>Validé
                             </span>
                         </div>
@@ -615,7 +615,7 @@
                                     <p class="text-sm text-gray-600">Évalué le 22/05/2025</p>
                                 </div>
                             </div>
-                            <span class="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full font-medium">
+                            <span class="px-3 py-1 text-sm bg-green-100 text-primary rounded-full font-medium">
                                 <i class="fas fa-check mr-1"></i>Validé
                             </span>
                         </div>
