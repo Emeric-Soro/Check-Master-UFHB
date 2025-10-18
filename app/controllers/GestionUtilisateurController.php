@@ -35,6 +35,9 @@ class GestionUtilisateurController
         $this->typeUtilisateur = new TypeUtilisateur(Database::getConnection());
         $this->niveauAcces = new NiveauAccesDonnees(Database::getConnection());
         $this->auditLog = new AuditLog(Database::getConnection());
+        
+        // Charger les utilitaires de performance
+        require_once __DIR__ . '/../utils/PaginationHelper.php';
 
     }
 
@@ -279,10 +282,22 @@ class GestionUtilisateurController
             $messageErreur = "Erreur : " . $e->getMessage();
         }
 
+        // Paramètres de pagination
+        $currentPage = isset($_GET['p']) ? (int)$_GET['p'] : 1;
+        $itemsPerPage = 15;
+        $searchTerm = isset($_GET['search']) ? trim($_GET['search']) : '';
+        
+        // Récupération des utilisateurs avec pagination côté serveur
+        $totalItems = $this->utilisateur->countUtilisateurs($searchTerm);
+        $pagination = PaginationHelper::calculate($currentPage, $totalItems, $itemsPerPage);
+        $utilisateurs = $this->utilisateur->getAllUtilisateurs($pagination['limit'], $pagination['offset'], $searchTerm);
+        
         // Préparation des données pour la vue
         $GLOBALS['messageErreur'] = $messageErreur;
         $GLOBALS['messageSuccess'] = $messageSuccess;
-        $GLOBALS['utilisateurs'] = $this->utilisateur->getAllUtilisateurs();
+        $GLOBALS['utilisateurs'] = $utilisateurs;
+        $GLOBALS['pagination'] = $pagination;
+        $GLOBALS['searchTerm'] = $searchTerm;
         $GLOBALS['types_utilisateur'] = $this->typeUtilisateur->getAllTypeUtilisateur();
         $GLOBALS['groupes_utilisateur'] = $this->groupeUtilisateur->getAllGroupeUtilisateur();
         $GLOBALS['niveau_acces'] = $this->niveauAcces->getAllNiveauxAccesDonnees();

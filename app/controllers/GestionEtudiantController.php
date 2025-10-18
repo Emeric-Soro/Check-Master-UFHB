@@ -21,6 +21,9 @@ class GestionEtudiantController
         $this->db = Database::getConnection();
         $this->etudiant = new Etudiant($this->db);
         $this->auditLog = new AuditLog($this->db);
+        
+        // Charger les utilitaires de performance
+        require_once __DIR__ . '/../utils/PaginationHelper.php';
       
     }
 
@@ -209,51 +212,37 @@ class GestionEtudiantController
                 }
             }
 
-            // Récupération des données pour l'affichage
-            $listeEtudiants = $this->etudiant->getAllEtudiants();
+            // Récupération des données pour l'affichage avec pagination côté serveur
+            // Compter le nombre total d'étudiants (avec filtre de recherche)
+            $totalItems = $this->etudiant->countEtudiants($searchTerm);
             
-            // Filtrer les étudiants si un terme de recherche est présent
-            if (!empty($searchTerm)) {
-                $listeEtudiants = array_filter($listeEtudiants, function($etudiant) use ($searchTerm) {
-                    $searchTerm = strtolower($searchTerm);
-                    return strpos(strtolower($etudiant->nom_etu), $searchTerm) !== false ||
-                           strpos(strtolower($etudiant->prenom_etu), $searchTerm) !== false;
-                });
-                
-               
-            }
-
-            // Convertir le résultat en tableau indexé
-            $listeEtudiants = array_values($listeEtudiants);
-
-            $totalItems = count($listeEtudiants);
-            $totalPages = ceil($totalItems / $itemsPerPage);
+            // Calculer les paramètres de pagination
+            $pagination = PaginationHelper::calculate($currentPage, $totalItems, $itemsPerPage);
             
-            // Validation de la page courante
-            if ($currentPage < 1) {
-                $currentPage = 1;
-            } elseif ($currentPage > $totalPages && $totalPages > 0) {
-                $currentPage = $totalPages;
-            }
+            // Récupérer uniquement les étudiants de la page courante
+            $currentPageItems = $this->etudiant->getAllEtudiants(
+                $pagination['limit'], 
+                $pagination['offset'], 
+                $searchTerm
+            );
             
-            $startIndex = ($currentPage - 1) * $itemsPerPage;
-            $endIndex = min($startIndex + $itemsPerPage, $totalItems);
-            
-            // Récupérer les étudiants pour la page courante
-            $currentPageItems = array_slice($listeEtudiants, $startIndex, $itemsPerPage);
+            // Pour la compatibilité avec le code existant, récupérer tous les étudiants si nécessaire
+            // Note: À terme, il faudrait supprimer cette ligne pour de meilleures performances
+            $allEtudiants = $this->etudiant->getAllEtudiants(null, null, $searchTerm);
 
             // Préparation des données pour la vue
             $GLOBALS['listeEtudiants'] = $currentPageItems;
-            $GLOBALS['allEtudiants'] = $listeEtudiants;
+            $GLOBALS['allEtudiants'] = $allEtudiants;
             $GLOBALS['etudiant_a_modifier'] = $etudiant_a_modifier;
             $GLOBALS['modalAction'] = $modalAction;
-            $GLOBALS['currentPage'] = $currentPage;
-            $GLOBALS['totalPages'] = $totalPages;
-            $GLOBALS['totalItems'] = $totalItems;
-            $GLOBALS['startIndex'] = $startIndex;
-            $GLOBALS['endIndex'] = $endIndex;
+            $GLOBALS['currentPage'] = $pagination['currentPage'];
+            $GLOBALS['totalPages'] = $pagination['totalPages'];
+            $GLOBALS['totalItems'] = $pagination['totalItems'];
+            $GLOBALS['startIndex'] = $pagination['startIndex'];
+            $GLOBALS['endIndex'] = $pagination['endIndex'];
             $GLOBALS['itemsPerPage'] = $itemsPerPage;
             $GLOBALS['searchTerm'] = $searchTerm;
+            $GLOBALS['pagination'] = $pagination;
 
         } catch (Exception $e) {
             error_log("Erreur dans GestionEtudiantController::index : " . $e->getMessage());

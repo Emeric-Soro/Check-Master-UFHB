@@ -117,7 +117,7 @@ class Utilisateur
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function getAllUtilisateurs()
+    public function getAllUtilisateurs($limit = null, $offset = null, $searchTerm = '')
     {
         $sql = "SELECT u.*, tu.lib_type_utilisateur as role_utilisateur, 
                        gu.lib_GU, nad.lib_niveau_acces_donnees as niveau_acces
@@ -125,11 +125,73 @@ class Utilisateur
                 LEFT JOIN type_utilisateur tu ON u.id_type_utilisateur = tu.id_type_utilisateur
                 LEFT JOIN groupe_utilisateur gu ON u.id_GU = gu.id_GU
                 LEFT JOIN niveau_acces_donnees nad ON u.id_niv_acces_donnee = nad.id_niveau_acces_donnees
-                ORDER BY u.nom_utilisateur";
+                WHERE 1=1";
+        
+        $params = [];
+        
+        // Filtre de recherche
+        if (!empty($searchTerm)) {
+            $sql .= " AND (LOWER(u.nom_utilisateur) LIKE LOWER(:search) 
+                      OR LOWER(u.login_utilisateur) LIKE LOWER(:search)
+                      OR LOWER(tu.lib_type_utilisateur) LIKE LOWER(:search))";
+            $params[':search'] = '%' . $searchTerm . '%';
+        }
+        
+        $sql .= " ORDER BY u.nom_utilisateur";
+        
+        // Pagination
+        if ($limit !== null) {
+            $sql .= " LIMIT :limit";
+            if ($offset !== null) {
+                $sql .= " OFFSET :offset";
+            }
+        }
 
         $stmt = $this->db->prepare($sql);
+        
+        // Bind des paramètres de recherche
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        
+        // Bind des paramètres de pagination
+        if ($limit !== null) {
+            $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+            if ($offset !== null) {
+                $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+            }
+        }
+        
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+    
+    public function countUtilisateurs($searchTerm = '')
+    {
+        $sql = "SELECT COUNT(*) as total
+                FROM utilisateur u
+                LEFT JOIN type_utilisateur tu ON u.id_type_utilisateur = tu.id_type_utilisateur
+                WHERE 1=1";
+        
+        $params = [];
+        
+        // Filtre de recherche
+        if (!empty($searchTerm)) {
+            $sql .= " AND (LOWER(u.nom_utilisateur) LIKE LOWER(:search) 
+                      OR LOWER(u.login_utilisateur) LIKE LOWER(:search)
+                      OR LOWER(tu.lib_type_utilisateur) LIKE LOWER(:search))";
+            $params[':search'] = '%' . $searchTerm . '%';
+        }
+
+        $stmt = $this->db->prepare($sql);
+        
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_OBJ);
+        return (int)$result->total;
     }
 
     public function getUtilisateurById($id)

@@ -3,3 +3,5 @@ public/assets/css/output_dashboard_admin.css
 .env
 .DS_Store
 /vendor/
+cache/
+*.cache
