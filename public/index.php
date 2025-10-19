@@ -4,47 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Université Félix Houphouët-Boigny - GSCV+</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/output.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="shortcut icon" href="image/logo_cm_sbg.png" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#1a5276',        // Bleu de la sidebar
-                        'primary-light': '#2980b9', // Bleu plus clair
-                        'primary-lighter': '#3498db', // Encore plus clair
-                        secondary: '#ff8c00',      // Orange de l'app
-                        accent: '#4caf50',         // Vert de l'app
-                        success: '#4caf50',        // Vert
-                        warning: '#f39c12',        // Jaune/Orange
-                        danger: '#e74c3c',         // Rouge
-                    },
-                    animation: {
-                        'fade-in': 'fadeIn 1s ease-in-out',
-                        'slide-up': 'slideUp 0.8s ease-out',
-                        'slide-in-left': 'slideInLeft 0.8s ease-out',
-                        'slide-in-right': 'slideInRight 0.8s ease-out',
-                        'bounce-in': 'bounceIn 1s ease-out',
-                        'float': 'float 3s ease-in-out infinite',
-                        'pulse-slow': 'pulse 3s ease-in-out infinite',
-                    },
-                    backgroundImage: {
-                        'hero-gradient': 'linear-gradient(135deg, rgba(26, 82, 118, 0.9) 0%, rgba(41, 128, 185, 0.8) 50%, rgba(52, 152, 219, 0.7) 100%)',
-                        'card-gradient': 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-                    },
-                    fontFamily: {
-                        'poppins': ['Poppins', 'sans-serif'],
-                        'montserrat': ['Montserrat', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
+    <script src="js/alpine.min.js" defer></script>
     <style>
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -120,55 +86,53 @@
 </head>
 
 <body class="font-poppins bg-gray-50">
-<!-- Navigation moderne -->
-<nav class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" id="navbar">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center py-4">
-            <!-- Logo -->
-            <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 bg-gradient-to-br from-primary to-primary-light rounded-xl flex items-center justify-center">
-                    <i class="fas fa-graduation-cap text-white text-xl"></i>
-                </div>
-                <div class="text-white">
-                    <h1 class="text-xl font-bold">UFHB</h1>
-                    <p class="text-xs text-white/80">Université Félix Houphouët-Boigny</p>
-                </div>
+<!-- Navigation moderne avec DaisyUI -->
+<div class="navbar fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-transparent" id="navbar">
+    <div class="navbar-start">
+        <div class="dropdown">
+            <div tabindex="0" role="button" class="btn btn-ghost lg:hidden text-white" id="mobile-menu-toggle">
+                <i class="fas fa-bars text-xl"></i>
             </div>
-
-            <!-- Menu desktop -->
-            <div class="hidden md:flex items-center space-x-8">
-                <a href="#accueil" class="text-white hover:text-primary-lighter transition-colors font-medium">Accueil</a>
-                <a href="#about" class="text-white hover:text-primary-lighter transition-colors font-medium">À propos</a>
-                <a href="#formations" class="text-white hover:text-primary-lighter transition-colors font-medium">Formations</a>
-                <a href="indexCM.php" class="text-white hover:text-primary-lighter transition-colors font-medium">Plateforme</a>
-                <a href="page_connexion.php" class="bg-primary-light text-white px-6 py-2 rounded-lg hover:bg-primary-lighter transition-colors font-medium">
+            <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-primary/95 backdrop-blur-sm rounded-box w-52">
+                <li><a href="#accueil" class="text-white hover:text-primary-lighter">Accueil</a></li>
+                <li><a href="#about" class="text-white hover:text-primary-lighter">À propos</a></li>
+                <li><a href="#formations" class="text-white hover:text-primary-lighter">Formations</a></li>
+                <li><a href="indexCM.php" class="text-white hover:text-primary-lighter">Plateforme</a></li>
+                <li>
+                    <a href="page_connexion.php" class="bg-primary-light text-white hover:bg-primary-lighter">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Connexion
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="flex items-center space-x-3 ml-2">
+            <div class="w-12 h-12 bg-gradient-to-br from-primary to-primary-light rounded-xl flex items-center justify-center">
+                <i class="fas fa-graduation-cap text-white text-xl"></i>
+            </div>
+            <div class="text-white">
+                <h1 class="text-xl font-bold">UFHB</h1>
+                <p class="text-xs text-white/80">Université Félix Houphouët-Boigny</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="navbar-end hidden lg:flex">
+        <ul class="menu menu-horizontal px-1">
+            <li><a href="#accueil" class="text-white hover:text-primary-lighter font-medium">Accueil</a></li>
+            <li><a href="#about" class="text-white hover:text-primary-lighter font-medium">À propos</a></li>
+            <li><a href="#formations" class="text-white hover:text-primary-lighter font-medium">Formations</a></li>
+            <li><a href="indexCM.php" class="text-white hover:text-primary-lighter font-medium">Plateforme</a></li>
+            <li>
+                <a href="page_connexion.php" class="btn btn-primary bg-primary-light border-0 text-white hover:bg-primary-lighter">
                     <i class="fas fa-sign-in-alt mr-2"></i>Connexion
                 </a>
-            </div>
-
-            <!-- Menu mobile toggle -->
-            <button class="md:hidden text-white" id="mobile-menu-toggle">
-                <i class="fas fa-bars text-xl"></i>
-            </button>
-        </div>
+            </li>
+        </ul>
     </div>
+</div>
 
-    <!-- Menu mobile -->
-    <div class="md:hidden bg-primary/95 backdrop-blur-sm border-t border-white/20 hidden" id="mobile-menu">
-        <div class="px-4 py-4 space-y-4">
-            <a href="#accueil" class="block text-white hover:text-primary-lighter transition-colors font-medium">Accueil</a>
-            <a href="#about" class="block text-white hover:text-primary-lighter transition-colors font-medium">À propos</a>
-            <a href="#formations" class="block text-white hover:text-primary-lighter transition-colors font-medium">Formations</a>
-            <a href="#platform" class="block text-white hover:text-primary-lighter transition-colors font-medium">Plateforme</a>
-            <a href="page_connexion.php" class="block bg-primary-light text-white px-4 py-2 rounded-lg hover:bg-primary-lighter transition-colors font-medium text-center">
-                <i class="fas fa-sign-in-alt mr-2"></i>Connexion
-            </a>
-        </div>
-    </div>
-</nav>
-
-<!-- Section Hero avec slider -->
-<section id="accueil" class="relative h-screen hero-slider">
+<!-- Section Hero avec slider et DaisyUI -->
+<section id="accueil" class="hero min-h-screen hero-slider">
     <!-- Slides -->
     <div class="slide active">
         <img src="image/ufhb3.jpg" alt="Université Félix Houphouët-Boigny">
@@ -184,28 +148,27 @@
     </div>
 
     <!-- Contenu Hero -->
-    <div class="absolute inset-0 flex items-center justify-center">
-        <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-            <div class="animate-slide-up">
-                <h1 class="text-4xl md:text-6xl font-bold text-white mb-6 font-montserrat">
-                    UNIVERSITÉ FÉLIX
-                    <span class="block text-primary-lighter">HOUPHOUËT-BOIGNY</span>
-                </h1>
-                <p class="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto">
-                    Excellence académique et innovation au service du développement de l'Afrique
-                </p>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="https://w.univ-fhb.edu.ci" target="_blank"
-                       class="bg-white text-primary px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-all duration-300 transform hover:scale-105">
-                        <i class="fas fa-university mr-2"></i>
-                        Découvrir l'université
-                    </a>
-                    <a href="#platform"
-                       class="bg-primary-light text-white px-8 py-4 rounded-lg font-semibold hover:bg-primary-lighter transition-all duration-300 transform hover:scale-105">
-                        <i class="fas fa-graduation-cap mr-2"></i>
-                        Notre plateforme
-                    </a>
-                </div>
+    <div class="hero-overlay bg-opacity-0"></div>
+    <div class="hero-content text-center text-neutral-content">
+        <div class="max-w-4xl animate-slide-up">
+            <h1 class="text-4xl md:text-6xl font-bold text-white mb-6 font-montserrat">
+                UNIVERSITÉ FÉLIX
+                <span class="block text-primary-lighter">HOUPHOUËT-BOIGNY</span>
+            </h1>
+            <p class="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto">
+                Excellence académique et innovation au service du développement de l'Afrique
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="https://w.univ-fhb.edu.ci" target="_blank"
+                   class="btn btn-lg bg-white text-primary border-0 hover:bg-gray-100">
+                    <i class="fas fa-university mr-2"></i>
+                    Découvrir l'université
+                </a>
+                <a href="#platform"
+                   class="btn btn-lg btn-primary bg-primary-light border-0 text-white hover:bg-primary-lighter">
+                    <i class="fas fa-graduation-cap mr-2"></i>
+                    Notre plateforme
+                </a>
             </div>
         </div>
     </div>
@@ -251,16 +214,18 @@
                     </div>
                 </div>
                 <div class="animate-slide-in-right">
-                    <div class="bg-card-gradient p-8 rounded-2xl shadow-lg">
-                        <div class="flex items-center mb-4">
-                            <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mr-4">
-                                <i class="fas fa-history text-primary text-xl"></i>
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mr-4">
+                                    <i class="fas fa-history text-primary text-xl"></i>
+                                </div>
+                                <h3 class="card-title text-2xl">Notre histoire et notre héritage</h3>
                             </div>
-                            <h3 class="text-2xl font-bold text-gray-900">Notre histoire et notre héritage</h3>
+                            <p class="text-base-content/70 leading-relaxed">
+                                Fondée en 1964, l'Université Félix Houphouët-Boigny (anciennement Université de Cocody) porte le nom du père fondateur de la nation ivoirienne. Avec plus de cinq décennies d'excellence académique, notre institution a formé des générations de leaders et contribué significativement au développement du pays.
+                            </p>
                         </div>
-                        <p class="text-gray-600 leading-relaxed">
-                            Fondée en 1964, l'Université Félix Houphouët-Boigny (anciennement Université de Cocody) porte le nom du père fondateur de la nation ivoirienne. Avec plus de cinq décennies d'excellence académique, notre institution a formé des générations de leaders et contribué significativement au développement du pays.
-                        </p>
                     </div>
                 </div>
             </div>
@@ -268,16 +233,18 @@
             <!-- Campus moderne -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div class="order-2 lg:order-1 animate-slide-in-left">
-                    <div class="bg-card-gradient p-8 rounded-2xl shadow-lg">
-                        <div class="flex items-center mb-4">
-                            <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mr-4">
-                                <i class="fas fa-building text-accent text-xl"></i>
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mr-4">
+                                    <i class="fas fa-building text-accent text-xl"></i>
+                                </div>
+                                <h3 class="card-title text-2xl">Un campus moderne et dynamique</h3>
                             </div>
-                            <h3 class="text-2xl font-bold text-gray-900">Un campus moderne et dynamique</h3>
+                            <p class="text-base-content/70 leading-relaxed">
+                                Situé au cœur de Cocody, notre campus s'étend sur plusieurs hectares et offre un environnement propice aux études et à la recherche. Nos infrastructures modernes comprennent des amphithéâtres, des laboratoires équipés, une bibliothèque universitaire riche de milliers d'ouvrages et des espaces de vie communautaire.
+                            </p>
                         </div>
-                        <p class="text-gray-600 leading-relaxed">
-                            Situé au cœur de Cocody, notre campus s'étend sur plusieurs hectares et offre un environnement propice aux études et à la recherche. Nos infrastructures modernes comprennent des amphithéâtres, des laboratoires équipés, une bibliothèque universitaire riche de milliers d'ouvrages et des espaces de vie communautaire.
-                        </p>
                     </div>
                 </div>
                 <div class="order-1 lg:order-2 animate-slide-in-right">
@@ -295,20 +262,22 @@
                     <div class="relative">
                         <img src="image/about_img3.jpg" alt="Corps professoral"
                              class="rounded-2xl shadow-2xl w-full h-80 object-cover">
-                        <div class="absolute inset-0 bg-gradient-to-t from-secondary/30 to-transparent rounded-2xl"></div>
+                        <div class="absolute inset-0 bg-gradient-to-t from-warning/30 to-transparent rounded-2xl"></div>
                     </div>
                 </div>
                 <div class="animate-slide-in-right">
-                    <div class="bg-card-gradient p-8 rounded-2xl shadow-lg">
-                        <div class="flex items-center mb-4">
-                            <div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center mr-4">
-                                <i class="fas fa-users text-secondary text-xl"></i>
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center mr-4">
+                                    <i class="fas fa-users text-warning text-xl"></i>
+                                </div>
+                                <h3 class="card-title text-2xl">Un corps professoral d'excellence</h3>
                             </div>
-                            <h3 class="text-2xl font-bold text-gray-900">Un corps professoral d'excellence</h3>
+                            <p class="text-base-content/70 leading-relaxed">
+                                L'UFHB s'enorgueillit de compter parmi son personnel enseignant des professeurs de renommée internationale, des chercheurs passionnés et des experts dans leurs domaines respectifs. Notre équipe pédagogique s'engage à offrir un enseignement de qualité et à accompagner les étudiants vers la réussite.
+                            </p>
                         </div>
-                        <p class="text-gray-600 leading-relaxed">
-                            L'UFHB s'enorgueillit de compter parmi son personnel enseignant des professeurs de renommée internationale, des chercheurs passionnés et des experts dans leurs domaines respectifs. Notre équipe pédagogique s'engage à offrir un enseignement de qualité et à accompagner les étudiants vers la réussite.
-                        </p>
                     </div>
                 </div>
             </div>
@@ -316,16 +285,18 @@
             <!-- Coopération internationale -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div class="order-2 lg:order-1 animate-slide-in-left">
-                    <div class="bg-card-gradient p-8 rounded-2xl shadow-lg">
-                        <div class="flex items-center mb-4">
-                            <div class="w-12 h-12 bg-primary-light/10 rounded-lg flex items-center justify-center mr-4">
-                                <i class="fas fa-globe text-primary-light text-xl"></i>
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-primary-light/10 rounded-lg flex items-center justify-center mr-4">
+                                    <i class="fas fa-globe text-primary-light text-xl"></i>
+                                </div>
+                                <h3 class="card-title text-2xl">Coopération internationale</h3>
                             </div>
-                            <h3 class="text-2xl font-bold text-gray-900">Coopération internationale</h3>
+                            <p class="text-base-content/70 leading-relaxed">
+                                L'Université Félix Houphouët-Boigny entretient des partenariats stratégiques avec de nombreuses universités et institutions de recherche à travers le monde. Ces collaborations favorisent la mobilité des étudiants et des enseignants, les projets de recherche conjoints et l'échange de bonnes pratiques académiques.
+                            </p>
                         </div>
-                        <p class="text-gray-600 leading-relaxed">
-                            L'Université Félix Houphouët-Boigny entretient des partenariats stratégiques avec de nombreuses universités et institutions de recherche à travers le monde. Ces collaborations favorisent la mobilité des étudiants et des enseignants, les projets de recherche conjoints et l'échange de bonnes pratiques académiques.
-                        </p>
                     </div>
                 </div>
                 <div class="order-1 lg:order-2 animate-slide-in-right">
@@ -354,79 +325,88 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <!-- Sciences -->
-            <div class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl animate-slide-up">
-                <div class="bg-gradient-to-r from-primary to-primary-light p-6">
-                    <i class="fas fa-atom text-4xl text-white mb-4"></i>
-                    <h3 class="text-xl font-bold text-white">Sciences</h3>
-                </div>
-                <div class="p-6">
-                    <p class="text-gray-600 mb-4">Mathématiques, Physique, Chimie, Biologie et Sciences de la Terre.</p>
-                    <ul class="space-y-2 text-sm text-gray-600">
-                        <li><i class="fas fa-check text-accent mr-2"></i>Licence, Master, Doctorat</li>
-                        <li><i class="fas fa-check text-accent mr-2"></i>Laboratoires équipés</li>
-                        <li><i class="fas fa-check text-accent mr-2"></i>Recherche appliquée</li>
-                    </ul>
+            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 animate-slide-up">
+                <div class="card-body p-0">
+                    <div class="bg-gradient-to-r from-primary to-primary-light p-6 rounded-t-2xl">
+                        <i class="fas fa-atom text-4xl text-white mb-4"></i>
+                        <h3 class="card-title text-xl text-white">Sciences</h3>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-base-content/70 mb-4">Mathématiques, Physique, Chimie, Biologie et Sciences de la Terre.</p>
+                        <ul class="space-y-2 text-sm text-base-content/70">
+                            <li><i class="fas fa-check text-accent mr-2"></i>Licence, Master, Doctorat</li>
+                            <li><i class="fas fa-check text-accent mr-2"></i>Laboratoires équipés</li>
+                            <li><i class="fas fa-check text-accent mr-2"></i>Recherche appliquée</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
             <!-- Lettres et Sciences Humaines -->
-            <div class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl animate-slide-up" style="animation-delay: 0.1s">
-                <div class="bg-gradient-to-r from-accent to-green-500 p-6">
-                    <i class="fas fa-book text-4xl text-white mb-4"></i>
-                    <h3 class="text-xl font-bold text-white">Lettres & Sciences Humaines</h3>
-                </div>
-                <div class="p-6">
-                    <p class="text-gray-600 mb-4">Langues, Littérature, Histoire, Géographie, Philosophie, Sociologie.</p>
-                    <ul class="space-y-2 text-sm text-gray-600">
-                        <li><i class="fas fa-check text-accent mr-2"></i>Formation pluridisciplinaire</li>
-                        <li><i class="fas fa-check text-accent mr-2"></i>Échanges internationaux</li>
-                        <li><i class="fas fa-check text-accent mr-2"></i>Recherche culturelle</li>
-                    </ul>
+            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 animate-slide-up" style="animation-delay: 0.1s">
+                <div class="card-body p-0">
+                    <div class="bg-gradient-to-r from-accent to-green-500 p-6 rounded-t-2xl">
+                        <i class="fas fa-book text-4xl text-white mb-4"></i>
+                        <h3 class="card-title text-xl text-white">Lettres & Sciences Humaines</h3>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-base-content/70 mb-4">Langues, Littérature, Histoire, Géographie, Philosophie, Sociologie.</p>
+                        <ul class="space-y-2 text-sm text-base-content/70">
+                            <li><i class="fas fa-check text-accent mr-2"></i>Formation pluridisciplinaire</li>
+                            <li><i class="fas fa-check text-accent mr-2"></i>Échanges internationaux</li>
+                            <li><i class="fas fa-check text-accent mr-2"></i>Recherche culturelle</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
             <!-- Droit et Sciences Politiques -->
-            <div class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl animate-slide-up" style="animation-delay: 0.2s">
-                <div class="bg-gradient-to-r from-secondary to-yellow-500 p-6">
-                    <i class="fas fa-balance-scale text-4xl text-white mb-4"></i>
-                    <h3 class="text-xl font-bold text-white">Droit & Sciences Politiques</h3>
-                </div>
-                <div class="p-6">
-                    <p class="text-gray-600 mb-4">Droit privé, Droit public, Sciences politiques, Relations internationales.</p>
-                    <ul class="space-y-2 text-sm text-gray-600">
-                        <li><i class="fas fa-check text-accent mr-2"></i>Formation professionnalisante</li>
-                        <li><i class="fas fa-check text-accent mr-2"></i>Stages en entreprise</li>
-                        <li><i class="fas fa-check text-accent mr-2"></i>Réseau professionnel</li>
-                    </ul>
+            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 animate-slide-up" style="animation-delay: 0.2s">
+                <div class="card-body p-0">
+                    <div class="bg-gradient-to-r from-warning to-yellow-500 p-6 rounded-t-2xl">
+                        <i class="fas fa-balance-scale text-4xl text-white mb-4"></i>
+                        <h3 class="card-title text-xl text-white">Droit & Sciences Politiques</h3>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-base-content/70 mb-4">Droit privé, Droit public, Sciences politiques, Relations internationales.</p>
+                        <ul class="space-y-2 text-sm text-base-content/70">
+                            <li><i class="fas fa-check text-accent mr-2"></i>Formation professionnalisante</li>
+                            <li><i class="fas fa-check text-accent mr-2"></i>Stages en entreprise</li>
+                            <li><i class="fas fa-check text-accent mr-2"></i>Réseau professionnel</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
             <!-- Économie et Gestion -->
-            <div class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl animate-slide-up" style="animation-delay: 0.3s">
-                <div class="bg-gradient-to-r from-purple-600 to-purple-800 p-6">
-                    <i class="fas fa-chart-line text-4xl text-white mb-4"></i>
-                    <h3 class="text-xl font-bold text-white">Économie & Gestion</h3>
-                </div>
-                <div class="p-6">
-                    <p class="text-gray-600 mb-4">Économie, Gestion, Finance, Marketing, Comptabilité.</p>
-                    <ul class="space-y-2 text-sm text-gray-600">
-                        <li><i class="fas fa-check text-accent mr-2"></i>Partenariats entreprises</li>
-                        <li><i class="fas fa-check text-accent mr-2"></i>Incubateur d'entreprises</li>
-                        <li><i class="fas fa-check text-accent mr-2"></i>Formation continue</li>
-                    </ul>
+            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 animate-slide-up" style="animation-delay: 0.3s">
+                <div class="card-body p-0">
+                    <div class="bg-gradient-to-r from-purple-600 to-purple-800 p-6 rounded-t-2xl">
+                        <i class="fas fa-chart-line text-4xl text-white mb-4"></i>
+                        <h3 class="card-title text-xl text-white">Économie & Gestion</h3>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-base-content/70 mb-4">Économie, Gestion, Finance, Marketing, Comptabilité.</p>
+                        <ul class="space-y-2 text-sm text-base-content/70">
+                            <li><i class="fas fa-check text-accent mr-2"></i>Partenariats entreprises</li>
+                            <li><i class="fas fa-check text-accent mr-2"></i>Incubateur d'entreprises</li>
+                            <li><i class="fas fa-check text-accent mr-2"></i>Formation continue</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
             <!-- Médecine -->
-            <div class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl animate-slide-up" style="animation-delay: 0.4s">
-                <div class="bg-gradient-to-r from-red-500 to-pink-600 p-6">
-                    <i class="fas fa-heartbeat text-4xl text-white mb-4"></i>
-                    <h3 class="text-xl font-bold text-white">Médecine & Santé</h3>
-                </div>
-                <div class="p-6">
-                    <p class="text-gray-600 mb-4">Médecine générale, Pharmacie, Odontologie, Sciences infirmières.</p>
-                    <ul class="space-y-2 text-sm text-gray-600">
-                        <li><i class="fas fa-check text-accent mr-2"></i>CHU moderne</li>
+            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 animate-slide-up" style="animation-delay: 0.4s">
+                <div class="card-body p-0">
+                    <div class="bg-gradient-to-r from-red-500 to-pink-600 p-6 rounded-t-2xl">
+                        <i class="fas fa-heartbeat text-4xl text-white mb-4"></i>
+                        <h3 class="card-title text-xl text-white">Médecine & Santé</h3>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-base-content/70 mb-4">Médecine générale, Pharmacie, Odontologie, Sciences infirmières.</p>
+                        <ul class="space-y-2 text-sm text-base-content/70">
+                            <li><i class="fas fa-check text-accent mr-2"></i>CHU moderne</li>
                         <li><i class="fas fa-check text-accent mr-2"></i>Formations spécialisées</li>
                         <li><i class="fas fa-check text-accent mr-2"></i>Recherche médicale</li>
                     </ul>
