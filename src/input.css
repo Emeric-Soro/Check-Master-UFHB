@@ -1,6 +1,8 @@
 /*fichier d'entrée pour Tailwind CSS */
 
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* ========================================
    CHARTE GRAPHIQUE OFFICIELLE - CHECK MASTER UFHB
