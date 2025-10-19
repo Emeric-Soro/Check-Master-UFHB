@@ -22,6 +22,7 @@ require_once __DIR__ . '/../models/Enseignant.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 
 require_once __DIR__ . '/../utils/CSRFProtection.php';
+require_once __DIR__ . '/../utils/CacheService.php';
 class ParametreController
 {
     private $baseViewPath;
@@ -46,6 +47,7 @@ class ParametreController
     private $attribution;
     private $enseignant;
     private $auditLog;
+    private $cache;
 
     public function __construct()
     {
@@ -70,6 +72,7 @@ class ParametreController
         $this->attribution = new Attribution(Database::getConnection());
         $this->enseignant = new Enseignant(Database::getConnection());
         $this->auditLog = new AuditLog(Database::getConnection());
+        $this->cache = new CacheService();
     }
 
 
@@ -176,6 +179,8 @@ class ParametreController
                 if ($this->grade->updateGrade($_POST['id_grade'], $lib_grade)) {
                     $messageSuccess = "Grade modifié avec succès.";
                     $this->auditLog->logModification($_SESSION['id_utilisateur'], 'grade', 'Succès');
+                    // Invalider le cache
+                    $this->cache->delete('all_grades');
                 } else {
                     $messageErreur = "Erreur lors de la modification du grade.";
                     $this->auditLog->logModification($_SESSION['id_utilisateur'], 'grade', 'Erreur');
@@ -185,6 +190,8 @@ class ParametreController
                 if ($this->grade->ajouterGrade($lib_grade)) {
                     $messageSuccess = "Grade ajouté avec succès.";
                     $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'grade', 'Succès');
+                    // Invalider le cache
+                    $this->cache->delete('all_grades');
                 } else {
                     $messageErreur = "Erreur lors de l'ajout du grade.";
                     $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'grade', 'Erreur');
@@ -205,6 +212,8 @@ class ParametreController
             if ($success) {
                 $messageSuccess = "Grades supprimés avec succès.";
                 $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'grade', 'Succès');
+                // Invalider le cache
+                $this->cache->delete('all_grades');
             } else {
                 $messageErreur = "Erreur lors de la suppression des grades.";
                 $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'grade', 'Erreur');
@@ -218,7 +227,9 @@ class ParametreController
 
         // 📦 Variables disponibles pour la vue
         $GLOBALS['grade_a_modifier'] = $grades_a_modifier;
-        $GLOBALS['listeGrade'] = $this->grade->getAllGrades();
+        $GLOBALS['listeGrade'] = $this->cache->remember('all_grades', function() {
+            return $this->grade->getAllGrades();
+        }, 3600);
         $GLOBALS['messageErreur'] = $messageErreur;
         $GLOBALS['messageSuccess'] = $messageSuccess;
     }
@@ -244,6 +255,7 @@ class ParametreController
                     if ($this->groupeUtilisateur->updateGroupeUtilisateur($_POST['id_groupe'], $lib_groupe)) {
                         $messageSuccess = "Groupe utilisateur modifié avec succès.";
                         $this->auditLog->logModification($_SESSION['id_utilisateur'], 'groupe_utilisateur', 'Succès');
+                        $this->cache->delete('all_groupes_utilisateur');
                     } else {
                         $messageErreur = "Erreur lors de la modification du groupe utilisateur.";
                         $this->auditLog->logModification($_SESSION['id_utilisateur'], 'groupe_utilisateur', 'Erreur');
@@ -252,6 +264,7 @@ class ParametreController
                     if ($this->groupeUtilisateur->ajouterGroupeUtilisateur($lib_groupe)) {
                         $messageSuccess = "Groupe utilisateur ajouté avec succès.";
                         $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'groupe_utilisateur', 'Succès');
+                        $this->cache->delete('all_groupes_utilisateur');
                     } else {
                         $messageErreur = "Erreur lors de l'ajout du groupe utilisateur.";
                         $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'groupe_utilisateur', 'Erreur');
@@ -272,6 +285,7 @@ class ParametreController
                 if ($success) {
                     $messageSuccess = "Groupes utilisateurs supprimés avec succès.";
                     $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'groupe_utilisateur', 'Succès');
+                    $this->cache->delete('all_groupes_utilisateur');
                 } else {
                     $messageErreur = "Erreur lors de la suppression des groupes utilisateurs.";
                     $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'groupe_utilisateur', 'Erreur');
@@ -285,7 +299,9 @@ class ParametreController
 
             // 📦 Variables disponibles pour la vue
             $GLOBALS['groupe_a_modifier'] = $groupe_a_modifier;
-            $GLOBALS['listeGroupes'] = $this->groupeUtilisateur->getAllGroupeUtilisateur();
+            $GLOBALS['listeGroupes'] = $this->cache->remember('all_groupes_utilisateur', function() {
+                return $this->groupeUtilisateur->getAllGroupeUtilisateur();
+            }, 3600);
         }
 
         //======PARTIE TYPE UTILISATEUR======
@@ -297,6 +313,7 @@ class ParametreController
                     if ($this->typeUtilisateur->updateTypeUtilisateur($_POST['id_type_utilisateur'], $lib_type)) {
                         $messageSuccess = "Type utilisateur modifié avec succès.";
                         $this->auditLog->logModification($_SESSION['id_utilisateur'], 'type_utilisateur', 'Succès');
+                        $this->cache->delete('all_types_utilisateur');
                     } else {
                         $messageErreur = "Erreur lors de la modification du type utilisateur.";
                         $this->auditLog->logModification($_SESSION['id_utilisateur'], 'type_utilisateur', 'Erreur');
@@ -305,6 +322,7 @@ class ParametreController
                     if ($this->typeUtilisateur->ajouterTypeUtilisateur($lib_type)) {
                         $messageSuccess = "Type utilisateur ajouté avec succès.";
                         $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'type_utilisateur', 'Succès');
+                        $this->cache->delete('all_types_utilisateur');
                     } else {
                         $messageErreur = "Erreur lors de l'ajout du type utilisateur.";
                         $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'type_utilisateur', 'Erreur');
@@ -325,6 +343,7 @@ class ParametreController
                 if ($success) {
                     $messageSuccess = "Types utilisateurs supprimés avec succès.";
                     $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'type_utilisateur', 'Succès');
+                    $this->cache->delete('all_types_utilisateur');
                 } else {
                     $messageErreur = "Erreur lors de la suppression des types utilisateurs.";
                     $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'type_utilisateur', 'Erreur');
@@ -338,7 +357,9 @@ class ParametreController
 
             // 📦 Variables disponibles pour la vue
             $GLOBALS['type_a_modifier'] = $type_a_modifier;
-            $GLOBALS['listeTypes'] = $this->typeUtilisateur->getAllTypeUtilisateur();
+            $GLOBALS['listeTypes'] = $this->cache->remember('all_types_utilisateur', function() {
+                return $this->typeUtilisateur->getAllTypeUtilisateur();
+            }, 3600);
         }
 
         // 📦 Variables communes pour la vue

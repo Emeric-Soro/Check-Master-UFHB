@@ -18,6 +18,7 @@ class GestionRhController
     private $fonctionModel;
     private $specialiteModel;
     private $auditLog;
+    private $cache;
 
     public function __construct()
     {
@@ -28,6 +29,9 @@ class GestionRhController
         $this->fonctionModel = new Fonction(Database::getConnection());
         $this->specialiteModel = new Specialite(Database::getConnection());
         $this->auditLog = new AuditLog(Database::getConnection());
+        
+        require_once __DIR__ . '/../utils/CacheService.php';
+        $this->cache = new CacheService();
     }
 
     public function index()
@@ -170,7 +174,9 @@ class GestionRhController
         $GLOBALS['enseignant_a_modifier'] = $enseignant_a_modifier;
         $GLOBALS['listeEnseignants'] = $this->enseignantModel->getAllEnseignants();
         $GLOBALS['listePersAdmin'] = $this->persAdminModel->getAllPersAdmin();
-        $GLOBALS['listeGrades'] = $this->gradeModel->getAllGrades();
+        $GLOBALS['listeGrades'] = $this->cache->remember('all_grades', function() {
+            return $this->gradeModel->getAllGrades();
+        }, 3600);
         $GLOBALS['listeFonctions'] = $this->fonctionModel->getAllFonctions();
         $GLOBALS['listeSpecialites'] = $this->specialiteModel->getAllSpecialites();
     }
