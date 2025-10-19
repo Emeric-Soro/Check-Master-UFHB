@@ -33,6 +33,48 @@ module.exports = {
         'elevate': '0 25px 60px -15px rgba(26,82,118,0.25)',
         'card': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
       },
+      animation: {
+        'fade-in': 'fadeIn 1s ease-in-out',
+        'slide-up': 'slideUp 0.8s ease-out',
+        'slide-in-left': 'slideInLeft 0.8s ease-out',
+        'slide-in-right': 'slideInRight 0.8s ease-out',
+        'bounce-in': 'bounceIn 1s ease-out',
+        'float': 'float 3s ease-in-out infinite',
+        'pulse-slow': 'pulse 3s ease-in-out infinite',
+        'spin-slow': 'spin 6s linear infinite',
+      },
+      keyframes: {
+        fadeIn: {
+          'from': { opacity: '0' },
+          'to': { opacity: '1' },
+        },
+        slideUp: {
+          'from': { opacity: '0', transform: 'translateY(50px)' },
+          'to': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideInLeft: {
+          'from': { opacity: '0', transform: 'translateX(-50px)' },
+          'to': { opacity: '1', transform: 'translateX(0)' },
+        },
+        slideInRight: {
+          'from': { opacity: '0', transform: 'translateX(50px)' },
+          'to': { opacity: '1', transform: 'translateX(0)' },
+        },
+        bounceIn: {
+          '0%': { opacity: '0', transform: 'scale(0.3)' },
+          '50%': { opacity: '1', transform: 'scale(1.05)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-20px)' },
+        },
+      },
+      backgroundImage: {
+        'hero-gradient': 'linear-gradient(135deg, rgba(26, 82, 118, 0.9) 0%, rgba(41, 128, 185, 0.8) 50%, rgba(52, 152, 219, 0.7) 100%)',
+        'card-gradient': 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+        'feature-gradient': 'linear-gradient(135deg, #1a5276 0%, #2980b9 100%)',
+      },
     },
   },
   plugins: [require('daisyui')],
