@@ -45,66 +45,81 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars($_SESSION['error'])
                     </p>
                 </div>
                 <div class="grid gap-4 sm:grid-cols-2">
-                    <div class="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur">
-                        <div class="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                            <i class="fas fa-shield-alt text-xl"></i>
+                    <div class="card bg-white/80 border border-slate-200 shadow-sm backdrop-blur">
+                        <div class="card-body p-6">
+                            <div class="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                <i class="fas fa-shield-alt text-xl"></i>
+                            </div>
+                            <h2 class="card-title text-lg">Authentification sécurisée</h2>
+                            <p class="mt-2 text-sm text-base-content/70">Connexion protégée et conforme aux standards de la plateforme.</p>
                         </div>
-                        <h2 class="text-lg font-semibold text-slate-900">Authentification sécurisée</h2>
-                        <p class="mt-2 text-sm text-slate-600">Connexion protégée et conforme aux standards de la plateforme.</p>
                     </div>
-                    <div class="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur">
-                        <div class="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
-                            <i class="fas fa-chart-line text-xl"></i>
+                    <div class="card bg-white/80 border border-slate-200 shadow-sm backdrop-blur">
+                        <div class="card-body p-6">
+                            <div class="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10 text-warning">
+                                <i class="fas fa-chart-line text-xl"></i>
+                            </div>
+                            <h2 class="card-title text-lg">Suivi centralisé</h2>
+                            <p class="mt-2 text-sm text-base-content/70">Tableaux de bord dynamiques pour piloter chaque étape facilement.</p>
                         </div>
-                        <h2 class="text-lg font-semibold text-slate-900">Suivi centralisé</h2>
-                        <p class="mt-2 text-sm text-slate-600">Tableaux de bord dynamiques pour piloter chaque étape facilement.</p>
                     </div>
                 </div>
             </div>
             <div class="relative">
                 <div class="absolute -top-10 -right-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl"></div>
-                <div class="relative rounded-3xl border border-white/40 bg-white/90 p-10 shadow-elevate backdrop-blur-lg">
-                    <div class="mb-8 text-center">
-                        <div class="mb-5 flex items-center justify-center">
-                            <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-lg ring-2 ring-primary/10">
-                                <img src="image/logo_cm_sbg.png" alt="Logo CheckMaster" class="h-full w-full object-contain p-2">
+                <div class="card relative bg-white/90 shadow-elevate backdrop-blur-lg">
+                    <div class="card-body">
+                        <div class="mb-8 text-center">
+                            <div class="mb-5 flex items-center justify-center">
+                                <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-lg ring-2 ring-primary/10">
+                                    <img src="image/logo_cm_sbg.png" alt="Logo CheckMaster" class="h-full w-full object-contain p-2">
+                                </div>
                             </div>
+                            <h2 class="text-2xl font-semibold text-slate-900">Connexion</h2>
+                            <p class="mt-2 text-sm text-slate-600">Identifiez-vous pour poursuivre la gestion de vos soutenances.</p>
                         </div>
-                        <h2 class="text-2xl font-semibold text-slate-900">Connexion</h2>
-                        <p class="mt-2 text-sm text-slate-600">Identifiez-vous pour poursuivre la gestion de vos soutenances.</p>
+                        <?php if ($errorMessage): ?>
+                            <div id="errorMessage" class="alert alert-error mb-6" role="alert">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span><?= $errorMessage ?></span>
+                            </div>
+                        <?php endif; ?>
+                        <form action="login.php" method="POST" class="space-y-5" autocomplete="off">
+                            <?= CSRFProtection::getTokenField() ?>
+                            <div class="form-control">
+                                <label class="label" for="login">
+                                    <span class="label-text font-semibold">Adresse e-mail</span>
+                                </label>
+                                <div class="relative">
+                                    <input id="login" name="login" type="email" required 
+                                           class="input input-bordered w-full" 
+                                           placeholder="login@exemple.com">
+                                    <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-control">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="label" for="password">
+                                        <span class="label-text font-semibold">Mot de passe</span>
+                                    </label>
+                                    <a href="reset_password.php" class="link link-primary text-sm">Mot de passe oublié ?</a>
+                                </div>
+                                <div class="relative">
+                                    <input id="password" name="password" type="password" required 
+                                           class="input input-bordered w-full" 
+                                           placeholder="Votre mot de passe">
+                                    <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
+                                        <i class="fas fa-key"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-full">
+                                Se connecter
+                            </button>
+                        </form>
                     </div>
-                    <?php if ($errorMessage): ?>
-                        <div id="errorMessage" class="mb-6 rounded-2xl border border-danger/20 bg-danger/10 px-4 py-3 text-sm font-medium text-danger" role="alert">
-                            <?= $errorMessage ?>
-                        </div>
-                    <?php endif; ?>
-                    <form action="login.php" method="POST" class="space-y-5" autocomplete="off">
-                        <?= CSRFProtection::getTokenField() ?>
-                        <div class="space-y-2">
-                            <label for="login" class="text-sm font-semibold text-slate-800">Adresse e-mail</label>
-                            <div class="relative">
-                                <input id="login" name="login" type="email" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10" placeholder="login@exemple.com">
-                                <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="space-y-2">
-                            <div class="flex items-center justify-between">
-                                <label for="password" class="text-sm font-semibold text-slate-800">Mot de passe</label>
-                                <a href="reset_password.php" class="text-sm font-semibold text-primary hover:text-primary-light">Mot de passe oublié ?</a>
-                            </div>
-                            <div class="relative">
-                                <input id="password" name="password" type="password" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10" placeholder="Votre mot de passe">
-                                <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
-                                    <i class="fas fa-key"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <button type="submit" class="inline-flex w-full items-center justify-center rounded-2xl bg-primary px-6 py-3 text-sm font-semibold tracking-wide text-white transition hover:bg-primary-light focus:outline-none focus:ring-4 focus:ring-primary/20">
-                            Se connecter
-                        </button>
-                    </form>
                 </div>
             </div>
         </div>
