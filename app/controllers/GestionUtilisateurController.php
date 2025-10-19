@@ -24,6 +24,7 @@ class GestionUtilisateurController
 
     private $niveauAcces;
     private $auditLog;
+    private $cache;
 
 
 
@@ -39,6 +40,8 @@ class GestionUtilisateurController
         
         // Charger les utilitaires de performance
         require_once __DIR__ . '/../utils/PaginationHelper.php';
+        require_once __DIR__ . '/../utils/CacheService.php';
+        $this->cache = new CacheService();
 
     }
 
@@ -302,8 +305,12 @@ class GestionUtilisateurController
         $GLOBALS['utilisateurs'] = $utilisateurs;
         $GLOBALS['pagination'] = $pagination;
         $GLOBALS['searchTerm'] = $searchTerm;
-        $GLOBALS['types_utilisateur'] = $this->typeUtilisateur->getAllTypeUtilisateur();
-        $GLOBALS['groupes_utilisateur'] = $this->groupeUtilisateur->getAllGroupeUtilisateur();
+        $GLOBALS['types_utilisateur'] = $this->cache->remember('all_types_utilisateur', function() {
+            return $this->typeUtilisateur->getAllTypeUtilisateur();
+        }, 3600);
+        $GLOBALS['groupes_utilisateur'] = $this->cache->remember('all_groupes_utilisateur', function() {
+            return $this->groupeUtilisateur->getAllGroupeUtilisateur();
+        }, 3600);
         $GLOBALS['niveau_acces'] = $this->niveauAcces->getAllNiveauxAccesDonnees();
         $GLOBALS['utilisateur_a_modifier'] = $utilisateur_a_modifier;
         $GLOBALS['action'] = $action;

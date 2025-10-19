@@ -57,6 +57,9 @@ class ArchivesCompteRenduController {
             exit;
         }
         
+        // Vérifier le token CSRF
+        CSRFProtection::verifyRequest();
+        
         $id_CR = $_POST['id_CR'] ?? null;
         
         if (!$id_CR) {

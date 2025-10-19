@@ -253,6 +253,9 @@ class AuditController {
             exit;
         }
 
+        // Vérifier le token CSRF
+        CSRFProtection::verifyRequest();
+
         $days = isset($_POST['days']) ? intval($_POST['days']) : 30;
         
         if ($days < 1 || $days > 365) {
@@ -283,6 +286,9 @@ class AuditController {
             header('Location: ?page=piste_audit&error=invalid_method');
             exit;
         }
+
+        // Vérifier le token CSRF
+        CSRFProtection::verifyRequest();
 
         $logId = isset($_POST['log_id']) ? intval($_POST['log_id']) : 0;
         

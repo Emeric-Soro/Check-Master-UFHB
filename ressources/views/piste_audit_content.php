@@ -365,6 +365,7 @@ $auditLog = $GLOBALS['auditLog'];
         <div class="px-4 py-3 bg-gray-200 text-gray-900 font-bold">Nettoyage des Logs</div>
         <div class="p-4">
             <form id="cleanupForm" method="POST" action="?page=piste_audit&action=cleanup" class="flex gap-3 items-end flex-wrap">
+                <?php require_once __DIR__ . '/../app/utils/CSRFProtection.php'; echo CSRFProtection::getTokenField(); ?>
                 <div class="flex flex-col">
                     <label class="small">Supprimer les logs de plus de</label>
                     <input type="number" name="days" min="1" max="365" value="30" required class="filter-input w-36">
@@ -387,6 +388,7 @@ $auditLog = $GLOBALS['auditLog'];
         <h2 id="delete-title" class="m-0 mb-3 text-lg text-gray-900"><i class="fas fa-exclamation-triangle text-primary mr-2"></i>Confirmation de suppression</h2>
         <p class="m-0 mb-4 text-gray-700">Êtes-vous sûr de vouloir supprimer ce log d'audit ? Cette action est irréversible.</p>
         <form id="deleteLogForm" method="POST" action="?page=piste_audit&action=delete_log">
+            <?php echo CSRFProtection::getTokenField(); ?>
             <input type="hidden" name="log_id" id="deleteLogId" value="">
             <div class="flex justify-end gap-2">
                 <button type="button" id="cancelDeleteBtn" class="btn btn-muted">Annuler</button>
