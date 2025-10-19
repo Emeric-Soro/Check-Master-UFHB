@@ -108,19 +108,23 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
                         <p class="max-w-lg text-lg text-slate-600">Restaurez l'accès à votre espace en suivant les étapes de vérification sécurisée. Le lien reçu est valable une heure.</p>
                     </div>
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <div class="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur">
-                            <div class="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                <i class="fas fa-envelope-open-text text-xl"></i>
+                        <div class="card bg-white/80 border border-slate-200 shadow-sm backdrop-blur">
+                            <div class="card-body p-6">
+                                <div class="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                    <i class="fas fa-envelope-open-text text-xl"></i>
+                                </div>
+                                <h2 class="card-title text-lg">Instructions instantanées</h2>
+                                <p class="mt-2 text-sm text-base-content/70">Recevez un lien crypté dans votre boîte mail pour sécuriser l'opération.</p>
                             </div>
-                            <h2 class="text-lg font-semibold text-slate-900">Instructions instantanées</h2>
-                            <p class="mt-2 text-sm text-slate-600">Recevez un lien crypté dans votre boîte mail pour sécuriser l'opération.</p>
                         </div>
-                        <div class="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur">
-                            <div class="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-success/10 text-success">
-                                <i class="fas fa-user-shield text-xl"></i>
+                        <div class="card bg-white/80 border border-slate-200 shadow-sm backdrop-blur">
+                            <div class="card-body p-6">
+                                <div class="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                                    <i class="fas fa-user-shield text-xl"></i>
+                                </div>
+                                <h2 class="card-title text-lg">Validation renforcée</h2>
+                                <p class="mt-2 text-sm text-base-content/70">Chaque requête est vérifiée pour protéger vos informations personnelles.</p>
                             </div>
-                            <h2 class="text-lg font-semibold text-slate-900">Validation renforcée</h2>
-                            <p class="mt-2 text-sm text-slate-600">Chaque requête est vérifiée pour protéger vos informations personnelles.</p>
                         </div>
                     </div>
                 </div>
@@ -137,56 +141,70 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
                             <p class="mt-2 text-sm text-slate-600">Suivez les instructions pour définir un mot de passe robuste.</p>
                         </div>
                         <?php if ($success): ?>
-                            <div id="feedback" class="mb-6 rounded-2xl border border-success/20 bg-success/10 px-4 py-3 text-sm font-medium text-success" role="alert">
-                                <?= htmlspecialchars($success) ?>
+                            <div id="feedback" class="alert alert-success mb-6" role="alert">
+                                <i class="fas fa-check-circle"></i>
+                                <span><?= htmlspecialchars($success) ?></span>
                             </div>
                         <?php elseif ($error): ?>
-                            <div id="feedback" class="mb-6 rounded-2xl border border-danger/20 bg-danger/10 px-4 py-3 text-sm font-medium text-danger" role="alert">
-                                <?= htmlspecialchars($error) ?>
+                            <div id="feedback" class="alert alert-error mb-6" role="alert">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span><?= htmlspecialchars($error) ?></span>
                             </div>
                         <?php endif; ?>
                         <?php if ($showResetForm): ?>
                             <form method="POST" class="space-y-5">
                                 <input type="hidden" name="token" value="<?= htmlspecialchars($_GET['token']) ?>">
-                                <div class="space-y-2">
-                                    <label class="text-sm font-semibold text-slate-800">Nouveau mot de passe</label>
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Nouveau mot de passe</span>
+                                    </label>
                                     <div class="relative">
-                                        <input name="newPassword" type="password" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10" placeholder="Votre nouveau mot de passe">
+                                        <input name="newPassword" type="password" required 
+                                               class="input input-bordered w-full" 
+                                               placeholder="Votre nouveau mot de passe">
                                         <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
                                             <i class="fas fa-lock"></i>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="space-y-2">
-                                    <label class="text-sm font-semibold text-slate-800">Confirmez le mot de passe</label>
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Confirmez le mot de passe</span>
+                                    </label>
                                     <div class="relative">
-                                        <input name="confirmPassword" type="password" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10" placeholder="Confirmez le mot de passe">
+                                        <input name="confirmPassword" type="password" required 
+                                               class="input input-bordered w-full" 
+                                               placeholder="Confirmez le mot de passe">
                                         <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
                                             <i class="fas fa-check"></i>
                                         </div>
                                     </div>
                                 </div>
-                                <button type="submit" class="inline-flex w-full items-center justify-center rounded-2xl bg-primary px-6 py-3 text-sm font-semibold tracking-wide text-white transition hover:bg-primary-light focus:outline-none focus:ring-4 focus:ring-primary/20">
+                                <button type="submit" class="btn btn-primary w-full">
                                     Réinitialiser
                                 </button>
                             </form>
                         <?php elseif (!$success): ?>
                             <form method="POST" class="space-y-5">
-                                <div class="space-y-2">
-                                    <label class="text-sm font-semibold text-slate-800">Adresse e-mail</label>
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Adresse e-mail</span>
+                                    </label>
                                     <div class="relative">
-                                        <input name="email" type="email" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10" placeholder="login@exemple.com">
+                                        <input name="email" type="email" required 
+                                               class="input input-bordered w-full" 
+                                               placeholder="login@exemple.com">
                                         <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
                                             <i class="fas fa-paper-plane"></i>
                                         </div>
                                     </div>
                                 </div>
-                                <button type="submit" class="inline-flex w-full items-center justify-center rounded-2xl bg-primary px-6 py-3 text-sm font-semibold tracking-wide text-white transition hover:bg-primary-light focus:outline-none focus:ring-4 focus:ring-primary/20">
+                                <button type="submit" class="btn btn-primary w-full">
                                     Envoyer le lien
                                 </button>
                             </form>
                         <?php endif; ?>
-                        <p class="mt-8 text-center text-sm text-slate-500"><a href="page_connexion.php" class="font-semibold text-primary hover:text-primary-light">Retour à la connexion</a></p>
+                        <p class="mt-8 text-center text-sm text-slate-500"><a href="page_connexion.php" class="link link-primary font-semibold">Retour à la connexion</a></p>
                     </div>
                 </div>
             </div>
