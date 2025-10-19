@@ -1,52 +1,16 @@
 <!DOCTYPE html>
-<html lang="fr" class="scroll-smooth">
+<html lang="fr" class="scroll-smooth" data-theme="mytheme">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CheckMaster - Gestion des Soutenances MIAGE</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/output.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="shortcut icon" href="image/logo_cm_sbg.png" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#1a5276',        // Bleu de la sidebar
-                        'primary-light': '#2980b9', // Bleu plus clair
-                        'primary-lighter': '#3498db', // Encore plus clair
-                        secondary: '#ff8c00',      // Orange de l'app
-                        accent: '#4caf50',         // Vert de l'app
-                        success: '#4caf50',        // Vert
-                        warning: '#f39c12',        // Jaune/Orange
-                        danger: '#e74c3c',         // Rouge
-                    },
-                    animation: {
-                        'fade-in': 'fadeIn 1s ease-in-out',
-                        'slide-up': 'slideUp 0.8s ease-out',
-                        'slide-in-left': 'slideInLeft 0.8s ease-out',
-                        'slide-in-right': 'slideInRight 0.8s ease-out',
-                        'bounce-in': 'bounceIn 1s ease-out',
-                        'float': 'float 3s ease-in-out infinite',
-                        'pulse-slow': 'pulse 3s ease-in-out infinite',
-                        'spin-slow': 'spin 6s linear infinite',
-                    },
-                    backgroundImage: {
-                        'hero-gradient': 'linear-gradient(135deg, rgba(26, 82, 118, 0.9) 0%, rgba(41, 128, 185, 0.8) 50%, rgba(52, 152, 219, 0.7) 100%)',
-                        'card-gradient': 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-                        'feature-gradient': 'linear-gradient(135deg, #1a5276 0%, #2980b9 100%)',
-                    },
-                    fontFamily: {
-                        'poppins': ['Poppins', 'sans-serif'],
-                        'montserrat': ['Montserrat', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.12.0/cdn.min.js" defer></script>
     <style>
         @keyframes fadeIn {
             from { opacity: 0; }

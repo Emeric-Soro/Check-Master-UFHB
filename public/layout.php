@@ -394,7 +394,7 @@ if (!isset($_SESSION['id_utilisateur'])) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="mytheme">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -402,42 +402,14 @@ if (!isset($_SESSION['id_utilisateur'])) {
     <link rel="stylesheet" href="css/output.css">
     <link rel="shortcut icon" href="image/logo_cm_sbg.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#1a5276',
-                        'primary-light': '#2980b9',
-                        'primary-lighter': '#3498db',
-                        secondary: '#ff8c00',
-                        accent: '#4caf50',
-                        success: '#4caf50',
-                        warning: '#f39c12',
-                        danger: '#e74c3c',
-                        'base-100': '#FFFFFF',
-                        'base-200': '#F8FAFC',
-                        'base-300': '#E2E8F0'
-                    },
-                    fontFamily: {
-                        'poppins': ['Poppins', 'sans-serif'],
-                        'montserrat': ['Montserrat', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/fr.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.12.0/cdn.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <style>
         .sidebar-logo { height: 56px; border-radius: 8px; }
-        .topbar { height: 96px; padding: 0 1.5rem; background: var(--tw-bg-opacity, 1); }
-        .card { background: white; border-radius: 12px; box-shadow: 0 8px 20px rgba(15, 20, 30, 0.06); }
+        .topbar { height: 96px; padding: 0 1.5rem; }
         </style>
 </head>
 <body class="bg-base-200 font-poppins antialiased">
