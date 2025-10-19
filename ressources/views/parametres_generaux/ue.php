@@ -210,7 +210,7 @@
                     <div class="flex justify-between mb-4">
                         <h3 class="text-lg font-semibold text-gray-600 mb-4 flex items-center">
                             <i
-                                class="fas <?= isset($_GET['id_ue']) ? 'fa-edit text-green-500' : 'fa-plus-circle text-green-500' ?> mr-2"></i>
+                                class="fas <?= isset($_GET['id_ue']) ? 'fa-edit text-green-500' : 'fa-plus-circle text-accent' ?> mr-2"></i>
                             <?= isset($_GET['id_ue']) ? "Modifier l'UE" : "Ajouter une nouvelle UE" ?>
                         </h3>
                         <div>
@@ -295,7 +295,7 @@
                         <?php if (isset($_GET['id_ue'])): ?>
                         <button type="button" name="btn_annuler" id="btnAnnuler"
                             onclick="window.location.href='?page=parametres_generaux&action=ue'"
-                            class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                            class="btn-hover px-4 py-2 bg-danger text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                             <i class="fas fa-times mr-2"></i>Annuler
                         </button>
                         <button type="button" id="btnModifier" name="btn_modifier_ue"
@@ -317,7 +317,7 @@
     <!-- Liste des UE -->
     <div class="bg-white rounded-lg shadow-sm p-6">
         <h3 class="text-lg font-semibold text-gray-600 mb-4 flex items-center">
-            <i class="fas fa-list-ul text-green-500 mr-2"></i>
+            <i class="fas fa-list-ul text-accent mr-2"></i>
             Liste des UE
         </h3>
         <div class="flex justify-between items-center mb-4">
@@ -405,7 +405,7 @@
                         <td class="px-4 py-3 text-center">
                             <div class="flex justify-center space-x-2">
                                 <a href="?page=parametres_generaux&action=ue&id_ue=<?= $ue->id_ue ?>"
-                                    class="text-blue-500 hover:text-blue-700 transition-colors">
+                                    class="text-primary hover:text-blue-700 transition-colors">
                                     <i class="fas fa-edit"></i>
                                 </a>
                             </div>
@@ -454,7 +454,7 @@
                                 for ($i = $start; $i <= $end; $i++):
                                 ?>
                         <a href="?page=parametres_generaux&action=ue&p=<?= $i ?>&search=<?= urlencode($search) ?>"
-                            class="relative inline-flex items-center px-4 py-2 border <?= $i === $page ? 'bg-green-50 text-green-600 border-green-500' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-300' ?>">
+                            class="relative inline-flex items-center px-4 py-2 border <?= $i === $page ? 'bg-green-50 text-green-600 border-accent' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-300' ?>">
                             <?= $i ?>
                         </a>
                         <?php endfor;

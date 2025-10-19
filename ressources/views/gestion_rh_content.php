@@ -133,14 +133,14 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                         class="px-6 py-4 flex flex-col sm:flex-row justify-between items-center border-b border-gray-200">
                         <div class="relative w-full sm:w-1/2 lg:w-1/3 mb-4 sm:mb-0">
                             <input type="text" id="searchInput" placeholder="Rechercher un personnel..."
-                                class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
+                                class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-accent transition-all duration-200">
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                 <i class="fas fa-search text-gray-400"></i>
                             </span>
                         </div>
                         <div class="flex flex-wrap gap-2 justify-center sm:justify-end">
                             <button type="button" onclick="printTable('pers_admin')"
-                                class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                                class="bg-primary hover:bg-primary-light text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                                 <i class="fas fa-print mr-2"></i>Imprimer
                             </button>
                             <button type="button" onclick="exportToExcel('pers_admin')"
@@ -149,7 +149,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                             </button>
                             <button type="button" onclick="showDeleteModal('pers_admin', 'multiple')"
                                 id="deleteButtonPersAdmin"
-                                class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                class="bg-danger hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled>
                                 <i class="fas fa-trash-alt mr-2"></i>Supprimer
                             </button>
@@ -159,7 +159,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                     <!-- Titre de la liste -->
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h4 class="text-lg font-semibold text-gray-700 flex items-center">
-                            <i class="fas fa-list-ul mr-2 text-green-500"></i>
+                            <i class="fas fa-list-ul mr-2 text-accent"></i>
                             Liste du personnel administratif
                         </h4>
                     </div>
@@ -274,18 +274,16 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                     <div>
                                         <label for="nom"
                                             class="block text-sm font-medium text-gray-700 mb-2">Nom</label>
-                                        <input type="text" name="nom" id="nom" style="outline: none;"
+                                        <input type="text" name="nom" id="nom" class="outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             value="<?= ($action === 'edit' && isset($pers_admin_a_modifier)) ? htmlspecialchars($pers_admin_a_modifier->nom_pers_admin) : '' ?>"
-                                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             required>
                                     </div>
 
                                     <div>
                                         <label for="prenom"
                                             class="block text-sm font-medium text-gray-700 mb-2">Prénom</label>
-                                        <input type="text" name="prenom" id="prenom" style="outline: none;"
+                                        <input type="text" name="prenom" id="prenom" class="outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             value="<?= ($action === 'edit' && isset($pers_admin_a_modifier)) ? htmlspecialchars($pers_admin_a_modifier->prenom_pers_admin) : '' ?>"
-                                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             required>
                                     </div>
                                 </div>
@@ -294,17 +292,15 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                     <div>
                                         <label for="email"
                                             class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                                        <input type="email" name="email" id="email" style="outline: none;"
+                                        <input type="email" name="email" id="email" class="outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             value="<?= ($action === 'edit' && isset($pers_admin_a_modifier)) ? htmlspecialchars($pers_admin_a_modifier->email_pers_admin) : '' ?>"
-                                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             required>
                                     </div>
                                     <div>
                                         <label for="telephone"
                                             class="block text-sm font-medium text-gray-700 mb-2">Téléphone</label>
-                                        <input type="tel" name="telephone" id="telephone" style="outline: none;"
+                                        <input type="tel" name="telephone" id="telephone" class="outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             value="<?= ($action === 'edit' && isset($pers_admin_a_modifier)) ? htmlspecialchars($pers_admin_a_modifier->tel_pers_admin) : '' ?>"
-                                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             required>
                                     </div>
                                 </div>
@@ -313,9 +309,8 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                     <div>
                                         <label for="poste"
                                             class="block text-sm font-medium text-gray-700 mb-2">Poste</label>
-                                        <input type="text" name="poste" id="poste" style="outline: none;"
+                                        <input type="text" name="poste" id="poste" class="outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             value="<?= ($action === 'edit' && isset($pers_admin_a_modifier)) ? htmlspecialchars($pers_admin_a_modifier->poste) : '' ?>"
-                                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             required>
                                     </div>
                                     <div>
@@ -323,9 +318,8 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                             class="block text-sm font-medium text-gray-700 mb-2">Date
                                             d'embauche</label>
                                         <input type="date" name="date_embauche" id="date_embauche"
-                                            style="outline: none;"
+                                            class="outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             value="<?= ($action === 'edit' && isset($pers_admin_a_modifier)) ? htmlspecialchars($pers_admin_a_modifier->date_embauche) : '' ?>"
-                                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             required>
                                     </div>
                                 </div>
@@ -338,7 +332,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                     </a>
                                     <button type="submit"
                                         name="<?= ($action === 'edit') ? 'btn_modifier_pers_admin' : 'btn_add_pers_admin' ?>"
-                                        class="px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors duration-200">
+                                        class="px-6 py-2.5 bg-accent hover:bg-accent text-white rounded-lg transition-colors duration-200">
                                         <?= ($action === 'edit' && isset($pers_admin_a_modifier)) ? 'Modifier' : 'Enregistrer' ?>
                                     </button>
                                 </div>
@@ -380,14 +374,14 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                         class="px-6 py-4 flex flex-col sm:flex-row justify-between items-center border-b border-gray-200">
                         <div class="relative w-full sm:w-1/2 lg:w-1/3 mb-4 sm:mb-0">
                             <input type="text" id="searchInputEnseignant" placeholder="Rechercher un enseignant..."
-                                class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
+                                class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-accent transition-all duration-200">
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                 <i class="fas fa-search text-gray-400"></i>
                             </span>
                         </div>
                         <div class="flex flex-wrap gap-2 justify-center sm:justify-end">
                             <button type="button" onclick="printTable('enseignant')"
-                                class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                                class="bg-primary hover:bg-primary-light text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                                 <i class="fas fa-print mr-2"></i>Imprimer
                             </button>
                             <button type="button" onclick="exportToExcel('enseignant')"
@@ -395,7 +389,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                 <i class="fas fa-file-export mr-2"></i>Exporter
                             </button>
                             <button type="button" onclick="showDeleteModal('enseignant')" id="deleteButtonEnseignant"
-                                class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                class="bg-danger hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled>
                                 <i class="fas fa-trash-alt mr-2"></i>Supprimer
                             </button>
@@ -405,7 +399,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                     <!-- Titre de la liste -->
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h4 class="text-lg font-semibold text-gray-700 flex items-center">
-                            <i class="fas fa-chalkboard-teacher mr-2 text-green-500"></i>
+                            <i class="fas fa-chalkboard-teacher mr-2 text-accent"></i>
                             Liste des enseignants
                         </h4>
                     </div>
@@ -527,18 +521,16 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                     <div>
                                         <label for="nom_enseignant"
                                             class="block text-sm font-medium text-gray-700 mb-2">Nom</label>
-                                        <input type="text" name="nom" id="nom_enseignant" style="outline: none;"
+                                        <input type="text" name="nom" id="nom_enseignant" class="outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             value="<?= ($action === 'edit' && isset($enseignant_a_modifier)) ? htmlspecialchars($enseignant_a_modifier->nom_enseignant) : '' ?>"
-                                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             required>
                                     </div>
 
                                     <div>
                                         <label for="prenom_enseignant"
                                             class="block text-sm font-medium text-gray-700 mb-2">Prénom</label>
-                                        <input type="text" name="prenom" id="prenom_enseignant" style="outline: none;"
+                                        <input type="text" name="prenom" id="prenom_enseignant" class="outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             value="<?= ($action === 'edit' && isset($enseignant_a_modifier)) ? htmlspecialchars($enseignant_a_modifier->prenom_enseignant) : '' ?>"
-                                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             required>
                                     </div>
                                 </div>
@@ -547,17 +539,15 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                     <div>
                                         <label for="email_enseignant"
                                             class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                                        <input type="email" name="email" id="email_enseignant" style="outline: none;"
+                                        <input type="email" name="email" id="email_enseignant" class="outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             value="<?= ($action === 'edit' && isset($enseignant_a_modifier)) ? htmlspecialchars($enseignant_a_modifier->mail_enseignant) : '' ?>"
-                                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             required>
                                     </div>
 
                                     <div>
                                         <label for="specialite"
                                             class="block text-sm font-medium text-gray-700 mb-2">Spécialité</label>
-                                        <select name="id_specialite" id="specialite" style="outline: none;" required
-                                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200">
+                                        <select name="id_specialite" id="specialite" class="outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" required>
                                             <?php foreach ($listeSpecialites as $specialite): ?>
                                             <option value="<?= htmlspecialchars($specialite->id_specialite) ?>"
                                                 <?= ($action === 'edit' && isset($enseignant_a_modifier) && $enseignant_a_modifier->id_specialite == $specialite->id_specialite) ? 'selected' : '' ?>>
@@ -571,8 +561,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                     <div>
                                         <label for="fonction"
                                             class="block text-sm font-medium text-gray-700 mb-2">Fonction</label>
-                                        <select name="id_fonction" id="fonction" style="outline: none;" required
-                                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200">
+                                        <select name="id_fonction" id="fonction" class="outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" required>
                                             <?php foreach ($listeFonctions as $fonction): ?>
                                             <option value="<?= htmlspecialchars($fonction->id_fonction) ?>"
                                                 <?= ($action === 'edit' && isset($enseignant_a_modifier) && $enseignant_a_modifier->id_fonction == $fonction->id_fonction) ? 'selected' : '' ?>>
@@ -587,9 +576,8 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                             d'occupation de la
                                             fonction</label>
                                         <input type="date" name="date_fonction" id="date_fonction"
-                                            style="outline: none;"
+                                            class="outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             value="<?= ($action === 'edit' && isset($enseignant_a_modifier)) ? htmlspecialchars($enseignant_a_modifier->date_occupation) : '' ?>"
-                                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             required>
                                     </div>
                                 </div>
@@ -597,8 +585,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                     <div>
                                         <label for="grade"
                                             class="block text-sm font-medium text-gray-700 mb-2">Grade</label>
-                                        <select name="id_grade" id="grade" style="outline: none;" required
-                                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200">
+                                        <select name="id_grade" id="grade" class="outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" required>
                                             <?php foreach ($listeGrades as $grade): ?>
                                             <option value="<?= htmlspecialchars($grade->id_grade) ?>"
                                                 <?= ($action === 'edit' && isset($enseignant_a_modifier) && $enseignant_a_modifier->id_grade == $grade->id_grade) ? 'selected' : '' ?>>
@@ -614,9 +601,8 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                             class="block text-sm font-medium text-gray-700 mb-2">Date
                                             d'obtention du
                                             grade</label>
-                                        <input type="date" name="date_grade" id="date_grade" style="outline: none;"
+                                        <input type="date" name="date_grade" id="date_grade" class="outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             value="<?= ($action === 'edit' && isset($enseignant_a_modifier)) ? htmlspecialchars($enseignant_a_modifier->date_grade) : '' ?>"
-                                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                                             required>
                                     </div>
                                 </div>
@@ -626,7 +612,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                             Type d'enseignant
                                         </label>
                                         <select name="type_enseignant" id="type_enseignant" required
-                                            class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                            class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent bg-white transition-all duration-200">
                                             <option value="Simple"
                                                 <?php echo ($enseignant_a_modifier && $enseignant_a_modifier->type_enseignant) ? 'selected' : ''; ?>>
                                                 Simple</option>
@@ -645,7 +631,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                     </a>
                                     <button type="submit"
                                         name="<?= ($action === 'edit') ? 'btn_modifier_enseignant' : 'btn_add_enseignant' ?>"
-                                        class="px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors duration-200">
+                                        class="px-6 py-2.5 bg-accent hover:bg-accent text-white rounded-lg transition-colors duration-200">
                                         <?= ($action === 'edit' && isset($enseignant_a_modifier)) ? 'Modifier' : 'Ajouter' ?>
                                     </button>
                                 </div>
@@ -687,7 +673,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
     </div>
 
     <!-- Formulaire caché pour la suppression -->
-    <form id="delete-form" method="POST" style="display: none;">
+    <form id="delete-form" method="POST" class="hidden">
         <input type="hidden" name="selected_ids[]" id="delete_id">
     </form>
 

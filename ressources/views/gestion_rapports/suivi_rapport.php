@@ -219,7 +219,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white rounded-lg shadow-md p-6">
                         <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-blue-100 text-blue-500">
+                            <div class="p-3 rounded-full bg-blue-100 text-primary">
                                 <i class="fas fa-file-alt text-2xl"></i>
                             </div>
                             <div class="ml-4">

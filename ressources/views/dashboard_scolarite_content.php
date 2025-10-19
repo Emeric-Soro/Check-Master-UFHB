@@ -41,7 +41,7 @@ $inscriptionsParNiveau = $dashboardData['inscriptionsParNiveau'];
                             <p class="text-2xl font-bold text-gray-800"><?php echo number_format($stats['etudiants']); ?></p>
                             <p class="text-xs text-gray-500">Total des inscriptions</p>
                         </div>
-                        <div class="p-3 rounded-full bg-blue-100 text-blue-500">
+                        <div class="p-3 rounded-full bg-blue-100 text-primary">
                             <i class="fas fa-users text-xl"></i>
                         </div>
                     </div>
@@ -54,7 +54,7 @@ $inscriptionsParNiveau = $dashboardData['inscriptionsParNiveau'];
                             <p class="text-2xl font-bold text-gray-800"><?php echo number_format($stats['reclamations_en_attente']); ?></p>
                             <p class="text-xs text-gray-500">À traiter</p>
                         </div>
-                        <div class="p-3 rounded-full bg-blue-100 text-blue-500">
+                        <div class="p-3 rounded-full bg-blue-100 text-primary">
                             <i class="fas fa-exclamation-triangle text-xl"></i>
                         </div>
                     </div>
@@ -67,7 +67,7 @@ $inscriptionsParNiveau = $dashboardData['inscriptionsParNiveau'];
                             <p class="text-2xl font-bold text-gray-800"><?php echo number_format($stats['paiements_complets']); ?></p>
                             <p class="text-xs text-gray-500">Validés</p>
                         </div>
-                        <div class="p-3 rounded-full bg-green-100 text-green-500">
+                        <div class="p-3 rounded-full bg-green-100 text-accent">
                             <i class="fas fa-check-circle text-xl"></i>
                         </div>
                     </div>
@@ -80,7 +80,7 @@ $inscriptionsParNiveau = $dashboardData['inscriptionsParNiveau'];
                             <p class="text-2xl font-bold text-gray-800"><?php echo number_format($stats['paiements_partiels']); ?></p>
                             <p class="text-xs text-gray-500">En attente: <?php echo number_format($stats['montant_attente'], 0, ',', ' '); ?> FCFA</p>
                         </div>
-                        <div class="p-3 rounded-full bg-blue-100 text-blue-500">
+                        <div class="p-3 rounded-full bg-blue-100 text-primary">
                             <i class="fas fa-euro-sign text-xl"></i>
                         </div>
                     </div>

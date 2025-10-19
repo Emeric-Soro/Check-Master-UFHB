@@ -49,16 +49,16 @@ $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
 <body class="p-4 sm:p-6 md:p-8">
     <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden md:p-8 p-6">
         <h1 class="text-3xl font-bold text-gray-900 mb-6 text-center">Liste des Étudiants <span
-                class="text-4xl text-green-500 font-bold">MIAGE</span></h1>
+                class="text-4xl text-accent font-bold">MIAGE</span></h1>
         <form method="get" class="mb-6 flex flex-wrap gap-4 items-center">
             <?php if (isset($_GET['page'])): ?>
             <input type="hidden" name="page" value="<?= htmlspecialchars($_GET['page']) ?>">
             <?php endif; ?>
             <input type="text" name="search" placeholder="Rechercher par nom, prénom ou email..."
-                class="outline-green-500  flex-1 min-w-[200px] p-3 pl-4 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm md:text-base text-sm"
+                class="outline-green-500  flex-1 min-w-[200px] p-3 pl-4 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-accent text-gray-700 shadow-sm md:text-base text-sm"
                 value="<?= htmlspecialchars(isset($_GET['search']) ? $_GET['search'] : '') ?>">
             <select name="promotion"
-                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm md:text-base text-sm">
+                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-accent text-gray-700 shadow-sm md:text-base text-sm">
                 <option value="">Toutes les Années Académiques</option>
                 <?php foreach ($listeAnnees as $annee): ?>
                 <option value="<?= htmlspecialchars($annee->id_annee_acad) ?>"
@@ -68,7 +68,7 @@ $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
                 <?php endforeach; ?>
             </select>
             <select name="niveau"
-                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm md:text-base text-sm">
+                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-accent text-gray-700 shadow-sm md:text-base text-sm">
                 <option value="">Tous les Niveaux</option>
                 <?php foreach ($listeNiveaux as $niv): ?>
                 <option value="<?= htmlspecialchars($niv->id_niv_etude) ?>"

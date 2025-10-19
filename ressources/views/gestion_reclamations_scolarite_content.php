@@ -21,7 +21,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                 <div class="flex-1 max-w-md">
                     <div class="relative">
                         <input type="text" id="searchInput" placeholder="Rechercher une réclamation..."
-                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm transition duration-200">
+                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-accent text-gray-700 shadow-sm transition duration-200">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fa fa-search text-gray-400"></i>
                         </div>
@@ -43,7 +43,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                         </div>
                     </div>
                 </div>
-                <div class="bg-green-500 rounded-lg p-6 text-white shadow-lg">
+                <div class="bg-accent rounded-lg p-6 text-white shadow-lg">
                     <div class="flex items-center">
                         <div class="flex-1">
                             <p class="text-green-100 text-sm font-medium">Résolue</p>
@@ -54,7 +54,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                         </div>
                     </div>
                 </div>
-                <div class="bg-red-500 rounded-lg p-6 text-white shadow-lg">
+                <div class="bg-danger rounded-lg p-6 text-white shadow-lg">
                     <div class="flex items-center">
                         <div class="flex-1">
                             <p class="text-red-100 text-sm font-medium">Rejeté</p>
@@ -156,7 +156,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                                                 class="flex items-center space-x-2">
                                                 <?= CSRFProtection::getTokenField() ?>
                                                 <select name="nouveau_statut"
-                                                    class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                                    class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-green-500 focus:border-accent">
                                                     <option value="En attente"
                                                         <?= strtolower($rec->statut_reclamation) === 'En attente' ? 'selected' : '' ?>>
                                                         En attente</option>

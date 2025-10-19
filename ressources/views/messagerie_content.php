@@ -66,7 +66,7 @@
                     <h1 class="text-xl font-bold">Messagerie Universitaire</h1>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <span class="bg-green-500 px-3 py-1 rounded-full text-sm">Jean Dupont</span>
+                    <span class="bg-accent px-3 py-1 rounded-full text-sm">Jean Dupont</span>
                     <button class="bg-white text-green-600 p-2 rounded-full hover:bg-green-50 transition">
                         <i class="fas fa-cog"></i>
                     </button>
@@ -89,15 +89,15 @@
                     <ul>
                         <li>
                             <a href="#"
-                                class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 border-l-4 border-green-500 bg-green-50">
-                                <i class="fas fa-inbox mr-3 text-green-500"></i>
+                                class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 border-l-4 border-accent bg-green-50">
+                                <i class="fas fa-inbox mr-3 text-accent"></i>
                                 <span>Boîte de réception</span>
-                                <span class="ml-auto bg-green-500 text-white text-xs px-2 py-1 rounded-full">12</span>
+                                <span class="ml-auto bg-accent text-white text-xs px-2 py-1 rounded-full">12</span>
                             </a>
                         </li>
                         <li>
                             <a href="#" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100">
-                                <i class="fas fa-paper-plane mr-3 text-blue-500"></i>
+                                <i class="fas fa-paper-plane mr-3 text-primary"></i>
                                 <span>Envoyés</span>
                             </a>
                         </li>
@@ -122,14 +122,14 @@
                             <li class="mb-1">
                                 <a href="#"
                                     class="flex items-center px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded">
-                                    <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                                    <span class="w-3 h-3 bg-accent rounded-full mr-2"></span>
                                     <span>Université</span>
                                 </a>
                             </li>
                             <li class="mb-1">
                                 <a href="#"
                                     class="flex items-center px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded">
-                                    <span class="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                                    <span class="w-3 h-3 bg-primary rounded-full mr-2"></span>
                                     <span>Professeurs</span>
                                 </a>
                             </li>
@@ -151,7 +151,7 @@
                 <div class="border-b border-gray-200 px-4 py-3">
                     <div class="relative">
                         <input type="text" placeholder="Rechercher des messages..."
-                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-accent">
                         <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
                     </div>
                 </div>
@@ -163,7 +163,7 @@
                         <div class="flex items-start">
                             <div class="flex-shrink-0 pt-1">
                                 <div
-                                    class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                                    class="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center">
                                     <span>JD</span>
                                 </div>
                             </div>
@@ -190,7 +190,7 @@
                         <div class="flex items-start">
                             <div class="flex-shrink-0 pt-1">
                                 <div
-                                    class="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                                    class="bg-accent text-white rounded-full w-8 h-8 flex items-center justify-center">
                                     <span>SC</span>
                                 </div>
                             </div>
@@ -283,7 +283,7 @@
                             <div class="flex items-start justify-between">
                                 <div class="flex items-center">
                                     <div
-                                        class="bg-blue-500 text-white rounded-full w-10 h-10 flex items-center justify-center mr-3">
+                                        class="bg-primary text-white rounded-full w-10 h-10 flex items-center justify-center mr-3">
                                         <span>PM</span>
                                     </div>
                                     <div>
@@ -307,7 +307,7 @@
                                 avancée a bien été reçu. La qualité générale est satisfaisante, mais j'ai quelques
                                 remarques :</p>
 
-                            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                            <div class="bg-blue-50 border-l-4 border-primary p-4 mb-4">
                                 <p class="font-medium text-blue-800 mb-2">Points à améliorer :</p>
                                 <ul class="list-disc pl-5 text-blue-700">
                                     <li class="mb-1">Optimisation de la fonction de tri (chapitre 4)</li>

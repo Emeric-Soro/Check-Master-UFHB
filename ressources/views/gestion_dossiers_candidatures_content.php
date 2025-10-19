@@ -46,7 +46,7 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
 <body class="p-4 sm:p-6 md:p-8">
     <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden md:p-8 p-6">
         <h1 class="text-3xl font-bold text-gray-900 mb-6 text-center">Historique des Rapports Vérifiés <span
-                class="text-4xl text-green-500 font-bold">MIAGE</span></h1>
+                class="text-4xl text-accent font-bold">MIAGE</span></h1>
 
         <!-- Statistiques -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -70,10 +70,10 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
             <input type="hidden" name="page" value="<?= htmlspecialchars($_GET['page']) ?>">
             <?php endif; ?>
             <input type="text" name="search" placeholder="Rechercher par étudiant, titre ou thème..."
-                class="outline-green-500 flex-1 min-w-[200px] p-3 pl-4 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm md:text-base text-sm"
+                class="outline-green-500 flex-1 min-w-[200px] p-3 pl-4 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-accent text-gray-700 shadow-sm md:text-base text-sm"
                 value="<?= htmlspecialchars($searchTerm) ?>">
             <select name="statut"
-                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm md:text-base text-sm">
+                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-accent text-gray-700 shadow-sm md:text-base text-sm">
                 <option value="all" <?php echo $statutFilter === 'all' ? 'selected' : ''; ?>>Tous les statuts</option>
                 <option value="approuve" <?php echo $statutFilter === 'approuve' ? 'selected' : ''; ?>>Approuvé</option>
                 <option value="desapprouve" <?php echo $statutFilter === 'desapprouve' ? 'selected' : ''; ?>>Désapprouvé
@@ -118,7 +118,7 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
                     <tr class="table-row-hover">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 rounded-bl-lg">
                             <div class="flex items-center">
-                                <i class="fa-solid fa-user text-green-500 mr-2"></i>
+                                <i class="fa-solid fa-user text-accent mr-2"></i>
                                 <?php echo htmlspecialchars($rapport['nom_etu'] . ' ' . $rapport['prenom_etu']); ?>
                             </div>
                         </td>
@@ -140,7 +140,7 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
                             <span
                                 class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $rapport['statut_approbation'] === 'approuve' ? 'bg-green-100 text-primary' : 'bg-red-100 text-red-700'; ?>">
                                 <i
-                                    class="<?php echo $rapport['statut_approbation'] === 'approuve' ? 'fa-solid fa-circle-check text-green-500' : 'fa-solid fa-circle-xmark text-red-400'; ?>"></i>
+                                    class="<?php echo $rapport['statut_approbation'] === 'approuve' ? 'fa-solid fa-circle-check text-accent' : 'fa-solid fa-circle-xmark text-red-400'; ?>"></i>
                                 <?php echo $rapport['statut_approbation'] === 'approuve' ? 'Approuvé' : 'Désapprouvé'; ?>
                             </span>
                         </td>
@@ -149,13 +149,13 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
 
                                 <a href="?page=gestion_dossiers_candidatures&action=telecharger_pdf&id_rapport=<?php echo $rapport['id_rapport']; ?>"
                                     title="Télécharger le rapport en PDF"
-                                    class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 shadow transition-colors">
+                                    class="bg-primary hover:bg-primary-light text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 shadow transition-colors">
                                     <i class="fa-solid fa-file-pdf"></i>
                                     PDF
                                 </a>
                                 <a href="?page=gestion_dossiers_candidatures&action=consulter_rapport&id_rapport=<?php echo $rapport['id_rapport']; ?>"
                                     target="_blank" title="Consulter le rapport"
-                                    class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 shadow transition-colors">
+                                    class="bg-accent hover:bg-accent text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 shadow transition-colors">
                                     <i class="fa-solid fa-file-text"></i>
                                     Consulter
                                 </a>

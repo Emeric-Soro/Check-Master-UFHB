@@ -215,11 +215,11 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
             <div class="mb-6 border-b border-gray-200">
                 <nav class="-mb-px flex space-x-8" aria-label="Tabs">
                     <a href="?page=parametres_generaux&action=fonction_utilisateur&tab=groupes"
-                        class="<?= ($activeTab === 'groupes') ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' ?> whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        class="<?= ($activeTab === 'groupes') ? 'border-accent text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' ?> whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
                         <i class="fas fa-users-cog mr-2"></i>Groupes d'Utilisateurs
                     </a>
                     <a href="?page=parametres_generaux&action=fonction_utilisateur&tab=types"
-                        class="<?= ($activeTab === 'types') ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' ?> whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        class="<?= ($activeTab === 'types') ? 'border-accent text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' ?> whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
                         <i class="fas fa-user-tag mr-2"></i>Types d'Utilisateurs
                     </a>
                 </nav>
@@ -232,7 +232,7 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                 <div class="bg-white rounded-lg shadow-sm p-6">
                     <h3 class="text-lg font-semibold text-gray-600 mb-4 flex items-center">
                         <i
-                            class="fas <?= isset($_GET['id_groupe']) ? 'fa-edit text-green-500' : 'fa-plus-circle text-green-500' ?> mr-2"></i>
+                            class="fas <?= isset($_GET['id_groupe']) ? 'fa-edit text-green-500' : 'fa-plus-circle text-accent' ?> mr-2"></i>
                         <?= isset($_GET['id_groupe']) ? 'Modifier le groupe' : 'Ajouter un nouveau groupe' ?>
                     </h3>
                     <form method="POST" action="?page=parametres_generaux&action=fonction_utilisateur&tab=groupes"
@@ -255,7 +255,7 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                             <?php if (isset($_GET['id_groupe'])): ?>
                             <button type="button" name="btn_annuler" id="btnAnnuler"
                                 onclick="window.location.href='?page=parametres_generaux&action=fonction_utilisateur&tab=groupes'"
-                                class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                                class="btn-hover px-4 py-2 bg-danger text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                                 <i class="fas fa-times mr-2"></i>Annuler
                             </button>
                             <button type="button" name="btn_modifier_groupe" id="btn_modifier_groupe"
@@ -278,7 +278,7 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                 <div class="bg-white rounded-lg shadow-sm">
                     <div class="p-6">
                         <h3 class="text-lg font-semibold text-gray-600 mb-4 flex items-center">
-                            <i class="fas fa-list-ul text-green-500 mr-2"></i>
+                            <i class="fas fa-list-ul text-accent mr-2"></i>
                             Liste des groupes d'utilisateurs
                         </h3>
                         <div class="flex items-center justify-between mb-6">
@@ -415,7 +415,7 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                 <div class="bg-white rounded-lg shadow-sm p-6">
                     <h3 class="text-lg font-semibold text-gray-600 mb-4 flex items-center">
                         <i
-                            class="fas <?= isset($_GET['id_type']) ? 'fa-edit text-green-500' : 'fa-plus-circle text-green-500' ?> mr-2"></i>
+                            class="fas <?= isset($_GET['id_type']) ? 'fa-edit text-green-500' : 'fa-plus-circle text-accent' ?> mr-2"></i>
                         <?= isset($_GET['id_type']) ? 'Modifier le type' : 'Ajouter un nouveau type' ?>
                     </h3>
                     <form method="POST" action="?page=parametres_generaux&action=fonction_utilisateur&tab=types"
@@ -439,7 +439,7 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                             <?php if (isset($_GET['id_type'])): ?>
                             <button type="button" name="btn_annuler" id="btnAnnulerType"
                                 onclick="window.location.href='?page=parametres_generaux&action=fonction_utilisateur&tab=types'"
-                                class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                                class="btn-hover px-4 py-2 bg-danger text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                                 <i class="fas fa-times mr-2"></i>Annuler
                             </button>
                             <button type="button" name="btn_modifier_type" id="btn_modifier_type"
@@ -462,7 +462,7 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                 <div class="bg-white rounded-lg shadow-sm">
                     <div class="p-6">
                         <h3 class="text-lg font-semibold text-gray-600 mb-4 flex items-center">
-                            <i class="fas fa-list-ul text-green-500 mr-2"></i>
+                            <i class="fas fa-list-ul text-accent mr-2"></i>
                             Liste des types d'utilisateurs
                         </h3>
                         <div class="flex items-center justify-between mb-6">

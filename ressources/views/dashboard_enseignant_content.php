@@ -111,7 +111,7 @@ $mes_cours = $GLOBALS['mes_cours'] ?? [];
     <!-- Mes cours -->
     <div class="bg-white rounded-xl shadow-md p-6">
         <h2 class="text-gray-900 text-xl font-bold mb-4 pb-3 border-b border-gray-200">
-            <i class="fas fa-book text-blue-500 mr-2"></i>
+            <i class="fas fa-book text-primary mr-2"></i>
             Mes Cours
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

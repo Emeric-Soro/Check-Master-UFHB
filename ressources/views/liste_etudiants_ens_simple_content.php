@@ -125,7 +125,7 @@ $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
     <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden md:p-8 p-6">
         <h1 class="text-3xl font-bold text-gray-900 mb-6 text-center">Liste des Étudiants -
             <span
-                class="text-4xl text-green-500 font-bold"><?= htmlspecialchars($enseignant->nom_enseignant . ' ' . $enseignant->prenom_enseignant) ?></span>
+                class="text-4xl text-accent font-bold"><?= htmlspecialchars($enseignant->nom_enseignant . ' ' . $enseignant->prenom_enseignant) ?></span>
         </h1>
 
         <form method="get" class="mb-6 flex flex-wrap gap-4 items-center">
@@ -134,11 +134,11 @@ $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
             <?php endif; ?>
 
             <input type="text" name="search" placeholder="Rechercher par nom, prénom ou email..."
-                class="outline-green-500 flex-1 min-w-[200px] p-3 pl-4 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm md:text-base text-sm"
+                class="outline-green-500 flex-1 min-w-[200px] p-3 pl-4 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-accent text-gray-700 shadow-sm md:text-base text-sm"
                 value="<?= htmlspecialchars(isset($_GET['search']) ? $_GET['search'] : '') ?>">
 
             <select name="promotion"
-                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm md:text-base text-sm">
+                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-accent text-gray-700 shadow-sm md:text-base text-sm">
                 <option value="">Toutes les Années Académiques</option>
                 <?php foreach ($listeAnnees as $annee): ?>
                 <option value="<?= htmlspecialchars($annee->id_annee_acad) ?>"
@@ -149,7 +149,7 @@ $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
             </select>
 
             <select name="ue"
-                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm md:text-base text-sm">
+                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-accent text-gray-700 shadow-sm md:text-base text-sm">
                 <option value="">Toutes mes UE</option>
                 <?php foreach ($uesEnseignantIndexed as $idUe => $libUe): ?>
                 <option value="<?= htmlspecialchars($idUe) ?>" <?php if($ue == $idUe) echo 'selected'; ?>>
@@ -159,7 +159,7 @@ $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
             </select>
 
             <select name="ecue"
-                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm md:text-base text-sm">
+                class="p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-accent text-gray-700 shadow-sm md:text-base text-sm">
                 <option value="">Tous mes ECUE</option>
                 <?php foreach ($ecuesEnseignantIndexed as $idEcue => $ecueData): ?>
                 <option value="<?= htmlspecialchars($idEcue) ?>" <?php if($ecue == $idEcue) echo 'selected'; ?>>

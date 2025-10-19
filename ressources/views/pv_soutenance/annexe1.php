@@ -169,14 +169,14 @@
             <?php foreach ($data['criteres'] as $critere): ?>
                 <tr>
                     <td><?= htmlspecialchars($critere['lib_critere']) ?></td>
-                    <td style="text-align: center;"><?= number_format($critere['note'], 1) ?></td>
-                    <td style="text-align: center;"><?= $critere['bareme'] ?></td>
+                    <td class="text-center"><?= number_format($critere['note'], 1) ?></td>
+                    <td class="text-center"><?= $critere['bareme'] ?></td>
                 </tr>
             <?php endforeach; ?>
             <tr>
                 <th>TOTAL</th>
-                <th style="text-align: center;"><?= number_format($data['note_finale'], 1) ?></th>
-                <th style="text-align: center;"><?= $data['total_bareme'] ?></th>
+                <th class="text-center"><?= number_format($data['note_finale'], 1) ?></th>
+                <th class="text-center"><?= $data['total_bareme'] ?></th>
             </tr>
         </tbody>
     </table>
@@ -189,7 +189,7 @@
 
     <!-- Signatures -->
     <div class="signature-section">
-        <div style="font-weight: bold; margin-bottom: 10px;">NOM ET SIGNATURES DES MEMBRES DU JURY :</div>
+        <div class="font-bold mb-2.5">NOM ET SIGNATURES DES MEMBRES DU JURY :</div>
 
         <div class="signature-box">
             <span class="signature-label">PRÉSIDENT :</span>

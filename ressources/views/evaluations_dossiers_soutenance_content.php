@@ -422,7 +422,7 @@
                             <div class="flex items-center">
                                 <span class="text-lg font-bold text-yellow-600 mr-2">16.5/20</span>
                                 <div class="flex-1 bg-gray-200 rounded-full h-2">
-                                    <div class="bg-green-600 h-2 rounded-full" style="width: 82%"></div>
+                                    <div class="bg-green-600 h-2 rounded-full" class="w-[82%]"></div>
                                 </div>
                             </div>
                             <?php elseif ($dossier['etape_validation'] === 'desapprouve_commission'): ?>
@@ -434,7 +434,7 @@
                             <?php else: ?>
                             <p class="text-sm font-medium text-gray-700 mb-1">Progression:</p>
                             <div class="w-full bg-gray-200 rounded-full h-2">
-                                <div class="bg-yellow-600 h-2 rounded-full" style="width: 75%"></div>
+                                <div class="bg-yellow-600 h-2 rounded-full" class="w-3/4"></div>
                             </div>
                             <?php endif; ?>
                         </div>

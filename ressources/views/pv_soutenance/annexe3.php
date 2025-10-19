@@ -169,22 +169,22 @@
         <tbody>
             <tr>
                 <td>MOYENNE GÉNÉRALE MASTER 1</td>
-                <td style="text-align: center;"><?= number_format($data['moyenne_master1'], 2) ?></td>
-                <td style="text-align: center;"><?= $data['coef_master1'] ?></td>
-                <td style="text-align: center;">
+                <td class="text-center"><?= number_format($data['moyenne_master1'], 2) ?></td>
+                <td class="text-center"><?= $data['coef_master1'] ?></td>
+                <td class="text-center">
                     <?= number_format($data['moyenne_master1'] * $data['coef_master1'], 2) ?></td>
             </tr>
             <tr>
                 <td>NOTE DE MÉMOIRE</td>
-                <td style="text-align: center;"><?= number_format($data['note_memoire'], 2) ?></td>
-                <td style="text-align: center;"><?= $data['coef_memoire'] ?></td>
-                <td style="text-align: center;"><?= number_format($data['note_memoire'] * $data['coef_memoire'], 2) ?>
+                <td class="text-center"><?= number_format($data['note_memoire'], 2) ?></td>
+                <td class="text-center"><?= $data['coef_memoire'] ?></td>
+                <td class="text-center"><?= number_format($data['note_memoire'] * $data['coef_memoire'], 2) ?>
                 </td>
             </tr>
             <tr>
                 <th colspan="2">NOTE FINALE</th>
-                <th style="text-align: center;"><?= $data['total_coef'] ?></th>
-                <th style="text-align: center;"><?= number_format($data['note_finale'], 2) ?> / 20</th>
+                <th class="text-center"><?= $data['total_coef'] ?></th>
+                <th class="text-center"><?= number_format($data['note_finale'], 2) ?> / 20</th>
             </tr>
         </tbody>
     </table>
@@ -216,7 +216,7 @@
 
     <!-- Signatures -->
     <div class="signature-section">
-        <div style="font-weight: bold; margin-bottom: 10px;">NOM ET SIGNATURES DES MEMBRES DU JURY :</div>
+        <div class="font-bold mb-2.5">NOM ET SIGNATURES DES MEMBRES DU JURY :</div>
 
         <div class="signature-box">
             <span class="signature-label">PRÉSIDENT :</span>

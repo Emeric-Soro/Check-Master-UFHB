@@ -265,7 +265,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label for="nom_rapport" class="block text-sm font-medium text-gray-700 mb-2">
-                                Nom du rapport <span class="text-red-500">*</span>
+                                Nom du rapport <span class="text-danger">*</span>
                             </label>
                             <input type="text" id="nom_rapport" name="nom_rapport"
                                 value="<?= isset($rapport) ? htmlspecialchars($rapport['nom_rapport']) : '' ?>"
@@ -275,7 +275,7 @@
                         </div>
                         <div>
                             <label for="theme_rapport" class="block text-sm font-medium text-gray-700 mb-2">
-                                Thème du rapport <span class="text-red-500">*</span>
+                                Thème du rapport <span class="text-danger">*</span>
                             </label>
                             <input type="text" id="theme_rapport" name="theme_rapport"
                                 value="<?= isset($rapport) ? htmlspecialchars($rapport['theme_rapport']) : '' ?>"

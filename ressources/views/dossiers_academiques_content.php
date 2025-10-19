@@ -75,12 +75,12 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
         <div class="mb-6 flex flex-col md:flex-row md:items-center gap-4">
             <form method="get" class="flex gap-4 w-full">
                 <input type="hidden" name="page" value="dossiers_academiques">
-                <input type="text" name="search" id="searchInput" style="outline: none;"
+                <input type="text" name="search" id="searchInput" class="outline-none"
                     placeholder="Rechercher par nom, email, niveau..."
                     value="<?= htmlspecialchars($_GET['search'] ?? '') ?>"
-                    class="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">
-                <select name="niveau" style="outline: none;"
-                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500">
+                    class="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-accent">
+                <select name="niveau" class="outline-none"
+                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-accent">
                     <option value="">Tous les niveaux</option>
                     <?php foreach($niveaux as $niv): ?>
                     <option value="<?= htmlspecialchars($niv->id_niv_etude) ?>"
@@ -253,25 +253,25 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                         <div>
                             <label class="block text-gray-700">Adresse</label>
                             <input type="text" name="adresse" id="modalAdresse"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-accent focus:ring-green-500"
                                 disabled>
                         </div>
                         <div>
                             <label class="block text-gray-700">Téléphone</label>
                             <input type="tel" name="telephone" id="modalTelephone"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-accent focus:ring-green-500"
                                 disabled>
                         </div>
                         <div>
                             <label class="block text-gray-700">Nationalité</label>
                             <input type="text" name="nationalite" id="modalNationalite"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-accent focus:ring-green-500"
                                 disabled>
                         </div>
                         <div>
                             <label class="block text-gray-700">Situation familiale</label>
                             <input type="text" name="situation_familiale" id="modalSituationFamiliale"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-accent focus:ring-green-500"
                                 disabled>
                         </div>
                     </div>
@@ -285,32 +285,32 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                         <div>
                             <label class="block text-gray-700">Dernier diplôme</label>
                             <input type="text" name="dernier_diplome" id="modalDernierDiplome"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-accent focus:ring-green-500"
                                 disabled>
                         </div>
                         <div>
                             <label class="block text-gray-700">Établissement d'origine</label>
                             <input type="text" name="etablissement_origine" id="modalEtablissementOrigine"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-accent focus:ring-green-500"
                                 disabled>
                         </div>
                         <div>
                             <label class="block text-gray-700">Année d'obtention du diplôme</label>
                             <input type="number" name="annee_obtention_diplome" id="modalAnneeObtentionDiplome"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-accent focus:ring-green-500"
                                 min="1900" max="2030" placeholder="Ex: 2023" disabled>
                         </div>
                         <div>
                             <label class="block text-gray-700">Mention du diplôme</label>
                             <input type="text" name="mention_diplome" id="modalMentionDiplome"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
+                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-accent focus:ring-green-500"
                                 disabled>
                         </div>
                     </div>
                 </div>
                 <div class="flex gap-4 mt-6">
                     <button type="button" id="editBtn"
-                        class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Modifier</button>
+                        class="bg-primary text-white p-2 rounded-lg hover:bg-primary-light">Modifier</button>
                     <button type="submit" id="saveBtn"
                         class="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700">Enregistrer</button>
                 </div>

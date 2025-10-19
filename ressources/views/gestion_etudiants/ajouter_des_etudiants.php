@@ -44,15 +44,15 @@ error_log("View - All Etudiants Count: " . count($allEtudiants));
         <?php if (!empty($GLOBALS['messageSuccess'])): ?>
         <div id="successNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
             <div
-                class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg flex items-center">
+                class="bg-green-100 border-l-4 border-accent text-green-700 p-4 rounded shadow-lg flex items-center">
                 <div class="flex-shrink-0">
-                    <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                    <i class="fas fa-check-circle text-accent text-xl"></i>
                 </div>
                 <div class="ml-3">
                     <p class="text-sm font-medium"><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
                 </div>
                 <button onclick="this.parentElement.parentElement.remove()" class="ml-auto pl-3">
-                    <i class="fas fa-times text-green-500 hover:text-green-700"></i>
+                    <i class="fas fa-times text-accent hover:text-green-700"></i>
                 </button>
             </div>
         </div>
@@ -60,15 +60,15 @@ error_log("View - All Etudiants Count: " . count($allEtudiants));
 
         <?php if (!empty($GLOBALS['messageErreur'])): ?>
         <div id="errorNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
-            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg flex items-center">
+            <div class="bg-red-100 border-l-4 border-danger text-red-700 p-4 rounded shadow-lg flex items-center">
                 <div class="flex-shrink-0">
-                    <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>
+                    <i class="fas fa-exclamation-circle text-danger text-xl"></i>
                 </div>
                 <div class="ml-3">
                     <p class="text-sm font-medium"><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
                 </div>
                 <button onclick="this.parentElement.parentElement.remove()" class="ml-auto pl-3">
-                    <i class="fas fa-times text-red-500 hover:text-red-700"></i>
+                    <i class="fas fa-times text-danger hover:text-red-700"></i>
                 </button>
             </div>
         </div>
@@ -104,7 +104,7 @@ error_log("View - All Etudiants Count: " . count($allEtudiants));
                 <div class="flex items-center justify-between mb-6 pb-2 border-b border-gray-200">
                     <div class="flex">
                         <div class="bg-green-100 p-1.5 rounded-full mr-3">
-                            <i class="fas fa-user-plus text-green-500 text-sm"></i>
+                            <i class="fas fa-user-plus text-accent text-sm"></i>
                         </div>
                         <h3 id="userModalTitle" class="text-2xl font-semibold text-gray-700">
                             <?php echo isset($etudiant_a_modifier) && $_GET['modalAction']=='edit' ? 'Modifier un étudiant' : 'Ajouter un étudiant'; ?>
@@ -114,7 +114,7 @@ error_log("View - All Etudiants Count: " . count($allEtudiants));
                     <?php if ($_GET['modalAction'] === 'edit'): ?>
                     <div>
                         <label for="num_etu" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-book text-green-500 mr-2"></i>Numéro étudiant
+                            <i class="fas fa-book text-accent mr-2"></i>Numéro étudiant
                         </label>
                         <input type="text" name="num_etu" id="num_etu" required
                             value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->num_etu) : ''; ?>"
@@ -131,36 +131,36 @@ error_log("View - All Etudiants Count: " . count($allEtudiants));
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label for="nom_etu" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-user text-green-500 mr-2"></i>Nom
+                                <i class="fas fa-user text-accent mr-2"></i>Nom
                             </label>
                             <input type="text" name="nom_etu" id="nom_etu" required
                                 value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->nom_etu) : ''; ?>"
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent transition-all duration-200">
                         </div>
                         <div class="space-y-2">
                             <label for="prenom_etu" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-user text-green-500 mr-2"></i>Prénom
+                                <i class="fas fa-user text-accent mr-2"></i>Prénom
                             </label>
                             <input type="text" name="prenom_etu" id="prenom_etu" required
                                 value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->prenom_etu) : ''; ?>"
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent transition-all duration-200">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label for="email_etu" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-envelope text-green-500 mr-2"></i>Email
+                                <i class="fas fa-envelope text-accent mr-2"></i>Email
                             </label>
                             <input type="email" name="email_etu" id="email_etu" required
                                 value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->email_etu) : ''; ?>"
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent transition-all duration-200">
                         </div>
                         <div class="space-y-2">
                             <label for="promotion_etu" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-graduation-cap text-green-500 mr-2"></i>Promotion
+                                <i class="fas fa-graduation-cap text-accent mr-2"></i>Promotion
                             </label>
                             <select name="promotion_etu" id="promotion_etu" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent bg-white transition-all duration-200">
                                 <option value="">Sélectionner une promotion</option>
                                 <?php
                                 for ($i = 2000; $i <= 2030; $i++) {
@@ -175,18 +175,18 @@ error_log("View - All Etudiants Count: " . count($allEtudiants));
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label for="date_naiss_etu" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-calendar text-green-500 mr-2"></i>Date de naissance
+                                <i class="fas fa-calendar text-accent mr-2"></i>Date de naissance
                             </label>
                             <input type="date" name="date_naiss_etu" id="date_naiss_etu" required
                                 value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->date_naiss_etu) : ''; ?>"
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent transition-all duration-200">
                         </div>
                         <div class="space-y-2">
                             <label for="genre_etu" class="block text-sm font-medium text-gray-700">
-                                <i class="fa-solid fa-venus-mars text-green-500 mr-2"></i>Genre
+                                <i class="fa-solid fa-venus-mars text-accent mr-2"></i>Genre
                             </label>
                             <select name="genre_etu" id="genre_etu" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent bg-white transition-all duration-200">
                                 <option value="">Sélectionner un genre</option>
                                 <option value="Femme"
                                     <?php echo ($etudiant_a_modifier && $etudiant_a_modifier->genre_etu === 'Femme') ? 'selected' : ''; ?>>
@@ -223,7 +223,7 @@ error_log("View - All Etudiants Count: " . count($allEtudiants));
             <div class=" bg-gradient-to-r from-green-600 to-green-800 px-6 py-4 flex justify-between items-center">
                 <h2 class="text-xl font-bold text-white">Gestion des étudiants</h2>
                 <button onclick="openUserModal()"
-                    class="bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                    class="bg-accent text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
                     <i class="fas fa-plus mr-2"></i>Ajouter un étudiant
                 </button>
             </div>
@@ -232,14 +232,14 @@ error_log("View - All Etudiants Count: " . count($allEtudiants));
             <div class="px-6 py-4 flex flex-col sm:flex-row justify-between items-center border-b border-gray-200">
                 <div class="relative w-full sm:w-1/2 lg:w-1/3 mb-4 sm:mb-0">
                     <input type="text" id="searchInput" placeholder="Rechercher un étudiant..."
-                        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
+                        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-accent transition-all duration-200">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                         <i class="fas fa-search text-gray-400"></i>
                     </span>
                 </div>
                 <div class="flex flex-wrap gap-2 justify-center sm:justify-end">
                     <button onclick="imprimerListe()"
-                        class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                        class="bg-primary hover:bg-primary-light text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                         <i class="fas fa-print mr-2"></i>Imprimer
                     </button>
                     <button onclick="exporterListe()"
@@ -247,7 +247,7 @@ error_log("View - All Etudiants Count: " . count($allEtudiants));
                         <i class="fas fa-file-export mr-2"></i>Exporter
                     </button>
                     <button id="deleteButton" onclick="openDeleteModal()"
-                        class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
+                        class="bg-danger hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
                         <i class="fas fa-trash-alt mr-2"></i>Supprimer
                     </button>
                 </div>

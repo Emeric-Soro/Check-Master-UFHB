@@ -858,11 +858,11 @@ foreach ($candidatures as $c) {
             <div class="filters">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" style="outline: none;" placeholder="Rechercher un étudiant...">
+                    <input type="text" id="searchInput" class="outline-none" placeholder="Rechercher un étudiant...">
                 </div>
-                <form method="get" id="filterForm" style="margin:0;">
+                <form method="get" id="filterForm" class="m-0">
                     <input type="hidden" name="page" value="gestion_candidatures_soutenance">
-                    <select name="statut" id="statusFilter" style="outline: none;"
+                    <select name="statut" id="statusFilter" class="outline-none"
                         onchange="document.getElementById('filterForm').submit()">
                         <option value="all" <?php if(($_GET['statut'] ?? 'all') === 'all') echo 'selected'; ?>>Tous les
                             statuts</option>
@@ -907,13 +907,12 @@ foreach ($candidatures as $c) {
             </div>
 
             <!-- Table d'historique des candidatures examinées -->
-            <div class="table-container" style="margin-top: 2rem;">
-                <div class="table-header"
-                    style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div class="table-container mt-8">
+                <div class="table-header flex items-center justify-between flex-wrap gap-2.5">
                     <h2 class="table-title">Historique des candidatures examinées</h2>
-                    <div style="display: flex; gap: 10px; align-items: center;">
+                    <div class="flex gap-2.5 items-center">
                         <input type="text" id="searchHistoriqueInput" placeholder="Rechercher dans l'historique..."
-                            style="padding: 8px 12px; border-radius: 6px; border: 1px solid #E5E7EB; font-size: 14px;">
+                            class="px-3 py-2 rounded-md border border-gray-200 text-sm">
                         <button class="btn btn-secondary" onclick="printHistoriqueTable()"><i class="fas fa-print"></i>
                             Imprimer</button>
                         <button class="btn btn-primary" onclick="exportHistoriqueCSV()"><i class="fas fa-file-csv"></i>
@@ -945,7 +944,7 @@ foreach ($candidatures as $c) {
                                     data-idcandidature="<?php echo $candidature['id_candidature']; ?>">Voir
                                     détails</button>
                                 <div id="resume-candidature-<?php echo $candidature['id_candidature']; ?>"
-                                    style="display:none;">
+                                    class="hidden">
                                     <?php if (!empty($resumes_candidatures[$candidature['id_candidature']])): 
                                         $resume = $resumes_candidatures[$candidature['id_candidature']]; ?>
                                     <div class="resume-final">
@@ -1001,8 +1000,8 @@ foreach ($candidatures as $c) {
             </div>
 
             <!-- Modal détails historique -->
-            <div id="historiqueDetailsModal" class="modal" style="display:none;">
-                <div class="modal-content" style="max-width:700px; max-height:80vh; overflow-y:auto;">
+            <div id="historiqueDetailsModal" class="modal hidden">
+                <div class="modal-content max-w-2xl max-h-[80vh] overflow-y-auto">
                     <span class="close-button" onclick="closeHistoriqueModal()">&times;</span>
                     <h2 class="modal-title">Résumé de l'examen de candidature</h2>
                     <div id="historiqueDetailsContent">
@@ -1016,9 +1015,9 @@ foreach ($candidatures as $c) {
 
     <!-- Modal d'examen -->
     <?php if ($examiner && $etudiantData): ?>
-    <div id="examinationModal" class="modal" style="display: flex;">
+    <div id="examinationModal" class="modal flex">
         <?php else: ?>
-        <div id="examinationModal" class="modal" style="display: none;">
+        <div id="examinationModal" class="modal hidden">
             <?php endif; ?>
             <div class="modal-content<?php echo ($etape == 4 ? ' resume-step' : ''); ?>">
                 <a href="?page=gestion_candidatures_soutenance" class="close-button">&times;</a>
@@ -1136,14 +1135,12 @@ foreach ($candidatures as $c) {
 
                             </div>
                             <?php if (isset($_GET['email_envoye']) && $_GET['email_envoye'] == '1'): ?>
-                            <div class="email-notification"
-                                style="background-color: #D1FAE5; border: 1px solid var(--success); color: #065F46;">
+                            <div class="email-notification bg-green-50 border border-accent text-green-800">
                                 <p><i class="fas fa-check-circle"></i> <strong>Email envoyé avec succès !</strong> Les
                                     résultats ont été envoyés à l'étudiant.</p>
                             </div>
                             <?php else: ?>
-                            <div class="email-notification"
-                                style="background-color: #EFF6FF; border: 1px solid #3B82F6; color: #1E40AF;">
+                            <div class="email-notification bg-blue-50 border border-blue-500 text-blue-900">
                                 <p><i class="fas fa-envelope"></i> Cliquez sur "Envoyer les résultats" pour notifier
                                     l'étudiant de la décision finale.</p>
                             </div>
@@ -1213,8 +1210,7 @@ foreach ($candidatures as $c) {
                             </span>
                         </div>
                         <?php if (empty($etapeData['moyenne']) || $etapeData['moyenne'] == '0'): ?>
-                        <div class="alert alert-warning mt-3"
-                            style="background-color: #FEF3C7; border: 1px solid #F59E0B; color: #92400E; padding: 12px; border-radius: 8px;">
+                        <div class="alert alert-warning mt-3 bg-amber-50 border border-warning text-amber-900 p-3 rounded-lg">
                             <i class="fas fa-exclamation-triangle"></i>
                             <strong>Note :</strong> Aucune note n'a été trouvée pour cet étudiant.
                         </div>
@@ -1244,14 +1240,14 @@ foreach ($candidatures as $c) {
                         <?php if ($etape < 4): ?>
                         <form method="post"
                             action="?page=gestion_candidatures_soutenance&action=rejeter_etape&examiner=<?php echo $examiner; ?>&etape=<?php echo $etape; ?>"
-                            style="display: inline;">
+                            class="inline">
                             <?= CSRFProtection::getTokenField() ?>
                             <input type="hidden" name="etape" value="<?php echo $etape; ?>">
                             <button type="submit" class="btn-reject">Rejeter</button>
                         </form>
                         <form method="post"
                             action="?page=gestion_candidatures_soutenance&action=valider_etape&examiner=<?php echo $examiner; ?>&etape=<?php echo $etape; ?>"
-                            style="display: inline;">
+                            class="inline">
                             <?= CSRFProtection::getTokenField() ?>
                             <input type="hidden" name="etape" value="<?php echo $etape; ?>">
                             <button type="submit" class="btn-validate">
@@ -1262,9 +1258,9 @@ foreach ($candidatures as $c) {
                         <?php if ($etape == 4): ?>
                         <form method="post"
                             action="?page=gestion_candidatures_soutenance&action=envoyer_resultats&examiner=<?php echo $examiner; ?>"
-                            style="display: inline;">
+                            class="inline">
                             <?= CSRFProtection::getTokenField() ?>
-                            <button type="submit" class="btn-validate" style="background-color: #059669;">
+                            <button type="submit" class="btn-validate bg-accent">
                                 <i class="fas fa-envelope"></i> Envoyer les résultats
                             </button>
                         </form>

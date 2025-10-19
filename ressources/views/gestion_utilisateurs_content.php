@@ -225,7 +225,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                 </div>
                 <div class="flex items-center mb-6 pb-2 border-b border-gray-200">
                     <div class="bg-green-100 p-2 rounded-full mr-3">
-                        <i class="fas fa-user-plus text-green-500"></i>
+                        <i class="fas fa-user-plus text-accent"></i>
                     </div>
                     <h3 id="userModalTitle" class="text-2xl font-semibold text-gray-700">
                         <?php echo isset($utilisateur_a_modifier) && $_GET['action']=='edit' ? 'Modifier un utilisateur' : 'Ajouter un Utilisateur' ?>
@@ -237,11 +237,11 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label for="nom_utilisateur" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-user text-green-500 mr-2"></i>Nom d'utilisateur
+                                <i class="fas fa-user text-accent mr-2"></i>Nom d'utilisateur
                             </label>
                             <?php if ($_GET['action'] === 'add'): ?>
                             <select name="nom_utilisateur" id="nom_utilisateur" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent bg-white transition-all duration-200">
                                 <option value="">Sélectionner une personne</option>
                                 <optgroup label="Enseignants">
                                     <?php foreach($enseignantsNonUtilisateurs as $enseignant): ?>
@@ -274,25 +274,25 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                             <?php else: ?>
                             <input type="text" name="nom_utilisateur" id="nom_utilisateur" required
                                 value="<?php echo $utilisateur_a_modifier ? htmlspecialchars($utilisateur_a_modifier->nom_utilisateur) : ''; ?>"
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent transition-all duration-200">
                             <?php endif; ?>
                         </div>
                         <div class="space-y-2">
                             <label for="login_utilisateur" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-envelope text-green-500 mr-2"></i>Login
+                                <i class="fas fa-envelope text-accent mr-2"></i>Login
                             </label>
                             <input type="email" name="login_utilisateur" id="login_utilisateur" required
                                 value="<?php echo $utilisateur_a_modifier ? htmlspecialchars($utilisateur_a_modifier->login_utilisateur) : ''; ?>"
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent transition-all duration-200">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label for="id_type_utilisateur" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-id-badge text-green-500 mr-2"></i>Type utilisateur
+                                <i class="fas fa-id-badge text-accent mr-2"></i>Type utilisateur
                             </label>
                             <select name="id_type_utilisateur" id="id_type_utilisateur" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent bg-white transition-all duration-200">
                                 <option value="">Sélectionner un type utilisateur</option>
                                 <?php foreach($types_utilisateur as $type): ?>
                                 <option value="<?php echo htmlspecialchars($type->id_type_utilisateur); ?>"
@@ -304,10 +304,10 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                         </div>
                         <div class="space-y-2">
                             <label for="statut_utilisateur" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-toggle-on text-green-500 mr-2"></i>Statut
+                                <i class="fas fa-toggle-on text-accent mr-2"></i>Statut
                             </label>
                             <select name="statut_utilisateur" id="statut_utilisateur" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent bg-white transition-all duration-200">
                                 <option value="">Sélectionner un statut</option>
                                 <option value="Actif"
                                     <?php echo ($utilisateur_a_modifier && $utilisateur_a_modifier->statut_utilisateur === 'Actif') ? 'selected' : ''; ?>>
@@ -321,10 +321,10 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label for="id_GU" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-users text-green-500 mr-2"></i>Groupe utilisateur
+                                <i class="fas fa-users text-accent mr-2"></i>Groupe utilisateur
                             </label>
                             <select name="id_GU" id="id_GU" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent bg-white transition-all duration-200">
                                 <option value="">Sélectionner un groupe utilisateur</option>
                                 <?php foreach($groupes_utilisateur as $groupe): ?>
                                 <option value="<?php echo htmlspecialchars($groupe->id_GU); ?>"
@@ -336,10 +336,10 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                         </div>
                         <div class="space-y-2">
                             <label for="id_niveau_acces" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-lock text-green-500 mr-2"></i>Niveau d'accès
+                                <i class="fas fa-lock text-accent mr-2"></i>Niveau d'accès
                             </label>
                             <select name="id_niveau_acces" id="id_niveau_acces" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent bg-white transition-all duration-200">
                                 <option value="">Sélectionner un niveau</option>
                                 <?php foreach($niveau_acces as $niveau): ?>
                                 <option value="<?php echo htmlspecialchars($niveau->id_niveau_acces_donnees); ?>"
@@ -385,7 +385,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                 </div>
                 <div class="flex items-center mb-6 pb-2 border-b border-gray-200">
                     <div class="bg-blue-100 p-2 rounded-full mr-3">
-                        <i class="fas fa-users text-blue-500"></i>
+                        <i class="fas fa-users text-primary"></i>
                     </div>
                     <h3 class="text-2xl font-semibold text-gray-700">Ajout en masse d'utilisateurs</h3>
                 </div>
@@ -393,11 +393,11 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-users text-green-500 mr-2"></i>Sélectionner les personnes
+                                <i class="fas fa-users text-accent mr-2"></i>Sélectionner les personnes
                             </label>
                             <select name="selected_persons[]" multiple size="10" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200"
-                                style="height: auto; min-height: 200px;">
+                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent bg-white transition-all duration-200"
+                                class="h-auto min-h-[200px]">
                                 <optgroup label="Enseignants">
                                     <?php foreach($enseignantsNonUtilisateurs as $enseignant): ?>
                                     <option value="ens_<?php echo $enseignant->id_enseignant; ?>"
@@ -431,10 +431,10 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                         <div class="space-y-4">
                             <div class="space-y-2">
                                 <label for="mass_type_utilisateur" class="block text-sm font-medium text-gray-700">
-                                    <i class="fas fa-id-badge text-green-500 mr-2"></i>Type utilisateur
+                                    <i class="fas fa-id-badge text-accent mr-2"></i>Type utilisateur
                                 </label>
                                 <select name="id_type_utilisateur" id="mass_type_utilisateur" required
-                                    class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                    class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent bg-white transition-all duration-200">
                                     <option value="">Sélectionner un type utilisateur</option>
                                     <?php foreach($types_utilisateur as $type): ?>
                                     <option value="<?php echo htmlspecialchars($type->id_type_utilisateur); ?>">
@@ -445,10 +445,10 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                             </div>
                             <div class="space-y-2">
                                 <label for="mass_groupe_utilisateur" class="block text-sm font-medium text-gray-700">
-                                    <i class="fas fa-users text-green-500 mr-2"></i>Groupe utilisateur
+                                    <i class="fas fa-users text-accent mr-2"></i>Groupe utilisateur
                                 </label>
                                 <select name="id_GU" id="mass_groupe_utilisateur" required
-                                    class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                    class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent bg-white transition-all duration-200">
                                     <option value="">Sélectionner un groupe utilisateur</option>
                                     <?php foreach($groupes_utilisateur as $groupe): ?>
                                     <option value="<?php echo htmlspecialchars($groupe->id_GU); ?>">
@@ -459,10 +459,10 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                             </div>
                             <div class="space-y-2">
                                 <label for="mass_niveau_acces" class="block text-sm font-medium text-gray-700">
-                                    <i class="fas fa-lock text-green-500 mr-2"></i>Niveau d'accès
+                                    <i class="fas fa-lock text-accent mr-2"></i>Niveau d'accès
                                 </label>
                                 <select name="id_niveau_acces" id="mass_niveau_acces" required
-                                    class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                    class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent bg-white transition-all duration-200">
                                     <option value="">Sélectionner un niveau</option>
                                     <?php foreach($niveau_acces as $niveau): ?>
                                     <option value="<?php echo htmlspecialchars($niveau->id_niveau_acces_donnees); ?>">
@@ -473,10 +473,10 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                             </div>
                             <div class="space-y-2">
                                 <label for="mass_statut" class="block text-sm font-medium text-gray-700">
-                                    <i class="fas fa-toggle-on text-green-500 mr-2"></i>Statut
+                                    <i class="fas fa-toggle-on text-accent mr-2"></i>Statut
                                 </label>
                                 <select name="statut_utilisateur" id="mass_statut" required
-                                    class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                                    class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-accent bg-white transition-all duration-200">
                                     <option value="">Sélectionner un statut</option>
                                     <option value="Actif">Actif</option>
                                     <option value="Inactif">Inactif</option>
@@ -545,11 +545,11 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                 <h2 class="text-xl font-bold text-white">Gestion des Utilisateurs</h2>
                 <div class="flex gap-4">
                     <a href="?page=gestion_utilisateurs&action=add"
-                    class="bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                    class="bg-accent text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
                     <i class="fas fa-plus mr-2"></i>Ajouter un Utilisateur
                     </a>
                     <a href="?page=gestion_utilisateurs&action=addMasse"
-                        class="bg-blue-500  text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                        class="bg-primary  text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                         <i class="fas fa-plus mr-2"></i>Ajouter en masse
                     </a>
                 </div>
@@ -560,14 +560,14 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
             <div class="px-6 py-4 flex flex-col sm:flex-row justify-between items-center border-b border-gray-200">
                 <div class="relative w-full sm:w-1/2 lg:w-1/3 mb-4 sm:mb-0">
                     <input type="text" id="searchInput" placeholder="Rechercher un utilisateur..."
-                        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
+                        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-accent transition-all duration-200">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                         <i class="fas fa-search text-gray-400"></i>
                     </span>
                 </div>
                 <div class="flex flex-wrap gap-2 justify-center sm:justify-end">
                     <button onclick="printTable()"
-                        class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                        class="bg-primary hover:bg-primary-light text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                         <i class="fas fa-print mr-2"></i>Imprimer
                     </button>
                     <button onclick="exportToExcel()"
@@ -575,11 +575,11 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                         <i class="fas fa-file-export mr-2"></i>Exporter
                     </button>
                     <button id="desactiverButton" type="button"
-                        class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
+                        class="bg-danger hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
                         <i class="fa-solid fa-eye-slash mr-2"></i>Désactiver
                     </button>
                     <button id="activerButton" type="button"
-                        class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                        class="bg-accent hover:bg-accent text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
                         <i class="fa-solid fa-eye-slash mr-2"></i>Activer
                     </button>
                 </div>
@@ -698,7 +698,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <div class="flex justify-center space-x-3">
                                     <a href="?page=gestion_utilisateurs&action=edit&id_utilisateur=<?php echo $user->id_utilisateur; ?>"
-                                        class="text-blue-500 hover:text-blue-700 transition-colors btn-icon"
+                                        class="text-primary hover:text-blue-700 transition-colors btn-icon"
                                         title="Modifier">
                                         <i class="fas fa-edit"></i>
                                     </a>
@@ -973,7 +973,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                     <td class="px-6 py-4 whitespace-nowrap text-center">
                         <div class="flex justify-center space-x-3">
                             <a href="?page=gestion_utilisateurs&action=edit&id_utilisateur=${user.id}"
-                                class="text-blue-500 hover:text-blue-700 transition-colors btn-icon"
+                                class="text-primary hover:text-blue-700 transition-colors btn-icon"
                                 title="Modifier">
                                 <i class="fas fa-edit"></i>
                             </a>
@@ -1459,13 +1459,13 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                                 <div class="text-center">
                                     <div class="inline-block relative">
                                         <div class="w-12 h-12 border-3 border-green-200 rounded-full"></div>
-                                        <div class="w-12 h-12 border-3 border-green-500 rounded-full absolute top-0 left-0 animate-spin border-t-transparent"></div>
+                                        <div class="w-12 h-12 border-3 border-accent rounded-full absolute top-0 left-0 animate-spin border-t-transparent"></div>
                                     </div>
                                     <h3 class="mt-3 text-base font-medium text-gray-900">Traitement en cours</h3>
                                     <p class="mt-1 text-sm text-gray-500">Ajout des utilisateurs...</p>
                                     <div class="mt-3">
                                         <div class="w-full bg-gray-200 rounded-full h-1.5">
-                                            <div class="bg-green-500 h-1.5 rounded-full progress-bar"></div>
+                                            <div class="bg-accent h-1.5 rounded-full progress-bar"></div>
                                         </div>
                                     </div>
                                 </div>

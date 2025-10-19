@@ -493,7 +493,7 @@ function traduireStatut($statut)
         <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-semibold text-gray-800">
-                    <i class="fas fa-file-alt mr-2 text-blue-500"></i>
+                    <i class="fas fa-file-alt mr-2 text-primary"></i>
                     Détails du rapport
                 </h2>
                 <button onclick="fermerModal()" class="text-gray-400 hover:text-gray-600">
@@ -515,14 +515,14 @@ function traduireStatut($statut)
 
             <!-- Formulaire PHP pour valider -->
             <form id="validerForm" method="POST" action="?page=verification_candidatures_soutenance"
-                style="display: none;">
+                class="hidden">
                 <input type="hidden" name="valider" value="1">
                 <input type="hidden" id="validerRapportId" name="id_rapport">
                 <div class="mb-4">
                     <label for="validerComment" class="block text-sm font-medium text-gray-700 mb-2">Commentaire
                         (obligatoire)</label>
                     <textarea id="validerComment" name="commentaire" rows="3"
-                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-accent resize-none"
                         placeholder="Entrez votre commentaire..." required></textarea>
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
@@ -539,14 +539,14 @@ function traduireStatut($statut)
 
             <!-- Formulaire PHP pour rejeter -->
             <form id="rejeterForm" method="POST" action="?page=verification_candidatures_soutenance"
-                style="display: none;">
+                class="hidden">
                 <input type="hidden" name="rejeter" value="1">
                 <input type="hidden" id="rejeterRapportId" name="id_rapport">
                 <div class="mb-4">
                     <label for="rejeterComment" class="block text-sm font-medium text-gray-700 mb-2">Commentaire
                         (obligatoire)</label>
                     <textarea id="rejeterComment" name="commentaire" rows="3"
-                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-danger resize-none"
                         placeholder="Entrez votre commentaire..." required></textarea>
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
@@ -683,7 +683,7 @@ function traduireStatut($statut)
             // Afficher un loader
             document.getElementById('modalContent').innerHTML = `
             <div class="flex justify-center items-center py-8">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 <span class="ml-2 text-gray-600">Chargement des détails...</span>
             </div>
         `;
@@ -702,7 +702,7 @@ function traduireStatut($statut)
                 .catch(error => {
                     console.error('Erreur:', error);
                     document.getElementById('modalContent').innerHTML = `
-                    <div class="text-center py-8 text-red-500">
+                    <div class="text-center py-8 text-danger">
                         <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
                         <p>Erreur lors du chargement des détails</p>
                     </div>
