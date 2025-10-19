@@ -21,11 +21,11 @@ function getTimeAgo($date) {
 
 function getStatusClass($status) {
     switch ($status) {
-        case 'valider': return 'bg-green-100 text-primary';
-        case 'rejeter': return 'bg-red-100 text-red-800';
-        case 'en_attente': return 'bg-blue-100 text-blue-800';
-        case 'en_cours': return 'bg-blue-100 text-blue-800';
-        default: return 'bg-gray-100 text-gray-800';
+        case 'valider': return 'badge-success';
+        case 'rejeter': return 'badge-error';
+        case 'en_attente': return 'badge-warning';
+        case 'en_cours': return 'badge-info';
+        default: return 'badge-ghost';
     }
 }
 
@@ -40,86 +40,65 @@ foreach ($evolutionData as $data) {
 
 $statusLabels = [];
 $statusData = [];
-$statusColors = ['#10b981','#1a5276', '#f59e0b', '#6b7280', '#1a5276'];
+$statusColors = ['#4caf50','#1a5276', '#f39c12', '#64748B', '#1a5276'];
 
 foreach ($repartitionData as $data) {
     $statusLabels[] = ucfirst($data['statut']);
     $statusData[] = $data['nombre'];
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Statistiques | Commission de Validation</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <style>
-        :root{--blue:#1a5276;--blue-light:#2980b9;--green:#10b981;--muted:#64748B}
-        .fade-in{animation:fadeIn .3s ease-in}
-        @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-        .stat-card{transition:all .3s ease}
-        .stat-card:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(0,0,0,.1)}
-        .chart-container{position:relative;height:300px}
-        .metric-value{font-size:2.5rem;font-weight:700;background:linear-gradient(135deg,var(--primary),#155a84);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-        .bg-blue-100{background-color:rgba(15,76,117,0.08) !important}
-        .text-blue-600{color:var(--primary)}
-        </style>
-</head>
-<body class="font-poppins antialiased bg-gray-50">
-<div class="flex h-screen overflow-hidden">
-    <div class="flex-1 overflow-y-auto bg-gray-50">
-        <div class="max-w-7xl mx-auto p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="stat-card bg-white rounded-lg shadow p-6 fade-in">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-600">Total Comptes Rendus</p>
-                            <p class="metric-value"><?php echo $totalRapports; ?></p>
-                        </div>
-                        <div class="p-3 rounded-full bg-blue-100">
-                            <i class="fas fa-file-alt text-blue-600 text-2xl"></i>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="stat-card bg-white rounded-lg shadow p-6 fade-in">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-600">Taux de Validation</p>
-                            <p class="metric-value"><?php echo $tauxValidation; ?>%</p>
-                        </div>
-                        <div class="p-3 rounded-full bg-green-100">
-                            <i class="fas fa-check-circle text-green-600 text-2xl"></i>
-                        </div>
-                    </div>
+<div class="space-y-6" x-data="{ selectedFilter: 'all' }">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <!-- Total Comptes Rendus -->
+        <div class="stats shadow bg-base-100">
+            <div class="stat">
+                <div class="stat-figure text-primary">
+                    <i class="fas fa-file-alt text-3xl"></i>
                 </div>
-
-                <div class="stat-card bg-white rounded-lg shadow p-6 fade-in">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-600">Temps Moyen</p>
-                            <p class="metric-value"><?php echo $tempsMoyen; ?>j</p>
-                        </div>
-                        <div class="p-3 rounded-full bg-blue-100">
-                            <i class="fas fa-clock text-blue-600 text-2xl"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="stat-card bg-white rounded-lg shadow p-6 fade-in">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-600">En Attente</p>
-                            <p class="metric-value"><?php echo $enAttente; ?></p>
-                        </div>
-                        <div class="p-3 rounded-full bg-blue-100">
-                            <i class="fas fa-hourglass-half text-blue-600 text-2xl"></i>
-                        </div>
-                    </div>
-                </div>
+                <div class="stat-title">Total Comptes Rendus</div>
+                <div class="stat-value text-primary"><?php echo $totalRapports; ?></div>
+                <div class="stat-desc">Documents traités</div>
             </div>
+        </div>
+
+        <!-- Taux de Validation -->
+        <div class="stats shadow bg-base-100">
+            <div class="stat">
+                <div class="stat-figure text-accent">
+                    <i class="fas fa-check-circle text-3xl"></i>
+                </div>
+                <div class="stat-title">Taux de Validation</div>
+                <div class="stat-value text-accent"><?php echo $tauxValidation; ?>%</div>
+                <div class="stat-desc">Comptes rendus validés</div>
+            </div>
+        </div>
+
+        <!-- Temps Moyen -->
+        <div class="stats shadow bg-base-100">
+            <div class="stat">
+                <div class="stat-figure text-secondary">
+                    <i class="fas fa-clock text-3xl"></i>
+                </div>
+                <div class="stat-title">Temps Moyen</div>
+                <div class="stat-value text-secondary"><?php echo $tempsMoyen; ?>j</div>
+                <div class="stat-desc">Délai de traitement</div>
+            </div>
+        </div>
+
+        <!-- En Attente -->
+        <div class="stats shadow bg-base-100">
+            <div class="stat">
+                <div class="stat-figure text-warning">
+                    <i class="fas fa-hourglass-half text-3xl"></i>
+                </div>
+                <div class="stat-title">En Attente</div>
+                <div class="stat-value text-warning"><?php echo $enAttente; ?></div>
+                <div class="stat-desc">À traiter</div>
+            </div>
+        </div>
+    </div>
 
             <div class="bg-white rounded-xl shadow-md p-6 mb-8">
                 <h3 class="text-gray-900 text-lg font-semibold mb-4">
