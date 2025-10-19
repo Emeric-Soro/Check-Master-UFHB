@@ -11,15 +11,16 @@
    - Bleu clair: #2980b9 (primary-light)
    - Bleu plus clair: #3498db (primary-lighter)
    - Vert accent: #4caf50 (accent/success)
-   - Orange: #ff8c00 (secondary - alertes uniquement)
-   - Rouge: #e74c3c (danger - alertes uniquement)
-   - Gris: Nuances Tailwind standard
+   - Orange warning: #f39c12 (warning)
+   - Rouge: #e74c3c (danger)
+   - Gris: Nuances Tailwind/DaisyUI standard
    
    POLICES:
    - Principale: Poppins (sans-serif)
    - Secondaire: Montserrat (titres)
    
    ======================================== */
+
 
 /* ========================================
    GRADIENTS OFFICIELS
@@ -56,6 +57,7 @@
 .card-gradient-3 {
     background: linear-gradient(135deg, #f39c12, #ff8c00);
 }
+
 
 /* ========================================
    COMPOSANTS - NAVIGATION

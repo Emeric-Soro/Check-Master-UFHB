@@ -17,7 +17,7 @@ session_start();
     <link rel="stylesheet" href="css/output.css">
     <link rel="shortcut icon" href="./images/logo_cm_sbg.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <script src="js/alpine.min.js" defer></script>
 </head>
 
 <body class="font-sans antialiased text-gray-800 bg-gray-50">

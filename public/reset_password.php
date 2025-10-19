@@ -84,30 +84,7 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#1a5276',
-                        'primary-light': '#2980b9',
-                        'primary-lighter': '#3498db',
-                        secondary: '#ff8c00',
-                        success: '#4caf50',
-                        danger: '#e74c3c'
-                    },
-                    fontFamily: {
-                        poppins: ['Poppins', 'sans-serif'],
-                        montserrat: ['Montserrat', 'sans-serif']
-                    },
-                    boxShadow: {
-                        elevate: '0 25px 60px -15px rgba(26,82,118,0.25)'
-                    }
-                }
-            }
-        }
-    </script>
+    <script src="js/alpine.min.js" defer></script>
 </head>
 <body class="min-h-screen bg-white font-poppins text-slate-900">
 <div class="relative min-h-screen overflow-hidden">
