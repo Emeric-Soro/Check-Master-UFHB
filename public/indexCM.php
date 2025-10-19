@@ -166,8 +166,8 @@
                                 <span class="text-gray-700">Interface collaborative</span>
                             </div>
                             <div class="flex items-center">
-                                <div class="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center mr-3">
-                                    <i class="fas fa-chart-line text-secondary text-sm"></i>
+                                <div class="w-8 h-8 bg-warning/10 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fas fa-chart-line text-warning text-sm"></i>
                                 </div>
                                 <span class="text-gray-700">Suivi en temps réel</span>
                             </div>
@@ -221,7 +221,7 @@
                             </div>
                             <div class="flex justify-between items-center">
                                 <span class="text-gray-600">Soutenances</span>
-                                <span class="font-bold text-secondary">100+</span>
+                                <span class="font-bold text-warning">100+</span>
                             </div>
                             <div class="flex justify-between items-center">
                                 <span class="text-gray-600">Taux de réussite</span>
@@ -282,7 +282,7 @@
 
                 <!-- Suivi en Temps Réel -->
                 <div class="feature-card bg-white rounded-2xl shadow-lg p-8 text-center border border-gray-100 animate-slide-up" style="animation-delay: 0.2s">
-                    <div class="w-20 h-20 bg-gradient-to-br from-secondary to-yellow-600 rounded-2xl flex items-center justify-center mx-auto mb-6 transform hover:scale-110 transition-transform duration-300">
+                    <div class="w-20 h-20 bg-gradient-to-br from-warning to-yellow-600 rounded-2xl flex items-center justify-center mx-auto mb-6 transform hover:scale-110 transition-transform duration-300">
                         <i class="fa-solid fa-check-to-slot text-3xl text-white"></i>
                     </div>
                     <h3 class="text-2xl font-bold text-gray-900 mb-4">Suivi en Temps Réel</h3>
@@ -367,19 +367,19 @@
                         <div class="relative h-64 lg:h-auto">
                             <img src="image/administration_img.jpg" alt="Administration"
                                  class="w-full h-full object-cover">
-                            <div class="absolute inset-0 bg-gradient-to-r from-secondary/80 to-transparent"></div>
+                            <div class="absolute inset-0 bg-gradient-to-r from-warning/80 to-transparent"></div>
                         </div>
                         <div class="p-8 lg:p-12 flex flex-col justify-center">
                             <div class="flex items-center mb-4">
-                                <div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center mr-4">
-                                    <i class="fas fa-users-cog text-secondary text-xl"></i>
+                                <div class="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center mr-4">
+                                    <i class="fas fa-users-cog text-warning text-xl"></i>
                                 </div>
                                 <h3 class="text-2xl font-bold text-gray-900">Membres de la commission</h3>
                             </div>
                             <p class="text-gray-600 leading-relaxed mb-6">
                                 Évaluez les rapports des étudiants, consultez les comptes rendus de commission et supervisez l'ensemble du processus via un tableau de bord complet et intuitif.
                             </p>
-                            <a href="page_connexion.php" class="inline-flex items-center text-secondary hover:text-yellow-600 font-semibold transition-colors group">
+                            <a href="page_connexion.php" class="inline-flex items-center text-warning hover:text-yellow-600 font-semibold transition-colors group">
                                 Accéder à mon espace 
                                 <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-2 transition-transform"></i>
                             </a>
