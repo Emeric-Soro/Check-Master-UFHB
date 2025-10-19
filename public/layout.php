@@ -409,89 +409,93 @@ if (!isset($_SESSION['id_utilisateur'])) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
     <style>
         .sidebar-logo { height: 56px; border-radius: 8px; }
-        .topbar { height: 96px; padding: 0 1.5rem; }
-        </style>
+    </style>
 </head>
-<body class="bg-base-200 font-poppins antialiased">
-<div class="flex h-screen overflow-hidden">
-    <div class="hidden md:flex md:flex-shrink-0">
-        <div class="flex flex-col w-72 bg-primary text-white">
-            <div class="flex items-center justify-center h-24 px-4">
-                <div class="flex flex-col items-center text-center">
-                    <img src="image/logo_cm_sbg.png" alt="Logo CheckMaster" class="sidebar-logo mb-2">
-                    <span class="font-bold text-lg tracking-wide">CHECK MASTER</span>
-                </div>
-            </div>
-            <div class="flex flex-col flex-grow px-4 py-4 overflow-y-auto">
-                <div class="space-y-3 pb-3">
-                    <?php echo $menuHTML; ?>
-                </div>
-                <div class="mt-auto px-4 py-3">
-                    <form action="logout.php" method="POST" id="logoutForm" class="w-full">
-                        <button type="submit" form="logoutForm" class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
-                            <i class="fas fa-sign-out-alt text-white/80"></i>
-                            <span class="text-sm">Déconnexion</span>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="flex flex-col flex-1 overflow-hidden">
-        <div class="flex items-center justify-between topbar bg-base-100 border-b border-base-300">
-            <div class="flex items-center">
-                <button id="mobileMenuButton" class="md:hidden text-primary/70 focus:outline-none mr-4">
+<body class="bg-base-200 font-poppins antialiased" x-data="{ sidebarOpen: false }">
+<!-- DaisyUI Drawer for responsive sidebar -->
+<div class="drawer lg:drawer-open">
+    <input id="sidebar-drawer" type="checkbox" class="drawer-toggle" x-model="sidebarOpen" />
+    <div class="drawer-content flex flex-col">
+        <!-- Navbar -->
+        <div class="navbar bg-base-100 border-b border-base-300 shadow-sm px-4 lg:px-6 h-24">
+            <div class="flex-none lg:hidden">
+                <label for="sidebar-drawer" class="btn btn-square btn-ghost text-primary" @click="sidebarOpen = !sidebarOpen">
                     <i class="fas fa-bars text-2xl"></i>
-                </button>
-                <div>
-                    <h1 class="text-2xl font-bold text-primary"><?php echo htmlspecialchars($currentPageLabel); ?></h1>
-                </div>
+                </label>
             </div>
-            <div class="flex items-center space-x-6">
-                <div class="relative">
-                    <i class="fas fa-bell text-primary/70 text-xl"></i>
-                </div>
-                <div class="w-px h-10 bg-base-300"></div>
-                <div class="flex items-center space-x-4">
-                    <div class="text-right">
-                        <span class="text-md font-bold text-primary block">Bienvenue, <?php echo htmlspecialchars($_SESSION['nom_utilisateur']) ?></span>
-                        <span class="text-sm text-primary/60 block"><?php echo htmlspecialchars($_SESSION['lib_GU']) ?></span>
+            <div class="flex-1">
+                <h1 class="text-2xl font-bold text-primary"><?php echo htmlspecialchars($currentPageLabel); ?></h1>
+            </div>
+            <div class="flex-none">
+                <div class="flex items-center gap-6">
+                    <!-- Notification button -->
+                    <button class="btn btn-ghost btn-circle">
+                        <div class="indicator">
+                            <i class="fas fa-bell text-primary text-xl"></i>
+                        </div>
+                    </button>
+                    <!-- Divider -->
+                    <div class="divider divider-horizontal mx-0"></div>
+                    <!-- User info -->
+                    <div class="hidden sm:block text-right">
+                        <div class="text-sm font-bold text-primary">Bienvenue, <?php echo htmlspecialchars($_SESSION['nom_utilisateur']) ?></div>
+                        <div class="text-xs text-primary/60"><?php echo htmlspecialchars($_SESSION['lib_GU']) ?></div>
                     </div>
                 </div>
             </div>
         </div>
-        <main class="flex-1 p-6 overflow-y-auto">
+        <!-- Page content -->
+        <main class="flex-1 p-4 lg:p-6 overflow-y-auto">
             <?php
             if (!empty($contentFile) && file_exists($contentFile)) {
                 include $contentFile;
             } else {
-                echo "<div class='card p-6'>";
-                echo "<div class='text-danger font-semibold mb-2'>Erreur de chargement</div>";
+                echo "<div class='alert alert-error shadow-lg'>";
+                echo "<div>";
+                echo "<i class='fas fa-exclamation-circle'></i>";
+                echo "<div>";
+                echo "<h3 class='font-bold'>Erreur de chargement</h3>";
                 if (empty($contentFile)) {
-                    echo "<div>Aucun fichier de contenu n'a été spécifié pour cette vue.</div>";
+                    echo "<div class='text-xs'>Aucun fichier de contenu n'a été spécifié pour cette vue.</div>";
                 } else {
-                    echo "<div>Le fichier de contenu pour '" . htmlspecialchars($currentPageLabel) . "' est introuvable.</div>";
+                    echo "<div class='text-xs'>Le fichier de contenu pour '" . htmlspecialchars($currentPageLabel) . "' est introuvable.</div>";
                 }
+                echo "</div>";
+                echo "</div>";
                 echo "</div>";
             }
             ?>
         </main>
     </div>
+    <!-- Sidebar -->
+    <div class="drawer-side z-40">
+        <label for="sidebar-drawer" class="drawer-overlay" @click="sidebarOpen = false"></label>
+        <aside class="flex flex-col w-80 h-full bg-primary text-white">
+            <!-- Logo section -->
+            <div class="flex items-center justify-center h-24 px-4 border-b border-white/10">
+                <div class="flex flex-col items-center text-center">
+                    <img src="image/logo_cm_sbg.png" alt="Logo CheckMaster" class="sidebar-logo mb-2">
+                    <span class="font-bold text-lg tracking-wide">CHECK MASTER</span>
+                </div>
+            </div>
+            <!-- Menu section -->
+            <div class="flex flex-col flex-1 overflow-y-auto px-4 py-4">
+                <ul class="menu p-0 space-y-2">
+                    <?php echo $menuHTML; ?>
+                </ul>
+            </div>
+            <!-- Logout section -->
+            <div class="px-4 py-4 border-t border-white/10">
+                <form action="logout.php" method="POST" id="logoutForm">
+                    <button type="submit" class="btn btn-ghost w-full justify-start gap-3 text-white hover:bg-white/10">
+                        <i class="fas fa-sign-out-alt text-lg"></i>
+                        <span>Déconnexion</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+    </div>
 </div>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const mobileMenuButton = document.getElementById('mobileMenuButton');
-        const sidebar = document.querySelector('.hidden.md\\:flex.md\\:flex-shrink-0');
-        if (mobileMenuButton && sidebar) {
-            mobileMenuButton.addEventListener('click', function() {
-                sidebar.classList.toggle('hidden');
-                sidebar.classList.toggle('absolute');
-                sidebar.classList.toggle('z-20');
-                sidebar.classList.toggle('h-full');
-            });
-        }
-    });
-</script>
 <script src="./js/suivi_reclamation.js"></script>
 <script src="./js/historique_reclamation.js"></script>
 </body>
