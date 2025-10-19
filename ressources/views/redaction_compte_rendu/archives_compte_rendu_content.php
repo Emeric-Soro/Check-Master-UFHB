@@ -258,6 +258,7 @@
         // Variables globales
         let currentFilter = '<?php echo $year ?? "all"; ?>';
         let currentSearch = '<?php echo htmlspecialchars($search ?? ""); ?>';
+        const csrfToken = '<?php require_once __DIR__ . "/../../app/utils/CSRFProtection.php"; echo CSRFProtection::getToken(); ?>';
 
         // Fonctions de filtrage et recherche
         function filterArchives(filter) {
@@ -309,6 +310,7 @@
             if (confirm('Êtes-vous sûr de vouloir supprimer cette archive ? Cette action est irréversible.')) {
                 const formData = new FormData();
                 formData.append('id_CR', id);
+                formData.append('csrf_token', csrfToken);
                 
                 fetch('ressources/routes/archivesCompteRenduRoutes.php?page=archives_compte_rendu&action=delete', {
                     method: 'POST',
