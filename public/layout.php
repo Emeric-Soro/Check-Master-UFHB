@@ -3,6 +3,7 @@ session_start();
 include '../app/config/database.php';
 include '../app/controllers/AuthController.php';
 include '../app/controllers/MenuController.php';
+include '../app/utils/permissions.php';
 include 'menu.php';
 include __DIR__ . '/../ressources/routes/gestionUtilisateurRoutes.php';
 include __DIR__ . '/../ressources/routes/gestionRhRoutes.php';
@@ -47,6 +48,17 @@ if (!isset($_SESSION['id_utilisateur'])) {
             }
         }
     }
+    
+    // Vérifier la permission READ pour la page demandée (sauf pour le dashboard qui est toujours accessible)
+    if (!empty($currentMenuSlug) && $currentMenuSlug !== 'dashboard') {
+        if (!hasPermission($currentMenuSlug, 'READ')) {
+            $_SESSION['error_message'] = "Accès refusé: vous n'avez pas les permissions nécessaires pour accéder à cette page.";
+            // Rediriger vers le dashboard
+            header('Location: layout.php?page=dashboard');
+            exit;
+        }
+    }
+    
     if (empty($currentMenuSlug) && !empty($traitements)) {
         $currentMenuSlug = $traitements[0]['lib_traitement'];
         $currentPageLabel = $traitements[0]['label_traitement'];
