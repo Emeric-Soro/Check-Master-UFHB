@@ -81,10 +81,11 @@ MENTION : ${mention}
 #### Tableau Répétitif (Critères d'évaluation) :
 Dans un tableau Word, créez une ligne de données avec :
 - `${lib_critere}` - Libellé du critère
-- `${bareme}` - Barème du critère
+- `${bareme}` - Barème du critère  
 - `${note}` - Note obtenue
 
 Le système dupliquera automatiquement cette ligne pour chaque critère.
+**Important**: Le premier champ du tableau (`${lib_critere}`) sera utilisé comme référence pour la duplication.
 
 ## Instructions pour créer le modèle
 

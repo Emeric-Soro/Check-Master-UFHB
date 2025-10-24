@@ -121,8 +121,16 @@ class DocumentGeneratorService
             // Check if this is a repeating block (array of associative arrays)
             if (!empty($value) && is_array($value[0])) {
                 try {
-                    // Clone the block row for each item
-                    $template->cloneRow($key, count($value));
+                    // Get the first key from the first item - this will be used as the clone key
+                    $firstItem = $value[0];
+                    $firstKey = array_key_first($firstItem);
+                    
+                    if ($firstKey === null) {
+                        continue;
+                    }
+                    
+                    // Clone the row based on the first key in the data
+                    $template->cloneRow($firstKey, count($value));
                     
                     // Fill in the data for each row
                     foreach ($value as $index => $item) {
@@ -134,7 +142,7 @@ class DocumentGeneratorService
                     }
                 } catch (Exception $e) {
                     // Block might not exist in template, continue
-                    error_log("Repeating block '{$key}' not found in template: " . $e->getMessage());
+                    error_log("Repeating block for array '{$key}' not found in template: " . $e->getMessage());
                 }
             }
         }
