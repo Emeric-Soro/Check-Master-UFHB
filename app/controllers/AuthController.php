@@ -9,6 +9,7 @@ require_once __DIR__ . '/../models/Grade.php';
 require_once __DIR__ . '/../models/Fonction.php';
 require_once __DIR__ . '/../models/Specialite.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 // Si nécessaire pour d'autres opérations
 
@@ -77,6 +78,10 @@ class AuthController {
                     $_SESSION['num_etu'] = $etudiant->num_etu;
                 }
             }
+            
+            // Charger les permissions de l'utilisateur
+            loadUserPermissions($this->db, $infoUtilisateur['id_GU']);
+            
             $this->auditLog->logConnexion($infoUtilisateur['id_utilisateur'], 'utilisateur', 'Succès');
             return true;
         } 
@@ -89,6 +94,8 @@ class AuthController {
     {
         $this->auditLog->logDeconnexion($_SESSION['id_utilisateur'] , 'utilisateur', 'Succès');
        
+        // Effacer les permissions de la session
+        clearPermissions();
 
         // Détruire toutes les données de session
         $_SESSION = array();
