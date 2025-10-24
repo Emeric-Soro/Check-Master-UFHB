@@ -4,6 +4,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . "/../models/Utilisateur.php";
 require_once __DIR__ . "/../models/Etudiant.php";
 require_once __DIR__ . "/../models/Scolarite.php";
+require_once __DIR__ . '/../utils/permissions.php';
 
 /**
  * Contrôleur du tableau de bord de la scolarité

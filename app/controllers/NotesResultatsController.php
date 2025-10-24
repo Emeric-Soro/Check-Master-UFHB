@@ -7,6 +7,7 @@ require_once __DIR__ . '/../models/NiveauEtude.php';
 require_once __DIR__ . '/../models/Semestre.php';
 require_once __DIR__ . '/../models/Ue.php';
 require_once __DIR__ . '/../models/Ecue.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 
 

@@ -1,6 +1,7 @@
 <?php
 
 include_once __DIR__ . '/../models/Traitement.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 class MenuController {
 

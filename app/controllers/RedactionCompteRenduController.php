@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../models/Valider.php';
 require_once __DIR__ . '/../models/CompteRendu.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../utils/permissions.php';
 use Dompdf\Dompdf;
 
 class RedactionCompteRenduController {

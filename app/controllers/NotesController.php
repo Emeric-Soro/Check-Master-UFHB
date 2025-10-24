@@ -9,6 +9,7 @@ require_once __DIR__ . '/../models/Semestre.php';
 require_once __DIR__ . '/../models/Ue.php';
 require_once __DIR__ . '/../models/Ecue.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 
 
@@ -69,6 +70,13 @@ class NotesController {
 
     public function enregistrerNotes() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_enregistrer_notes'])) {
+            // Vérifier les permissions CREATE et UPDATE pour l'enregistrement des notes
+            if (!hasPermission('gestion_notes', 'CREATE') && !hasPermission('gestion_notes', 'UPDATE')) {
+                $_SESSION['error'] = "Vous n'avez pas la permission d'enregistrer des notes.";
+                $this->auditLog->logModification($_SESSION['id_utilisateur'], 'notes', 'Erreur - Permission refusée');
+                return;
+            }
+            
             $success = true;
             $studentId = $_GET['student'] ?? null;
             

@@ -7,6 +7,7 @@ require_once __DIR__ . "/../models/Grade.php";
 require_once __DIR__ . "/../models/Fonction.php";
 require_once __DIR__ . "/../models/Specialite.php";
 require_once __DIR__ . "/../models/AuditLog.php";
+require_once __DIR__ . '/../utils/permissions.php';
 
 class GestionRhController
 {

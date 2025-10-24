@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/InfoStage.php';
 require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 class GestionCandidaturesController {
     private $db;
