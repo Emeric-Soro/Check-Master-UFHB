@@ -1,4 +1,7 @@
-<?php if (!empty($GLOBALS['selectedStudent'])): ?>
+<?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+
+if (!empty($GLOBALS['selectedStudent'])): ?>
     <!DOCTYPE html>
     <html lang="fr">
 

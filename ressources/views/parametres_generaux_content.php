@@ -1,3 +1,6 @@
+<?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+?>
 <div class="container mx-auto px-4 py-8">
     <style>
         :root{--ufhb-blue:#0F4C75;--ufhb-blue-light:#3282B8;--ufhb-green:#10b981;--muted:#64748B}
