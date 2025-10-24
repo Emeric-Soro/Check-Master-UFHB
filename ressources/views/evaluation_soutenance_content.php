@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+
 // Initialiser le contrôleur et récupérer les données
 require_once __DIR__ . '/../../app/controllers/EvaluationSoutenanceController.php';
 $controller = new EvaluationSoutenanceController();
@@ -205,10 +207,12 @@ $anneeAcademiqueCourante = $controller->getAnneeAcademiqueCourante();
                     class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-colors duration-200">
                     <i class="fas fa-times mr-2"></i>Annuler
                 </button>
+                <?php if (hasPermission('evaluation_soutenance', 'CREATE')): ?>
                 <button type="submit" id="submitBtn"
                     class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-colors duration-200">
                     <i class="fas fa-save mr-2"></i>Enregistrer Évaluation
                 </button>
+                <?php endif; ?>
             </div>
         </div>
     </form>
@@ -342,11 +346,13 @@ $anneeAcademiqueCourante = $controller->getAnneeAcademiqueCourante();
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <?php if (hasPermission('evaluation_soutenance', 'CREATE') || ($soutenance['est_evalue'] > 0 && hasPermission('evaluation_soutenance', 'UPDATE'))): ?>
                                 <button onclick="evaluerSoutenance('<?= $soutenance['num_etu'] ?>')"
                                     class="text-purple-600 hover:text-purple-900 mr-3"
                                     title="<?= $soutenance['est_evalue'] > 0 ? 'Modifier l\'évaluation' : 'Évaluer' ?>">
                                     <i class="fas <?= $soutenance['est_evalue'] > 0 ? 'fa-edit' : 'fa-clipboard-check' ?>"></i>
                                 </button>
+                                <?php endif; ?>
                                 <?php if ($soutenance['est_evalue'] > 0): ?>
                                     <!-- Bouton pour imprimer les 3 annexes en un seul PDF -->
                                     <button onclick="ouvrirModalAnnexe3('<?= $soutenance['num_etu'] ?>')"
@@ -355,6 +361,7 @@ $anneeAcademiqueCourante = $controller->getAnneeAcademiqueCourante();
                                         <i class="fas fa-print"></i> Imprimer PV
                                     </button>
 
+                                    <?php if (hasPermission('evaluation_soutenance', 'DELETE')): ?>
                                     <form method="POST" class="inline"
                                         onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette évaluation ?')">
                                         <input type="hidden" name="action" value="supprimer">
@@ -364,6 +371,7 @@ $anneeAcademiqueCourante = $controller->getAnneeAcademiqueCourante();
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </td>
                         </tr>

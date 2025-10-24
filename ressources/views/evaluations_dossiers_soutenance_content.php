@@ -1,3 +1,6 @@
+<?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+?>
 <!DOCTYPE html>
 <html lang="fr">
 
@@ -175,6 +178,7 @@
                             </div>
 
                             <div class="flex space-x-3">
+                                <?php if (hasPermission('evaluations_dossiers', 'UPDATE')): ?>
                                 <button
                                     type="submit"
                                     class="px-6 py-2 bg-yellow-600 text-white font-medium rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors"
@@ -182,6 +186,7 @@
                                     <i class="fas fa-paper-plane mr-2"></i>
                                     Soumettre la décision
                                 </button>
+                                <?php endif; ?>
                                 <button
                                     type="button"
                                     onclick="window.location.href='?page=evaluations_dossiers_soutenance'"
