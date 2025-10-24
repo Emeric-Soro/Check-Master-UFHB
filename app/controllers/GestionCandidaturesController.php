@@ -44,6 +44,14 @@ class GestionCandidaturesController {
 
         // Gestion des actions - DOIT être avant tout output HTML
         if ($action === 'valider_etape' && $examiner) {
+            // Vérifier la permission UPDATE pour valider une étape
+            if (!hasPermission('gestion_candidatures', 'UPDATE')) {
+                $_SESSION['error_message'] = "Vous n'avez pas la permission de valider des candidatures.";
+                $this->auditLog->logValidation($_SESSION['id_utilisateur'], 'candidature_soutenance', 'Erreur - Permission refusée');
+                header("Location: ?page=gestion_candidatures_soutenance");
+                exit;
+            }
+            
             $etapeValidee = $_POST['etape'] ?? '';
             $_SESSION['etapes_validation'][$examiner][$etapeValidee] = 'validé';
             
@@ -62,6 +70,14 @@ class GestionCandidaturesController {
         }
 
         if ($action === 'rejeter_etape' && $examiner) {
+            // Vérifier la permission UPDATE pour rejeter une étape
+            if (!hasPermission('gestion_candidatures', 'UPDATE')) {
+                $_SESSION['error_message'] = "Vous n'avez pas la permission de rejeter des candidatures.";
+                $this->auditLog->logRejet($_SESSION['id_utilisateur'], 'candidature_soutenance', 'Erreur - Permission refusée');
+                header("Location: ?page=gestion_candidatures_soutenance");
+                exit;
+            }
+            
             $etapeRejetee = $_POST['etape'] ?? '';
             $_SESSION['etapes_validation'][$examiner][$etapeRejetee] = 'rejeté';
             

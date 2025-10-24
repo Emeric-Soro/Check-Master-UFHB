@@ -115,6 +115,17 @@ class CriteresEvaluationController
      */
     public function createCritere()
     {
+        // Vérifier la permission CREATE
+        if (!hasPermission('gestion_criteres', 'CREATE')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Vous n\'avez pas la permission de créer des critères d\'évaluation.'
+            ]);
+            return;
+        }
+        
         try {
             $input = json_decode(file_get_contents('php://input'), true);
 
@@ -180,6 +191,17 @@ class CriteresEvaluationController
      */
     public function updateCritere()
     {
+        // Vérifier la permission UPDATE
+        if (!hasPermission('gestion_criteres', 'UPDATE')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Vous n\'avez pas la permission de modifier des critères d\'évaluation.'
+            ]);
+            return;
+        }
+        
         try {
             // Lire les données depuis POST ou JSON selon le Content-Type
             $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
@@ -254,6 +276,17 @@ class CriteresEvaluationController
      */
     public function deleteCritere()
     {
+        // Vérifier la permission DELETE
+        if (!hasPermission('gestion_criteres', 'DELETE')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Vous n\'avez pas la permission de supprimer des critères d\'évaluation.'
+            ]);
+            return;
+        }
+        
         try {
             // Lire les données depuis POST ou JSON selon le Content-Type
             $contentType = $_SERVER['CONTENT_TYPE'] ?? '';

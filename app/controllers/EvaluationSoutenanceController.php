@@ -215,6 +215,17 @@ class EvaluationSoutenanceController
      */
     public function enregistrerEvaluation()
     {
+        // Vérifier la permission CREATE pour enregistrer une évaluation
+        if (!hasPermission('evaluation_soutenance', 'CREATE')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Vous n\'avez pas la permission d\'enregistrer des évaluations.'
+            ]);
+            return;
+        }
+        
         try {
             // Récupérer les données POST
             $numEtu = $_POST['num_etu'] ?? null;

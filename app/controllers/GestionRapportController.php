@@ -211,6 +211,22 @@ class GestionRapportController {
             $action = $_POST['action'] ?? '';
 
             if ($action === 'save_rapport') {
+                // Vérifier les permissions CREATE/UPDATE selon le contexte
+                $edit_id = $_POST['edit_id'] ?? null;
+                if ($edit_id) {
+                    if (!hasPermission('gestion_rapports', 'UPDATE')) {
+                        $this->sendJsonResponse(['success' => false, 'message' => 'Permission refusée pour modifier le rapport.']);
+                        $this->auditLog->logModification($_SESSION['id_utilisateur'], 'rapport', 'Erreur - Permission refusée');
+                        return;
+                    }
+                } else {
+                    if (!hasPermission('gestion_rapports', 'CREATE')) {
+                        $this->sendJsonResponse(['success' => false, 'message' => 'Permission refusée pour créer un rapport.']);
+                        $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'rapport', 'Erreur - Permission refusée');
+                        return;
+                    }
+                }
+                
                 $this->sauvegarderRapport();
                 $this->auditLog->logCreation($_SESSION['id_utilisateur'], "rapport", "Succès");
             } elseif ($action === 'deposer_rapport') {
@@ -1149,6 +1165,13 @@ class GestionRapportController {
         // Vérifier que c'est bien un POST
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             return; // Ne rien faire si ce n'est pas un POST
+        }
+        
+        // Vérifier la permission DELETE
+        if (!hasPermission('gestion_rapports', 'DELETE')) {
+            $this->afficherErreur('Vous n\'avez pas la permission de supprimer des rapports.');
+            $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'rapport', 'Erreur - Permission refusée');
+            return;
         }
 
         try {

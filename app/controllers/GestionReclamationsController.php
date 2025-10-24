@@ -62,6 +62,14 @@ class GestionReclamationsController {
 
     private function traiterSoumissionReclamation()
     {
+        // Vérifier la permission CREATE
+        if (!hasPermission('gestion_reclamations', 'CREATE')) {
+            $_SESSION['erreurs_form'] = ['Vous n\'avez pas la permission de soumettre des réclamations.'];
+            $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'reclamations', 'Erreur - Permission refusée');
+            header('Location: ?page=gestion_reclamations');
+            exit;
+        }
+        
         try {
             // Debug : afficher les données reçues
             error_log("POST data: " . print_r($_POST, true));

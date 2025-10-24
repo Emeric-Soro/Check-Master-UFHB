@@ -52,44 +52,60 @@ class GestionRhController
                 $type_enseignant = $_POST['type_enseignant'];
 
                 if (!empty($_POST['id_enseignant'])) {
-                    // Modification
-                    if ($this->enseignantModel->modifierEnseignant($_POST['id_enseignant'], $nom, $prenom, $email, 
-                        $id_grade, $id_specialite, $id_fonction, $date_grade, $date_fonction,$type_enseignant)) {
-                        $messageSuccess = "Enseignant modifié avec succès.";
-                        $this->auditLog->logModification($_SESSION['id_utilisateur'], 'enseignant', 'Succès');
+                    // Modification - Vérifier la permission UPDATE
+                    if (!hasPermission('gestion_rh', 'UPDATE')) {
+                        $messageErreur = "Vous n'avez pas la permission de modifier des enseignants.";
+                        $this->auditLog->logModification($_SESSION['id_utilisateur'], 'enseignant', 'Erreur - Permission refusée');
                     } else {
-                        $messageErreur = "Erreur lors de la modification de l'enseignant.";
-                        $this->auditLog->logModification($_SESSION['id_utilisateur'], 'enseignant', 'Erreur');
+                        if ($this->enseignantModel->modifierEnseignant($_POST['id_enseignant'], $nom, $prenom, $email, 
+                            $id_grade, $id_specialite, $id_fonction, $date_grade, $date_fonction,$type_enseignant)) {
+                            $messageSuccess = "Enseignant modifié avec succès.";
+                            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'enseignant', 'Succès');
+                        } else {
+                            $messageErreur = "Erreur lors de la modification de l'enseignant.";
+                            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'enseignant', 'Erreur');
+                        }
                     }
                 } else {
-                    // Ajout
-                    if ($this->enseignantModel->ajouterEnseignant($nom, $prenom, $email, $id_grade, 
-                        $id_specialite, $id_fonction, $date_grade, $date_fonction,$type_enseignant)) {
-                        $messageSuccess = "Enseignant ajouté avec succès.";
-                        $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'enseignant', 'Succès');
+                    // Ajout - Vérifier la permission CREATE
+                    if (!hasPermission('gestion_rh', 'CREATE')) {
+                        $messageErreur = "Vous n'avez pas la permission d'ajouter des enseignants.";
+                        $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'enseignant', 'Erreur - Permission refusée');
                     } else {
-                        $messageErreur = "Erreur lors de l'ajout de l'enseignant.";
-                        $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'enseignant', 'Erreur');
+                        if ($this->enseignantModel->ajouterEnseignant($nom, $prenom, $email, $id_grade, 
+                            $id_specialite, $id_fonction, $date_grade, $date_fonction,$type_enseignant)) {
+                            $messageSuccess = "Enseignant ajouté avec succès.";
+                            $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'enseignant', 'Succès');
+                        } else {
+                            $messageErreur = "Erreur lors de l'ajout de l'enseignant.";
+                            $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'enseignant', 'Erreur');
+                        }
                     }
                 }
             }
 
             // Suppression multiple
             if (isset($_POST['submit_delete_multiple']) && isset($_POST['selected_ids'])) {
-                $success = true;
-                foreach ($_POST['selected_ids'] as $id) {
-                    if (!$this->enseignantModel->supprimerEnseignant($id)) {
-                        $success = false;
-                        break;
-                    }
-                }
-
-                if ($success) {
-                    $messageSuccess = "Enseignants supprimés avec succès.";
-                    $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'enseignant', 'Succès');
+                // Vérifier la permission DELETE
+                if (!hasPermission('gestion_rh', 'DELETE')) {
+                    $messageErreur = "Vous n'avez pas la permission de supprimer des enseignants.";
+                    $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'enseignant', 'Erreur - Permission refusée');
                 } else {
-                    $messageErreur = "Erreur lors de la suppression des enseignants.";
-                    $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'enseignant', 'Erreur');
+                    $success = true;
+                    foreach ($_POST['selected_ids'] as $id) {
+                        if (!$this->enseignantModel->supprimerEnseignant($id)) {
+                            $success = false;
+                            break;
+                        }
+                    }
+
+                    if ($success) {
+                        $messageSuccess = "Enseignants supprimés avec succès.";
+                        $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'enseignant', 'Succès');
+                    } else {
+                        $messageErreur = "Erreur lors de la suppression des enseignants.";
+                        $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'enseignant', 'Erreur');
+                    }
                 }
             }
 
