@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../../app/utils/permissions.php';
+
 $traitement_a_modifier = $GLOBALS['traitement_a_modifier'] ?? null;
 
 // Pagination

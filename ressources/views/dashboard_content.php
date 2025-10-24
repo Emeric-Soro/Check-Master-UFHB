@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+
 $stat_etudiants = $GLOBALS['stats_etudiants'] ?? ['total' => 0,'actifs' => 0,'inactifs' => 0,'taux_activite' => 0];
 $stat_enseignants = $GLOBALS['stats_enseignants'] ?? ['total' => 0,'actifs' => 0,'inactifs' => 0,'taux_activite' => 0];
 $stat_personnel = $GLOBALS['stats_personnel'] ?? ['total' => 0,'actifs' => 0,'inactifs' => 0,'taux_activite' => 0];

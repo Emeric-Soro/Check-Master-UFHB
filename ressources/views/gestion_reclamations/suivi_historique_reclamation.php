@@ -1,3 +1,6 @@
+<?php
+require_once __DIR__ . '/../../../app/utils/permissions.php';
+?>
 <!-- Contenu de la page de suivi des réclamations -->
 
 <!-- Messages -->
