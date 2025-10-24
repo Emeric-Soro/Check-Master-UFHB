@@ -213,6 +213,7 @@ class GestionUtilisateurController
                     } else {
                         $messageErreur = "Aucun utilisateur valide à ajouter";
                     }
+                }
 
 
                 }
@@ -289,15 +290,16 @@ class GestionUtilisateurController
                             foreach ($_POST['selected_ids'] as $id) {
                                 if (!$this->utilisateur->desactiverUtilisateur($id)) {
                                     $success = false;
-                                break;
+                                    break;
+                                }
                             }
-                        }
-                        if ($success) {
-                            $messageSuccess = "Utilisateurs désactivés avec succès.";
-                            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
-                        } else {
-                            $messageErreur = "Erreur lors de la désactivation des utilisateurs.";
-                            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
+                            if ($success) {
+                                $messageSuccess = "Utilisateurs désactivés avec succès.";
+                                $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
+                            } else {
+                                $messageErreur = "Erreur lors de la désactivation des utilisateurs.";
+                                $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
+                            }
                         }
                     }
                 }
