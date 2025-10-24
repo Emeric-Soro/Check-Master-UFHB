@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . "/../models/Etudiant.php";
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 
 class GestionEtudiantController
@@ -54,12 +55,16 @@ class GestionEtudiantController
 
             // Gestion des actions GET pour les modales
             if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'edit' && isset($_GET['num_etu'])) {
-                $etudiant_a_modifier = $this->etudiant->getEtudiantById($_GET['num_etu']);
-                if (!$etudiant_a_modifier) {
-                    $GLOBALS['messageErreur'] = "Étudiant non trouvé.";
-                   
+                // Vérifier la permission UPDATE pour afficher le formulaire de modification
+                if (!hasPermission('gestion_etudiants', 'UPDATE')) {
+                    $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de modifier les étudiants.";
                 } else {
-                    $modalAction = 'edit';
+                    $etudiant_a_modifier = $this->etudiant->getEtudiantById($_GET['num_etu']);
+                    if (!$etudiant_a_modifier) {
+                        $GLOBALS['messageErreur'] = "Étudiant non trouvé.";
+                       
+                    } else {
+                        $modalAction = 'edit';
                     // Enregistrer la consultation d'un étudiant spécifique
                    
                     
@@ -79,11 +84,19 @@ class GestionEtudiantController
                     }
                 }
             }
+            }
 
             // Gestion des actions POST
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Ajout d'un nouvel étudiant
                 if (isset($_POST['submit_add_etudiant'])) {
+                    // Vérifier la permission CREATE
+                    if (!hasPermission('gestion_etudiants', 'CREATE')) {
+                        $GLOBALS['messageErreur'] = "Vous n'avez pas la permission d'ajouter des étudiants.";
+                        $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'etudiants', 'Erreur - Permission refusée');
+                        return;
+                    }
+                    
                     // Validation des champs
                     if (empty($_POST['nom_etu']) || empty($_POST['prenom_etu']) || 
                         empty($_POST['date_naiss_etu']) || empty($_POST['genre_etu']) || 
@@ -124,6 +137,13 @@ class GestionEtudiantController
 
                 // Modification d'un étudiant
                 if (isset($_POST['submit_modifier_etudiant'])) {
+                    // Vérifier la permission UPDATE
+                    if (!hasPermission('gestion_etudiants', 'UPDATE')) {
+                        $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de modifier les étudiants.";
+                        $this->auditLog->logModification($_SESSION['id_utilisateur'], 'etudiants', 'Erreur - Permission refusée');
+                        return;
+                    }
+                    
                     if (empty($_POST['num_etu']) || empty($_POST['nom_etu']) || 
                         empty($_POST['prenom_etu']) || empty($_POST['date_naiss_etu']) || 
                         empty($_POST['genre_etu']) || empty($_POST['email_etu']) || 
@@ -180,6 +200,13 @@ class GestionEtudiantController
 
                 // Suppression d'étudiants
                 if (isset($_POST['selected_ids']) && !empty($_POST['selected_ids'])) {
+                    // Vérifier la permission DELETE
+                    if (!hasPermission('gestion_etudiants', 'DELETE')) {
+                        $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de supprimer des étudiants.";
+                        $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'etudiants', 'Erreur - Permission refusée');
+                        return;
+                    }
+                    
                     $success = true;
                     $etudiantsSupprimes = [];
                     

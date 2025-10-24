@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/EvaluationRapport.php';
 require_once __DIR__ . '/../models/Approuver.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 class ProcessusValidationController {
     

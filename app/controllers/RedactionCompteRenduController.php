@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../models/Valider.php';
 require_once __DIR__ . '/../models/CompteRendu.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../utils/permissions.php';
 use Dompdf\Dompdf;
 
 class RedactionCompteRenduController {
@@ -15,6 +16,13 @@ class RedactionCompteRenduController {
     }
 
     public function enregistrer() {
+        // Vérifier la permission CREATE
+        if (!hasPermission('redaction_compte_rendu', 'CREATE')) {
+            $_SESSION['error'] = "Vous n'avez pas la permission d'enregistrer des comptes rendus.";
+            header('Location: layout.php?page=redaction_compte_rendu');
+            exit;
+        }
+        
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $num_etu = $_POST['num_etu'] ?? null;
             $nom_CR = $_POST['nom_CR'] ?? '';

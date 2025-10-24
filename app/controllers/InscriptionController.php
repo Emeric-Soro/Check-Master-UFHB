@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Scolarite.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 
 class InscriptionController
@@ -163,6 +164,13 @@ class InscriptionController
 
     private function traiterInscription()
     {
+        // Vérifier la permission CREATE
+        if (!hasPermission('gestion_scolarite', 'CREATE')) {
+            $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de créer des inscriptions.";
+            $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'inscriptions', 'Erreur - Permission refusée');
+            return;
+        }
+        
         try {
             // Validation des données
             if (
@@ -231,6 +239,13 @@ class InscriptionController
 
     private function modifierInscription()
     {
+        // Vérifier la permission UPDATE
+        if (!hasPermission('gestion_scolarite', 'UPDATE')) {
+            $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de modifier des inscriptions.";
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'inscriptions', 'Erreur - Permission refusée');
+            return;
+        }
+        
         try {
             if (empty($_POST['id_inscription']) || empty($_POST['niveau']) || empty($_POST['premier_versement'])) {
                 $GLOBALS['messageErreur'] = "Tous les champs sont obligatoires.";

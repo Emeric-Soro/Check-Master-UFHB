@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 class VerificationRapportsController
 {
@@ -85,6 +86,11 @@ class VerificationRapportsController
      */
     public function validerRapport()
     {
+        // Vérifier la permission UPDATE pour valider un rapport
+        if (!hasPermission('verification_rapports', 'UPDATE')) {
+            return ['success' => false, 'message' => 'Vous n\'avez pas la permission de valider des rapports.'];
+        }
+        
         try {
             $id_rapport = $_POST['id_rapport'] ?? 0;
             $commentaire = $_POST['commentaire'] ?? '';
@@ -142,6 +148,11 @@ class VerificationRapportsController
      */
     public function rejeterRapport()
     {
+        // Vérifier la permission UPDATE pour rejeter un rapport
+        if (!hasPermission('verification_rapports', 'UPDATE')) {
+            return ['success' => false, 'message' => 'Vous n\'avez pas la permission de rejeter des rapports.'];
+        }
+        
         try {
             $id_rapport = $_POST['id_rapport'] ?? 0;
             $commentaire = $_POST['commentaire'] ?? '';

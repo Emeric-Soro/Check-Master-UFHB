@@ -6,6 +6,7 @@ require_once __DIR__ . "/../models/Etudiant.php";
 require_once __DIR__ . "/../models/Ue.php";
 require_once __DIR__ . "/../models/Ecue.php";
 require_once __DIR__ . "/../models/NiveauEtude.php";
+require_once __DIR__ . '/../utils/permissions.php';
 
 /**
  * Contrôleur du tableau de bord enseignant

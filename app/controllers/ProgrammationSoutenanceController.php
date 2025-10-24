@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../utils/permissions.php';
+
 class ProgrammationSoutenanceController
 {
     /**
@@ -513,6 +515,17 @@ class ProgrammationSoutenanceController
      */
     public function createAttribution()
     {
+        // Vérifier la permission CREATE
+        if (!hasPermission('programmation_soutenance', 'CREATE')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Vous n\'avez pas la permission de créer des attributions.'
+            ]);
+            return;
+        }
+        
         try {
             $input = json_decode(file_get_contents('php://input'), true);
 
@@ -628,6 +641,17 @@ class ProgrammationSoutenanceController
      */
     public function updateAttribution()
     {
+        // Vérifier la permission UPDATE
+        if (!hasPermission('programmation_soutenance', 'UPDATE')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Vous n\'avez pas la permission de modifier des attributions.'
+            ]);
+            return;
+        }
+        
         try {
             $input = json_decode(file_get_contents('php://input'), true);
 
@@ -733,6 +757,17 @@ class ProgrammationSoutenanceController
      */
     public function deleteAttribution()
     {
+        // Vérifier la permission DELETE
+        if (!hasPermission('programmation_soutenance', 'DELETE')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Vous n\'avez pas la permission de supprimer des attributions.'
+            ]);
+            return;
+        }
+        
         try {
             $input = json_decode(file_get_contents('php://input'), true);
 
