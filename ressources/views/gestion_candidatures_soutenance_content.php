@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+
 // NOTE : Ce fichier utilise un endpoint AJAX 'resume_candidature_ajax.php' à créer pour charger dynamiquement le résumé de candidature depuis la base.
 // Récupérer les données du contrôleur
 $candidatures = $GLOBALS['candidatures_soutenance'] ?? [];
@@ -1241,7 +1243,7 @@ foreach ($candidatures as $c) {
                         <?php endif; ?>
                     </div>
                     <div class="right-buttons">
-                        <?php if ($etape < 4): ?>
+                        <?php if ($etape < 4 && hasPermission('gestion_candidatures', 'UPDATE')): ?>
                         <form method="post"
                             action="?page=gestion_candidatures_soutenance&action=rejeter_etape&examiner=<?php echo $examiner; ?>&etape=<?php echo $etape; ?>"
                             style="display: inline;">
@@ -1257,7 +1259,7 @@ foreach ($candidatures as $c) {
                             </button>
                         </form>
                         <?php endif; ?>
-                        <?php if ($etape == 4): ?>
+                        <?php if ($etape == 4 && hasPermission('gestion_candidatures', 'UPDATE')): ?>
                         <form method="post"
                             action="?page=gestion_candidatures_soutenance&action=envoyer_resultats&examiner=<?php echo $examiner; ?>"
                             style="display: inline;">

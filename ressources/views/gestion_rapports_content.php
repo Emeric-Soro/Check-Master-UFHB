@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+
 // Initialiser les variables globales
 $infosDepot = isset($GLOBALS['infosDepot']) ? $GLOBALS['infosDepot'] : [];
 

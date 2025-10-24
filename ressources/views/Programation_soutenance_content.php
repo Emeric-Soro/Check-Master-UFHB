@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+
 // Initialiser le contrôleur et récupérer les données
 require_once __DIR__ . '/../../app/controllers/ProgrammationSoutenanceController.php';
 $controller = new ProgrammationSoutenanceController();
@@ -137,10 +139,12 @@ $attributions = $controller->getAttributionsForView();
 
     <!-- Bouton Enregistrer -->
     <div class="absolute -bottom-4 right-4">
+        <?php if (hasPermission('programmation_soutenance', 'CREATE') || hasPermission('programmation_soutenance', 'UPDATE')): ?>
         <button onclick="addRow()"
             class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
             Enregistrer
         </button>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -220,14 +224,18 @@ $attributions = $controller->getAttributionsForView();
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <div class="flex justify-center space-x-2">
+                                    <?php if (hasPermission('programmation_soutenance', 'UPDATE')): ?>
                                     <button onclick="editAttribution(<?= $attribution['id_attribution'] ?>)"
                                         class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-1 px-3 rounded transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                                         Modifier
                                     </button>
+                                    <?php endif; ?>
+                                    <?php if (hasPermission('programmation_soutenance', 'DELETE')): ?>
                                     <button onclick="deleteAttribution(<?= $attribution['id_attribution'] ?>)"
                                         class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium py-1 px-3 rounded transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                                         Supprimer
                                     </button>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

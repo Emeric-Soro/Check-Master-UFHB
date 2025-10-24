@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+
 // Initialiser le contrôleur et récupérer les données
 require_once __DIR__ . '/../../app/controllers/PlanificationSoutenanceController.php';
 $controller = new PlanificationSoutenanceController();
@@ -162,10 +164,12 @@ $planifications = $controller->getPlanificationsForView();
 
         <!-- Boutons d'action -->
         <div class="absolute -bottom-4 right-4 flex space-x-3" id="buttonContainer">
+            <?php if (hasPermission('planification_soutenance', 'CREATE') || hasPermission('planification_soutenance', 'UPDATE')): ?>
             <button type="submit" id="submitBtn"
                 class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-colors duration-200">
                 <i class="fas fa-calendar-plus mr-2"></i>Planifier
             </button>
+            <?php endif; ?>
         </div>
     </form>
 </div>
@@ -251,11 +255,14 @@ $planifications = $controller->getPlanificationsForView();
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <div class="flex justify-center space-x-2">
+                                    <?php if (hasPermission('planification_soutenance', 'UPDATE')): ?>
                                     <button onclick="editPlanification(<?= $planification['id_programmation'] ?>)"
                                         class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-medium py-1 px-3 rounded transition-colors duration-200">
                                         Modifier
                                     </button>
+                                    <?php endif; ?>
 
+                                    <?php if (hasPermission('planification_soutenance', 'DELETE')): ?>
                                     <form method="POST" style="display: inline;"
                                         onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette planification ?');">
                                         <input type="hidden" name="action" value="supprimer">
@@ -266,6 +273,7 @@ $planifications = $controller->getPlanificationsForView();
                                             Supprimer
                                         </button>
                                     </form>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
