@@ -178,6 +178,13 @@ class EvaluationDossiersController {
     }
     
     private function validerDossier($id_rapport) {
+        // Vérifier la permission UPDATE
+        if (!hasPermission('evaluation_dossiers', 'UPDATE')) {
+            echo json_encode(['success' => false, 'message' => 'Vous n\'avez pas la permission de valider des dossiers.']);
+            $this->auditLog->logValidation($_SESSION['id_utilisateur'], 'rapport_etudiants', 'Erreur - Permission refusée');
+            return;
+        }
+        
         try {
             $pdo = Database::getConnection();
             
@@ -212,6 +219,13 @@ class EvaluationDossiersController {
     }
     
     private function rejeterDossier($id_rapport, $commentaire) {
+        // Vérifier la permission UPDATE
+        if (!hasPermission('evaluation_dossiers', 'UPDATE')) {
+            echo json_encode(['success' => false, 'message' => 'Vous n\'avez pas la permission de rejeter des dossiers.']);
+            $this->auditLog->logRejet($_SESSION['id_utilisateur'], 'rapport_etudiants', 'Erreur - Permission refusée');
+            return;
+        }
+        
         try {
             $pdo = Database::getConnection();
             
@@ -244,6 +258,12 @@ class EvaluationDossiersController {
     }
     
     private function traiterDecisionCommission($id_rapport, $decision, $commentaire = '') {
+        // Vérifier la permission CREATE/UPDATE
+        if (!hasPermission('evaluation_dossiers', 'CREATE') && !hasPermission('evaluation_dossiers', 'UPDATE')) {
+            echo json_encode(['success' => false, 'message' => 'Vous n\'avez pas la permission d\'enregistrer des décisions.']);
+            return;
+        }
+        
         try {
             $id_utilisateur = $_SESSION['id_utilisateur'] ?? null;
             if (!$id_utilisateur) {
