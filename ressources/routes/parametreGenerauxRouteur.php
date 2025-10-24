@@ -59,6 +59,12 @@ if ($_GET['page'] === 'parametres_generaux') {
             case 'salles':
                 $controller->gestionSalles();
                 break;
+            case 'modeles_documents':
+                $controller->gestionModeles();
+                break;
+            case 'placeholders_documentation':
+                include __DIR__ . '/../../ressources/views/parametres_generaux/placeholders_documentation.php';
+                break;
             default:
                 '';
         }

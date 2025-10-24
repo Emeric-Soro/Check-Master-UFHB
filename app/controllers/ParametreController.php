@@ -1247,6 +1247,88 @@ class ParametreController
         // On laisse juste la vue se charger
     }
     //==============================FIN GESTION SALLES==============================
+    
+    //=============================GESTION MODÈLES DE DOCUMENTS=============================
+    public function gestionModeles()
+    {
+        require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+        
+        $documentService = new DocumentGeneratorService();
+        $messageErreur = '';
+        $messageSuccess = '';
+        
+        // Téléversement d'un nouveau modèle
+        if (isset($_POST['btn_upload_template'])) {
+            try {
+                if (!isset($_FILES['template_file']) || $_FILES['template_file']['error'] !== UPLOAD_ERR_OK) {
+                    throw new Exception("Erreur lors du téléversement du fichier.");
+                }
+                
+                $templateName = trim($_POST['template_name']);
+                
+                if (empty($templateName)) {
+                    throw new Exception("Le nom du modèle est requis.");
+                }
+                
+                $documentService->saveUploadedTemplate($_FILES['template_file'], $templateName);
+                $messageSuccess = "Le modèle a été téléversé avec succès.";
+                $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'template', $templateName);
+                
+            } catch (Exception $e) {
+                $messageErreur = $e->getMessage();
+                $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'template', 'Erreur: ' . $e->getMessage());
+            }
+        }
+        
+        // Suppression d'un modèle
+        if (isset($_POST['btn_delete_template'])) {
+            try {
+                $templateName = $_POST['template_name'];
+                
+                if ($documentService->deleteTemplate($templateName)) {
+                    $messageSuccess = "Le modèle a été supprimé avec succès.";
+                    $this->auditLog->logDeletion($_SESSION['id_utilisateur'], 'template', $templateName);
+                } else {
+                    throw new Exception("Impossible de supprimer le modèle.");
+                }
+                
+            } catch (Exception $e) {
+                $messageErreur = $e->getMessage();
+            }
+        }
+        
+        // Téléchargement d'un modèle
+        if (isset($_GET['download_template'])) {
+            try {
+                $templateName = $_GET['download_template'];
+                $templatePath = $documentService->getTemplatePath($templateName);
+                
+                if (!file_exists($templatePath)) {
+                    throw new Exception("Le modèle n'existe pas.");
+                }
+                
+                header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+                header('Content-Disposition: attachment; filename="' . basename($templatePath) . '"');
+                header('Content-Length: ' . filesize($templatePath));
+                readfile($templatePath);
+                exit;
+                
+            } catch (Exception $e) {
+                $messageErreur = $e->getMessage();
+            }
+        }
+        
+        // Récupérer la liste des modèles
+        $templates = $documentService->listTemplates();
+        
+        // Make variables available for the view
+        $GLOBALS['templates'] = $templates;
+        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $GLOBALS['messageErreur'] = $messageErreur;
+        
+        // Afficher la vue
+        include $this->baseViewPath . 'modeles_documents.php';
+    }
 }
 
 
