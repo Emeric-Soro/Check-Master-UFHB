@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../../app/utils/permissions.php';
 
 // Pour les groupes
 $groupe_a_modifier = $GLOBALS['groupe_a_modifier'] ?? null;

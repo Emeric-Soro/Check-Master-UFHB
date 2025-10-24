@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../../app/utils/permissions.php';
+
 $niveau_a_modifier = $GLOBALS['niveau_a_modifier'] ?? null;
 // Pagination
 $page = isset($_GET['p']) ? (int)$_GET['p'] : 1;

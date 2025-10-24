@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../app/controllers/ProcessusValidationController.php';
+require_once __DIR__ . '/../../app/utils/permissions.php';
 
 $controller = new ProcessusValidationController();
 $message = null;
@@ -273,12 +274,18 @@ $membresCommission = $donnees['membres_commission'];
                         <div class="actions" style="margin-top: 15px;">
                             <button onclick="viewReport(<?= $rapport['id_rapport'] ?>)" class="btn btn-primary"><i class="fas fa-file-lines"></i> Consulter</button>
                             <?php if ($rapport['statut_vote']['total_votes'] == 4 && !$rapport['statut_vote']['finalise']): ?>
+                                <?php if (hasPermission('processus_validation', 'UPDATE')): ?>
                                 <form id="form-finaliser-<?= $rapport['id_rapport'] ?>" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="finaliser">
                                     <input type="hidden" name="id_rapport" value="<?= $rapport['id_rapport'] ?>">
                                     <input type="hidden" name="commentaire_validation" id="commentaire-<?= $rapport['id_rapport'] ?>" value="">
                                     <button type="button" class="btn btn-success" onclick="confirmerFinalisation(<?= $rapport['id_rapport'] ?>)">Finaliser</button>
                                 </form>
+                                <?php else: ?>
+                                <button class="btn btn-secondary" disabled title="Permission refusée">
+                                    <i class="fas fa-lock mr-1"></i>Accès refusé
+                                </button>
+                                <?php endif; ?>
                             <?php elseif ($rapport['statut_vote']['finalise']): ?>
                                 <button class="btn btn-<?= $rapport['statut_vote']['statut'] === 'valide' ? 'success' : 'danger' ?>" disabled>
                                     ⚖️ Finalisé

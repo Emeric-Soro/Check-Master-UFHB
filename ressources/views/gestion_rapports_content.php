@@ -351,7 +351,7 @@ if (isset($_SESSION['num_etu'])) {
                                 $dejaDepose = $infoDepot['dejaDepose'];
                                 ?>
 
-                                <?php if ($peutDeposer): ?>
+                                <?php if ($peutDeposer && hasPermission('gestion_rapports', 'UPDATE')): ?>
                                 <form method="POST" action="?page=gestion_rapports" style="display:inline;"
                                     id="deposerForm-<?= $rapport->id_rapport ?>">
                                     <input type="hidden" name="id_rapport" value="<?= $rapport->id_rapport ?>">
@@ -387,8 +387,8 @@ if (isset($_SESSION['num_etu'])) {
                                 </button>
                                 <?php endif; ?>
 
-                                <?php if (!$dejaDepose): ?>
-                                <!-- Bouton supprimer seulement si le rapport n'est pas déposé -->
+                                <?php if (!$dejaDepose && hasPermission('gestion_rapports', 'DELETE')): ?>
+                                <!-- Bouton supprimer seulement si le rapport n'est pas déposé et permission DELETE -->
                                 <button
                                     onclick="confirmerSuppression(<?= $rapport->id_rapport ?>, '<?= htmlspecialchars(addslashes($rapport->nom_rapport)) ?>')"
                                     class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors">

@@ -1,6 +1,7 @@
 <?php
+require_once __DIR__ . '/../../../app/utils/permissions.php';
 
-    $ue_a_modifier = $GLOBALS['ue_a_modifier'] ?? null;
+$ue_a_modifier = $GLOBALS['ue_a_modifier'] ?? null;
     $listeAnnees = $GLOBALS['listeAnnees'] ?? [];
     $listeNiveauxEtude = $GLOBALS['listeNiveauxEtude'] ?? [];
     $listeSemestres = $GLOBALS['listeSemestres'] ?? [];

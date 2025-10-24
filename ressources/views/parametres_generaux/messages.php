@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../../app/utils/permissions.php';
+
 $message_a_modifier = $GLOBALS['message_a_modifier'] ?? null;
 
 // Pagination
