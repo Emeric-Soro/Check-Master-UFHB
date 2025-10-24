@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../../app/utils/permissions.php';
+
 // Connexion à la base de données et récupération des données
 $listeGroupes = $GLOBALS['listeGroupes'];
 $listeTraitements = $GLOBALS['listeTraitements'];
