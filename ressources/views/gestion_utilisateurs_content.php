@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
 
 $utilisateur_a_modifier = $GLOBALS['utilisateur_a_modifier'];
 $showModal = isset($_GET['action']) && ($_GET['action'] === 'edit' || $_GET['action'] === 'add' || $_GET['action'] === 'addMasse');
@@ -544,6 +545,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
             <div class=" bg-gradient-to-r from-green-600 to-green-800 px-6 py-4 flex justify-between items-center">
                 <h2 class="text-xl font-bold text-white">Gestion des Utilisateurs</h2>
                 <div class="flex gap-4">
+                    <?php if (hasPermission('gestion_utilisateurs', 'CREATE')): ?>
                     <a href="?page=gestion_utilisateurs&action=add"
                     class="bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
                     <i class="fas fa-plus mr-2"></i>Ajouter un Utilisateur
@@ -552,6 +554,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                         class="bg-blue-500  text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                         <i class="fas fa-plus mr-2"></i>Ajouter en masse
                     </a>
+                    <?php endif; ?>
                 </div>
 
             </div>
@@ -574,6 +577,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                         class="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50">
                         <i class="fas fa-file-export mr-2"></i>Exporter
                     </button>
+                    <?php if (hasPermission('gestion_utilisateurs', 'UPDATE')): ?>
                     <button id="desactiverButton" type="button"
                         class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
                         <i class="fa-solid fa-eye-slash mr-2"></i>Désactiver
@@ -582,6 +586,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                         class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
                         <i class="fa-solid fa-eye-slash mr-2"></i>Activer
                     </button>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -696,6 +701,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <?php if (hasPermission('gestion_utilisateurs', 'UPDATE')): ?>
                                 <div class="flex justify-center space-x-3">
                                     <a href="?page=gestion_utilisateurs&action=edit&id_utilisateur=<?php echo $user->id_utilisateur; ?>"
                                         class="text-blue-500 hover:text-blue-700 transition-colors btn-icon"
@@ -703,6 +709,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                                         <i class="fas fa-edit"></i>
                                     </a>
                                 </div>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
