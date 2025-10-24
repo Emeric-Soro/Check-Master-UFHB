@@ -1,8 +1,13 @@
+<?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+?>
+
 <div class="container mx-auto px-4 py-8">
 
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Carte pour ajouter un étudiant -->
+        <?php if (hasPermission('gestion_etudiants', 'CREATE')): ?>
         <a href="?page=gestion_etudiants&action=ajouter_des_etudiants" class="block">
             <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
                 <div class="p-6">
@@ -24,8 +29,10 @@
                 </div>
             </div>
         </a>
+        <?php endif; ?>
 
         <!-- Carte pour inscrire un étudiant -->
+        <?php if (hasPermission('gestion_etudiants', 'CREATE') || hasPermission('gestion_etudiants', 'UPDATE')): ?>
         <a href="?page=gestion_etudiants&action=inscrire_des_etudiants" class="block">
             <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
                 <div class="p-6">
@@ -47,6 +54,7 @@
                 </div>
             </div>
         </a>
+        <?php endif; ?>
     </div>
 </div>
 

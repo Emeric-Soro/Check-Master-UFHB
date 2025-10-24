@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../../app/utils/permissions.php';
+
 $listeEtudiants = $GLOBALS['listeEtudiants'] ?? [];
 $etudiant_a_modifier = $GLOBALS['etudiant_a_modifier'] ?? null;
 $modalAction = $GLOBALS['modalAction'] ?? '';
@@ -221,10 +223,12 @@ error_log("View - All Etudiants Count: " . count($allEtudiants));
             <!-- Dashboard Header -->
             <div class=" bg-gradient-to-r from-green-600 to-green-800 px-6 py-4 flex justify-between items-center">
                 <h2 class="text-xl font-bold text-white">Gestion des étudiants</h2>
+                <?php if (hasPermission('gestion_etudiants', 'CREATE')): ?>
                 <button onclick="openUserModal()"
                     class="bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
                     <i class="fas fa-plus mr-2"></i>Ajouter un étudiant
                 </button>
+                <?php endif; ?>
             </div>
 
             <!-- Action Bar for Table -->
@@ -245,10 +249,12 @@ error_log("View - All Etudiants Count: " . count($allEtudiants));
                         class="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50">
                         <i class="fas fa-file-export mr-2"></i>Exporter
                     </button>
+                    <?php if (hasPermission('gestion_etudiants', 'DELETE')): ?>
                     <button id="deleteButton" onclick="openDeleteModal()"
                         class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
                         <i class="fas fa-trash-alt mr-2"></i>Supprimer
                     </button>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -342,10 +348,12 @@ error_log("View - All Etudiants Count: " . count($allEtudiants));
                                 <?php echo htmlspecialchars($etudiant->promotion_etu); ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <?php if (hasPermission('gestion_etudiants', 'UPDATE')): ?>
                                 <button onclick="openUserModal('<?php echo htmlspecialchars($etudiant->num_etu); ?>')"
                                     class="text-blue-600 hover:text-blue-900 mr-3">
                                         <i class="fas fa-edit"></i>
                                     </button>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
