@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+
 // Initialisation des variables avec des valeurs par défaut
 $etudiantsInscrits = isset($GLOBALS['etudiantsInscrits']) ? $GLOBALS['etudiantsInscrits'] : [];
 $listeAllEtudiant = $GLOBALS['listeAllEtudiant'];
@@ -249,10 +251,12 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                                 </div>
                             </div>
                             <div class="flex justify-end mt-4">
+                                <?php if (hasPermission('gestion_scolarite', isset($GLOBALS['versementAModifier']) ? 'UPDATE' : 'CREATE')): ?>
                                 <button type="submit" id="submitButton"
                                     class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                                     <?php echo isset($GLOBALS['versementAModifier']) ? 'Mettre à jour' : 'Enregistrer'; ?>
                                 </button>
+                                <?php endif; ?>
                             </div>
                         </form>
                     </div>
@@ -340,7 +344,7 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
                                             <div class="flex items-center justify-center space-x-2">
-                                                <?php if ($versement['type_versement'] === 'Tranche'): ?>
+                                                <?php if ($versement['type_versement'] === 'Tranche' && hasPermission('gestion_scolarite', 'UPDATE')): ?>
                                                 <a href="?page=gestion_scolarite&action=mettre_a_jour_versement&id=<?php echo $versement['id_versement']; ?>"
                                                     class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200">
                                                     <i class="fas fa-edit mr-1"></i>
