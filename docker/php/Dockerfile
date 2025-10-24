@@ -7,6 +7,9 @@ RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
     zip \
     unzip \
+    libreoffice-writer \
+    libreoffice-calc \
+    --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && docker-php-ext-configure gd --with-jpeg --with-freetype \
     && docker-php-ext-install gd pdo pdo_mysql mysqli
