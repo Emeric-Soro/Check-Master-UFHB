@@ -472,6 +472,181 @@ class EvaluationSoutenanceController
      */
     public function imprimerPV()
     {
+        // Try to use template-based generation first
+        $useTemplate = isset($_GET['use_template']) ? $_GET['use_template'] === '1' : true;
+        
+        if ($useTemplate) {
+            try {
+                $this->imprimerPVFromTemplate();
+                return; // Success, exit method
+            } catch (Exception $e) {
+                // Log the error and fallback to old method
+                error_log('Template-based PDF generation failed, falling back to HTML: ' . $e->getMessage());
+            }
+        }
+        
+        // Fallback to original HTML/DomPDF method
+        $this->imprimerPVLegacy();
+    }
+    
+    /**
+     * Generate PV using Word template (new method)
+     */
+    private function imprimerPVFromTemplate()
+    {
+        require_once __DIR__ . '/../../vendor/autoload.php';
+        require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+
+        $numEtu = $_GET['num_etu'] ?? null;
+
+        if (empty($numEtu)) {
+            throw new Exception('Numéro étudiant requis');
+        }
+
+        $pdo = Database::getConnection();
+        
+        // Récupérer les informations de l'étudiant et de la soutenance
+        $sql = "
+            SELECT 
+                p.id_programmation,
+                p.theme_soutenance,
+                p.date_soutenance,
+                p.heure_soutenance,
+                p.num_jury,
+                -- Étudiant
+                e.num_etu,
+                CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_etudiant,
+                e.promotion_etu,
+                -- Niveau (Master 1 / Master 2)
+                CASE 
+                    WHEN e.promotion_etu LIKE '%M1%' THEN 'Master 1'
+                    WHEN e.promotion_etu LIKE '%M2%' THEN 'Master 2'
+                    ELSE e.promotion_etu
+                END as niveau,
+                -- Jury
+                (SELECT CONCAT(ens1.prenom_enseignant, ' ', ens1.nom_enseignant) 
+                 FROM composer_jury cj1 
+                 JOIN enseignants ens1 ON cj1.id_enseignant = ens1.id_enseignant 
+                 JOIN roles_jury r1 ON cj1.id_qualite_jury = r1.id_role_jury 
+                 WHERE cj1.num_jury = p.num_jury AND r1.lib_role = 'Président du jury' 
+                 LIMIT 1) as president,
+                (SELECT CONCAT(ens2.prenom_enseignant, ' ', ens2.nom_enseignant) 
+                 FROM composer_jury cj2 
+                 JOIN enseignants ens2 ON cj2.id_enseignant = ens2.id_enseignant 
+                 JOIN roles_jury r2 ON cj2.id_qualite_jury = r2.id_role_jury 
+                 WHERE cj2.num_jury = p.num_jury AND r2.lib_role = 'Examinateur' 
+                 LIMIT 1) as examinateur,
+                (SELECT CONCAT(ens3.prenom_enseignant, ' ', ens3.nom_enseignant) 
+                 FROM composer_jury cj3 
+                 JOIN enseignants ens3 ON cj3.id_enseignant = ens3.id_enseignant 
+                 JOIN roles_jury r3 ON cj3.id_qualite_jury = r3.id_role_jury 
+                 WHERE cj3.num_jury = p.num_jury AND r3.lib_role = 'Directeur de mémoire' 
+                 LIMIT 1) as directeur,
+                (SELECT CONCAT(ens4.prenom_enseignant, ' ', ens4.nom_enseignant) 
+                 FROM composer_jury cj4 
+                 JOIN enseignants ens4 ON cj4.id_enseignant = ens4.id_enseignant 
+                 JOIN roles_jury r4 ON cj4.id_qualite_jury = r4.id_role_jury 
+                 WHERE cj4.num_jury = p.num_jury AND r4.lib_role = 'Encadrant' 
+                 LIMIT 1) as encadreur,
+                -- Maître de stage
+                ist.encadrant_entreprise as maitre_stage
+            FROM programmer p
+            INNER JOIN etudiants e ON p.num_etud = e.num_etu
+            LEFT JOIN informations_stage ist ON e.num_etu = ist.num_etu
+            WHERE e.num_etu = ?
+            LIMIT 1
+        ";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$numEtu]);
+        $soutenance = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$soutenance) {
+            throw new Exception('Soutenance non trouvée');
+        }
+
+        // Récupérer les évaluations
+        $sqlEval = "
+            SELECT 
+                e.id_critere,
+                e.note,
+                c.lib_critere,
+                cor.bareme
+            FROM evaluer e
+            JOIN critere_evaluation c ON e.id_critere = c.id_critere
+            LEFT JOIN correspondre cor ON c.id_critere = cor.id_critere
+            WHERE e.num_etudiant = ?
+            ORDER BY e.id_critere
+        ";
+        $stmtEval = $pdo->prepare($sqlEval);
+        $stmtEval->execute([$numEtu]);
+        $evaluations = $stmtEval->fetchAll(PDO::FETCH_ASSOC);
+
+        // Calculer la somme des notes
+        $sommeNotes = 0;
+        $sommeBaremes = 0;
+        foreach ($evaluations as $eval) {
+            $sommeNotes += $eval['note'];
+            $sommeBaremes += $eval['bareme'];
+        }
+        
+        // Calculer les moyennes
+        $moyennes = $this->calculerMoyennesPourAnnexe2($numEtu, $pdo);
+        
+        // Calculate final note and mention
+        $noteFinalePV = (
+            $moyennes['moyenne_master1'] * 2 +
+            $moyennes['moyenne_s1_master2'] * 3 +
+            $sommeNotes * 3
+        ) / 8;
+        $mention = $this->calculerMention($noteFinalePV);
+
+        // Préparer les données pour le template
+        $templateData = [
+            'niveau' => $soutenance['niveau'],
+            'date_soutenance' => date('d/m/Y', strtotime($soutenance['date_soutenance'])),
+            'promotion' => $soutenance['promotion_etu'],
+            'theme' => $soutenance['theme_soutenance'],
+            'nom_etudiant' => $soutenance['nom_etudiant'],
+            'president' => $soutenance['president'] ?? '',
+            'examinateur' => $soutenance['examinateur'] ?? '',
+            'directeur' => $soutenance['directeur'] ?? '',
+            'encadreur' => $soutenance['encadreur'] ?? '',
+            'maitre_stage' => $soutenance['maitre_stage'] ?? '',
+            'note_finale' => $sommeNotes,
+            'total_bareme' => $sommeBaremes,
+            'moyenne_master1' => $moyennes['moyenne_master1'],
+            'moyenne_s1_master2' => $moyennes['moyenne_s1_master2'],
+            'note_memoire' => $sommeNotes,
+            'note_finale_pv' => number_format($noteFinalePV, 2),
+            'mention' => $mention,
+            // For repeating blocks (criteria)
+            'criteres' => $evaluations
+        ];
+
+        // Use DocumentGeneratorService
+        $documentService = new DocumentGeneratorService();
+        
+        // Generate PDF from template
+        $pdfPath = $documentService->generateFromTemplate('pv_soutenance', $templateData);
+        
+        // Send PDF to browser
+        $pdfFilename = 'PV_Soutenance_' . $numEtu . '_' . date('Y-m-d') . '.pdf';
+        
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="' . $pdfFilename . '"');
+        header('Content-Length: ' . filesize($pdfPath));
+        readfile($pdfPath);
+        
+        // Clean up temporary file
+        $documentService->cleanupTempFile($pdfPath);
+    }
+    
+    /**
+     * Legacy method using HTML/DomPDF (original implementation)
+     */
+    private function imprimerPVLegacy()
+    {
         try {
             require_once __DIR__ . '/../../vendor/autoload.php';
 
@@ -665,7 +840,7 @@ class EvaluationSoutenanceController
             echo $dompdf->output();
 
         } catch (Exception $e) {
-            error_log('Erreur imprimerPV: ' . $e->getMessage());
+            error_log('Erreur imprimerPVLegacy: ' . $e->getMessage());
             echo '<h3>Erreur lors de la génération du PDF : ' . htmlspecialchars($e->getMessage()) . '</h3>';
         }
     }
