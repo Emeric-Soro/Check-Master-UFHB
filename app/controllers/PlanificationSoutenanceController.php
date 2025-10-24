@@ -190,6 +190,17 @@ class PlanificationSoutenanceController
      */
     public function planifierSoutenance()
     {
+        // Vérifier la permission CREATE/UPDATE
+        if (!hasPermission('planification_soutenance', 'CREATE') && !hasPermission('planification_soutenance', 'UPDATE')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Vous n\'avez pas la permission de planifier des soutenances.'
+            ]);
+            return;
+        }
+        
         try {
             // Récupérer les données depuis $_POST
             $idProgrammation = $_POST['id_programmation'] ?? null;
@@ -312,6 +323,17 @@ class PlanificationSoutenanceController
      */
     public function supprimerPlanification()
     {
+        // Vérifier la permission DELETE
+        if (!hasPermission('planification_soutenance', 'DELETE')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Vous n\'avez pas la permission de supprimer des planifications.'
+            ]);
+            return;
+        }
+        
         try {
             $id = $_POST['id_programmation'] ?? null;
 

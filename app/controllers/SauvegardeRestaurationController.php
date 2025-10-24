@@ -117,6 +117,13 @@ class SauvegardeRestaurationController {
 
     // Lance une sauvegarde manuelle
     public function createBackup() {
+        // Vérifier la permission CREATE
+        if (!hasPermission('sauvegarde_restauration', 'CREATE')) {
+            $_SESSION['error_message'] = "Vous n'avez pas la permission de créer des sauvegardes.";
+            header('Location: ?page=sauvegarde_restauration');
+            exit;
+        }
+        
         // S'assurer qu'aucune sortie n'a été envoyée
         if (headers_sent()) {
             return false;
@@ -186,6 +193,13 @@ class SauvegardeRestaurationController {
      * Redirige l'utilisateur après l'opération.
      */
     public function restoreBackup() {
+        // Vérifier la permission UPDATE (restoration is a critical update operation)
+        if (!hasPermission('sauvegarde_restauration', 'UPDATE')) {
+            $_SESSION['error_message'] = "Vous n'avez pas la permission de restaurer des sauvegardes.";
+            header('Location: ?page=sauvegarde_restauration');
+            exit;
+        }
+        
         // S'assurer qu'aucune sortie n'a été envoyée avant les redirections
         if (headers_sent()) {
             error_log("Erreur: Les en-têtes ont déjà été envoyés, redirection impossible.");
@@ -478,6 +492,13 @@ class SauvegardeRestaurationController {
 
     // Supprime une sauvegarde
     public function deleteBackup() {
+        // Vérifier la permission DELETE
+        if (!hasPermission('sauvegarde_restauration', 'DELETE')) {
+            $_SESSION['error_message'] = "Vous n'avez pas la permission de supprimer des sauvegardes.";
+            header('Location: ?page=sauvegarde_restauration');
+            exit;
+        }
+        
         // S'assurer qu'aucune sortie n'a été envoyée
         if (headers_sent()) {
             return false;
