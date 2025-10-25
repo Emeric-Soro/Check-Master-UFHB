@@ -1,22 +1,23 @@
-
-
 services:
   web:
     build:
-      context: ./docker/php
+      context: .
+      dockerfile: ./docker/php/Dockerfile
     ports:
       - "8080:80"
     volumes:
       - .:/var/www/html
     depends_on:
       - db
+      - gotenberg
+    links:
+      - gotenberg
 
   db:
     image: mysql:8.3
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: soutenance_manager
-    
     ports:
       - "3306:3306"
     volumes:
@@ -32,6 +33,14 @@ services:
       - "8081:80"
     depends_on:
       - db
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    ports:
+      - "3000:3000"
+    command:
+      - "gotenberg"
+      - "--api-timeout=60s"
 
 volumes:
   db_data:

@@ -1,0 +1,28 @@
+# Ignorer les fichiers inutiles pour accélérer le build
+.git
+.gitignore
+*.md
+docker-compose.yml
+.env
+.DS_Store
+Thumbs.db
+
+# Dépendances
+vendor/
+node_modules/
+
+# Fichiers temporaires
+cache/
+logs/
+*.log
+
+# Documentation
+docs/
+
+# Uploads (déjà mappés via volumes)
+ressources/uploads/
+
+# Autres
+autres/
+*.sql
+
