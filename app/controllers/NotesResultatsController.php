@@ -36,22 +36,25 @@ class NotesResultatsController {
         // Récupérer l'ID de l'étudiant connecté depuis la session
         $studentId = $_SESSION['num_etu'];
 
+        // Préparer les données pour la vue
+        $data = [];
+        
         // Récupérer les infos de l'étudiant
-        $GLOBALS['etudiant'] = $this->etudiantModel->getEtudiantById($studentId);
+        $data['etudiant'] = $this->etudiantModel->getEtudiantById($studentId);
         // Récupérer les notes détaillées
-        $GLOBALS['notes'] = $this->noteModel->getByStudent($studentId);
+        $data['notes'] = $this->noteModel->getByStudent($studentId);
         // Moyenne générale
-        $GLOBALS['moyenneGenerale'] = $this->noteModel->getMoyenneGenerale($studentId)->moyenne_generale ?? null;
+        $data['moyenneGenerale'] = $this->noteModel->getMoyenneGenerale($studentId)->moyenne_generale ?? null;
         // Nombre d'UE validées
-        $GLOBALS['nbUeValide'] = $this->noteModel->getValidUe($studentId)[0]->nb_ue_valide ?? 0;
+        $data['nbUeValide'] = $this->noteModel->getValidUe($studentId)[0]->nb_ue_valide ?? 0;
         // Classement (et total étudiants du niveau)
         $classementObj = $this->noteModel->getClassementStudent($studentId);
-        $GLOBALS['classement'] = $classementObj->classement ?? null;
-        $GLOBALS['totalEtudiants'] = $classementObj->total ?? 0;
+        $data['classement'] = $classementObj->classement ?? null;
+        $data['totalEtudiants'] = $classementObj->total ?? 0;
         // Semestres
-        $GLOBALS['semestres'] = $this->noteModel->getSemestreByEtudiant($studentId);
+        $data['semestres'] = $this->noteModel->getSemestreByEtudiant($studentId);
         
-        
+        return $data;
     }
 
     public function exportPdf() {

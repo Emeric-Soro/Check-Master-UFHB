@@ -57,21 +57,24 @@ class DashboardEnseignantController
     /**
      * Point d'entrée principal du contrôleur
      * Affiche le tableau de bord enseignant avec toutes les statistiques
+     * @return array Les données à passer à la vue
      */
     public function index()
     {
+        // Préparer les données pour la vue
+        $data = [];
+        
         // Récupération des statistiques globales
-        $this->getGlobalStats();
+        $this->getGlobalStats($data);
         
-        
-        
-       
+        return $data;
     }
 
     /**
      * Récupère les statistiques globales
+     * @param array &$data Référence au tableau de données
      */
-    private function getGlobalStats()
+    private function getGlobalStats(&$data)
     {
         $enseignantId = $this->enseignant->getEnseignantByLogin($_SESSION['login_utilisateur'])->id_enseignant;
 
@@ -102,9 +105,9 @@ class DashboardEnseignantController
         }
 
         // Statistiques
-        $GLOBALS['total_etudiants'] = count($etudiantsSuivantCours);
-        $GLOBALS['total_ues'] = count($ues);
-        $GLOBALS['total_ecues'] = count($ecues);
+        $data['total_etudiants'] = count($etudiantsSuivantCours);
+        $data['total_ues'] = count($ues);
+        $data['total_ecues'] = count($ecues);
 
         // Pour affichage des cours
         $mes_cours = [];
@@ -127,7 +130,7 @@ class DashboardEnseignantController
             ];
         }
        
-        $GLOBALS['mes_cours'] = $mes_cours;
+        $data['mes_cours'] = $mes_cours;
     }
 
 

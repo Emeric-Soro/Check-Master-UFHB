@@ -7,11 +7,15 @@ require_once __DIR__ . '/../utils/permissions.php';
 
 class RedactionCompteRenduController {
     public function index() {
-        $GLOBALS['rapports_valides'] = Valider::getRapportsValides();
+        // Préparer les données pour la vue
+        $data = [];
+        
+        $data['rapports_valides'] = Valider::getRapportsValides();
         require_once __DIR__ . '/../models/Enseignant.php';
         $enseignantModel = new Enseignant(\Database::getConnection());
-        $GLOBALS['enseignants'] = $enseignantModel->getAllEnseignants();
-        // Ne pas inclure la vue ici, le layout s'en charge
+        $data['enseignants'] = $enseignantModel->getAllEnseignants();
+        
+        return $data;
     }
 
     public function enregistrer() {
