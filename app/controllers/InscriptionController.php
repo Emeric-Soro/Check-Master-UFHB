@@ -29,9 +29,12 @@ class InscriptionController
             'niveaux' => $this->scolarite->getNiveauxEtudes(),
             'etudiantsInscrits' => $this->scolarite->getEtudiantsInscrits(),
             'listeAnnees' => $this->anneeAcademique->getAllAnneeAcademiques(),
-            'messageErreur' => '',
-            'messageSuccess' => ''
+            'messageErreur' => isset($_SESSION['messageErreur']) ? $_SESSION['messageErreur'] : '',
+            'messageSuccess' => isset($_SESSION['messageSuccess']) ? $_SESSION['messageSuccess'] : ''
         ];
+        
+        // Effacer les messages de session après les avoir récupérés
+        unset($_SESSION['messageErreur'], $_SESSION['messageSuccess']);
 
         // Si un numéro d'étudiant est fourni, récupérer ses informations
         if (isset($_GET['num_etu'])) {
@@ -168,7 +171,7 @@ class InscriptionController
     {
         // Vérifier la permission CREATE
         if (!hasPermission('gestion_scolarite', 'CREATE')) {
-            $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de créer des inscriptions.";
+            $_SESSION['messageErreur'] = "Vous n'avez pas la permission de créer des inscriptions.";
             $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'inscriptions', 'Erreur - Permission refusée');
             return;
         }
@@ -180,7 +183,7 @@ class InscriptionController
                 empty($_POST['premier_versement']) || empty($_POST['annee_academique']) ||
                 empty($_POST['methode_paiement'])
             ) {
-                $GLOBALS['messageErreur'] = "Tous les champs sont obligatoires.";
+                $_SESSION['messageErreur'] = "Tous les champs sont obligatoires.";
                 return;
             }
 
@@ -195,7 +198,7 @@ class InscriptionController
 
             // Vérifier si l'étudiant est déjà inscrit pour cette année académique
             if ($this->scolarite->estEtudiantInscritPourAnnee($id_etudiant, $id_annee_acad)) {
-                $GLOBALS['messageErreur'] = "Cet étudiant est déjà inscrit pour cette année académique.";
+                $_SESSION['messageErreur'] = "Cet étudiant est déjà inscrit pour cette année académique.";
                 $this->auditLog->logCreation($_SESSION['id_utilisateur'], "inscriptions", 'Erreur');
                 return;
             }
@@ -228,14 +231,14 @@ class InscriptionController
                     }
                 }
 
-                $GLOBALS['messageSuccess'] = "Inscription créée avec succès.";
+                $_SESSION['messageSuccess'] = "Inscription créée avec succès.";
                 $this->auditLog->logCreation($_SESSION['id_utilisateur'], "inscriptions", 'Succès');
             } else {
-                $GLOBALS['messageErreur'] = "Erreur lors de la création de l'inscription.";
+                $_SESSION['messageErreur'] = "Erreur lors de la création de l'inscription.";
                 $this->auditLog->logCreation($_SESSION['id_utilisateur'], "inscriptions", 'Erreur');
             }
         } catch (Exception $e) {
-            $GLOBALS['messageErreur'] = "Une erreur est survenue : " . $e->getMessage();
+            $_SESSION['messageErreur'] = "Une erreur est survenue : " . $e->getMessage();
         }
     }
 
@@ -243,14 +246,14 @@ class InscriptionController
     {
         // Vérifier la permission UPDATE
         if (!hasPermission('gestion_scolarite', 'UPDATE')) {
-            $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de modifier des inscriptions.";
+            $_SESSION['messageErreur'] = "Vous n'avez pas la permission de modifier des inscriptions.";
             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'inscriptions', 'Erreur - Permission refusée');
             return;
         }
         
         try {
             if (empty($_POST['id_inscription']) || empty($_POST['niveau']) || empty($_POST['premier_versement'])) {
-                $GLOBALS['messageErreur'] = "Tous les champs sont obligatoires.";
+                $_SESSION['messageErreur'] = "Tous les champs sont obligatoires.";
                 return;
             }
 
@@ -279,14 +282,14 @@ class InscriptionController
                     }
                 }
 
-                $GLOBALS['messageSuccess'] = "Inscription modifiée avec succès.";
+                $_SESSION['messageSuccess'] = "Inscription modifiée avec succès.";
                 $this->auditLog->logModification($_SESSION['id_utilisateur'], "inscriptions", 'Succès');
             } else {
-                $GLOBALS['messageErreur'] = "Erreur lors de la modification de l'inscription.";
+                $_SESSION['messageErreur'] = "Erreur lors de la modification de l'inscription.";
                 $this->auditLog->logModification($_SESSION['id_utilisateur'], "inscriptions", 'Erreur');
             }
         } catch (Exception $e) {
-            $GLOBALS['messageErreur'] = "Une erreur est survenue : " . $e->getMessage();
+            $_SESSION['messageErreur'] = "Une erreur est survenue : " . $e->getMessage();
         }
     }
     private function getEtudiantInfo()

@@ -189,7 +189,7 @@ class AuthController {
         // Vérifier si le mot de passe actuel est correct
         if (!password_verify($currentPassword, $user->mdp_utilisateur)) {
             $messageErreur = 'Le mot de passe actuel est incorrect.';
-            $GLOBALS['messageErreur'] = $messageErreur;
+            $_SESSION['messageErreur'] = $messageErreur;
             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
         
             return false;
@@ -198,7 +198,7 @@ class AuthController {
         // Vérifier si les nouveaux mots de passe correspondent
         if ($newPassword !== $confirmPassword) {
             $messageErreur = 'Les mots de passe ne correspondent pas.';
-            $GLOBALS['messageErreur'] = $messageErreur;
+            $_SESSION['messageErreur'] = $messageErreur;
             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
             
             return false;
@@ -207,7 +207,7 @@ class AuthController {
         // Vérifier si le nouveau mot de passe est différent du mot de passe actuel
         if (password_verify($newPassword, $user->mdp_utilisateur)) {
             $messageErreur = 'Le nouveau mot de passe doit être différent de l\'ancien.';
-            $GLOBALS['messageErreur'] = $messageErreur;
+            $_SESSION['messageErreur'] = $messageErreur;
             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
             
             return false;
@@ -216,7 +216,7 @@ class AuthController {
         // Vérifier la longueur minimale
         if (strlen($newPassword) < 8) {
             $messageErreur = 'Le mot de passe doit contenir au moins 8 caractères.';
-            $GLOBALS['messageErreur'] = $messageErreur;
+            $_SESSION['messageErreur'] = $messageErreur;
             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
             
             return false;
@@ -225,7 +225,7 @@ class AuthController {
         // Vérifier la présence d'au moins une majuscule
         if (!preg_match('/[A-Z]/', $newPassword)) {
             $messageErreur = 'Le mot de passe doit contenir au moins une majuscule.';
-            $GLOBALS['messageErreur'] = $messageErreur;
+            $_SESSION['messageErreur'] = $messageErreur;
             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
             
             return false;
@@ -234,7 +234,7 @@ class AuthController {
         // Vérifier la présence d'au moins un chiffre
         if (!preg_match('/[0-9]/', $newPassword)) {
             $messageErreur = 'Le mot de passe doit contenir au moins un chiffre.';
-            $GLOBALS['messageErreur'] = $messageErreur;
+            $_SESSION['messageErreur'] = $messageErreur;
             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
          
             return false;
@@ -243,7 +243,7 @@ class AuthController {
         // Vérifier la présence d'au moins un caractère spécial
         if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]+/', $newPassword)) {
             $messageErreur = 'Le mot de passe doit contenir au moins un caractère spécial.';
-            $GLOBALS['messageErreur'] = $messageErreur;
+            $_SESSION['messageErreur'] = $messageErreur;
             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
           
             return false;
@@ -255,14 +255,14 @@ class AuthController {
         // Mettre à jour le mot de passe
         if ($utilisateur->updatePassword($hashedPassword, $_SESSION['id_utilisateur'])) {
             $messageSuccess = 'Mot de passe mis à jour avec succès.';
-            $GLOBALS['messageSuccess'] = $messageSuccess;
+            $_SESSION['messageSuccess'] = $messageSuccess;
             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès'); 
             return true;
         }
 
         $messageErreur = 'Erreur lors de la mise à jour du mot de passe.';
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
 
         return false;
     }
