@@ -203,6 +203,7 @@ class PdfGeneratorService
      */
     private function buildReportHtml(array $reportData): string
     {
+        // Enhanced report with better formatting and more details
         $html = '
         <!DOCTYPE html>
         <html>
@@ -210,37 +211,196 @@ class PdfGeneratorService
             <meta charset="UTF-8">
             <title>Rapport de Stage</title>
             <style>
-                body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
-                .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-                .header h1 { color: #1a5276; margin: 0; }
-                .info { margin-bottom: 20px; }
-                .info-row { margin: 5px 0; }
-                .info-row strong { display: inline-block; width: 150px; }
-                .content { margin-top: 30px; }
-                .footer { margin-top: 40px; text-align: center; font-size: 0.9em; color: #666; }
+                @page { margin: 2cm; }
+                body { 
+                    font-family: "Times New Roman", Times, serif; 
+                    margin: 0; 
+                    padding: 0;
+                    line-height: 1.8; 
+                    font-size: 12pt;
+                    color: #333;
+                }
+                .header { 
+                    text-align: center; 
+                    margin-bottom: 40px; 
+                    border-bottom: 3px solid #1a5276; 
+                    padding-bottom: 20px; 
+                }
+                .header img { max-width: 120px; margin-bottom: 10px; }
+                .header h1 { 
+                    color: #1a5276; 
+                    margin: 10px 0; 
+                    font-size: 24pt;
+                    text-transform: uppercase;
+                    letter-spacing: 2px;
+                }
+                .header .subtitle { 
+                    color: #666; 
+                    font-size: 14pt;
+                    font-style: italic;
+                }
+                .info { 
+                    margin: 30px 0;
+                    padding: 20px;
+                    background: #f8f9fa; 
+                    border-left: 5px solid #1a5276;
+                    border-radius: 3px;
+                }
+                .info-section { margin-bottom: 25px; }
+                .info-section h3 {
+                    color: #1a5276;
+                    font-size: 14pt;
+                    margin-bottom: 15px;
+                    border-bottom: 2px solid #ddd;
+                    padding-bottom: 5px;
+                }
+                .info-row { 
+                    margin: 10px 0;
+                    padding: 5px 0;
+                }
+                .info-row strong { 
+                    display: inline-block; 
+                    width: 180px;
+                    color: #1a5276;
+                    font-weight: bold;
+                }
+                .content { 
+                    margin-top: 40px;
+                    text-align: justify;
+                    text-indent: 30px;
+                }
+                .content h2 {
+                    color: #1a5276;
+                    font-size: 16pt;
+                    margin-top: 30px;
+                    margin-bottom: 15px;
+                    border-bottom: 2px solid #1a5276;
+                    padding-bottom: 8px;
+                }
+                .content h3 {
+                    color: #1a5276;
+                    font-size: 14pt;
+                    margin-top: 20px;
+                    margin-bottom: 10px;
+                }
+                .content p {
+                    margin-bottom: 15px;
+                }
+                .evaluations {
+                    margin: 30px 0;
+                    padding: 20px;
+                    background: #fff3cd;
+                    border-left: 5px solid #ffc107;
+                    border-radius: 3px;
+                }
+                .evaluations h3 {
+                    color: #856404;
+                    margin-top: 0;
+                }
+                .evaluation-item {
+                    margin: 15px 0;
+                    padding: 10px;
+                    background: white;
+                    border-radius: 3px;
+                }
+                .footer { 
+                    margin-top: 60px; 
+                    text-align: center; 
+                    font-size: 10pt; 
+                    color: #666;
+                    border-top: 2px solid #ddd;
+                    padding-top: 20px;
+                }
+                .watermark {
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%) rotate(-45deg);
+                    font-size: 120pt;
+                    color: rgba(200, 200, 200, 0.3);
+                    z-index: -1;
+                }
             </style>
         </head>
-        <body>
+        <body>';
+        
+        // Add watermark for draft status
+        if (isset($reportData['statut_rapport']) && in_array($reportData['statut_rapport'], ['brouillon', 'en_cours', 'draft'])) {
+            $html .= '<div class="watermark">BROUILLON</div>';
+        }
+        
+        $html .= '
             <div class="header">
                 <h1>Rapport de Stage</h1>
-                <p>Université Félix Houphouët-Boigny</p>
+                <div class="subtitle">Université Félix Houphouët-Boigny</div>
+                <div class="subtitle">Année Académique ' . (date('Y') - 1) . '-' . date('Y') . '</div>
             </div>
             
             <div class="info">
-                <div class="info-row"><strong>Étudiant:</strong> ' . htmlspecialchars($reportData['nom_etu'] . ' ' . $reportData['prenom_etu']) . '</div>
-                <div class="info-row"><strong>Email:</strong> ' . htmlspecialchars($reportData['email_etu']) . '</div>
-                <div class="info-row"><strong>Titre:</strong> ' . htmlspecialchars($reportData['nom_rapport']) . '</div>
-                <div class="info-row"><strong>Thème:</strong> ' . htmlspecialchars($reportData['theme_rapport']) . '</div>
-                <div class="info-row"><strong>Date de dépôt:</strong> ' . date('d/m/Y', strtotime($reportData['date_depot'])) . '</div>
-                <div class="info-row"><strong>Statut:</strong> ' . htmlspecialchars($reportData['statut_rapport']) . '</div>
-            </div>
+                <div class="info-section">
+                    <h3>Informations sur l\'Étudiant</h3>
+                    <div class="info-row"><strong>Nom et Prénoms:</strong> ' . htmlspecialchars($reportData['nom_etu'] . ' ' . $reportData['prenom_etu']) . '</div>
+                    <div class="info-row"><strong>Email:</strong> ' . htmlspecialchars($reportData['email_etu']) . '</div>';
+        
+        if (isset($reportData['matricule'])) {
+            $html .= '<div class="info-row"><strong>Matricule:</strong> ' . htmlspecialchars($reportData['matricule']) . '</div>';
+        }
+        
+        $html .= '
+                </div>
+                
+                <div class="info-section">
+                    <h3>Informations sur le Rapport</h3>
+                    <div class="info-row"><strong>Titre:</strong> ' . htmlspecialchars($reportData['nom_rapport']) . '</div>
+                    <div class="info-row"><strong>Thème:</strong> ' . htmlspecialchars($reportData['theme_rapport']) . '</div>
+                    <div class="info-row"><strong>Date de dépôt:</strong> ' . date('d/m/Y', strtotime($reportData['date_depot'])) . '</div>
+                    <div class="info-row"><strong>Statut:</strong> <span style="color: ' . $this->getStatusColor($reportData['statut_rapport']) . ';">' . htmlspecialchars($this->formatStatus($reportData['statut_rapport'])) . '</span></div>
+                </div>';
+        
+        // Add supervisor information if available
+        if (isset($reportData['encadrant_nom']) || isset($reportData['directeur_nom'])) {
+            $html .= '<div class="info-section"><h3>Encadrement</h3>';
             
-            <div class="content">
-                ' . $reportData['contenu_rapport'] . '
-            </div>
+            if (isset($reportData['encadrant_nom'])) {
+                $html .= '<div class="info-row"><strong>Encadrant pédagogique:</strong> ' . htmlspecialchars($reportData['encadrant_prenom'] . ' ' . $reportData['encadrant_nom']) . '</div>';
+            }
             
+            if (isset($reportData['directeur_nom'])) {
+                $html .= '<div class="info-row"><strong>Directeur de mémoire:</strong> ' . htmlspecialchars($reportData['directeur_prenom'] . ' ' . $reportData['directeur_nom']) . '</div>';
+            }
+            
+            $html .= '</div>';
+        }
+        
+        $html .= '</div>';
+        
+        // Add content
+        if (!empty($reportData['contenu_rapport'])) {
+            $html .= '<div class="content">' . $reportData['contenu_rapport'] . '</div>';
+        }
+        
+        // Add evaluations if available
+        if (isset($reportData['evaluations']) && !empty($reportData['evaluations'])) {
+            $html .= '<div class="evaluations">
+                        <h3>Évaluations</h3>';
+            
+            foreach ($reportData['evaluations'] as $eval) {
+                $html .= '<div class="evaluation-item">
+                            <strong>Évaluateur:</strong> ' . htmlspecialchars($eval['prenom'] . ' ' . $eval['nom']) . '<br>
+                            <strong>Note:</strong> ' . htmlspecialchars($eval['note']) . '/20<br>
+                            <strong>Date:</strong> ' . date('d/m/Y', strtotime($eval['date_evaluation'])) . '<br>
+                            <strong>Commentaire:</strong> ' . htmlspecialchars($eval['commentaire']) . '
+                          </div>';
+            }
+            
+            $html .= '</div>';
+        }
+        
+        $html .= '
             <div class="footer">
-                <p>Document généré le ' . date('d/m/Y à H:i') . '</p>
+                <p><strong>Check Master - Système de Gestion des Soutenances</strong></p>
+                <p>Document généré automatiquement le ' . date('d/m/Y à H:i') . '</p>
+                <p>Ce document est confidentiel et ne peut être reproduit sans autorisation</p>
             </div>
         </body>
         </html>';
@@ -249,87 +409,351 @@ class PdfGeneratorService
     }
     
     /**
+     * Get color for status display
+     */
+    private function getStatusColor(string $status): string
+    {
+        $colors = [
+            'validé' => '#28a745',
+            'approuvé' => '#28a745',
+            'en_attente' => '#ffc107',
+            'en_cours' => '#17a2b8',
+            'rejeté' => '#dc3545',
+            'brouillon' => '#6c757d',
+            'draft' => '#6c757d'
+        ];
+        
+        return $colors[$status] ?? '#6c757d';
+    }
+    
+    /**
+     * Format status for display
+     */
+    private function formatStatus(string $status): string
+    {
+        $statuses = [
+            'validé' => 'Validé',
+            'approuvé' => 'Approuvé',
+            'en_attente' => 'En Attente',
+            'en_cours' => 'En Cours',
+            'rejeté' => 'Rejeté',
+            'brouillon' => 'Brouillon',
+            'draft' => 'Brouillon'
+        ];
+        
+        return $statuses[$status] ?? ucfirst(str_replace('_', ' ', $status));
+    }
+    
+    /**
      * Build HTML for meeting minutes
+     * 
+     * @param array $minutesData Minutes data
+     * @return string HTML content
+     */
+    /**
+     * Build HTML for meeting minutes (PV/Compte Rendu)
      * 
      * @param array $minutesData Minutes data
      * @return string HTML content
      */
     private function buildMinutesHtml(array $minutesData): string
     {
+        // Enhanced PV with official format and better structure
         $html = '
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="UTF-8">
-            <title>Compte Rendu</title>
+            <title>Procès-Verbal de Soutenance</title>
             <style>
-                body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
-                .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #1a5276; padding-bottom: 15px; }
-                .header h1 { color: #1a5276; margin: 0; font-size: 24px; }
-                .header h2 { color: #666; margin: 5px 0; font-size: 18px; font-weight: normal; }
-                .info { margin-bottom: 30px; background: #f8f9fa; padding: 15px; border-radius: 5px; }
-                .info-row { margin: 8px 0; }
-                .info-row strong { display: inline-block; width: 120px; color: #1a5276; }
-                .content { margin-top: 30px; text-align: justify; }
-                .content h3 { color: #1a5276; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-                .rapports-list { margin: 20px 0; }
-                .rapport-item { padding: 10px; margin: 10px 0; background: #f8f9fa; border-left: 4px solid #1a5276; }
-                .footer { margin-top: 50px; text-align: center; font-size: 0.9em; color: #666; border-top: 1px solid #ddd; padding-top: 20px; }
-                .signature { margin-top: 40px; display: flex; justify-content: space-around; }
-                .signature-block { text-align: center; }
-                .signature-line { border-top: 1px solid #000; width: 200px; margin: 40px auto 10px; }
+                @page { margin: 2.5cm; }
+                body { 
+                    font-family: "Times New Roman", Times, serif; 
+                    margin: 0; 
+                    padding: 0;
+                    line-height: 1.8; 
+                    font-size: 12pt;
+                    color: #000;
+                }
+                .header { 
+                    text-align: center; 
+                    margin-bottom: 40px; 
+                    border-bottom: 4px double #1a5276; 
+                    padding-bottom: 25px; 
+                }
+                .header .logo-section {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 20px;
+                }
+                .header h1 { 
+                    color: #1a5276; 
+                    margin: 15px 0 5px 0; 
+                    font-size: 22pt;
+                    text-transform: uppercase;
+                    letter-spacing: 3px;
+                    font-weight: bold;
+                }
+                .header .subtitle { 
+                    color: #333; 
+                    font-size: 13pt;
+                    margin: 8px 0;
+                    font-weight: bold;
+                }
+                .header .reference {
+                    text-align: right;
+                    font-size: 10pt;
+                    margin-top: 15px;
+                    color: #666;
+                }
+                .info-box { 
+                    margin: 25px 0;
+                    padding: 20px;
+                    background: #f8f9fa; 
+                    border: 2px solid #1a5276;
+                    border-radius: 5px;
+                }
+                .info-box h3 {
+                    color: #1a5276;
+                    font-size: 14pt;
+                    margin: 0 0 15px 0;
+                    padding-bottom: 8px;
+                    border-bottom: 2px solid #1a5276;
+                }
+                .info-row { 
+                    margin: 10px 0;
+                    padding: 5px 0;
+                }
+                .info-row strong { 
+                    display: inline-block; 
+                    width: 160px;
+                    color: #1a5276;
+                    font-weight: bold;
+                }
+                .section { 
+                    margin: 30px 0;
+                    page-break-inside: avoid;
+                }
+                .section-title {
+                    color: #1a5276;
+                    font-size: 15pt;
+                    font-weight: bold;
+                    margin: 25px 0 15px 0;
+                    padding: 10px 0 10px 15px;
+                    background: #f0f0f0;
+                    border-left: 5px solid #1a5276;
+                }
+                .content { 
+                    margin: 20px 0;
+                    text-align: justify;
+                    line-height: 2;
+                }
+                .content p {
+                    margin-bottom: 15px;
+                    text-indent: 30px;
+                }
+                .content h4 {
+                    color: #1a5276;
+                    font-size: 13pt;
+                    margin: 20px 0 10px 0;
+                    font-weight: bold;
+                }
+                .rapports-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 20px 0;
+                }
+                .rapports-table th {
+                    background: #1a5276;
+                    color: white;
+                    padding: 12px;
+                    text-align: left;
+                    font-weight: bold;
+                }
+                .rapports-table td {
+                    padding: 10px 12px;
+                    border: 1px solid #ddd;
+                }
+                .rapports-table tr:nth-child(even) {
+                    background: #f8f9fa;
+                }
+                .jury-section {
+                    margin: 30px 0;
+                    padding: 20px;
+                    background: #fff3cd;
+                    border-left: 5px solid #ffc107;
+                }
+                .jury-member {
+                    margin: 10px 0;
+                    padding: 8px;
+                }
+                .deliberation {
+                    margin: 30px 0;
+                    padding: 20px;
+                    background: #d4edda;
+                    border: 2px solid #28a745;
+                    border-radius: 5px;
+                }
+                .deliberation h3 {
+                    color: #155724;
+                    margin-top: 0;
+                }
+                .signatures { 
+                    margin-top: 60px;
+                    page-break-inside: avoid;
+                }
+                .signature-table {
+                    width: 100%;
+                    border-collapse: separate;
+                    border-spacing: 20px 0;
+                }
+                .signature-cell {
+                    text-align: center;
+                    vertical-align: top;
+                }
+                .signature-line { 
+                    border-top: 2px solid #000; 
+                    width: 200px; 
+                    margin: 60px auto 10px;
+                }
+                .signature-label {
+                    font-weight: bold;
+                    color: #1a5276;
+                }
+                .footer { 
+                    margin-top: 40px; 
+                    padding-top: 20px;
+                    border-top: 2px solid #ddd;
+                    font-size: 9pt; 
+                    color: #666;
+                    text-align: center;
+                }
+                .page-number {
+                    position: fixed;
+                    bottom: 1cm;
+                    right: 1cm;
+                    font-size: 10pt;
+                    color: #666;
+                }
             </style>
         </head>
         <body>
             <div class="header">
-                <h1>Compte Rendu de Soutenance</h1>
-                <h2>Université Félix Houphouët-Boigny - MIAGE</h2>
+                <h1>PROCÈS-VERBAL DE SOUTENANCE</h1>
+                <div class="subtitle">Université Félix Houphouët-Boigny</div>
+                <div class="subtitle">UFR Mathématiques et Informatique</div>
+                <div class="subtitle">Master MIAGE</div>
+                <div class="reference">
+                    Réf: PV-' . date('Y') . '-' . str_pad($minutesData['id_CR'] ?? '001', 4, '0', STR_PAD_LEFT) . '<br>
+                    Année Académique ' . (date('Y') - 1) . '-' . date('Y') . '
+                </div>
             </div>
             
-            <div class="info">
-                <div class="info-row"><strong>Titre:</strong> ' . htmlspecialchars($minutesData['nom_CR']) . '</div>
-                <div class="info-row"><strong>Date:</strong> ' . date('d/m/Y à H:i', strtotime($minutesData['date_CR'])) . '</div>
-                <div class="info-row"><strong>Rédacteur:</strong> ' . htmlspecialchars($minutesData['nom_etu'] . ' ' . $minutesData['prenom_etu']) . '</div>
-            </div>
-            
-            <div class="content">
-                <h3>Contenu du Compte Rendu</h3>
-                ' . $minutesData['contenu_CR'] . '
+            <div class="info-box">
+                <h3>Informations Générales</h3>
+                <div class="info-row"><strong>Titre de la séance:</strong> ' . htmlspecialchars($minutesData['nom_CR']) . '</div>
+                <div class="info-row"><strong>Date et heure:</strong> ' . date('d/m/Y à H:i', strtotime($minutesData['date_CR'])) . '</div>
+                <div class="info-row"><strong>Lieu:</strong> ' . (isset($minutesData['lieu']) ? htmlspecialchars($minutesData['lieu']) : 'Salle de soutenance, UFHB') . '</div>
+                <div class="info-row"><strong>Secrétaire de séance:</strong> ' . htmlspecialchars($minutesData['prenom_etu'] . ' ' . $minutesData['nom_etu']) . '</div>
             </div>';
         
-        // Add associated reports if available
-        if (!empty($minutesData['rapports'])) {
+        // Add jury members if available
+        if (isset($minutesData['jury_members']) && !empty($minutesData['jury_members'])) {
             $html .= '
-            <div class="rapports-list">
-                <h3>Rapports Évalués</h3>';
+            <div class="jury-section">
+                <div class="section-title">COMPOSITION DU JURY</div>';
             
-            foreach ($minutesData['rapports'] as $rapport) {
-                $html .= '
-                <div class="rapport-item">
-                    <strong>' . htmlspecialchars($rapport['nom_rapport']) . '</strong><br>
-                    Étudiant: ' . htmlspecialchars($rapport['prenom_etu'] . ' ' . $rapport['nom_etu']) . '<br>
-                    Thème: ' . htmlspecialchars($rapport['theme_rapport']) . '
-                </div>';
+            foreach ($minutesData['jury_members'] as $member) {
+                $html .= '<div class="jury-member">
+                            <strong>' . htmlspecialchars($member['prenom'] . ' ' . $member['nom']) . '</strong><br>
+                            ' . htmlspecialchars($member['fonction']) . ' - ' . htmlspecialchars($member['role_jury']) . '
+                          </div>';
             }
             
             $html .= '</div>';
         }
         
+        // Main content
         $html .= '
-            <div class="signature">
-                <div class="signature-block">
-                    <div class="signature-line"></div>
-                    <p>Le Président du Jury</p>
-                </div>
-                <div class="signature-block">
-                    <div class="signature-line"></div>
-                    <p>Le Secrétaire</p>
-                </div>
+            <div class="section">
+                <div class="section-title">COMPTE RENDU DE LA SÉANCE</div>
+                <div class="content">' . $minutesData['contenu_CR'] . '</div>
+            </div>';
+        
+        // Add associated reports table if available
+        if (!empty($minutesData['rapports'])) {
+            $html .= '
+            <div class="section">
+                <div class="section-title">TRAVAUX ÉVALUÉS</div>
+                <table class="rapports-table">
+                    <thead>
+                        <tr>
+                            <th>Titre du Rapport</th>
+                            <th>Étudiant</th>
+                            <th>Thème</th>
+                            <th>Encadrant</th>
+                        </tr>
+                    </thead>
+                    <tbody>';
+            
+            foreach ($minutesData['rapports'] as $rapport) {
+                $html .= '<tr>
+                            <td><strong>' . htmlspecialchars($rapport['nom_rapport']) . '</strong></td>
+                            <td>' . htmlspecialchars($rapport['prenom_etu'] . ' ' . $rapport['nom_etu']) . '</td>
+                            <td>' . htmlspecialchars($rapport['theme_rapport'] ?? 'N/A') . '</td>
+                            <td>' . (isset($rapport['enc_nom']) ? htmlspecialchars($rapport['enc_prenom'] . ' ' . $rapport['enc_nom']) : 'N/A') . '</td>
+                          </tr>';
+            }
+            
+            $html .= '
+                    </tbody>
+                </table>
+            </div>';
+        }
+        
+        // Add deliberation section if available
+        if (isset($minutesData['deliberation'])) {
+            $html .= '
+            <div class="deliberation">
+                <h3>DÉLIBÉRATION DU JURY</h3>
+                <p>' . htmlspecialchars($minutesData['deliberation']) . '</p>
+            </div>';
+        }
+        
+        // Signatures section
+        $html .= '
+            <div class="signatures">
+                <p style="margin-bottom: 30px;"><em>Fait à Abidjan, le ' . date('d/m/Y') . '</em></p>
+                <table class="signature-table">
+                    <tr>
+                        <td class="signature-cell">
+                            <div class="signature-line"></div>
+                            <div class="signature-label">Le Président du Jury</div>
+                        </td>
+                        <td class="signature-cell">
+                            <div class="signature-line"></div>
+                            <div class="signature-label">Le Rapporteur</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="signature-cell">
+                            <div class="signature-line"></div>
+                            <div class="signature-label">Le Secrétaire de Séance</div>
+                        </td>
+                        <td class="signature-cell">
+                            <div class="signature-line"></div>
+                            <div class="signature-label">Le Directeur de l\'UFR</div>
+                        </td>
+                    </tr>
+                </table>
             </div>
             
             <div class="footer">
-                <p>Document généré le ' . date('d/m/Y à H:i') . '</p>
-                <p>Check Master - Système de Gestion des Soutenances</p>
+                <p><strong>Université Félix Houphouët-Boigny</strong></p>
+                <p>22 BP 582 Abidjan 22 - Côte d\'Ivoire | Tél: +225 22 44 08 95</p>
+                <p><em>Document officiel généré automatiquement par Check Master</em></p>
+                <p>Généré le ' . date('d/m/Y à H:i') . ' | Ce document ne peut être reproduit sans autorisation</p>
             </div>
         </body>
         </html>';
