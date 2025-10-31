@@ -65,6 +65,12 @@ class DatabaseService
      */
     public function saveMinutes(string $num_etu, string $nom_CR, string $contenu_CR, string $chemin_pdf, string $date_CR, array $rapports = [], array $encadrants = [], array $directeurs = [])
     {
+        // Input validation
+        if (empty($num_etu) || empty($nom_CR) || empty($contenu_CR)) {
+            error_log("Invalid input for saveMinutes: num_etu, nom_CR, and contenu_CR are required");
+            return false;
+        }
+        
         try {
             $this->beginTransaction();
             
@@ -80,12 +86,18 @@ class DatabaseService
             if (!empty($rapports)) {
                 $stmt = $this->pdo->prepare("INSERT INTO compte_rendu_rapport (id_CR, id_rapport) VALUES (?, ?)");
                 foreach ($rapports as $id_rapport) {
-                    $stmt->execute([$id_CR, $id_rapport]);
+                    if (is_numeric($id_rapport) && $id_rapport > 0) {
+                        $stmt->execute([$id_CR, $id_rapport]);
+                    }
                 }
             }
             
             // Assign supervisors and directors
             foreach ($rapports as $id_rapport) {
+                if (!is_numeric($id_rapport) || $id_rapport <= 0) {
+                    continue;
+                }
+                
                 // Supervisor
                 if (!empty($encadrants[$id_rapport])) {
                     $stmt = $this->pdo->prepare("
@@ -325,6 +337,17 @@ class DatabaseService
      */
     public function saveEvaluation(int $id_rapport, int $id_evaluateur, float $note, string $commentaire, array $criteria = []): bool
     {
+        // Input validation
+        if ($id_rapport <= 0 || $id_evaluateur <= 0) {
+            error_log("Invalid input for saveEvaluation: id_rapport and id_evaluateur must be positive integers");
+            return false;
+        }
+        
+        if ($note < 0 || $note > 20) {
+            error_log("Invalid note value: must be between 0 and 20");
+            return false;
+        }
+        
         try {
             $this->beginTransaction();
             
@@ -349,7 +372,9 @@ class DatabaseService
                 ");
                 
                 foreach ($criteria as $id_critere => $score) {
-                    $stmt->execute([$evaluation_id, $id_critere, $score]);
+                    if (is_numeric($id_critere) && is_numeric($score)) {
+                        $stmt->execute([$evaluation_id, $id_critere, $score]);
+                    }
                 }
             }
             

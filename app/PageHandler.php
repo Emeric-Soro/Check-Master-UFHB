@@ -20,13 +20,42 @@ class PageHandler
      */
     public function handleParametresGeneraux(&$currentPageLabel)
     {
-        require_once __DIR__ . '/../ressources/routes/parametreGenerauxRouteur.php';
-        
         $contentFile = '';
         $config = $this->config['parametres_generaux'];
         
+        // Execute the controller action if specified
         if (isset($_GET['action']) && in_array($_GET['action'], $config['allowed_actions'])) {
-            $currentAction = $_GET['action'];
+            require_once __DIR__ . '/controllers/ParametreController.php';
+            $controller = new ParametreController();
+            
+            // Call the appropriate method based on action
+            $action = $_GET['action'];
+            $methodMap = [
+                'annees_academiques' => 'gestionAnnees',
+                'grades' => 'gestionGrade',
+                'fonction_utilisateur' => 'gestionFonctionUtilisateur',
+                'specialites' => 'gestionSpecialite',
+                'niveaux_etude' => 'gestionNiveauEtude',
+                'ue' => 'gestionUe',
+                'ecue' => 'gestionEcue',
+                'statut_jury' => 'gestionStatutJury',
+                'niveaux_approbation' => 'gestionNiveauApprobation',
+                'semestres' => 'gestionSemestre',
+                'niveaux_acces' => 'gestionNiveauAccesDonnees',
+                'traitements' => 'gestionTraitement',
+                'entreprises' => 'gestionEntreprise',
+                'actions' => 'gestionAction',
+                'fonctions' => 'gestionFonction',
+                'fonctions_enseignants' => 'gestionFonction',
+                'messages' => 'gestionMessagerie',
+                'gestion_attribution' => 'gestionAttribution',
+            ];
+            
+            if (isset($methodMap[$action]) && method_exists($controller, $methodMap[$action])) {
+                $controller->{$methodMap[$action]}();
+            }
+            
+            $currentAction = $action;
             $contentFile = $this->partialsBasePath . 'parametres_generaux/' . $currentAction . '.php';
             $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
         } else {
@@ -45,19 +74,47 @@ class PageHandler
      */
     public function handleGestionReclamations(&$currentPageLabel)
     {
-        require_once __DIR__ . '/../ressources/routes/gestionReclamationsRouteur.php';
+        require_once __DIR__ . '/controllers/GestionReclamationsController.php';
+        $controller = new GestionReclamationsController();
         
         $config = $this->config['gestion_reclamations'];
         $contentFile = $this->partialsBasePath . 'gestion_reclamations_content.php';
         
         if (isset($_GET['action'])) {
-            if (in_array($_GET['action'], $config['ajax_actions'])) {
-                exit; // Let the route file handle AJAX
-            } elseif (in_array($_GET['action'], $config['allowed_actions'])) {
-                $currentAction = $_GET['action'];
+            $action = $_GET['action'];
+            
+            // Handle AJAX actions
+            if (in_array($action, $config['ajax_actions'])) {
+                // Call controller method and exit
+                $methodMap = [
+                    'get_reclamation_details' => 'getReclamationDetailsAjax'
+                ];
+                
+                if (isset($methodMap[$action]) && method_exists($controller, $methodMap[$action])) {
+                    $controller->{$methodMap[$action]}();
+                    exit;
+                }
+            }
+            // Handle regular actions
+            elseif (in_array($action, $config['allowed_actions'])) {
+                $methodMap = [
+                    'soumettre_reclamation' => 'soumettreReclamations',
+                    'suivi_historique_reclamation' => 'suiviHistoriqueReclamations',
+                    'traiter' => 'traiterReclamation',
+                    'exporter_reclamations' => 'exporterReclamations'
+                ];
+                
+                if (isset($methodMap[$action]) && method_exists($controller, $methodMap[$action])) {
+                    $controller->{$methodMap[$action]}();
+                }
+                
+                $currentAction = $action;
                 $contentFile = $this->partialsBasePath . 'gestion_reclamations/' . $currentAction . '.php';
                 $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
             }
+        } else {
+            // No action specified, call index
+            $controller->index();
         }
         
         // Make card data available to the view
@@ -71,16 +128,23 @@ class PageHandler
      */
     public function handleGestionRapports(&$currentPageLabel)
     {
-        require_once __DIR__ . '/../ressources/routes/gestionRapportsRoutes.php';
+        require_once __DIR__ . '/controllers/GestionRapportController.php';
+        $controller = new GestionRapportController();
         
         $config = $this->config['gestion_rapports'];
         $contentFile = $this->partialsBasePath . 'gestion_rapports_content.php';
         
         if (isset($_GET['action'])) {
-            if (in_array($_GET['action'], $config['ajax_actions'])) {
-                exit; // Let the route file handle AJAX
-            } elseif (in_array($_GET['action'], $config['allowed_actions'])) {
-                $currentAction = $_GET['action'];
+            $action = $_GET['action'];
+            
+            // Handle AJAX actions
+            if (in_array($action, $config['ajax_actions'])) {
+                // AJAX actions should be handled by the controller's specific methods
+                exit; // Exit to prevent rendering
+            } 
+            // Handle regular actions
+            elseif (in_array($action, $config['allowed_actions'])) {
+                $currentAction = $action;
                 $contentFile = $this->partialsBasePath . 'gestion_rapports/' . $currentAction . '.php';
                 $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
             }
@@ -94,7 +158,8 @@ class PageHandler
      */
     public function handleCandidatureSoutenance(&$currentPageLabel)
     {
-        require_once __DIR__ . '/../ressources/routes/candidatureSoutenanceRoutes.php';
+        require_once __DIR__ . '/controllers/CandidatureSoutenanceController.php';
+        $controller = new CandidatureSoutenanceController();
         
         $config = $this->config['candidature_soutenance'];
         $contentFile = $this->partialsBasePath . 'candidature_soutenance_content.php';
@@ -103,6 +168,9 @@ class PageHandler
             $currentAction = $_GET['action'];
             $contentFile = $this->partialsBasePath . 'candidature_soutenance/' . $currentAction . '.php';
             $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
+        } else {
+            // Call controller index
+            $controller->index();
         }
         
         return $this->loadContent($contentFile);
@@ -113,7 +181,8 @@ class PageHandler
      */
     public function handleGestionEtudiants(&$currentPageLabel)
     {
-        require_once __DIR__ . '/../ressources/routes/gestionEtudiantRoutes.php';
+        require_once __DIR__ . '/controllers/GestionEtudiantController.php';
+        $controller = new GestionEtudiantController();
         
         $config = $this->config['gestion_etudiants'];
         $contentFile = $this->partialsBasePath . 'gestion_etudiants_content.php';
@@ -122,6 +191,9 @@ class PageHandler
             $currentAction = $_GET['action'];
             $contentFile = $this->partialsBasePath . 'gestion_etudiants/' . $currentAction . '.php';
             $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
+        } else {
+            // Call controller index
+            $controller->index();
         }
         
         return $this->loadContent($contentFile);
@@ -132,6 +204,7 @@ class PageHandler
      */
     public function handleEvaluationSoutenance($router, $currentMenuSlug)
     {
+        // For evaluation_soutenance, we still need to use the route file as it has complex logic
         require_once __DIR__ . '/../ressources/routes/evaluationSoutenanceRoutes.php';
         return $router->dispatch($currentMenuSlug);
     }
@@ -142,12 +215,24 @@ class PageHandler
     private function loadContent($contentFile)
     {
         if (!empty($contentFile) && file_exists($contentFile)) {
-            ob_start();
-            include $contentFile;
-            return ob_get_clean();
+            try {
+                ob_start();
+                include $contentFile;
+                return ob_get_clean();
+            } catch (Exception $e) {
+                error_log("Error loading content from {$contentFile}: " . $e->getMessage());
+                return "<div class='card p-6'>
+                            <div class='text-danger font-semibold mb-2'>Erreur de chargement</div>
+                            <div>Une erreur s'est produite lors du chargement de la page.</div>
+                        </div>";
+            }
         }
         
-        return "<div class='card p-6'><div class='text-danger'>Fichier de contenu introuvable</div></div>";
+        error_log("Content file not found: {$contentFile}");
+        return "<div class='card p-6'>
+                    <div class='text-danger font-semibold mb-2'>Fichier introuvable</div>
+                    <div>Le fichier de contenu demandé n'existe pas: " . htmlspecialchars(basename($contentFile)) . "</div>
+                </div>";
     }
 
     /**
