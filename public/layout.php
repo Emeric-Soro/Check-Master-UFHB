@@ -509,6 +509,10 @@ if (!isset($_SESSION['id_utilisateur'])) {
         <main class="flex-1 p-6 overflow-y-auto">
             <?php
             if (!empty($contentFile) && file_exists($contentFile)) {
+                // Extract view data if available
+                if (isset($viewData) && is_array($viewData)) {
+                    extract($viewData, EXTR_SKIP);
+                }
                 include $contentFile;
             } else {
                 echo "<div class='card p-6'>";

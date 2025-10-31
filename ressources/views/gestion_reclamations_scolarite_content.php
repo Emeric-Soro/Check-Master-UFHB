@@ -5,9 +5,9 @@ require_once __DIR__ . '/../../app/utils/permissions.php';
 // $reclamationsEnCours : réclamations statut 'en attente' ou 'en cours'
 // $reclamationsTraitees : réclamations statut 'traitée' ou 'clôturée'
 
-// Extraire les variables globales si elles existent
-$reclamationsEnCours = $GLOBALS['reclamationsEnCours'] ?? [];
-$reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
+// Utiliser les variables extraites directement
+$reclamationsEnCours = $reclamationsEnCours ?? [];
+$reclamationsTraitees = $reclamationsTraitees ?? [];
 ?>
 <div class="p-4 sm:p-6 md:p-8">
     <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">

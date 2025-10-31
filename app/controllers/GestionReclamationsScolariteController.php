@@ -28,10 +28,11 @@ class GestionReclamationsScolariteController {
             }
         }
 
-        // Passer aux vues
-        $GLOBALS['reclamationsEnCours'] = $reclamationsEnCours;
-        $GLOBALS['reclamationsTraitees'] = $reclamationsTraitees;
-
+        // Retourner les données pour la vue
+        return [
+            'reclamationsEnCours' => $reclamationsEnCours,
+            'reclamationsTraitees' => $reclamationsTraitees
+        ];
     }
 
     public function changerStatut() {

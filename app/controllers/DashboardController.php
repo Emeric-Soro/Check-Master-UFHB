@@ -56,105 +56,112 @@ class DashboardController
     /**
      * Point d'entrée principal du contrôleur
      * Affiche le tableau de bord avec toutes les statistiques
+     * @return array Les données à passer à la vue
      */
     public function index()
     {
         // Audit logging pour l'accès au tableau de bord
         $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Accès', 'tableau_de_bord', 'Succès');
         
+        // Préparer les données pour la vue
+        $data = [];
+        
         // Récupération des statistiques globales
-        $this->getGlobalStats();
+        $this->getGlobalStats($data);
         
         // Récupération des statistiques détaillées
-        $this->getDetailedStats();
+        $this->getDetailedStats($data);
         
         // Récupération des activités récentes
-        $this->getRecentActivities();
+        $this->getRecentActivities($data);
         
         // Récupération des données pour le graphique
-        $this->getChartData();
+        $this->getChartData($data);
         
-       
+        return $data;
     }
 
     /**
      * Récupère les statistiques globales
+     * @param array &$data Référence au tableau de données
      */
-    private function getGlobalStats()
+    private function getGlobalStats(&$data)
     {
         // Statistiques des étudiants
-        $GLOBALS['total_etudiants'] = count($this->etudiant->getAllEtudiants() ) ;
-        $GLOBALS['etudiants_actifs'] = count($this->utilisateur->getEtudiantActif() ) ?? 0;
-        $GLOBALS['etudiants_inactifs'] = count($this->utilisateur->getEtudiantInactif() ) ?? 0;
+        $data['total_etudiants'] = count($this->etudiant->getAllEtudiants() ) ;
+        $data['etudiants_actifs'] = count($this->utilisateur->getEtudiantActif() ) ?? 0;
+        $data['etudiants_inactifs'] = count($this->utilisateur->getEtudiantInactif() ) ?? 0;
 
         // Statistiques des enseignants
-        $GLOBALS['total_enseignants'] = count( $this->enseignant->getAllEnseignants() ) ?? 0;
-        $GLOBALS['enseignants_actifs'] = count($this->utilisateur->getEnseignantActif() ) ?? 0;
-        $GLOBALS['enseignants_inactifs'] = count($this->utilisateur->getEnseignantInactif() ) ?? 0;
+        $data['total_enseignants'] = count( $this->enseignant->getAllEnseignants() ) ?? 0;
+        $data['enseignants_actifs'] = count($this->utilisateur->getEnseignantActif() ) ?? 0;
+        $data['enseignants_inactifs'] = count($this->utilisateur->getEnseignantInactif() ) ?? 0;
        
 
         // Statistiques du personnel administratif
-        $GLOBALS['total_pers_admin'] = count( $this->personnel->getAllPersAdmin() ) ?? 0;
-        $GLOBALS['pers_admin_actifs'] = count($this->utilisateur->getPersAdminActif() ) ?? 0;
-        $GLOBALS['pers_admin_inactifs'] = count($this->utilisateur->getPersAdminInactif() ) ?? 0;
+        $data['total_pers_admin'] = count( $this->personnel->getAllPersAdmin() ) ?? 0;
+        $data['pers_admin_actifs'] = count($this->utilisateur->getPersAdminActif() ) ?? 0;
+        $data['pers_admin_inactifs'] = count($this->utilisateur->getPersAdminInactif() ) ?? 0;
    
 
         // Statistiques des utilisateurs
-        $GLOBALS['total_utilisateurs'] = count($this->utilisateur->getAllUtilisateurs() ) ?? 0;
-        $GLOBALS['utilisateurs_actifs'] = count($this->utilisateur->getUtilisateurActif() ) ?? 0;
-        $GLOBALS['utilisateurs_inactifs'] = count($this->utilisateur->getUtilisateurInactif() ) ?? 0;
+        $data['total_utilisateurs'] = count($this->utilisateur->getAllUtilisateurs() ) ?? 0;
+        $data['utilisateurs_actifs'] = count($this->utilisateur->getUtilisateurActif() ) ?? 0;
+        $data['utilisateurs_inactifs'] = count($this->utilisateur->getUtilisateurInactif() ) ?? 0;
         
     }
 
     /**
      * Récupère les statistiques détaillées
+     * @param array &$data Référence au tableau de données
      */
-    private function getDetailedStats()
+    private function getDetailedStats(&$data)
     {
         // Statistiques détaillées des étudiants
-        $GLOBALS['stats_etudiants'] = [
-            'total' => $GLOBALS['total_etudiants'] ?? 0,
-            'actifs' => $GLOBALS['etudiants_actifs'] ?? 0,
-            'inactifs' => $GLOBALS['etudiants_inactifs'] ?? 0,
-            'taux_activite' => ($GLOBALS['total_etudiants'] ?? 0) > 0 ? 
-                round((($GLOBALS['etudiants_actifs'] ?? 0) / ($GLOBALS['total_etudiants'] ?? 1)) * 100, 1) : 0
+        $data['stats_etudiants'] = [
+            'total' => $data['total_etudiants'] ?? 0,
+            'actifs' => $data['etudiants_actifs'] ?? 0,
+            'inactifs' => $data['etudiants_inactifs'] ?? 0,
+            'taux_activite' => ($data['total_etudiants'] ?? 0) > 0 ? 
+                round((($data['etudiants_actifs'] ?? 0) / ($data['total_etudiants'] ?? 1)) * 100, 1) : 0
         ];
 
         // Statistiques détaillées des enseignants
-        $GLOBALS['stats_enseignants'] = [
-            'total' => $GLOBALS['total_enseignants'] ?? 0,
-            'actifs' => $GLOBALS['enseignants_actifs'] ?? 0,
-            'inactifs' => $GLOBALS['enseignants_inactifs'] ?? 0,
-            'taux_activite' => ($GLOBALS['total_enseignants'] ?? 0) > 0 ? 
-                round((($GLOBALS['enseignants_actifs'] ?? 0) / ($GLOBALS['total_enseignants'] ?? 1)) * 100, 1) : 0
+        $data['stats_enseignants'] = [
+            'total' => $data['total_enseignants'] ?? 0,
+            'actifs' => $data['enseignants_actifs'] ?? 0,
+            'inactifs' => $data['enseignants_inactifs'] ?? 0,
+            'taux_activite' => ($data['total_enseignants'] ?? 0) > 0 ? 
+                round((($data['enseignants_actifs'] ?? 0) / ($data['total_enseignants'] ?? 1)) * 100, 1) : 0
         ];
 
         // Statistiques détaillées du personnel
-        $GLOBALS['stats_personnel'] = [
-            'total' => $GLOBALS['total_pers_admin'] ?? 0,
-            'actifs' => $GLOBALS['pers_admin_actifs'] ?? 0,
-            'inactifs' => $GLOBALS['pers_admin_inactifs'] ?? 0,
-            'taux_activite' => ($GLOBALS['total_pers_admin'] ?? 0) > 0 ? 
-                round((($GLOBALS['pers_admin_actifs'] ?? 0) / ($GLOBALS['total_pers_admin'] ?? 1)) * 100, 1) : 0
+        $data['stats_personnel'] = [
+            'total' => $data['total_pers_admin'] ?? 0,
+            'actifs' => $data['pers_admin_actifs'] ?? 0,
+            'inactifs' => $data['pers_admin_inactifs'] ?? 0,
+            'taux_activite' => ($data['total_pers_admin'] ?? 0) > 0 ? 
+                round((($data['pers_admin_actifs'] ?? 0) / ($data['total_pers_admin'] ?? 1)) * 100, 1) : 0
         ];
 
         // Statistiques détaillées des utilisateurs
-        $GLOBALS['stats_utilisateurs'] = [
-            'total' => $GLOBALS['total_utilisateurs'] ?? 0,
-            'actifs' => $GLOBALS['utilisateurs_actifs'] ?? 0,
-            'inactifs' => $GLOBALS['utilisateurs_inactifs'] ?? 0,
-            'taux_activite' => ($GLOBALS['total_utilisateurs'] ?? 0) > 0 ? 
-                round((($GLOBALS['utilisateurs_actifs'] ?? 0) / ($GLOBALS['total_utilisateurs'] ?? 1)) * 100, 1) : 0
+        $data['stats_utilisateurs'] = [
+            'total' => $data['total_utilisateurs'] ?? 0,
+            'actifs' => $data['utilisateurs_actifs'] ?? 0,
+            'inactifs' => $data['utilisateurs_inactifs'] ?? 0,
+            'taux_activite' => ($data['total_utilisateurs'] ?? 0) > 0 ? 
+                round((($data['utilisateurs_actifs'] ?? 0) / ($data['total_utilisateurs'] ?? 1)) * 100, 1) : 0
         ];
     }
 
     /**
      * Récupère les activités récentes
+     * @param array &$data Référence au tableau de données
      */
-    private function getRecentActivities()
+    private function getRecentActivities(&$data)
     {
         // Récupération des dernières activités
-        $GLOBALS['activites_recentes'] = [
+        $data['activites_recentes'] = [
             [
                 'type' => 'utilisateur',
                 'description' => 'Nouveaux utilisateurs ajoutés',
@@ -170,11 +177,12 @@ class DashboardController
 
     /**
      * Récupère les données pour le graphique d'évolution
+     * @param array &$data Référence au tableau de données
      */
-    private function getChartData()
+    private function getChartData(&$data)
     {
         // Données des 6 derniers mois
-        $GLOBALS['chart_data'] = [
+        $data['chart_data'] = [
             'labels' => $this->getLastSixMonths(),
             'etudiants' => [120, 150, 180, 200, 220, 250],
             'enseignants' => [20, 25, 30, 35, 40, 45],
