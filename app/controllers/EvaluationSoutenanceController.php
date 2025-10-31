@@ -640,28 +640,29 @@ class EvaluationSoutenanceController
 
     /**
      * Calculer les moyennes nécessaires pour l'Annexe 2
-     * - Moyenne Générale Master 1 : depuis le dossier académique (JSON)
+     * - Moyenne Générale Master 1 : depuis resume_candidature (JSON)
      * - Moyenne Générale Semestre 1 Master 2 : depuis la table notes
      */
     private function calculerMoyennesPourAnnexe2($numEtu, $pdo)
     {
         try {
-            // 1. Récupérer la Moyenne Générale Master 1 depuis le dossier académique
-            // La moyenne Master 1 est stockée dans details_academiques (JSON)
-            $sqlDossier = "
-                SELECT details_academiques
-                FROM dossier_academique
+            // 1. Récupérer la Moyenne Générale Master 1 depuis resume_candidature
+            // La moyenne est stockée dans resume_json (JSON) sous semestre.moyenne
+            $sqlResume = "
+                SELECT resume_json
+                FROM resume_candidature
                 WHERE num_etu = ?
+                ORDER BY date_enregistrement DESC
                 LIMIT 1
             ";
 
-            $stmtDossier = $pdo->prepare($sqlDossier);
-            $stmtDossier->execute([$numEtu]);
-            $dossier = $stmtDossier->fetch(PDO::FETCH_ASSOC);
+            $stmtResume = $pdo->prepare($sqlResume);
+            $stmtResume->execute([$numEtu]);
+            $resume = $stmtResume->fetch(PDO::FETCH_ASSOC);
 
             $moyenneMaster1 = 0;
-            if ($dossier && !empty($dossier['details_academiques'])) {
-                $details = json_decode($dossier['details_academiques'], true);
+            if ($resume && !empty($resume['resume_json'])) {
+                $details = json_decode($resume['resume_json'], true);
                 if (isset($details['semestre']['moyenne'])) {
                     // Format: "12.63/20" ou "12.63"
                     $moyenneStr = $details['semestre']['moyenne'];
