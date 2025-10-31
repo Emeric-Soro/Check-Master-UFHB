@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../app/utils/permissions.php';
 
-if (!empty($GLOBALS['selectedStudent'])): ?>
+if (!empty($selectedStudent)): ?>
     <!DOCTYPE html>
     <html lang="fr">
 
@@ -174,7 +174,7 @@ if (!empty($GLOBALS['selectedStudent'])): ?>
                         <div class="title-sub">MINISTERE DE L'ENSEIGNEMENT SUPERIEUR ET DE LA RECHERCHE SCIENTIFIQUE</div>
                         <div class="title-main">RELEVE DE NOTES</div>
                         <div class="title-sub">Année universitaire :
-                            <?= htmlspecialchars($GLOBALS['annee_universitaire'] ?? '2025-2026') ?>
+                            <?= htmlspecialchars($annee_universitaire ?? '2025-2026') ?>
                         </div>
                     </td>
                     <td style="width:20%;text-align:right">
@@ -196,25 +196,25 @@ if (!empty($GLOBALS['selectedStudent'])): ?>
 
             <div style="margin-bottom:10px">
                 <div class="student-info">
-                    <strong>NOM :</strong> <?= htmlspecialchars($GLOBALS['selectedStudent']->nom_etu) ?>
+                    <strong>NOM :</strong> <?= htmlspecialchars($selectedStudent->nom_etu) ?>
                     <strong style="margin-left:18px">PRENOMS :</strong>
-                    <?= htmlspecialchars($GLOBALS['selectedStudent']->prenom_etu) ?><br>
+                    <?= htmlspecialchars($selectedStudent->prenom_etu) ?><br>
                     <strong>DATE DE NAISSANCE :</strong>
-                    <?= htmlspecialchars($GLOBALS['selectedStudent']->date_naiss_etu) ?>
+                    <?= htmlspecialchars($selectedStudent->date_naiss_etu) ?>
                     <strong style="margin-left:18px">PARCOURS :</strong> MIAGE<br>
-                    <strong>NIVEAU :</strong> <?= htmlspecialchars($GLOBALS['niveau'] ?? '') ?>
+                    <strong>NIVEAU :</strong> <?= htmlspecialchars($niveau ?? '') ?>
                     <strong style="margin-left:18px">N° CARTE ETUDIANT :</strong>
-                    <?= htmlspecialchars($GLOBALS['selectedStudent']->num_etu) ?>
+                    <?= htmlspecialchars($selectedStudent->num_etu) ?>
                 </div>
                 <div class="faculty">FILIERES PROFESSIONNALISEES (GI-MIAGE) —
-                    <?= htmlspecialchars($GLOBALS['annee_universitaire'] ?? '2023-2024') ?>
+                    <?= htmlspecialchars($annee_universitaire ?? '2023-2024') ?>
                 </div>
                 <div class="clearfix"></div>
             </div>
             <?php
             // Regrouper les notes par semestre et par type (majeur/mineur)
             $semestres = [];
-            foreach ($GLOBALS['studentGrades'] as $grade) {
+            foreach ($studentGrades as $grade) {
                 $lib_semestre = is_object($grade) ? ($grade->lib_semestre ?? 'Semestre ?') : ($grade['lib_semestre'] ?? 'Semestre ?');
                 $credit = is_object($grade) ? ($grade->credit ?? 0) : ($grade['credit'] ?? 0);
                 $sem = $lib_semestre;
@@ -339,7 +339,7 @@ if (!empty($GLOBALS['selectedStudent'])): ?>
                 <strong>Moyenne générale :</strong> <?php
                 $totalNotes = 0;
                 $totalCredits = 0;
-                foreach ($GLOBALS['studentGrades'] as $grade) {
+                foreach ($studentGrades as $grade) {
                     $moyenne = is_object($grade) ? ($grade->moyenne ?? 0) : ($grade['moyenne'] ?? 0);
                     $credit = is_object($grade) ? ($grade->credit ?? 0) : ($grade['credit'] ?? 0);
                     $totalNotes += $moyenne * $credit;

@@ -168,14 +168,14 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
         <div class="flex flex-col md:flex-row justify-between items-center mb-8">
             <div>
                 <h1 class="text-3xl font-bold text-gray-800">
-                    <?php if (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']): ?>
+                    <?php if (isset($rapportDejaDepose) && $rapportDejaDepose): ?>
                     Consultation du Rapport de Stage
                     <?php else: ?>
                     Éditeur de Rapport de Stage
                     <?php endif; ?>
                 </h1>
                 <p class="text-gray-600 mt-2">
-                    <?php if (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']): ?>
+                    <?php if (isset($rapportDejaDepose) && $rapportDejaDepose): ?>
                     Consultation en lecture seule - Rapport déjà déposé
                     <?php else: ?>
                     Créez et modifiez votre rapport facilement
@@ -183,7 +183,7 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
                 </p>
             </div>
             <div class="flex space-x-3 mt-4 md:mt-0">
-                <?php if (!isset($GLOBALS['rapportDejaDepose']) || !$GLOBALS['rapportDejaDepose']): ?>
+                <?php if (!isset($rapportDejaDepose) || !$rapportDejaDepose): ?>
                 <!-- Boutons actifs seulement si le rapport n'est pas déposé -->
                 <?php if (hasPermission('gestion_rapports', 'CREATE') || hasPermission('gestion_rapports', 'UPDATE')): ?>
                 <button id="saveBtn"
@@ -274,9 +274,9 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
                             </label>
                             <input type="text" id="nom_rapport" name="nom_rapport"
                                 value="<?= isset($rapport) ? htmlspecialchars($rapport['nom_rapport']) : '' ?>"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'bg-gray-100 cursor-not-allowed' : '' ?>"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 <?= (isset($rapportDejaDepose) && $rapportDejaDepose) ? 'bg-gray-100 cursor-not-allowed' : '' ?>"
                                 placeholder="Ex: Rapport de stage - Développement Web"
-                                <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'readonly' : 'required' ?>>
+                                <?= (isset($rapportDejaDepose) && $rapportDejaDepose) ? 'readonly' : 'required' ?>>
                         </div>
                         <div>
                             <label for="theme_rapport" class="block text-sm font-medium text-gray-700 mb-2">
@@ -284,15 +284,15 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
                             </label>
                             <input type="text" id="theme_rapport" name="theme_rapport"
                                 value="<?= isset($rapport) ? htmlspecialchars($rapport['theme_rapport']) : '' ?>"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'bg-gray-100 cursor-not-allowed' : '' ?>"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 <?= (isset($rapportDejaDepose) && $rapportDejaDepose) ? 'bg-gray-100 cursor-not-allowed' : '' ?>"
                                 placeholder="Ex: Intégration d'un système CRM"
-                                <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'readonly' : 'required' ?>>
+                                <?= (isset($rapportDejaDepose) && $rapportDejaDepose) ? 'readonly' : 'required' ?>>
                         </div>
                     </div>
                 </div>
                 <div class="bg-gray-50 border-b border-gray-200 p-4 flex flex-wrap justify-between items-center">
                     <div class="flex items-center space-x-4 mb-3 md:mb-0">
-                        <?php if (!isset($GLOBALS['rapportDejaDepose']) || !$GLOBALS['rapportDejaDepose']): ?>
+                        <?php if (!isset($rapportDejaDepose) || !$rapportDejaDepose): ?>
                         <button id="loadTemplateBtn"
                             class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -324,8 +324,8 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
                     <div class="flex items-center space-x-3">
                         <div class="relative">
                             <select id="fontSelector"
-                                class="bg-white border border-gray-300 text-gray-700 py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'bg-gray-100 cursor-not-allowed' : '' ?>"
-                                <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'disabled' : '' ?>>
+                                class="bg-white border border-gray-300 text-gray-700 py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 <?= (isset($rapportDejaDepose) && $rapportDejaDepose) ? 'bg-gray-100 cursor-not-allowed' : '' ?>"
+                                <?= (isset($rapportDejaDepose) && $rapportDejaDepose) ? 'disabled' : '' ?>>
                                 <option value="Arial, sans-serif">Arial</option>
                                 <option value="Times New Roman, serif">Times New Roman</option>
                                 <option value="Calibri, sans-serif">Calibri</option>
@@ -335,8 +335,8 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
                         </div>
                         <div class="relative">
                             <select id="fontSize"
-                                class="bg-white border border-gray-300 text-gray-700 py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'bg-gray-100 cursor-not-allowed' : '' ?>"
-                                <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'disabled' : '' ?>>
+                                class="bg-white border border-gray-300 text-gray-700 py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 <?= (isset($rapportDejaDepose) && $rapportDejaDepose) ? 'bg-gray-100 cursor-not-allowed' : '' ?>"
+                                <?= (isset($rapportDejaDepose) && $rapportDejaDepose) ? 'disabled' : '' ?>>
                                 <option value="12pt">12pt</option>
                                 <option value="14pt">14pt</option>
                                 <option value="16pt">16pt</option>
@@ -384,7 +384,7 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
 
         // Variable pour gérer l'état de lecture seule
         const isReadOnly =
-            <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'true' : 'false' ?>;
+            <?= (isset($rapportDejaDepose) && $rapportDejaDepose) ? 'true' : 'false' ?>;
 
         let editor;
 

@@ -2,9 +2,9 @@
 require_once __DIR__ . '/../../app/utils/permissions.php';
 
 // Initialisation des variables avec des valeurs par défaut
-$etudiantsInscrits = isset($GLOBALS['etudiantsInscrits']) ? $GLOBALS['etudiantsInscrits'] : [];
-$listeAllEtudiant = $GLOBALS['listeAllEtudiant'];
-$allVersement = $GLOBALS['listeVersement'];
+$etudiantsInscrits = isset($etudiantsInscrits) ? $etudiantsInscrits : [];
+$listeAllEtudiant = $listeAllEtudiant;
+$allVersement = $listeVersement;
 
 // Configuration de la pagination
 $items_par_page = 10; // Nombre d'éléments par page
@@ -92,14 +92,14 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
 
 <body class="font-sans antialiased bg-gray-50">
     <!-- Système de notification -->
-    <?php if (isset($GLOBALS['messageSuccess']) && !empty($GLOBALS['messageSuccess'])): ?>
+    <?php if (isset($messageSuccess) && !empty($messageSuccess)): ?>
     <div id="successNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg flex items-center">
             <div class="flex-shrink-0">
                 <i class="fas fa-check-circle text-green-500 text-xl"></i>
             </div>
             <div class="ml-3">
-                <p class="text-sm font-medium"><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+                <p class="text-sm font-medium"><?= htmlspecialchars($messageSuccess) ?></p>
             </div>
             <button onclick="this.parentElement.parentElement.remove()" class="ml-auto pl-3">
                 <i class="fas fa-times text-green-500 hover:text-green-700"></i>
@@ -108,14 +108,14 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
     </div>
     <?php endif; ?>
 
-    <?php if (isset($GLOBALS['messageErreur']) && !empty($GLOBALS['messageErreur'])): ?>
+    <?php if (isset($messageErreur) && !empty($messageErreur)): ?>
     <div id="errorNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
         <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg flex items-center">
             <div class="flex-shrink-0">
                 <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>
             </div>
             <div class="ml-3">
-                <p class="text-sm font-medium"><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+                <p class="text-sm font-medium"><?= htmlspecialchars($messageErreur) ?></p>
             </div>
             <button onclick="this.parentElement.parentElement.remove()" class="ml-auto pl-3">
                 <i class="fas fa-times text-red-500 hover:text-red-700"></i>
@@ -182,15 +182,15 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                 <div class="bg-white rounded-lg shadow-sm overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h2 class="text-lg font-semibold text-gray-800">
-                            <?php echo isset($GLOBALS['versementAModifier']) ? 'Mettre à jour un versement' : 'Enregistrer un versement'; ?>
+                            <?php echo isset($versementAModifier) ? 'Mettre à jour un versement' : 'Enregistrer un versement'; ?>
                         </h2>
                     </div>
                     <div class="px-6 py-4">
                         <form id="versementsForm" method="POST"
-                            action="?page=gestion_scolarite<?php echo isset($GLOBALS['versementAModifier']) ? '&action=mettre_a_jour_versement' : '&action=enregistrer_versement'; ?>">
-                            <?php if (isset($GLOBALS['versementAModifier'])): ?>
+                            action="?page=gestion_scolarite<?php echo isset($versementAModifier) ? '&action=mettre_a_jour_versement' : '&action=enregistrer_versement'; ?>">
+                            <?php if (isset($versementAModifier)): ?>
                             <input type="hidden" name="id_versement"
-                                value="<?php echo $GLOBALS['versementAModifier']['id_versement']; ?>">
+                                value="<?php echo $versementAModifier['id_versement']; ?>">
                             <?php endif; ?>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
@@ -202,10 +202,10 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                                         <option value="">Sélectionner un étudiant</option>
                                         <?php foreach ($etudiantsInscrits as $etudiant): ?>
                                         <option value="<?php echo $etudiant['id_etudiant']; ?>"
-                                            data-montant-total="<?php echo isset($GLOBALS['montantTotal']) ? $GLOBALS['montantTotal'] : (isset($etudiant['montant_scolarite']) ? $etudiant['montant_scolarite'] : 0); ?>"
-                                            data-montant-paye="<?php echo isset($GLOBALS['montantPaye']) ? $GLOBALS['montantPaye'] : (isset($etudiant['montant_paye']) ? $etudiant['montant_paye'] : 0); ?>"
-                                            data-reste-a-payer="<?php echo isset($GLOBALS['resteAPayer']) ? $GLOBALS['resteAPayer'] : (isset($etudiant['reste_a_payer']) ? $etudiant['reste_a_payer'] : 0); ?>"
-                                            <?php echo (isset($GLOBALS['versementAModifier']) && $GLOBALS['versementAModifier']['id_inscription'] == $etudiant['id_inscription']) ? 'selected' : ''; ?>>
+                                            data-montant-total="<?php echo isset($montantTotal) ? $montantTotal : (isset($etudiant['montant_scolarite']) ? $etudiant['montant_scolarite'] : 0); ?>"
+                                            data-montant-paye="<?php echo isset($montantPaye) ? $montantPaye : (isset($etudiant['montant_paye']) ? $etudiant['montant_paye'] : 0); ?>"
+                                            data-reste-a-payer="<?php echo isset($resteAPayer) ? $resteAPayer : (isset($etudiant['reste_a_payer']) ? $etudiant['reste_a_payer'] : 0); ?>"
+                                            <?php echo (isset($versementAModifier) && $versementAModifier['id_inscription'] == $etudiant['id_inscription']) ? 'selected' : ''; ?>>
                                             <?php echo $etudiant['nom'] . ' ' . $etudiant['prenom']; ?> -
                                             <?php echo $etudiant['nom_niveau']; ?>
                                         </option>
@@ -224,7 +224,7 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                                         <input type="number" id="paymentAmount" name="montant" required
                                             class="block w-full pl-16 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             placeholder="0"
-                                            value="<?php echo isset($GLOBALS['versementAModifier']) ? $GLOBALS['versementAModifier']['montant'] : ''; ?>">
+                                            value="<?php echo isset($versementAModifier) ? $versementAModifier['montant'] : ''; ?>">
                                     </div>
                                 </div>
 
@@ -236,25 +236,25 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                                         class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                                         <option value="">Sélectionner une méthode de paiement</option>
                                         <option value="Espèce"
-                                            <?php echo (isset($GLOBALS['versementAModifier']) && $GLOBALS['versementAModifier']['methode_paiement'] == 'Espèce') ? 'selected' : ''; ?>>
+                                            <?php echo (isset($versementAModifier) && $versementAModifier['methode_paiement'] == 'Espèce') ? 'selected' : ''; ?>>
                                             Espèce</option>
                                         <option value="Carte bancaire"
-                                            <?php echo (isset($GLOBALS['versementAModifier']) && $GLOBALS['versementAModifier']['methode_paiement'] == 'Carte bancaire') ? 'selected' : ''; ?>>
+                                            <?php echo (isset($versementAModifier) && $versementAModifier['methode_paiement'] == 'Carte bancaire') ? 'selected' : ''; ?>>
                                             Carte bancaire</option>
                                         <option value="Virement"
-                                            <?php echo (isset($GLOBALS['versementAModifier']) && $GLOBALS['versementAModifier']['methode_paiement'] == 'Virement') ? 'selected' : ''; ?>>
+                                            <?php echo (isset($versementAModifier) && $versementAModifier['methode_paiement'] == 'Virement') ? 'selected' : ''; ?>>
                                             Virement</option>
                                         <option value="Chèque"
-                                            <?php echo (isset($GLOBALS['versementAModifier']) && $GLOBALS['versementAModifier']['methode_paiement'] == 'Chèque') ? 'selected' : ''; ?>>
+                                            <?php echo (isset($versementAModifier) && $versementAModifier['methode_paiement'] == 'Chèque') ? 'selected' : ''; ?>>
                                             Chèque</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="flex justify-end mt-4">
-                                <?php if (hasPermission('gestion_scolarite', isset($GLOBALS['versementAModifier']) ? 'UPDATE' : 'CREATE')): ?>
+                                <?php if (hasPermission('gestion_scolarite', isset($versementAModifier) ? 'UPDATE' : 'CREATE')): ?>
                                 <button type="submit" id="submitButton"
                                     class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                                    <?php echo isset($GLOBALS['versementAModifier']) ? 'Mettre à jour' : 'Enregistrer'; ?>
+                                    <?php echo isset($versementAModifier) ? 'Mettre à jour' : 'Enregistrer'; ?>
                                 </button>
                                 <?php endif; ?>
                             </div>

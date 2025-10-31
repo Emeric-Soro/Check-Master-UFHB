@@ -200,8 +200,8 @@ $stat_utilisateurs = $stats_utilisateurs ?? ['total' => 0,'actifs' => 0,'inactif
                         </div>
 
                         <div class="space-y-4">
-                            <?php if (isset($GLOBALS['activites_recentes']) && !empty($GLOBALS['activites_recentes'])): ?>
-                                <?php foreach ($GLOBALS['activites_recentes'] as $activite): ?>
+                            <?php if (isset($activites_recentes) && !empty($activites_recentes)): ?>
+                                <?php foreach ($activites_recentes as $activite): ?>
                                     <div class="flex items-start space-x-3">
                                         <div class="flex-shrink-0">
                                             <div class="w-8 h-8 rounded-full <?php echo $activite['type'] === 'utilisateur' ? 'bg-blue-100' : 'bg-green-100'; ?> flex items-center justify-center">

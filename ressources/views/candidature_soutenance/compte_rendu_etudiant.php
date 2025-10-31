@@ -25,7 +25,7 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
             </div>
 
             <?php 
-            $compte_rendu = $GLOBALS['compte_rendu'] ?? null;
+            $compte_rendu = $compte_rendu ?? null;
             if (!$compte_rendu): 
             ?>
                 <div class="text-center py-8">

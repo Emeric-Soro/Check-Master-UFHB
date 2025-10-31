@@ -2,12 +2,12 @@
 require_once __DIR__ . '/../../../app/utils/permissions.php';
 
 // Pour les groupes
-$groupe_a_modifier = $GLOBALS['groupe_a_modifier'] ?? null;
+$groupe_a_modifier = $groupe_a_modifier ?? null;
 // Pour les types/fonctions utilisateurs
-$type_a_modifier = $GLOBALS['type_a_modifier'] ?? null; 
+$type_a_modifier = $type_a_modifier ?? null; 
 
-$listeGroupe = $GLOBALS['listeGroupes'] ?? [];
-$listeType = $GLOBALS['listeTypes'] ?? [];
+$listeGroupe = $listeGroupes ?? [];
+$listeType = $listeTypes ?? [];
 
 // Pagination
 $page = isset($_GET['p']) ? (int)$_GET['p'] : 1;
@@ -185,20 +185,20 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
 
 <body class="bg-gray-50">
     <!-- Système de notification -->
-    <?php if (!empty($GLOBALS['messageSuccess'])): ?>
+    <?php if (!empty($messageSuccess)): ?>
     <div id="successNotification" class="notification success animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+            <p><?= htmlspecialchars($messageSuccess) ?></p>
         </div>
     </div>
     <?php endif; ?>
 
-    <?php if (!empty($GLOBALS['messageErreur'])): ?>
+    <?php if (!empty($messageErreur)): ?>
     <div id="errorNotification" class="notification error animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-exclamation-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+            <p><?= htmlspecialchars($messageErreur) ?></p>
         </div>
     </div>
     <?php endif; ?>
@@ -891,7 +891,7 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
     </script>
 
     <?php
-    unset($GLOBALS['messageErreur'], $GLOBALS['messageSucces']);
+    unset($messageErreur, $messageSucces);
     ?>
 
 </body>

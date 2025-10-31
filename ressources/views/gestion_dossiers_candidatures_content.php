@@ -2,8 +2,8 @@
 require_once __DIR__ . '/../../app/utils/permissions.php';
 
 // Récupérer les données du contrôleur
-$rapportsVerifies = $GLOBALS['rapports_verifies'] ?? [];
-$statistiques = $GLOBALS['statistiques'] ?? ['total' => 0, 'approuves' => 0, 'desapprouves' => 0];
+$rapportsVerifies = $rapports_verifies ?? [];
+$statistiques = $statistiques ?? ['total' => 0, 'approuves' => 0, 'desapprouves' => 0];
 
 // Filtres
 $statutFilter = $_GET['statut'] ?? 'all';

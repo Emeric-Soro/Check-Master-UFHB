@@ -2,13 +2,13 @@
 require_once __DIR__ . '/../../../app/utils/permissions.php';
 
 // Récupération des données
-$listeGroupes = $GLOBALS['listeGroupes'] ?? [];
-$listeTraitements = $GLOBALS['listeTraitements'] ?? [];
-$listeActions = $GLOBALS['listeActions'] ?? [];
-$selectedGroupe = $GLOBALS['selectedGroupe'] ?? null;
-$permissionsGroupe = $GLOBALS['permissionsGroupe'] ?? [];
-$messageSuccess = $GLOBALS['messageSuccess'] ?? '';
-$messageErreur = $GLOBALS['messageErreur'] ?? '';
+$listeGroupes = $listeGroupes ?? [];
+$listeTraitements = $listeTraitements ?? [];
+$listeActions = $listeActions ?? [];
+$selectedGroupe = $selectedGroupe ?? null;
+$permissionsGroupe = $permissionsGroupe ?? [];
+$messageSuccess = $messageSuccess ?? '';
+$messageErreur = $messageErreur ?? '';
 
 // Mapper les actions par ID pour un accès rapide
 $actionsMap = [];

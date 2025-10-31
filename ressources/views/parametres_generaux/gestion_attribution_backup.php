@@ -2,12 +2,12 @@
 require_once __DIR__ . '/../../../app/utils/permissions.php';
 
 // Connexion à la base de données et récupération des données
-$listeGroupes = $GLOBALS['listeGroupes'];
-$listeTraitements = $GLOBALS['listeTraitements'];
-$selectedGroupe = $GLOBALS['selectedGroupe'] ?? null;
-$attributionsGroupe = $GLOBALS['attributionsGroupe'] ?? [];
-$messageSuccess = $GLOBALS['messageSuccess'] ?? '';
-$messageErreur = $GLOBALS['messageErreur'] ?? '';
+$listeGroupes = $listeGroupes;
+$listeTraitements = $listeTraitements;
+$selectedGroupe = $selectedGroupe ?? null;
+$attributionsGroupe = $attributionsGroupe ?? [];
+$messageSuccess = $messageSuccess ?? '';
+$messageErreur = $messageErreur ?? '';
 
 // Gestion de la recherche
 $searchTerm = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -682,13 +682,13 @@ if ($searchType === 'traitement' && !empty($searchTerm)) {
 
     <!-- Passer les attributions à JavaScript -->
     <script>
-    const attributionsMap = <?php echo json_encode($GLOBALS['attributionsMap'] ?? []); ?>;
+    const attributionsMap = <?php echo json_encode($attributionsMap ?? []); ?>;
     </script>
 
     <?php if (isset($_GET['debug']) && $_GET['debug'] === 'attributions'): ?>
     <div class="fixed bottom-4 left-4 p-4 bg-gray-800 text-white rounded-lg text-xs max-w-lg max-h-64 overflow-auto">
         <h4 class="font-bold mb-2">Débug des attributions:</h4>
-        <pre><?php echo json_encode($GLOBALS['attributionsMap'] ?? [], JSON_PRETTY_PRINT); ?></pre>
+        <pre><?php echo json_encode($attributionsMap ?? [], JSON_PRETTY_PRINT); ?></pre>
     </div>
     <?php endif; ?>
 </body>

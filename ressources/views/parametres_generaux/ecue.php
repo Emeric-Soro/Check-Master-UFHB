@@ -2,9 +2,9 @@
 
 require_once __DIR__ . '/../../../app/utils/permissions.php';
 
-$ecue_a_modifier = $GLOBALS['ecue_a_modifier'] ?? null;
-$listeEcues = $GLOBALS['listeEcues'] ?? [];
-$listeUes = $GLOBALS['listeUes'] ?? [];
+$ecue_a_modifier = $ecue_a_modifier ?? null;
+$listeEcues = $listeEcues ?? [];
+$listeUes = $listeUes ?? [];
 
 // Si on est en mode modification, récupérer l'UE correspondante
 if ($ecue_a_modifier) {
@@ -192,20 +192,20 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
 <body class="bg-gray-50">
 
     <!-- Système de notification -->
-    <?php if (!empty($GLOBALS['messageSuccess'])): ?>
+    <?php if (!empty($messageSuccess)): ?>
     <div id="successNotification" class="notification success animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+            <p><?= htmlspecialchars($messageSuccess) ?></p>
         </div>
     </div>
     <?php endif; ?>
 
-    <?php if (!empty($GLOBALS['messageErreur'])): ?>
+    <?php if (!empty($messageErreur)): ?>
     <div id="errorNotification" class="notification error animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-exclamation-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+            <p><?= htmlspecialchars($messageErreur) ?></p>
         </div>
     </div>
     <?php endif; ?>
@@ -282,7 +282,7 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
                             <select id="professeur_responsable" name="professeur_responsable"
                                 class="form-select w-50 px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-green-500 bg-white transition-all duration-200">
                                 <option value="">Sélectionnez un professeur</option>
-                                <?php foreach ($GLOBALS['listeEnseignants'] ?? [] as $enseignant): ?>
+                                <?php foreach ($listeEnseignants ?? [] as $enseignant): ?>
                                 <option value="<?= $enseignant->id_enseignant ?>"
                                     <?= $ecue_a_modifier && $ecue_a_modifier->id_enseignant == $enseignant->id_enseignant ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($enseignant->nom_enseignant . ' ' . $enseignant->prenom_enseignant) ?>

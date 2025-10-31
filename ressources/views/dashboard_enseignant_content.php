@@ -19,10 +19,10 @@ if (!$enseignantId) {
     die("Enseignant non trouvé ou non connecté.");
 }
 
-$total_etudiants = $GLOBALS['total_etudiants'] ?? 0;
-$total_ues = $GLOBALS['total_ues'] ?? 0;
-$total_ecues = $GLOBALS['total_ecues'] ?? 0;
-$mes_cours = $GLOBALS['mes_cours'] ?? [];
+$total_etudiants = $total_etudiants ?? 0;
+$total_ues = $total_ues ?? 0;
+$total_ecues = $total_ecues ?? 0;
+$mes_cours = $mes_cours ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -71,7 +71,7 @@ $mes_cours = $GLOBALS['mes_cours'] ?? [];
                 <i class="fas fa-users text-white text-xl opacity-80"></i>
             </div>
             <div class="text-white text-3xl font-bold mb-2">
-                <?php echo $GLOBALS['total_etudiants'] ?? 0; ?>
+                <?php echo $total_etudiants ?? 0; ?>
             </div>
             <div class="text-white text-xs opacity-80">
                 Étudiants suivant vos UE/ECUE (tous niveaux confondus)
@@ -85,7 +85,7 @@ $mes_cours = $GLOBALS['mes_cours'] ?? [];
                 <i class="fas fa-book text-white text-xl opacity-80"></i>
             </div>
             <div class="text-white text-3xl font-bold mb-2">
-                <?php echo $GLOBALS['total_ues'] ?? 0; ?>
+                <?php echo $total_ues ?? 0; ?>
             </div>
             <div class="text-white text-xs opacity-80">
                 Total UE
@@ -99,7 +99,7 @@ $mes_cours = $GLOBALS['mes_cours'] ?? [];
                 <i class="fas fa-layer-group text-white text-xl opacity-80"></i>
             </div>
             <div class="text-white text-3xl font-bold mb-2">
-                <?php echo $GLOBALS['total_ecues'] ?? 0; ?>
+                <?php echo $total_ecues ?? 0; ?>
             </div>
             <div class="text-white text-xs opacity-80">
                 Total ECUE
@@ -143,10 +143,10 @@ $mes_cours = $GLOBALS['mes_cours'] ?? [];
 <!-- Scripts pour les graphiques -->
 <script>
     // Données pour les graphiques (à remplacer par les vraies données PHP)
-    const evaluationsData = <?php echo json_encode($GLOBALS['evaluations_par_mois'] ?? []); ?>;
-    const typesEvaluationsData = <?php echo json_encode($GLOBALS['types_evaluations'] ?? []); ?>;
-    const etudiantsNiveauData = <?php echo json_encode($GLOBALS['etudiants_par_niveau'] ?? []); ?>;
-    const distributionNotesData = <?php echo json_encode($GLOBALS['distribution_notes'] ?? []); ?>;
+    const evaluationsData = <?php echo json_encode($evaluations_par_mois ?? []); ?>;
+    const typesEvaluationsData = <?php echo json_encode($types_evaluations ?? []); ?>;
+    const etudiantsNiveauData = <?php echo json_encode($etudiants_par_niveau ?? []); ?>;
+    const distributionNotesData = <?php echo json_encode($distribution_notes ?? []); ?>;
 
     // Graphique des évaluations par mois
     const evaluationsCtx = document.getElementById('evaluationsChart').getContext('2d');
@@ -255,10 +255,10 @@ $mes_cours = $GLOBALS['mes_cours'] ?? [];
             labels: ['En attente', 'En cours', 'Validés', 'Rejetés'],
             datasets: [{
                 data: [
-                    <?php echo $GLOBALS['stats_rapports']['rapports_en_attente'] ?? 0; ?>,
-                    <?php echo $GLOBALS['stats_rapports']['rapports_en_cours'] ?? 0; ?>,
-                    <?php echo $GLOBALS['stats_rapports']['rapports_valides'] ?? 0; ?>,
-                    <?php echo $GLOBALS['stats_rapports']['rapports_rejetes'] ?? 0; ?>
+                    <?php echo $stats_rapports['rapports_en_attente'] ?? 0; ?>,
+                    <?php echo $stats_rapports['rapports_en_cours'] ?? 0; ?>,
+                    <?php echo $stats_rapports['rapports_valides'] ?? 0; ?>,
+                    <?php echo $stats_rapports['rapports_rejetes'] ?? 0; ?>
                 ],
                 backgroundColor: [
                     'rgba(251, 191, 36, 0.8)',

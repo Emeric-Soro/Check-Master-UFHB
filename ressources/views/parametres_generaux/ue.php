@@ -1,10 +1,10 @@
 <?php
 require_once __DIR__ . '/../../../app/utils/permissions.php';
 
-$ue_a_modifier = $GLOBALS['ue_a_modifier'] ?? null;
-    $listeAnnees = $GLOBALS['listeAnnees'] ?? [];
-    $listeNiveauxEtude = $GLOBALS['listeNiveauxEtude'] ?? [];
-    $listeSemestres = $GLOBALS['listeSemestres'] ?? [];
+$ue_a_modifier = $ue_a_modifier ?? null;
+    $listeAnnees = $listeAnnees ?? [];
+    $listeNiveauxEtude = $listeNiveauxEtude ?? [];
+    $listeSemestres = $listeSemestres ?? [];
  
     // Pagination
     $page = isset($_GET['p']) ? (int)$_GET['p'] : 1;
@@ -15,7 +15,7 @@ $ue_a_modifier = $GLOBALS['ue_a_modifier'] ?? null;
     $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
 
     // Filter the list based on search
-    $listeUes = $GLOBALS['listeUes'] ?? [];
+    $listeUes = $listeUes ?? [];
     if (!empty($search)) {
         $listeUes = array_filter($listeUes, function($ue) use ($search) {
             return stripos($ue->lib_ue, $search) !== false;
@@ -179,20 +179,20 @@ $ue_a_modifier = $GLOBALS['ue_a_modifier'] ?? null;
 
 <body class="bg-gray-50">
     <!-- Système de notification -->
-    <?php if (!empty($GLOBALS['messageSuccess'])): ?>
+    <?php if (!empty($messageSuccess)): ?>
     <div id="successNotification" class="notification success animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+            <p><?= htmlspecialchars($messageSuccess) ?></p>
         </div>
     </div>
     <?php endif; ?>
 
-    <?php if (!empty($GLOBALS['messageErreur'])): ?>
+    <?php if (!empty($messageErreur)): ?>
     <div id="errorNotification" class="notification error animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-exclamation-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+            <p><?= htmlspecialchars($messageErreur) ?></p>
         </div>
     </div>
     <?php endif; ?>
@@ -250,7 +250,7 @@ $ue_a_modifier = $GLOBALS['ue_a_modifier'] ?? null;
                             <select id="professeur_responsable" name="professeur_responsable"
                                 class="form-select w-2/3 px-3 py-2 border border-gray-300 mb-3 rounded-md focus:outline-4 focus:outline-green-300 focus:ring-green-300 focus:border-green-300 focus:ring-opacity-50 transition-all duration-200">
                                 <option value="">Sélectionnez un professeur</option>
-                                <?php foreach ($GLOBALS['listeEnseignants'] ?? [] as $enseignant): ?>
+                                <?php foreach ($listeEnseignants ?? [] as $enseignant): ?>
                                 <option value="<?= $enseignant->id_enseignant ?>"
                                     <?= $ue_a_modifier && $ue_a_modifier->id_enseignant == $enseignant->id_enseignant ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($enseignant->nom_enseignant . ' ' . $enseignant->prenom_enseignant) ?>

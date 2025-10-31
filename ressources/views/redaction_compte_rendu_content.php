@@ -1,8 +1,8 @@
 <?php
 require_once __DIR__ . '/../../app/utils/permissions.php';
 
-$rapports_valides = $GLOBALS['rapports_valides'] ?? [];
-$enseignants = $GLOBALS['enseignants'] ?? [];
+$rapports_valides = $rapports_valides ?? [];
+$enseignants = $enseignants ?? [];
 $notifType = '';
 $notifMsg = '';
 if (!empty($_SESSION['success'])) {

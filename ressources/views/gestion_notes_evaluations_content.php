@@ -1,11 +1,11 @@
 <?php
 require_once __DIR__ . '/../../app/utils/permissions.php';
 
-$students = $GLOBALS['listeEtudiants'];
-$niveauxEtude = $GLOBALS['niveauxEtude'];
-$selectedNiveau = $GLOBALS['selectedNiveau'];
-$selectedStudent = $GLOBALS['selectedStudent'];
-$studentGrades = $GLOBALS['studentGrades'];
+$students = $listeEtudiants;
+$niveauxEtude = $niveauxEtude;
+$selectedNiveau = $selectedNiveau;
+$selectedStudent = $selectedStudent;
+$studentGrades = $studentGrades;
 
 ?>
 
@@ -135,7 +135,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                 },
                 body: JSON.stringify({
                     semestre: semestre,
-                    etudiant_id: '<?php echo $GLOBALS['selectedStudent']->num_etu; ?>'
+                    etudiant_id: '<?php echo $selectedStudent->num_etu; ?>'
                 })
             })
             .then(response => response.json())
@@ -209,9 +209,9 @@ $studentGrades = $GLOBALS['studentGrades'];
                                 <select id="niveauSelect"
                                     class="block w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                     <option value="">Sélectionner un niveau</option>
-                                    <?php foreach ($GLOBALS['niveaux'] as $niveau): ?>
+                                    <?php foreach ($niveaux as $niveau): ?>
                                     <option value="<?php echo htmlspecialchars($niveau->id_niv_etude); ?>"
-                                        <?php echo $GLOBALS['selectedNiveau'] == $niveau->id_niv_etude ? 'selected' : ''; ?>>
+                                        <?php echo $selectedNiveau == $niveau->id_niv_etude ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($niveau->lib_niv_etude); ?>
                                     </option>
                                     <?php endforeach; ?>
@@ -222,9 +222,9 @@ $studentGrades = $GLOBALS['studentGrades'];
                                 <select id="studentSelect"
                                     class="block w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                     <option value="">Sélectionner un étudiant</option>
-                                    <?php foreach ($GLOBALS['etudiants'] as $etudiant): ?>
+                                    <?php foreach ($etudiants as $etudiant): ?>
                                     <option value="<?php echo htmlspecialchars($etudiant->num_etu); ?>"
-                                        <?php echo isset($GLOBALS['selectedStudent']) && $GLOBALS['selectedStudent']->num_etu == $etudiant->num_etu ? 'selected' : ''; ?>>
+                                        <?php echo isset($selectedStudent) && $selectedStudent->num_etu == $etudiant->num_etu ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($etudiant->nom_etu . ' ' . $etudiant->prenom_etu); ?>
                                     </option>
                                     <?php endforeach; ?>
@@ -234,7 +234,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                     </div>
 
                     <!-- Message initial -->
-                    <?php if (empty($GLOBALS['selectedNiveau'])) { ?>
+                    <?php if (empty($selectedNiveau)) { ?>
                     <div class="text-center py-12 bg-gray-50 rounded-lg">
                         <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
                             <i class="fas fa-graduation-cap text-2xl text-blue-600"></i>
@@ -246,7 +246,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                     <?php } ?>
 
                     <!-- Informations de l'étudiant -->
-                    <?php if (!empty($GLOBALS['selectedStudent'])): ?>
+                    <?php if (!empty($selectedStudent)): ?>
                     <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
                         <div class="flex items-center space-x-4">
                             <div class="flex-shrink-0">
@@ -256,10 +256,10 @@ $studentGrades = $GLOBALS['studentGrades'];
                             </div>
                             <div class="flex-1">
                                 <h3 class="text-xl font-semibold text-gray-900">
-                                    <?php echo htmlspecialchars($GLOBALS['selectedStudent']->nom_etu . ' ' . $GLOBALS['selectedStudent']->prenom_etu); ?>
+                                    <?php echo htmlspecialchars($selectedStudent->nom_etu . ' ' . $selectedStudent->prenom_etu); ?>
                                 </h3>
                                 <p class="text-gray-600">Numéro d'étudiant:
-                                    <?php echo htmlspecialchars($GLOBALS['selectedStudent']->num_etu); ?></p>
+                                    <?php echo htmlspecialchars($selectedStudent->num_etu); ?></p>
                             </div>
                         </div>
                     </div>
@@ -267,16 +267,16 @@ $studentGrades = $GLOBALS['studentGrades'];
 
                     <!-- Semestres et UE -->
                     <div class="space-y-6">
-                        <?php if (!empty($GLOBALS['selectedNiveau'])) { ?>
+                        <?php if (!empty($selectedNiveau)) { ?>
 
                         <form id="saisiForm" class="space-y-6" action="?page=gestion_notes_evaluations<?php 
-                                echo !empty($GLOBALS['selectedNiveau']) ? '&niveau=' . htmlspecialchars($GLOBALS['selectedNiveau']) : '';
-                                echo !empty($GLOBALS['selectedStudent']) ? '&student=' . htmlspecialchars($GLOBALS['selectedStudent']->num_etu) : '';
+                                echo !empty($selectedNiveau) ? '&niveau=' . htmlspecialchars($selectedNiveau) : '';
+                                echo !empty($selectedStudent) ? '&student=' . htmlspecialchars($selectedStudent->num_etu) : '';
                             ?>&action=enregistrer_notes" method="POST">
                             <?php 
                                 $currentSemestre = null;
-                                if (!empty($GLOBALS['studentUes'])) {
-                                    foreach ($GLOBALS['studentUes'] as $ue) {
+                                if (!empty($studentUes)) {
+                                    foreach ($studentUes as $ue) {
                                         if ($currentSemestre !== $ue->lib_semestre) {
                                             if ($currentSemestre !== null) {
                                                 echo '</div></div>';
@@ -285,7 +285,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                                             
                                             // Calculer le total des crédits pour ce semestre
                                             $totalCreditsSemestre = 0;
-                                            foreach ($GLOBALS['studentUes'] as $ueSemestre) {
+                                            foreach ($studentUes as $ueSemestre) {
                                                 if ($ueSemestre->lib_semestre === $currentSemestre) {
                                                     $totalCreditsSemestre += $ueSemestre->credit;
                                                 }
@@ -308,8 +308,8 @@ $studentGrades = $GLOBALS['studentGrades'];
                                         <?php
                                         // Récupérer les ECUE de cette UE
                                         $ecues = [];
-                                        if (!empty($GLOBALS['studentEcues'])) {
-                                            foreach ($GLOBALS['studentEcues'] as $ecue) {
+                                        if (!empty($studentEcues)) {
+                                            foreach ($studentEcues as $ecue) {
                                                 if ($ecue->id_ue == $ue->id_ue) {
                                                     $ecues[] = $ecue;
                                                 }
@@ -334,8 +334,8 @@ $studentGrades = $GLOBALS['studentGrades'];
                                                 echo '<div class="w-24 mx-4">';
                                                 echo '<input type="number" step="0.01" min="0" max="20" name="notes_ecue[' . $ecue->id_ecue . ']" value="';
                                                 $note_ecue = null;
-                                                if (!empty($GLOBALS['studentGrades'])) {
-                                                    foreach ($GLOBALS['studentGrades'] as $grade) {
+                                                if (!empty($studentGrades)) {
+                                                    foreach ($studentGrades as $grade) {
                                                         if ($grade->id_ecue == $ecue->id_ecue) {
                                                             $note_ecue = $grade->moyenne;
                                                             break;
@@ -348,8 +348,8 @@ $studentGrades = $GLOBALS['studentGrades'];
                                                 echo '<div class="flex-1 mx-4">';
                                                 echo '<input type="text" name="commentaires_ecue[' . $ecue->id_ecue . ']" value="';
                                                 $commentaire_ecue = null;
-                                                if (!empty($GLOBALS['studentGrades'])) {
-                                                    foreach ($GLOBALS['studentGrades'] as $grade) {
+                                                if (!empty($studentGrades)) {
+                                                    foreach ($studentGrades as $grade) {
                                                         if ($grade->id_ecue == $ecue->id_ecue) {
                                                             $commentaire_ecue = $grade->commentaire;
                                                             break;
@@ -367,7 +367,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                                             $nb_ecue = 0;
                                             $somme = 0;
                                             foreach ($ecues as $ecue) {
-                                                foreach ($GLOBALS['studentGrades'] as $grade) {
+                                                foreach ($studentGrades as $grade) {
                                                     if ($grade->id_ecue == $ecue->id_ecue && $grade->moyenne !== null) {
                                                         $somme += $grade->moyenne;
                                                         $nb_ecue++;
@@ -388,8 +388,8 @@ $studentGrades = $GLOBALS['studentGrades'];
                                             echo '<div class="w-24 mx-4">';
                                             echo '<input type="number" step="0.01" min="0" max="20" name="notes[' . $ue->id_ue . ']" value="';
                                             $note = null;
-                                            if (!empty($GLOBALS['studentGrades'])) {
-                                                foreach ($GLOBALS['studentGrades'] as $grade) {
+                                            if (!empty($studentGrades)) {
+                                                foreach ($studentGrades as $grade) {
                                                     if ($grade->id_ue == $ue->id_ue) {
                                                         $note = $grade->moyenne;
                                                         break;
@@ -402,8 +402,8 @@ $studentGrades = $GLOBALS['studentGrades'];
                                             echo '<div class="flex-1 mx-4">';
                                             echo '<input type="text" name="commentaires[' . $ue->id_ue . ']" value="';
                                             $commentaire = null;
-                                            if (!empty($GLOBALS['studentGrades'])) {
-                                                foreach ($GLOBALS['studentGrades'] as $grade) {
+                                            if (!empty($studentGrades)) {
+                                                foreach ($studentGrades as $grade) {
                                                     if ($grade->id_ue == $ue->id_ue) {
                                                         $commentaire = $grade->commentaire;
                                                         break;
@@ -447,7 +447,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                     </div>
 
                     <!-- Résumé des notes -->
-                    <?php if (!empty($GLOBALS['selectedStudent'])): ?>
+                    <?php if (!empty($selectedStudent)): ?>
                     <div class="bg-blue-50 rounded-lg p-4 mb-6 mt-4">
                         <div class="flex gap-4 justify-center">
                             <div class="bg-white rounded-lg p-4 shadow-sm">
@@ -456,7 +456,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                                     <?php
                                     $totalNotes = 0;
                                     $totalCredits = 0;
-                                    foreach ($GLOBALS['studentGrades'] as $grade) {
+                                    foreach ($studentGrades as $grade) {
                                         $totalNotes += $grade->moyenne * $grade->credit;
                                         $totalCredits += $grade->credit;
                                     }
@@ -469,7 +469,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                                 <p class="text-2xl font-bold text-blue-600">
                                     <?php
                                     $sumMaj = $credMaj = 0;
-                                    foreach ($GLOBALS['studentGrades'] as $grade) {
+                                    foreach ($studentGrades as $grade) {
                                         if ($grade->credit > 3) {
                                             $sumMaj += $grade->moyenne * $grade->credit;
                                             $credMaj += $grade->credit;
@@ -485,7 +485,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                                 <p class="text-2xl font-bold text-blue-600">
                                     <?php
                                     $sumMin = $credMin = 0;
-                                    foreach ($GLOBALS['studentGrades'] as $grade) {
+                                    foreach ($studentGrades as $grade) {
                                         if ($grade->credit <= 3) {
                                             $sumMin += $grade->moyenne * $grade->credit;
                                             $credMin += $grade->credit;
@@ -507,7 +507,7 @@ $studentGrades = $GLOBALS['studentGrades'];
                                     } else {
                                         // Sinon, somme des crédits des UE validées individuellement
                                         $creditsValides = 0;
-                                        foreach ($GLOBALS['studentGrades'] as $grade) {
+                                        foreach ($studentGrades as $grade) {
                                             if ($grade->moyenne >= 10) {
                                                 $creditsValides += $grade->credit;
                                             }
@@ -528,9 +528,9 @@ $studentGrades = $GLOBALS['studentGrades'];
                     </div>
                     <?php endif; ?>
 
-                    <?php if (!empty($GLOBALS['selectedStudent'])): ?>
+                    <?php if (!empty($selectedStudent)): ?>
                     <div class="flex justify-end mb-4 no-print">
-                        <a href="?page=gestion_notes_evaluations&action=imprimer_releve&student=<?= urlencode($GLOBALS['selectedStudent']->num_etu) ?>&niveau=<?= urlencode($GLOBALS['selectedNiveau']) ?>"
+                        <a href="?page=gestion_notes_evaluations&action=imprimer_releve&student=<?= urlencode($selectedStudent->num_etu) ?>&niveau=<?= urlencode($selectedNiveau) ?>"
                             target="_blank" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
                             <i class="fa fa-file-pdf mr-2"></i> Imprimer le relevé de notes (PDF)
                         </a>

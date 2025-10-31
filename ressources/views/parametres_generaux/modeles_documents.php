@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/../../../app/utils/permissions.php';
 
-$templates = $GLOBALS['templates'] ?? [];
-$messageSuccess = $GLOBALS['messageSuccess'] ?? '';
-$messageErreur = $GLOBALS['messageErreur'] ?? '';
+$templates = $templates ?? [];
+$messageSuccess = $messageSuccess ?? '';
+$messageErreur = $messageErreur ?? '';
 ?>
 
 <!DOCTYPE html>

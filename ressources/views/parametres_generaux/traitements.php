@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../app/utils/permissions.php';
 
-$traitement_a_modifier = $GLOBALS['traitement_a_modifier'] ?? null;
+$traitement_a_modifier = $traitement_a_modifier ?? null;
 
 // Pagination
 $page = isset($_GET['p']) ? (int)$_GET['p'] : 1;
@@ -12,7 +12,7 @@ $offset = ($page - 1) * $limit;
 $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
 
 // Filter the list based on search
-$listeTraitements = $GLOBALS['listeTraitements'] ?? [];
+$listeTraitements = $listeTraitements ?? [];
 if (!empty($search)) {
     $listeTraitements = array_filter($listeTraitements, function($traitement) use ($search) {
         return stripos($traitement->lib_traitement, $search) !== false;
@@ -167,20 +167,20 @@ $listeTraitements = array_slice($listeTraitements, $offset, $limit);
 
 <body class="bg-gray-50">
     <!-- Système de notification -->
-    <?php if (!empty($GLOBALS['messageSuccess'])): ?>
+    <?php if (!empty($messageSuccess)): ?>
     <div id="successNotification" class="notification success animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+            <p><?= htmlspecialchars($messageSuccess) ?></p>
         </div>
     </div>
     <?php endif; ?>
 
-    <?php if (!empty($GLOBALS['messageErreur'])): ?>
+    <?php if (!empty($messageErreur)): ?>
     <div id="errorNotification" class="notification error animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-exclamation-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+            <p><?= htmlspecialchars($messageErreur) ?></p>
         </div>
     </div>
     <?php endif; ?>

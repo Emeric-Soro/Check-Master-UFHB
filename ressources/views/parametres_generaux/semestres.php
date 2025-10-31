@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../app/utils/permissions.php';
 
-$semestre_a_modifier = $GLOBALS['semestre_a_modifier'] ?? null;
+$semestre_a_modifier = $semestre_a_modifier ?? null;
 
 // Pagination
 $page = isset($_GET['p']) ? (int)$_GET['p'] : 1;
@@ -12,7 +12,7 @@ $offset = ($page - 1) * $limit;
 $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
 
 // Filter the list based on search
-$listeSemestres = $GLOBALS['listeSemestres'] ?? [];
+$listeSemestres = $listeSemestres ?? [];
 if (!empty($search)) {
     $listeSemestres = array_filter($listeSemestres, function($semestre) use ($search) {
         return stripos($semestre->lib_semestre, $search) !== false;
@@ -167,20 +167,20 @@ $listeSemestres = array_slice($listeSemestres, $offset, $limit);
 
 <body class="bg-gray-50">
     <!-- Système de notification -->
-    <?php if (!empty($GLOBALS['messageSuccess'])): ?>
+    <?php if (!empty($messageSuccess)): ?>
     <div id="successNotification" class="notification success animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+            <p><?= htmlspecialchars($messageSuccess) ?></p>
         </div>
     </div>
     <?php endif; ?>
 
-    <?php if (!empty($GLOBALS['messageErreur'])): ?>
+    <?php if (!empty($messageErreur)): ?>
     <div id="errorNotification" class="notification error animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-exclamation-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+            <p><?= htmlspecialchars($messageErreur) ?></p>
         </div>
     </div>
     <?php endif; ?>
@@ -222,7 +222,7 @@ $listeSemestres = array_slice($listeSemestres, $offset, $limit);
                             <select id="niveau_etude" name="niveau_etude" required
                                 class="form-select w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-4 focus:outline-green-300 focus:ring-green-300 focus:border-green-300 focus:ring-opacity-50 transition-all duration-200">
                                 <option value="">Sélectionnez un niveau</option>
-                                <?php foreach ($GLOBALS['listeNiveauxEtude'] as $niveau): ?>
+                                <?php foreach ($listeNiveauxEtude as $niveau): ?>
                                 <option value="<?= $niveau->id_niv_etude ?>"
                                     <?= $semestre_a_modifier && $semestre_a_modifier->id_niv_etude == $niveau->id_niv_etude ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($niveau->lib_niv_etude) ?>

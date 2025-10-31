@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../app/utils/permissions.php';
 
-$annee_a_modifier = $GLOBALS['annee_a_modifier'] ?? null;
+$annee_a_modifier = $annee_a_modifier ?? null;
 
 
 // Pagination
@@ -13,7 +13,7 @@ $offset = ($page - 1) * $limit;
 $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
 
 // Filter the list based on search
-$listeAnnees = $GLOBALS['listeAnnees'] ?? [];
+$listeAnnees = $listeAnnees ?? [];
 if (!empty($search)) {
     $listeAnnees = array_filter($listeAnnees, function($annee) use ($search) {
         $anneeStr = date('Y', strtotime($annee->date_deb)) . '-' . date('Y', strtotime($annee->date_fin));
@@ -169,20 +169,20 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
 
 <body class="bg-gray-50">
     <!-- Système de notification -->
-    <?php if (!empty($GLOBALS['messageSuccess'])): ?>
+    <?php if (!empty($messageSuccess)): ?>
     <div id="successNotification" class="notification success animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+            <p><?= htmlspecialchars($messageSuccess) ?></p>
         </div>
     </div>
     <?php endif; ?>
 
-    <?php if (!empty($GLOBALS['messageErreur'])): ?>
+    <?php if (!empty($messageErreur)): ?>
     <div id="errorNotification" class="notification error animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-exclamation-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+            <p><?= htmlspecialchars($messageErreur) ?></p>
         </div>
     </div>
     <?php endif; ?>

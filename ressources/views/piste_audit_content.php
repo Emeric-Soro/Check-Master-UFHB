@@ -29,7 +29,7 @@ function getActionColor($action) {
             return 'bg-gray-100 text-gray-800';
     }
 }
-$auditLog = $GLOBALS['auditLog'];
+$auditLog = $auditLog;
 ?>
 <!DOCTYPE html>
 <html lang="fr">

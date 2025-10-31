@@ -1,22 +1,22 @@
 <?php
 require_once __DIR__ . '/../../../app/utils/permissions.php';
 
-$listeEtudiants = $GLOBALS['listeEtudiants'] ?? [];
-$etudiant_a_modifier = $GLOBALS['etudiant_a_modifier'] ?? null;
-$modalAction = $GLOBALS['modalAction'] ?? '';
+$listeEtudiants = $listeEtudiants ?? [];
+$etudiant_a_modifier = $etudiant_a_modifier ?? null;
+$modalAction = $modalAction ?? '';
 $showModal = isset($_GET['modalAction']) && ($_GET['modalAction'] === 'edit' || $_GET['modalAction'] === 'add');
 
 // Pagination
-$currentPage = $GLOBALS['currentPage'] ?? 1;
-$itemsPerPage = $GLOBALS['itemsPerPage'] ?? 10;
-$totalItems = $GLOBALS['totalItems'] ?? 0;
-$totalPages = $GLOBALS['totalPages'] ?? 0;
-$startIndex = $GLOBALS['startIndex'] ?? 0;
-$endIndex = $GLOBALS['endIndex'] ?? 0;
-$currentPageItems = $GLOBALS['listeEtudiants'] ?? [];
+$currentPage = $currentPage ?? 1;
+$itemsPerPage = $itemsPerPage ?? 10;
+$totalItems = $totalItems ?? 0;
+$totalPages = $totalPages ?? 0;
+$startIndex = $startIndex ?? 0;
+$endIndex = $endIndex ?? 0;
+$currentPageItems = $listeEtudiants ?? [];
 
 // Récupérer tous les étudiants pour la recherche
-$allEtudiants = $GLOBALS['allEtudiants'] ?? [];
+$allEtudiants = $allEtudiants ?? [];
 
 ?>
 
@@ -34,7 +34,7 @@ $allEtudiants = $GLOBALS['allEtudiants'] ?? [];
 <body class="bg-gray-50">
     <div class="relative container mx-auto px-4 py-8">
         <!-- Système de notification -->
-        <?php if (!empty($GLOBALS['messageSuccess'])): ?>
+        <?php if (!empty($messageSuccess)): ?>
         <div id="successNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
             <div
                 class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg flex items-center">
@@ -42,7 +42,7 @@ $allEtudiants = $GLOBALS['allEtudiants'] ?? [];
                     <i class="fas fa-check-circle text-green-500 text-xl"></i>
                 </div>
                 <div class="ml-3">
-                    <p class="text-sm font-medium"><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+                    <p class="text-sm font-medium"><?= htmlspecialchars($messageSuccess) ?></p>
                 </div>
                 <button onclick="this.parentElement.parentElement.remove()" class="ml-auto pl-3">
                     <i class="fas fa-times text-green-500 hover:text-green-700"></i>
@@ -51,14 +51,14 @@ $allEtudiants = $GLOBALS['allEtudiants'] ?? [];
         </div>
         <?php endif; ?>
 
-        <?php if (!empty($GLOBALS['messageErreur'])): ?>
+        <?php if (!empty($messageErreur)): ?>
         <div id="errorNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
             <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg flex items-center">
                 <div class="flex-shrink-0">
                     <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>
                 </div>
                 <div class="ml-3">
-                    <p class="text-sm font-medium"><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+                    <p class="text-sm font-medium"><?= htmlspecialchars($messageErreur) ?></p>
                 </div>
                 <button onclick="this.parentElement.parentElement.remove()" class="ml-auto pl-3">
                     <i class="fas fa-times text-red-500 hover:text-red-700"></i>
@@ -363,7 +363,7 @@ $allEtudiants = $GLOBALS['allEtudiants'] ?? [];
                     </div>
                     <div class="flex flex-wrap justify-center gap-2">
                         <?php if ($currentPage > 1): ?>
-                        <a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=<?= $currentPage - 1 ?><?= !empty($GLOBALS['searchTerm']) ? '&search=' . urlencode($GLOBALS['searchTerm']) : '' ?>"
+                        <a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=<?= $currentPage - 1 ?><?= !empty($searchTerm) ? '&search=' . urlencode($searchTerm) : '' ?>"
                             class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
                             <i class="fas fa-chevron-left mr-1"></i>Précédent
                         </a>
@@ -374,14 +374,14 @@ $allEtudiants = $GLOBALS['allEtudiants'] ?? [];
                         $end = min($totalPages, $currentPage + 2);
                         
                         if ($start > 1) {
-                            echo '<a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=1' . (!empty($GLOBALS['searchTerm']) ? '&search=' . urlencode($GLOBALS['searchTerm']) : '') . '" class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">1</a>';
+                            echo '<a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=1' . (!empty($searchTerm) ? '&search=' . urlencode($searchTerm) : '') . '" class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">1</a>';
                             if ($start > 2) {
                                 echo '<span class="px-3 py-2 text-gray-500">...</span>';
                             }
                         }
                         
                         for ($i = $start; $i <= $end; $i++):
-                            $searchParam = !empty($GLOBALS['searchTerm']) ? '&search=' . urlencode($GLOBALS['searchTerm']) : '';
+                            $searchParam = !empty($searchTerm) ? '&search=' . urlencode($searchTerm) : '';
                         ?>
                         <a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=<?= $i ?><?= $searchParam ?>"
                             class="btn-hover px-3 py-2 <?= $i === $currentPage ? 'bg-green-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50' ?> border border-gray-300 rounded-lg text-sm font-medium">
@@ -393,13 +393,13 @@ $allEtudiants = $GLOBALS['allEtudiants'] ?? [];
                             if ($end < $totalPages - 1) {
                                 echo '<span class="px-3 py-2 text-gray-500">...</span>';
                             }
-                            $searchParam = !empty($GLOBALS['searchTerm']) ? '&search=' . urlencode($GLOBALS['searchTerm']) : '';
+                            $searchParam = !empty($searchTerm) ? '&search=' . urlencode($searchTerm) : '';
                             echo '<a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=' . $totalPages . $searchParam . '" class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">' . $totalPages . '</a>';
                         }
                         ?>
 
                         <?php if ($currentPage < $totalPages): ?>
-                        <a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=<?= $currentPage + 1 ?><?= !empty($GLOBALS['searchTerm']) ? '&search=' . urlencode($GLOBALS['searchTerm']) : '' ?>"
+                        <a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=<?= $currentPage + 1 ?><?= !empty($searchTerm) ? '&search=' . urlencode($searchTerm) : '' ?>"
                             class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
                             Suivant<i class="fas fa-chevron-right ml-1"></i>
                         </a>
@@ -414,7 +414,7 @@ $allEtudiants = $GLOBALS['allEtudiants'] ?? [];
     // Initialisation au chargement de la page
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('searchInput');
-        const searchTerm = '<?= $GLOBALS['searchTerm'] ?? '' ?>';
+        const searchTerm = '<?= $searchTerm ?? '' ?>';
         const deleteButton = document.getElementById('deleteButton');
 
         // Désactiver le bouton de suppression par défaut

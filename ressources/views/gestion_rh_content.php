@@ -10,19 +10,19 @@ if (!in_array($activeTab, ['pers_admin', 'enseignant'])) { // Valider la valeur 
 
 
 // Récupération des messages depuis le contrôleur
-$messageErreur = $GLOBALS['messageErreur'] ?? '';
-$messageSuccess = $GLOBALS['messageSuccess'] ?? '';
+$messageErreur = $messageErreur ?? '';
+$messageSuccess = $messageSuccess ?? '';
 
 // Récupération des données depuis le contrôleur
-$personnel_admin = $GLOBALS['listePersAdmin'] ?? [];
-$enseignants = $GLOBALS['listeEnseignants'] ?? [];
-$listeGrades = $GLOBALS['listeGrades'] ?? [];
-$listeFonctions = $GLOBALS['listeFonctions'] ?? [];
-$listeSpecialites = $GLOBALS['listeSpecialites'] ?? [];
+$personnel_admin = $listePersAdmin ?? [];
+$enseignants = $listeEnseignants ?? [];
+$listeGrades = $listeGrades ?? [];
+$listeFonctions = $listeFonctions ?? [];
+$listeSpecialites = $listeSpecialites ?? [];
 
 // Récupération des données pour édition
-$pers_admin_a_modifier = $GLOBALS['pers_admin_a_modifier'] ?? null;
-$enseignant_a_modifier = $GLOBALS['enseignant_a_modifier'] ?? null;
+$pers_admin_a_modifier = $pers_admin_a_modifier ?? null;
+$enseignant_a_modifier = $enseignant_a_modifier ?? null;
 
 // Gestion des actions CRUD
 $action = $_GET['action'] ?? '';

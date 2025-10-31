@@ -2,13 +2,13 @@
 require_once __DIR__ . '/../../app/utils/permissions.php';
 
 // Récupération des données depuis le contrôleur
-$etudiant = $GLOBALS['etudiant'] ?? null;
-$moyenneGenerale = $GLOBALS['moyenneGenerale'] ?? null;
-$nbUeValide = $GLOBALS['nbUeValide'] ?? 0;
-$classement = $GLOBALS['classement'] ?? null;
-$totalEtudiants = $GLOBALS['totalEtudiants'] ?? 0;
-$notes = $GLOBALS['notes'] ?? [];
-$semestres = $GLOBALS['semestres'] ?? [];
+$etudiant = $etudiant ?? null;
+$moyenneGenerale = $moyenneGenerale ?? null;
+$nbUeValide = $nbUeValide ?? 0;
+$classement = $classement ?? null;
+$totalEtudiants = $totalEtudiants ?? 0;
+$notes = $notes ?? [];
+$semestres = $semestres ?? [];
 
 ?>
 

@@ -1,11 +1,11 @@
 <?php
 require_once __DIR__ . '/../../app/utils/permissions.php';
 
-$stage_info = isset($GLOBALS['stage_info']) ? $GLOBALS['stage_info'] : [];
-$compte_rendu = isset($GLOBALS['compte_rendu']) ? $GLOBALS['compte_rendu'] : [];
-$has_candidature = isset($GLOBALS['has_candidature']) ? $GLOBALS['has_candidature'] : false;
-$candidature = isset($GLOBALS['candidature']) ? $GLOBALS['candidature'] : null;
-$candidatures_etudiant = isset($GLOBALS['candidatures_etudiant']) ? $GLOBALS['candidatures_etudiant'] : [];
+$stage_info = isset($stage_info) ? $stage_info : [];
+$compte_rendu = isset($compte_rendu) ? $compte_rendu : [];
+$has_candidature = isset($has_candidature) ? $has_candidature : false;
+$candidature = isset($candidature) ? $candidature : null;
+$candidatures_etudiant = isset($candidatures_etudiant) ? $candidatures_etudiant : [];
 $disableCandidature = empty($stage_info);
 foreach ($candidatures_etudiant as $cand) {
     if (in_array($cand['statut_candidature'], ['En attente', 'Validée'])) {

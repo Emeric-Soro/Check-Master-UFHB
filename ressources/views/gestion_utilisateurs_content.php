@@ -1,17 +1,17 @@
 <?php
 require_once __DIR__ . '/../../app/utils/permissions.php';
 
-$utilisateur_a_modifier = $GLOBALS['utilisateur_a_modifier'];
+$utilisateur_a_modifier = $utilisateur_a_modifier;
 $showModal = isset($_GET['action']) && ($_GET['action'] === 'edit' || $_GET['action'] === 'add' || $_GET['action'] === 'addMasse');
 
-$utilisateurs = $GLOBALS['utilisateurs'] ?? [];
-$niveau_acces = $GLOBALS['niveau_acces'];
-$types_utilisateur =$GLOBALS['types_utilisateur'];
-$groupes_utilisateur =$GLOBALS['groupes_utilisateur'] ;
+$utilisateurs = $utilisateurs ?? [];
+$niveau_acces = $niveau_acces;
+$types_utilisateur =$types_utilisateur;
+$groupes_utilisateur =$groupes_utilisateur ;
 
 
 // Calculer les statistiques sur l'ensemble des utilisateurs
-$allUtilisateurs = $GLOBALS['utilisateurs'] ?? [];
+$allUtilisateurs = $utilisateurs ?? [];
 $totalUtilisateurs = count($allUtilisateurs);
 $utilisateursActifs = count(array_filter($allUtilisateurs, function($u) { return $u->statut_utilisateur === 'Actif'; }));
 $utilisateursInactifs = $totalUtilisateurs - $utilisateursActifs;
@@ -192,22 +192,22 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
 <body class="bg-gray-50">
 
     <!-- Container pour les notifications -->
-    <?php if (!empty($GLOBALS['messageSuccess']) || !empty($GLOBALS['messageErreur'])): ?>
+    <?php if (!empty($messageSuccess) || !empty($messageErreur)): ?>
     <div class="fixed top-4 right-4 z-50 space-y-4">
-    <?php if (!empty($GLOBALS['messageSuccess'])): ?>
+    <?php if (!empty($messageSuccess)): ?>
         <div class="notification success animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+            <p><?= htmlspecialchars($messageSuccess) ?></p>
         </div>
     </div>
     <?php endif; ?>
 
-    <?php if (!empty($GLOBALS['messageErreur'])): ?>
+    <?php if (!empty($messageErreur)): ?>
         <div class="notification error animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-exclamation-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+            <p><?= htmlspecialchars($messageErreur) ?></p>
         </div>
         </div>
         <?php endif; ?>
@@ -1509,9 +1509,9 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                     const checkForMessages = setInterval(() => {
                         console.log('Checking for messages...');
                         const successMessage =
-                            <?= json_encode($GLOBALS['messageSuccess'] ?? '') ?>;
+                            <?= json_encode($messageSuccess ?? '') ?>;
                         const errorMessage =
-                            <?= json_encode($GLOBALS['messageErreur'] ?? '') ?>;
+                            <?= json_encode($messageErreur ?? '') ?>;
 
                         if (successMessage || errorMessage) {
                             console.log('Message found:', successMessage || errorMessage);

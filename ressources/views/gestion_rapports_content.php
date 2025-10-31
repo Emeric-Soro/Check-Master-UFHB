@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../app/utils/permissions.php';
 
 // Initialiser les variables globales
-$infosDepot = isset($GLOBALS['infosDepot']) ? $GLOBALS['infosDepot'] : [];
+$infosDepot = isset($infosDepot) ? $infosDepot : [];
 
 // Vérifier si l'étudiant a une candidature validée
 $candidature_validee = false;
@@ -10,7 +10,7 @@ $message_candidature = '';
 
 if (isset($_SESSION['num_etu'])) {
     // Récupérer le statut de candidature de l'étudiant
-    $candidatures_etudiant = isset($GLOBALS['candidatures_etudiant']) ? $GLOBALS['candidatures_etudiant'] : [];
+    $candidatures_etudiant = isset($candidatures_etudiant) ? $candidatures_etudiant : [];
     
     foreach ($candidatures_etudiant as $candidature) {
         if ($candidature['statut_candidature'] === 'Validée') {

@@ -2,9 +2,9 @@
 require_once __DIR__ . '/../../app/utils/permissions.php';
 
 // Récupérer les données des rapports depuis le contrôleur
-$rapports = $GLOBALS['rapports'] ?? [];
-$nbRapports = $GLOBALS['nbRapports'] ?? 0;
-$statsRapports = $GLOBALS['statsRapports'] ?? [];
+$rapports = $rapports ?? [];
+$nbRapports = $nbRapports ?? 0;
+$statsRapports = $statsRapports ?? [];
 
 // Charger le modèle Approuver si disponible
 require_once __DIR__ . '/../../app/models/Approuver.php';

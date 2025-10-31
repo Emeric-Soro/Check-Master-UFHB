@@ -3,11 +3,11 @@ require_once __DIR__ . '/../../app/utils/permissions.php';
 
 // NOTE : Ce fichier utilise un endpoint AJAX 'resume_candidature_ajax.php' à créer pour charger dynamiquement le résumé de candidature depuis la base.
 // Récupérer les données du contrôleur
-$candidatures = $GLOBALS['candidatures_soutenance'] ?? [];
-$examiner = $GLOBALS['examiner'] ?? null;
-$etape = $GLOBALS['etape'] ?? 1;
-$etudiantData = $GLOBALS['etudiantData'] ?? null;
-$etapeData = $GLOBALS['etapeData'] ?? null;
+$candidatures = $candidatures_soutenance ?? [];
+$examiner = $examiner ?? null;
+$etape = $etape ?? 1;
+$etudiantData = $etudiantData ?? null;
+$etapeData = $etapeData ?? null;
 
 // Démarrer la session pour accéder aux étapes validées/rejetées
 if (session_status() === PHP_SESSION_NONE) {

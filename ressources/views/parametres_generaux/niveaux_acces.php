@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../app/utils/permissions.php';
 
-$niveau_a_modifier = $GLOBALS['niveau_a_modifier'] ?? null;
+$niveau_a_modifier = $niveau_a_modifier ?? null;
 // Pagination
 $page = isset($_GET['p']) ? (int)$_GET['p'] : 1;
 $limit = 10;
@@ -11,7 +11,7 @@ $offset = ($page - 1) * $limit;
 $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
 
 // Filter the list based on search
-$listeNiveaux = $GLOBALS['listeNiveaux'] ?? [];
+$listeNiveaux = $listeNiveaux ?? [];
 if (!empty($search)) {
     $listeNiveaux = array_filter($listeNiveaux, function($niveau_acces) use ($search) {
         return stripos($niveau_acces->lib_niv_acces, $search) !== false;
@@ -172,20 +172,20 @@ $listeNiveaux = array_slice($listeNiveaux, $offset, $limit);
 
 <body class="bg-gray-50">
     <!-- Système de notification -->
-    <?php if (!empty($GLOBALS['messageSuccess'])): ?>
+    <?php if (!empty($messageSuccess)): ?>
     <div id="successNotification" class="notification success animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+            <p><?= htmlspecialchars($messageSuccess) ?></p>
         </div>
     </div>
     <?php endif; ?>
 
-    <?php if (!empty($GLOBALS['messageErreur'])): ?>
+    <?php if (!empty($messageErreur)): ?>
     <div id="errorNotification" class="notification error animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-exclamation-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+            <p><?= htmlspecialchars($messageErreur) ?></p>
         </div>
     </div>
     <?php endif; ?>
@@ -400,7 +400,7 @@ $listeNiveaux = array_slice($listeNiveaux, $offset, $limit);
     </div>
 
     <?php
-    unset($GLOBALS['messageErreur'], $GLOBALS['messageSucces']);
+    unset($messageErreur, $messageSucces);
     ?>
 
     <!-- Modale de confirmation de suppression -->

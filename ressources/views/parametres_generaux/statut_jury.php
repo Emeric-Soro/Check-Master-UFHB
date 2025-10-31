@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../app/utils/permissions.php';
 
-$statut_a_modifier = $GLOBALS['statut_a_modifier'] ?? null;
+$statut_a_modifier = $statut_a_modifier ?? null;
 
 // Pagination
 $page = isset($_GET['p']) ? (int)$_GET['p'] : 1;
@@ -12,7 +12,7 @@ $offset = ($page - 1) * $limit;
 $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
 
 // Filter the list based on search
-$listeStatuts = $GLOBALS['listeStatuts'] ?? [];
+$listeStatuts = $listeStatuts ?? [];
 if (!empty($search)) {
     $listeStatuts = array_filter($listeStatuts, function($statut) use ($search) {
         return stripos($statut->lib_jury, $search) !== false;
@@ -168,20 +168,20 @@ $listeStatuts = array_slice($listeStatuts, $offset, $limit);
 <body class="bg-gray-100">
 
     <!-- Système de notification -->
-    <?php if (!empty($GLOBALS['messageSuccess'])): ?>
+    <?php if (!empty($messageSuccess)): ?>
     <div id="successNotification" class="notification success animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+            <p><?= htmlspecialchars($messageSuccess) ?></p>
         </div>
     </div>
     <?php endif; ?>
 
-    <?php if (!empty($GLOBALS['messageErreur'])): ?>
+    <?php if (!empty($messageErreur)): ?>
     <div id="errorNotification" class="notification error animate__animated animate__fadeIn">
         <div class="flex items-center">
             <i class="fas fa-exclamation-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+            <p><?= htmlspecialchars($messageErreur) ?></p>
         </div>
     </div>
     <?php endif; ?>
@@ -416,7 +416,7 @@ $listeStatuts = array_slice($listeStatuts, $offset, $limit);
     </div>
 
     <?php
-    unset($GLOBALS['messageErreur'], $GLOBALS['messageSucces']);
+    unset($messageErreur, $messageSucces);
     ?>
 
     <!-- Modale de confirmation de suppression -->

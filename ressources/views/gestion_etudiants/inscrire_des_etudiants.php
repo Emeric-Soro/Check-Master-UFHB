@@ -2,10 +2,10 @@
 require_once __DIR__ . '/../../../app/utils/permissions.php';
 
 // Utilisation des variables globales au lieu d'appeler directement la base de données
-$etudiantsNonInscrits = isset($GLOBALS['etudiantsNonInscrits']) ? $GLOBALS['etudiantsNonInscrits'] : [];
-$niveaux = isset($GLOBALS['niveaux']) ? $GLOBALS['niveaux'] : [];
-$etudiantsInscrits = isset($GLOBALS['etudiantsInscrits']) ? $GLOBALS['etudiantsInscrits'] : [];
-$listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
+$etudiantsNonInscrits = isset($etudiantsNonInscrits) ? $etudiantsNonInscrits : [];
+$niveaux = isset($niveaux) ? $niveaux : [];
+$etudiantsInscrits = isset($etudiantsInscrits) ? $etudiantsInscrits : [];
+$listeAnnees = isset($listeAnnees) ? $listeAnnees : [];
 ?>
 
 <!DOCTYPE html>
@@ -176,22 +176,22 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
     <div class="container mx-auto px-4 py-8">
         <div id="messageContainer"></div>
 
-        <?php if (isset($GLOBALS['messageSuccess']) && !empty($GLOBALS['messageSuccess'])): ?>
+        <?php if (isset($messageSuccess) && !empty($messageSuccess)): ?>
         <div id="successMessage"
             class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4 animate-fade-in"
             role="alert">
-            <span class="block sm:inline"><?php echo $GLOBALS['messageSuccess']; ?></span>
+            <span class="block sm:inline"><?php echo $messageSuccess; ?></span>
         </div>
-        <?php unset($GLOBALS['messageSuccess']); ?>
+        <?php unset($messageSuccess); ?>
         <?php endif; ?>
 
-        <?php if (isset($GLOBALS['messageErreur']) && !empty($GLOBALS['messageErreur'])): ?>
+        <?php if (isset($messageErreur) && !empty($messageErreur)): ?>
         <div id="errorMessage"
             class="bg-green-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 animate-fade-in"
             role="alert">
-            <span class="block sm:inline"><?php echo $GLOBALS['messageErreur']; ?></span>
+            <span class="block sm:inline"><?php echo $messageErreur; ?></span>
         </div>
-        <?php unset($GLOBALS['messageErreur']); ?>
+        <?php unset($messageErreur); ?>
         <?php endif; ?>
 
         <!-- Formulaire d'inscription -->
@@ -204,13 +204,13 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
             <div class="p-6">
                 <form id="inscriptionForm" method="POST" action="?page=gestion_etudiants&action=inscrire_des_etudiants">
                     <input type="hidden" name="modalAction"
-                        value="<?php echo isset($GLOBALS['inscriptionAModifier']) ? 'modifier' : 'inscrire'; ?>">
-                    <?php if (isset($GLOBALS['inscriptionAModifier'])): ?>
+                        value="<?php echo isset($inscriptionAModifier) ? 'modifier' : 'inscrire'; ?>">
+                    <?php if (isset($inscriptionAModifier)): ?>
                     <input type="hidden" name="id_inscription"
-                        value="<?php echo $GLOBALS['inscriptionAModifier']['id_inscription']; ?>">
+                        value="<?php echo $inscriptionAModifier['id_inscription']; ?>">
                     <?php endif; ?>
                     <!-- Hidden montant_paye (somme des paiements à ce jour) -->
-                    <input type="hidden" id="montant_paye" name="montant_paye" value="<?php echo isset($GLOBALS['inscriptionAModifier']) ? (floatval($GLOBALS['inscriptionAModifier']['montant_paye']) ?? 0) : 0; ?>">
+                    <input type="hidden" id="montant_paye" name="montant_paye" value="<?php echo isset($inscriptionAModifier) ? (floatval($inscriptionAModifier['montant_paye']) ?? 0) : 0; ?>">
                     <!-- Section Année académique -->
                     <div
                         class="mb-8 border border-gray-200 rounded-lg bg-gray-50 p-6 transition-all duration-300 ease-in-out hover:shadow-md">
@@ -230,7 +230,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                     <option value="">Choisir une année académique...</option>
                                     <?php foreach ($listeAnnees as $annee): ?>
                                     <option value="<?php echo $annee->id_annee_acad; ?>"
-                                        <?php echo (isset($GLOBALS['inscriptionAModifier']) && $GLOBALS['inscriptionAModifier']['id_annee_acad'] == $annee->id_annee_acad) ? 'selected' : ''; ?>>
+                                        <?php echo (isset($inscriptionAModifier) && $inscriptionAModifier['id_annee_acad'] == $annee->id_annee_acad) ? 'selected' : ''; ?>>
                                         <?php echo date('Y', strtotime($annee->date_deb)) . ' - ' . date('Y', strtotime($annee->date_fin)); ?>
                                     </option>
                                     <?php endforeach; ?>
@@ -253,11 +253,11 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                 <select
                                     class="w-full h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-green-500 focus:shadow-sm hover:-translate-y-0.5"
                                     id="etudiant" name="etudiant"
-                                    <?php echo (isset($GLOBALS['inscriptionAModifier']) && isset($_GET['id'])) ? '' : 'required'; ?>>
+                                    <?php echo (isset($inscriptionAModifier) && isset($_GET['id'])) ? '' : 'required'; ?>>
                                     <option value="">Choisir un étudiant...</option>
                                     <?php foreach ($etudiantsNonInscrits as $etudiant): ?>
                                     <option value="<?php echo $etudiant['num_etu']; ?>"
-                                        <?php echo (isset($GLOBALS['inscriptionAModifier']) && $GLOBALS['inscriptionAModifier']['id_etudiant'] == $etudiant['num_etu']) ? 'selected' : ''; ?>>
+                                        <?php echo (isset($inscriptionAModifier) && $inscriptionAModifier['id_etudiant'] == $etudiant['num_etu']) ? 'selected' : ''; ?>>
                                         <?php echo $etudiant['num_etu'] . ' - ' . $etudiant['nom_etu'] . ' ' . $etudiant['prenom_etu']; ?>
                                     </option>
                                     <?php endforeach; ?>
@@ -274,7 +274,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                     <option value="<?php echo $niveau['id_niv_etude']; ?>"
                                         data-montant-total="<?php echo $niveau['montant_scolarite']; ?>"
                                         data-montant-inscription="<?php echo $niveau['montant_inscription']; ?>"
-                                        <?php echo (isset($GLOBALS['inscriptionAModifier']) && $GLOBALS['inscriptionAModifier']['id_niveau'] == $niveau['id_niv_etude']) ? 'selected' : ''; ?>>
+                                        <?php echo (isset($inscriptionAModifier) && $inscriptionAModifier['id_niveau'] == $niveau['id_niv_etude']) ? 'selected' : ''; ?>>
                                         <?php echo $niveau['lib_niv_etude']; ?> -
                                         <?php echo number_format($niveau['montant_scolarite'], 2); ?> FCFA
                                     </option>
@@ -298,7 +298,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                 <input type="text" required
                                     class="w-full h-10 border pl-3 border-gray-300 rounded-md bg-gray-100 transition-all duration-300 ease-in-out outline-none"
                                     id="num_etu" name="num_etu"
-                                    value="<?php echo isset($GLOBALS['etudiantInfo']['num_etu']) ? htmlspecialchars($GLOBALS['etudiantInfo']['num_etu']) : ''; ?>"
+                                    value="<?php echo isset($etudiantInfo['num_etu']) ? htmlspecialchars($etudiantInfo['num_etu']) : ''; ?>"
                                     readonly>
                             </div>
                             <div>
@@ -306,7 +306,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                 <input type="text"
                                     class="w-full pl-3 h-10 border border-gray-300 rounded-md bg-gray-100 transition-all duration-300 ease-in-out outline-none"
                                     id="nom_etu" name="nom_etu" required
-                                    value="<?php echo isset($GLOBALS['etudiantInfo']['nom_etu']) ? htmlspecialchars($GLOBALS['etudiantInfo']['nom_etu']) : ''; ?>"
+                                    value="<?php echo isset($etudiantInfo['nom_etu']) ? htmlspecialchars($etudiantInfo['nom_etu']) : ''; ?>"
                                     readonly>
                             </div>
                             <div>
@@ -314,7 +314,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                 <input type="text"
                                     class="w-full pl-3 h-10 border border-gray-300 rounded-md bg-gray-100 transition-all duration-300 ease-in-out outline-none"
                                     id="prenom_etu" name="prenom_etu" required
-                                    value="<?php echo isset($GLOBALS['etudiantInfo']['prenom_etu']) ? htmlspecialchars($GLOBALS['etudiantInfo']['prenom_etu']) : ''; ?>"
+                                    value="<?php echo isset($etudiantInfo['prenom_etu']) ? htmlspecialchars($etudiantInfo['prenom_etu']) : ''; ?>"
                                     readonly>
                             </div>
                         </div>
@@ -336,7 +336,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                     <input type="text"
                                         class="w-full pl-3 h-10 border border-gray-300 rounded-md bg-gray-100 transition-all duration-300 ease-in-out outline-none"
                                         id="montant_total" readonly
-                                        value="<?php echo isset($GLOBALS['inscriptionAModifier']) ? number_format($GLOBALS['inscriptionAModifier']['montant_total'] ?? $GLOBALS['inscriptionAModifier']['montant_scolarite'] ?? 0, 0, ',', ' ') : ''; ?>">
+                                        value="<?php echo isset($inscriptionAModifier) ? number_format($inscriptionAModifier['montant_total'] ?? $inscriptionAModifier['montant_scolarite'] ?? 0, 0, ',', ' ') : ''; ?>">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-600 mb-1">Premier
@@ -344,7 +344,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                     <input type="number"
                                         class="w-full pl-3 h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-green-500 focus:shadow-sm hover:-translate-y-0.5"
                                         id="premier_versement" name="premier_versement" required
-                                        value="<?php echo isset($GLOBALS['inscriptionAModifier']) ? $GLOBALS['inscriptionAModifier']['montant_premier_versement'] : ''; ?>">
+                                        value="<?php echo isset($inscriptionAModifier) ? $inscriptionAModifier['montant_premier_versement'] : ''; ?>">
                                 </div>
                             </div>
                             <div
@@ -354,7 +354,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                     <input type="text"
                                         class="w-full pl-3 h-10 border border-gray-300 rounded-md bg-gray-100 transition-all duration-300 ease-in-out outline-none"
                                         id="reste_payer" name="reste_payer" readonly
-                                        value="<?php echo isset($GLOBALS['inscriptionAModifier']) ? number_format($GLOBALS['inscriptionAModifier']['reste_a_payer'] ?? 0, 0, ',', ' ') : ''; ?>">
+                                        value="<?php echo isset($inscriptionAModifier) ? number_format($inscriptionAModifier['reste_a_payer'] ?? 0, 0, ',', ' ') : ''; ?>">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-600 mb-1">Nombre de
@@ -363,16 +363,16 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                         class="w-full h-10 border border-gray-300 rounded-md transition-all duration-300 ease-in-out outline-none focus:border-green-500 focus:shadow-sm hover:-translate-y-0.5"
                                         id="nombre_tranches" name="nombre_tranches">
                                         <option value="1"
-                                            <?php echo (isset($GLOBALS['inscriptionAModifier']) && $GLOBALS['inscriptionAModifier']['nombre_tranche'] == 1) ? 'selected' : ''; ?>>
+                                            <?php echo (isset($inscriptionAModifier) && $inscriptionAModifier['nombre_tranche'] == 1) ? 'selected' : ''; ?>>
                                             1 tranche</option>
                                         <option value="2"
-                                            <?php echo (isset($GLOBALS['inscriptionAModifier']) && $GLOBALS['inscriptionAModifier']['nombre_tranche'] == 2) ? 'selected' : ''; ?>>
+                                            <?php echo (isset($inscriptionAModifier) && $inscriptionAModifier['nombre_tranche'] == 2) ? 'selected' : ''; ?>>
                                             2 tranches</option>
                                         <option value="3"
-                                            <?php echo (isset($GLOBALS['inscriptionAModifier']) && $GLOBALS['inscriptionAModifier']['nombre_tranche'] == 3) ? 'selected' : ''; ?>>
+                                            <?php echo (isset($inscriptionAModifier) && $inscriptionAModifier['nombre_tranche'] == 3) ? 'selected' : ''; ?>>
                                             3 tranches</option>
                                         <option value="4"
-                                            <?php echo (isset($GLOBALS['inscriptionAModifier']) && $GLOBALS['inscriptionAModifier']['nombre_tranche'] == 4) ? 'selected' : ''; ?>>
+                                            <?php echo (isset($inscriptionAModifier) && $inscriptionAModifier['nombre_tranche'] == 4) ? 'selected' : ''; ?>>
                                             4 tranches</option>
                                     </select>
                                 </div>
@@ -384,23 +384,23 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                         id="methode_paiement" name="methode_paiement" required>
                                         <option value="">Sélectionner une méthode de paiement</option>
                                         <option value="Espèce"
-                                            <?php echo (isset($GLOBALS['inscriptionAModifier']) && isset($GLOBALS['inscriptionAModifier']['methode_paiement']) && $GLOBALS['inscriptionAModifier']['methode_paiement'] == 'Espèce') ? 'selected' : ''; ?>>
+                                            <?php echo (isset($inscriptionAModifier) && isset($inscriptionAModifier['methode_paiement']) && $inscriptionAModifier['methode_paiement'] == 'Espèce') ? 'selected' : ''; ?>>
                                             Espèce</option>
                                         <option value="Carte bancaire"
-                                            <?php echo (isset($GLOBALS['inscriptionAModifier']) && isset($GLOBALS['inscriptionAModifier']['methode_paiement']) && $GLOBALS['inscriptionAModifier']['methode_paiement'] == 'Carte bancaire') ? 'selected' : ''; ?>>
+                                            <?php echo (isset($inscriptionAModifier) && isset($inscriptionAModifier['methode_paiement']) && $inscriptionAModifier['methode_paiement'] == 'Carte bancaire') ? 'selected' : ''; ?>>
                                             Carte bancaire</option>
                                         <option value="Virement"
-                                            <?php echo (isset($GLOBALS['inscriptionAModifier']) && isset($GLOBALS['inscriptionAModifier']['methode_paiement']) && $GLOBALS['inscriptionAModifier']['methode_paiement'] == 'Virement') ? 'selected' : ''; ?>>
+                                            <?php echo (isset($inscriptionAModifier) && isset($inscriptionAModifier['methode_paiement']) && $inscriptionAModifier['methode_paiement'] == 'Virement') ? 'selected' : ''; ?>>
                                             Virement</option>
                                         <option value="Chèque"
-                                            <?php echo (isset($GLOBALS['inscriptionAModifier']) && isset($GLOBALS['inscriptionAModifier']['methode_paiement']) && $GLOBALS['inscriptionAModifier']['methode_paiement'] == 'Chèque') ? 'selected' : ''; ?>>
+                                            <?php echo (isset($inscriptionAModifier) && isset($inscriptionAModifier['methode_paiement']) && $inscriptionAModifier['methode_paiement'] == 'Chèque') ? 'selected' : ''; ?>>
                                             Chèque</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <?php if(isset($GLOBALS['inscriptionAModifier'])) : ?>
+                    <?php if(isset($inscriptionAModifier)) : ?>
                     <div class="flex justify-between">
                         <button type="button" name="btn_annuler_insciption" id="btnAnnuler"
                             onclick="window.location.href='?page=gestion_etudiants&action=inscrire_des_etudiants'"
