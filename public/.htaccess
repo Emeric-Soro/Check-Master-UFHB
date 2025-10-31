@@ -1,7 +1,8 @@
 RewriteEngine On
-RewriteBase /
+RewriteBase /public/
 
-# Si le fichier ou le répertoire n'existe pas, rediriger vers index.php
+# Redirect to index.php if file or directory doesn't exist
+# This allows static assets (CSS, JS, images) to be served directly
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]
+RewriteRule ^(.*)$ index.php [QSA,L]
