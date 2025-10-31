@@ -38,6 +38,7 @@ class RedactionCompteRenduController {
             }
 
             require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+            require_once __DIR__ . '/../utils/DatabaseService.php';
             
             try {
                 // Préparer les données pour le template
@@ -65,25 +66,11 @@ class RedactionCompteRenduController {
                 // Nettoyer le fichier temporaire
                 $documentService->cleanupTempFile($pdfPath);
 
-                // Enregistrement en BD
-                $id_CR = CompteRendu::creer($num_etu, $nom_CR, $contenu_CR, $chemin_pdf, $date_CR, $rapports);
+                // Use DatabaseService for better transaction handling
+                $dbService = new DatabaseService();
+                $id_CR = $dbService->saveMinutes($num_etu, $nom_CR, $contenu_CR, $chemin_pdf, $date_CR, $rapports, $encadrants, $directeurs);
+                
                 if ($id_CR) {
-                    // Enregistrement des affectations encadrant/directeur
-                    $pdo = \Database::getConnection();
-                    foreach ($rapports as $id_rapport) {
-                        // Encadrant pédagogique
-                        if (!empty($encadrants[$id_rapport])) {
-                            $id_enseignant = $encadrants[$id_rapport];
-                            $stmt = $pdo->prepare("INSERT INTO affecter (id_enseignant, id_rapport, id_jury, role) VALUES (?, ?, NULL, 'encadrant')");
-                            $stmt->execute([$id_enseignant, $id_rapport]);
-                        }
-                        // Directeur de mémoire
-                        if (!empty($directeurs[$id_rapport])) {
-                            $id_enseignant = $directeurs[$id_rapport];
-                            $stmt = $pdo->prepare("INSERT INTO affecter (id_enseignant, id_rapport, id_jury, role) VALUES (?, ?, NULL, 'directeur')");
-                            $stmt->execute([$id_enseignant, $id_rapport]);
-                        }
-                    }
                     $_SESSION['success'] = 'Compte rendu enregistré avec succès !';
                     // Envoi d'un email à chaque étudiant concerné
                     require_once __DIR__ . '/../models/RapportEtudiant.php';

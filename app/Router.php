@@ -334,77 +334,25 @@ class Router
      */
     public function handleSpecialActions($page)
     {
-        // Handle PDF generation for gestion_etudiants
+        // Load PDF Generator Service for all PDF actions
+        require_once __DIR__ . '/utils/PdfGeneratorService.php';
+        $pdfService = new PdfGeneratorService();
+        
+        // Handle PDF generation for gestion_etudiants (inscription receipts)
         if ($page === 'gestion_etudiants' && isset($_GET['modalAction']) && $_GET['modalAction'] === 'imprimer_recu' && isset($_GET['id_inscription'])) {
-            require_once __DIR__ . '/../vendor/autoload.php';
-            $id_inscription = $_GET['id_inscription'];
-            ob_start();
-            include __DIR__ . '/../ressources/views/gestion_etudiants/recu_inscription.php';
-            $html = ob_get_clean();
-            
-            if (class_exists('\Dompdf\Options')) {
-                $options = new \Dompdf\Options();
-                $options->set('isRemoteEnabled', true);
-                $dompdf = new Dompdf\Dompdf($options);
-            } else {
-                $dompdf = new Dompdf\Dompdf();
-            }
-            
-            $publicPath = realpath(__DIR__ . '/../public');
-            if ($publicPath) {
-                $dompdf->setBasePath($publicPath);
-            }
-            
-            $dompdf->loadHtml($html);
-            $dompdf->setPaper('A4', 'landscape');
-            $dompdf->render();
-            $dompdf->stream("recu_paiement_" . $id_inscription . ".pdf", array("Attachment" => false));
+            $pdfService->generateReceipt(intval($_GET['id_inscription']), 'inscription');
             exit;
         }
 
-        // Handle PDF generation for gestion_scolarite
+        // Handle PDF generation for gestion_scolarite (payment receipts)
         if ($page === 'gestion_scolarite' && isset($_GET['action']) && $_GET['action'] === 'imprimer_recu' && isset($_GET['id'])) {
-            require_once __DIR__ . '/../vendor/autoload.php';
-            $id_versement = $_GET['id'];
-            ob_start();
-            include __DIR__ . '/../ressources/views/recu_versement.php';
-            $html = ob_get_clean();
-            
-            if (class_exists('\Dompdf\Options')) {
-                $options = new \Dompdf\Options();
-                $options->set('isRemoteEnabled', true);
-                $dompdf = new Dompdf\Dompdf($options);
-            } else {
-                $dompdf = new Dompdf\Dompdf();
-            }
-            
-            $publicPath = realpath(__DIR__ . '/../public');
-            if ($publicPath) {
-                $dompdf->setBasePath($publicPath);
-            }
-            
-            $dompdf->loadHtml($html);
-            $dompdf->setPaper('A4', 'landscape');
-            $dompdf->render();
-            $dompdf->stream("recu_paiement_" . $id_versement . ".pdf", array("Attachment" => false));
+            $pdfService->generateReceipt(intval($_GET['id']), 'versement');
             exit;
         }
 
-        // Handle PDF generation for gestion_notes_evaluations
+        // Handle PDF generation for gestion_notes_evaluations (transcripts)
         if ($page === 'gestion_notes_evaluations' && isset($_GET['action']) && $_GET['action'] === 'imprimer_releve' && isset($_GET['student']) && isset($_GET['niveau'])) {
-            require_once __DIR__ . '/../vendor/autoload.php';
-            $id_etudiant = $_GET['student'];
-            $niveau = $_GET['niveau'];
-            ob_start();
-            include __DIR__ . '/../ressources/views/releve_notes.php';
-            $html = ob_get_clean();
-            
-            $dompdf = new Dompdf\Dompdf();
-            $dompdf->setBasePath(__DIR__ . '/../public/images/');
-            $dompdf->loadHtml($html);
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-            $dompdf->stream("releve_notes_" . $id_etudiant . "_" . $niveau . ".pdf", array("Attachment" => false));
+            $pdfService->generateTranscript(intval($_GET['student']), $_GET['niveau']);
             exit;
         }
 
