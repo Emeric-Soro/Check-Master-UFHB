@@ -26,8 +26,10 @@ class GestionCandidaturesController {
     }
     
     public function index() {
-        
-        $GLOBALS['candidatures_soutenance'] = $this->etudiant->getAllCandidature();
+        // Retourner les données pour la vue
+        return [
+            'candidatures_soutenance' => $this->etudiant->getAllCandidature()
+        ];
     }
 
     // Méthode pour gérer l'examen d'une candidature
@@ -182,11 +184,13 @@ class GestionCandidaturesController {
             }
         }
 
-        // Passer les données à la vue
-        $GLOBALS['examiner'] = $examiner;
-        $GLOBALS['etape'] = $etape;
-        $GLOBALS['etudiantData'] = $etudiantData;
-        $GLOBALS['etapeData'] = $etapeData;
+        // Retourner les données pour la vue
+        return [
+            'examiner' => $examiner,
+            'etape' => $etape,
+            'etudiantData' => $etudiantData,
+            'etapeData' => $etapeData
+        ];
     }
 
     

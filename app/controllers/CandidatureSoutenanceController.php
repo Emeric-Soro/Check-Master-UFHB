@@ -40,29 +40,33 @@ class CandidatureSoutenanceController {
                     $this->demande_candidature();
                     break;
                 case 'compte_rendu_etudiant':
-                    $this->compteRenduRapport();
-                    break;
+                    return $this->compteRenduRapport();
                 case 'info_stage':
                     $this->infoStage();
                     break;
             }
         }
+        
+        // Préparer les données pour la vue
+        $data = [];
+        
         // Récupérer les informations du stage de l'étudiant connecté
         $stage_info = $this->stage->getStageInfo($_SESSION['num_etu']);
-        $GLOBALS['stage_info'] = $stage_info;
+        $data['stage_info'] = $stage_info;
 
         //Vérifier si l'étudiant a un compte rendu
         $compte_rendu = $this->etudiant->getCompteRendu($_SESSION['num_etu']);
-        $GLOBALS['compte_rendu'] = $compte_rendu;
+        $data['compte_rendu'] = $compte_rendu;
 
         // Vérifier si l'étudiant a déjà soumis une candidature
         $candidature = $this->etudiant->getCandidature($_SESSION['num_etu']);
-        $GLOBALS['has_candidature'] = !empty($candidature);
+        $data['has_candidature'] = !empty($candidature);
 
         // Charger toutes les candidatures de l'étudiant
         $candidatures_etudiant = $this->etudiant->getCandidatures($_SESSION['num_etu']);
-        $GLOBALS['candidatures_etudiant'] = $candidatures_etudiant;
-      
+        $data['candidatures_etudiant'] = $candidatures_etudiant;
+        
+        return $data;
     }
 
     
@@ -113,13 +117,13 @@ class CandidatureSoutenanceController {
         $etudiant_id = $_SESSION['num_etu'];
         $compte_rendu = $this->etudiant->getCompteRendu($etudiant_id);
         
-        // Mettre la variable dans les GLOBALS pour qu'elle soit accessible dans la vue
-        $GLOBALS['compte_rendu'] = $compte_rendu;
-        
         if (!$compte_rendu) {
             $_SESSION['error'] = "Aucun compte rendu disponible pour le moment. Veuillez patienter jusqu'à ce que la commission d'évaluation ait examiné votre dossier.";
             $this->auditLog->logCreation($_SESSION['id_utilisateur'], "candidature_soutenance", "Erreur");
         }
+        
+        // Retourner les données pour la vue
+        return ['compte_rendu' => $compte_rendu];
     }
 
       //=============================ENREGISTRER/ MODIFIER LES INFOS DE STAGE =============================

@@ -14,6 +14,7 @@ class GestionRapportController {
 
     private $etudiant;
     private $auditLog;
+    private $baseData = [];
 
     public function __construct()
     {
@@ -31,13 +32,11 @@ class GestionRapportController {
 
         // Les variables sont déjà définies par votre AuthController
         // Pas besoin de les redéfinir, juste s'assurer qu'elles existent
-        $this->verifierVariablesSession();
+        $this->baseData = $this->verifierVariablesSession();
     }
 
     private function verifierVariablesSession()
     {
-
-        $GLOBALS['candidatures_etudiant'] = $this->etudiant->getCandidatures($_SESSION['num_etu']);
         // Vérifier que les variables nécessaires sont présentes
         if (!isset($_SESSION['type_utilisateur'])) {
             throw new Exception("Variables de session manquantes. Veuillez vous reconnecter.");
@@ -47,6 +46,11 @@ class GestionRapportController {
         if ($_SESSION['type_utilisateur'] === 'Etudiant' && !isset($_SESSION['num_etu'])) {
             throw new Exception("Numéro étudiant manquant. Veuillez vous reconnecter.");
         }
+        
+        // Retourner les données de base
+        return [
+            'candidatures_etudiant' => $this->etudiant->getCandidatures($_SESSION['num_etu'])
+        ];
     }
 
     private function isEtudiant()
@@ -151,18 +155,17 @@ class GestionRapportController {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->traiterCreationRapport();
         } else {
-            global $rapport, $erreurs, $isEditMode, $contenuRapport;
-
             $edit_id = $_GET['edit'] ?? null;
             $rapport = null;
             $isEditMode = false;
             $contenuRapport = '';
+            $rapportDejaDepose = false;
 
             if ($edit_id) {
                 // Vérifier que l'utilisateur est un étudiant
                 if (!$this->isEtudiant()) {
                     $this->afficherErreur("Accès non autorisé.");
-                    return;
+                    return $this->baseData;
                 }
 
                 // Récupérer le rapport
@@ -171,13 +174,13 @@ class GestionRapportController {
 
                 if (!$rapport) {
                     $this->afficherErreur("Rapport non trouvé.");
-                    return;
+                    return $this->baseData;
                 }
 
                 // Vérifier que le rapport appartient à l'étudiant connecté
                 if ($rapport['num_etu'] != $_SESSION['num_etu']) {
                     $this->afficherErreur("Accès non autorisé à ce rapport.");
-                    return;
+                    return $this->baseData;
                 }
 
                 // Vérifier si le rapport a déjà été déposé
@@ -185,8 +188,8 @@ class GestionRapportController {
                 $stmt->execute([$_SESSION['num_etu'], $edit_id]);
                 $dejaDepose = $stmt->fetchColumn() > 0;
 
-                // Passer l'information à la vue
-                $GLOBALS['rapportDejaDepose'] = $dejaDepose;
+                // Stocker l'information pour la vue
+                $rapportDejaDepose = $dejaDepose;
 
                 // Charger le contenu du rapport
                 $fichierContenu = __DIR__ . "/../../ressources/uploads/rapports/rapport_{$edit_id}.html";
@@ -201,7 +204,14 @@ class GestionRapportController {
             $erreurs = $_SESSION['erreurs_form'] ?? [];
             unset($_SESSION['erreurs_form']);
 
-            // Les données sont maintenant disponibles globalement pour la vue
+            // Retourner les données pour la vue
+            return array_merge($this->baseData, [
+                'rapport' => $rapport,
+                'erreurs' => $erreurs,
+                'isEditMode' => $isEditMode,
+                'contenuRapport' => $contenuRapport,
+                'rapportDejaDepose' => $rapportDejaDepose
+            ]);
         }
     }
 
