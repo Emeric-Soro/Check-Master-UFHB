@@ -129,9 +129,6 @@ class CriteresEvaluationController
         try {
             $input = json_decode(file_get_contents('php://input'), true);
 
-            // Debug : log des données reçues
-            error_log("Données reçues pour création critère: " . print_r($input, true));
-
             if (!isset($input['libelle']) || empty(trim($input['libelle']))) {
                 throw new Exception('Le libellé du critère est requis');
             }

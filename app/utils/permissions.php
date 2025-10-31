@@ -112,8 +112,6 @@ function loadUserPermissions($db, $id_GU)
         // Stocker dans la session
         $_SESSION['permissions'] = $permissions;
         
-        error_log("Permissions chargées pour le groupe $id_GU: " . print_r($permissions, true));
-        
         return true;
     } catch (PDOException $e) {
         error_log("Erreur lors du chargement des permissions: " . $e->getMessage());

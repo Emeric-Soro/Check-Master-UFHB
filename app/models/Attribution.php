@@ -52,9 +52,6 @@ class Attribution{
             $stmt->execute([':id_GU' => $id_GU]);
             $result = $stmt->fetchAll(PDO::FETCH_OBJ);
             
-            // Debug
-            error_log("Traitements pour le groupe $id_GU: " . print_r($result, true));
-            
             return $result;
         } catch (PDOException $e) {
             error_log("Erreur dans getTraitementsByGroupe: " . $e->getMessage());

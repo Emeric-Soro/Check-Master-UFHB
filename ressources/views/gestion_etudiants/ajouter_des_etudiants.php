@@ -18,15 +18,6 @@ $currentPageItems = $GLOBALS['listeEtudiants'] ?? [];
 // Récupérer tous les étudiants pour la recherche
 $allEtudiants = $GLOBALS['allEtudiants'] ?? [];
 
-// Debug pour vérifier les valeurs
-error_log("View - Current Page: " . $currentPage);
-error_log("View - Total Pages: " . $totalPages);
-error_log("View - Total Items: " . $totalItems);
-error_log("View - Start Index: " . $startIndex);
-error_log("View - End Index: " . $endIndex);
-error_log("View - Items Per Page: " . $itemsPerPage);
-error_log("View - Current Page Items Count: " . count($currentPageItems));
-error_log("View - All Etudiants Count: " . count($allEtudiants));
 ?>
 
 <!DOCTYPE html>

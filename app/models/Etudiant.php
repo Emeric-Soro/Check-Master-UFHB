@@ -243,11 +243,6 @@ class Etudiant {
             $stmt_debug->execute([':num_etu' => $numEtu]);
             $debug_notes = $stmt_debug->fetchAll(PDO::FETCH_ASSOC);
             
-            error_log("DEBUG - Étudiant $numEtu - Niveau: $id_niveau - Notes trouvées: " . count($debug_notes));
-            foreach ($debug_notes as $note) {
-                error_log("DEBUG - Note: {$note['moyenne']}, UE: {$note['lib_ue']}, Niveau UE: {$note['id_niveau_etude']}, Année UE: {$note['id_annee_academique']}");
-            }
-            
             // Calculer la moyenne (version simplifiée pour debug)
             $sql_moyenne = "SELECT AVG(n.moyenne) as moyenne 
                            FROM notes n 
@@ -257,8 +252,6 @@ class Etudiant {
             $stmt_moyenne = $this->db->prepare($sql_moyenne);
             $stmt_moyenne->execute([':num_etu' => $numEtu]);
             $result = $stmt_moyenne->fetch(PDO::FETCH_ASSOC);
-            
-            error_log("DEBUG - Moyenne calculée: " . ($result['moyenne'] ?? 'NULL'));
             
             // Récupérer le total des crédits du niveau
             $sql_total_credits = "SELECT SUM(u.credit) as total_credits
