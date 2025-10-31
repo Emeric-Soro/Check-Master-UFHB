@@ -27,11 +27,15 @@ class GestionDossiersCandidaturesController {
     public function index() {
         // Récupérer l'historique des rapports vérifiés (approuvés ou désapprouvés)
         $rapportsVerifies = $this->getRapportsVerifies();
-        $GLOBALS['rapports_verifies'] = $rapportsVerifies;
         
         // Récupérer les statistiques
         $statistiques = $this->getStatistiques();
-        $GLOBALS['statistiques'] = $statistiques;
+        
+        // Retourner les données pour la vue
+        return [
+            'rapports_verifies' => $rapportsVerifies,
+            'statistiques' => $statistiques
+        ];
     }
 
     private function getRapportsVerifies() {

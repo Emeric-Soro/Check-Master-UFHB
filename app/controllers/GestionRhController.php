@@ -174,15 +174,17 @@ class GestionRhController
         }
        
 
-        // Variables communes pour toutes les vues
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
-        $GLOBALS['pers_admin_a_modifier'] = $pers_admin_a_modifier;;
-        $GLOBALS['enseignant_a_modifier'] = $enseignant_a_modifier;
-        $GLOBALS['listeEnseignants'] = $this->enseignantModel->getAllEnseignants();
-        $GLOBALS['listePersAdmin'] = $this->persAdminModel->getAllPersAdmin();
-        $GLOBALS['listeGrades'] = $this->gradeModel->getAllGrades();
-        $GLOBALS['listeFonctions'] = $this->fonctionModel->getAllFonctions();
-        $GLOBALS['listeSpecialites'] = $this->specialiteModel->getAllSpecialites();
+        // Retourner les données pour la vue
+        return [
+            'messageErreur' => $messageErreur,
+            'messageSuccess' => $messageSuccess,
+            'pers_admin_a_modifier' => $pers_admin_a_modifier,
+            'enseignant_a_modifier' => $enseignant_a_modifier,
+            'listeEnseignants' => $this->enseignantModel->getAllEnseignants(),
+            'listePersAdmin' => $this->persAdminModel->getAllPersAdmin(),
+            'listeGrades' => $this->gradeModel->getAllGrades(),
+            'listeFonctions' => $this->fonctionModel->getAllFonctions(),
+            'listeSpecialites' => $this->specialiteModel->getAllSpecialites()
+        ];
     }
 }

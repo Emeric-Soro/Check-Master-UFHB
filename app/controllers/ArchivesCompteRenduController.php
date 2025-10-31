@@ -22,13 +22,15 @@ class ArchivesCompteRenduController {
         $totalArchives = CompteRendu::getAllArchives(null, 0, $search, $year);
         $totalPages = ceil(count($totalArchives) / $limit);
         
-        // Passer les données à la vue
-        $GLOBALS['archives'] = $archives;
-        $GLOBALS['stats'] = $stats;
-        $GLOBALS['currentPage'] = $page;
-        $GLOBALS['totalPages'] = $totalPages;
-        $GLOBALS['search'] = $search;
-        $GLOBALS['year'] = $year;
+        // Préparer les données pour la vue
+        return [
+            'archives' => $archives,
+            'stats' => $stats,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'search' => $search,
+            'year' => $year
+        ];
     }
     
     public function viewArchive() {
@@ -48,7 +50,7 @@ class ArchivesCompteRenduController {
             exit;
         }
         
-        $GLOBALS['archive'] = $archive;
+        return ['archive' => $archive];
     }
     
     public function deleteArchive() {

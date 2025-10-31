@@ -32,19 +32,23 @@ class VerificationRapportsController
             // Récupérer les rapports déposés depuis la table deposer
             $rapports = $this->rapportModel->getRapportsDeposes();
 
-            // Passer les données à la vue via les variables globales
-            $GLOBALS['rapports'] = $rapports;
-            $GLOBALS['nbRapports'] = count($rapports);
-
             // Statistiques des rapports par statut
             $stats = $this->getStatsRapports();
-            $GLOBALS['statsRapports'] = $stats;
+            
+            // Retourner les données pour la vue
+            return [
+                'rapports' => $rapports,
+                'nbRapports' => count($rapports),
+                'statsRapports' => $stats
+            ];
 
         } catch (Exception $e) {
             error_log("Erreur lors de la récupération des rapports: " . $e->getMessage());
-            $GLOBALS['rapports'] = [];
-            $GLOBALS['nbRapports'] = 0;
-            $GLOBALS['statsRapports'] = [];
+            return [
+                'rapports' => [],
+                'nbRapports' => 0,
+                'statsRapports' => []
+            ];
         }
     }
 
