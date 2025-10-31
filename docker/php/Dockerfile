@@ -9,12 +9,13 @@ RUN apt-get update && apt-get install -y \
     unzip \
     curl \
     libcurl4-openssl-dev \
+    libzip-dev \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Configurer et installer les extensions PHP requises
 RUN docker-php-ext-configure gd --with-jpeg --with-freetype \
-    && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql mysqli curl
+    && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql mysqli curl zip
 
 # Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
