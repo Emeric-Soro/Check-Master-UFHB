@@ -38,64 +38,81 @@ class RedactionCompteRenduController {
                 exit;
             }
 
-            // TEST MINIMAL POUR LES IMAGES
-            $html = '<html><head><meta charset="UTF-8"></head><body>' . $contenu_CR . '</body></html>';
-            $dompdf = new Dompdf();
-            $dompdf->loadHtml($html);
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-            $output = $dompdf->output();
+            require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+            
+            try {
+                // Préparer les données pour le template
+                $templateData = [
+                    'nom_CR' => $nom_CR,
+                    'date_CR' => date('d/m/Y H:i', strtotime($date_CR)),
+                    'contenu_CR' => $contenu_CR
+                ];
+                
+                // Utiliser DocumentGeneratorService
+                $documentService = new DocumentGeneratorService();
+                $pdfPath = $documentService->generateFromTemplate('compte_rendu', $templateData);
+                
+                // Lire le contenu du PDF
+                $output = file_get_contents($pdfPath);
+                
+                // Sauvegarde du PDF
+                $pdf_dir = __DIR__ . '/../../ressources/uploads/comptes_rendus/';
+                if (!is_dir($pdf_dir)) mkdir($pdf_dir, 0777, true);
+                $pdf_name = 'CR_' . date('Ymd_His') . '.pdf';
+                $pdf_path = $pdf_dir . $pdf_name;
+                file_put_contents($pdf_path, $output);
+                $chemin_pdf = 'ressources/uploads/comptes_rendus/' . $pdf_name;
+                
+                // Nettoyer le fichier temporaire
+                $documentService->cleanupTempFile($pdfPath);
 
-            // Sauvegarde du PDF
-            $pdf_dir = __DIR__ . '/../../ressources/uploads/comptes_rendus/';
-            if (!is_dir($pdf_dir)) mkdir($pdf_dir, 0777, true);
-            $pdf_name = 'CR_' . date('Ymd_His') . '.pdf';
-            $pdf_path = $pdf_dir . $pdf_name;
-            file_put_contents($pdf_path, $output);
-            $chemin_pdf = 'ressources/uploads/comptes_rendus/' . $pdf_name;
-
-            // Enregistrement en BD
-            $id_CR = CompteRendu::creer($num_etu, $nom_CR, $contenu_CR, $chemin_pdf, $date_CR, $rapports);
-            if ($id_CR) {
-                // Enregistrement des affectations encadrant/directeur
-                $pdo = \Database::getConnection();
-                foreach ($rapports as $id_rapport) {
-                    // Encadrant pédagogique
-                    if (!empty($encadrants[$id_rapport])) {
-                        $id_enseignant = $encadrants[$id_rapport];
-                        $stmt = $pdo->prepare("INSERT INTO affecter (id_enseignant, id_rapport, id_jury, role) VALUES (?, ?, NULL, 'encadrant')");
-                        $stmt->execute([$id_enseignant, $id_rapport]);
+                // Enregistrement en BD
+                $id_CR = CompteRendu::creer($num_etu, $nom_CR, $contenu_CR, $chemin_pdf, $date_CR, $rapports);
+                if ($id_CR) {
+                    // Enregistrement des affectations encadrant/directeur
+                    $pdo = \Database::getConnection();
+                    foreach ($rapports as $id_rapport) {
+                        // Encadrant pédagogique
+                        if (!empty($encadrants[$id_rapport])) {
+                            $id_enseignant = $encadrants[$id_rapport];
+                            $stmt = $pdo->prepare("INSERT INTO affecter (id_enseignant, id_rapport, id_jury, role) VALUES (?, ?, NULL, 'encadrant')");
+                            $stmt->execute([$id_enseignant, $id_rapport]);
+                        }
+                        // Directeur de mémoire
+                        if (!empty($directeurs[$id_rapport])) {
+                            $id_enseignant = $directeurs[$id_rapport];
+                            $stmt = $pdo->prepare("INSERT INTO affecter (id_enseignant, id_rapport, id_jury, role) VALUES (?, ?, NULL, 'directeur')");
+                            $stmt->execute([$id_enseignant, $id_rapport]);
+                        }
                     }
-                    // Directeur de mémoire
-                    if (!empty($directeurs[$id_rapport])) {
-                        $id_enseignant = $directeurs[$id_rapport];
-                        $stmt = $pdo->prepare("INSERT INTO affecter (id_enseignant, id_rapport, id_jury, role) VALUES (?, ?, NULL, 'directeur')");
-                        $stmt->execute([$id_enseignant, $id_rapport]);
+                    $_SESSION['success'] = 'Compte rendu enregistré avec succès !';
+                    // Envoi d'un email à chaque étudiant concerné
+                    require_once __DIR__ . '/../models/RapportEtudiant.php';
+                    require_once __DIR__ . '/../utils/EmailService.php';
+                    $pdo = \Database::getConnection();
+                    $rapportModel = new RapportEtudiant($pdo);
+                    $emailService = new EmailService();
+                    foreach ($rapports as $id_rapport) {
+                        $rapport = $rapportModel->getRapportById($id_rapport);
+                        if ($rapport && !empty($rapport['email_etu'])) {
+                            $to = $rapport['email_etu'];
+                            $nom = $rapport['prenom_etu'] . ' ' . $rapport['nom_etu'];
+                            $subject = "Notification de compte rendu de soutenance";
+                            $message = "Bonjour $nom,<br><br>Votre rapport (« " . htmlspecialchars($rapport['nom_rapport']) . " ») a été inclus dans le compte rendu « " . htmlspecialchars($nom_CR) . " » le " . date('d/m/Y H:i') . ".<br><br>Vous trouverez en pièce jointe le compte rendu complet de la séance d'évaluation.<br><br>Cordialement,<br>L'équipe pédagogique";
+                            
+                            // Envoyer l'email avec le PDF en pièce jointe
+                            $attachmentName = 'Compte_rendu_' . date('Y-m-d') . '.pdf';
+                            $emailService->sendEmailWithAttachment($to, $subject, $message, $pdf_path, $attachmentName, true);
+                        }
                     }
+                } else {
+                    $_SESSION['error'] = 'Erreur lors de l\'enregistrement du compte rendu.';
                 }
-                $_SESSION['success'] = 'Compte rendu enregistré avec succès !';
-                // Envoi d'un email à chaque étudiant concerné
-                require_once __DIR__ . '/../models/RapportEtudiant.php';
-                require_once __DIR__ . '/../utils/EmailService.php';
-                $pdo = \Database::getConnection();
-                $rapportModel = new RapportEtudiant($pdo);
-                $emailService = new EmailService();
-                foreach ($rapports as $id_rapport) {
-                    $rapport = $rapportModel->getRapportById($id_rapport);
-                    if ($rapport && !empty($rapport['email_etu'])) {
-                        $to = $rapport['email_etu'];
-                        $nom = $rapport['prenom_etu'] . ' ' . $rapport['nom_etu'];
-                        $subject = "Notification de compte rendu de soutenance";
-                        $message = "Bonjour $nom,<br><br>Votre rapport (« " . htmlspecialchars($rapport['nom_rapport']) . " ») a été inclus dans le compte rendu « " . htmlspecialchars($nom_CR) . " » le " . date('d/m/Y H:i') . ".<br><br>Vous trouverez en pièce jointe le compte rendu complet de la séance d'évaluation.<br><br>Cordialement,<br>L'équipe pédagogique";
-                        
-                        // Envoyer l'email avec le PDF en pièce jointe
-                        $attachmentName = 'Compte_rendu_' . date('Y-m-d') . '.pdf';
-                        $emailService->sendEmailWithAttachment($to, $subject, $message, $pdf_path, $attachmentName, true);
-                    }
-                }
-            } else {
-                $_SESSION['error'] = 'Erreur lors de l\'enregistrement du compte rendu.';
+            } catch (Exception $e) {
+                error_log('Erreur génération PDF compte rendu: ' . $e->getMessage());
+                $_SESSION['error'] = 'Erreur lors de la génération du PDF : ' . $e->getMessage();
             }
+            
             header('Location: layout.php?page=redaction_compte_rendu');
             exit;
         }
