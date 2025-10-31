@@ -4,7 +4,6 @@ require_once __DIR__ . '/../models/Valider.php';
 require_once __DIR__ . '/../models/CompteRendu.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../utils/permissions.php';
-use Dompdf\Dompdf;
 
 class RedactionCompteRenduController {
     public function index() {
@@ -120,29 +119,37 @@ class RedactionCompteRenduController {
 
     public function exporterPDF() {
         try {
-            if (!class_exists('Dompdf\\Dompdf')) {
-                require_once __DIR__ . '/../../vendor/autoload.php';
-            }
-            if (!class_exists('Dompdf\\Dompdf')) {
-                throw new \Exception('Dompdf n\'est pas installé.');
-            }
+            require_once __DIR__ . '/../../vendor/autoload.php';
+            require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+            
             $contenu = $_POST['contenu_CR'] ?? '';
             $nom_CR = $_POST['nom_CR'] ?? 'compte_rendu';
             if (empty($contenu)) {
                 throw new \Exception('Le contenu du compte rendu est vide.');
             }
-            $html = '<html><head><meta charset="UTF-8"><style>body{font-family:Times New Roman,serif;line-height:1.6;margin:40px;}</style></head><body>' . $contenu . '</body></html>';
-            $dompdf = new \Dompdf\Dompdf();
-            $dompdf->loadHtml($html);
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-            $pdf = $dompdf->output();
+            
+            // Préparer les données pour le template
+            $templateData = [
+                'nom_CR' => $nom_CR,
+                'date_CR' => date('d/m/Y H:i'),
+                'contenu_CR' => $contenu
+            ];
+            
+            // Utiliser DocumentGeneratorService
+            $documentService = new DocumentGeneratorService();
+            $pdfPath = $documentService->generateFromTemplate('compte_rendu', $templateData);
+            
             $pdfName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nom_CR) . '.pdf';
             header('Content-Type: application/pdf');
             header('Content-Disposition: attachment; filename="' . $pdfName . '"');
             header('Cache-Control: private, max-age=0, must-revalidate');
             header('Pragma: public');
-            echo $pdf;
+            header('Content-Length: ' . filesize($pdfPath));
+            
+            readfile($pdfPath);
+            
+            // Nettoyer le fichier temporaire
+            $documentService->cleanupTempFile($pdfPath);
             exit;
         } catch (\Exception $e) {
             header('Content-Type: application/json');
