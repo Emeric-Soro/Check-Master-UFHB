@@ -7,6 +7,8 @@ services:
       - "8080:80"
     volumes:
       - .:/var/www/html
+    env_file:
+      - ./.env
     depends_on:
       - db
       - gotenberg
@@ -16,8 +18,8 @@ services:
   db:
     image: mysql:8.3
     environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: soutenance_manager
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
     ports:
       - "3306:3306"
     volumes:
@@ -27,8 +29,8 @@ services:
     image: phpmyadmin/phpmyadmin:latest
     environment:
       PMA_HOST: db
-      PMA_USER: root
-      PMA_PASSWORD: password
+      PMA_USER: ${DB_USER}
+      PMA_PASSWORD: ${DB_PASSWORD}
     ports:
       - "8081:80"
     depends_on:
