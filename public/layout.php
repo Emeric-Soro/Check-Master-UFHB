@@ -64,7 +64,7 @@ if (!isset($menuHTML)) {
     </style>
 </head>
 <body class="bg-base-200 font-poppins antialiased">
-<div class="flex h-screen overflow-hidden">
+    <div class="flex h-screen overflow-hidden">
     <!-- Sidebar -->
     <div class="hidden md:flex md:flex-shrink-0">
         <div class="flex flex-col w-72 bg-primary text-white">
@@ -109,6 +109,7 @@ if (!isset($menuHTML)) {
                 <div class="w-px h-10 bg-base-300"></div>
                 <div class="flex items-center space-x-4">
                     <div class="text-right">
+                        <!-- Defensive programming: fallback values in case session vars aren't set -->
                         <span class="text-md font-bold text-primary block">Bienvenue, <?php echo htmlspecialchars($_SESSION['nom_utilisateur'] ?? 'Utilisateur'); ?></span>
                         <span class="text-sm text-primary/60 block"><?php echo htmlspecialchars($_SESSION['lib_GU'] ?? ''); ?></span>
                     </div>

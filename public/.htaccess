@@ -1,4 +1,6 @@
 RewriteEngine On
+# RewriteBase will work for both root and subdirectory installations
+# If deployed in a subdirectory, update this to match the subdirectory path
 RewriteBase /public/
 
 # Redirect to index.php if file or directory doesn't exist

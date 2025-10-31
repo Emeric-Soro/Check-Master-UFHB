@@ -276,7 +276,9 @@ class Router
                 return $this->renderError("Classe de contrôleur non trouvée : " . htmlspecialchars($controllerClass));
             }
 
-            // Some controllers need database connection in constructor
+            // TODO: Implement dependency injection container for better architecture
+            // Currently, some controllers require database connection in constructor
+            // This list should be maintained when adding new controllers that need DB
             if (in_array($controllerClass, ['DashboardSecretaireController', 'DossierAcademiqueController', 'EvaluationDossiersController'])) {
                 $controller = new $controllerClass($this->db);
             } else {
