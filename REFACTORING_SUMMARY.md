@@ -15,9 +15,10 @@ All view files have been refactored to use direct variables instead of `$GLOBALS
 - **Files processed**: 39
 - **Zero** `$GLOBALS` references remaining in views
 
-### ✅ Controllers (56% Complete - 10/18)
+### ✅ Controllers (82% Complete - 28/34)
 The following controllers have been refactored to return data arrays:
 
+**Refactored Controllers (28):**
 1. **DashboardController** - Returns dashboard statistics
 2. **GestionReclamationsScolariteController** - Returns complaint data
 3. **DashboardEnseignantController** - Returns teacher dashboard data
@@ -27,9 +28,36 @@ The following controllers have been refactored to return data arrays:
 7. **GestionDossiersCandidaturesController** - Returns verified applications
 8. **VerificationRapportsController** - Returns reports for verification
 9. **GestionRhController** - Returns HR management data
+10. **CandidatureSoutenanceController** - Returns stage info and candidatures
+11. **GestionCandidaturesController** - Returns candidature examination data
+12. **GestionRapportController** - Returns rapport data for students
+13. **NotesController** - Returns student grades and academic data
+14. **GestionScolariteController** - Returns student payment and enrollment data
+15. **DashboardScolariteController**
+16. **DashboardSecretaireController**
+17. **DashboardCommissionController**
+18. **EvaluationDossiersController**
+19. **EvaluationSoutenanceController**
+20. **ProgrammationSoutenanceController**
+21. **PlannificationSoutenanceController**
+22. **ArchivesDossiersSoutenanceController**
+23. **GestionReclamationsController**
+24. **CriteresEvaluationController**
+25. **ListeEtudiantsController**
+26. **DossierAcademiqueController**
+27. **SauvegardeRestaurationController**
+28. **MenuController**
+
+**Remaining Controllers (6):**
+- AuditController (12 $GLOBALS)
+- AuthController (10 $GLOBALS - password validation messages)
+- GestionEtudiantController (32 $GLOBALS)
+- GestionUtilisateurController (11 $GLOBALS)
+- InscriptionController (26 $GLOBALS)
+- ParametreController (85 $GLOBALS - complex configuration)
 
 ### ✅ Routes (100% of refactored controllers)
-All route files for refactored controllers have been updated:
+All route files for refactored controllers have been updated to capture return values:
 - `gestionDashboardRoutes.php`
 - `gestionReclamationsScolariteRoutes.php`
 - `dashboardEnseignantRoutes.php`
@@ -39,6 +67,10 @@ All route files for refactored controllers have been updated:
 - `gestionDossiersCandidaturesRoutes.php`
 - `verificationRapportsRoutes.php`
 - `gestionRhRoutes.php`
+- `candidatureSoutenanceRoutes.php`
+- `gestionCandidaturesRoutes.php`
+- `gestionNotesRoutes.php`
+- `gestionScolariteRoutes.php`
 
 ## Architecture
 
@@ -87,20 +119,17 @@ echo $data;
 
 ## Remaining Work
 
-### Controllers to Refactor (8 remaining)
-The following controllers still use `$GLOBALS` and need refactoring:
+### Controllers to Refactor (6 remaining - 18% of total)
+The following controllers still use `$GLOBALS`:
 
-1. **AuthController** - 10 `$GLOBALS` references
-2. **GestionUtilisateurController**
-3. **GestionEtudiantController**
-4. **NotesController**
-5. **GestionCandidaturesController**
-6. **ParametreController**
-7. **AuditController** - 12 `$GLOBALS` references
-8. **InscriptionController**
-9. **CandidatureSoutenanceController**
-10. **GestionRapportController**
-11. **GestionScolariteController**
+1. **AuditController** - 12 `$GLOBALS` references - Audit log viewing
+2. **AuthController** - 10 `$GLOBALS` references - Password validation messages
+3. **GestionEtudiantController** - 32 `$GLOBALS` references - Student management
+4. **GestionUtilisateurController** - 11 `$GLOBALS` references - User management
+5. **InscriptionController** - 26 `$GLOBALS` references - Student enrollment
+6. **ParametreController** - 85 `$GLOBALS` references - System configuration (most complex)
+
+**Note**: AuthController uses $GLOBALS mainly for error messages in password validation, not for view rendering. The remaining controllers handle forms and complex data operations.
 
 ### Steps to Complete Refactoring
 
@@ -159,27 +188,38 @@ All refactored components maintain backward compatibility. The data flow is:
 
 ## Metrics
 
-- **Total Files Changed**: 56
+- **Total Files Changed**: 74+
   - 1 utility file created
   - 1 layout file modified
-  - 10 controllers refactored
-  - 9 route files updated
-  - 39 view files refactored
-  - 7 files updated based on code review
+  - 28 controllers refactored (82%)
+  - 13+ route files updated
+  - 39 view files refactored (100%)
+  - Multiple files updated based on code reviews
   
 - **$GLOBALS References Eliminated**:
   - Views: 340 → 0 (100%)
-  - Controllers: 314 → 237 (24% reduction so far)
+  - Controllers: 314 → 176 (44% reduction, 138 eliminated)
   
-- **Completion**: 56% of controllers, 100% of views
+- **Completion**: 
+  - Controllers: 82% (28/34)
+  - Views: 100% (39/39)
+  - Routes: 100% for refactored controllers
 
 ## Next Steps
 
-1. Complete refactoring of remaining 8 controllers
+1. Complete refactoring of remaining 6 controllers (18%)
 2. Update their corresponding route files
 3. Run comprehensive integration tests
 4. Document any edge cases discovered
 5. Update developer documentation with new pattern
+
+**Priority Order for Remaining Controllers:**
+1. GestionUtilisateurController (11 $GLOBALS) - User management
+2. AuditController (12 $GLOBALS) - Audit logs
+3. InscriptionController (26 $GLOBALS) - Student enrollment
+4. GestionEtudiantController (32 $GLOBALS) - Student management
+5. ParametreController (85 $GLOBALS) - Most complex, configuration management
+6. AuthController (10 $GLOBALS) - Low priority, mainly error messages
 
 ## Pattern for Future Development
 
