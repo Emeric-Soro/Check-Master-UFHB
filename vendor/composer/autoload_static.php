@@ -4,20 +4,15 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit662074ecd610adc07bd92eabece6323d
+class ComposerStaticInitb755d0d488b0ac578edeeb93f82d93f3
 {
     public static $files = array (
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
-        '6124b4c8570aa390c21fafd04a26c69f' => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy/deep_copy.php',
-        'db356362850385d08a5381de2638b5fd' => __DIR__ . '/..' . '/mpdf/mpdf/src/functions.php',
+        '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
         '667aeda72477189d0494fecd327c3641' => __DIR__ . '/..' . '/symfony/var-dumper/Resources/functions/dump.php',
     );
 
     public static $prefixLengthsPsr4 = array (
-        's' => 
-        array (
-            'setasign\\Fpdi\\' => 14,
-        ),
         'S' => 
         array (
             'Symfony\\Polyfill\\Mbstring\\' => 26,
@@ -27,17 +22,12 @@ class ComposerStaticInit662074ecd610adc07bd92eabece6323d
         ),
         'P' => 
         array (
-            'Psr\\Log\\' => 8,
-            'Psr\\Http\\Message\\' => 17,
             'PhpOffice\\PhpWord\\' => 18,
             'PhpOffice\\Math\\' => 15,
             'PHPMailer\\PHPMailer\\' => 20,
         ),
         'M' => 
         array (
-            'Mpdf\\PsrLogAwareTrait\\' => 22,
-            'Mpdf\\PsrHttpMessageShim\\' => 24,
-            'Mpdf\\' => 5,
             'Masterminds\\' => 12,
         ),
         'F' => 
@@ -47,7 +37,6 @@ class ComposerStaticInit662074ecd610adc07bd92eabece6323d
         'D' => 
         array (
             'Dompdf\\' => 7,
-            'DeepCopy\\' => 9,
         ),
         'A' => 
         array (
@@ -56,10 +45,6 @@ class ComposerStaticInit662074ecd610adc07bd92eabece6323d
     );
 
     public static $prefixDirsPsr4 = array (
-        'setasign\\Fpdi\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/setasign/fpdi/src',
-        ),
         'Symfony\\Polyfill\\Mbstring\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-mbstring',
@@ -76,14 +61,6 @@ class ComposerStaticInit662074ecd610adc07bd92eabece6323d
         array (
             0 => __DIR__ . '/..' . '/sabberworm/php-css-parser/src',
         ),
-        'Psr\\Log\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/psr/log/src',
-        ),
-        'Psr\\Http\\Message\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/psr/http-message/src',
-        ),
         'PhpOffice\\PhpWord\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpoffice/phpword/src/PhpWord',
@@ -96,18 +73,6 @@ class ComposerStaticInit662074ecd610adc07bd92eabece6323d
         array (
             0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
         ),
-        'Mpdf\\PsrLogAwareTrait\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/mpdf/psr-log-aware-trait/src',
-        ),
-        'Mpdf\\PsrHttpMessageShim\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/mpdf/psr-http-message-shim/src',
-        ),
-        'Mpdf\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/mpdf/mpdf/src',
-        ),
         'Masterminds\\' => 
         array (
             0 => __DIR__ . '/..' . '/masterminds/html5/src',
@@ -119,10 +84,6 @@ class ComposerStaticInit662074ecd610adc07bd92eabece6323d
         'Dompdf\\' => 
         array (
             0 => __DIR__ . '/..' . '/dompdf/dompdf/src',
-        ),
-        'DeepCopy\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy',
         ),
         'App\\' => 
         array (
@@ -148,10 +109,10 @@ class ComposerStaticInit662074ecd610adc07bd92eabece6323d
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit662074ecd610adc07bd92eabece6323d::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit662074ecd610adc07bd92eabece6323d::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit662074ecd610adc07bd92eabece6323d::$prefixesPsr0;
-            $loader->classMap = ComposerStaticInit662074ecd610adc07bd92eabece6323d::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitb755d0d488b0ac578edeeb93f82d93f3::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitb755d0d488b0ac578edeeb93f82d93f3::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInitb755d0d488b0ac578edeeb93f82d93f3::$prefixesPsr0;
+            $loader->classMap = ComposerStaticInitb755d0d488b0ac578edeeb93f82d93f3::$classMap;
 
         }, null, ClassLoader::class);
     }

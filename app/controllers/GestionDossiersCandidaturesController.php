@@ -169,58 +169,67 @@ class GestionDossiersCandidaturesController {
 
         $contenu = file_get_contents($fichierContenu);
         
-        // Créer le PDF avec DOMPDF
         require_once __DIR__ . '/../../vendor/autoload.php';
-        $dompdf = new Dompdf\Dompdf();
+        require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
         
-        // Préparer le HTML pour le PDF
-        $html = '
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Rapport - ' . htmlspecialchars($rapport['nom_rapport']) . '</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-                .info { margin-bottom: 20px; }
-                .info div { margin: 5px 0; }
-                .content { margin-top: 30px; }
-                .content h1, .content h2, .content h3 { color: #333; }
-                .content p { line-height: 1.6; }
-                .status { margin-top: 20px; padding: 10px; border-radius: 5px; }
-                .status.approuve { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-                .status.desapprouve { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-            </style>
-        </head>
-        <body>
+        try {
+            // Déterminer le statut d'approbation en français
+            $statutTexte = ($rapport['statut_approbation'] === 'approuve') ? 'Approuvé' : 'Désapprouvé';
             
-            <div class="content">
-                ' . $contenu . '
-            </div>
-        </body>
-        </html>';
-        
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-        
-        // Générer le nom du fichier
-        $nomFichier = 'rapport_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $rapport['nom_rapport']) . '_' . date('Y-m-d_H-i-s') . '.pdf';
-        
-        // Audit logging pour le téléchargement
-        $this->auditLog->logImpression($_SESSION['id_utilisateur'], 'rapport_etudiants', 'Succès');
-        
-        // Nettoyer tout output et envoyer le PDF
-        ob_end_clean();
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="' . $nomFichier . '"');
-        header('Cache-Control: no-cache, no-store, must-revalidate');
-        header('Pragma: no-cache');
-        header('Expires: 0');
-        
-        echo $dompdf->output();
-        exit;
+            // Préparer les données pour le template
+            $templateData = [
+                'nom_etu' => $rapport['nom_etu'] ?? '',
+                'prenom_etu' => $rapport['prenom_etu'] ?? '',
+                'num_etu' => $rapport['num_etu'] ?? '',
+                'email_etu' => $rapport['email_etu'] ?? '',
+                'nom_rapport' => $rapport['nom_rapport'] ?? '',
+                'theme_rapport' => $rapport['theme_rapport'] ?? '',
+                'date_depot' => $rapport['date_rapport'] ? date('d/m/Y H:i', strtotime($rapport['date_rapport'])) : 'Non déposé',
+                'nom_pers_admin' => $rapport['nom_pers_admin'] ?? '',
+                'prenom_pers_admin' => $rapport['prenom_pers_admin'] ?? '',
+                'date_approbation' => $rapport['date_approbation'] ? date('d/m/Y H:i', strtotime($rapport['date_approbation'])) : 'Non vérifié',
+                'statut_approbation' => $statutTexte,
+                'commentaire' => $rapport['commentaire'] ?? '',
+                'contenu' => $contenu
+            ];
+            
+            // Utiliser DocumentGeneratorService
+            $documentService = new DocumentGeneratorService();
+            $pdfPath = $documentService->generateFromTemplate('rapport_etudiant', $templateData);
+            
+            // Générer le nom du fichier
+            $nomFichier = 'rapport_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $rapport['nom_rapport']) . '_' . date('Y-m-d_H-i-s') . '.pdf';
+            
+            // Audit logging pour le téléchargement
+            $this->auditLog->logImpression($_SESSION['id_utilisateur'], 'rapport_etudiants', 'Succès');
+            
+            // Nettoyer tout output et envoyer le PDF
+            ob_end_clean();
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="' . $nomFichier . '"');
+            header('Cache-Control: no-cache, no-store, must-revalidate');
+            header('Pragma: no-cache');
+            header('Expires: 0');
+            header('Content-Length: ' . filesize($pdfPath));
+            
+            readfile($pdfPath);
+            
+            // Nettoyer le fichier temporaire
+            $documentService->cleanupTempFile($pdfPath);
+            exit;
+            
+        } catch (Exception $e) {
+            error_log('Erreur génération PDF rapport: ' . $e->getMessage());
+            $this->auditLog->logImpression($_SESSION['id_utilisateur'], 'rapport_etudiants', 'Erreur');
+            ob_end_clean();
+            header('Content-Type: text/html; charset=utf-8');
+            echo '<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">';
+            echo '<h2 style="color: #e74c3c;">Erreur</h2>';
+            echo '<p>Erreur lors de la génération du PDF : ' . htmlspecialchars($e->getMessage()) . '</p>';
+            echo '<a href="javascript:history.back()" style="color: #3498db; text-decoration: none;">← Retour</a>';
+            echo '</div>';
+            exit;
+        }
     }
 
     public function consulterRapport($id_rapport) {
