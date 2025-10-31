@@ -1,4 +1,6 @@
 <?php
+$viewData = [];
+
 if (isset($_GET['page']) && $_GET['page'] === 'verification_candidatures_soutenance') {
 
     require_once __DIR__ . '/../../app/controllers/VerificationRapportsController.php';
@@ -298,5 +300,5 @@ if (isset($_GET['page']) && $_GET['page'] === 'verification_candidatures_soutena
     }
 
     // Action par défaut : afficher la liste
-    $controller->index();
+    $viewData = $controller->index();
 }

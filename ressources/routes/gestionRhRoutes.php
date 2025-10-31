@@ -9,7 +9,7 @@ if (isset($_GET['page']) && $_GET['page'] === 'gestion_rh') {
 
     $controller = new GestionRhController();
     
-    $controller->index();
+    $viewData = $controller->index();
         
     
 }

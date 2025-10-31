@@ -5,8 +5,10 @@ require_once __DIR__ . '/../../app/controllers/DashboardEnseignantController.php
 
 $controller = new DashboardEnseignantController();
 
+$viewData = [];
+
 if (isset($_GET['page']) && $_GET['page'] === 'dashboard_enseignant') {
-    $controller->index();
+    $viewData = $controller->index();
 }
 
 

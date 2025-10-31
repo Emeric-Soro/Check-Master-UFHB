@@ -1,4 +1,6 @@
 <?php
+$viewData = [];
+
 if (isset($_GET['page']) && $_GET['page'] === 'gestion_dossiers_candidatures') {
     // Démarrer la capture d'output pour éviter les problèmes de headers
     ob_start();
@@ -19,7 +21,7 @@ if (isset($_GET['page']) && $_GET['page'] === 'gestion_dossiers_candidatures') {
     }
     
     // Action par défaut : afficher la liste
-    $controller->index();
+    $viewData = $controller->index();
     
     // Si on arrive ici, c'est l'affichage normal de la page
     ob_end_flush();

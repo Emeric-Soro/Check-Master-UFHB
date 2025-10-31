@@ -7,7 +7,7 @@ if (isset($_GET['page']) && $_GET['page'] === 'notes_resultats') {
     require_once __DIR__ . '/../../app/config/database.php';
     require_once __DIR__ . '/../../app/controllers/NotesResultatsController.php';
     $controller = new NotesResultatsController();
-    $controller->index();
+    $viewData = $controller->index();
 
 }
 
