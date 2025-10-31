@@ -19,7 +19,6 @@ class AuditController {
         try {
             // Récupérer les actions pour le filtre
             $actions = $this->action->getAllAction();
-            $GLOBALS['actions'] = $actions;
 
             // Paramètres de pagination
             $page = isset($_GET['page_num']) ? max(1, intval($_GET['page_num'])) : 1;
@@ -39,20 +38,26 @@ class AuditController {
             // Gérer les actions spéciales
             $this->handleSpecialActions();
             
-            // Passer les données à la vue
-            $GLOBALS['auditLog'] = $auditLog;
-            $GLOBALS['page'] = $page;
-            $GLOBALS['perPage'] = $perPage;
-            $GLOBALS['totalPages'] = $totalPages;
-            $GLOBALS['totalLogs'] = $totalLogs;
+            // Retourner les données pour la vue
+            return [
+                'actions' => $actions,
+                'auditLog' => $auditLog,
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => $totalPages,
+                'totalLogs' => $totalLogs
+            ];
         } catch (Exception $e) {
             error_log("Erreur dans AuditController::index(): " . $e->getMessage());
-            $GLOBALS['auditLog'] = [];
-            $GLOBALS['page'] = 1;
-            $GLOBALS['perPage'] = 50;
-            $GLOBALS['totalPages'] = 1;
-            $GLOBALS['totalLogs'] = 0;
-            $GLOBALS['error'] = "Une erreur s'est produite lors du chargement des logs d'audit.";
+            return [
+                'actions' => [],
+                'auditLog' => [],
+                'page' => 1,
+                'perPage' => 50,
+                'totalPages' => 1,
+                'totalLogs' => 0,
+                'error' => "Une erreur s'est produite lors du chargement des logs d'audit."
+            ];
         }
     }
 

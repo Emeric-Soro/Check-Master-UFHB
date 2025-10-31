@@ -43,12 +43,19 @@ class GestionEtudiantController
 
     public function index()
     {
+        // Préparer les données pour la vue
+        $data = [
+            'messageErreur' => '',
+            'messageSuccess' => '',
+            'etudiant_a_modifier' => null,
+            'modalAction' => '',
+            'searchTerm' => ''
+        ];
+        
         try {
             $currentPage = isset($_GET['p']) ? (int)$_GET['p'] : 1;
             $itemsPerPage = 10;
-            $etudiant_a_modifier = null;
-            $modalAction = '';
-            $searchTerm = isset($_GET['search']) ? trim($_GET['search']) : '';
+            $data['searchTerm'] = isset($_GET['search']) ? trim($_GET['search']) : '';
 
             // Enregistrer la consultation de la liste des étudiants
            
@@ -57,14 +64,14 @@ class GestionEtudiantController
             if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'edit' && isset($_GET['num_etu'])) {
                 // Vérifier la permission UPDATE pour afficher le formulaire de modification
                 if (!hasPermission('gestion_etudiants', 'UPDATE')) {
-                    $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de modifier les étudiants.";
+                    $data['messageErreur'] = "Vous n'avez pas la permission de modifier les étudiants.";
                 } else {
-                    $etudiant_a_modifier = $this->etudiant->getEtudiantById($_GET['num_etu']);
-                    if (!$etudiant_a_modifier) {
-                        $GLOBALS['messageErreur'] = "Étudiant non trouvé.";
+                    $data['etudiant_a_modifier'] = $this->etudiant->getEtudiantById($_GET['num_etu']);
+                    if (!$data['etudiant_a_modifier']) {
+                        $data['messageErreur'] = "Étudiant non trouvé.";
                        
                     } else {
-                        $modalAction = 'edit';
+                        $data['modalAction'] = 'edit';
                     // Enregistrer la consultation d'un étudiant spécifique
                    
                     
@@ -72,13 +79,13 @@ class GestionEtudiantController
                     if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                         header('Content-Type: application/json');
                         echo json_encode([
-                            'num_etu' => $etudiant_a_modifier->num_etu,
-                            'nom_etu' => $etudiant_a_modifier->nom_etu,
-                            'prenom_etu' => $etudiant_a_modifier->prenom_etu,
-                            'date_naiss_etu' => $etudiant_a_modifier->date_naiss_etu,
-                            'genre_etu' => $etudiant_a_modifier->genre_etu,
-                            'email_etu' => $etudiant_a_modifier->email_etu,
-                            'promotion_etu' => $etudiant_a_modifier->promotion_etu
+                            'num_etu' => $data['etudiant_a_modifier']->num_etu,
+                            'nom_etu' => $data['etudiant_a_modifier']->nom_etu,
+                            'prenom_etu' => $data['etudiant_a_modifier']->prenom_etu,
+                            'date_naiss_etu' => $data['etudiant_a_modifier']->date_naiss_etu,
+                            'genre_etu' => $data['etudiant_a_modifier']->genre_etu,
+                            'email_etu' => $data['etudiant_a_modifier']->email_etu,
+                            'promotion_etu' => $data['etudiant_a_modifier']->promotion_etu
                         ]);
                         exit;
                     }
@@ -92,18 +99,18 @@ class GestionEtudiantController
                 if (isset($_POST['submit_add_etudiant'])) {
                     // Vérifier la permission CREATE
                     if (!hasPermission('gestion_etudiants', 'CREATE')) {
-                        $GLOBALS['messageErreur'] = "Vous n'avez pas la permission d'ajouter des étudiants.";
+                        $data['messageErreur'] = "Vous n'avez pas la permission d'ajouter des étudiants.";
                         $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'etudiants', 'Erreur - Permission refusée');
-                        return;
+                        return $data;
                     }
                     
                     // Validation des champs
                     if (empty($_POST['nom_etu']) || empty($_POST['prenom_etu']) || 
                         empty($_POST['date_naiss_etu']) || empty($_POST['genre_etu']) || 
                         empty($_POST['email_etu']) || empty($_POST['promotion_etu'])) {
-                        $GLOBALS['messageErreur'] = "Tous les champs sont obligatoires.";
+                        $data['messageErreur'] = "Tous les champs sont obligatoires.";
                        
-                        return;
+                        return $data;
                     }
 
                     $nom_etu = trim($_POST['nom_etu']);
@@ -115,42 +122,42 @@ class GestionEtudiantController
                     
                     // Strict validation
                     if (!preg_match('/^[a-zA-ZÀ-ÿ\s\'-]{2,50}$/u', $nom_etu)) {
-                        $GLOBALS['messageErreur'] = "Le nom n'est pas valide (2-50 caractères alphabétiques).";
-                        return;
+                        $data['messageErreur'] = "Le nom n'est pas valide (2-50 caractères alphabétiques).";
+                        return $data;
                     }
                     
                     if (!preg_match('/^[a-zA-ZÀ-ÿ\s\'-]{2,50}$/u', $prenom_etu)) {
-                        $GLOBALS['messageErreur'] = "Le prénom n'est pas valide (2-50 caractères alphabétiques).";
-                        return;
+                        $data['messageErreur'] = "Le prénom n'est pas valide (2-50 caractères alphabétiques).";
+                        return $data;
                     }
                     
                     if (!in_array($genre_etu, ['M', 'F', 'Autre'], true)) {
-                        $GLOBALS['messageErreur'] = "Le genre n'est pas valide.";
-                        return;
+                        $data['messageErreur'] = "Le genre n'est pas valide.";
+                        return $data;
                     }
                     
                     if (!preg_match('/^\d{4}-\d{4}$/', $promotion_etu)) {
-                        $GLOBALS['messageErreur'] = "Le format de promotion n'est pas valide (AAAA-AAAA).";
-                        return;
+                        $data['messageErreur'] = "Le format de promotion n'est pas valide (AAAA-AAAA).";
+                        return $data;
                     }
 
                     $num_etu = $this->genererNumeroEtudiant($promotion_etu);
 
                     // Validation de l'email
                     if (!filter_var($email_etu, FILTER_VALIDATE_EMAIL)) {
-                        $GLOBALS['messageErreur'] = "L'adresse email n'est pas valide.";
+                        $data['messageErreur'] = "L'adresse email n'est pas valide.";
                         
-                        return;
+                        return $data;
                     }
 
                     if ($this->etudiant->ajouterEtudiant($num_etu, $nom_etu, $prenom_etu, $date_naiss_etu, $genre_etu, $email_etu, $promotion_etu)) {
-                        $GLOBALS['messageSuccess'] = "Étudiant ajouté avec succès. Numéro étudiant : " . $num_etu;
+                        $data['messageSuccess'] = "Étudiant ajouté avec succès. Numéro étudiant : " . $num_etu;
                         
                         // Enregistrer la création de l'étudiant
                         $details = "Création de l'étudiant: $nom_etu $prenom_etu (Numéro: $num_etu, Email: $email_etu, Promotion: $promotion_etu)";
                         $this->auditLog->logCreation($_SESSION['id_utilisateur'],"etudiants","Succès");
                     } else {
-                        $GLOBALS['messageErreur'] = "Erreur lors de l'ajout de l'étudiant.";
+                        $data['messageErreur'] = "Erreur lors de l'ajout de l'étudiant.";
                         
                         $this->auditLog->logCreation($_SESSION['id_utilisateur'],"etudiants","Erreur");
 
@@ -161,17 +168,17 @@ class GestionEtudiantController
                 if (isset($_POST['submit_modifier_etudiant'])) {
                     // Vérifier la permission UPDATE
                     if (!hasPermission('gestion_etudiants', 'UPDATE')) {
-                        $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de modifier les étudiants.";
+                        $data['messageErreur'] = "Vous n'avez pas la permission de modifier les étudiants.";
                         $this->auditLog->logModification($_SESSION['id_utilisateur'], 'etudiants', 'Erreur - Permission refusée');
-                        return;
+                        return $data;
                     }
                     
                     if (empty($_POST['num_etu']) || empty($_POST['nom_etu']) || 
                         empty($_POST['prenom_etu']) || empty($_POST['date_naiss_etu']) || 
                         empty($_POST['genre_etu']) || empty($_POST['email_etu']) || 
                         empty($_POST['promotion_etu'])) {
-                        $GLOBALS['messageErreur'] = "Tous les champs sont obligatoires.";
-                        return;
+                        $data['messageErreur'] = "Tous les champs sont obligatoires.";
+                        return $data;
                     }
 
                     $num_etu = $_POST['num_etu'];
@@ -184,9 +191,9 @@ class GestionEtudiantController
 
                     // Validation de l'email
                     if (!filter_var($email_etu, FILTER_VALIDATE_EMAIL)) {
-                        $GLOBALS['messageErreur'] = "L'adresse email n'est pas valide.";
+                        $data['messageErreur'] = "L'adresse email n'est pas valide.";
                       
-                        return;
+                        return $data;
                     }
 
                     // Récupérer les anciennes données pour l'audit
@@ -210,10 +217,10 @@ class GestionEtudiantController
                     ];
 
                     if ($this->etudiant->modifierEtudiant($num_etu, $nom_etu, $prenom_etu, $date_naiss_etu, $genre_etu, $email_etu, $promotion_etu)) {
-                        $GLOBALS['messageSuccess'] = "Étudiant modifié avec succès.";
+                        $data['messageSuccess'] = "Étudiant modifié avec succès.";
                         $this->auditLog->logModification($_SESSION['id_utilisateur'], 'etudiants', 'Succès');
                     } else {
-                        $GLOBALS['messageErreur'] = "Erreur lors de la modification de l'étudiant.";
+                        $data['messageErreur'] = "Erreur lors de la modification de l'étudiant.";
                         $this->auditLog->logModification($_SESSION['id_utilisateur'], 'etudiants', 'Erreur');
 
                        
@@ -224,9 +231,9 @@ class GestionEtudiantController
                 if (isset($_POST['selected_ids']) && !empty($_POST['selected_ids'])) {
                     // Vérifier la permission DELETE
                     if (!hasPermission('gestion_etudiants', 'DELETE')) {
-                        $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de supprimer des étudiants.";
+                        $data['messageErreur'] = "Vous n'avez pas la permission de supprimer des étudiants.";
                         $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'etudiants', 'Erreur - Permission refusée');
-                        return;
+                        return $data;
                     }
                     
                     // Validate selected IDs format
@@ -235,8 +242,8 @@ class GestionEtudiantController
                     });
                     
                     if (empty($validIds)) {
-                        $GLOBALS['messageErreur'] = "Aucun étudiant valide sélectionné.";
-                        return;
+                        $data['messageErreur'] = "Aucun étudiant valide sélectionné.";
+                        return $data;
                     }
                     
                     $success = true;
@@ -258,10 +265,10 @@ class GestionEtudiantController
                     }
                     
                     if ($success) {
-                        $GLOBALS['messageSuccess'] = "Étudiants supprimés avec succès.";
+                        $data['messageSuccess'] = "Étudiants supprimés avec succès.";
                         $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'etudiants', 'Succès - ' . count($validIds) . ' étudiants');
                     } else {
-                        $GLOBALS['messageErreur'] = "Erreur lors de la suppression des étudiants.";
+                        $data['messageErreur'] = "Erreur lors de la suppression des étudiants.";
                        
                     }
                 }
@@ -271,9 +278,9 @@ class GestionEtudiantController
             $listeEtudiants = $this->etudiant->getAllEtudiants();
             
             // Filtrer les étudiants si un terme de recherche est présent
-            if (!empty($searchTerm)) {
-                $listeEtudiants = array_filter($listeEtudiants, function($etudiant) use ($searchTerm) {
-                    $searchTerm = strtolower($searchTerm);
+            if (!empty($data['searchTerm'])) {
+                $listeEtudiants = array_filter($listeEtudiants, function($etudiant) use ($data) {
+                    $searchTerm = strtolower($data['searchTerm']);
                     return strpos(strtolower($etudiant->nom_etu), $searchTerm) !== false ||
                            strpos(strtolower($etudiant->prenom_etu), $searchTerm) !== false;
                 });
@@ -300,22 +307,21 @@ class GestionEtudiantController
             // Récupérer les étudiants pour la page courante
             $currentPageItems = array_slice($listeEtudiants, $startIndex, $itemsPerPage);
 
-            // Préparation des données pour la vue
-            $GLOBALS['listeEtudiants'] = $currentPageItems;
-            $GLOBALS['allEtudiants'] = $listeEtudiants;
-            $GLOBALS['etudiant_a_modifier'] = $etudiant_a_modifier;
-            $GLOBALS['modalAction'] = $modalAction;
-            $GLOBALS['currentPage'] = $currentPage;
-            $GLOBALS['totalPages'] = $totalPages;
-            $GLOBALS['totalItems'] = $totalItems;
-            $GLOBALS['startIndex'] = $startIndex;
-            $GLOBALS['endIndex'] = $endIndex;
-            $GLOBALS['itemsPerPage'] = $itemsPerPage;
-            $GLOBALS['searchTerm'] = $searchTerm;
+            // Ajouter les données de pagination
+            $data['listeEtudiants'] = $currentPageItems;
+            $data['allEtudiants'] = $listeEtudiants;
+            $data['currentPage'] = $currentPage;
+            $data['totalPages'] = $totalPages;
+            $data['totalItems'] = $totalItems;
+            $data['startIndex'] = $startIndex;
+            $data['endIndex'] = $endIndex;
+            $data['itemsPerPage'] = $itemsPerPage;
 
         } catch (Exception $e) {
             error_log("Erreur dans GestionEtudiantController::index : " . $e->getMessage());
-            $GLOBALS['messageErreur'] = "Une erreur est survenue. Veuillez réessayer.";
+            $data['messageErreur'] = "Une erreur est survenue. Veuillez réessayer.";
         }
+        
+        return $data;
     }
 }

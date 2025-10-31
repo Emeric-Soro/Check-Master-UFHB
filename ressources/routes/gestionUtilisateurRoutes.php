@@ -6,7 +6,9 @@ require_once __DIR__ . '/../../app/controllers/GestionUtilisateurController.php'
 
 $controller = new GestionUtilisateurController();
 
+$viewData = [];
+
 if (isset($_GET['page']) && ( $_GET['page'] === 'gestion_utilisateurs' || $_GET['page'] === 'profil' )) {
 
-    $controller->index(); 
+    $viewData = $controller->index(); 
 }

@@ -308,18 +308,20 @@ class GestionUtilisateurController
             $messageErreur = "Erreur : " . $e->getMessage();
         }
 
-        // Préparation des données pour la vue
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
-        $GLOBALS['utilisateurs'] = $this->utilisateur->getAllUtilisateurs();
-        $GLOBALS['types_utilisateur'] = $this->typeUtilisateur->getAllTypeUtilisateur();
-        $GLOBALS['groupes_utilisateur'] = $this->groupeUtilisateur->getAllGroupeUtilisateur();
-        $GLOBALS['niveau_acces'] = $this->niveauAcces->getAllNiveauxAccesDonnees();
-        $GLOBALS['utilisateur_a_modifier'] = $utilisateur_a_modifier;
-        $GLOBALS['action'] = $action;
-        $GLOBALS['enseignantsNonUtilisateurs'] = $enseignantsNonUtilisateurs;
-        $GLOBALS['personnelNonUtilisateurs'] = $personnelNonUtilisateurs;
-        $GLOBALS['etudiantsNonUtilisateurs'] = $etudiantsNonUtilisateurs;
+        // Retourner les données pour la vue
+        return [
+            'messageErreur' => $messageErreur,
+            'messageSuccess' => $messageSuccess,
+            'utilisateurs' => $this->utilisateur->getAllUtilisateurs(),
+            'types_utilisateur' => $this->typeUtilisateur->getAllTypeUtilisateur(),
+            'groupes_utilisateur' => $this->groupeUtilisateur->getAllGroupeUtilisateur(),
+            'niveau_acces' => $this->niveauAcces->getAllNiveauxAccesDonnees(),
+            'utilisateur_a_modifier' => $utilisateur_a_modifier,
+            'action' => $action,
+            'enseignantsNonUtilisateurs' => $enseignantsNonUtilisateurs,
+            'personnelNonUtilisateurs' => $personnelNonUtilisateurs,
+            'etudiantsNonUtilisateurs' => $etudiantsNonUtilisateurs
+        ];
     }
 
 

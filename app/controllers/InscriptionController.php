@@ -23,28 +23,26 @@ class InscriptionController
 
     public function index()
     {
-        // Récupérer les étudiants non inscrits
-        $GLOBALS['etudiantsNonInscrits'] = $this->scolarite->getEtudiantsNonInscrits();
-
-        // Récupérer les niveaux d'études
-        $GLOBALS['niveaux'] = $this->scolarite->getNiveauxEtudes();
-
-        // Récupérer les étudiants déjà inscrits
-        $GLOBALS['etudiantsInscrits'] = $this->scolarite->getEtudiantsInscrits();
-
-        // Récupérer les années académiques
-        $GLOBALS['listeAnnees'] = $this->anneeAcademique->getAllAnneeAcademiques();
+        // Préparer les données pour la vue
+        $data = [
+            'etudiantsNonInscrits' => $this->scolarite->getEtudiantsNonInscrits(),
+            'niveaux' => $this->scolarite->getNiveauxEtudes(),
+            'etudiantsInscrits' => $this->scolarite->getEtudiantsInscrits(),
+            'listeAnnees' => $this->anneeAcademique->getAllAnneeAcademiques(),
+            'messageErreur' => '',
+            'messageSuccess' => ''
+        ];
 
         // Si un numéro d'étudiant est fourni, récupérer ses informations
         if (isset($_GET['num_etu'])) {
-            $GLOBALS['etudiantInfo'] = $this->scolarite->getInfoEtudiant($_GET['num_etu']);
+            $data['etudiantInfo'] = $this->scolarite->getInfoEtudiant($_GET['num_etu']);
         }
 
         // Si on est en mode modification, récupérer les informations de l'inscription
         if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'modifier' && isset($_GET['id'])) {
-            $GLOBALS['inscriptionAModifier'] = $this->scolarite->getInscriptionById($_GET['id']);
-            if ($GLOBALS['inscriptionAModifier']) {
-                $GLOBALS['etudiantInfo'] = $this->scolarite->getInfoEtudiant($GLOBALS['inscriptionAModifier']['id_etudiant']);
+            $data['inscriptionAModifier'] = $this->scolarite->getInscriptionById($_GET['id']);
+            if ($data['inscriptionAModifier']) {
+                $data['etudiantInfo'] = $this->scolarite->getInfoEtudiant($data['inscriptionAModifier']['id_etudiant']);
             }
         }
 
@@ -104,11 +102,11 @@ class InscriptionController
                     
                 } catch (Exception $e) {
                     error_log("PDF generation error: " . $e->getMessage());
-                    $GLOBALS['messageErreur'] = "Erreur lors de la génération du PDF : " . $e->getMessage();
+                    $data['messageErreur'] = "Erreur lors de la génération du PDF : " . $e->getMessage();
                     $this->auditLog->logImpression($_SESSION['id_utilisateur'], 'inscriptions', 'Erreur');
                 }
             } else {
-                $GLOBALS['messageErreur'] = "Inscription non trouvée.";
+                $data['messageErreur'] = "Inscription non trouvée.";
                 $this->auditLog->logImpression($_SESSION['id_utilisateur'], 'inscriptions', 'Erreur');
             }
         }
@@ -116,10 +114,10 @@ class InscriptionController
         // Gestion de la suppression d'inscription
         if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'supprimer' && isset($_GET['id'])) {
             if ($this->scolarite->supprimerInscription($_GET['id'])) {
-                $GLOBALS['messageSuccess'] = "Inscription supprimée avec succès.";
+                $data['messageSuccess'] = "Inscription supprimée avec succès.";
                 $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'inscriptions', 'Succès');
             } else {
-                $GLOBALS['messageErreur'] = "Erreur lors de la suppression de l'inscription.";
+                $data['messageErreur'] = "Erreur lors de la suppression de l'inscription.";
                 $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'inscriptions', 'Erreur');
             }
         }
@@ -152,16 +150,18 @@ class InscriptionController
                 $inscriptionAModifier = $this->scolarite->getInscriptionById($_GET['id']);
                 // Peupler les informations de l'étudiant si l'inscription est trouvée
                 if ($inscriptionAModifier) {
-                    $GLOBALS['etudiantInfo'] = $this->scolarite->getInfoEtudiant($inscriptionAModifier['id_etudiant']);
+                    $data['etudiantInfo'] = $this->scolarite->getInfoEtudiant($inscriptionAModifier['id_etudiant']);
                 }
-                $GLOBALS['inscriptionAModifier'] = $inscriptionAModifier;
+                $data['inscriptionAModifier'] = $inscriptionAModifier;
             }
 
 
         }
 
         // Récupérer la liste mise à jour des étudiants inscrits après chaque action
-        $GLOBALS['etudiantsInscrits'] = $this->scolarite->getEtudiantsInscrits();
+        $data['etudiantsInscrits'] = $this->scolarite->getEtudiantsInscrits();
+        
+        return $data;
     }
 
     private function traiterInscription()
