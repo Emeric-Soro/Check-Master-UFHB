@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../../app/utils/permissions.php';
+
 $annee_a_modifier = $GLOBALS['annee_a_modifier'] ?? null;
 
 

@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Scolarite.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 class GestionScolariteController {
     private $scolariteModel;
@@ -67,6 +68,13 @@ class GestionScolariteController {
     }
 
     public function enregistrerVersement() {
+        // Vérifier la permission CREATE
+        if (!hasPermission('gestion_scolarite', 'CREATE')) {
+            $GLOBALS['messageErreur'] = "Vous n'avez pas la permission d'enregistrer des versements.";
+            $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'versements', 'Erreur - Permission refusée');
+            return;
+        }
+        
         try {
             // Validation des données
             if (empty($_POST['id_etudiant']) || empty($_POST['montant']) || empty($_POST['methode_paiement'])) {
@@ -126,6 +134,13 @@ class GestionScolariteController {
     
 
     public function mettreAJourVersement() {
+        // Vérifier la permission UPDATE
+        if (!hasPermission('gestion_scolarite', 'UPDATE')) {
+            $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de mettre à jour des versements.";
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'versements', 'Erreur - Permission refusée');
+            return;
+        }
+        
         try {
             // Validation des données
             if (empty($_POST['id_versement']) || empty($_POST['montant']) || empty($_POST['methode_paiement'])) {

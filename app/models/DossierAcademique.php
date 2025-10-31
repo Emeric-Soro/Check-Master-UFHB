@@ -5,62 +5,56 @@ class DossierAcademique {
         $this->pdo = $pdo;
     }
 
+    /**
+     * Récupérer le résumé académique d'un étudiant depuis resume_candidature
+     */
     public function getByNumEtu($num_etu) {
-        $stmt = $this->pdo->prepare('SELECT * FROM dossier_academique WHERE num_etu = ? LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT * FROM resume_candidature WHERE num_etu = ? ORDER BY date_enregistrement DESC LIMIT 1');
         $stmt->execute([$num_etu]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
+    /**
+     * Créer ou mettre à jour le résumé académique d'un étudiant
+     * @param $data Données comprenant: num_etu, resume_json, decision
+     */
     public function saveOrUpdate($data) {
         
         $num_etu = $data['num_etu'] ?? '';
-       
-        // Correction : annee_obtention_diplome doit être NULL si vide ou invalide
-        if (isset($data['annee_obtention_diplome'])) {
-            if ($data['annee_obtention_diplome'] === '' || $data['annee_obtention_diplome'] === null) {
-                $data['annee_obtention_diplome'] = null;
-            } else {
-                // S'assurer que c'est un entier valide
-                $annee = intval($data['annee_obtention_diplome']);
-                if ($annee > 0) {
-                    $data['annee_obtention_diplome'] = $annee;
-                } else {
-                    $data['annee_obtention_diplome'] = null;
-                }
-            }
-        }
-        
-        // Nettoyer les autres champs pour éviter les erreurs de troncature
-        $data = array_map(function($value) {
-            if ($value === '') {
-                return null;
-            }
-            return $value;
-        }, $data);
-        
-        // Vérifie si le dossier existe
-        $stmt = $this->pdo->prepare('SELECT id_dossier FROM dossier_academique WHERE num_etu = ?');
+        $resume_json = $data['resume_json'] ?? '{}';
+        $decision = $data['decision'] ?? 'En attente';
+
+        // Vérifier si un résumé existe déjà pour cet étudiant
+        $stmt = $this->pdo->prepare('SELECT id FROM resume_candidature WHERE num_etu = ? LIMIT 1');
         $stmt->execute([$num_etu]);
         if ($stmt->fetch()) {
             // Update
-            $sql = 'UPDATE dossier_academique SET adresse=:adresse, telephone=:telephone, nationalite=:nationalite, situation_familiale=:situation_familiale, dernier_diplome=:dernier_diplome, etablissement_origine=:etablissement_origine, annee_obtention_diplome=:annee_obtention_diplome, mention_diplome=:mention_diplome';
-            $sql .= ' WHERE num_etu=:num_etu';
-            $data['num_etu'] = $num_etu;
+            $sql = 'UPDATE resume_candidature SET resume_json = :resume_json, decision = :decision, date_enregistrement = NOW() WHERE num_etu = :num_etu';
             $stmt = $this->pdo->prepare($sql);
-            return $stmt->execute($data);
+            return $stmt->execute([
+                ':resume_json' => $resume_json,
+                ':decision' => $decision,
+                ':num_etu' => $num_etu
+            ]);
         } else {
-            // Insert
-            $fields = array_unique(array_merge(array_keys($data), ['num_etu']));
-            $placeholders = array_map(fn($k) => ":$k", $fields);
-            $sql = 'INSERT INTO dossier_academique (' . implode(',', $fields) . ') VALUES (' . implode(',', $placeholders) . ')';
-            $data['num_etu'] = $num_etu;
+            // Insert - récupérer id_candidature si disponible
+            $id_candidature = $data['id_candidature'] ?? null;
+            $sql = 'INSERT INTO resume_candidature (num_etu, id_candidature, resume_json, decision, date_enregistrement) VALUES (:num_etu, :id_candidature, :resume_json, :decision, NOW())';
             $stmt = $this->pdo->prepare($sql);
-            return $stmt->execute($data);
+            return $stmt->execute([
+                ':num_etu' => $num_etu,
+                ':id_candidature' => $id_candidature,
+                ':resume_json' => $resume_json,
+                ':decision' => $decision
+            ]);
         }
     }
 
+    /**
+     * Supprimer le résumé académique d'un étudiant
+     */
     public function deleteByNumEtu($num_etu) {
-        $stmt = $this->pdo->prepare('DELETE FROM dossier_academique WHERE num_etu = ?');
+        $stmt = $this->pdo->prepare('DELETE FROM resume_candidature WHERE num_etu = ?');
         return $stmt->execute([$num_etu]);
     }
 } 

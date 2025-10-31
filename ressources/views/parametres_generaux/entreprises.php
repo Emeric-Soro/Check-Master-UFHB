@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../../app/utils/permissions.php';
+
 $entreprise_a_modifier = $GLOBALS['entreprise_a_modifier'] ?? null;
 
 // Pagination

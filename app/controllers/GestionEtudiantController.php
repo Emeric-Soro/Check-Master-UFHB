@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . "/../models/Etudiant.php";
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 
 class GestionEtudiantController
@@ -54,12 +55,16 @@ class GestionEtudiantController
 
             // Gestion des actions GET pour les modales
             if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'edit' && isset($_GET['num_etu'])) {
-                $etudiant_a_modifier = $this->etudiant->getEtudiantById($_GET['num_etu']);
-                if (!$etudiant_a_modifier) {
-                    $GLOBALS['messageErreur'] = "Étudiant non trouvé.";
-                   
+                // Vérifier la permission UPDATE pour afficher le formulaire de modification
+                if (!hasPermission('gestion_etudiants', 'UPDATE')) {
+                    $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de modifier les étudiants.";
                 } else {
-                    $modalAction = 'edit';
+                    $etudiant_a_modifier = $this->etudiant->getEtudiantById($_GET['num_etu']);
+                    if (!$etudiant_a_modifier) {
+                        $GLOBALS['messageErreur'] = "Étudiant non trouvé.";
+                       
+                    } else {
+                        $modalAction = 'edit';
                     // Enregistrer la consultation d'un étudiant spécifique
                    
                     
@@ -79,11 +84,19 @@ class GestionEtudiantController
                     }
                 }
             }
+            }
 
             // Gestion des actions POST
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Ajout d'un nouvel étudiant
                 if (isset($_POST['submit_add_etudiant'])) {
+                    // Vérifier la permission CREATE
+                    if (!hasPermission('gestion_etudiants', 'CREATE')) {
+                        $GLOBALS['messageErreur'] = "Vous n'avez pas la permission d'ajouter des étudiants.";
+                        $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'etudiants', 'Erreur - Permission refusée');
+                        return;
+                    }
+                    
                     // Validation des champs
                     if (empty($_POST['nom_etu']) || empty($_POST['prenom_etu']) || 
                         empty($_POST['date_naiss_etu']) || empty($_POST['genre_etu']) || 
@@ -93,13 +106,35 @@ class GestionEtudiantController
                         return;
                     }
 
-                    $num_etu = $this->genererNumeroEtudiant($_POST['promotion_etu']);
                     $nom_etu = trim($_POST['nom_etu']);
                     $prenom_etu = trim($_POST['prenom_etu']);
                     $date_naiss_etu = $_POST['date_naiss_etu'];
                     $genre_etu = $_POST['genre_etu'];
                     $email_etu = trim($_POST['email_etu']);
                     $promotion_etu = $_POST['promotion_etu'];
+                    
+                    // Strict validation
+                    if (!preg_match('/^[a-zA-ZÀ-ÿ\s\'-]{2,50}$/u', $nom_etu)) {
+                        $GLOBALS['messageErreur'] = "Le nom n'est pas valide (2-50 caractères alphabétiques).";
+                        return;
+                    }
+                    
+                    if (!preg_match('/^[a-zA-ZÀ-ÿ\s\'-]{2,50}$/u', $prenom_etu)) {
+                        $GLOBALS['messageErreur'] = "Le prénom n'est pas valide (2-50 caractères alphabétiques).";
+                        return;
+                    }
+                    
+                    if (!in_array($genre_etu, ['M', 'F', 'Autre'], true)) {
+                        $GLOBALS['messageErreur'] = "Le genre n'est pas valide.";
+                        return;
+                    }
+                    
+                    if (!preg_match('/^\d{4}-\d{4}$/', $promotion_etu)) {
+                        $GLOBALS['messageErreur'] = "Le format de promotion n'est pas valide (AAAA-AAAA).";
+                        return;
+                    }
+
+                    $num_etu = $this->genererNumeroEtudiant($promotion_etu);
 
                     // Validation de l'email
                     if (!filter_var($email_etu, FILTER_VALIDATE_EMAIL)) {
@@ -124,6 +159,13 @@ class GestionEtudiantController
 
                 // Modification d'un étudiant
                 if (isset($_POST['submit_modifier_etudiant'])) {
+                    // Vérifier la permission UPDATE
+                    if (!hasPermission('gestion_etudiants', 'UPDATE')) {
+                        $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de modifier les étudiants.";
+                        $this->auditLog->logModification($_SESSION['id_utilisateur'], 'etudiants', 'Erreur - Permission refusée');
+                        return;
+                    }
+                    
                     if (empty($_POST['num_etu']) || empty($_POST['nom_etu']) || 
                         empty($_POST['prenom_etu']) || empty($_POST['date_naiss_etu']) || 
                         empty($_POST['genre_etu']) || empty($_POST['email_etu']) || 
@@ -180,17 +222,36 @@ class GestionEtudiantController
 
                 // Suppression d'étudiants
                 if (isset($_POST['selected_ids']) && !empty($_POST['selected_ids'])) {
+                    // Vérifier la permission DELETE
+                    if (!hasPermission('gestion_etudiants', 'DELETE')) {
+                        $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de supprimer des étudiants.";
+                        $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'etudiants', 'Erreur - Permission refusée');
+                        return;
+                    }
+                    
+                    // Validate selected IDs format
+                    $validIds = array_filter($_POST['selected_ids'], function($id) {
+                        return preg_match('/^\d+$/', $id);
+                    });
+                    
+                    if (empty($validIds)) {
+                        $GLOBALS['messageErreur'] = "Aucun étudiant valide sélectionné.";
+                        return;
+                    }
+                    
                     $success = true;
                     $etudiantsSupprimes = [];
                     
-                    foreach ($_POST['selected_ids'] as $num_etu) {
-                        // Récupérer les informations de l'étudiant avant suppression
-                        $etudiant = $this->etudiant->getEtudiantById($num_etu);
-                        if ($etudiant) {
-                            $etudiantsSupprimes[] = "{$etudiant->nom_etu} {$etudiant->prenom_etu} ($num_etu)";
-                        }
+                    // Retrieve all students info in one query (optimize N+1)
+                    $placeholders = str_repeat('?,', count($validIds) - 1) . '?';
+                    $stmt = $this->db->prepare("SELECT num_etu, nom_etu, prenom_etu FROM etudiants WHERE num_etu IN ($placeholders)");
+                    $stmt->execute($validIds);
+                    $etudiants = $stmt->fetchAll(PDO::FETCH_OBJ);
+                    
+                    foreach ($etudiants as $etudiant) {
+                        $etudiantsSupprimes[] = "{$etudiant->nom_etu} {$etudiant->prenom_etu} ({$etudiant->num_etu})";
                         
-                        if (!$this->etudiant->supprimerEtudiant($num_etu)) {
+                        if (!$this->etudiant->supprimerEtudiant($etudiant->num_etu)) {
                             $success = false;
                             break;
                         }
@@ -198,10 +259,7 @@ class GestionEtudiantController
                     
                     if ($success) {
                         $GLOBALS['messageSuccess'] = "Étudiants supprimés avec succès.";
-                       
-                        foreach ($_POST['selected_ids'] as $num_etu) {
-                         $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'etudiants', 'Succès');
-                        }
+                        $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'etudiants', 'Succès - ' . count($validIds) . ' étudiants');
                     } else {
                         $GLOBALS['messageErreur'] = "Erreur lors de la suppression des étudiants.";
                        

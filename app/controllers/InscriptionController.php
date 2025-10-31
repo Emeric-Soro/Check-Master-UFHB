@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Scolarite.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 
 class InscriptionController
@@ -51,59 +52,61 @@ class InscriptionController
         if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'imprimer_recu' && isset($_GET['id_inscription'])) {
             $inscription = $this->scolarite->getInscriptionById($_GET['id_inscription']);
             if ($inscription) {
-                $GLOBALS['inscriptionAModifier'] = $inscription;
-
-                // Inclure l'autoloader de Composer pour Dompdf
                 require_once __DIR__ . '/../../vendor/autoload.php';
+                require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+                require_once __DIR__ . '/../utils/ReceiptUtils.php';
 
-                // Démarrer la mise en mémoire tampon de sortie
-                ob_start();
-
-                // Inclure le fichier du modèle de reçu
-                include __DIR__ . '/../../ressources/views/gestion_etudiants/recu_inscription.php';
-
-                // Capturer le contenu de la mémoire tampon
-                $html = ob_get_clean();
-
-                // Instancier Dompdf avec options utiles
-                if (class_exists('\Dompdf\Options')) {
-                    $options = new \Dompdf\Options();
-                    // Autoriser le chargement d'images distantes/HTTP (utile si vous utilisez des URLs absolues)
-                    $options->set('isRemoteEnabled', true);
-                    $dompdf = new \Dompdf\Dompdf($options);
-                } else {
-                    // Fallback si la classe Options n'est pas disponible
-                    $dompdf = new \Dompdf\Dompdf();
-                }
-
-                // Définir le répertoire de base pour les ressources (chemin absolu)
-                $basePathress = realpath(__DIR__ . '/../../public');
-                if ($basePathress) {
-                    $dompdf->setBasePath($basePathress);
-                }
-
-                // Charger le HTML
-                $dompdf->loadHtml($html);
-
-                // Définir la taille et l'orientation du papier (utiliser les valeurs anglaises attendues)
-                // Utilisation d'A4 en paysage
-                $dompdf->setPaper('A4', 'landscape');
-
-                // Rendre le PDF avec gestion d'erreur pour logguer clairement les problèmes
                 try {
-                    $dompdf->render();
-                    // Envoyer le PDF au navigateur (inline)
-                    $dompdf->stream("recu_paiement_" . $inscription['id_inscription'] . ".pdf", array("Attachment" => false));
+                    // Calculer les montants et dates
+                    $montantTotal = $inscription['montant_total'] ?? 0;
+                    $montantPaye = $inscription['montant_premier_versement'] ?? 0;
+                    $nombreTranches = $inscription['nombre_tranche'] ?? 1;
+                    $resteAPayer = $montantTotal - $montantPaye;
+                    $prochainVersement = ReceiptUtils::calculerProchainVersement($montantTotal, $montantPaye, $nombreTranches);
+                    $dateProchainVersement = ReceiptUtils::calculerDateProchainVersement($inscription['date_inscription'] ?? date('Y-m-d'), $nombreTranches);
+                    
+                    // Formater l'année académique
+                    $anneeAcademique = date('Y', strtotime($inscription['date_deb'] ?? date('Y-m-d'))) . '-' . 
+                                      date('Y', strtotime($inscription['date_fin'] ?? date('Y-m-d', strtotime('+1 year'))));
+                    
+                    // Préparer les données pour le template
+                    $templateData = [
+                        'id_inscription' => $inscription['id_inscription'] ?? '',
+                        'nom_etudiant' => $inscription['nom_etudiant'] ?? '',
+                        'prenom_etudiant' => $inscription['prenom_etudiant'] ?? '',
+                        'nom_niveau' => $inscription['nom_niveau'] ?? 'N/A',
+                        'annee_academique' => $anneeAcademique,
+                        'montant_total' => number_format($montantTotal, 0, ',', ' '),
+                        'montant_paye' => number_format($montantPaye, 0, ',', ' '),
+                        'reste_a_payer' => number_format($resteAPayer, 0, ',', ' '),
+                        'methode_paiement' => $inscription['methode_paiement'] ?? '',
+                        'date_inscription' => date('d/m/Y', strtotime($inscription['date_inscription'] ?? date('Y-m-d'))),
+                        'nombre_tranche' => $nombreTranches,
+                        'prochain_versement' => number_format($prochainVersement, 0, ',', ' '),
+                        'date_prochain_versement' => $dateProchainVersement
+                    ];
+                    
+                    // Utiliser DocumentGeneratorService
+                    $documentService = new DocumentGeneratorService();
+                    $pdfPath = $documentService->generateFromTemplate('recu_inscription', $templateData);
+                    
+                    // Envoyer le PDF au navigateur
+                    header('Content-Type: application/pdf');
+                    header('Content-Disposition: inline; filename="recu_paiement_' . $inscription['id_inscription'] . '.pdf"');
+                    header('Content-Length: ' . filesize($pdfPath));
+                    readfile($pdfPath);
+                    
+                    // Nettoyer le fichier temporaire
+                    $documentService->cleanupTempFile($pdfPath);
+                    
+                    $this->auditLog->logImpression($_SESSION['id_utilisateur'], 'inscriptions', 'Succès');
+                    exit;
+                    
                 } catch (Exception $e) {
-                    // Logger l'erreur et afficher un message d'erreur convivial
-                    error_log("Dompdf render error: " . $e->getMessage());
+                    error_log("PDF generation error: " . $e->getMessage());
                     $GLOBALS['messageErreur'] = "Erreur lors de la génération du PDF : " . $e->getMessage();
                     $this->auditLog->logImpression($_SESSION['id_utilisateur'], 'inscriptions', 'Erreur');
                 }
-
-                $this->auditLog->logImpression($_SESSION['id_utilisateur'], 'inscriptions', 'Succès');
-
-                exit;
             } else {
                 $GLOBALS['messageErreur'] = "Inscription non trouvée.";
                 $this->auditLog->logImpression($_SESSION['id_utilisateur'], 'inscriptions', 'Erreur');
@@ -163,6 +166,13 @@ class InscriptionController
 
     private function traiterInscription()
     {
+        // Vérifier la permission CREATE
+        if (!hasPermission('gestion_scolarite', 'CREATE')) {
+            $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de créer des inscriptions.";
+            $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'inscriptions', 'Erreur - Permission refusée');
+            return;
+        }
+        
         try {
             // Validation des données
             if (
@@ -231,6 +241,13 @@ class InscriptionController
 
     private function modifierInscription()
     {
+        // Vérifier la permission UPDATE
+        if (!hasPermission('gestion_scolarite', 'UPDATE')) {
+            $GLOBALS['messageErreur'] = "Vous n'avez pas la permission de modifier des inscriptions.";
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'inscriptions', 'Erreur - Permission refusée');
+            return;
+        }
+        
         try {
             if (empty($_POST['id_inscription']) || empty($_POST['niveau']) || empty($_POST['premier_versement'])) {
                 $GLOBALS['messageErreur'] = "Tous les champs sont obligatoires.";

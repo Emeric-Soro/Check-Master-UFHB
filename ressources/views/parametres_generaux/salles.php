@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../../app/utils/permissions.php';
+
 // Traitement des formulaires et récupération des données
 $salle_a_modifier = null;
 $messageErreur = '';

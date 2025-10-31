@@ -1,3 +1,6 @@
+<?php
+require_once __DIR__ . '/../../../app/utils/permissions.php';
+?>
 <!-- Gestion des critères d'évaluation -->
 <div class="space-y-6">
     <!-- En-tête -->
@@ -7,10 +10,12 @@
                 <h2 class="text-2xl font-bold text-gray-900">Critères d'Évaluation</h2>
                 <p class="text-gray-600 mt-1">Gérez les critères d'évaluation et leurs barèmes par année académique</p>
             </div>
+            <?php if (hasPermission('criteres_evaluation', 'CREATE')): ?>
             <button onclick="openAddCritereModal()"
                 class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                 <i class="fas fa-plus mr-2"></i>Nouveau Critère
             </button>
+            <?php endif; ?>
         </div>
     </div>
 

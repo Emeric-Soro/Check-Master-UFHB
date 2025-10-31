@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+
 // Supposons que $reclamationsEnCours et $reclamationsTraitees sont passés par le contrôleur
 // $reclamationsEnCours : réclamations statut 'en attente' ou 'en cours'
 // $reclamationsTraitees : réclamations statut 'traitée' ou 'clôturée'

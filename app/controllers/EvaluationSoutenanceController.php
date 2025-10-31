@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 class EvaluationSoutenanceController
 {
@@ -214,6 +215,17 @@ class EvaluationSoutenanceController
      */
     public function enregistrerEvaluation()
     {
+        // Vérifier la permission CREATE pour enregistrer une évaluation
+        if (!hasPermission('evaluation_soutenance', 'CREATE')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Vous n\'avez pas la permission d\'enregistrer des évaluations.'
+            ]);
+            return;
+        }
+        
         try {
             // Récupérer les données POST
             $numEtu = $_POST['num_etu'] ?? null;
@@ -456,206 +468,156 @@ class EvaluationSoutenanceController
     }
 
     /**
-     * Imprimer les procès-verbaux (PV) de soutenance en PDF - Les 3 annexes dans un seul document
+     * Imprimer les procès-verbaux (PV) de soutenance en PDF
      */
     public function imprimerPV()
     {
-        try {
-            require_once __DIR__ . '/../../vendor/autoload.php';
+        require_once __DIR__ . '/../../vendor/autoload.php';
+        require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
 
-            $numEtu = $_GET['num_etu'] ?? null;
-            $moyenneMaster1 = $_GET['moyenne_master1'] ?? null;
+        $numEtu = $_GET['num_etu'] ?? null;
 
-            if (empty($numEtu)) {
-                throw new Exception('Numéro étudiant requis');
-            }
-
-            $pdo = Database::getConnection();
-
-            // Récupérer les informations de l'étudiant et de la soutenance
-            $sql = "
-                SELECT 
-                    p.id_programmation,
-                    p.theme_soutenance,
-                    p.date_soutenance,
-                    p.heure_soutenance,
-                    p.num_jury,
-                    -- Étudiant
-                    e.num_etu,
-                    CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_etudiant,
-                    e.promotion_etu,
-                    -- Niveau (Master 1 / Master 2)
-                    CASE 
-                        WHEN e.promotion_etu LIKE '%M1%' THEN 'Master 1'
-                        WHEN e.promotion_etu LIKE '%M2%' THEN 'Master 2'
-                        ELSE e.promotion_etu
-                    END as niveau,
-                    -- Jury
-                    (SELECT CONCAT(ens1.prenom_enseignant, ' ', ens1.nom_enseignant) 
-                     FROM composer_jury cj1 
-                     JOIN enseignants ens1 ON cj1.id_enseignant = ens1.id_enseignant 
-                     JOIN roles_jury r1 ON cj1.id_qualite_jury = r1.id_role_jury 
-                     WHERE cj1.num_jury = p.num_jury AND r1.lib_role = 'Président du jury' 
-                     LIMIT 1) as president,
-                    (SELECT CONCAT(ens2.prenom_enseignant, ' ', ens2.nom_enseignant) 
-                     FROM composer_jury cj2 
-                     JOIN enseignants ens2 ON cj2.id_enseignant = ens2.id_enseignant 
-                     JOIN roles_jury r2 ON cj2.id_qualite_jury = r2.id_role_jury 
-                     WHERE cj2.num_jury = p.num_jury AND r2.lib_role = 'Examinateur' 
-                     LIMIT 1) as examinateur,
-                    (SELECT CONCAT(ens3.prenom_enseignant, ' ', ens3.nom_enseignant) 
-                     FROM composer_jury cj3 
-                     JOIN enseignants ens3 ON cj3.id_enseignant = ens3.id_enseignant 
-                     JOIN roles_jury r3 ON cj3.id_qualite_jury = r3.id_role_jury 
-                     WHERE cj3.num_jury = p.num_jury AND r3.lib_role = 'Directeur de mémoire' 
-                     LIMIT 1) as directeur,
-                    (SELECT CONCAT(ens4.prenom_enseignant, ' ', ens4.nom_enseignant) 
-                     FROM composer_jury cj4 
-                     JOIN enseignants ens4 ON cj4.id_enseignant = ens4.id_enseignant 
-                     JOIN roles_jury r4 ON cj4.id_qualite_jury = r4.id_role_jury 
-                     WHERE cj4.num_jury = p.num_jury AND r4.lib_role = 'Encadrant' 
-                     LIMIT 1) as encadreur,
-                    -- Maître de stage
-                    ist.encadrant_entreprise as maitre_stage
-                FROM programmer p
-                INNER JOIN etudiants e ON p.num_etud = e.num_etu
-                LEFT JOIN informations_stage ist ON e.num_etu = ist.num_etu
-                WHERE e.num_etu = ?
-                LIMIT 1
-            ";
-
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$numEtu]);
-            $soutenance = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if (!$soutenance) {
-                throw new Exception('Soutenance non trouvée');
-            }
-
-            // Préparer les données communes
-            $data = [
-                'niveau' => $soutenance['niveau'],
-                'date_soutenance' => date('d/m/Y', strtotime($soutenance['date_soutenance'])),
-                'promotion' => $soutenance['promotion_etu'],
-                'theme' => $soutenance['theme_soutenance'],
-                'nom_etudiant' => $soutenance['nom_etudiant'],
-                'president' => $soutenance['president'] ?? '',
-                'examinateur' => $soutenance['examinateur'] ?? '',
-                'directeur' => $soutenance['directeur'] ?? '',
-                'encadreur' => $soutenance['encadreur'] ?? '',
-                'maitre_stage' => $soutenance['maitre_stage'] ?? ''
-            ];
-
-            // Récupérer les évaluations
-            $sqlEval = "
-                SELECT 
-                    e.id_critere,
-                    e.note,
-                    c.lib_critere,
-                    cor.bareme
-                FROM evaluer e
-                JOIN critere_evaluation c ON e.id_critere = c.id_critere
-                LEFT JOIN correspondre cor ON c.id_critere = cor.id_critere
-                WHERE e.num_etudiant = ?
-                ORDER BY e.id_critere
-            ";
-            $stmtEval = $pdo->prepare($sqlEval);
-            $stmtEval->execute([$numEtu]);
-            $evaluations = $stmtEval->fetchAll(PDO::FETCH_ASSOC);
-
-            // Calculer la somme des notes
-            $sommeNotes = 0;
-            $sommeBaremes = 0;
-            foreach ($evaluations as $eval) {
-                $sommeNotes += $eval['note'];
-                $sommeBaremes += $eval['bareme'];
-            }
-
-            // ========== ANNEXE 1 - Soutenance de Mémoire ==========
-            $dataAnnexe1 = $data;
-            $dataAnnexe1['criteres'] = $evaluations;
-            $dataAnnexe1['note_finale'] = $sommeNotes;
-            $dataAnnexe1['total_bareme'] = $sommeBaremes;
-
-            ob_start();
-            extract($dataAnnexe1);
-            $data = $dataAnnexe1; // Pour les templates
-            include __DIR__ . '/../../ressources/views/pv_soutenance/annexe1.php';
-            $htmlAnnexe1 = ob_get_clean();
-
-            // ========== ANNEXE 2 - PV Jury ==========
-            $dataAnnexe2 = $data;
-
-            // Calculer les moyennes depuis la base de données
-            $moyennes = $this->calculerMoyennesPourAnnexe2($numEtu, $pdo);
-
-            $dataAnnexe2['moyenne_master1'] = $moyennes['moyenne_master1'];
-            $dataAnnexe2['moyenne_s1_master2'] = $moyennes['moyenne_s1_master2'];
-            $dataAnnexe2['note_memoire'] = $sommeNotes; // Note de soutenance = note du mémoire
-            $dataAnnexe2['coef_master1'] = 2;
-            $dataAnnexe2['coef_s1_master2'] = 3;
-            $dataAnnexe2['coef_memoire'] = 3;
-            $dataAnnexe2['total_coef'] = 8;
-
-            // Calcul : (Moyenne Master1 * 2 + Moyenne S1 Master2 * 3 + Mémoire * 3) / 8
-            $dataAnnexe2['note_finale'] = (
-                $dataAnnexe2['moyenne_master1'] * $dataAnnexe2['coef_master1'] +
-                $dataAnnexe2['moyenne_s1_master2'] * $dataAnnexe2['coef_s1_master2'] +
-                $dataAnnexe2['note_memoire'] * $dataAnnexe2['coef_memoire']
-            ) / $dataAnnexe2['total_coef'];
-
-            $dataAnnexe2['mention'] = $this->calculerMention($dataAnnexe2['note_finale']);
-
-            ob_start();
-            extract($dataAnnexe2);
-            $data = $dataAnnexe2; // Pour les templates
-            include __DIR__ . '/../../ressources/views/pv_soutenance/annexe2.php';
-            $htmlAnnexe2 = ob_get_clean();
-
-            // ========== ANNEXE 3 - PV Jury FC ==========
-            $dataAnnexe3 = $data;
-            // Utiliser la moyenne Master 1 fournie, sinon valeur par défaut
-            $dataAnnexe3['moyenne_master1'] = !empty($moyenneMaster1) && is_numeric($moyenneMaster1) ? floatval($moyenneMaster1) : 12.0;
-            $dataAnnexe3['note_memoire'] = $sommeNotes;
-            $dataAnnexe3['coef_master1'] = 1;
-            $dataAnnexe3['coef_memoire'] = 2;
-            $dataAnnexe3['total_coef'] = 3;
-            $dataAnnexe3['note_finale'] = ($dataAnnexe3['moyenne_master1'] * 1 + $dataAnnexe3['note_memoire'] * 2) / 3;
-            $dataAnnexe3['mention'] = $this->calculerMention($dataAnnexe3['note_finale']);
-
-            ob_start();
-            extract($dataAnnexe3);
-            $data = $dataAnnexe3; // Pour les templates
-            include __DIR__ . '/../../ressources/views/pv_soutenance/annexe3.php';
-            $htmlAnnexe3 = ob_get_clean();
-
-            // ========== COMBINER LES 3 ANNEXES DANS UN SEUL PDF ==========
-            // Ajouter des sauts de page entre les annexes
-            $htmlComplet = $htmlAnnexe1 . '<div style="page-break-after: always;"></div>' .
-                $htmlAnnexe2 . '<div style="page-break-after: always;"></div>' .
-                $htmlAnnexe3;
-
-            // Générer le PDF
-            $options = new \Dompdf\Options();
-            $options->set('isHtml5ParserEnabled', true);
-            $options->set('isRemoteEnabled', true);
-            $options->set('defaultFont', 'DejaVu Sans');
-
-            $dompdf = new \Dompdf\Dompdf($options);
-            $dompdf->loadHtml($htmlComplet);
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-
-            $pdfFilename = 'PV_Soutenance_' . $numEtu . '_' . date('Y-m-d') . '.pdf';
-
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: inline; filename="' . $pdfFilename . '"');
-            echo $dompdf->output();
-
-        } catch (Exception $e) {
-            error_log('Erreur imprimerPV: ' . $e->getMessage());
-            echo '<h3>Erreur lors de la génération du PDF : ' . htmlspecialchars($e->getMessage()) . '</h3>';
+        if (empty($numEtu)) {
+            throw new Exception('Numéro étudiant requis');
         }
+
+        $pdo = Database::getConnection();
+        
+        // Récupérer les informations de l'étudiant et de la soutenance
+        $sql = "
+            SELECT 
+                p.id_programmation,
+                p.theme_soutenance,
+                p.date_soutenance,
+                p.heure_soutenance,
+                p.num_jury,
+                -- Étudiant
+                e.num_etu,
+                CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_etudiant,
+                e.promotion_etu,
+                -- Niveau (Master 1 / Master 2)
+                CASE 
+                    WHEN e.promotion_etu LIKE '%M1%' THEN 'Master 1'
+                    WHEN e.promotion_etu LIKE '%M2%' THEN 'Master 2'
+                    ELSE e.promotion_etu
+                END as niveau,
+                -- Jury
+                (SELECT CONCAT(ens1.prenom_enseignant, ' ', ens1.nom_enseignant) 
+                 FROM composer_jury cj1 
+                 JOIN enseignants ens1 ON cj1.id_enseignant = ens1.id_enseignant 
+                 JOIN roles_jury r1 ON cj1.id_qualite_jury = r1.id_role_jury 
+                 WHERE cj1.num_jury = p.num_jury AND r1.lib_role = 'Président du jury' 
+                 LIMIT 1) as president,
+                (SELECT CONCAT(ens2.prenom_enseignant, ' ', ens2.nom_enseignant) 
+                 FROM composer_jury cj2 
+                 JOIN enseignants ens2 ON cj2.id_enseignant = ens2.id_enseignant 
+                 JOIN roles_jury r2 ON cj2.id_qualite_jury = r2.id_role_jury 
+                 WHERE cj2.num_jury = p.num_jury AND r2.lib_role = 'Examinateur' 
+                 LIMIT 1) as examinateur,
+                (SELECT CONCAT(ens3.prenom_enseignant, ' ', ens3.nom_enseignant) 
+                 FROM composer_jury cj3 
+                 JOIN enseignants ens3 ON cj3.id_enseignant = ens3.id_enseignant 
+                 JOIN roles_jury r3 ON cj3.id_qualite_jury = r3.id_role_jury 
+                 WHERE cj3.num_jury = p.num_jury AND r3.lib_role = 'Directeur de mémoire' 
+                 LIMIT 1) as directeur,
+                (SELECT CONCAT(ens4.prenom_enseignant, ' ', ens4.nom_enseignant) 
+                 FROM composer_jury cj4 
+                 JOIN enseignants ens4 ON cj4.id_enseignant = ens4.id_enseignant 
+                 JOIN roles_jury r4 ON cj4.id_qualite_jury = r4.id_role_jury 
+                 WHERE cj4.num_jury = p.num_jury AND r4.lib_role = 'Encadrant' 
+                 LIMIT 1) as encadreur,
+                -- Maître de stage
+                ist.encadrant_entreprise as maitre_stage
+            FROM programmer p
+            INNER JOIN etudiants e ON p.num_etud = e.num_etu
+            LEFT JOIN informations_stage ist ON e.num_etu = ist.num_etu
+            WHERE e.num_etu = ?
+            LIMIT 1
+        ";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$numEtu]);
+        $soutenance = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$soutenance) {
+            throw new Exception('Soutenance non trouvée');
+        }
+
+        // Récupérer les évaluations
+        $sqlEval = "
+            SELECT 
+                e.id_critere,
+                e.note,
+                c.lib_critere,
+                cor.bareme
+            FROM evaluer e
+            JOIN critere_evaluation c ON e.id_critere = c.id_critere
+            LEFT JOIN correspondre cor ON c.id_critere = cor.id_critere
+            WHERE e.num_etudiant = ?
+            ORDER BY e.id_critere
+        ";
+        $stmtEval = $pdo->prepare($sqlEval);
+        $stmtEval->execute([$numEtu]);
+        $evaluations = $stmtEval->fetchAll(PDO::FETCH_ASSOC);
+
+        // Calculer la somme des notes
+        $sommeNotes = 0;
+        $sommeBaremes = 0;
+        foreach ($evaluations as $eval) {
+            $sommeNotes += $eval['note'];
+            $sommeBaremes += $eval['bareme'];
+        }
+        
+        // Calculer les moyennes
+        $moyennes = $this->calculerMoyennesPourAnnexe2($numEtu, $pdo);
+        
+        // Calculate final note and mention
+        $noteFinalePV = (
+            $moyennes['moyenne_master1'] * 2 +
+            $moyennes['moyenne_s1_master2'] * 3 +
+            $sommeNotes * 3
+        ) / 8;
+        $mention = $this->calculerMention($noteFinalePV);
+
+        // Préparer les données pour le template
+        $templateData = [
+            'niveau' => $soutenance['niveau'],
+            'date_soutenance' => date('d/m/Y', strtotime($soutenance['date_soutenance'])),
+            'promotion' => $soutenance['promotion_etu'],
+            'theme' => $soutenance['theme_soutenance'],
+            'nom_etudiant' => $soutenance['nom_etudiant'],
+            'president' => $soutenance['president'] ?? '',
+            'examinateur' => $soutenance['examinateur'] ?? '',
+            'directeur' => $soutenance['directeur'] ?? '',
+            'encadreur' => $soutenance['encadreur'] ?? '',
+            'maitre_stage' => $soutenance['maitre_stage'] ?? '',
+            'note_finale' => $sommeNotes,
+            'total_bareme' => $sommeBaremes,
+            'moyenne_master1' => $moyennes['moyenne_master1'],
+            'moyenne_s1_master2' => $moyennes['moyenne_s1_master2'],
+            'note_memoire' => $sommeNotes,
+            'note_finale_pv' => number_format($noteFinalePV, 2),
+            'mention' => $mention,
+            // For repeating blocks (criteria)
+            'criteres' => $evaluations
+        ];
+
+        // Use DocumentGeneratorService
+        $documentService = new DocumentGeneratorService();
+        
+        // Generate PDF from template
+        $pdfPath = $documentService->generateFromTemplate('pv_soutenance', $templateData);
+        
+        // Send PDF to browser
+        $pdfFilename = 'PV_Soutenance_' . $numEtu . '_' . date('Y-m-d') . '.pdf';
+        
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="' . $pdfFilename . '"');
+        header('Content-Length: ' . filesize($pdfPath));
+        readfile($pdfPath);
+        
+        // Clean up temporary file
+        $documentService->cleanupTempFile($pdfPath);
     }
 
     /**
@@ -678,28 +640,29 @@ class EvaluationSoutenanceController
 
     /**
      * Calculer les moyennes nécessaires pour l'Annexe 2
-     * - Moyenne Générale Master 1 : depuis le dossier académique (JSON)
+     * - Moyenne Générale Master 1 : depuis resume_candidature (JSON)
      * - Moyenne Générale Semestre 1 Master 2 : depuis la table notes
      */
     private function calculerMoyennesPourAnnexe2($numEtu, $pdo)
     {
         try {
-            // 1. Récupérer la Moyenne Générale Master 1 depuis le dossier académique
-            // La moyenne Master 1 est stockée dans details_academiques (JSON)
-            $sqlDossier = "
-                SELECT details_academiques
-                FROM dossier_academique
+            // 1. Récupérer la Moyenne Générale Master 1 depuis resume_candidature
+            // La moyenne est stockée dans resume_json (JSON) sous semestre.moyenne
+            $sqlResume = "
+                SELECT resume_json
+                FROM resume_candidature
                 WHERE num_etu = ?
+                ORDER BY date_enregistrement DESC
                 LIMIT 1
             ";
 
-            $stmtDossier = $pdo->prepare($sqlDossier);
-            $stmtDossier->execute([$numEtu]);
-            $dossier = $stmtDossier->fetch(PDO::FETCH_ASSOC);
+            $stmtResume = $pdo->prepare($sqlResume);
+            $stmtResume->execute([$numEtu]);
+            $resume = $stmtResume->fetch(PDO::FETCH_ASSOC);
 
             $moyenneMaster1 = 0;
-            if ($dossier && !empty($dossier['details_academiques'])) {
-                $details = json_decode($dossier['details_academiques'], true);
+            if ($resume && !empty($resume['resume_json'])) {
+                $details = json_decode($resume['resume_json'], true);
                 if (isset($details['semestre']['moyenne'])) {
                     // Format: "12.63/20" ou "12.63"
                     $moyenneStr = $details['semestre']['moyenne'];

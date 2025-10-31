@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Reclamation.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 class GestionReclamationsController {
 
@@ -61,11 +62,15 @@ class GestionReclamationsController {
 
     private function traiterSoumissionReclamation()
     {
+        // Vérifier la permission CREATE
+        if (!hasPermission('gestion_reclamations', 'CREATE')) {
+            $_SESSION['erreurs_form'] = ['Vous n\'avez pas la permission de soumettre des réclamations.'];
+            $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'reclamations', 'Erreur - Permission refusée');
+            header('Location: ?page=gestion_reclamations');
+            exit;
+        }
+        
         try {
-            // Debug : afficher les données reçues
-            error_log("POST data: " . print_r($_POST, true));
-            error_log("SESSION data: " . print_r($_SESSION, true));
-
             // Récupérer les données du formulaire
             $donneesReclamation = [
                 'titre' => $_POST['objet'] ?? '',
@@ -100,9 +105,6 @@ class GestionReclamationsController {
                     'type' => $donneesReclamation['type'],
                 'priorite' => $donneesReclamation['priorite']
             ];
-
-            // Debug : afficher les données préparées
-            error_log("Données pour insertion: " . print_r($donnees, true));
 
             // Créer la réclamation
             $reclamationId = $this->reclamationModel->creer($donnees);

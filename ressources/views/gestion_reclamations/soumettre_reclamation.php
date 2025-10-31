@@ -1,3 +1,6 @@
+<?php
+require_once __DIR__ . '/../../../app/utils/permissions.php';
+?>
 <!-- Contenu de la page de soumission de réclamation -->
 <!-- Include Quill rich text editor -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.css" rel="stylesheet">
@@ -116,10 +119,12 @@
 
                 <!-- Boutons -->
                 <div class="flex justify-end space-x-3">
+                    <?php if (hasPermission('gestion_reclamations', 'CREATE')): ?>
                     <button type="submit"
                         class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition flex items-center">
                         <i class="fas fa-paper-plane mr-2"></i> Soumettre la réclamation
                     </button>
+                    <?php endif; ?>
                 </div>
             </form>
         </div>

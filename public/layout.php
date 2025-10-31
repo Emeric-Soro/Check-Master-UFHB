@@ -1,28 +1,40 @@
 <?php
 session_start();
-include '../app/config/database.php';
-include '../app/controllers/AuthController.php';
-include '../app/controllers/MenuController.php';
-include 'menu.php';
-include __DIR__ . '/../ressources/routes/gestionUtilisateurRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionRhRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionDashboardRoutes.php';
-include __DIR__ . '/../ressources/routes/dashboardEnseignantRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionScolariteRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionNotesRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionCandidaturesRoutes.php';
-include __DIR__ . '/../ressources/routes/listeEtudiantsRoutes.php';
-include __DIR__ . '/../ressources/routes/dossierAcademiqueRoutes.php';
-include __DIR__ . '/../ressources/routes/verificationRapportsRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionReclamationsScolariteRoutes.php';
-include __DIR__ . '/../ressources/routes/evaluationDossiersRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionDossiersCandidaturesRoutes.php';
-include __DIR__ . '/../ressources/routes/sauvegardeRestaurationRoutes.php';
-include __DIR__ . '/../ressources/routes/notesResultatsRoutes.php';
-include __DIR__ . '/../ressources/routes/archivesDossiersSoutenanceRoutes.php';
-include __DIR__ . '/../ressources/routes/auditRoutes.php';
-include __DIR__ . '/../ressources/routes/redactionCompteRenduRoutes.php';
-include __DIR__ . '/../ressources/routes/archivesCompteRenduRoutes.php';
+
+// HTTP Security Headers
+// Note: CSP includes 'unsafe-inline' and 'unsafe-eval' for compatibility with existing inline scripts
+// TODO: Refactor inline scripts to external files and use CSP nonces for better XSS protection
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+header("X-Content-Type-Options: nosniff");
+header("X-Frame-Options: DENY");
+header("Strict-Transport-Security: max-age=31536000; includeSubDomains");
+header("Referrer-Policy: no-referrer-when-downgrade");
+header("X-XSS-Protection: 1; mode=block");
+
+include_once '../app/config/database.php';
+include_once '../app/controllers/AuthController.php';
+include_once '../app/controllers/MenuController.php';
+include_once '../app/utils/permissions.php';
+include_once 'menu.php';
+include_once __DIR__ . '/../ressources/routes/gestionUtilisateurRoutes.php';
+include_once __DIR__ . '/../ressources/routes/gestionRhRoutes.php';
+include_once __DIR__ . '/../ressources/routes/gestionDashboardRoutes.php';
+include_once __DIR__ . '/../ressources/routes/dashboardEnseignantRoutes.php';
+include_once __DIR__ . '/../ressources/routes/gestionScolariteRoutes.php';
+include_once __DIR__ . '/../ressources/routes/gestionNotesRoutes.php';
+include_once __DIR__ . '/../ressources/routes/gestionCandidaturesRoutes.php';
+include_once __DIR__ . '/../ressources/routes/listeEtudiantsRoutes.php';
+include_once __DIR__ . '/../ressources/routes/dossierAcademiqueRoutes.php';
+include_once __DIR__ . '/../ressources/routes/verificationRapportsRoutes.php';
+include_once __DIR__ . '/../ressources/routes/gestionReclamationsScolariteRoutes.php';
+include_once __DIR__ . '/../ressources/routes/evaluationDossiersRoutes.php';
+include_once __DIR__ . '/../ressources/routes/gestionDossiersCandidaturesRoutes.php';
+include_once __DIR__ . '/../ressources/routes/sauvegardeRestaurationRoutes.php';
+include_once __DIR__ . '/../ressources/routes/notesResultatsRoutes.php';
+include_once __DIR__ . '/../ressources/routes/archivesDossiersSoutenanceRoutes.php';
+include_once __DIR__ . '/../ressources/routes/auditRoutes.php';
+include_once __DIR__ . '/../ressources/routes/redactionCompteRenduRoutes.php';
+include_once __DIR__ . '/../ressources/routes/archivesCompteRenduRoutes.php';
 if (!isset($_SESSION['id_utilisateur'])) {
     header('Location: page_connexion.php');
     exit;
@@ -47,6 +59,17 @@ if (!isset($_SESSION['id_utilisateur'])) {
             }
         }
     }
+    
+    // Vérifier la permission READ pour la page demandée (sauf pour le dashboard qui est toujours accessible)
+    if (!empty($currentMenuSlug) && $currentMenuSlug !== 'dashboard') {
+        if (!hasPermission($currentMenuSlug, 'READ')) {
+            $_SESSION['error_message'] = "Accès refusé: vous n'avez pas les permissions nécessaires pour accéder à cette page.";
+            // Rediriger vers le dashboard
+            header('Location: layout.php?page=dashboard');
+            exit;
+        }
+    }
+    
     if (empty($currentMenuSlug) && !empty($traitements)) {
         $currentMenuSlug = $traitements[0]['lib_traitement'];
         $currentPageLabel = $traitements[0]['label_traitement'];

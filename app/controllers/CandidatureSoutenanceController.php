@@ -4,6 +4,7 @@ require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/Entreprise.php';
 require_once __DIR__ . '/../models/InfoStage.php';
 require_once __DIR__ . '/../models/AuditLog.php';   
+require_once __DIR__ . '/../utils/permissions.php';
 
 
 class CandidatureSoutenanceController {

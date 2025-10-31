@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/Enseignant.php';
 require_once __DIR__ . '/../../app/config/database.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 class DashboardSecretaireController {
     private $pdo;
@@ -60,9 +61,9 @@ class DashboardSecretaireController {
             $candidatures = 0;
         }
 
-        // Statistiques des dossiers académiques (si la table existe)
+        // Statistiques des résumés académiques (resume_candidature)
         try {
-            $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM dossier_academique");
+            $stmt = $this->pdo->query("SELECT COUNT(DISTINCT num_etu) as total FROM resume_candidature");
             $dossiers = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
         } catch (Exception $e) {
             $dossiers = 0;

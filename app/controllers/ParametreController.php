@@ -18,6 +18,7 @@ require_once __DIR__ . '/../models/Traitement.php';
 require_once __DIR__ . '/../models/Entreprise.php';
 require_once __DIR__ . '/../models/Message.php';
 require_once __DIR__ . '/../models/Attribution.php';
+require_once __DIR__ . '/../models/Permission.php';
 require_once __DIR__ . '/../models/Enseignant.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 
@@ -43,6 +44,7 @@ class ParametreController
     private $message;
 
     private $attribution;
+    private $permission;
     private $enseignant;
     private $auditLog;
 
@@ -67,6 +69,7 @@ class ParametreController
         $this->entreprise = new Entreprise(Database::getConnection());
         $this->message = new Message(Database::getConnection());
         $this->attribution = new Attribution(Database::getConnection());
+        $this->permission = new Permission(Database::getConnection());
         $this->enseignant = new Enseignant(Database::getConnection());
         $this->auditLog = new AuditLog(Database::getConnection());
     }
@@ -1148,78 +1151,91 @@ class ParametreController
     {
         $messageErreur = '';
         $messageSuccess = '';
-        $attribution_a_modifier = null;
 
-        // Récupérer tous les groupes et traitements
+        // Récupérer tous les groupes, traitements et actions
         $listeGroupes = $this->groupeUtilisateur->getAllGroupeUtilisateur();
         $listeTraitements = $this->traitement->getAllTraitements();
-
-        // Debug
-        error_log("Liste des groupes: " . print_r($listeGroupes, true));
-        error_log("Liste des traitements: " . print_r($listeTraitements, true));
+        $listeActions = $this->action->getAllAction();
 
         // Récupérer le groupe sélectionné
         $selectedGroupeId = isset($_GET['groupe']) ? $_GET['groupe'] : null;
         $selectedGroupe = null;
-        $attributionsGroupe = [];
+        $permissionsGroupe = [];
 
         if ($selectedGroupeId) {
             $selectedGroupe = $this->groupeUtilisateur->getGroupeUtilisateurById($selectedGroupeId);
-            // Récupérer les traitements attribués au groupe
-            $attributionsGroupe = $this->attribution->getTraitementsByGroupe($selectedGroupeId);
-
-            // Debug
-            error_log("Groupe sélectionné: " . print_r($selectedGroupe, true));
-            error_log("Attributions du groupe: " . print_r($attributionsGroupe, true));
+            // Récupérer la matrice de permissions du groupe
+            $permissionsGroupe = $this->permission->getPermissionsByGroupe($selectedGroupeId);
         }
 
-        // Traiter le formulaire de soumission
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_GU'])) {
-            $this->handleAttributionSubmit($_POST);
+        // Traiter les requêtes AJAX pour mise à jour des permissions
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax']) && $_POST['ajax'] === 'true') {
+            header('Content-Type: application/json');
+            $this->handlePermissionAjax($_POST);
+            exit;
         }
 
-        // Préparer les données pour la vue
-        $attributionsMap = [];
+        // Préparer la matrice de permissions pour tous les groupes
+        $permissionsMatrix = [];
         foreach ($listeGroupes as $groupe) {
-            $attributionsMap[$groupe->id_GU] = $this->attribution->getTraitementsByGroupe($groupe->id_GU);
+            $permissionsMatrix[$groupe->id_GU] = $this->permission->getPermissionsByGroupe($groupe->id_GU);
         }
 
-        // Debug
-        error_log("Map des attributions: " . print_r($attributionsMap, true));
-
-        $GLOBALS['attributionsMap'] = $attributionsMap;
+        // Passer les données à la vue
         $GLOBALS['listeGroupes'] = $listeGroupes;
         $GLOBALS['listeTraitements'] = $listeTraitements;
+        $GLOBALS['listeActions'] = $listeActions;
         $GLOBALS['selectedGroupe'] = $selectedGroupe;
-        $GLOBALS['attributionsGroupe'] = $attributionsGroupe;
+        $GLOBALS['permissionsGroupe'] = $permissionsGroupe;
+        $GLOBALS['permissionsMatrix'] = $permissionsMatrix;
         $GLOBALS['messageErreur'] = $messageErreur;
         $GLOBALS['messageSuccess'] = $messageSuccess;
-        $GLOBALS['attribution_a_modifier'] = $attribution_a_modifier;
     }
 
-    private function handleAttributionSubmit($postData)
+    private function handlePermissionAjax($postData)
     {
-        $groupeId = $postData['id_GU'];
-        $selectedTraitements = isset($postData['traitements']) ? $postData['traitements'] : [];
-
         try {
-            // Supprimer toutes les attributions existantes pour ce groupe
-            $this->attribution->deleteAttribution($groupeId);
+            $action = $postData['action'] ?? '';
+            $id_GU = $postData['id_GU'] ?? null;
+            $id_traitement = $postData['id_traitement'] ?? null;
+            $id_action = $postData['id_action'] ?? null;
 
-            // Ajouter les nouvelles attributions
-            foreach ($selectedTraitements as $traitementId) {
-                $this->attribution->ajouterAttribution($groupeId, $traitementId);
+            if (!$id_GU || !$id_traitement || !$id_action) {
+                echo json_encode(['success' => false, 'message' => 'Paramètres manquants']);
+                return;
             }
 
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'attribution', 'Succès');
-            // Rediriger avec un message de succès
-            header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&success=1');
-            exit;
+            if ($action === 'toggle') {
+                // Vérifier si la permission existe
+                $hasPermission = $this->permission->hasPermission($id_GU, $id_traitement, $id_action);
+
+                if ($hasPermission) {
+                    // Supprimer la permission
+                    $result = $this->permission->supprimerPermission($id_GU, $id_traitement, $id_action);
+                    $newState = false;
+                } else {
+                    // Ajouter la permission
+                    $result = $this->permission->ajouterPermission($id_GU, $id_traitement, $id_action);
+                    $newState = true;
+                }
+
+                if ($result) {
+                    $this->auditLog->logModification($_SESSION['id_utilisateur'], 'permission', 'Succès');
+                    echo json_encode([
+                        'success' => true,
+                        'message' => $newState ? 'Permission ajoutée' : 'Permission supprimée',
+                        'state' => $newState
+                    ]);
+                } else {
+                    $this->auditLog->logModification($_SESSION['id_utilisateur'], 'permission', 'Erreur');
+                    echo json_encode(['success' => false, 'message' => 'Erreur lors de la modification']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Action non valide']);
+            }
         } catch (Exception $e) {
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'attribution', 'Erreur');
-            // Rediriger avec un message d'erreur
-            header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&error=1');
-            exit;
+            error_log("Erreur AJAX permission: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Erreur serveur: ' . $e->getMessage()]);
         }
     }
 
@@ -1231,6 +1247,88 @@ class ParametreController
         // On laisse juste la vue se charger
     }
     //==============================FIN GESTION SALLES==============================
+    
+    //=============================GESTION MODÈLES DE DOCUMENTS=============================
+    public function gestionModeles()
+    {
+        require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+        
+        $documentService = new DocumentGeneratorService();
+        $messageErreur = '';
+        $messageSuccess = '';
+        
+        // Téléversement d'un nouveau modèle
+        if (isset($_POST['btn_upload_template'])) {
+            try {
+                if (!isset($_FILES['template_file']) || $_FILES['template_file']['error'] !== UPLOAD_ERR_OK) {
+                    throw new Exception("Erreur lors du téléversement du fichier.");
+                }
+                
+                $templateName = trim($_POST['template_name']);
+                
+                if (empty($templateName)) {
+                    throw new Exception("Le nom du modèle est requis.");
+                }
+                
+                $documentService->saveUploadedTemplate($_FILES['template_file'], $templateName);
+                $messageSuccess = "Le modèle a été téléversé avec succès.";
+                $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'template', $templateName);
+                
+            } catch (Exception $e) {
+                $messageErreur = $e->getMessage();
+                $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'template', 'Erreur: ' . $e->getMessage());
+            }
+        }
+        
+        // Suppression d'un modèle
+        if (isset($_POST['btn_delete_template'])) {
+            try {
+                $templateName = $_POST['template_name'];
+                
+                if ($documentService->deleteTemplate($templateName)) {
+                    $messageSuccess = "Le modèle a été supprimé avec succès.";
+                    $this->auditLog->logDeletion($_SESSION['id_utilisateur'], 'template', $templateName);
+                } else {
+                    throw new Exception("Impossible de supprimer le modèle.");
+                }
+                
+            } catch (Exception $e) {
+                $messageErreur = $e->getMessage();
+            }
+        }
+        
+        // Téléchargement d'un modèle
+        if (isset($_GET['download_template'])) {
+            try {
+                $templateName = $_GET['download_template'];
+                $templatePath = $documentService->getTemplatePath($templateName);
+                
+                if (!file_exists($templatePath)) {
+                    throw new Exception("Le modèle n'existe pas.");
+                }
+                
+                header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+                header('Content-Disposition: attachment; filename="' . basename($templatePath) . '"');
+                header('Content-Length: ' . filesize($templatePath));
+                readfile($templatePath);
+                exit;
+                
+            } catch (Exception $e) {
+                $messageErreur = $e->getMessage();
+            }
+        }
+        
+        // Récupérer la liste des modèles
+        $templates = $documentService->listTemplates();
+        
+        // Make variables available for the view
+        $GLOBALS['templates'] = $templates;
+        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $GLOBALS['messageErreur'] = $messageErreur;
+        
+        // Afficher la vue
+        include $this->baseViewPath . 'modeles_documents.php';
+    }
 }
 
 

@@ -1,3 +1,6 @@
+<?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -87,10 +90,12 @@
                     <input type="text" name="backup_name" id="backup_name" placeholder="Ex: avant_mise_a_jour_v2"
                         class="outline-green-500 w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500">
                 </div>
+                <?php if (hasPermission('sauvegarde_restauration', 'CREATE')): ?>
                 <button type="submit"
                     class="px-6 py-2 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-green-500 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                     <i class="fas fa-database mr-2"></i>Lancer la Sauvegarde Manuelle
                 </button>
+                <?php endif; ?>
             </form>
         </div>
 
@@ -141,18 +146,22 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                <?php if (hasPermission('sauvegarde_restauration', 'UPDATE')): ?>
                                 <button type="button" class="text-green-600 hover:text-green-900 mr-3" title="Restaurer"
                                     onclick="openRestoreModal('<?php echo htmlspecialchars($backup['filename']); ?>')">
                                     <i class="fas fa-undo-alt"></i> Restaurer
                                 </button>
+                                <?php endif; ?>
                                 <a href="?page=sauvegarde_restauration&action=download&filename=<?php echo urlencode($backup['filename']); ?>"
                                     class="text-blue-600 hover:text-blue-900 mr-3" title="Télécharger">
                                     <i class="fas fa-download"></i>
                                 </a>
+                                <?php if (hasPermission('sauvegarde_restauration', 'DELETE')): ?>
                                 <button type="button" class="text-red-600 hover:text-red-900" title="Supprimer"
                                     onclick="openDeleteModal('<?php echo htmlspecialchars($backup['filename']); ?>')">
                                     <i class="fas fa-trash"></i>
                                 </button>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>

@@ -24,12 +24,6 @@ if (isset($_GET['page']) && $_GET['page'] === 'evaluations_dossiers_soutenance')
     if (isset($_GET['action']) && $_GET['action'] === 'traiter_decision') {
         header('Content-Type: application/json');
         
-        // Debug: log les paramètres reçus
-        error_log("DEBUG: Action traiter_decision appelée");
-        error_log("DEBUG: Méthode HTTP: " . $_SERVER['REQUEST_METHOD']);
-        error_log("DEBUG: GET params: " . print_r($_GET, true));
-        error_log("DEBUG: POST params: " . print_r($_POST, true));
-        
         $controller->traiterAction();
         exit;
     }

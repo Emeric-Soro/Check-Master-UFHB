@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+
 global $stats;
 $dashboardData = $stats ?? [];
 $totalRapports = $dashboardData['total_rapports'] ?? 0;

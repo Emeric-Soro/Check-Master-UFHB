@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../../app/utils/permissions.php';
 require_once __DIR__ . '/../../../app/utils/ReceiptUtils.php';
 
 // Récupérer les données nécessaires

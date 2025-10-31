@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
 
 $students = $GLOBALS['listeEtudiants'];
 $niveauxEtude = $GLOBALS['niveauxEtude'];
@@ -426,10 +427,18 @@ $studentGrades = $GLOBALS['studentGrades'];
                                 }
                             ?>
                                     <div class="flex justify-end mt-6">
+                                        <?php if (hasPermission('gestion_notes_evaluations', 'UPDATE')): ?>
                                         <button type="submit" name="btn_enregistrer_notes"
                                             class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                                            Enregistrer les notes
+                                            <i class="fas fa-save mr-2"></i>Enregistrer les notes
                                         </button>
+                                        <?php else: ?>
+                                        <button type="button" disabled
+                                            class="px-4 py-2 bg-gray-400 text-gray-600 rounded-md cursor-not-allowed"
+                                            title="Vous n'avez pas la permission d'enregistrer les notes">
+                                            <i class="fas fa-lock mr-2"></i>Permission refusée
+                                        </button>
+                                        <?php endif; ?>
                                     </div>
                         </form>
                         <?php } ?>

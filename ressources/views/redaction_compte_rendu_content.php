@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+
 $rapports_valides = $GLOBALS['rapports_valides'] ?? [];
 $enseignants = $GLOBALS['enseignants'] ?? [];
 $notifType = '';
@@ -212,9 +214,15 @@ if (!empty($_SESSION['success'])) {
 
                             <!-- Templates -->
                             <div class="template-section p-6 rounded-lg shadow mb-8 text-center">
+                                <?php if (hasPermission('redaction_compte_rendu', 'READ')): ?>
                                 <button onclick="loadTemplate('validation_seance')" class="px-6 py-3 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600 transition-colors font-semibold text-lg">
                                     <i class="fas fa-file-import mr-2"></i>Charger le modèle
-                                    </button>
+                                </button>
+                                <?php else: ?>
+                                <button disabled class="px-6 py-3 bg-gray-400 text-gray-600 rounded-lg shadow font-semibold text-lg cursor-not-allowed" title="Permission refusée">
+                                    <i class="fas fa-lock mr-2"></i>Modèles non disponibles
+                                </button>
+                                <?php endif; ?>
                             </div>
                         </div>
 
@@ -431,9 +439,15 @@ if (!empty($_SESSION['success'])) {
         <input type="hidden" name="nom_CR" id="nom_CR" value="">
         <input type="hidden" name="contenu_CR" id="contenu_CR" value="">
         <div class="flex justify-end mt-6">
+            <?php if (hasPermission('redaction_compte_rendu', 'CREATE') || hasPermission('redaction_compte_rendu', 'UPDATE')): ?>
             <button type="button" onclick="submitCR()" class="px-6 py-3 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition-colors font-semibold text-lg">
                 <i class="fas fa-save mr-2"></i>Enregistrer le compte rendu
             </button>
+            <?php else: ?>
+            <button type="button" disabled class="px-6 py-3 bg-gray-400 text-gray-600 rounded-lg shadow cursor-not-allowed font-semibold text-lg" title="Vous n'avez pas la permission d'enregistrer des comptes rendus">
+                <i class="fas fa-lock mr-2"></i>Accès refusé
+            </button>
+            <?php endif; ?>
         </div>
     </form>
 

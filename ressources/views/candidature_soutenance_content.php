@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+
 $stage_info = isset($GLOBALS['stage_info']) ? $GLOBALS['stage_info'] : [];
 $compte_rendu = isset($GLOBALS['compte_rendu']) ? $GLOBALS['compte_rendu'] : [];
 $has_candidature = isset($GLOBALS['has_candidature']) ? $GLOBALS['has_candidature'] : false;

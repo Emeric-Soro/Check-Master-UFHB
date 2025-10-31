@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+
 // Récupérer les données des rapports depuis le contrôleur
 $rapports = $GLOBALS['rapports'] ?? [];
 $nbRapports = $GLOBALS['nbRapports'] ?? 0;
@@ -530,10 +532,12 @@ function traduireStatut($statut)
                         class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
                         Annuler
                     </button>
+                    <?php if (hasPermission('verification_rapports', 'UPDATE')): ?>
                     <button type="submit"
                         class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">
                         Confirmer l'approbation
                     </button>
+                    <?php endif; ?>
                 </div>
             </form>
 
@@ -554,10 +558,12 @@ function traduireStatut($statut)
                         class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
                         Annuler
                     </button>
+                    <?php if (hasPermission('verification_rapports', 'UPDATE')): ?>
                     <button type="submit"
                         class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
                         Confirmer le rejet
                     </button>
+                    <?php endif; ?>
                 </div>
             </form>
         </div>

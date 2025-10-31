@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../../../app/utils/permissions.php';
+
 $ecue_a_modifier = $GLOBALS['ecue_a_modifier'] ?? null;
 $listeEcues = $GLOBALS['listeEcues'] ?? [];
 $listeUes = $GLOBALS['listeUes'] ?? [];

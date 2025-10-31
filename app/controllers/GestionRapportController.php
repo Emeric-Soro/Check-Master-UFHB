@@ -4,6 +4,7 @@ require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/permissions.php';
 
 
 class GestionRapportController {
@@ -210,6 +211,22 @@ class GestionRapportController {
             $action = $_POST['action'] ?? '';
 
             if ($action === 'save_rapport') {
+                // Vérifier les permissions CREATE/UPDATE selon le contexte
+                $edit_id = $_POST['edit_id'] ?? null;
+                if ($edit_id) {
+                    if (!hasPermission('gestion_rapports', 'UPDATE')) {
+                        $this->sendJsonResponse(['success' => false, 'message' => 'Permission refusée pour modifier le rapport.']);
+                        $this->auditLog->logModification($_SESSION['id_utilisateur'], 'rapport', 'Erreur - Permission refusée');
+                        return;
+                    }
+                } else {
+                    if (!hasPermission('gestion_rapports', 'CREATE')) {
+                        $this->sendJsonResponse(['success' => false, 'message' => 'Permission refusée pour créer un rapport.']);
+                        $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'rapport', 'Erreur - Permission refusée');
+                        return;
+                    }
+                }
+                
                 $this->sauvegarderRapport();
                 $this->auditLog->logCreation($_SESSION['id_utilisateur'], "rapport", "Succès");
             } elseif ($action === 'deposer_rapport') {
@@ -283,10 +300,6 @@ class GestionRapportController {
             return;
         }
 
-        // Debug : afficher les données préparées
-        error_log("Données pour sauvegarde: " . print_r($donneesRapport, true));
-        error_log("Num étudiant: " . $_SESSION['num_etu']);
-
         if ($donneesRapport['edit_id']) {
             // Mode modification - vérifier que le rapport n'est pas déjà déposé
             $stmt = $this->rapportModel->pdo->prepare("SELECT COUNT(*) FROM deposer WHERE num_etu = ? AND id_rapport = ?");
@@ -335,14 +348,10 @@ class GestionRapportController {
                 'result' => $result
             ];
 
-            // Log fichier ou error_log pour voir côté serveur
-            error_log("Erreur sauvegarde rapport: " . print_r($debug, true));
-
             // Affichage JSON clair dans Network > Response
             $this->sendJsonResponse([
                 'success' => false,
-                'message' => $messageErreur,
-                'debug' => $debug // ⚠️ à retirer en prod
+                'message' => $messageErreur
             ]);
         }
     }
@@ -673,9 +682,6 @@ class GestionRapportController {
             </body>
             </html>";
 
-            // Debug: logger le contenu HTML
-            error_log("HTML Content length: " . strlen($htmlContent));
-
             // Configuration DOMPDF optimisée pour préserver les styles
             $options = new \Dompdf\Options();
             $options->set('isHtml5ParserEnabled', true);
@@ -690,7 +696,6 @@ class GestionRapportController {
 
             $dompdf = new \Dompdf\Dompdf($options);
             
-            // Debug: vérifier que DOMPDF est bien instancié
             if (!$dompdf) {
                 throw new Exception('Impossible d\'instancier DOMPDF.');
             }
@@ -698,13 +703,7 @@ class GestionRapportController {
             $dompdf->loadHtml($htmlContent);
             $dompdf->setPaper('A4', 'portrait');
             
-            // Debug: logger avant le rendu
-            error_log("Starting PDF rendering...");
-            
             $dompdf->render();
-            
-            // Debug: logger après le rendu
-            error_log("PDF rendering completed.");
 
             // Nettoyer le nom du fichier
             $pdfName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nom_rapport) . '.pdf';
@@ -852,14 +851,8 @@ class GestionRapportController {
     {
         global $rapport, $commentaires;
 
-        // Debug
-        error_log("AfficherDetailRapport - ID: $id");
-        error_log("Type utilisateur: " . ($_SESSION['type_utilisateur'] ?? 'non défini'));
-        error_log("Num étudiant: " . ($_SESSION['num_etu'] ?? 'non défini'));
-
         // Récupérer le rapport
         $rapport = $this->rapportModel->getRapportById($id);
-        error_log("Rapport trouvé: " . ($rapport ? 'oui' : 'non'));
 
         if (!$rapport) {
             $this->afficherErreur("Rapport non trouvé.");
@@ -1148,6 +1141,13 @@ class GestionRapportController {
         // Vérifier que c'est bien un POST
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             return; // Ne rien faire si ce n'est pas un POST
+        }
+        
+        // Vérifier la permission DELETE
+        if (!hasPermission('gestion_rapports', 'DELETE')) {
+            $this->afficherErreur('Vous n\'avez pas la permission de supprimer des rapports.');
+            $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'rapport', 'Erreur - Permission refusée');
+            return;
         }
 
         try {

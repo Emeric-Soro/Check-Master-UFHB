@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions.php';
+
 $nom_user = $_SESSION['nom_utilisateur'] ?? '';
 $login_user = $_SESSION['login_utilisateur'] ?? '';
 $statut_user = $_SESSION['statut_utilisateur'] ?? '';

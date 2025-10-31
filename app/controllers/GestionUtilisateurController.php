@@ -7,6 +7,7 @@ require_once __DIR__ . "/../models/TypeUtilisateur.php";
 require_once __DIR__ . "/../models/GroupeUtilisateur.php";
 require_once __DIR__ . "/../models/NiveauAccesDonnees.php";
 require_once __DIR__ . "/../models/AuditLog.php";
+require_once __DIR__ . '/../utils/permissions.php';
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
@@ -55,49 +56,64 @@ class GestionUtilisateurController
 
             // Gestion des actions GET pour les modales
             if ($action === 'edit' && isset($_GET['id_utilisateur'])) {
-                $utilisateur_a_modifier = $this->utilisateur->getUtilisateurById($_GET['id_utilisateur']);
-                if (!$utilisateur_a_modifier) {
-                    $messageErreur = "Utilisateur non trouvé.";
+                // Vérifier la permission UPDATE pour afficher le formulaire de modification
+                if (!hasPermission('gestion_utilisateurs', 'UPDATE')) {
+                    $messageErreur = "Vous n'avez pas la permission de modifier les utilisateurs.";
+                } else {
+                    $utilisateur_a_modifier = $this->utilisateur->getUtilisateurById($_GET['id_utilisateur']);
+                    if (!$utilisateur_a_modifier) {
+                        $messageErreur = "Utilisateur non trouvé.";
+                    }
                 }
             } elseif ($action === 'add') {
-                // Pour l'ajout, on initialise un objet vide
-                $utilisateur_a_modifier = (object) [
-                    'id_utilisateur' => '',
-                    'nom_utilisateur' => '',
-                    'login_utilisateur' => '',
-                    'id_type_utilisateur' => '',
-                    'statut_utilisateur' => '1',
-                    'id_GU' => '',
-                    'id_niv_acces_donnee' => ''
-                ];
+                // Vérifier la permission CREATE pour afficher le formulaire d'ajout
+                if (!hasPermission('gestion_utilisateurs', 'CREATE')) {
+                    $messageErreur = "Vous n'avez pas la permission d'ajouter des utilisateurs.";
+                } else {
+                    // Pour l'ajout, on initialise un objet vide
+                    $utilisateur_a_modifier = (object) [
+                        'id_utilisateur' => '',
+                        'nom_utilisateur' => '',
+                        'login_utilisateur' => '',
+                        'id_type_utilisateur' => '',
+                        'statut_utilisateur' => '1',
+                        'id_GU' => '',
+                        'id_niv_acces_donnee' => ''
+                    ];
+                }
             }
 
             // Gestion des actions POST
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Ajout d'un nouvel utilisateur
                 if (isset($_POST['btn_add_utilisateur'])) {
-                    $nom_utilisateur = $_POST['nom_utilisateur'] ?? '';
-                    $id_type_utilisateur = $_POST['id_type_utilisateur'] ?? '';
-                    $id_GU = $_POST['id_GU'] ?? '';
-                    $login_utilisateur = $_POST['login_utilisateur'] ?? '';
-                    $statut_utilisateur = $_POST['statut_utilisateur'] ?? '';
-                    $id_niveau_acces = $_POST['id_niveau_acces'] ?? '';
-
-                    if (
-                        empty($nom_utilisateur) || empty($id_type_utilisateur) || empty($id_GU) ||
-                        empty($login_utilisateur) || empty($statut_utilisateur) || empty($id_niveau_acces)
-                    ) {
-                        $messageErreur = "Tous les champs sont obligatoires.";
+                    // Vérifier la permission CREATE
+                    if (!hasPermission('gestion_utilisateurs', 'CREATE')) {
+                        $messageErreur = "Vous n'avez pas la permission d'ajouter des utilisateurs.";
+                        $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur - Permission refusée');
                     } else {
-                        // Vérifier si le login est déjà utilisé
-                        if ($this->utilisateur->isLoginUsed($login_utilisateur)) {
-                            $messageErreur = "Ce login (email) est déjà utilisé par un autre utilisateur.";
-                        } else {
-                            $mdp = $this->generateRandomPassword();
-                            $mdp_hash = password_hash($mdp, PASSWORD_DEFAULT);
+                        $nom_utilisateur = $_POST['nom_utilisateur'] ?? '';
+                        $id_type_utilisateur = $_POST['id_type_utilisateur'] ?? '';
+                        $id_GU = $_POST['id_GU'] ?? '';
+                        $login_utilisateur = $_POST['login_utilisateur'] ?? '';
+                        $statut_utilisateur = $_POST['statut_utilisateur'] ?? '';
+                        $id_niveau_acces = $_POST['id_niveau_acces'] ?? '';
 
-                            if (
-                                $this->utilisateur->ajouterUtilisateur(
+                        if (
+                            empty($nom_utilisateur) || empty($id_type_utilisateur) || empty($id_GU) ||
+                            empty($login_utilisateur) || empty($statut_utilisateur) || empty($id_niveau_acces)
+                        ) {
+                            $messageErreur = "Tous les champs sont obligatoires.";
+                        } else {
+                            // Vérifier si le login est déjà utilisé
+                            if ($this->utilisateur->isLoginUsed($login_utilisateur)) {
+                                $messageErreur = "Ce login (email) est déjà utilisé par un autre utilisateur.";
+                            } else {
+                                $mdp = $this->generateRandomPassword();
+                                $mdp_hash = password_hash($mdp, PASSWORD_DEFAULT);
+
+                                if (
+                                    $this->utilisateur->ajouterUtilisateur(
                                     $nom_utilisateur,
                                     $id_type_utilisateur,
                                     $id_GU,
@@ -197,44 +213,51 @@ class GestionUtilisateurController
                     } else {
                         $messageErreur = "Aucun utilisateur valide à ajouter";
                     }
+                }
 
 
                 }
 
                 // Modification d'un utilisateur
                 if (isset($_POST['btn_modifier_utilisateur'])) {
-                    $id_utilisateur = $_POST['id_utilisateur'] ?? '';
-                    $nom_utilisateur = $_POST['nom_utilisateur'] ?? '';
-                    $id_type_utilisateur = $_POST['id_type_utilisateur'] ?? '';
-                    $id_GU = $_POST['id_GU'] ?? '';
-                    $login_utilisateur = $_POST['login_utilisateur'] ?? '';
-                    $statut_utilisateur = $_POST['statut_utilisateur'] ?? '';
-                    $id_niveau_acces = $_POST['id_niveau_acces'] ?? '';
-
-
-                    if (
-                        empty($id_utilisateur) || empty($nom_utilisateur) || empty($id_type_utilisateur) ||
-                        empty($id_GU) || empty($login_utilisateur) || empty($statut_utilisateur) ||
-                        empty($id_niveau_acces)
-                    ) {
-                        $messageErreur = "Tous les champs sont obligatoires.";
+                    // Vérifier la permission UPDATE
+                    if (!hasPermission('gestion_utilisateurs', 'UPDATE')) {
+                        $messageErreur = "Vous n'avez pas la permission de modifier les utilisateurs.";
+                        $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur - Permission refusée');
                     } else {
+                        $id_utilisateur = $_POST['id_utilisateur'] ?? '';
+                        $nom_utilisateur = $_POST['nom_utilisateur'] ?? '';
+                        $id_type_utilisateur = $_POST['id_type_utilisateur'] ?? '';
+                        $id_GU = $_POST['id_GU'] ?? '';
+                        $login_utilisateur = $_POST['login_utilisateur'] ?? '';
+                        $statut_utilisateur = $_POST['statut_utilisateur'] ?? '';
+                        $id_niveau_acces = $_POST['id_niveau_acces'] ?? '';
+
+
                         if (
-                            $this->utilisateur->updateUtilisateur(
-                                $nom_utilisateur,
-                                $id_type_utilisateur,
-                                $id_GU,
-                                $id_niveau_acces,
-                                $statut_utilisateur,
-                                $login_utilisateur,
-                                $id_utilisateur
-                            )
+                            empty($id_utilisateur) || empty($nom_utilisateur) || empty($id_type_utilisateur) ||
+                            empty($id_GU) || empty($login_utilisateur) || empty($statut_utilisateur) ||
+                            empty($id_niveau_acces)
                         ) {
-                            $messageSuccess = "Utilisateur modifié avec succès.";
-                            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
+                            $messageErreur = "Tous les champs sont obligatoires.";
                         } else {
-                            $messageErreur = "Erreur lors de la modification de l'utilisateur.";
-                            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
+                            if (
+                                $this->utilisateur->updateUtilisateur(
+                                    $nom_utilisateur,
+                                    $id_type_utilisateur,
+                                    $id_GU,
+                                    $id_niveau_acces,
+                                    $statut_utilisateur,
+                                    $login_utilisateur,
+                                    $id_utilisateur
+                                )
+                            ) {
+                                $messageSuccess = "Utilisateur modifié avec succès.";
+                                $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
+                            } else {
+                                $messageErreur = "Erreur lors de la modification de l'utilisateur.";
+                                $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
+                            }
                         }
                     }
 
@@ -242,35 +265,41 @@ class GestionUtilisateurController
 
                 // Activation ou désactivation d'utilisateurs
                 if (isset($_POST['selected_ids'])) {
-                    if (isset($_POST['submit_enable_multiple']) && $_POST['submit_enable_multiple'] == 3) {
-                        $success = true;
-                        foreach ($_POST['selected_ids'] as $id) {
-                            if (!$this->utilisateur->reactiverUtilisateur($id)) {
-                                $success = false;
-                                break;
+                    // Vérifier la permission UPDATE (activer/désactiver = modifier)
+                    if (!hasPermission('gestion_utilisateurs', 'UPDATE')) {
+                        $messageErreur = "Vous n'avez pas la permission de modifier le statut des utilisateurs.";
+                        $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur - Permission refusée');
+                    } else {
+                        if (isset($_POST['submit_enable_multiple']) && $_POST['submit_enable_multiple'] == 3) {
+                            $success = true;
+                            foreach ($_POST['selected_ids'] as $id) {
+                                if (!$this->utilisateur->reactiverUtilisateur($id)) {
+                                    $success = false;
+                                    break;
+                                }
                             }
-                        }
-                        if ($success) {
-                            $messageSuccess = "Utilisateurs activés avec succès.";
-                            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
-                        } else {
-                            $messageErreur = "Erreur lors de l'activation des utilisateurs.";
-                            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
-                        }
-                    } elseif (isset($_POST['submit_disable_multiple']) && $_POST['submit_disable_multiple'] == 2) {
-                        $success = true;
-                        foreach ($_POST['selected_ids'] as $id) {
-                            if (!$this->utilisateur->desactiverUtilisateur($id)) {
-                                $success = false;
-                                break;
+                            if ($success) {
+                                $messageSuccess = "Utilisateurs activés avec succès.";
+                                $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
+                            } else {
+                                $messageErreur = "Erreur lors de l'activation des utilisateurs.";
+                                $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
                             }
-                        }
-                        if ($success) {
-                            $messageSuccess = "Utilisateurs désactivés avec succès.";
-                            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
-                        } else {
-                            $messageErreur = "Erreur lors de la désactivation des utilisateurs.";
-                            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
+                        } elseif (isset($_POST['submit_disable_multiple']) && $_POST['submit_disable_multiple'] == 2) {
+                            $success = true;
+                            foreach ($_POST['selected_ids'] as $id) {
+                                if (!$this->utilisateur->desactiverUtilisateur($id)) {
+                                    $success = false;
+                                    break;
+                                }
+                            }
+                            if ($success) {
+                                $messageSuccess = "Utilisateurs désactivés avec succès.";
+                                $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
+                            } else {
+                                $messageErreur = "Erreur lors de la désactivation des utilisateurs.";
+                                $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
+                            }
                         }
                     }
                 }
