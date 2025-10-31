@@ -139,7 +139,7 @@ function requirePermission($lib_traitement, $action = 'READ', $redirectUrl = nul
         // Rediriger
         if ($redirectUrl === null) {
             // Redirection par défaut vers le tableau de bord
-            $redirectUrl = 'layout.php?page=dashboard';
+            $redirectUrl = 'index.php?page=dashboard';
         }
         
         header('Location: ' . $redirectUrl);

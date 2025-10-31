@@ -36,7 +36,7 @@ class ArchivesCompteRenduController {
         
         if (!$id_CR) {
             $_SESSION['error'] = "ID du compte rendu manquant.";
-            header('Location: layout.php?page=archives_compte_rendu');
+            header('Location: index.php?page=archives_compte_rendu');
             exit;
         }
         
@@ -44,7 +44,7 @@ class ArchivesCompteRenduController {
         
         if (!$archive) {
             $_SESSION['error'] = "Compte rendu non trouvé.";
-            header('Location: layout.php?page=archives_compte_rendu');
+            header('Location: index.php?page=archives_compte_rendu');
             exit;
         }
         

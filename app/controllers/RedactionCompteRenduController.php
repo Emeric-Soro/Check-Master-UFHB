@@ -18,7 +18,7 @@ class RedactionCompteRenduController {
         // Vérifier la permission CREATE
         if (!hasPermission('redaction_compte_rendu', 'CREATE')) {
             $_SESSION['error'] = "Vous n'avez pas la permission d'enregistrer des comptes rendus.";
-            header('Location: layout.php?page=redaction_compte_rendu');
+            header('Location: index.php?page=redaction_compte_rendu');
             exit;
         }
         
@@ -33,7 +33,7 @@ class RedactionCompteRenduController {
 
             if (empty($num_etu)) {
                 $_SESSION['error'] = "Aucun étudiant sélectionné.";
-                header('Location: layout.php?page=redaction_compte_rendu');
+                header('Location: index.php?page=redaction_compte_rendu');
                 exit;
             }
 
@@ -112,7 +112,7 @@ class RedactionCompteRenduController {
                 $_SESSION['error'] = 'Erreur lors de la génération du PDF : ' . $e->getMessage();
             }
             
-            header('Location: layout.php?page=redaction_compte_rendu');
+            header('Location: index.php?page=redaction_compte_rendu');
             exit;
         }
     }

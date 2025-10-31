@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     } else {
         $_SESSION['error'] = 'Erreur lors de la déconnexion';
-        header('Location: layout.php');
+        header('Location: index.php');
         exit;
     }
         

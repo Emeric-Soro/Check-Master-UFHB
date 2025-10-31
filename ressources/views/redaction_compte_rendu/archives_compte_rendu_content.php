@@ -190,7 +190,7 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
                                     </div>
                                     <div class="flex items-center space-x-2 ml-4">
                                         
-                                        <button onclick="window.location.href='layout.php?page=archive_comptes_rendus&action=download_pdf&chemin=<?php echo urlencode($archive['chemin_fichier_pdf']); ?>'" class="flex items-center px-3 py-1 text-sm text-green-600 hover:text-green-800">
+                                        <button onclick="window.location.href='index.php?page=archive_comptes_rendus&action=download_pdf&chemin=<?php echo urlencode($archive['chemin_fichier_pdf']); ?>'" class="flex items-center px-3 py-1 text-sm text-green-600 hover:text-green-800">
                                             <i class="fas fa-download mr-1"></i>PDF
                                         </button>
                                        

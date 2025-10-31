@@ -132,7 +132,7 @@
                     <a href="#hero" class="text-white hover:text-primary-lighter transition-colors font-medium">Accueil</a>
                     <a href="#features" class="text-white hover:text-primary-lighter transition-colors font-medium">Fonctionnalités</a>
                     <a href="#services" class="text-white hover:text-primary-lighter transition-colors font-medium">Services</a>
-                    <a href="index.php" class="text-white hover:text-primary-lighter transition-colors font-medium">UFHB</a>
+                    <a href="landing.php" class="text-white hover:text-primary-lighter transition-colors font-medium">UFHB</a>
                     <a href="page_connexion.php" class="bg-primary-light text-white px-6 py-2 rounded-lg hover:bg-primary-lighter transition-colors font-medium">
                         <i class="fas fa-sign-in-alt mr-2"></i>Connexion
                     </a>
@@ -151,7 +151,7 @@
                 <a href="#hero" class="block text-white hover:text-primary-lighter transition-colors font-medium">Accueil</a>
                 <a href="#features" class="block text-white hover:text-primary-lighter transition-colors font-medium">Fonctionnalités</a>
                 <a href="#services" class="block text-white hover:text-primary-lighter transition-colors font-medium">Services</a>
-                <a href="index.php" class="block text-white hover:text-primary-lighter transition-colors font-medium">UFHB</a>
+                <a href="landing.php" class="block text-white hover:text-primary-lighter transition-colors font-medium">UFHB</a>
                 <a href="page_connexion.php" class="block bg-primary-light text-white px-4 py-2 rounded-lg hover:bg-primary-lighter transition-colors font-medium text-center">
                     <i class="fas fa-sign-in-alt mr-2"></i>Connexion
                 </a>
@@ -222,7 +222,7 @@
                                 <i class="fas fa-sign-in-alt mr-2 group-hover:translate-x-1 transition-transform"></i>
                                 Accéder à la plateforme
                             </a>
-                            <a href="index.php"
+                            <a href="landing.php"
                                class="bg-white border-2 border-gray-200 text-gray-700 px-8 py-4 rounded-xl font-semibold hover:border-primary hover:text-primary transition-all duration-300 inline-flex items-center justify-center">
                                 <i class="fas fa-university mr-2"></i>
                                 Retour à UFHB
@@ -445,7 +445,7 @@
                         <i class="fas fa-sign-in-alt mr-2"></i>
                         Connexion à la plateforme
                     </a>
-                    <a href="index.php"
+                    <a href="landing.php"
                        class="bg-primary-light text-white px-8 py-4 rounded-lg font-semibold hover:bg-primary-lighter transition-all duration-300 transform hover:scale-105 inline-flex items-center justify-center border-2 border-white/30">
                         <i class="fas fa-university mr-2"></i>
                         En savoir plus sur l'UFHB
