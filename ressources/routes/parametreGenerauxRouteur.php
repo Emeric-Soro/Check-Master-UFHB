@@ -1,7 +1,19 @@
 <?php
+$viewData = [];
+
 if ($_GET['page'] === 'parametres_generaux') {
     require_once __DIR__ . '/../../app/controllers/ParametreController.php';
     $controller = new ParametreController();
+
+    // Capture session messages if they exist
+    if (isset($_SESSION['messageSuccess'])) {
+        $viewData['messageSuccess'] = $_SESSION['messageSuccess'];
+        unset($_SESSION['messageSuccess']);
+    }
+    if (isset($_SESSION['messageErreur'])) {
+        $viewData['messageErreur'] = $_SESSION['messageErreur'];
+        unset($_SESSION['messageErreur']);
+    }
 
     if (isset($_GET['action'])) {
         switch ($_GET['action']) {

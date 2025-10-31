@@ -154,10 +154,10 @@ class ParametreController
         }
 
         // 📦 Variables disponibles pour la vue
-        $GLOBALS['annee_a_modifier'] = $annee_a_modifier;
-        $GLOBALS['listeAnnees'] = $this->anneeAcademique->getAllAnneeAcademiques();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['annee_a_modifier'] = $annee_a_modifier;
+        $_SESSION['listeAnnees'] = $this->anneeAcademique->getAllAnneeAcademiques();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION ANNEE ACADEMIQUE=============================
 
@@ -219,10 +219,10 @@ class ParametreController
         }
 
         // 📦 Variables disponibles pour la vue
-        $GLOBALS['grade_a_modifier'] = $grades_a_modifier;
-        $GLOBALS['listeGrade'] = $this->grade->getAllGrades();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['grade_a_modifier'] = $grades_a_modifier;
+        $_SESSION['listeGrade'] = $this->grade->getAllGrades();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION GRADES=============================
 
@@ -286,8 +286,8 @@ class ParametreController
             }
 
             // 📦 Variables disponibles pour la vue
-            $GLOBALS['groupe_a_modifier'] = $groupe_a_modifier;
-            $GLOBALS['listeGroupes'] = $this->groupeUtilisateur->getAllGroupeUtilisateur();
+            $_SESSION['groupe_a_modifier'] = $groupe_a_modifier;
+            $_SESSION['listeGroupes'] = $this->groupeUtilisateur->getAllGroupeUtilisateur();
         }
 
         //======PARTIE TYPE UTILISATEUR======
@@ -339,13 +339,13 @@ class ParametreController
             }
 
             // 📦 Variables disponibles pour la vue
-            $GLOBALS['type_a_modifier'] = $type_a_modifier;
-            $GLOBALS['listeTypes'] = $this->typeUtilisateur->getAllTypeUtilisateur();
+            $_SESSION['type_a_modifier'] = $type_a_modifier;
+            $_SESSION['listeTypes'] = $this->typeUtilisateur->getAllTypeUtilisateur();
         }
 
         // 📦 Variables communes pour la vue
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION FONCTION UTILISATEUR=============================
 
@@ -405,10 +405,10 @@ class ParametreController
         }
 
         // 📦 Variables disponibles pour la vue
-        $GLOBALS['specialite_a_modifier'] = $specialite_a_modifier;
-        $GLOBALS['listeSpecialites'] = $this->specialite->getAllSpecialites();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['specialite_a_modifier'] = $specialite_a_modifier;
+        $_SESSION['listeSpecialites'] = $this->specialite->getAllSpecialites();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION SPECIALITE=============================
 
@@ -467,11 +467,11 @@ class ParametreController
             $niveau_a_modifier = $this->niveauEtude->getNiveauEtudeById($_GET['id_niv_etude']);
         }
 
-        $GLOBALS['niveau_a_modifier'] = $niveau_a_modifier;
-        $GLOBALS['listeNiveaux'] = $this->niveauEtude->getAllNiveauxEtudes();
-        $GLOBALS['listeEnseignants'] = $this->enseignant->getAllEnseignants();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['niveau_a_modifier'] = $niveau_a_modifier;
+        $_SESSION['listeNiveaux'] = $this->niveauEtude->getAllNiveauxEtudes();
+        $_SESSION['listeEnseignants'] = $this->enseignant->getAllEnseignants();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION NIVEAU ETUDE=============================
 
@@ -532,14 +532,14 @@ class ParametreController
             $ue_a_modifier = $this->ue->getUeById($_GET['id_ue']);
         }
 
-        $GLOBALS['ue_a_modifier'] = $ue_a_modifier;
-        $GLOBALS['listeUes'] = $this->ue->getAllUes();
-        $GLOBALS['listeNiveauxEtude'] = $this->niveauEtude->getAllNiveauxEtudes();
-        $GLOBALS['listeSemestres'] = $this->semestre->getAllSemestres();
-        $GLOBALS['listeAnnees'] = $this->anneeAcademique->getAllAnneeAcademiques();
-        $GLOBALS['listeEnseignants'] = $this->enseignant->getAllEnseignants();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['ue_a_modifier'] = $ue_a_modifier;
+        $_SESSION['listeUes'] = $this->ue->getAllUes();
+        $_SESSION['listeNiveauxEtude'] = $this->niveauEtude->getAllNiveauxEtudes();
+        $_SESSION['listeSemestres'] = $this->semestre->getAllSemestres();
+        $_SESSION['listeAnnees'] = $this->anneeAcademique->getAllAnneeAcademiques();
+        $_SESSION['listeEnseignants'] = $this->enseignant->getAllEnseignants();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION UE=============================
 
@@ -598,12 +598,12 @@ class ParametreController
             $ecue_a_modifier = $this->ecue->getEcueById($_GET['id_ecue']);
         }
 
-        $GLOBALS['ecue_a_modifier'] = $ecue_a_modifier;
-        $GLOBALS['listeEcues'] = $this->ecue->getAllEcues();
-        $GLOBALS['listeUes'] = $this->ue->getAllUes();
-        $GLOBALS['listeEnseignants'] = $this->enseignant->getAllEnseignants();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['ecue_a_modifier'] = $ecue_a_modifier;
+        $_SESSION['listeEcues'] = $this->ecue->getAllEcues();
+        $_SESSION['listeUes'] = $this->ue->getAllUes();
+        $_SESSION['listeEnseignants'] = $this->enseignant->getAllEnseignants();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION ECUE=============================
 
@@ -659,10 +659,10 @@ class ParametreController
             $statut_a_modifier = $this->statutJury->getStatutJuryById($_GET['id_statut_jury']);
         }
 
-        $GLOBALS['statut_a_modifier'] = $statut_a_modifier;
-        $GLOBALS['listeStatuts'] = $this->statutJury->getAllStatutsJury();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['statut_a_modifier'] = $statut_a_modifier;
+        $_SESSION['listeStatuts'] = $this->statutJury->getAllStatutsJury();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION STATUT JURY=============================
 
@@ -718,10 +718,10 @@ class ParametreController
             $niveau_a_modifier = $this->niveauApprobation->getNiveauApprobationById($_GET['id_approb']);
         }
 
-        $GLOBALS['niveau_a_modifier'] = $niveau_a_modifier;
-        $GLOBALS['listeNiveaux'] = $this->niveauApprobation->getAllNiveauxApprobation();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['niveau_a_modifier'] = $niveau_a_modifier;
+        $_SESSION['listeNiveaux'] = $this->niveauApprobation->getAllNiveauxApprobation();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION NIVEAU APPROBATION=============================
 
@@ -778,11 +778,11 @@ class ParametreController
             $semestre_a_modifier = $this->semestre->getSemestreById($_GET['id_semestre']);
         }
 
-        $GLOBALS['semestre_a_modifier'] = $semestre_a_modifier;
-        $GLOBALS['listeSemestres'] = $this->semestre->getAllSemestres();
-        $GLOBALS['listeNiveauxEtude'] = $this->niveauEtude->getAllNiveauxEtudes();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['semestre_a_modifier'] = $semestre_a_modifier;
+        $_SESSION['listeSemestres'] = $this->semestre->getAllSemestres();
+        $_SESSION['listeNiveauxEtude'] = $this->niveauEtude->getAllNiveauxEtudes();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION SEMESTRES=============================
 
@@ -838,10 +838,10 @@ class ParametreController
             $niveau_a_modifier = $this->niveauAccesDonnees->getNiveauAccesDonneesById($_GET['id_niveau']);
         }
 
-        $GLOBALS['niveau_a_modifier'] = $niveau_a_modifier;
-        $GLOBALS['listeNiveaux'] = $this->niveauAccesDonnees->getAllNiveauxAccesDonnees();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['niveau_a_modifier'] = $niveau_a_modifier;
+        $_SESSION['listeNiveaux'] = $this->niveauAccesDonnees->getAllNiveauxAccesDonnees();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION NIVEAU ACCES DONNEES=============================
 
@@ -902,10 +902,10 @@ class ParametreController
             $traitement_a_modifier = $this->traitement->getTraitementById($_GET['id_traitement']);
         }
 
-        $GLOBALS['traitement_a_modifier'] = $traitement_a_modifier;
-        $GLOBALS['listeTraitements'] = $this->traitement->getAllTraitements();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['traitement_a_modifier'] = $traitement_a_modifier;
+        $_SESSION['listeTraitements'] = $this->traitement->getAllTraitements();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION TRAITEMENT============================
 
@@ -961,10 +961,10 @@ class ParametreController
             $entreprise_a_modifier = $this->entreprise->getEntrepriseById($_GET['id_entreprise']);
         }
 
-        $GLOBALS['entreprise_a_modifier'] = $entreprise_a_modifier;
-        $GLOBALS['listeEntreprises'] = $this->entreprise->getAllEntreprises();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['entreprise_a_modifier'] = $entreprise_a_modifier;
+        $_SESSION['listeEntreprises'] = $this->entreprise->getAllEntreprises();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION ENTREPRISE============================
 
@@ -1019,10 +1019,10 @@ class ParametreController
             $action_a_modifier = $this->action->getActionById($_GET['id_action']);
         }
 
-        $GLOBALS['action_a_modifier'] = $action_a_modifier;
-        $GLOBALS['listeActions'] = $this->action->getAllAction();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['action_a_modifier'] = $action_a_modifier;
+        $_SESSION['listeActions'] = $this->action->getAllAction();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION ACTION============================
 
@@ -1077,10 +1077,10 @@ class ParametreController
             $fonction_a_modifier = $this->fonction->getFonctionById($_GET['id_fonction']);
         }
 
-        $GLOBALS['fonction_a_modifier'] = $fonction_a_modifier;
-        $GLOBALS['listeFonctions'] = $this->fonction->getAllFonctions();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['fonction_a_modifier'] = $fonction_a_modifier;
+        $_SESSION['listeFonctions'] = $this->fonction->getAllFonctions();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION FONCTION============================
 
@@ -1137,10 +1137,10 @@ class ParametreController
             $message_a_modifier = $this->message->getMessageById($_GET['id_message']);
         }
 
-        $GLOBALS['message_a_modifier'] = $message_a_modifier;
-        $GLOBALS['listeMessages'] = $this->message->getAllMessages();
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['message_a_modifier'] = $message_a_modifier;
+        $_SESSION['listeMessages'] = $this->message->getAllMessages();
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
     //=============================FIN GESTION MESSAGERIE============================
 
@@ -1182,14 +1182,14 @@ class ParametreController
         }
 
         // Passer les données à la vue
-        $GLOBALS['listeGroupes'] = $listeGroupes;
-        $GLOBALS['listeTraitements'] = $listeTraitements;
-        $GLOBALS['listeActions'] = $listeActions;
-        $GLOBALS['selectedGroupe'] = $selectedGroupe;
-        $GLOBALS['permissionsGroupe'] = $permissionsGroupe;
-        $GLOBALS['permissionsMatrix'] = $permissionsMatrix;
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
+        $_SESSION['listeGroupes'] = $listeGroupes;
+        $_SESSION['listeTraitements'] = $listeTraitements;
+        $_SESSION['listeActions'] = $listeActions;
+        $_SESSION['selectedGroupe'] = $selectedGroupe;
+        $_SESSION['permissionsGroupe'] = $permissionsGroupe;
+        $_SESSION['permissionsMatrix'] = $permissionsMatrix;
+        $_SESSION['messageErreur'] = $messageErreur;
+        $_SESSION['messageSuccess'] = $messageSuccess;
     }
 
     private function handlePermissionAjax($postData)
@@ -1322,9 +1322,9 @@ class ParametreController
         $templates = $documentService->listTemplates();
         
         // Make variables available for the view
-        $GLOBALS['templates'] = $templates;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
-        $GLOBALS['messageErreur'] = $messageErreur;
+        $_SESSION['templates'] = $templates;
+        $_SESSION['messageSuccess'] = $messageSuccess;
+        $_SESSION['messageErreur'] = $messageErreur;
         
         // Afficher la vue
         include $this->baseViewPath . 'modeles_documents.php';
