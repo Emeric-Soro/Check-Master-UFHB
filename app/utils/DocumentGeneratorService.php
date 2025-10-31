@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../../vendor/autoload.php';
+
+use PhpOffice\PhpWord\TemplateProcessor;
 /**
  * DocumentGeneratorService
  *
@@ -45,7 +48,7 @@ class DocumentGeneratorService
             throw new Exception("Template not found: {$templateName}");
         }
 
-        $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
+        $templateProcessor = new TemplateProcessor($templatePath);
 
         $this->replacePlaceholders($templateProcessor, $data);
         $this->handleRepeatingBlocks($templateProcessor, $data);
@@ -65,10 +68,10 @@ class DocumentGeneratorService
     /**
      * Replace simple placeholders in the template
      *
-     * @param \PhpOffice\PhpWord\TemplateProcessor $template
+     * @param TemplateProcessor $template
      * @param array $data
      */
-    private function replacePlaceholders(\PhpOffice\PhpWord\TemplateProcessor $template, array $data): void
+    private function replacePlaceholders(TemplateProcessor $template, array $data): void
     {
         foreach ($data as $key => $value) {
             if (is_array($value) || is_object($value)) {
@@ -88,10 +91,10 @@ class DocumentGeneratorService
     /**
      * Handle repeating blocks (tables, lists) in the template
      *
-     * @param \PhpOffice\PhpWord\TemplateProcessor $template
+     * @param TemplateProcessor $template
      * @param array $data
      */
-    private function handleRepeatingBlocks(\PhpOffice\PhpWord\TemplateProcessor $template, array $data): void
+    private function handleRepeatingBlocks(TemplateProcessor $template, array $data): void
     {
         foreach ($data as $key => $value) {
             if (!is_array($value) || empty($value) || !is_array($value[0])) {

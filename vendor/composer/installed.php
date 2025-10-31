@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'ocean/projet-soutenance',
-        'pretty_version' => 'dev-copilot/refactor-pdf-generation-service',
-        'version' => 'dev-copilot/refactor-pdf-generation-service',
-        'reference' => 'a256e4153aee16c70572e34b9c482465d010f872',
+        'pretty_version' => 'dev-develop',
+        'version' => 'dev-develop',
+        'reference' => 'd8bbf90566c8bbbedf5cc02f159b55f2a2258750',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,9 +11,9 @@
     ),
     'versions' => array(
         'dompdf/dompdf' => array(
-            'pretty_version' => 'v3.1.3',
-            'version' => '3.1.3.0',
-            'reference' => 'baed300e4fb8226359c04395518059a136e2a2e2',
+            'pretty_version' => 'v3.1.4',
+            'version' => '3.1.4.0',
+            'reference' => 'db712c90c5b9868df3600e64e68da62e78a34623',
             'type' => 'library',
             'install_path' => __DIR__ . '/../dompdf/dompdf',
             'aliases' => array(),
@@ -47,9 +47,9 @@
             'dev_requirement' => false,
         ),
         'ocean/projet-soutenance' => array(
-            'pretty_version' => 'dev-copilot/refactor-pdf-generation-service',
-            'version' => 'dev-copilot/refactor-pdf-generation-service',
-            'reference' => 'a256e4153aee16c70572e34b9c482465d010f872',
+            'pretty_version' => 'dev-develop',
+            'version' => 'dev-develop',
+            'reference' => 'd8bbf90566c8bbbedf5cc02f159b55f2a2258750',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -119,9 +119,9 @@
             'dev_requirement' => false,
         ),
         'symfony/var-dumper' => array(
-            'pretty_version' => 'v7.3.4',
-            'version' => '7.3.4.0',
-            'reference' => 'b8abe7daf2730d07dfd4b2ee1cecbf0dd2fbdabb',
+            'pretty_version' => 'v7.3.5',
+            'version' => '7.3.5.0',
+            'reference' => '476c4ae17f43a9a36650c69879dcf5b1e6ae724d',
             'type' => 'library',
             'install_path' => __DIR__ . '/../symfony/var-dumper',
             'aliases' => array(),
