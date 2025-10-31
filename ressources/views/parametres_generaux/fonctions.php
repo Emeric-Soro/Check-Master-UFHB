@@ -393,7 +393,7 @@ $listeFonctions = array_slice($listeFonctions, $offset, $limit);
     </div>
 
     <?php
-    unset($messageErreur, $messageSucces);
+    unset($messageErreur, $messageSuccess);
     ?>
 
     <!-- Modale de confirmation de suppression -->

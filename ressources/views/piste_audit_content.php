@@ -29,7 +29,6 @@ function getActionColor($action) {
             return 'bg-gray-100 text-gray-800';
     }
 }
-$auditLog = $auditLog;
 ?>
 <!DOCTYPE html>
 <html lang="fr">

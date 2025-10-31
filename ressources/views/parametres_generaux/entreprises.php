@@ -395,7 +395,7 @@ $listeEntreprises = array_slice($listeEntreprises, $offset, $limit);
     </div>
 
     <?php
-    unset($messageErreur, $messageSucces);
+    unset($messageErreur, $messageSuccess);
     ?>
 
     <!-- Modale de confirmation de suppression -->

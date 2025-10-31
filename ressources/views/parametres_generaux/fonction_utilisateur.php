@@ -891,7 +891,7 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
     </script>
 
     <?php
-    unset($messageErreur, $messageSucces);
+    unset($messageErreur, $messageSuccess);
     ?>
 
 </body>

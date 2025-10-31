@@ -400,7 +400,7 @@ $listeNiveaux = array_slice($listeNiveaux, $offset, $limit);
     </div>
 
     <?php
-    unset($messageErreur, $messageSucces);
+    unset($messageErreur, $messageSuccess);
     ?>
 
     <!-- Modale de confirmation de suppression -->

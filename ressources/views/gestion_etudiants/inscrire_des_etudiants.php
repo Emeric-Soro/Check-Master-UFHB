@@ -182,7 +182,6 @@ $listeAnnees = isset($listeAnnees) ? $listeAnnees : [];
             role="alert">
             <span class="block sm:inline"><?php echo $messageSuccess; ?></span>
         </div>
-        <?php unset($messageSuccess); ?>
         <?php endif; ?>
 
         <?php if (isset($messageErreur) && !empty($messageErreur)): ?>
@@ -191,7 +190,6 @@ $listeAnnees = isset($listeAnnees) ? $listeAnnees : [];
             role="alert">
             <span class="block sm:inline"><?php echo $messageErreur; ?></span>
         </div>
-        <?php unset($messageErreur); ?>
         <?php endif; ?>
 
         <!-- Formulaire d'inscription -->

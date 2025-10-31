@@ -416,7 +416,7 @@ $listeStatuts = array_slice($listeStatuts, $offset, $limit);
     </div>
 
     <?php
-    unset($messageErreur, $messageSucces);
+    unset($messageErreur, $messageSuccess);
     ?>
 
     <!-- Modale de confirmation de suppression -->
