@@ -300,10 +300,6 @@ class GestionRapportController {
             return;
         }
 
-        // Debug : afficher les données préparées
-        error_log("Données pour sauvegarde: " . print_r($donneesRapport, true));
-        error_log("Num étudiant: " . $_SESSION['num_etu']);
-
         if ($donneesRapport['edit_id']) {
             // Mode modification - vérifier que le rapport n'est pas déjà déposé
             $stmt = $this->rapportModel->pdo->prepare("SELECT COUNT(*) FROM deposer WHERE num_etu = ? AND id_rapport = ?");
@@ -352,14 +348,10 @@ class GestionRapportController {
                 'result' => $result
             ];
 
-            // Log fichier ou error_log pour voir côté serveur
-            error_log("Erreur sauvegarde rapport: " . print_r($debug, true));
-
             // Affichage JSON clair dans Network > Response
             $this->sendJsonResponse([
                 'success' => false,
-                'message' => $messageErreur,
-                'debug' => $debug // ⚠️ à retirer en prod
+                'message' => $messageErreur
             ]);
         }
     }
@@ -690,9 +682,6 @@ class GestionRapportController {
             </body>
             </html>";
 
-            // Debug: logger le contenu HTML
-            error_log("HTML Content length: " . strlen($htmlContent));
-
             // Configuration DOMPDF optimisée pour préserver les styles
             $options = new \Dompdf\Options();
             $options->set('isHtml5ParserEnabled', true);
@@ -707,7 +696,6 @@ class GestionRapportController {
 
             $dompdf = new \Dompdf\Dompdf($options);
             
-            // Debug: vérifier que DOMPDF est bien instancié
             if (!$dompdf) {
                 throw new Exception('Impossible d\'instancier DOMPDF.');
             }
@@ -715,13 +703,7 @@ class GestionRapportController {
             $dompdf->loadHtml($htmlContent);
             $dompdf->setPaper('A4', 'portrait');
             
-            // Debug: logger avant le rendu
-            error_log("Starting PDF rendering...");
-            
             $dompdf->render();
-            
-            // Debug: logger après le rendu
-            error_log("PDF rendering completed.");
 
             // Nettoyer le nom du fichier
             $pdfName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nom_rapport) . '.pdf';
@@ -869,14 +851,8 @@ class GestionRapportController {
     {
         global $rapport, $commentaires;
 
-        // Debug
-        error_log("AfficherDetailRapport - ID: $id");
-        error_log("Type utilisateur: " . ($_SESSION['type_utilisateur'] ?? 'non défini'));
-        error_log("Num étudiant: " . ($_SESSION['num_etu'] ?? 'non défini'));
-
         // Récupérer le rapport
         $rapport = $this->rapportModel->getRapportById($id);
-        error_log("Rapport trouvé: " . ($rapport ? 'oui' : 'non'));
 
         if (!$rapport) {
             $this->afficherErreur("Rapport non trouvé.");

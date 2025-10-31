@@ -30,8 +30,69 @@ class AuthController {
        
     }
 
+    /**
+     * Check rate limiting for authentication attempts
+     * @return bool True if rate limit is not exceeded, false otherwise
+     */
+    private function checkRateLimit() {
+        $max_attempts = 5;
+        $lockout_time = 300; // 5 minutes
+        
+        if (!isset($_SESSION['login_attempts'])) {
+            $_SESSION['login_attempts'] = [];
+            $_SESSION['login_lockout_until'] = null;
+        }
+        
+        // Check if currently locked out
+        if (isset($_SESSION['login_lockout_until']) && $_SESSION['login_lockout_until'] > time()) {
+            return false;
+        }
+        
+        // Clean old attempts (older than lockout time)
+        $_SESSION['login_attempts'] = array_filter($_SESSION['login_attempts'], function($timestamp) use ($lockout_time) {
+            return $timestamp > (time() - $lockout_time);
+        });
+        
+        // Check if max attempts exceeded
+        if (count($_SESSION['login_attempts']) >= $max_attempts) {
+            $_SESSION['login_lockout_until'] = time() + $lockout_time;
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Record a failed login attempt
+     */
+    private function recordFailedAttempt() {
+        if (!isset($_SESSION['login_attempts'])) {
+            $_SESSION['login_attempts'] = [];
+        }
+        $_SESSION['login_attempts'][] = time();
+    }
+    
+    /**
+     * Clear login attempts on successful login
+     */
+    private function clearLoginAttempts() {
+        $_SESSION['login_attempts'] = [];
+        $_SESSION['login_lockout_until'] = null;
+    }
+
     public function login($login, $password)
     {
+        // Check rate limiting
+        if (!$this->checkRateLimit()) {
+            return false;
+        }
+        
+        // Validate input
+        if (empty($login) || empty($password)) {
+            $this->recordFailedAttempt();
+            return false;
+        }
+        
         $utilisateur = new Utilisateur($this->db);
         $infoUtilisateur = $utilisateur->verifierConnexion($login, $password);
 
@@ -83,10 +144,16 @@ class AuthController {
             loadUserPermissions($this->db, $infoUtilisateur['id_GU']);
             
             $this->auditLog->logConnexion($infoUtilisateur['id_utilisateur'], 'utilisateur', 'Succès');
+            
+            // Clear login attempts on successful login
+            $this->clearLoginAttempts();
+            
             return true;
         } 
-        // Ne pas enregistrer les tentatives de connexion échouées dans l'audit
-        // Les logs du serveur web capturent déjà ces informations
+        
+        // Record failed login attempt for rate limiting
+        $this->recordFailedAttempt();
+        
         return false;
     }
 

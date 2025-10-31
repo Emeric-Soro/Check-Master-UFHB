@@ -13,15 +13,21 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Configurer et installer les extensions PHP requises
+# Configurer et installer les extensions PHP requises (incluant opcache pour les performances)
 RUN docker-php-ext-configure gd --with-jpeg --with-freetype \
-    && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql mysqli curl zip
+    && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql mysqli curl zip opcache
 
 # Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Appliquer la configuration PHP personnalisée
-COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
+# Appliquer la configuration PHP selon l'environnement
+ARG APP_ENV=development
+COPY docker/php/php.ini docker/php/php.production.ini /tmp/
+RUN if [ "$APP_ENV" = "production" ]; then \
+        cp /tmp/php.production.ini /usr/local/etc/php/conf.d/custom.ini; \
+    else \
+        cp /tmp/php.ini /usr/local/etc/php/conf.d/custom.ini; \
+    fi && rm -f /tmp/php.ini /tmp/php.production.ini
 
 # Configurer Apache
 RUN a2enmod rewrite

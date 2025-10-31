@@ -1,5 +1,16 @@
 <?php
 session_start();
+
+// HTTP Security Headers
+// Note: CSP includes 'unsafe-inline' and 'unsafe-eval' for compatibility with existing inline scripts
+// TODO: Refactor inline scripts to external files and use CSP nonces for better XSS protection
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+header("X-Content-Type-Options: nosniff");
+header("X-Frame-Options: DENY");
+header("Strict-Transport-Security: max-age=31536000; includeSubDomains");
+header("Referrer-Policy: no-referrer-when-downgrade");
+header("X-XSS-Protection: 1; mode=block");
+
 include_once '../app/config/database.php';
 include_once '../app/controllers/AuthController.php';
 include_once '../app/controllers/MenuController.php';

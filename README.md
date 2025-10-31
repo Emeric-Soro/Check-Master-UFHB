@@ -15,14 +15,39 @@ git clone https://github.com/Emeric-Soro/Check-Master-UFHB.git
 cd Check-Master-UFHB
 ```
 
-2. Construire et démarrer les conteneurs Docker
+2. Configurer les variables d'environnement
+```bash
+cp .env.example .env
+# Éditer .env et configurer les valeurs de production
+```
+
+3. Construire et démarrer les conteneurs Docker
 ```bash
 docker-compose up --build -d
 ```
 
-3. L'application sera accessible sur:
+4. L'application sera accessible sur:
    - Application web: http://localhost:8080
    - phpMyAdmin: http://localhost:8081
+
+## Configuration de Production
+
+Pour déployer en production, définissez la variable d'environnement `APP_ENV=production` dans votre docker-compose.yml ou .env:
+
+```yaml
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        APP_ENV: production
+```
+
+Cela activera:
+- Configuration PHP sécurisée (display_errors=Off, log_errors=On)
+- OPcache pour les performances
+- En-têtes de sécurité HTTP
 
 ## Mise à jour après modification du code
 
@@ -43,6 +68,7 @@ L'application nécessite les extensions PHP suivantes:
 - `gd` - Manipulation d'images
 - `zip` - Manipulation de fichiers ZIP (requis pour PHPWord)
 - `fileinfo` - Information sur les fichiers
+- `opcache` - Cache d'opcode pour les performances
 
 ## Fonctionnalités principales
 
@@ -60,6 +86,56 @@ L'application nécessite les extensions PHP suivantes:
 - PHPWord - Génération de documents Word
 - Gotenberg - Conversion de documents en PDF
 - Docker & Docker Compose
+
+## Sécurité
+
+### En-têtes de sécurité HTTP
+
+L'application implémente les en-têtes de sécurité suivants:
+- `Content-Security-Policy` - Prévention des attaques XSS
+- `X-Content-Type-Options: nosniff` - Prévention du MIME sniffing
+- `X-Frame-Options: DENY` - Protection contre le clickjacking
+- `Strict-Transport-Security` - Force HTTPS
+- `Referrer-Policy` - Contrôle des informations de référence
+
+### Rate Limiting
+
+L'authentification inclut une limitation de taux:
+- Maximum 5 tentatives de connexion
+- Verrouillage de 5 minutes après dépassement
+
+### Variables d'environnement sensibles
+
+**IMPORTANT**: Ne jamais commiter de secrets dans le code source. Utilisez toujours des variables d'environnement pour:
+- Mots de passe de base de données
+- Credentials SMTP
+- Clés API
+- Tokens de sécurité
+
+Consultez `.env.example` pour la liste complète des variables requises.
+
+### Audits de sécurité
+
+Le projet a été audité pour:
+- ✅ Vulnérabilités des dépendances (composer audit, npm audit)
+- ✅ Protection XSS dans les vues
+- ✅ Validation des entrées utilisateur
+- ✅ Optimisation des requêtes N+1
+- ✅ Suppression des logs de débogage
+
+## Optimisation des performances
+
+### CSS de production
+
+Pour générer le CSS minifié pour la production:
+
+```bash
+npm run build
+```
+
+### OPcache
+
+OPcache est automatiquement activé en production pour améliorer les performances PHP.
 
 ## Résolution de problèmes
 
@@ -81,7 +157,7 @@ Pour vérifier les extensions PHP installées dans le conteneur:
 docker-compose exec web php -m
 ```
 
-Vous devriez voir `zip` dans la liste des modules.
+Vous devriez voir `zip` et `opcache` dans la liste des modules.
 
 ## Support
 

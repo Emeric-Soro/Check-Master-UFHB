@@ -85,13 +85,8 @@ class EvaluationDossiersController {
         });
         
         try {
-            error_log("DEBUG: traiterAction appelée");
-            error_log("DEBUG: GET params: " . print_r($_GET, true));
-            error_log("DEBUG: POST params: " . print_r($_POST, true));
-            
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $action = $_POST['action'] ?? $_GET['action'] ?? '';
-                error_log("DEBUG: Action récupérée: '$action'");
                 
                 switch ($action) {
                     case 'valider_dossier':
@@ -135,20 +130,15 @@ class EvaluationDossiersController {
     private function getEnseignantIdFromAdmin($id_utilisateur) {
         $pdo = Database::getConnection();
         
-        error_log("DEBUG: ID Utilisateur reçu: " . $id_utilisateur);
-        
         $stmt = $pdo->prepare("SELECT login_utilisateur FROM utilisateur WHERE id_utilisateur = ?");
         $stmt->execute([$id_utilisateur]);
         $utilisateur = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$utilisateur) {
-            error_log("DEBUG: Utilisateur avec ID $id_utilisateur non trouvé");
             $stmt = $pdo->query("SELECT id_enseignant FROM enseignants LIMIT 1");
             $fallback = $stmt->fetch(PDO::FETCH_ASSOC);
             return $fallback ? $fallback['id_enseignant'] : null;
         }
-        
-        error_log("DEBUG: Login de l'utilisateur: " . $utilisateur['login_utilisateur']);
         
         $stmt = $pdo->prepare("
             SELECT e.id_enseignant, e.nom_enseignant, e.prenom_enseignant
@@ -159,21 +149,16 @@ class EvaluationDossiersController {
         $enseignant = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($enseignant) {
-            error_log("DEBUG: Enseignant trouvé: " . $enseignant['prenom_enseignant'] . " " . $enseignant['nom_enseignant'] . " (ID: " . $enseignant['id_enseignant'] . ")");
             return $enseignant['id_enseignant'];
         }
-        
-        error_log("DEBUG: Aucun enseignant trouvé avec le login: " . $utilisateur['login_utilisateur']);
         
         $stmt = $pdo->query("SELECT id_enseignant, nom_enseignant, prenom_enseignant FROM enseignants LIMIT 1");
         $fallback = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($fallback) {
-            error_log("DEBUG: Utilisation du fallback - Enseignant: " . $fallback['prenom_enseignant'] . " " . $fallback['nom_enseignant'] . " (ID: " . $fallback['id_enseignant'] . ")");
             return $fallback['id_enseignant'];
         }
         
-        error_log("DEBUG: Aucun enseignant disponible dans la base de données");
         return null;
     }
     
@@ -187,8 +172,6 @@ class EvaluationDossiersController {
         
         try {
             $pdo = Database::getConnection();
-            
-            error_log("DEBUG: Variables de session: " . print_r($_SESSION, true));
             
             $id_utilisateur = $_SESSION['id_utilisateur'] ?? null;
             if (!$id_utilisateur) {
@@ -277,8 +260,6 @@ class EvaluationDossiersController {
                 return;
             }
             
-            error_log("DEBUG: Traitement décision commission - Rapport: $id_rapport, Décision: $decision, Enseignant: $id_enseignant");
-            
             $evaluationRapport = new EvaluationRapport();
             
             $evaluationExistante = $evaluationRapport->evaluationExiste($id_rapport, $id_enseignant);
@@ -289,7 +270,6 @@ class EvaluationDossiersController {
                     $decision, 
                     $commentaire
                 );
-                error_log("DEBUG: Évaluation mise à jour");
             } else {
                 $success = $evaluationRapport->ajouterEvaluation(
                     $id_rapport, 
@@ -297,7 +277,6 @@ class EvaluationDossiersController {
                     $decision, 
                     $commentaire
                 );
-                error_log("DEBUG: Nouvelle évaluation créée");
             }
             
             if (!$success) {
