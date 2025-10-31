@@ -110,6 +110,16 @@ If API endpoints are exposed:
 - Use HTTPS only
 - Validate all API inputs
 
+### Content Security Policy (CSP)
+
+The current CSP implementation includes `unsafe-inline` and `unsafe-eval` for script sources to maintain compatibility with existing inline scripts and dynamic code evaluation. This is a known limitation that reduces XSS protection effectiveness.
+
+**Recommended improvements:**
+- Refactor all inline scripts to external JavaScript files
+- Remove inline event handlers (onclick, onload, etc.)
+- Use CSP nonces or hashes for remaining inline scripts
+- Remove `unsafe-eval` by refactoring dynamic script evaluation
+
 ## Security Updates
 
 This project undergoes regular security audits. Security updates are prioritized and released as soon as possible.

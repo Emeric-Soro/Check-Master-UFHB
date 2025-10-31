@@ -22,10 +22,12 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Appliquer la configuration PHP selon l'environnement
 ARG APP_ENV=development
-COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
+COPY docker/php/php.ini docker/php/php.production.ini /tmp/
 RUN if [ "$APP_ENV" = "production" ]; then \
-        cp docker/php/php.production.ini /usr/local/etc/php/conf.d/custom.ini; \
-    fi
+        cp /tmp/php.production.ini /usr/local/etc/php/conf.d/custom.ini; \
+    else \
+        cp /tmp/php.ini /usr/local/etc/php/conf.d/custom.ini; \
+    fi && rm -f /tmp/php.ini /tmp/php.production.ini
 
 # Configurer Apache
 RUN a2enmod rewrite
