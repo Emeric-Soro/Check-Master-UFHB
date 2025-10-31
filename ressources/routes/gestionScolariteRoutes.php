@@ -1,5 +1,6 @@
 <?php
 
+$viewData = [];
 
 if (isset($_GET['page']) && $_GET['page'] == 'gestion_scolarite') {
 
@@ -9,5 +10,5 @@ if (isset($_GET['page']) && $_GET['page'] == 'gestion_scolarite') {
     $controller = new GestionScolariteController();
 
 
-    $controller->index();
+    $viewData = $controller->index();
 }

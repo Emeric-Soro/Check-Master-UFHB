@@ -44,28 +44,30 @@ class NotesController {
         $selectedStudent = isset($_GET['student']) ? $_GET['student'] : null;
         $selectedStudent = $selectedStudent ? $this->etudiantModel->getEtudiantById($selectedStudent) : null;
 
-        $GLOBALS['niveaux'] = $this->niveauModel->getAllNiveauxEtudes();
-        $GLOBALS['etudiants'] = $selectedNiveau ? $this->etudiantModel->getEtudiantsByNiveau($selectedNiveau) : [];
-        $GLOBALS['selectedNiveau'] = $selectedNiveau;
-        $GLOBALS['niveau'] = $this->niveauModel->getNiveauEtudeById($selectedNiveau);
-        $GLOBALS['selectedStudent'] = $selectedStudent;
-
-        $GLOBALS['listeEtudiants'] = $this->etudiantModel->getAllEtudiants();
-        $GLOBALS['niveauxEtude'] = $this->niveauModel->getAllNiveauxEtudes();
+        // Préparer les données pour la vue
+        $data = [
+            'niveaux' => $this->niveauModel->getAllNiveauxEtudes(),
+            'etudiants' => $selectedNiveau ? $this->etudiantModel->getEtudiantsByNiveau($selectedNiveau) : [],
+            'selectedNiveau' => $selectedNiveau,
+            'niveau' => $this->niveauModel->getNiveauEtudeById($selectedNiveau),
+            'selectedStudent' => $selectedStudent,
+            'listeEtudiants' => $this->etudiantModel->getAllEtudiants(),
+            'niveauxEtude' => $this->niveauModel->getAllNiveauxEtudes()
+        ];
 
         if ($selectedStudent) {
-            $GLOBALS['studentGrades'] = $this->noteModel->getByStudent($selectedStudent->num_etu);
-            $GLOBALS['studentSemestres'] = $selectedNiveau ? $this->semestreModel->getSemestresByNiveau($selectedNiveau) : [];
-            $GLOBALS['studentUes'] = $selectedNiveau ? $this->ueModel->getUesByNiveau($selectedNiveau) : [];
-            $GLOBALS['studentEcues'] = $selectedNiveau ? $this->ecueModel->getEcuesByNiveau($selectedNiveau) : [];
+            $data['studentGrades'] = $this->noteModel->getByStudent($selectedStudent->num_etu);
+            $data['studentSemestres'] = $selectedNiveau ? $this->semestreModel->getSemestresByNiveau($selectedNiveau) : [];
+            $data['studentUes'] = $selectedNiveau ? $this->ueModel->getUesByNiveau($selectedNiveau) : [];
+            $data['studentEcues'] = $selectedNiveau ? $this->ecueModel->getEcuesByNiveau($selectedNiveau) : [];
         } else {
-            $GLOBALS['studentGrades'] = [];
-            $GLOBALS['studentSemestres'] = $selectedNiveau ? $this->semestreModel->getSemestresByNiveau($selectedNiveau) : [];
-            $GLOBALS['studentUes'] = $selectedNiveau ? $this->ueModel->getUesByNiveau($selectedNiveau) : [];
-            $GLOBALS['studentEcues'] = $selectedNiveau ? $this->ecueModel->getEcuesByNiveau($selectedNiveau) : [];
+            $data['studentGrades'] = [];
+            $data['studentSemestres'] = $selectedNiveau ? $this->semestreModel->getSemestresByNiveau($selectedNiveau) : [];
+            $data['studentUes'] = $selectedNiveau ? $this->ueModel->getUesByNiveau($selectedNiveau) : [];
+            $data['studentEcues'] = $selectedNiveau ? $this->ecueModel->getEcuesByNiveau($selectedNiveau) : [];
         }
 
-       
+        return $data;
     }
 
     public function enregistrerNotes() {
