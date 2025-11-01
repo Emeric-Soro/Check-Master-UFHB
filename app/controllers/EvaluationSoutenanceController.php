@@ -580,11 +580,11 @@ class EvaluationSoutenanceController
         $mentionPV = $this->calculerMention($noteFinalePV);
         
         // Calculate final note and mention for Annexe 3 (Formation Continue)
-        $noteFinalleFC = (
+        $noteFinaleFC = (
             $moyennes['moyenne_master1'] * 1 +
             $sommeNotes * 2
         ) / 3;
-        $mentionFC = $this->calculerMention($noteFinalleFC);
+        $mentionFC = $this->calculerMention($noteFinaleFC);
 
         // Préparer les données pour le template
         $templateData = [
@@ -618,7 +618,7 @@ class EvaluationSoutenanceController
             'coef_master1_fc' => 1,
             'coef_memoire_fc' => 2,
             'total_coef_fc' => 3,
-            'note_finale_fc' => number_format($noteFinalleFC, 2),
+            'note_finale_fc' => number_format($noteFinaleFC, 2),
             'mention_fc' => $mentionFC
         ];
 

@@ -19,7 +19,7 @@ This document summarizes the migration from Dompdf-based PDF generation to the m
 
 **Formula for Annexe 3:**
 ```php
-$noteFinalleFC = ($moyennes['moyenne_master1'] * 1 + $sommeNotes * 2) / 3;
+$noteFinaleFC = ($moyennes['moyenne_master1'] * 1 + $sommeNotes * 2) / 3;
 ```
 
 #### InscriptionController.php
