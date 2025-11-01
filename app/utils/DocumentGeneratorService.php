@@ -313,7 +313,6 @@ class DocumentGeneratorService
             throw new Exception("Fichier modèle non trouvé : {$docxPath}");
         }
 
-        $gotenbergUrl = 'http://gotenberg:3000/forms/libreoffice/convert';
         $curl = curl_init();
         $file = new CURLFile($docxPath, mime_content_type($docxPath), basename($docxPath));
         
@@ -322,7 +321,7 @@ class DocumentGeneratorService
         ];
 
         curl_setopt_array($curl, [
-            CURLOPT_URL => $gotenbergUrl,
+            CURLOPT_URL => $this->gotenbergUrl,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $postData,
