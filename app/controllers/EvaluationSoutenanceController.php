@@ -474,6 +474,7 @@ class EvaluationSoutenanceController
     {
         require_once __DIR__ . '/../../vendor/autoload.php';
         require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+        require_once __DIR__ . '/../utils/FormattingUtils.php';
 
         $numEtu = $_GET['num_etu'] ?? null;
 
@@ -560,12 +561,25 @@ class EvaluationSoutenanceController
         $stmtEval->execute([$numEtu]);
         $evaluations = $stmtEval->fetchAll(PDO::FETCH_ASSOC);
 
-        // Calculer la somme des notes
+        // Calculer la somme des notes et formater pour le template
         $sommeNotes = 0;
         $sommeBaremes = 0;
+        $criteresPourTemplate = []; // NOUVEAU : Tableau formaté pour PHPWord
+
         foreach ($evaluations as $eval) {
-            $sommeNotes += $eval['note'];
-            $sommeBaremes += $eval['bareme'];
+            $note = floatval($eval['note']);
+            $bareme = floatval($eval['bareme']);
+            $sommeNotes += $note;
+            $sommeBaremes += $bareme;
+
+            // NOUVEAU : Structurer les données pour le bloc répétitif
+            // Note: Using 2 decimals for note and 1 for bareme to match academic standards
+            // where scores are precise but max scores are typically whole or half numbers
+            $criteresPourTemplate[] = [
+                'lib_critere' => FormattingUtils::sanitizeText($eval['lib_critere']),
+                'note' => FormattingUtils::formatDecimal($note, 2),
+                'bareme' => FormattingUtils::formatDecimal($bareme, 1),
+            ];
         }
         
         // Calculer les moyennes
@@ -590,7 +604,7 @@ class EvaluationSoutenanceController
         $templateData = [
             // Annexe 1 - General information and criteria
             'niveau' => $soutenance['niveau'],
-            'date_soutenance' => date('d/m/Y', strtotime($soutenance['date_soutenance'])),
+            'date_soutenance' => FormattingUtils::formatDate($soutenance['date_soutenance']),
             'promotion' => $soutenance['promotion_etu'],
             'theme' => $soutenance['theme_soutenance'],
             'nom_etudiant' => $soutenance['nom_etudiant'],
@@ -599,26 +613,27 @@ class EvaluationSoutenanceController
             'directeur' => $soutenance['directeur'] ?? '',
             'encadreur' => $soutenance['encadreur'] ?? '',
             'maitre_stage' => $soutenance['maitre_stage'] ?? '',
-            'note_finale' => $sommeNotes,
-            'total_bareme' => $sommeBaremes,
-            // For repeating blocks (criteria)
-            'criteres' => $evaluations,
+            'note_finale' => FormattingUtils::formatDecimal($sommeNotes, 2), // CORRIGÉ : Utiliser la somme calculée
+            'total_bareme' => FormattingUtils::formatDecimal($sommeBaremes, 2), // CORRIGÉ : Utiliser la somme calculée
+
+            // CORRECTION : Utiliser le tableau formaté pour le bloc répétitif
+            'criteres' => $criteresPourTemplate,
             
             // Annexe 2 - PV Jury (coefficients: M1=2, S1M2=3, Mem=3, total=8)
-            'moyenne_master1' => $moyennes['moyenne_master1'],
-            'moyenne_s1_master2' => $moyennes['moyenne_s1_master2'],
-            'note_memoire' => $sommeNotes,
+            'moyenne_master1' => FormattingUtils::formatDecimal($moyennes['moyenne_master1'], 2),
+            'moyenne_s1_master2' => FormattingUtils::formatDecimal($moyennes['moyenne_s1_master2'], 2),
+            'note_memoire' => FormattingUtils::formatDecimal($sommeNotes, 2),
             'coef_master1' => 2,
             'coef_s1_master2' => 3,
             'coef_memoire' => 3,
-            'note_finale_pv' => number_format($noteFinalePV, 2),
+            'note_finale_pv' => FormattingUtils::formatDecimal($noteFinalePV, 2),
             'mention' => $mentionPV,
             
             // Annexe 3 - Formation Continue (coefficients: M1=1, Mem=2, total=3)
             'coef_master1_fc' => 1,
             'coef_memoire_fc' => 2,
             'total_coef_fc' => 3,
-            'note_finale_fc' => number_format($noteFinaleFC, 2),
+            'note_finale_fc' => FormattingUtils::formatDecimal($noteFinaleFC, 2),
             'mention_fc' => $mentionFC
         ];
 

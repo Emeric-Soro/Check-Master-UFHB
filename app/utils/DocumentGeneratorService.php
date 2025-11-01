@@ -169,18 +169,25 @@ class DocumentGeneratorService
         curl_close($curl);
 
         if ($error) {
-            throw new Exception("Erreur cURL vers Gotenberg : " . $error);
+            // Log de l'erreur cURL (sanitize to prevent log injection)
+            error_log("Erreur cURL vers Gotenberg : " . preg_replace('/[\r\n]+/', ' ', $error));
+            throw new Exception("Erreur de communication avec le service de conversion de documents.");
         }
 
         if ($httpCode !== 200) {
-            throw new Exception("Gotenberg a retourné une erreur (Code: {$httpCode}): " . $response);
+            // Log de la réponse d'erreur de Gotenberg (limit length and sanitize)
+            $sanitizedResponse = preg_replace('/[\r\n]+/', ' ', substr($response, 0, 500));
+            error_log("Gotenberg a retourné une erreur (Code: {$httpCode}): " . $sanitizedResponse);
+            throw new Exception("Le service de conversion a retourné une erreur (Code: {$httpCode}). Veuillez vérifier les logs du serveur.");
         }
 
         $pdfPath = preg_replace('/\.docx$/i', '.pdf', $docxPath);
         file_put_contents($pdfPath, $response);
 
         if (!file_exists($pdfPath) || filesize($pdfPath) === 0) {
-            throw new Exception("La conversion a réussi mais le fichier PDF n'a pas pu être créé ou est vide.");
+            // Log de l'erreur de fichier
+            error_log("La conversion PDF a réussi mais le fichier n'a pas pu être créé ou est vide. Chemin: " . $pdfPath);
+            throw new Exception("La conversion a échoué : le fichier PDF final est invalide.");
         }
 
         return $pdfPath;
