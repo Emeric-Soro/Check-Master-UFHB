@@ -1,4 +1,21 @@
 <?php
+/**
+ * DEPRECATED: This file is deprecated and should no longer be used.
+ * 
+ * USE INSTEAD: GestionScolariteController::imprimerRecuVersement()
+ * Route: ?page=gestion_scolarite&action=imprimer_recu_versement&id={id_versement}
+ * 
+ * This file uses the old Dompdf method for generating receipts.
+ * The new implementation uses DocumentGeneratorService with Word templates,
+ * which is consistent with other PDF generation in the system.
+ * 
+ * This file is kept temporarily for backward compatibility and will be
+ * removed once the migration is confirmed stable.
+ * 
+ * @deprecated Since 2025-11-01
+ * @see GestionScolariteController::imprimerRecuVersement()
+ */
+
 require_once __DIR__ . '/../../app/utils/permissions.php';
 
 require_once __DIR__ . '/../../app/config/database.php';
