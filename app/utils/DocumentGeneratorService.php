@@ -295,4 +295,76 @@ class DocumentGeneratorService
 
         return true;
     }
+
+    /**
+     * Convertit un document Word (.docx) en HTML en utilisant Gotenberg.
+     *
+     * @param string $docxPath Chemin vers le fichier .docx source.
+     * @return string Le contenu HTML du document.
+     * @throws Exception Si la conversion échoue ou si l'extension ZipArchive n'est pas disponible.
+     */
+    public function convertDocxToHtml(string $docxPath): string
+    {
+        if (!class_exists('ZipArchive')) {
+            throw new Exception("L'extension PHP ZipArchive est requise mais n'est pas activée.");
+        }
+
+        if (!file_exists($docxPath)) {
+            throw new Exception("Fichier modèle non trouvé : {$docxPath}");
+        }
+
+        $gotenbergUrl = 'http://gotenberg:3000/forms/libreoffice/convert';
+        $curl = curl_init();
+        $file = new CURLFile($docxPath, mime_content_type($docxPath), basename($docxPath));
+        
+        $postData = [
+            'files' => $file,
+        ];
+
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $gotenbergUrl,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $postData,
+            CURLOPT_HTTPHEADER => ['Content-Type: multipart/form-data'],
+            CURLOPT_TIMEOUT => 60,
+        ]);
+
+        $response = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $error = curl_error($curl);
+        curl_close($curl);
+
+        if ($error) {
+            error_log("Erreur cURL vers Gotenberg : " . preg_replace('/[\r\n]+/', ' ', $error));
+            throw new Exception("Erreur de communication avec le service de conversion.");
+        }
+
+        if ($httpCode !== 200) {
+            $sanitizedResponse = preg_replace('/[\r\n]+/', ' ', substr($response, 0, 500));
+            error_log("Gotenberg a retourné une erreur (Code: {$httpCode}): " . $sanitizedResponse);
+            throw new Exception("Le service de conversion a retourné une erreur (Code: {$httpCode}).");
+        }
+
+        // Gotenberg renvoie un zip contenant le fichier HTML, il faut le décompresser
+        $tempZipFile = $this->tempPath . uniqid('gotenberg_html_') . '.zip';
+        file_put_contents($tempZipFile, $response);
+
+        $zip = new ZipArchive;
+        if ($zip->open($tempZipFile) === TRUE) {
+            // Gotenberg nomme le fichier HTML 'index.html' dans l'archive
+            $htmlContent = $zip->getFromName('index.html');
+            $zip->close();
+            unlink($tempZipFile);
+
+            if ($htmlContent === false) {
+                throw new Exception("Le fichier index.html n'a pas été trouvé dans l'archive retournée par Gotenberg.");
+            }
+            
+            return $htmlContent;
+        } else {
+            unlink($tempZipFile);
+            throw new Exception("Impossible d'ouvrir l'archive ZIP retournée par le service de conversion.");
+        }
+    }
 }

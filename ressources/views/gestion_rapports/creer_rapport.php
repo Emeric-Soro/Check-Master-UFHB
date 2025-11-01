@@ -9,7 +9,8 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Éditeur de Rapport de Stage</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.4.2/tinymce.min.js"></script>
+    <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
+    <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/translations/fr.js"></script>
     <style>
     .loader {
         border-top-color: #3498db;
@@ -26,8 +27,9 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
         }
     }
 
-    /* TinyMCE customizations */
-    .tox-tinymce {
+    /* CKEditor customizations */
+    .ck-editor__editable {
+        min-height: 600px;
         border-radius: 0.5rem !important;
         border: 1px solid #e2e8f0 !important;
     }
@@ -388,56 +390,60 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
 
         let editor;
 
-        // Initialize TinyMCE editor
-        tinymce.init({
-            selector: '#editor',
-            height: 800,
-            menubar: true,
-            plugins: [
-                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                'insertdatetime', 'media', 'table', 'help', 'wordcount'
-            ],
-            toolbar: 'undo redo | blocks | ' +
-                'bold italic backcolor | alignleft aligncenter ' +
-                'alignright alignjustify | bullist numlist outdent indent | ' +
-                'removeformat | help',
-            content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
-            readonly: isReadOnly,
-            setup: function(ed) {
-                editor = ed;
+        // Initialize CKEditor 5
+        ClassicEditor
+            .create(document.querySelector('#editor'), {
+                toolbar: {
+                    items: [
+                        'heading', '|',
+                        'bold', 'italic', 'underline', 'strikethrough', '|',
+                        'bulletedList', 'numberedList', 'outdent', 'indent', '|',
+                        'link', 'blockQuote', 'insertTable', '|',
+                        'undo', 'redo'
+                    ]
+                },
+                language: 'fr',
+                table: {
+                    contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
+                }
+            })
+            .then(newEditor => {
+                editor = newEditor;
+                
+                // Gérer le mode lecture seule
+                if (isReadOnly) {
+                    editor.isReadOnly = true;
+                }
 
-                ed.on('init', function() {
-                    document.getElementById('editor').classList.remove('hidden');
+                <?php if (isset($isEditMode) && $isEditMode && !empty($contenuRapport)): ?>
+                // Mode édition : charger le contenu du rapport
+                setTimeout(function() {
+                    editor.setData(<?= json_encode($contenuRapport) ?>);
+                    editorContainer.classList.remove('document-loading');
+                    editorContainer.classList.add('document-loaded');
+                    documentStatusMessage.classList.add('hidden');
+                    if (isReadOnly) {
+                        showNotification('info',
+                            'Rapport chargé en mode consultation (lecture seule)'
+                        );
+                    } else {
+                        showNotification('info',
+                            'Rapport chargé en mode édition');
+                    }
+                }, 500);
+                <?php else: ?>
+                // Mode création : ne rien charger, laisser l'éditeur vide
+                editor.setData('');
+                editorContainer.classList.remove('document-loaded');
+                editorContainer.classList.add('document-loading');
+                documentStatusMessage.classList.remove('hidden');
+                <?php endif; ?>
+            })
+            .catch(error => {
+                console.error('Erreur lors de l\'initialisation de CKEditor 5 :', error);
+            });
 
-                    <?php if (isset($isEditMode) && $isEditMode && !empty($contenuRapport)): ?>
-                    // Mode édition : charger le contenu du rapport
-                    setTimeout(function() {
-                        editor.setContent(<?= json_encode($contenuRapport) ?>);
-                        editorContainer.classList.remove('document-loading');
-                        editorContainer.classList.add('document-loaded');
-                        documentStatusMessage.classList.add('hidden');
-                        if (isReadOnly) {
-                            showNotification('info',
-                                'Rapport chargé en mode consultation (lecture seule)'
-                            );
-                        } else {
-                            showNotification('info',
-                                'Rapport chargé en mode édition');
-                        }
-                    }, 500);
-                    <?php else: ?>
-                    // Mode création : ne rien charger, laisser l'éditeur vide
-                    editor.setContent('');
-                    editorContainer.classList.remove('document-loaded');
-                    editorContainer.classList.add('document-loading');
-                    documentStatusMessage.classList.remove('hidden');
-                    <?php endif; ?>
-                });
-            }
-        });
-
-        // Template content - Modèle standardisé de rapport de stage
+        // Template content - Modèle standardisé de rapport de stage (unused now, will load from server)
         const templateContent = `
         <div style="display: flex; justify-content: space-between " id="header_rapport">
             <div style="text-align: center; margin-bottom: 40px;" id="header_rapport1">
@@ -627,30 +633,40 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
             loadingIndicator.classList.remove('hidden');
             documentStatusMessage.textContent = 'Chargement du modèle en cours...';
 
-            setTimeout(function() {
-                if (editor) {
-                    editor.setContent(templateContent);
-                    editorContainer.classList.remove('document-loading');
-                    editorContainer.classList.add('document-loaded');
-                    documentStatusMessage.classList.add('hidden');
-                }
-                loadingIndicator.classList.add('hidden');
-                showNotification('success', 'Modèle chargé avec succès!');
-            }, 1500);
+            // Fetch template HTML from server
+            fetch('?page=gestion_rapports&action=load_template_html')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && editor) {
+                        editor.setData(data.html);
+                        editorContainer.classList.remove('document-loading');
+                        editorContainer.classList.add('document-loaded');
+                        documentStatusMessage.classList.add('hidden');
+                        showNotification('success', 'Modèle chargé avec succès!');
+                    } else {
+                        showNotification('error', data.message || 'Erreur de chargement du modèle.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showNotification('error', 'Erreur de communication avec le serveur.');
+                })
+                .finally(() => {
+                    loadingIndicator.classList.add('hidden');
+                });
         });
 
-        // Font selector event
+        // Font selector event (Note: CKEditor doesn't support dynamic font changes easily)
         fontSelector.addEventListener('change', function() {
-            if (editor) {
-                editor.execCommand('fontName', false, this.value);
-            }
+            // Font changing in CKEditor requires custom plugin or manual selection
+            // For now, we'll show a notification that this feature needs to be set before typing
+            showNotification('info', 'Veuillez sélectionner la police avant de commencer à taper.');
         });
 
-        // Font size selector event
+        // Font size selector event (Note: CKEditor doesn't support dynamic size changes easily)
         fontSize.addEventListener('change', function() {
-            if (editor) {
-                editor.execCommand('fontSize', false, this.value);
-            }
+            // Font size changing in CKEditor requires custom plugin or manual selection
+            showNotification('info', 'Veuillez sélectionner la taille avant de commencer à taper.');
         });
 
         // Save button event
@@ -666,7 +682,7 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
                 return;
             }
 
-            const content = editor.getContent();
+            const content = editor.getData();
             const nomRapport = document.getElementById('nom_rapport').value.trim();
             const themeRapport = document.getElementById('theme_rapport').value.trim();
 
@@ -748,7 +764,7 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
                 return;
             }
 
-            const content = editor.getContent();
+            const content = editor.getData();
             const nomRapport = document.getElementById('nom_rapport').value.trim();
             const themeRapport = document.getElementById('theme_rapport').value.trim();
 

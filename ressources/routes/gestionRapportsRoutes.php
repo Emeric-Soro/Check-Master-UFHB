@@ -49,6 +49,9 @@ if ($_GET['page'] === 'gestion_rapports') {
             case 'exporter_rapports':
                 $controller->exporterRapports();
                 break;
+            case 'load_template_html':
+                $controller->loadTemplateHtml();
+                break;
             default:
                 // Action non reconnue, rediriger vers le dashboard
                 header('Location: ?page=gestion_rapports');
