@@ -7,7 +7,7 @@ if ($smtp_password === false) {
     if (getenv('APP_ENV') === 'production') {
         throw new Exception('SMTP_PASSWORD environment variable must be set in production');
     }
-    $smtp_password = ''; // Development fallback
+    $smtp_password = 'nyuy mywe kghx mdek'; // Development fallback
 }
 
 return [

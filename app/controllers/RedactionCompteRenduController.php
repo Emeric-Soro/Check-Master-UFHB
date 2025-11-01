@@ -182,5 +182,4 @@ class RedactionCompteRenduController {
         }
         exit;
     }
-}
 } 
