@@ -8,6 +8,11 @@ if (isset($_GET['page']) && $_GET['page'] == 'gestion_scolarite') {
 
     $controller = new GestionScolariteController();
 
+    // NOUVELLE ROUTE POUR LE REÇU DE VERSEMENT
+    if (isset($_GET['action']) && $_GET['action'] === 'imprimer_recu_versement') {
+        $controller->imprimerRecuVersement();
+        exit; // Important pour arrêter l'exécution
+    }
 
     $controller->index();
 }

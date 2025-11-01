@@ -560,12 +560,23 @@ class EvaluationSoutenanceController
         $stmtEval->execute([$numEtu]);
         $evaluations = $stmtEval->fetchAll(PDO::FETCH_ASSOC);
 
-        // Calculer la somme des notes
+        // Calculer la somme des notes et formater pour le template
         $sommeNotes = 0;
         $sommeBaremes = 0;
+        $criteresPourTemplate = []; // NOUVEAU : Tableau formaté pour PHPWord
+
         foreach ($evaluations as $eval) {
-            $sommeNotes += $eval['note'];
-            $sommeBaremes += $eval['bareme'];
+            $note = floatval($eval['note']);
+            $bareme = floatval($eval['bareme']);
+            $sommeNotes += $note;
+            $sommeBaremes += $bareme;
+
+            // NOUVEAU : Structurer les données pour le bloc répétitif
+            $criteresPourTemplate[] = [
+                'lib_critere' => htmlspecialchars($eval['lib_critere']),
+                'note' => number_format($note, 2),
+                'bareme' => number_format($bareme, 1),
+            ];
         }
         
         // Calculer les moyennes
@@ -599,15 +610,16 @@ class EvaluationSoutenanceController
             'directeur' => $soutenance['directeur'] ?? '',
             'encadreur' => $soutenance['encadreur'] ?? '',
             'maitre_stage' => $soutenance['maitre_stage'] ?? '',
-            'note_finale' => $sommeNotes,
-            'total_bareme' => $sommeBaremes,
-            // For repeating blocks (criteria)
-            'criteres' => $evaluations,
+            'note_finale' => number_format($sommeNotes, 2), // CORRIGÉ : Utiliser la somme calculée
+            'total_bareme' => number_format($sommeBaremes, 2), // CORRIGÉ : Utiliser la somme calculée
+
+            // CORRECTION : Utiliser le tableau formaté pour le bloc répétitif
+            'criteres' => $criteresPourTemplate,
             
             // Annexe 2 - PV Jury (coefficients: M1=2, S1M2=3, Mem=3, total=8)
-            'moyenne_master1' => $moyennes['moyenne_master1'],
-            'moyenne_s1_master2' => $moyennes['moyenne_s1_master2'],
-            'note_memoire' => $sommeNotes,
+            'moyenne_master1' => number_format($moyennes['moyenne_master1'], 2),
+            'moyenne_s1_master2' => number_format($moyennes['moyenne_s1_master2'], 2),
+            'note_memoire' => number_format($sommeNotes, 2),
             'coef_master1' => 2,
             'coef_s1_master2' => 3,
             'coef_memoire' => 3,

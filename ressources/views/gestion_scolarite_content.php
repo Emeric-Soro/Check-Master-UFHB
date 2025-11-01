@@ -527,8 +527,8 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
         }
 
         if (isVersement) {
-            // id est un id_versement
-            window.open(`?page=gestion_scolarite&action=imprimer_recu&id=${id}`, '_blank');
+            // id est un id_versement - Nouvelle URL pointant vers le contrôleur
+            window.open(`?page=gestion_scolarite&action=imprimer_recu_versement&id=${id}`, '_blank');
             return;
         }
 

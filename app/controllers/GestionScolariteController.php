@@ -231,5 +231,62 @@ class GestionScolariteController {
         }
     }
 
+    public function imprimerRecuVersement() {
+        // Vérifier la permission d'impression
+        if (!hasPermission('gestion_scolarite', 'READ')) {
+            die("Accès refusé.");
+        }
+
+        $id_versement = $_GET['id'] ?? null;
+        if (!$id_versement) {
+            die("ID de versement manquant.");
+        }
+
+        require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+        require_once __DIR__ . '/../utils/ReceiptUtils.php';
+
+        try {
+            $versement = $this->scolariteModel->getVersementById($id_versement);
+            if (!$versement) {
+                die("Versement non trouvé.");
+            }
+
+            $inscription = $this->scolariteModel->getInscriptionById($versement['id_inscription']);
+            if (!$inscription) {
+                die("Inscription non trouvée.");
+            }
+
+            // Calculer les montants à la date du versement
+            $montantsAsOf = $this->scolariteModel->getMontantsAsOf($versement['id_inscription'], $versement['date_versement']);
+
+            $templateData = [
+                'numero_recu' => ReceiptUtils::genererNumeroRecu($versement['id_versement']),
+                'nom_etudiant' => $versement['nom_etudiant'] . ' ' . $versement['prenom_etudiant'],
+                'montant_en_chiffres' => number_format($versement['montant'], 0, ',', ' '),
+                'montant_en_lettres' => ReceiptUtils::numberToWords($versement['montant']),
+                'reglement_de' => 'Scolarité Année Académique ' . date('Y', strtotime($inscription['date_deb'])) . '-' . date('Y', strtotime($inscription['date_fin'])),
+                'annee_etudes' => $inscription['nom_niveau'],
+                'methode_paiement' => $versement['methode_paiement'],
+                'date_versement' => date('d/m/Y', strtotime($versement['date_versement'])),
+                'montant_total_scolarite' => number_format($montantsAsOf['montant_total'], 0, ',', ' '),
+                'montant_total_paye' => number_format($montantsAsOf['montant_paye'], 0, ',', ' '),
+                'reste_a_payer' => number_format($montantsAsOf['reste_a_payer'], 0, ',', ' '),
+            ];
+
+            $documentService = new DocumentGeneratorService();
+            $pdfPath = $documentService->generateFromTemplate('recu_versement', $templateData);
+
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="recu_versement_' . $versement['id_versement'] . '.pdf"');
+            readfile($pdfPath);
+            $documentService->cleanupTempFile($pdfPath);
+            exit;
+
+        } catch (Exception $e) {
+            error_log("Erreur génération reçu de versement: " . $e->getMessage());
+            die("Erreur lors de la génération du reçu : " . $e->getMessage());
+        }
+    }
+
 
 }
