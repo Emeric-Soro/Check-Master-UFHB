@@ -160,29 +160,6 @@ if (!isset($_SESSION['id_utilisateur'])) {
             break;
         case 'gestion_etudiants':
             include __DIR__ . '/../ressources/routes/gestionEtudiantRoutes.php';
-            if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'imprimer_recu' && isset($_GET['id_inscription'])) {
-                require_once __DIR__ . '/../vendor/autoload.php';
-                $id_inscription = $_GET['id_inscription'];
-                ob_start();
-                include __DIR__ . '../../ressources/views/gestion_etudiants/recu_inscription.php';
-                $html = ob_get_clean();
-                if (class_exists('\Dompdf\Options')) {
-                    $options = new \Dompdf\Options();
-                    $options->set('isRemoteEnabled', true);
-                    $dompdf = new Dompdf\Dompdf($options);
-                } else {
-                    $dompdf = new Dompdf\Dompdf();
-                }
-                $publicPath = realpath(__DIR__ . '/../');
-                if ($publicPath) {
-                    $dompdf->setBasePath($publicPath);
-                }
-                $dompdf->loadHtml($html);
-                $dompdf->setPaper('A4', 'landscape');
-                $dompdf->render();
-                $dompdf->stream("recu_paiement_" . $id_inscription . ".pdf", array("Attachment" => false));
-                exit;
-            }
             $allowedActions = ['ajouter_des_etudiants', 'inscrire_des_etudiants'];
             if (isset($_GET['action']) && in_array($_GET['action'], $allowedActions)) {
                 $currentAction = $_GET['action'];
@@ -194,48 +171,10 @@ if (!isset($_SESSION['id_utilisateur'])) {
             }
             break;
         case 'gestion_scolarite':
-            if (isset($_GET['action']) && $_GET['action'] === 'imprimer_recu' && isset($_GET['id'])) {
-                require_once __DIR__ . '/../vendor/autoload.php';
-                $id_versement = $_GET['id'];
-                ob_start();
-                include __DIR__ . '../../ressources/views/recu_versement.php';
-                $html = ob_get_clean();
-                if (class_exists('\Dompdf\Options')) {
-                    $options = new \Dompdf\Options();
-                    $options->set('isRemoteEnabled', true);
-                    $dompdf = new Dompdf\Dompdf($options);
-                } else {
-                    $dompdf = new Dompdf\Dompdf();
-                }
-                $publicPath = realpath(__DIR__ . '/../');
-                if ($publicPath) {
-                    $dompdf->setBasePath($publicPath);
-                }
-                $dompdf->loadHtml($html);
-                $dompdf->setPaper('A4', 'landscape');
-                $dompdf->render();
-                $dompdf->stream("recu_paiement_" . $id_versement . ".pdf", array("Attachment" => false));
-                exit;
-            }
             $contentFile = $partialsBasePath . 'gestion_scolarite_content.php';
             $currentPageLabel = 'Gestion de la scolarité';
             break;
         case 'gestion_notes_evaluations':
-            if (isset($_GET['action']) && $_GET['action'] === 'imprimer_releve' && isset($_GET['student']) && isset($_GET['niveau'])) {
-                require_once __DIR__ . '/../vendor/autoload.php';
-                $id_etudiant = $_GET['student'];
-                $niveau = $_GET['niveau'];
-                ob_start();
-                include __DIR__ . '../../ressources/views/releve_notes.php';
-                $html = ob_get_clean();
-                $dompdf = new Dompdf\Dompdf();
-                $dompdf->setBasePath(__DIR__ . '../public/images/');
-                $dompdf->loadHtml($html);
-                $dompdf->setPaper('A4', 'portrait');
-                $dompdf->render();
-                $dompdf->stream("releve_notes_" . $id_etudiant . "_" . $niveau . ".pdf", array("Attachment" => false));
-                exit;
-            }
             $contentFile = $partialsBasePath . 'gestion_notes_evaluations_content.php';
             $currentPageLabel = 'Gestion des notes et évaluations';
             break;

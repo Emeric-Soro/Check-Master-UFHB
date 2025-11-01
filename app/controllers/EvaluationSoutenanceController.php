@@ -571,16 +571,24 @@ class EvaluationSoutenanceController
         // Calculer les moyennes
         $moyennes = $this->calculerMoyennesPourAnnexe2($numEtu, $pdo);
         
-        // Calculate final note and mention
+        // Calculate final note and mention for Annexe 2 (PV)
         $noteFinalePV = (
             $moyennes['moyenne_master1'] * 2 +
             $moyennes['moyenne_s1_master2'] * 3 +
             $sommeNotes * 3
         ) / 8;
-        $mention = $this->calculerMention($noteFinalePV);
+        $mentionPV = $this->calculerMention($noteFinalePV);
+        
+        // Calculate final note and mention for Annexe 3 (Formation Continue)
+        $noteFinaleFC = (
+            $moyennes['moyenne_master1'] * 1 +
+            $sommeNotes * 2
+        ) / 3;
+        $mentionFC = $this->calculerMention($noteFinaleFC);
 
         // Préparer les données pour le template
         $templateData = [
+            // Annexe 1 - General information and criteria
             'niveau' => $soutenance['niveau'],
             'date_soutenance' => date('d/m/Y', strtotime($soutenance['date_soutenance'])),
             'promotion' => $soutenance['promotion_etu'],
@@ -593,13 +601,25 @@ class EvaluationSoutenanceController
             'maitre_stage' => $soutenance['maitre_stage'] ?? '',
             'note_finale' => $sommeNotes,
             'total_bareme' => $sommeBaremes,
+            // For repeating blocks (criteria)
+            'criteres' => $evaluations,
+            
+            // Annexe 2 - PV Jury (coefficients: M1=2, S1M2=3, Mem=3, total=8)
             'moyenne_master1' => $moyennes['moyenne_master1'],
             'moyenne_s1_master2' => $moyennes['moyenne_s1_master2'],
             'note_memoire' => $sommeNotes,
+            'coef_master1' => 2,
+            'coef_s1_master2' => 3,
+            'coef_memoire' => 3,
             'note_finale_pv' => number_format($noteFinalePV, 2),
-            'mention' => $mention,
-            // For repeating blocks (criteria)
-            'criteres' => $evaluations
+            'mention' => $mentionPV,
+            
+            // Annexe 3 - Formation Continue (coefficients: M1=1, Mem=2, total=3)
+            'coef_master1_fc' => 1,
+            'coef_memoire_fc' => 2,
+            'total_coef_fc' => 3,
+            'note_finale_fc' => number_format($noteFinaleFC, 2),
+            'mention_fc' => $mentionFC
         ];
 
         // Use DocumentGeneratorService
