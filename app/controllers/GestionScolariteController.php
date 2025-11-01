@@ -244,6 +244,7 @@ class GestionScolariteController {
 
         require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
         require_once __DIR__ . '/../utils/ReceiptUtils.php';
+        require_once __DIR__ . '/../utils/FormattingUtils.php';
 
         try {
             $versement = $this->scolariteModel->getVersementById($id_versement);
@@ -262,15 +263,15 @@ class GestionScolariteController {
             $templateData = [
                 'numero_recu' => ReceiptUtils::genererNumeroRecu($versement['id_versement']),
                 'nom_etudiant' => $versement['nom_etudiant'] . ' ' . $versement['prenom_etudiant'],
-                'montant_en_chiffres' => number_format($versement['montant'], 0, ',', ' '),
+                'montant_en_chiffres' => FormattingUtils::formatMoney($versement['montant']),
                 'montant_en_lettres' => ReceiptUtils::numberToWords($versement['montant']),
                 'reglement_de' => 'Scolarité Année Académique ' . date('Y', strtotime($inscription['date_deb'])) . '-' . date('Y', strtotime($inscription['date_fin'])),
                 'annee_etudes' => $inscription['nom_niveau'],
                 'methode_paiement' => $versement['methode_paiement'],
-                'date_versement' => date('d/m/Y', strtotime($versement['date_versement'])),
-                'montant_total_scolarite' => number_format($montantsAsOf['montant_total'], 0, ',', ' '),
-                'montant_total_paye' => number_format($montantsAsOf['montant_paye'], 0, ',', ' '),
-                'reste_a_payer' => number_format($montantsAsOf['reste_a_payer'], 0, ',', ' '),
+                'date_versement' => FormattingUtils::formatDate($versement['date_versement']),
+                'montant_total_scolarite' => FormattingUtils::formatMoney($montantsAsOf['montant_total']),
+                'montant_total_paye' => FormattingUtils::formatMoney($montantsAsOf['montant_paye']),
+                'reste_a_payer' => FormattingUtils::formatMoney($montantsAsOf['reste_a_payer']),
             ];
 
             $documentService = new DocumentGeneratorService();

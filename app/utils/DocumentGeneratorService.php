@@ -169,14 +169,15 @@ class DocumentGeneratorService
         curl_close($curl);
 
         if ($error) {
-            // Log de l'erreur cURL
-            error_log("Erreur cURL vers Gotenberg : " . $error);
+            // Log de l'erreur cURL (sanitize to prevent log injection)
+            error_log("Erreur cURL vers Gotenberg : " . preg_replace('/[\r\n]+/', ' ', $error));
             throw new Exception("Erreur de communication avec le service de conversion de documents.");
         }
 
         if ($httpCode !== 200) {
-            // Log de la réponse d'erreur de Gotenberg
-            error_log("Gotenberg a retourné une erreur (Code: {$httpCode}): " . $response);
+            // Log de la réponse d'erreur de Gotenberg (limit length and sanitize)
+            $sanitizedResponse = preg_replace('/[\r\n]+/', ' ', substr($response, 0, 500));
+            error_log("Gotenberg a retourné une erreur (Code: {$httpCode}): " . $sanitizedResponse);
             throw new Exception("Le service de conversion a retourné une erreur (Code: {$httpCode}). Veuillez vérifier les logs du serveur.");
         }
 
