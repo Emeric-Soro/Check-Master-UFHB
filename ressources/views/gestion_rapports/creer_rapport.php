@@ -9,7 +9,8 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Éditeur de Rapport de Stage</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.4.2/tinymce.min.js"></script>
+    <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
+    <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/translations/fr.js"></script>
     <style>
     .loader {
         border-top-color: #3498db;
@@ -26,10 +27,9 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
         }
     }
 
-    /* TinyMCE customizations */
-    .tox-tinymce {
-        border-radius: 0.5rem !important;
-        border: 1px solid #e2e8f0 !important;
+    /* CKEditor customizations */
+    .ck-editor__editable {
+        min-height: 600px;
     }
 
     .document-loaded {
@@ -321,7 +321,8 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
                             <span class="ml-2 text-gray-600">Chargement...</span>
                         </span>
                     </div>
-                    <div class="flex items-center space-x-3">
+                    <!-- Font selectors hidden - CKEditor 5 requires custom plugins for dynamic font changes -->
+                    <div class="flex items-center space-x-3" style="display: none;">
                         <div class="relative">
                             <select id="fontSelector"
                                 class="bg-white border border-gray-300 text-gray-700 py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'bg-gray-100 cursor-not-allowed' : '' ?>"
@@ -388,237 +389,59 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
 
         let editor;
 
-        // Initialize TinyMCE editor
-        tinymce.init({
-            selector: '#editor',
-            height: 800,
-            menubar: true,
-            plugins: [
-                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                'insertdatetime', 'media', 'table', 'help', 'wordcount'
-            ],
-            toolbar: 'undo redo | blocks | ' +
-                'bold italic backcolor | alignleft aligncenter ' +
-                'alignright alignjustify | bullist numlist outdent indent | ' +
-                'removeformat | help',
-            content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
-            readonly: isReadOnly,
-            setup: function(ed) {
-                editor = ed;
+        // Initialize CKEditor 5
+        ClassicEditor
+            .create(document.querySelector('#editor'), {
+                toolbar: {
+                    items: [
+                        'heading', '|',
+                        'bold', 'italic', 'underline', 'strikethrough', '|',
+                        'bulletedList', 'numberedList', 'outdent', 'indent', '|',
+                        'link', 'blockQuote', 'insertTable', '|',
+                        'undo', 'redo'
+                    ]
+                },
+                language: 'fr',
+                table: {
+                    contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
+                }
+            })
+            .then(newEditor => {
+                editor = newEditor;
+                
+                // Gérer le mode lecture seule
+                if (isReadOnly) {
+                    editor.isReadOnly = true;
+                }
 
-                ed.on('init', function() {
-                    document.getElementById('editor').classList.remove('hidden');
+                <?php if (isset($isEditMode) && $isEditMode && !empty($contenuRapport)): ?>
+                // Mode édition : charger le contenu du rapport
+                setTimeout(function() {
+                    editor.setData(<?= json_encode($contenuRapport) ?>);
+                    editorContainer.classList.remove('document-loading');
+                    editorContainer.classList.add('document-loaded');
+                    documentStatusMessage.classList.add('hidden');
+                    if (isReadOnly) {
+                        showNotification('info',
+                            'Rapport chargé en mode consultation (lecture seule)'
+                        );
+                    } else {
+                        showNotification('info',
+                            'Rapport chargé en mode édition');
+                    }
+                }, 500);
+                <?php else: ?>
+                // Mode création : ne rien charger, laisser l'éditeur vide
+                editor.setData('');
+                editorContainer.classList.remove('document-loaded');
+                editorContainer.classList.add('document-loading');
+                documentStatusMessage.classList.remove('hidden');
+                <?php endif; ?>
+            })
+            .catch(error => {
+                console.error('Erreur lors de l\'initialisation de CKEditor 5 :', error);
+            });
 
-                    <?php if (isset($isEditMode) && $isEditMode && !empty($contenuRapport)): ?>
-                    // Mode édition : charger le contenu du rapport
-                    setTimeout(function() {
-                        editor.setContent(<?= json_encode($contenuRapport) ?>);
-                        editorContainer.classList.remove('document-loading');
-                        editorContainer.classList.add('document-loaded');
-                        documentStatusMessage.classList.add('hidden');
-                        if (isReadOnly) {
-                            showNotification('info',
-                                'Rapport chargé en mode consultation (lecture seule)'
-                            );
-                        } else {
-                            showNotification('info',
-                                'Rapport chargé en mode édition');
-                        }
-                    }, 500);
-                    <?php else: ?>
-                    // Mode création : ne rien charger, laisser l'éditeur vide
-                    editor.setContent('');
-                    editorContainer.classList.remove('document-loaded');
-                    editorContainer.classList.add('document-loading');
-                    documentStatusMessage.classList.remove('hidden');
-                    <?php endif; ?>
-                });
-            }
-        });
-
-        // Template content - Modèle standardisé de rapport de stage
-        const templateContent = `
-        <div style="display: flex; justify-content: space-between " id="header_rapport">
-            <div style="text-align: center; margin-bottom: 40px;" id="header_rapport1">
-
-                <div style="margin: 16px 0;">
-                    <p style="font-size: 14px; color: #666;">[LOGO DE L'UNIVERSITÉ]</p>
-                </div>
-
-                <h2 style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: #2d3748;">
-                    [NOM DE L'UNIVERSITÉ]
-                </h2>
-                
-                <h3 style="font-size: 14px; font-weight: normal; margin-bottom: 15px; color: #4a5568;">
-                    [FACULTÉ/ÉCOLE] - [DÉPARTEMENT/SPÉCIALITÉ]
-                </h3>
-                
-                <div style="margin: 16px 0; padding: 10px;">
-                    <p style="font-size: 12px; font-weight: bold; margin: 2px 0; color: #2d3748;">RÉPUBLIQUE DE [PAYS]</p>
-                    <p style="font-size: 12px; margin: 2px 0; color: #4a5568;">[DEVISE NATIONALE]</p>
-                </div>
-
-                
-            </div>
-
-            <div style="text-align: center; margin-bottom: 60px;" id="header_rapport2">
-                <div style="margin: 16px 0;">
-                    <p style="font-size: 12px; color: #666;">[LOGO ENTREPRISE D'ACCUEIL]</p>
-                    <p style="font-size: 12px; color: #666;">[LOGO PARTENAIRE]</p>
-                </div>
-                <h2 style="font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #2d3748;">
-                    [NOM DE L'ENTREPRISE D'ACCUEIL]
-                </h2>
-            </div>    
-                
-        </div>
-
-            <div id="theme_rapport" style="display: flex; flex-direction: column; align-items: center;">
-               
-            <p style="font-size: 14px; margin-bottom: 8px; color: #4a5568;">
-                    Mémoire de fin de cycle pour l'obtention du :
-                </p>
-                <p style="font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #2d3748;">
-                    [DIPLÔME]
-                </p>
-                <p style="font-size: 13px; margin-bottom: 20px; color: #4a5568;">
-                    [SPÉCIALITÉ/OPTION]
-                </p>  
-                <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #2d3748;">Thème :</h2>
-                <p style="font-size: 16px; font-weight: bold; margin-bottom: 5px; color: #2d3748; line-height: 1.4;">
-                    [TITRE PRINCIPAL DU THÈME] :
-                </p>
-                <p style="font-size: 16px; font-weight: bold; margin-bottom: 20px; color: #2d3748; line-height: 1.4;">
-                    [SOUS-TITRE OU PRÉCISION]
-                </p>
-                
-                <div style="margin: 30px 0; padding: 25px; border: 2px solid #e2e8f0; border-radius: 10px; background-color: #f7fafc;">
-                    <p style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #2d3748; text-decoration: underline;">
-                        PRÉSENTÉ PAR :
-                    </p>
-                    <p style="font-size: 14px; font-weight: bold; color: #2d3748;">
-                        [CIVILITÉ] [NOM COMPLET DE L'ÉTUDIANT]
-                    </p>
-                    <p style="font-size: 12px; margin-top: 5px; color: #4a5568;">
-                        Matricule : [NUMÉRO D'ÉTUDIANT]
-                    </p>
-                </div>
-            </div>
-            
-            <div id="body_rapport">
-
-            <div style="margin-bottom: 40px;">
-                <h1 style="font-size: 16px; font-weight: bold; margin-bottom: 20px; color: #1a365d; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
-                    PRÉSENTATION DU CADRE DE RÉFÉRENCE
-                </h1>
-                
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 15px; color: #2d3748;">
-                    [NOM DE L'ENTREPRISE] est une société spécialisée dans [DOMAINE D'ACTIVITÉ], qui a développé des compétences complémentaires pour répondre aux besoins spécifiques de ses clients et à leur évolution.
-                </p>
-                
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 15px; color: #2d3748;">
-                    Créée en [DATE DE CRÉATION], [NOM DE L'ENTREPRISE] fournit [TYPE DE SERVICES] qui s'articulent autour d'une idée forte qui est de [OBJECTIF PRINCIPAL]. Elle s'appuie sur les connaissances professionnelles de ses [TYPE DE PROFESSIONNELS], qui peuvent pleinement appréhender [DOMAINE DE COMPÉTENCE], à savoir [LISTE DES COMPÉTENCES]. Elle accompagne surtout les entreprises présentes dans les domaines de [SECTEURS D'ACTIVITÉ].
-                </p>
-                
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 20px; color: #2d3748;">
-                    [VALEURS/PRINCIPES] représentent le point culminant des réflexions de l'entreprise. L'objectif de [NOM DE L'ENTREPRISE] est de fournir dans la durée, un service qui apporte une réelle valeur ajoutée aux entreprises. L'ensemble des méthodes de travail, des outils utilisés et des programmes de formation vont dans le sens de [APPROCHE] et assurent ainsi la pérennité de notre qualité de service.
-                </p>
-                
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 15px; color: #2d3748;">
-                    [NOM DE L'ENTREPRISE] organise ses activités métiers autour de [NOMBRE] pôles d'expertises :
-                </p>
-                
-                <ul style="margin-left: 20px; margin-bottom: 20px; color: #2d3748;">
-                    <li style="margin-bottom: 8px; line-height: 1.5;"><strong>[POLE 1]</strong> : [DESCRIPTION DU POLE 1]</li>
-                    <li style="margin-bottom: 8px; line-height: 1.5;"><strong>[POLE 2]</strong> : [DESCRIPTION DU POLE 2]</li>
-                    <li style="margin-bottom: 8px; line-height: 1.5;"><strong>[POLE 3]</strong> : [DESCRIPTION DU POLE 3]</li>
-                    <li style="margin-bottom: 8px; line-height: 1.5;"><strong>[POLE 4]</strong> : [DESCRIPTION DU POLE 4]</li>
-                </ul>
-
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 15px; color: #2d3748;">
-                    Pour la « valeur ajoutée », [NOM DE L'ENTREPRISE] apporte à ses prestations :
-                </p>
-                
-                <ul style="margin-left: 20px; margin-bottom: 20px; color: #2d3748;">
-                    <li style="margin-bottom: 8px; line-height: 1.5;">[VALEUR AJOUTÉE 1]</li>
-                    <li style="margin-bottom: 8px; line-height: 1.5;">[VALEUR AJOUTÉE 2]</li>
-                    <li style="margin-bottom: 8px; line-height: 1.5;">[VALEUR AJOUTÉE 3]</li>
-                </ul>
-            </div>
-
-            <div style="margin-bottom: 40px;">
-                <h1 style="font-size: 16px; font-weight: bold; margin-bottom: 20px; color: #1a365d; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
-                    INTRODUCTION : GÉNÉRALITÉS & PROBLÉMATIQUE
-                </h1>
-                
-                <h2 style="font-size: 15px; font-weight: bold; margin-bottom: 15px; color: #2d3748;">Généralités</h2>
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 15px; color: #2d3748;">
-                    Dans le contexte actuel de [CONTEXTE GÉNÉRAL], les entreprises cherchent constamment à améliorer leurs processus de [DOMAINE] pour rester compétitives et répondre aux besoins de leurs clients. Le secteur [SECTEUR] n'échappe pas à cette réalité. Les [TYPE D'INSTITUTIONS], telles que [EXEMPLES], adoptent de plus en plus de solutions technologiques avancées pour gérer efficacement leurs [ACTIVITÉS]. Les systèmes de [TYPE DE SYSTÈMES] sont devenus des outils essentiels pour assurer la compétitivité et la pérennité des [INSTITUTIONS] sur les marchés globalisés.
-                </p>
-                
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 15px; color: #2d3748;">
-                    Sur le plan international, l'intégration des systèmes [SYSTÈME 1] avec d'autres systèmes de gestion, comme les [SYSTÈME 2], est devenue une nécessité pour garantir une vue unifiée et cohérente des [OPÉRATIONS]. Cette intégration permet non seulement de rationaliser les processus internes, mais aussi d'offrir une meilleure expérience client, en centralisant les informations et en facilitant l'accès à des données cruciales pour la prise de décision.
-                </p>
-                
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 15px; color: #2d3748;">
-                    Au niveau national, dans des pays comme [PAYS] où l'industrie des [SECTEUR] est en pleine expansion, les entreprises de [DOMAINE] commencent à investir dans ces technologies pour répondre aux besoins croissants du marché. Cette tendance se reflète en effet dans les stratégies adoptées par des sociétés telles que [NOM DE L'ENTREPRISE], qui cherchent à intégrer des modules sophistiqués pour relier leurs systèmes [SYSTÈME 1] à leurs [SYSTÈME 2].
-                </p>
-                
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 20px; color: #2d3748;">
-                    Dans ce contexte, notre mémoire se focalisera sur le thème suivant : [TITRE COMPLET DU PROJET].
-                </p>
-                
-                <h2 style="font-size: 15px; font-weight: bold; margin-bottom: 15px; color: #2d3748;">Problématique</h2>
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 15px; color: #2d3748;">
-                    Dans un environnement où l'efficacité et la réactivité sont des critères déterminants de succès, la mise en place d'une solution intégrée entre [SYSTÈME 1] et [SYSTÈME 2] se pose comme un défi majeur. [NOM DE L'ENTREPRISE] se trouve confrontée à la difficulté de gérer efficacement [PROBLÈME 1] tout en assurant [PROBLÈME 2]. L'absence d'une intégration harmonieuse entre [SYSTÈME 1] et [SYSTÈME 2] entraîne [CONSÉQUENCES NÉGATIVES].
-                </p>
-                
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 20px; color: #2d3748;">
-                    La problématique à laquelle répond notre projet est donc la suivante : <strong>[FORMULATION DE LA PROBLÉMATIQUE]</strong>
-                </p>
-            </div>
-
-            <div style="margin-bottom: 40px;">
-                <h1 style="font-size: 16px; font-weight: bold; margin-bottom: 20px; color: #1a365d; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
-                    OBJECTIFS GÉNÉRAUX ET SPÉCIFIQUES
-                </h1>
-                
-                <h2 style="font-size: 15px; font-weight: bold; margin-bottom: 15px; color: #2d3748;">1. Objectif général</h2>
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 20px; color: #2d3748;">
-                    L'objectif principal est de [OBJECTIF GÉNÉRAL], qui permettra de [BÉNÉFICES ATTENDUS], afin d'améliorer [RÉSULTATS ESPÉRÉS].
-                </p>
-                
-                <h2 style="font-size: 15px; font-weight: bold; margin-bottom: 15px; color: #2d3748;">2. Objectifs spécifiques</h2>
-                <ul style="margin-left: 20px; margin-bottom: 20px; color: #2d3748;">
-                    <li style="margin-bottom: 10px; line-height: 1.5;"><strong>[OBJECTIF SPÉCIFIQUE 1]</strong> : [DESCRIPTION DÉTAILLÉE]</li>
-                    <li style="margin-bottom: 10px; line-height: 1.5;"><strong>[OBJECTIF SPÉCIFIQUE 2]</strong> : [DESCRIPTION DÉTAILLÉE]</li>
-                    <li style="margin-bottom: 10px; line-height: 1.5;"><strong>[OBJECTIF SPÉCIFIQUE 3]</strong> : [DESCRIPTION DÉTAILLÉE]</li>
-                </ul>
-            </div>
-
-            <div style="margin-bottom: 40px;">
-                <h1 style="font-size: 16px; font-weight: bold; margin-bottom: 20px; color: #1a365d; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
-                    MÉTHODOLOGIE
-                </h1>
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 15px; color: #2d3748;">
-                    Suite à la problématique, le déroulement de notre projet comportera [NOMBRE] grandes parties.
-                </p>
-                
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 10px; color: #2d3748;">
-                    En Première Partie, <em>[TITRE DE LA PREMIÈRE PARTIE]</em>, dans laquelle nous présenterons [CONTENU DE LA PREMIÈRE PARTIE].
-                </p>
-                
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 10px; color: #2d3748;">
-                    En deuxième Partie, nous déroulerons [TITRE DE LA DEUXIÈME PARTIE], quitte à définir [CONTENU DE LA DEUXIÈME PARTIE].
-                </p>
-                
-                <p style="text-align: justify; line-height: 1.6; margin-bottom: 15px; color: #2d3748;">
-                    Enfin la Troisième Partie qui est [TITRE DE LA TROISIÈME PARTIE]. Dans cette partie nous déroulerons [CONTENU DE LA TROISIÈME PARTIE].
-                </p>
-            </div>
-        </div>
-            `;
 
         // Load template button event
         loadTemplateBtn.addEventListener('click', function(e) {
@@ -627,30 +450,40 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
             loadingIndicator.classList.remove('hidden');
             documentStatusMessage.textContent = 'Chargement du modèle en cours...';
 
-            setTimeout(function() {
-                if (editor) {
-                    editor.setContent(templateContent);
-                    editorContainer.classList.remove('document-loading');
-                    editorContainer.classList.add('document-loaded');
-                    documentStatusMessage.classList.add('hidden');
-                }
-                loadingIndicator.classList.add('hidden');
-                showNotification('success', 'Modèle chargé avec succès!');
-            }, 1500);
+            // Fetch template HTML from server
+            fetch('?page=gestion_rapports&action=load_template_html')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && editor) {
+                        editor.setData(data.html);
+                        editorContainer.classList.remove('document-loading');
+                        editorContainer.classList.add('document-loaded');
+                        documentStatusMessage.classList.add('hidden');
+                        showNotification('success', 'Modèle chargé avec succès!');
+                    } else {
+                        showNotification('error', data.message || 'Erreur de chargement du modèle.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showNotification('error', 'Erreur de communication avec le serveur.');
+                })
+                .finally(() => {
+                    loadingIndicator.classList.add('hidden');
+                });
         });
 
-        // Font selector event
+        // Font selector event (Note: CKEditor doesn't support dynamic font changes easily)
         fontSelector.addEventListener('change', function() {
-            if (editor) {
-                editor.execCommand('fontName', false, this.value);
-            }
+            // Font changing in CKEditor requires custom plugin or manual selection
+            // For now, we'll show a notification that this feature needs to be set before typing
+            showNotification('info', 'Veuillez sélectionner la police avant de commencer à taper.');
         });
 
-        // Font size selector event
+        // Font size selector event (Note: CKEditor doesn't support dynamic size changes easily)
         fontSize.addEventListener('change', function() {
-            if (editor) {
-                editor.execCommand('fontSize', false, this.value);
-            }
+            // Font size changing in CKEditor requires custom plugin or manual selection
+            showNotification('info', 'Veuillez sélectionner la taille avant de commencer à taper.');
         });
 
         // Save button event
@@ -666,7 +499,7 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
                 return;
             }
 
-            const content = editor.getContent();
+            const content = editor.getData();
             const nomRapport = document.getElementById('nom_rapport').value.trim();
             const themeRapport = document.getElementById('theme_rapport').value.trim();
 
@@ -748,7 +581,7 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
                 return;
             }
 
-            const content = editor.getContent();
+            const content = editor.getData();
             const nomRapport = document.getElementById('nom_rapport').value.trim();
             const themeRapport = document.getElementById('theme_rapport').value.trim();
 

@@ -279,6 +279,7 @@ class GestionScolariteController {
 
             header('Content-Type: application/pdf');
             header('Content-Disposition: inline; filename="recu_versement_' . $versement['id_versement'] . '.pdf"');
+            header('Content-Length: ' . filesize($pdfPath));
             readfile($pdfPath);
             $documentService->cleanupTempFile($pdfPath);
             exit;

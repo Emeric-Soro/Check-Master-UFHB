@@ -736,7 +736,36 @@ if (!empty($_SESSION['success'])) {
         // Chargement des modèles
         function loadTemplate(templateType) {
             const editor = document.getElementById('editorContent');
-            let template = `
+            
+            // Option: Load template from server (DOCX to HTML conversion)
+            const loadFromServer = false; // Set to true to load from compte_rendu.docx
+            
+            if (loadFromServer) {
+                // Fetch template HTML from server
+                fetch('?page=redaction_compte_rendu&action=load_template_html')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            editor.innerHTML = data.html;
+                            window.baseTemplate = data.html;
+                            updateEditorWithReportData();
+                            showNotification('Modèle chargé avec succès depuis le serveur', 'success');
+                        } else {
+                            showNotification(data.message || 'Erreur de chargement du modèle', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur:', error);
+                        showNotification('Erreur de communication avec le serveur', 'error');
+                        // Fallback to default template
+                        loadDefaultTemplate();
+                    });
+            } else {
+                loadDefaultTemplate();
+            }
+            
+            function loadDefaultTemplate() {
+                let template = `
                 <style>
                 .editor-content { font-family: 'Times New Roman', Times, serif; }
                 .header-logos .right { float: right; }
@@ -796,9 +825,10 @@ if (!empty($_SESSION['success'])) {
                     <strong>La commission</strong>
                         </div>
                     `;
-            editor.innerHTML = template;
-            window.baseTemplate = template;
+                editor.innerHTML = template;
+                window.baseTemplate = template;
                 updateEditorWithReportData();
+            }
         }
 
         // Fonctions de formatage de texte
