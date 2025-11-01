@@ -160,4 +160,27 @@ class RedactionCompteRenduController {
             exit;
         }
     }
+
+    /**
+     * Charger un modèle Word et le convertir en HTML pour l'éditeur
+     */
+    public function loadTemplateHtml()
+    {
+        header('Content-Type: application/json');
+        try {
+            require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+            $docService = new DocumentGeneratorService();
+            $templatePath = $docService->getTemplatePath('compte_rendu.docx');
+            
+            $htmlContent = $docService->convertDocxToHtml($templatePath);
+            
+            echo json_encode(['success' => true, 'html' => $htmlContent]);
+        } catch (Exception $e) {
+            error_log("Erreur loadTemplateHtml: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
+}
 } 

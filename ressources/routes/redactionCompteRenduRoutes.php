@@ -11,6 +11,17 @@ if (isset($_GET['page']) && $_GET['page'] === 'redaction_compte_rendu') {
             $controller->enregistrer();
         }
     } else {
-        $controller->index();
+        if (isset($_GET['action'])) {
+            switch ($_GET['action']) {
+                case 'load_template_html':
+                    $controller->loadTemplateHtml();
+                    break;
+                default:
+                    $controller->index();
+                    break;
+            }
+        } else {
+            $controller->index();
+        }
     }
 } 
