@@ -76,13 +76,23 @@ class DocumentGeneratorService
 </html>";
         }
         
-        file_put_contents($tempHtmlFile, $htmlContent);
+        $writeResult = file_put_contents($tempHtmlFile, $htmlContent);
+        if ($writeResult === false) {
+            error_log("Impossible d'écrire le fichier HTML temporaire: " . $tempHtmlFile);
+            throw new Exception("Erreur lors de la création du fichier temporaire.");
+        }
 
         try {
             // Use Gotenberg's Chromium HTML to PDF endpoint
             $gotenbergHtmlUrl = 'http://gotenberg:3000/forms/chromium/convert/html';
             
+            error_log("DocumentGeneratorService: Conversion HTML->PDF démarrée. Taille HTML: " . strlen($htmlContent) . " bytes");
+            
             $curl = curl_init();
+            if ($curl === false) {
+                throw new Exception("Impossible d'initialiser cURL.");
+            }
+            
             $file = new CURLFile($tempHtmlFile, 'text/html', basename($tempHtmlFile));
             
             $postData = [
@@ -105,10 +115,12 @@ class DocumentGeneratorService
                 CURLOPT_POSTFIELDS => $postData,
                 CURLOPT_HTTPHEADER => ['Content-Type: multipart/form-data'],
                 CURLOPT_TIMEOUT => 60,
+                CURLOPT_CONNECTTIMEOUT => 10,
             ]);
 
             $response = curl_exec($curl);
             $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            $curlErrno = curl_errno($curl);
             $error = curl_error($curl);
             curl_close($curl);
 
@@ -117,8 +129,8 @@ class DocumentGeneratorService
                 unlink($tempHtmlFile);
             }
 
-            if ($error) {
-                error_log("Erreur cURL vers Gotenberg (HTML->PDF): " . preg_replace('/[\r\n]+/', ' ', $error));
+            if ($response === false || $curlErrno !== 0) {
+                error_log("Erreur cURL vers Gotenberg (HTML->PDF). Errno: {$curlErrno}, Message: " . preg_replace('/[\r\n]+/', ' ', $error));
                 throw new Exception("Le service de génération de documents est temporairement indisponible. Veuillez réessayer plus tard.");
             }
 
@@ -128,15 +140,27 @@ class DocumentGeneratorService
                 throw new Exception("Le service de génération de documents a retourné une erreur (Code: {$httpCode}). Veuillez vérifier les logs du serveur.");
             }
 
+            // Validate response is not empty
+            if (empty($response)) {
+                error_log("Gotenberg a retourné une réponse vide (Code: {$httpCode})");
+                throw new Exception("Le service de génération a retourné une réponse vide.");
+            }
+
             // Save PDF to temporary file
             $pdfPath = $this->tempPath . uniqid('pdf_') . '.pdf';
-            file_put_contents($pdfPath, $response);
+            $writeResult = file_put_contents($pdfPath, $response);
+
+            if ($writeResult === false) {
+                error_log("Impossible d'écrire le fichier PDF: " . $pdfPath);
+                throw new Exception("Erreur lors de l'enregistrement du fichier PDF.");
+            }
 
             if (!file_exists($pdfPath) || filesize($pdfPath) === 0) {
                 error_log("La conversion HTML->PDF a réussi mais le fichier n'a pas pu être créé ou est vide. Chemin: " . $pdfPath);
                 throw new Exception("La conversion a échoué : le fichier PDF final est invalide.");
             }
 
+            error_log("DocumentGeneratorService: Conversion HTML->PDF réussie. Taille PDF: " . filesize($pdfPath) . " bytes");
             return $pdfPath;
             
         } catch (Exception $e) {
@@ -267,11 +291,25 @@ class DocumentGeneratorService
     private function convertToPdf(string $docxPath): string
     {
         if (!file_exists($docxPath)) {
+            error_log("DocumentGeneratorService: Fichier DOCX source introuvable: {$docxPath}");
             throw new Exception("Document source non trouvé : {$docxPath}");
         }
 
+        $fileSize = filesize($docxPath);
+        error_log("DocumentGeneratorService: Conversion DOCX->PDF démarrée. Fichier: " . basename($docxPath) . ", Taille: {$fileSize} bytes");
+
         $curl = curl_init();
-        $file = new CURLFile($docxPath, mime_content_type($docxPath), basename($docxPath));
+        if ($curl === false) {
+            error_log("DocumentGeneratorService: Impossible d'initialiser cURL");
+            throw new Exception("Impossible d'initialiser cURL.");
+        }
+
+        $mimeType = mime_content_type($docxPath);
+        if ($mimeType === false) {
+            $mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        }
+
+        $file = new CURLFile($docxPath, $mimeType, basename($docxPath));
         $postData = ['files' => $file];
 
         curl_setopt_array($curl, [
@@ -281,34 +319,46 @@ class DocumentGeneratorService
             CURLOPT_POSTFIELDS => $postData,
             CURLOPT_HTTPHEADER => ['Content-Type: multipart/form-data'],
             CURLOPT_TIMEOUT => 60,
+            CURLOPT_CONNECTTIMEOUT => 10,
         ]);
 
         $response = curl_exec($curl);
         $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $curlErrno = curl_errno($curl);
         $error = curl_error($curl);
         curl_close($curl);
 
-        if ($error) {
-            // Log de l'erreur cURL (sanitize to prevent log injection)
-            error_log("Erreur cURL vers Gotenberg : " . preg_replace('/[\r\n]+/', ' ', $error));
+        if ($response === false || $curlErrno !== 0) {
+            error_log("DocumentGeneratorService: Erreur cURL vers Gotenberg. Errno: {$curlErrno}, Message: " . preg_replace('/[\r\n]+/', ' ', $error));
             throw new Exception("Erreur de communication avec le service de conversion de documents.");
         }
 
         if ($httpCode !== 200) {
-            // Log de la réponse d'erreur de Gotenberg (limit length and sanitize)
             $sanitizedResponse = preg_replace('/[\r\n]+/', ' ', substr($response, 0, 500));
-            error_log("Gotenberg a retourné une erreur (Code: {$httpCode}): " . $sanitizedResponse);
+            error_log("DocumentGeneratorService: Gotenberg a retourné une erreur (Code: {$httpCode}): " . $sanitizedResponse);
             throw new Exception("Le service de conversion a retourné une erreur (Code: {$httpCode}). Veuillez vérifier les logs du serveur.");
         }
 
+        if (empty($response)) {
+            error_log("DocumentGeneratorService: Gotenberg a retourné une réponse vide (Code: {$httpCode})");
+            throw new Exception("Le service de conversion a retourné une réponse vide.");
+        }
+
         $pdfPath = preg_replace('/\.docx$/i', '.pdf', $docxPath);
-        file_put_contents($pdfPath, $response);
+        $writeResult = file_put_contents($pdfPath, $response);
+
+        if ($writeResult === false) {
+            error_log("DocumentGeneratorService: Impossible d'écrire le fichier PDF: " . $pdfPath);
+            throw new Exception("Erreur lors de l'enregistrement du fichier PDF.");
+        }
 
         if (!file_exists($pdfPath) || filesize($pdfPath) === 0) {
-            // Log de l'erreur de fichier
-            error_log("La conversion PDF a réussi mais le fichier n'a pas pu être créé ou est vide. Chemin: " . $pdfPath);
+            error_log("DocumentGeneratorService: Le fichier PDF est vide ou n'existe pas. Chemin: " . $pdfPath);
             throw new Exception("La conversion a échoué : le fichier PDF final est invalide.");
         }
+
+        $pdfSize = filesize($pdfPath);
+        error_log("DocumentGeneratorService: Conversion DOCX->PDF réussie. Taille PDF: {$pdfSize} bytes");
 
         return $pdfPath;
     }
@@ -426,15 +476,29 @@ class DocumentGeneratorService
     public function convertDocxToHtml(string $docxPath): string
     {
         if (!class_exists('ZipArchive')) {
+            error_log("DocumentGeneratorService: Extension PHP ZipArchive non disponible");
             throw new Exception("L'extension PHP ZipArchive est requise mais n'est pas activée.");
         }
 
         if (!file_exists($docxPath)) {
+            error_log("DocumentGeneratorService: Fichier modèle introuvable: {$docxPath}");
             throw new Exception("Fichier modèle non trouvé : {$docxPath}");
         }
 
+        error_log("DocumentGeneratorService: Conversion DOCX->HTML démarrée. Fichier: " . basename($docxPath));
+
         $curl = curl_init();
-        $file = new CURLFile($docxPath, mime_content_type($docxPath), basename($docxPath));
+        if ($curl === false) {
+            error_log("DocumentGeneratorService: Impossible d'initialiser cURL");
+            throw new Exception("Impossible d'initialiser cURL.");
+        }
+
+        $mimeType = mime_content_type($docxPath);
+        if ($mimeType === false) {
+            $mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        }
+
+        $file = new CURLFile($docxPath, $mimeType, basename($docxPath));
         
         $postData = [
             'files' => $file,
@@ -447,27 +511,39 @@ class DocumentGeneratorService
             CURLOPT_POSTFIELDS => $postData,
             CURLOPT_HTTPHEADER => ['Content-Type: multipart/form-data'],
             CURLOPT_TIMEOUT => 60,
+            CURLOPT_CONNECTTIMEOUT => 10,
         ]);
 
         $response = curl_exec($curl);
         $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $curlErrno = curl_errno($curl);
         $error = curl_error($curl);
         curl_close($curl);
 
-        if ($error) {
-            error_log("Erreur cURL vers Gotenberg : " . preg_replace('/[\r\n]+/', ' ', $error));
+        if ($response === false || $curlErrno !== 0) {
+            error_log("DocumentGeneratorService: Erreur cURL vers Gotenberg (DOCX->HTML). Errno: {$curlErrno}, Message: " . preg_replace('/[\r\n]+/', ' ', $error));
             throw new Exception("Erreur de communication avec le service de conversion.");
         }
 
         if ($httpCode !== 200) {
             $sanitizedResponse = preg_replace('/[\r\n]+/', ' ', substr($response, 0, 500));
-            error_log("Gotenberg a retourné une erreur (Code: {$httpCode}): " . $sanitizedResponse);
+            error_log("DocumentGeneratorService: Gotenberg a retourné une erreur (Code: {$httpCode}): " . $sanitizedResponse);
             throw new Exception("Le service de conversion a retourné une erreur (Code: {$httpCode}).");
+        }
+
+        if (empty($response)) {
+            error_log("DocumentGeneratorService: Gotenberg a retourné une réponse vide (Code: {$httpCode})");
+            throw new Exception("Le service de conversion a retourné une réponse vide.");
         }
 
         // Gotenberg renvoie un zip contenant le fichier HTML, il faut le décompresser
         $tempZipFile = $this->tempPath . uniqid('gotenberg_html_') . '.zip';
-        file_put_contents($tempZipFile, $response);
+        $writeResult = file_put_contents($tempZipFile, $response);
+
+        if ($writeResult === false) {
+            error_log("DocumentGeneratorService: Impossible d'écrire le fichier ZIP temporaire: " . $tempZipFile);
+            throw new Exception("Erreur lors de l'enregistrement du fichier temporaire.");
+        }
 
         $zip = new ZipArchive;
         if ($zip->open($tempZipFile) === TRUE) {
@@ -477,12 +553,17 @@ class DocumentGeneratorService
             unlink($tempZipFile);
 
             if ($htmlContent === false) {
+                error_log("DocumentGeneratorService: Le fichier index.html n'a pas été trouvé dans l'archive ZIP");
                 throw new Exception("Le fichier index.html n'a pas été trouvé dans l'archive retournée par Gotenberg.");
             }
             
+            error_log("DocumentGeneratorService: Conversion DOCX->HTML réussie. Taille HTML: " . strlen($htmlContent) . " bytes");
             return $htmlContent;
         } else {
-            unlink($tempZipFile);
+            if (file_exists($tempZipFile)) {
+                unlink($tempZipFile);
+            }
+            error_log("DocumentGeneratorService: Impossible d'ouvrir l'archive ZIP retournée par Gotenberg");
             throw new Exception("Impossible d'ouvrir l'archive ZIP retournée par le service de conversion.");
         }
     }

@@ -211,64 +211,124 @@ if (isset($_GET['page']) && $_GET['page'] === 'verification_candidatures_soutena
                         $fichierContenu = __DIR__ . "/../uploads/rapports/" . $chemin;
 
                         if (file_exists($fichierContenu)) {
-                            $contenu = file_get_contents($fichierContenu);
+                            try {
+                                $contenu = file_get_contents($fichierContenu);
 
-                            // Créer le PDF avec DOMPDF
-                            require_once __DIR__ . '/../../vendor/autoload.php';
-                            $dompdf = new Dompdf\Dompdf();
+                                // Use DocumentGeneratorService for PDF generation (Pipeline A: HTML -> PDF)
+                                require_once __DIR__ . '/../../app/utils/DocumentGeneratorService.php';
+                                require_once __DIR__ . '/../../app/utils/HTMLPurifierService.php';
 
-                            // Préparer le HTML pour le PDF
-                            $html = '
-                            <!DOCTYPE html>
-                            <html>
-                            <head>
-                                <meta charset="UTF-8">
-                                <title>Rapport - ' . htmlspecialchars($rapport->nom_rapport) . '</title>
-                                <style>
-                                    body { font-family: Arial, sans-serif; margin: 20px; }
-                                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-                                    .info { margin-bottom: 20px; }
-                                    .info div { margin: 5px 0; }
-                                    .content { margin-top: 30px; }
-                                    .content h1, .content h2, .content h3 { color: #333; }
-                                    .content p { line-height: 1.6; }
-                                </style>
-                            </head>
-                            <body>
-                                <div class="header">
-                                    <h1>Rapport de Soutenance</h1>
-                                </div>
+                                // Purify HTML content before PDF generation
+                                $contenu = HTMLPurifierService::purifyHTML($contenu);
+
+                                // Préparer le HTML pour le PDF
+                                $html = '
+                                <!DOCTYPE html>
+                                <html lang="fr">
+                                <head>
+                                    <meta charset="UTF-8">
+                                    <title>Rapport - ' . htmlspecialchars($rapport->nom_rapport, ENT_QUOTES, 'UTF-8') . '</title>
+                                    <style>
+                                        body { 
+                                            font-family: Arial, sans-serif; 
+                                            margin: 20px;
+                                            line-height: 1.6;
+                                        }
+                                        .header { 
+                                            text-align: center; 
+                                            margin-bottom: 30px; 
+                                            border-bottom: 2px solid #333; 
+                                            padding-bottom: 10px; 
+                                        }
+                                        .info { 
+                                            margin-bottom: 20px; 
+                                            background-color: #f5f5f5;
+                                            padding: 15px;
+                                            border-radius: 5px;
+                                        }
+                                        .info div { 
+                                            margin: 5px 0; 
+                                        }
+                                        .content { 
+                                            margin-top: 30px; 
+                                        }
+                                        .content h1, .content h2, .content h3 { 
+                                            color: #333; 
+                                        }
+                                        .content p { 
+                                            line-height: 1.6; 
+                                            text-align: justify;
+                                        }
+                                        table { 
+                                            border-collapse: collapse; 
+                                            width: 100%; 
+                                            margin: 1em 0; 
+                                        }
+                                        th, td { 
+                                            border: 1px solid #ddd; 
+                                            padding: 8px; 
+                                            text-align: left; 
+                                        }
+                                        th {
+                                            background-color: #f2f2f2;
+                                        }
+                                    </style>
+                                </head>
+                                <body>
+                                    <div class="header">
+                                        <h1>Rapport de Soutenance</h1>
+                                    </div>
+                                    
+                                    <div class="info">
+                                        <div><strong>Étudiant:</strong> ' . htmlspecialchars($rapport->nom_etu . ' ' . $rapport->prenom_etu, ENT_QUOTES, 'UTF-8') . '</div>
+                                        <div><strong>Email:</strong> ' . htmlspecialchars($rapport->email_etu, ENT_QUOTES, 'UTF-8') . '</div>
+                                        <div><strong>Nom du rapport:</strong> ' . htmlspecialchars($rapport->nom_rapport, ENT_QUOTES, 'UTF-8') . '</div>
+                                        <div><strong>Thème:</strong> ' . htmlspecialchars($rapport->theme_rapport, ENT_QUOTES, 'UTF-8') . '</div>
+                                        <div><strong>Date de dépôt:</strong> ' . ($rapport->date_depot ? date('d/m/Y H:i', strtotime($rapport->date_depot)) : 'Non déposé') . '</div>
+                                        <div><strong>Statut:</strong> ' . ($rapport->statut_rapport === 'valider' ? 'Validé' : ($rapport->statut_rapport === 'rejeter' ? 'Rejeté' : ($rapport->statut_rapport === 'en_cours' ? 'En cours' : 'En attente'))) . '</div>
+                                    </div>
+                                    
+                                    <div class="content">
+                                        ' . $contenu . '
+                                    </div>
+                                </body>
+                                </html>';
+
+                                $documentService = new DocumentGeneratorService();
+                                $pdfPath = $documentService->convertHtmlToPdf($html, [
+                                    'paperSize' => 'A4',
+                                    'marginTop' => '2',
+                                    'marginBottom' => '2',
+                                    'marginLeft' => '2',
+                                    'marginRight' => '2'
+                                ]);
+
+                                // Générer le nom du fichier
+                                $nomFichier = 'rapport_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $rapport->nom_rapport) . '_' . date('Y-m-d_H-i-s') . '.pdf';
+
+                                // Envoyer le PDF
+                                header('Content-Type: application/pdf');
+                                header('Content-Disposition: attachment; filename="' . $nomFichier . '"');
+                                header('Cache-Control: no-cache, no-store, must-revalidate');
+                                header('Pragma: no-cache');
+                                header('Expires: 0');
+                                header('Content-Length: ' . filesize($pdfPath));
+
+                                readfile($pdfPath);
                                 
-                                <div class="info">
-                                    <div><strong>Étudiant:</strong> ' . htmlspecialchars($rapport->nom_etu . ' ' . $rapport->prenom_etu) . '</div>
-                                    <div><strong>Email:</strong> ' . htmlspecialchars($rapport->email_etu) . '</div>
-                                    <div><strong>Nom du rapport:</strong> ' . htmlspecialchars($rapport->nom_rapport) . '</div>
-                                    <div><strong>Thème:</strong> ' . htmlspecialchars($rapport->theme_rapport) . '</div>
-                                    <div><strong>Date de dépôt:</strong> ' . ($rapport->date_depot ? date('d/m/Y H:i', strtotime($rapport->date_depot)) : 'Non déposé') . '</div>
-                                    <div><strong>Statut:</strong> ' . ($rapport->statut_rapport === 'valider' ? 'Validé' : ($rapport->statut_rapport === 'rejeter' ? 'Rejeté' : ($rapport->statut_rapport === 'en_cours' ? 'En cours' : 'En attente'))) . '</div>
-                                </div>
+                                // Cleanup temporary file
+                                $documentService->cleanupTempFile($pdfPath);
                                 
-                                <div class="content">
-                                    ' . $contenu . '
-                                </div>
-                            </body>
-                            </html>';
-
-                            $dompdf->loadHtml($html);
-                            $dompdf->setPaper('A4', 'portrait');
-                            $dompdf->render();
-
-                            // Générer le nom du fichier
-                            $nomFichier = 'rapport_' . $rapport->nom_rapport . '_' . date('Y-m-d_H-i-s') . '.pdf';
-
-                            // Envoyer le PDF
-                            header('Content-Type: application/pdf');
-                            header('Content-Disposition: attachment; filename="' . $nomFichier . '"');
-                            header('Cache-Control: no-cache, no-store, must-revalidate');
-                            header('Pragma: no-cache');
-                            header('Expires: 0');
-
-                            echo $dompdf->output();
+                            } catch (Exception $e) {
+                                error_log("Erreur génération PDF rapport (ID: {$id}): " . $e->getMessage());
+                                header('Content-Type: text/html; charset=utf-8');
+                                echo '<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">';
+                                echo '<h2 style="color: #e74c3c;">Erreur</h2>';
+                                echo '<p>Une erreur est survenue lors de la génération du PDF.</p>';
+                                echo '<p style="color: #7f8c8d; font-size: 0.9em;">' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '</p>';
+                                echo '<a href="javascript:history.back()" style="color: #3498db; text-decoration: none;">← Retour</a>';
+                                echo '</div>';
+                            }
                         } else {
                             header('Content-Type: text/html; charset=utf-8');
                             echo '<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">';
