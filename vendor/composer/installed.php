@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'ocean/projet-soutenance',
-        'pretty_version' => 'dev-develop',
-        'version' => 'dev-develop',
-        'reference' => 'd8bbf90566c8bbbedf5cc02f159b55f2a2258750',
+        'pretty_version' => 'dev-copilot/add-wysiwyg-document-editor',
+        'version' => 'dev-copilot/add-wysiwyg-document-editor',
+        'reference' => '7f831f38544cf0c5fd4c9fa6fb1b820557825fad',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -37,6 +37,15 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
+        'ezyang/htmlpurifier' => array(
+            'pretty_version' => 'v4.19.0',
+            'version' => '4.19.0.0',
+            'reference' => 'b287d2a16aceffbf6e0295559b39662612b77fcf',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../ezyang/htmlpurifier',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'masterminds/html5' => array(
             'pretty_version' => '2.10.0',
             'version' => '2.10.0.0',
@@ -47,9 +56,9 @@
             'dev_requirement' => false,
         ),
         'ocean/projet-soutenance' => array(
-            'pretty_version' => 'dev-develop',
-            'version' => 'dev-develop',
-            'reference' => 'd8bbf90566c8bbbedf5cc02f159b55f2a2258750',
+            'pretty_version' => 'dev-copilot/add-wysiwyg-document-editor',
+            'version' => 'dev-copilot/add-wysiwyg-document-editor',
+            'reference' => '7f831f38544cf0c5fd4c9fa6fb1b820557825fad',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

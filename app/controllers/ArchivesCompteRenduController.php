@@ -80,37 +80,32 @@ class ArchivesCompteRenduController {
         
         $archives = CompteRendu::getAllArchives(null, 0, $search, $year);
         
-        // Générer un fichier CSV
-        $filename = 'archives_comptes_rendus_' . date('Y-m-d_H-i-s') . '.csv';
+        require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
         
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        
-        $output = fopen('php://output', 'w');
-        
-        // En-têtes CSV
-        fputcsv($output, [
-            'ID', 'Nom du CR', 'Étudiant', 'Email', 'Date de création', 
-            'Nombre de rapports', 'Chemin PDF'
-        ]);
-        
-        // Données
+        // Préparer les données pour le CSV
+        $csvData = [];
         foreach ($archives as $archive) {
             $rapports = CompteRendu::getArchiveById($archive['id_CR']);
             $nbRapports = count($rapports['rapports'] ?? []);
             
-            fputcsv($output, [
-                $archive['id_CR'],
-                $archive['nom_CR'],
-                $archive['prenom_etu'] . ' ' . $archive['nom_etu'],
-                $archive['email_etu'],
-                $archive['date_CR'],
-                $nbRapports,
-                $archive['chemin_fichier_pdf']
-            ]);
+            $csvData[] = [
+                'ID' => $archive['id_CR'],
+                'Nom du CR' => $archive['nom_CR'],
+                'Étudiant' => $archive['prenom_etu'] . ' ' . $archive['nom_etu'],
+                'Email' => $archive['email_etu'],
+                'Date de création' => $archive['date_CR'],
+                'Nombre de rapports' => $nbRapports,
+                'Chemin PDF' => $archive['chemin_fichier_pdf']
+            ];
         }
         
-        fclose($output);
+        // En-têtes CSV
+        $headers = ['ID', 'Nom du CR', 'Étudiant', 'Email', 'Date de création', 'Nombre de rapports', 'Chemin PDF'];
+        
+        // Générer le fichier CSV avec BOM UTF-8 et séparateur point-virgule
+        $filename = 'archives_comptes_rendus_' . date('Y-m-d_H-i-s');
+        $documentService = new DocumentGeneratorService();
+        $documentService->exportToCsv($csvData, $headers, $filename, true);
         exit;
     }
     
