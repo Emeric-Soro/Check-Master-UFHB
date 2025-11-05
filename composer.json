@@ -11,7 +11,8 @@
     "phpmailer/phpmailer": "^6.10",
     "smalot/pdfparser": "^2.12",
     "phpoffice/phpword": "^1.1",
-    "dompdf/dompdf": "^3.1"
+    "dompdf/dompdf": "^3.1",
+    "ezyang/htmlpurifier": "^4.19"
   },
   "require-dev": {
     "symfony/var-dumper": "^7.0"

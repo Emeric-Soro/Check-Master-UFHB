@@ -38,18 +38,55 @@ class RedactionCompteRenduController {
             }
 
             require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+            require_once __DIR__ . '/../utils/HTMLPurifierService.php';
             
             try {
-                // Préparer les données pour le template
-                $templateData = [
-                    'nom_CR' => $nom_CR,
-                    'date_CR' => date('d/m/Y H:i', strtotime($date_CR)),
-                    'contenu_CR' => $contenu_CR
-                ];
+                // Purify HTML content to prevent XSS attacks
+                $contenu_CR = HTMLPurifierService::purifyWithLogging($contenu_CR, 'compte_rendu');
                 
-                // Utiliser DocumentGeneratorService
+                // Prepare styled HTML for PDF generation
+                $styledHtml = "<!DOCTYPE html>
+<html lang='fr'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body { 
+            font-family: 'Times New Roman', Times, serif; 
+            font-size: 12pt; 
+            line-height: 1.6; 
+            color: #000;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2, h3, h4, h5, h6 { margin-top: 1em; margin-bottom: 0.5em; }
+        p { margin-bottom: 1em; text-align: justify; }
+        table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+        .header { margin-bottom: 2em; }
+        .title { text-align: center; font-size: 18pt; font-weight: bold; margin-bottom: 1em; }
+        .date { text-align: right; font-style: italic; margin-bottom: 2em; }
+    </style>
+</head>
+<body>
+    <div class='header'>
+        <div class='title'>" . htmlspecialchars($nom_CR) . "</div>
+        <div class='date'>" . date('d/m/Y H:i', strtotime($date_CR)) . "</div>
+    </div>
+    <div class='content'>
+        {$contenu_CR}
+    </div>
+</body>
+</html>";
+                
+                // Use Pipeline A: HTML to PDF via Gotenberg Chromium
                 $documentService = new DocumentGeneratorService();
-                $pdfPath = $documentService->generateFromTemplate('compte_rendu', $templateData);
+                $pdfPath = $documentService->convertHtmlToPdf($styledHtml, [
+                    'paperSize' => 'A4',
+                    'marginTop' => '2',
+                    'marginBottom' => '2',
+                    'marginLeft' => '2',
+                    'marginRight' => '2'
+                ]);
                 
                 // Lire le contenu du PDF
                 $output = file_get_contents($pdfPath);
@@ -121,6 +158,7 @@ class RedactionCompteRenduController {
         try {
             require_once __DIR__ . '/../../vendor/autoload.php';
             require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+            require_once __DIR__ . '/../utils/HTMLPurifierService.php';
             
             $contenu = $_POST['contenu_CR'] ?? '';
             $nom_CR = $_POST['nom_CR'] ?? 'compte_rendu';
@@ -128,16 +166,52 @@ class RedactionCompteRenduController {
                 throw new \Exception('Le contenu du compte rendu est vide.');
             }
             
-            // Préparer les données pour le template
-            $templateData = [
-                'nom_CR' => $nom_CR,
-                'date_CR' => date('d/m/Y H:i'),
-                'contenu_CR' => $contenu
-            ];
+            // Purify HTML content
+            $contenu = HTMLPurifierService::purifyHTML($contenu);
             
-            // Utiliser DocumentGeneratorService
+            // Prepare styled HTML
+            $styledHtml = "<!DOCTYPE html>
+<html lang='fr'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body { 
+            font-family: 'Times New Roman', Times, serif; 
+            font-size: 12pt; 
+            line-height: 1.6; 
+            color: #000;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2, h3, h4, h5, h6 { margin-top: 1em; margin-bottom: 0.5em; }
+        p { margin-bottom: 1em; text-align: justify; }
+        table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+        .header { margin-bottom: 2em; }
+        .title { text-align: center; font-size: 18pt; font-weight: bold; margin-bottom: 1em; }
+        .date { text-align: right; font-style: italic; margin-bottom: 2em; }
+    </style>
+</head>
+<body>
+    <div class='header'>
+        <div class='title'>" . htmlspecialchars($nom_CR) . "</div>
+        <div class='date'>" . date('d/m/Y H:i') . "</div>
+    </div>
+    <div class='content'>
+        {$contenu}
+    </div>
+</body>
+</html>";
+            
+            // Use Pipeline A: HTML to PDF via Gotenberg Chromium
             $documentService = new DocumentGeneratorService();
-            $pdfPath = $documentService->generateFromTemplate('compte_rendu', $templateData);
+            $pdfPath = $documentService->convertHtmlToPdf($styledHtml, [
+                'paperSize' => 'A4',
+                'marginTop' => '2',
+                'marginBottom' => '2',
+                'marginLeft' => '2',
+                'marginRight' => '2'
+            ]);
             
             $pdfName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nom_CR) . '.pdf';
             header('Content-Type: application/pdf');

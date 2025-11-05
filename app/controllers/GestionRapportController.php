@@ -285,6 +285,13 @@ class GestionRapportController {
             'edit_id' => $_POST['edit_id'] ?? null
         ];
 
+        // Purify HTML content to prevent XSS attacks
+        require_once __DIR__ . '/../utils/HTMLPurifierService.php';
+        $donneesRapport['contenu_rapport'] = HTMLPurifierService::purifyWithLogging(
+            $donneesRapport['contenu_rapport'],
+            'rapport_etudiant'
+        );
+
         // Validation des données
         $erreurs = $this->validerDonneesRapport($donneesRapport);
 
@@ -415,14 +422,8 @@ class GestionRapportController {
                 throw new Exception('Accès non autorisé. Seuls les étudiants peuvent exporter leurs rapports.');
             }
             
-            // Vérifier que DOMPDF est disponible
-            if (!class_exists('\Dompdf\Dompdf')) {
-                require_once __DIR__ . '/../../vendor/autoload.php';
-            }
-            
-            if (!class_exists('\Dompdf\Dompdf')) {
-                throw new Exception('DOMPDF n\'est pas installé ou accessible.');
-            }
+            require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+            require_once __DIR__ . '/../utils/HTMLPurifierService.php';
             
             $contenu_rapport = $_POST['contenu_rapport'] ?? '';
             $nom_rapport = $_POST['nom_rapport'] ?? 'rapport';
@@ -453,257 +454,45 @@ class GestionRapportController {
                 throw new Exception('Le contenu du rapport est vide.');
             }
 
-            // Style CSS amélioré pour préserver exactement la mise en page TinyMCE
-            $css = "
-                <style>
-                    /* Styles de base */
-                    body { 
-                        font-family: Arial, sans-serif; 
-                        margin: 2cm; 
-                        line-height: 1.6; 
-                        font-size: 12pt;
-                        color: #333;
-                        text-align: left;
-                    }
-                    
-                    /* Préserver tous les styles inline */
-                    * {
-                        box-sizing: border-box;
-                    }
-                    
-                    /* Préserver les tailles de police exactes */
-                    h1, h2, h3, h4, h5, h6 {
-                        margin: 0;
-                        padding: 0;
-                        text-align: center;
-                    }
-                    
-                    /* Préserver les dispositions flexbox */
-                    div[style*='display: flex'] {
-                        display: flex !important;
-                    }
-                    
-                    div[style*='justify-content'] {
-                        justify-content: inherit !important;
-                    }
-                    
-                    div[style*='align-items'] {
-                        align-items: inherit !important;
-                    }
-                    
-                    div[style*='flex-direction'] {
-                        flex-direction: inherit !important;
-                    }
-                    
-                    /* Préserver les marges et paddings */
-                    div[style*='margin'] {
-                        margin: inherit !important;
-                    }
-                    
-                    div[style*='padding'] {
-                        padding: inherit !important;
-                    }
-                    
-                    /* Préserver les tailles de police */
-                    span[style*='font-size'], p[style*='font-size'], div[style*='font-size'] {
-                        font-size: inherit !important;
-                    }
-                    
-                    /* Préserver les couleurs */
-                    span[style*='color'], p[style*='color'], div[style*='color'] {
-                        color: inherit !important;
-                    }
-                    
-                    /* Préserver les alignements de texte */
-                    div[style*='text-align'] {
-                        text-align: inherit !important;
-                    }
-                    
-                    /* Alignement par défaut pour les paragraphes - JUSTIFIÉ */
-                    p {
-                        text-align: justify !important;
-                        margin: 0 0 10px 0;
-                    }
-                    
-                    /* Préserver l'alignement centré pour les éléments spécifiques */
-                    div[style*='text-align: center'] {
-                        text-align: center !important;
-                    }
-                    
-                    /* Préserver les bordures et backgrounds */
-                    div[style*='border'] {
-                        border: inherit !important;
-                    }
-                    
-                    div[style*='background'] {
-                        background: inherit !important;
-                    }
-                    
-                    /* Préserver les largeurs et hauteurs */
-                    div[style*='width'] {
-                        width: inherit !important;
-                    }
-                    
-                    div[style*='height'] {
-                        height: inherit !important;
-                    }
-                    
-                    /* Préserver les positions */
-                    div[style*='position'] {
-                        position: inherit !important;
-                    }
-                    
-                    /* Assurer que les images ne dépassent pas */
-                    img {
-                        max-width: 100%;
-                        height: auto;
-                    }
-                    
-                    /* Assurer que les tableaux s'affichent correctement */
-                    table {
-                        border-collapse: collapse;
-                        width: 100%;
-                    }
-                    
-                    th, td {
-                        border: 1px solid #ddd;
-                        padding: 8px;
-                        text-align: left;
-                    }
-                    
-                    /* Préserver les listes */
-                    ul, ol {
-                        margin: 0;
-                        padding-left: 20px;
-                        text-align: left;
-                    }
-                    
-                    li {
-                        margin-bottom: 5px;
-                        text-align: left;
-                    }
-                    
-                    /* Préserver les espaces entre les éléments */
-                    div {
-                        margin-bottom: 0;
-                    }
-                    
-                    /* Assurer que les éléments flex s'affichent correctement */
-                    .flex-container {
-                        display: flex !important;
-                    }
-                    
-                    /* Préserver les styles spécifiques du template */
-                    div[style*='display: flex'][style*='justify-content: space-between'] {
-                        display: flex !important;
-                        justify-content: space-between !important;
-                    }
-                    
-                    div[style*='margin-bottom'] {
-                        margin-bottom: inherit !important;
-                    }
-                    
-                    /* Règles spécifiques pour le contenu du rapport */
-                    /* S'assurer que les sections principales du corps sont justifiées */
-                    div[style*='margin-bottom: 40px'] p {
-                        text-align: justify !important;
-                    }
-                    
-                    /* S'assurer que les paragraphes dans les sections sont justifiés */
-                    div[style*='margin-bottom: 40px'] {
-                        text-align: justify !important;
-                    }
-                    
-                    /* Préserver l'alignement des titres de sections à gauche */
-                    h1[style*='border-bottom'] {
-                        text-align: left !important;
-                    }
-                    
-                    /* S'assurer que tous les paragraphes de contenu sont justifiés */
-                    div:not([style*='text-align: center']) p {
-                        text-align: justify !important;
-                    }
-                    
-                    /* Exception pour les paragraphes centrés */
-                    div[style*='text-align: center'] p {
-                        text-align: center !important;
-                    }
-                    
-                    /* Centrer spécifiquement le contenu de la div theme_rapport */
-                    #theme_rapport {
-                        text-align: center !important;
-                        margin-botton:20px;
-                    }
-                    
-                    #theme_rapport p {
-                        text-align: center !important;
-                    }
-                    
-                    #theme_rapport h2 {
-                        text-align: center !important;
-                    }
-                    
-                    /* S'assurer que header_rapport utilise flexbox */
-                    #header_rapport {
-                        display: flex !important;
-                        justify-content: space-between !important;
-                        align-items: flex-start !important;
-                        width: 100% !important;
-                        margin : 0;
-                        text-align: left;
-                    }
-                    
-                    /* S'assurer que les éléments enfants de header_rapport s'affichent correctement */
-                    #header_rapport1, #header_rapport2 {
-                        flex: 1 !important;
-                        margin: 0 !important;
-                    }
-                    
-                    #header_rapport1 {
-                        text-align: center !important;
-                    }
-                    
-                    #header_rapport2 {
-                        text-align: center !important;
-                    }
-                </style>
-            ";
+            // Purify HTML content before PDF generation
+            $contenu_rapport = HTMLPurifierService::purifyHTML($contenu_rapport);
 
-            // Utiliser directement le contenu HTML de l'éditeur
-            $htmlContent = "<!DOCTYPE html>
-            <html lang='fr'>
-            <head>
-                <meta charset='UTF-8'>
-                <title>" . htmlspecialchars($nom_rapport) . "</title>
-                {$css}
-            </head>
-            <body>
-                {$contenu_rapport}
-            </body>
-            </html>";
+            // Use Pipeline A: HTML to PDF via Gotenberg Chromium
+            $documentService = new DocumentGeneratorService();
+            
+            // Wrap content with proper styling for A4 page
+            $styledHtml = "<!DOCTYPE html>
+<html lang='fr'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body { 
+            font-family: 'Times New Roman', Times, serif; 
+            font-size: 12pt; 
+            line-height: 1.6; 
+            color: #000;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2, h3, h4, h5, h6 { margin-top: 1em; margin-bottom: 0.5em; }
+        p { margin-bottom: 1em; text-align: justify; }
+        table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+        img { max-width: 100%; height: auto; }
+    </style>
+</head>
+<body>
+{$contenu_rapport}
+</body>
+</html>";
 
-            // Configuration DOMPDF optimisée pour préserver les styles
-            $options = new \Dompdf\Options();
-            $options->set('isHtml5ParserEnabled', true);
-            $options->set('isPhpEnabled', false);
-            $options->set('isRemoteEnabled', false);
-            $options->set('defaultFont', 'Arial');
-            $options->set('defaultPaperSize', 'A4');
-            $options->set('defaultPaperOrientation', 'portrait');
-            $options->set('isFontSubsettingEnabled', true);
-            $options->set('isCssFloatEnabled', true);
-            $options->set('isJavascriptEnabled', false);
-
-            $dompdf = new \Dompdf\Dompdf($options);
-            
-            if (!$dompdf) {
-                throw new Exception('Impossible d\'instancier DOMPDF.');
-            }
-            
-            $dompdf->loadHtml($htmlContent);
-            $dompdf->setPaper('A4', 'portrait');
-            
-            $dompdf->render();
+            $pdfPath = $documentService->convertHtmlToPdf($styledHtml, [
+                'paperSize' => 'A4',
+                'marginTop' => '2',
+                'marginBottom' => '2',
+                'marginLeft' => '2',
+                'marginRight' => '2'
+            ]);
 
             // Nettoyer le nom du fichier
             $pdfName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nom_rapport) . '.pdf';
@@ -713,9 +502,12 @@ class GestionRapportController {
             header('Content-Disposition: attachment; filename="' . $pdfName . '"');
             header('Cache-Control: private, max-age=0, must-revalidate');
             header('Pragma: public');
-            header('Content-Length: ' . strlen($dompdf->output()));
+            header('Content-Length: ' . filesize($pdfPath));
             
-            echo $dompdf->output();
+            readfile($pdfPath);
+            
+            // Nettoyer le fichier temporaire
+            $documentService->cleanupTempFile($pdfPath);
             exit;
 
         } catch (Exception $e) {

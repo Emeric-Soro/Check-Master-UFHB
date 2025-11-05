@@ -29,6 +29,126 @@ class DocumentGeneratorService
     }
 
     /**
+     * Convert HTML content to PDF using Gotenberg's Chromium engine (Pipeline A)
+     * This provides pixel-perfect rendering of HTML/CSS content
+     *
+     * @param string $htmlContent HTML content to convert
+     * @param array $options Optional parameters (paperSize, landscape, margins)
+     * @return string Path to the generated PDF file
+     * @throws Exception If conversion fails
+     */
+    public function convertHtmlToPdf(string $htmlContent, array $options = []): string
+    {
+        // Default options
+        $paperSize = $options['paperSize'] ?? 'A4';
+        $landscape = $options['landscape'] ?? false;
+        $marginTop = $options['marginTop'] ?? '1';
+        $marginBottom = $options['marginBottom'] ?? '1';
+        $marginLeft = $options['marginLeft'] ?? '1';
+        $marginRight = $options['marginRight'] ?? '1';
+
+        // Create a temporary HTML file
+        $tempHtmlFile = $this->tempPath . uniqid('html_') . '.html';
+        
+        // Wrap content in a complete HTML document if not already wrapped
+        if (stripos($htmlContent, '<!DOCTYPE') === false) {
+            $htmlContent = "<!DOCTYPE html>
+<html lang='fr'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <style>
+        body { 
+            font-family: 'Times New Roman', Times, serif; 
+            font-size: 12pt; 
+            line-height: 1.6; 
+            color: #000;
+        }
+        @page { 
+            size: {$paperSize}; 
+            margin: {$marginTop}cm {$marginRight}cm {$marginBottom}cm {$marginLeft}cm;
+        }
+    </style>
+</head>
+<body>
+{$htmlContent}
+</body>
+</html>";
+        }
+        
+        file_put_contents($tempHtmlFile, $htmlContent);
+
+        try {
+            // Use Gotenberg's Chromium HTML to PDF endpoint
+            $gotenbergHtmlUrl = 'http://gotenberg:3000/forms/chromium/convert/html';
+            
+            $curl = curl_init();
+            $file = new CURLFile($tempHtmlFile, 'text/html', basename($tempHtmlFile));
+            
+            $postData = [
+                'files' => $file,
+                'paperWidth' => $paperSize === 'A4' ? '8.27' : '11',
+                'paperHeight' => $paperSize === 'A4' ? '11.7' : '8.5',
+                'marginTop' => $marginTop,
+                'marginBottom' => $marginBottom,
+                'marginLeft' => $marginLeft,
+                'marginRight' => $marginRight,
+                'landscape' => $landscape ? 'true' : 'false',
+                'printBackground' => 'true',
+                'preferCssPageSize' => 'false'
+            ];
+
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $gotenbergHtmlUrl,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $postData,
+                CURLOPT_HTTPHEADER => ['Content-Type: multipart/form-data'],
+                CURLOPT_TIMEOUT => 60,
+            ]);
+
+            $response = curl_exec($curl);
+            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            $error = curl_error($curl);
+            curl_close($curl);
+
+            // Clean up temporary HTML file
+            if (file_exists($tempHtmlFile)) {
+                unlink($tempHtmlFile);
+            }
+
+            if ($error) {
+                error_log("Erreur cURL vers Gotenberg (HTML->PDF): " . preg_replace('/[\r\n]+/', ' ', $error));
+                throw new Exception("Le service de génération de documents est temporairement indisponible. Veuillez réessayer plus tard.");
+            }
+
+            if ($httpCode !== 200) {
+                $sanitizedResponse = preg_replace('/[\r\n]+/', ' ', substr($response, 0, 500));
+                error_log("Gotenberg a retourné une erreur (Code: {$httpCode}): " . $sanitizedResponse);
+                throw new Exception("Le service de génération de documents a retourné une erreur (Code: {$httpCode}). Veuillez vérifier les logs du serveur.");
+            }
+
+            // Save PDF to temporary file
+            $pdfPath = $this->tempPath . uniqid('pdf_') . '.pdf';
+            file_put_contents($pdfPath, $response);
+
+            if (!file_exists($pdfPath) || filesize($pdfPath) === 0) {
+                error_log("La conversion HTML->PDF a réussi mais le fichier n'a pas pu être créé ou est vide. Chemin: " . $pdfPath);
+                throw new Exception("La conversion a échoué : le fichier PDF final est invalide.");
+            }
+
+            return $pdfPath;
+            
+        } catch (Exception $e) {
+            // Clean up on error
+            if (file_exists($tempHtmlFile)) {
+                unlink($tempHtmlFile);
+            }
+            throw $e;
+        }
+    }
+
+    /**
      * Generate a PDF document from a Word template
      *
      * @param string $templateName Name of the template file (without path)
@@ -364,6 +484,76 @@ class DocumentGeneratorService
         } else {
             unlink($tempZipFile);
             throw new Exception("Impossible d'ouvrir l'archive ZIP retournée par le service de conversion.");
+        }
+    }
+
+    /**
+     * Export data to CSV with UTF-8 BOM and semicolon separator for Excel compatibility
+     * 
+     * @param array $data Array of associative arrays (rows)
+     * @param array $headers Column headers
+     * @param string $filename Output filename (without path)
+     * @param bool $download If true, send file for download. If false, return file path
+     * @return string|void File path if $download is false, otherwise sends file and exits
+     * @throws Exception If export fails
+     */
+    public function exportToCsv(array $data, array $headers, string $filename, bool $download = true)
+    {
+        // Clean filename
+        $filename = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $filename);
+        if (!str_ends_with($filename, '.csv')) {
+            $filename .= '.csv';
+        }
+
+        if ($download) {
+            // Direct download
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+            
+            $output = fopen('php://output', 'w');
+            
+            // Add UTF-8 BOM for Excel compatibility
+            fprintf($output, "\xEF\xBB\xBF");
+            
+            // Write headers
+            fputcsv($output, $headers, ';');
+            
+            // Write data rows
+            foreach ($data as $row) {
+                // Ensure row has values in same order as headers
+                $orderedRow = [];
+                foreach ($headers as $header) {
+                    $orderedRow[] = $row[$header] ?? '';
+                }
+                fputcsv($output, $orderedRow, ';');
+            }
+            
+            fclose($output);
+            exit;
+        } else {
+            // Save to file
+            $csvPath = $this->tempPath . $filename;
+            $output = fopen($csvPath, 'w');
+            
+            // Add UTF-8 BOM for Excel compatibility
+            fprintf($output, "\xEF\xBB\xBF");
+            
+            // Write headers
+            fputcsv($output, $headers, ';');
+            
+            // Write data rows
+            foreach ($data as $row) {
+                $orderedRow = [];
+                foreach ($headers as $header) {
+                    $orderedRow[] = $row[$header] ?? '';
+                }
+                fputcsv($output, $orderedRow, ';');
+            }
+            
+            fclose($output);
+            return $csvPath;
         }
     }
 }
