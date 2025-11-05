@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'ocean/projet-soutenance',
-        'pretty_version' => 'dev-develop',
-        'version' => 'dev-develop',
-        'reference' => 'd8bbf90566c8bbbedf5cc02f159b55f2a2258750',
+        'pretty_version' => 'dev-copilot/add-wysiwyg-document-editor',
+        'version' => 'dev-copilot/add-wysiwyg-document-editor',
+        'reference' => 'a707b516b7eb17497a4a80fe1f949a6267fc6af3',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -47,9 +47,9 @@
             'dev_requirement' => false,
         ),
         'ocean/projet-soutenance' => array(
-            'pretty_version' => 'dev-develop',
-            'version' => 'dev-develop',
-            'reference' => 'd8bbf90566c8bbbedf5cc02f159b55f2a2258750',
+            'pretty_version' => 'dev-copilot/add-wysiwyg-document-editor',
+            'version' => 'dev-copilot/add-wysiwyg-document-editor',
+            'reference' => 'a707b516b7eb17497a4a80fe1f949a6267fc6af3',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
