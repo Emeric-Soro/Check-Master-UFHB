@@ -414,10 +414,66 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
                     editor.isReadOnly = true;
                 }
 
+                // Implement auto-save functionality
+                let autoSaveTimeout;
+                let lastSavedContent = '';
+                const AUTO_SAVE_DELAY = 30000; // 30 seconds
+
+                function performAutoSave() {
+                    if (isReadOnly) return;
+
+                    const content = editor.getData();
+                    const nomRapport = document.getElementById('nom_rapport').value.trim();
+                    const themeRapport = document.getElementById('theme_rapport').value.trim();
+
+                    // Only auto-save if content has changed and basic fields are filled
+                    if (content === lastSavedContent || !nomRapport || !themeRapport) {
+                        return;
+                    }
+
+                    lastSavedContent = content;
+
+                    // Show auto-save indicator
+                    showNotification('info', 'Sauvegarde automatique en cours...', 2000);
+
+                    const formData = new FormData();
+                    formData.append('action', 'save_rapport');
+                    formData.append('contenu_rapport', content);
+                    formData.append('nom_rapport', nomRapport);
+                    formData.append('theme_rapport', themeRapport);
+                    <?php if (isset($isEditMode) && $isEditMode && isset($rapport)): ?>
+                    formData.append('edit_id', '<?= $rapport['id_rapport'] ?>');
+                    <?php endif; ?>
+
+                    fetch(window.location.href, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showNotification('success', 'Sauvegarde automatique effectuée', 2000);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Auto-save error:', error);
+                    });
+                }
+
+                // Set up auto-save on content change
+                editor.model.document.on('change:data', () => {
+                    clearTimeout(autoSaveTimeout);
+                    autoSaveTimeout = setTimeout(performAutoSave, AUTO_SAVE_DELAY);
+                });
+
                 <?php if (isset($isEditMode) && $isEditMode && !empty($contenuRapport)): ?>
                 // Mode édition : charger le contenu du rapport
                 setTimeout(function() {
                     editor.setData(<?= json_encode($contenuRapport) ?>);
+                    lastSavedContent = <?= json_encode($contenuRapport) ?>; // Initialize last saved content
                     editorContainer.classList.remove('document-loading');
                     editorContainer.classList.add('document-loaded');
                     documentStatusMessage.classList.add('hidden');
@@ -427,7 +483,7 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
                         );
                     } else {
                         showNotification('info',
-                            'Rapport chargé en mode édition');
+                            'Rapport chargé en mode édition. Sauvegarde automatique activée.');
                     }
                 }, 500);
                 <?php else: ?>
@@ -679,7 +735,7 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
         });
 
         // Utility function to show notifications
-        function showNotification(type, message, title = null) {
+        function showNotification(type, message, duration = 3000, title = null) {
             const notificationContainer = document.getElementById('notificationContainer');
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
@@ -734,13 +790,14 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
 
             // Animation de la barre de progression
             let progress = 100;
+            const progressStep = duration / 100;
             const progressInterval = setInterval(() => {
                 progress -= 1;
                 progressBar.style.width = progress + '%';
                 if (progress <= 0) {
                     clearInterval(progressInterval);
                 }
-            }, 30); // 3000ms / 100 = 30ms par étape
+            }, progressStep);
 
             notificationContainer.appendChild(notification);
 
@@ -749,11 +806,11 @@ require_once __DIR__ . '/../../../app/utils/permissions.php';
                 notification.classList.add('show');
             }, 10);
 
-            // Auto-fermeture après 3 secondes
+            // Auto-fermeture selon la durée spécifiée
             setTimeout(() => {
                 hideNotification(notification);
                 clearInterval(progressInterval);
-            }, 3000);
+            }, duration);
 
             function hideNotification(notification) {
                 notification.classList.remove('show');
