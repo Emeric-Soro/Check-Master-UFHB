@@ -738,7 +738,7 @@ if (!empty($_SESSION['success'])) {
             const editor = document.getElementById('editorContent');
             
             // Option: Load template from server (DOCX to HTML conversion)
-            const loadFromServer = false; // Set to true to load from compte_rendu.docx
+            const loadFromServer = true; // Set to true to load from compte_rendu.docx
             
             if (loadFromServer) {
                 // Fetch template HTML from server
