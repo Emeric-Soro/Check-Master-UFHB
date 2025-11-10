@@ -189,11 +189,12 @@ class Etudiant {
 
     public function getNotesEtudiant($numEtu) {
         try {
-            // D'abord, récupérer le niveau d'étude de l'étudiant
+            // D'abord, récupérer le niveau d'étude de l'étudiant (inscription la plus récente)
             $sql_niveau = "SELECT i.id_niveau 
                           FROM inscriptions i 
                           WHERE i.id_etudiant = :num_etu 
-                          ";
+                          ORDER BY i.date_inscription DESC
+                          LIMIT 1";
             
             $stmt_niveau = $this->db->prepare($sql_niveau);
             $stmt_niveau->execute([':num_etu' => $numEtu]);
@@ -238,19 +239,20 @@ class Etudiant {
             $sql_debug_notes = "SELECT n.moyenne, u.lib_ue, u.id_niveau_etude, u.id_annee_academique
                                FROM notes n 
                                JOIN ue u ON n.id_ue = u.id_ue
-                               WHERE n.num_etu = :num_etu";
+                               WHERE n.num_etu = :num_etu AND u.id_niveau_etude = :id_niveau";
             $stmt_debug = $this->db->prepare($sql_debug_notes);
-            $stmt_debug->execute([':num_etu' => $numEtu]);
+            $stmt_debug->execute([':num_etu' => $numEtu, ':id_niveau' => $id_niveau]);
             $debug_notes = $stmt_debug->fetchAll(PDO::FETCH_ASSOC);
             
-            // Calculer la moyenne (version simplifiée pour debug)
+            // Calculer la moyenne pour le niveau d'étude actuel uniquement
             $sql_moyenne = "SELECT AVG(n.moyenne) as moyenne 
                            FROM notes n 
                            JOIN ue u ON n.id_ue = u.id_ue
-                           WHERE n.num_etu = :num_etu";
+                           WHERE n.num_etu = :num_etu
+                           AND u.id_niveau_etude = :id_niveau";
             
             $stmt_moyenne = $this->db->prepare($sql_moyenne);
-            $stmt_moyenne->execute([':num_etu' => $numEtu]);
+            $stmt_moyenne->execute([':num_etu' => $numEtu, ':id_niveau' => $id_niveau]);
             $result = $stmt_moyenne->fetch(PDO::FETCH_ASSOC);
             
             // Récupérer le total des crédits du niveau
