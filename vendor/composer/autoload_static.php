@@ -4,11 +4,13 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit662074ecd610adc07bd92eabece6323d
+class ComposerStaticInit5267014202c8d541acc24ad9663afb59
 {
     public static $files = array (
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
         '6124b4c8570aa390c21fafd04a26c69f' => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy/deep_copy.php',
+        '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
+        '2cffec82183ee1cea088009cef9a6fc3' => __DIR__ . '/..' . '/ezyang/htmlpurifier/library/HTMLPurifier.composer.php',
         'db356362850385d08a5381de2638b5fd' => __DIR__ . '/..' . '/mpdf/mpdf/src/functions.php',
         '667aeda72477189d0494fecd327c3641' => __DIR__ . '/..' . '/symfony/var-dumper/Resources/functions/dump.php',
     );
@@ -29,6 +31,8 @@ class ComposerStaticInit662074ecd610adc07bd92eabece6323d
         array (
             'Psr\\Log\\' => 8,
             'Psr\\Http\\Message\\' => 17,
+            'PhpOffice\\PhpWord\\' => 18,
+            'PhpOffice\\Math\\' => 15,
             'PHPMailer\\PHPMailer\\' => 20,
         ),
         'M' => 
@@ -82,6 +86,14 @@ class ComposerStaticInit662074ecd610adc07bd92eabece6323d
         array (
             0 => __DIR__ . '/..' . '/psr/http-message/src',
         ),
+        'PhpOffice\\PhpWord\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/phpoffice/phpword/src/PhpWord',
+        ),
+        'PhpOffice\\Math\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/phpoffice/math/src/Math',
+        ),
         'PHPMailer\\PHPMailer\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
@@ -128,6 +140,13 @@ class ComposerStaticInit662074ecd610adc07bd92eabece6323d
                 0 => __DIR__ . '/..' . '/smalot/pdfparser/src',
             ),
         ),
+        'H' => 
+        array (
+            'HTMLPurifier' => 
+            array (
+                0 => __DIR__ . '/..' . '/ezyang/htmlpurifier/library',
+            ),
+        ),
     );
 
     public static $classMap = array (
@@ -138,10 +157,10 @@ class ComposerStaticInit662074ecd610adc07bd92eabece6323d
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit662074ecd610adc07bd92eabece6323d::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit662074ecd610adc07bd92eabece6323d::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit662074ecd610adc07bd92eabece6323d::$prefixesPsr0;
-            $loader->classMap = ComposerStaticInit662074ecd610adc07bd92eabece6323d::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit5267014202c8d541acc24ad9663afb59::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit5267014202c8d541acc24ad9663afb59::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit5267014202c8d541acc24ad9663afb59::$prefixesPsr0;
+            $loader->classMap = ComposerStaticInit5267014202c8d541acc24ad9663afb59::$classMap;
 
         }, null, ClassLoader::class);
     }
