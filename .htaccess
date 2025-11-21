@@ -1,0 +1,27 @@
+# Active le moteur de réécriture
+RewriteEngine On
+RewriteBase /
+
+# Bloquer l'accès direct au dossier app/
+RewriteCond %{REQUEST_URI} ^/app/ [NC]
+RewriteRule ^(.*)$ - [F,L]
+
+# Bloquer l'accès direct au dossier vendor/
+RewriteCond %{REQUEST_URI} ^/vendor/ [NC]
+RewriteRule ^(.*)$ - [F,L]
+
+# Bloquer l'accès au fichier .env
+RewriteCond %{REQUEST_URI} ^/\.env$ [NC]
+RewriteRule ^(.*)$ - [F,L]
+
+# Autoriser l'accès aux fichiers dans assets/
+RewriteCond %{REQUEST_URI} ^/assets/
+RewriteRule ^(.*)$ - [L]
+
+# Si le fichier ou le répertoire existe, le servir directement
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^(.*)$ - [L]
+
+# Sinon, rediriger vers index.php
+RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]

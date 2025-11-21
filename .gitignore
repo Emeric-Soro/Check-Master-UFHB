@@ -1,5 +1,5 @@
 node_modules/
-public/assets/css/output_dashboard_admin.css
+assets/css/output_dashboard_admin.css
 .env
 .DS_Store
 /vendor/
