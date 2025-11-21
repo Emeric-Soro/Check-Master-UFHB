@@ -1,4 +1,11 @@
 <?php
+// Load Composer autoloader
+require_once __DIR__ . '/../../vendor/autoload.php';
+
+// Initialize Dotenv
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../../');
+$dotenv->load();
+
 class Database {
     private static $host;
     private static $db;
@@ -7,11 +14,11 @@ class Database {
     private static $charset = 'utf8';
 
     private static function loadConfig() {
-        // Load configuration from environment variables with fallbacks for development
-        self::$host = getenv('DB_HOST') ?: 'db';
-        self::$db = getenv('DB_NAME') ?: 'soutenance_manager';
-        self::$user = getenv('DB_USER') ?: 'root';
-        self::$pass = getenv('DB_PASSWORD') ?: 'password';
+        // Load configuration from environment variables
+        self::$host = $_ENV['DB_HOST'];
+        self::$db = $_ENV['DB_NAME'];
+        self::$user = $_ENV['DB_USER'];
+        self::$pass = $_ENV['DB_PASSWORD'];
     }
 
     public static function getConnection() {
