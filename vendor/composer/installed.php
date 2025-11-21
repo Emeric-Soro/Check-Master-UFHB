@@ -1,13 +1,13 @@
 <?php return array(
     'root' => array(
         'name' => 'ocean/projet-soutenance',
-        'pretty_version' => 'dev-copilot/cleanup-docker-environment',
-        'version' => 'dev-copilot/cleanup-docker-environment',
-        'reference' => 'a1e51d9a031833a05490b01dcfddfab152f19a53',
+        'pretty_version' => 'dev-copilot/migrate-bdd-configuration-dotenv',
+        'version' => 'dev-copilot/migrate-bdd-configuration-dotenv',
+        'reference' => '2f1ac062dea1220052f5c6881dd150354c690bc5',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'dev' => true,
+        'dev' => false,
     ),
     'versions' => array(
         'altorouter/altorouter' => array(
@@ -119,9 +119,9 @@
             'dev_requirement' => false,
         ),
         'ocean/projet-soutenance' => array(
-            'pretty_version' => 'dev-copilot/cleanup-docker-environment',
-            'version' => 'dev-copilot/cleanup-docker-environment',
-            'reference' => 'a1e51d9a031833a05490b01dcfddfab152f19a53',
+            'pretty_version' => 'dev-copilot/migrate-bdd-configuration-dotenv',
+            'version' => 'dev-copilot/migrate-bdd-configuration-dotenv',
+            'reference' => '2f1ac062dea1220052f5c6881dd150354c690bc5',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -190,15 +190,6 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
-        'symfony/deprecation-contracts' => array(
-            'pretty_version' => 'v3.6.0',
-            'version' => '3.6.0.0',
-            'reference' => '63afe740e99a13ba87ec199bb07bbdee937a5b62',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../symfony/deprecation-contracts',
-            'aliases' => array(),
-            'dev_requirement' => true,
-        ),
         'symfony/polyfill-ctype' => array(
             'pretty_version' => 'v1.33.0',
             'version' => '1.33.0.0',
@@ -225,15 +216,6 @@
             'install_path' => __DIR__ . '/../symfony/polyfill-php80',
             'aliases' => array(),
             'dev_requirement' => false,
-        ),
-        'symfony/var-dumper' => array(
-            'pretty_version' => 'v7.3.5',
-            'version' => '7.3.5.0',
-            'reference' => '476c4ae17f43a9a36650c69879dcf5b1e6ae724d',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../symfony/var-dumper',
-            'aliases' => array(),
-            'dev_requirement' => true,
         ),
         'vlucas/phpdotenv' => array(
             'pretty_version' => 'v5.6.2',
