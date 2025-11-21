@@ -26,6 +26,15 @@ class MenuView
             $iconActiveClasses = "text-primary";
             $iconInactiveClasses = "text-white/60 group-hover:text-white";
 
+            // Générer l'URL en utilisant le nouveau système de routing
+            // Si RouterHelper est disponible, l'utiliser, sinon fallback à l'ancien système
+            if (class_exists('RouterHelper')) {
+                $routeName = RouterHelper::mapOldPageToRoute($traitement['lib_traitement']);
+                $url = RouterHelper::route($routeName);
+            } else {
+                $url = '?page=' . htmlspecialchars($traitement['lib_traitement']);
+            }
+
             // Blocage du lien gestion_rapports si la candidature n'est pas validée
             if ($traitement['lib_traitement'] === 'gestion_rapports' && $statut !== 'Validée') {
                 $html .= '<span class="' . $linkBaseClasses . ' text-white/40 cursor-not-allowed" title="Accessible après validation de la candidature">';
@@ -33,7 +42,7 @@ class MenuView
                 $html .= htmlspecialchars($traitement['label_traitement']);
                 $html .= '</span>';
             } else {
-                $html .= '<a href="?page=' . htmlspecialchars($traitement['lib_traitement']) . '" class="' . $linkBaseClasses . ' ' . ($isActive ? $activeClasses : $inactiveClasses) . '" >';
+                $html .= '<a href="' . $url . '" class="' . $linkBaseClasses . ' ' . ($isActive ? $activeClasses : $inactiveClasses) . '" >';
                 $html .= '<i class="fas ' . htmlspecialchars($traitement['icone_traitement']) . ' ' . $iconBaseClasses . ' ' . ($isActive ? $iconActiveClasses : $iconInactiveClasses) . '"></i>';
                 $html .= '<span>' . htmlspecialchars($traitement['label_traitement']) . '</span>';
                 $html .= '</a>';
