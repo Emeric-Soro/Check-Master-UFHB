@@ -1,67 +1,152 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <title>Test AJAX Evaluation</title>
+  <meta charset="UTF-8">
+  <title>Schéma des Règles Métier - Check Master UFHB</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2a4365;
+      margin-bottom: 40px;
+    }
+
+    .schema {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+    }
+
+    .bloc {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 340px;
+      padding: 20px;
+      position: relative;
+      transition: transform 0.3s ease;
+    }
+
+    .bloc:hover {
+      transform: translateY(-8px);
+    }
+
+    .bloc::before {
+      content: "";
+      position: absolute;
+      top: -15px;
+      left: 20px;
+      width: 40px;
+      height: 6px;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #2b6cb0, #3182ce);
+    }
+
+    .bloc h2 {
+      color: #2b6cb0;
+      font-size: 1.2em;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .bloc ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .bloc li {
+      background: #edf2f7;
+      margin: 8px 0;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.95em;
+      color: #2d3748;
+      line-height: 1.4em;
+    }
+
+    .bloc li::before {
+      content: "✔";
+      color: #38a169;
+      margin-right: 8px;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 50px;
+      color: #718096;
+      font-size: 0.9em;
+    }
+  </style>
 </head>
 <body>
-    <h2>Test AJAX - Récupération d'évaluation existante</h2>
-    
-    <p>
-        <label>Numéro étudiant:</label>
-        <input type="number" id="numEtu" value="1">
-        <button onclick="testGetEvaluation()">Tester</button>
-    </p>
-    
-    <div id="result"></div>
-    
-    <script>
-    function testGetEvaluation() {
-        const numEtu = document.getElementById('numEtu').value;
-        const resultDiv = document.getElementById('result');
-        
-        resultDiv.innerHTML = '<p>Chargement...</p>';
-        
-        // Test avec différents chemins possibles
-        const urls = [
-            `ressources/routes/evaluationSoutenanceRoutes.php?action=getEvaluationExistante&num_etu=${numEtu}`,
-            `?action=getEvaluationExistante&num_etu=${numEtu}`,
-            `./ressources/routes/evaluationSoutenanceRoutes.php?action=getEvaluationExistante&num_etu=${numEtu}`
-        ];
-        
-        function testUrl(index) {
-            if (index >= urls.length) {
-                resultDiv.innerHTML += '<p style="color: red;">❌ Tous les URLs ont échoué</p>';
-                return;
-            }
-            
-            const url = urls[index];
-            console.log(`Test URL ${index + 1}: ${url}`);
-            
-            fetch(url)
-                .then(response => {
-                    console.log(`Response status: ${response.status}`);
-                    if (response.ok) {
-                        return response.json();
-                    }
-                    throw new Error(`HTTP ${response.status}`);
-                })
-                .then(data => {
-                    console.log('Succès avec URL:', url);
-                    console.log('Données reçues:', data);
-                    resultDiv.innerHTML = `
-                        <h3 style="color: green;">✅ Succès avec: ${url}</h3>
-                        <pre>${JSON.stringify(data, null, 2)}</pre>
-                    `;
-                })
-                .catch(error => {
-                    console.log(`Échec avec URL ${url}:`, error);
-                    resultDiv.innerHTML += `<p>❌ Échec: ${url} - ${error.message}</p>`;
-                    testUrl(index + 1); // Essayer l'URL suivante
-                });
-        }
-        
-        testUrl(0); // Commencer le test
-    }
-    </script>
+
+  <h1>Schéma des Règles Métier – Check Master UFHB</h1>
+
+  <div class="schema">
+    <div class="bloc">
+      <h2>1. Gestion des Utilisateurs & Accès</h2>
+      <ul>
+        <li>Authentification sécurisée (5 tentatives max, hashage, session).</li>
+        <li>RBAC granulaire : rôles, groupes et permissions CRUD.</li>
+        <li>Audit complet des actions utilisateur.</li>
+        <li>Réinitialisation et complexité des mots de passe.</li>
+        <li>Menu dynamique selon le rôle connecté.</li>
+      </ul>
+    </div>
+
+    <div class="bloc">
+      <h2>2. Gestion de la Scolarité & Étudiants</h2>
+      <ul>
+        <li>Inscription annuelle et suivi académique complet.</li>
+        <li>Suivi des paiements (versements, restes à payer, reçus PDF).</li>
+        <li>Dossiers académiques et diplômes antérieurs.</li>
+        <li>Gestion et consultation des notes (UE, ECUE, moyennes, classements).</li>
+        <li>Génération automatique de relevés PDF personnalisés.</li>
+      </ul>
+    </div>
+
+    <div class="bloc">
+      <h2>3. Gestion des Soutenances & Rapports</h2>
+      <ul>
+        <li>Candidature et validation des dossiers de soutenance.</li>
+        <li>Édition, vérification et dépôt des rapports.</li>
+        <li>Évaluation multi-niveaux : communication → commission → jury.</li>
+        <li>Programmation (jury, date, salle) et génération PV PDF.</li>
+        <li>Archivage des comptes rendus et statistiques.</li>
+      </ul>
+    </div>
+
+    <div class="bloc">
+      <h2>4. Gestion des Réclamations</h2>
+      <ul>
+        <li>Soumission en ligne par l’étudiant.</li>
+        <li>Suivi du statut en temps réel (en attente, traité, clos).</li>
+        <li>Traitement et historisation par le service scolarité.</li>
+        <li>Export CSV / PDF de l’historique.</li>
+      </ul>
+    </div>
+
+    <div class="bloc">
+      <h2>5. Paramètres Généraux & Système</h2>
+      <ul>
+        <li>CRUD des entités de base (Années, Niveaux, UE, ECUE, Salles).</li>
+        <li>Gestion des modèles DOCX et placeholders.</li>
+        <li>Critères d’évaluation (pondération, barèmes).</li>
+        <li>Sauvegarde et restauration de la base MySQL.</li>
+        <li>Gestion centralisée des rôles et permissions.</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    © Check Master UFHB – Architecture & Règles Métier visuelles
+  </footer>
 </body>
 </html>
