@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'ocean/projet-soutenance',
-        'pretty_version' => 'dev-copilot/electric-quail',
-        'version' => 'dev-copilot/electric-quail',
-        'reference' => 'e572c65c59a85289a1a17f0047ad6a422af5da43',
+        'pretty_version' => 'dev-develop',
+        'version' => 'dev-develop',
+        'reference' => 'd3df63a1665e9c7863e89d74521d560eb9a27efc',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -119,9 +119,9 @@
             'dev_requirement' => false,
         ),
         'ocean/projet-soutenance' => array(
-            'pretty_version' => 'dev-copilot/electric-quail',
-            'version' => 'dev-copilot/electric-quail',
-            'reference' => 'e572c65c59a85289a1a17f0047ad6a422af5da43',
+            'pretty_version' => 'dev-develop',
+            'version' => 'dev-develop',
+            'reference' => 'd3df63a1665e9c7863e89d74521d560eb9a27efc',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
