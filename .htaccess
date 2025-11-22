@@ -18,10 +18,15 @@ RewriteRule ^(.*)$ - [F,L]
 RewriteCond %{REQUEST_URI} ^/assets/
 RewriteRule ^(.*)$ - [L]
 
+# Autoriser l'accès aux fichiers dans ressources/
+RewriteCond %{REQUEST_URI} ^/ressources/
+RewriteRule ^(.*)$ - [L]
+
 # Si le fichier ou le répertoire existe, le servir directement
+# Ceci permet à layout.php et autres fichiers existants de continuer à fonctionner
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^(.*)$ - [L]
 
-# Sinon, rediriger vers index.php
+# Sinon, rediriger vers index.php pour le nouveau système de routing
 RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]
