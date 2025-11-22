@@ -9,8 +9,8 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars($_SESSION['error'])
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion | CheckMaster</title>
-    <link rel="stylesheet" href="css/output.css">
-    <link rel="shortcut icon" href="image/logo_cm_sbg.png" type="image/x-icon">
+    <link rel="stylesheet" href="/assets/css/output.css">
+    <link rel="shortcut icon" href="/assets/image/logo_cm_sbg.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,7 +53,7 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars($_SESSION['error'])
             <div class="space-y-10">
                 <a href="/landing" class="inline-flex items-center space-x-3 rounded-full border border-primary/20 bg-white/60 px-5 py-2 text-sm font-semibold text-primary shadow-sm backdrop-blur">
                     <span class="inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-2 ring-primary/20">
-                        <img src="image/logo_cm_sbg.png" alt="UFHB" class="h-full w-full object-contain">
+                        <img src="/assets/image/logo_cm_sbg.png" alt="UFHB" class="h-full w-full object-contain">
                     </span>
                     <span>Retourner sur l'accueil UFHB</span>
                 </a>
@@ -88,7 +88,7 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars($_SESSION['error'])
                     <div class="mb-8 text-center">
                         <div class="mb-5 flex items-center justify-center">
                             <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-lg ring-2 ring-primary/10">
-                                <img src="image/logo_cm_sbg.png" alt="Logo CheckMaster" class="h-full w-full object-contain p-2">
+                                <img src="/assets/image/logo_cm_sbg.png" alt="Logo CheckMaster" class="h-full w-full object-contain p-2">
                             </div>
                         </div>
                         <h2 class="text-2xl font-semibold text-slate-900">Connexion</h2>
