@@ -4,15 +4,16 @@ session_start();
 // Load Composer autoloader and initialize
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/app/config/database.php';
+require_once __DIR__ . '/app/utils/RouterHelper.php';
 
 // Initialize AltoRouter
 $router = new AltoRouter();
 
-// Define base routes as specified in requirements
-$router->map('GET', '/', 'AuthController#login', 'login');
-$router->map('POST', '/', 'AuthController#login', 'login_post');
-$router->map('GET', '/logout', 'AuthController#logout', 'logout');
-$router->map('GET', '/dashboard', 'DashboardController#index', 'dashboard');
+// Load all routes from configuration file
+require_once __DIR__ . '/app/config/routes.php';
+
+// Initialize RouterHelper with router instance
+RouterHelper::init($router);
 
 // Match current request
 $match = $router->match();
@@ -32,19 +33,24 @@ if ($match) {
         // Check if class exists
         if (class_exists($controller)) {
             // Instantiate the class
-            // Handle different constructor signatures
-            if ($controller === 'AuthController') {
-                // AuthController needs database connection
-                $controllerInstance = new $controller(Database::getConnection());
-            } else {
-                // Other controllers like DashboardController
-                $controllerInstance = new $controller();
+            // Handle different constructor signatures based on controller type
+            try {
+                if ($controller === 'AuthController') {
+                    // AuthController needs database connection
+                    $controllerInstance = new $controller(Database::getConnection());
+                } else {
+                    // Try to instantiate with no parameters (most controllers)
+                    $controllerInstance = new $controller();
+                }
+            } catch (Exception $e) {
+                http_response_code(500);
+                echo "500 - Error instantiating controller: " . $e->getMessage();
+                exit;
             }
             
             // Check if method exists
             if (method_exists($controllerInstance, $method)) {
-                // Call the method with parameters from route
-                // For AuthController#login, we need to pass POST data
+                // Special handling for AuthController login
                 if ($controller === 'AuthController' && $method === 'login') {
                     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // Handle POST login
@@ -70,13 +76,13 @@ if ($match) {
                     header('Location: /');
                     exit;
                 } else {
-                    // Call other controller methods with route params
+                    // Call controller method with route params
                     call_user_func_array([$controllerInstance, $method], $match['params']);
                 }
             } else {
                 // Method not found
                 http_response_code(404);
-                echo "404 - Method not found: $method";
+                echo "404 - Method not found: $method in controller $controller";
             }
         } else {
             // Class not found
