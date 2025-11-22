@@ -10,16 +10,17 @@ class GestionRapportController {
 
     private $baseViewPath;
     private $rapportModel;
-
     private $etudiant;
     private $auditLog;
+    private $db;
 
     public function __construct()
     {
         $this->baseViewPath = __DIR__ . '/../../ressources/views/gestion_rapports/';
-        $this->rapportModel = new RapportEtudiant(Database::getConnection());
-        $this->etudiant = new Etudiant(Database::getConnection());
-        $this->auditLog = new AuditLog(Database::getConnection());
+        $this->db = Database::getConnection();
+        $this->rapportModel = new RapportEtudiant($this->db);
+        $this->etudiant = new Etudiant($this->db);
+        $this->auditLog = new AuditLog($this->db);
 
 
         // Vérifier que l'utilisateur est connecté
@@ -92,7 +93,7 @@ class GestionRapportController {
             $rapportId = $rapport->id_rapport;
             
             // Vérifier si ce rapport est déjà déposé
-            $stmt = $this->rapportModel->pdo->prepare("SELECT COUNT(*) FROM deposer WHERE num_etu = ? AND id_rapport = ?");
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM deposer WHERE num_etu = ? AND id_rapport = ?");
             $stmt->execute([$num_etu, $rapportId]);
             $dejaDepose = $stmt->fetchColumn() > 0;
             
@@ -104,7 +105,7 @@ class GestionRapportController {
                 $messageDepot = 'Déjà déposé';
             } else {
                 // Vérifier si l'étudiant a un autre rapport en cours d'évaluation
-                $stmt = $this->rapportModel->pdo->prepare("
+                $stmt = $this->db->prepare("
                     SELECT d.id_rapport, d.date_depot 
                     FROM deposer d 
                     WHERE d.num_etu = ? 
@@ -116,7 +117,7 @@ class GestionRapportController {
                 
                 if ($dernierDepot && $dernierDepot['id_rapport'] != $rapportId) {
                     // Vérifier le statut d'approbation du dernier rapport déposé
-                    $stmt = $this->rapportModel->pdo->prepare("
+                    $stmt = $this->db->prepare("
                         SELECT a.*, n.lib_approb 
                         FROM approuver a
                         JOIN niveau_approbation n ON a.id_approb = n.id_approb
