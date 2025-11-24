@@ -85,10 +85,42 @@ class AuthController {
         return false;
     }
 
+    /**
+     * Handle login form submission from the router
+     */
+    public function handleLogin() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $login = $_POST['login'] ?? '';
+            $password = $_POST['password'] ?? '';
+
+            if ($this->login($login, $password)) {
+                // Récupérer les traitements autorisés pour l'utilisateur
+                require_once __DIR__ . '/MenuController.php';
+                $menuController = new MenuController();
+                $traitements = $menuController->genererMenu($_SESSION['id_GU']);
+
+                // Utiliser le premier traitement comme page par défaut ou dashboard
+                $defaultPage = !empty($traitements) ? $traitements[0]['lib_traitement'] : 'dashboard';
+
+                // For now, redirect to layout.php for backward compatibility
+                header('Location: /layout?page=' . urlencode($defaultPage));
+                exit;
+            } else {
+                $_SESSION['error'] = 'Login ou mot de passe incorrect';
+                header('Location: /login');
+                exit;
+            }
+        } else {
+            header('Location: /login');
+            exit;
+        }
+    }
+
     public function logout()
     {
-        $this->auditLog->logDeconnexion($_SESSION['id_utilisateur'] , 'utilisateur', 'Succès');
-       
+        if (isset($_SESSION['id_utilisateur'])) {
+            $this->auditLog->logDeconnexion($_SESSION['id_utilisateur'] , 'utilisateur', 'Succès');
+        }
 
         // Détruire toutes les données de session
         $_SESSION = array();
@@ -103,7 +135,11 @@ class AuthController {
         }
 
         // Finalement, détruire la session
-        return session_destroy();
+        session_destroy();
+        
+        // Redirect to login page
+        header('Location: /login');
+        exit;
     }
 
     public function updatePassword($currentPassword, $newPassword, $confirmPassword) {
