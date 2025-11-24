@@ -14,7 +14,7 @@ session_start();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CheckMaster| Plateforme de Gestion de la commission de Validation des soutenances</title>
-    <link rel="stylesheet" href="css/output.css">
+    <link rel="stylesheet" href="/assets/css/output.css">
     <link rel="shortcut icon" href="./images/logo_cm_sbg.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 

@@ -394,8 +394,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CheckMaster | <?php echo htmlspecialchars($currentPageLabel); ?></title>
-    <link rel="stylesheet" href="css/output.css">
-    <link rel="shortcut icon" href="image/logo_cm_sbg.png" type="image/x-icon">
+    <link rel="stylesheet" href="/assets/css/output.css">
+    <link rel="shortcut icon" href="/assets/images/logo_cm_sbg.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -441,7 +441,7 @@ if (!isset($_SESSION['id_utilisateur'])) {
         <div class="flex flex-col w-72 bg-primary text-white">
             <div class="flex items-center justify-center h-24 px-4">
                 <div class="flex flex-col items-center text-center">
-                    <img src="image/logo_cm_sbg.png" alt="Logo CheckMaster" class="sidebar-logo mb-2">
+                    <img src="/assets/images/logo_cm_sbg.png" alt="Logo CheckMaster" class="sidebar-logo mb-2">
                     <span class="font-bold text-lg tracking-wide">CHECK MASTER</span>
                 </div>
             </div>

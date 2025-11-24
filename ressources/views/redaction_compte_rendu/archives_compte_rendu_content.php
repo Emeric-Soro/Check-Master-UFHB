@@ -1,3 +1,12 @@
+<?php
+// Extract variables from GLOBALS with defaults
+$archives = $GLOBALS['archives'] ?? [];
+$stats = $GLOBALS['stats'] ?? [];
+$currentPage = $GLOBALS['currentPage'] ?? 1;
+$totalPages = $GLOBALS['totalPages'] ?? 1;
+$search = $GLOBALS['search'] ?? null;
+$year = $GLOBALS['year'] ?? null;
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>

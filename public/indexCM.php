@@ -6,7 +6,7 @@
     <title>CheckMaster - Gestion des Soutenances MIAGE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="shortcut icon" href="image/logo_cm_sbg.png" type="image/x-icon">
+    <link rel="shortcut icon" href="/assets/images/logo_cm_sbg.png" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -236,7 +236,7 @@
                     <!-- Logo container -->
                     <div class="bg-gradient-to-br from-primary/5 to-primary-light/5 rounded-2xl p-8 text-center">
                         <div class="w-48 h-48 mx-auto mb-6 bg-white rounded-xl shadow-lg flex items-center justify-center">
-                            <img src="image/logo_cm_sbg.png" alt="CheckMaster Logo"
+                            <img src="/assets/images/logo_cm_sbg.png" alt="CheckMaster Logo"
                                  class="w-32 h-32 object-contain">
                         </div>
                         <h3 class="text-xl font-bold text-gray-900 mb-2">CheckMaster</h3>
@@ -349,7 +349,7 @@
                 <div class="service-card bg-white rounded-2xl shadow-lg overflow-hidden animate-slide-up">
                     <div class="grid grid-cols-1 lg:grid-cols-2">
                         <div class="relative h-64 lg:h-auto">
-                            <img src="image/etudiants_img.jpg" alt="Espace étudiant"
+                            <img src="/assets/images/etudiants_img.jpg" alt="Espace étudiant"
                                  class="w-full h-full object-cover">
                             <div class="absolute inset-0 bg-gradient-to-r from-primary/80 to-transparent"></div>
                         </div>
@@ -390,7 +390,7 @@
                             </a>
                         </div>
                         <div class="order-1 lg:order-2 relative h-64 lg:h-auto">
-                            <img src="image/enseignants_img.jpg" alt="Espace enseignant"
+                            <img src="/assets/images/enseignants_img.jpg" alt="Espace enseignant"
                                  class="w-full h-full object-cover">
                             <div class="absolute inset-0 bg-gradient-to-l from-accent/80 to-transparent"></div>
                         </div>
@@ -401,7 +401,7 @@
                 <div class="service-card bg-white rounded-2xl shadow-lg overflow-hidden animate-slide-up" style="animation-delay: 0.2s">
                     <div class="grid grid-cols-1 lg:grid-cols-2">
                         <div class="relative h-64 lg:h-auto">
-                            <img src="image/administration_img.jpg" alt="Administration"
+                            <img src="/assets/images/administration_img.jpg" alt="Administration"
                                  class="w-full h-full object-cover">
                             <div class="absolute inset-0 bg-gradient-to-r from-secondary/80 to-transparent"></div>
                         </div>
