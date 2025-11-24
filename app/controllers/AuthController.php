@@ -19,17 +19,35 @@ class AuthController {
     private $etudiantModel;
     private $auditLog;
 
-    public function __construct($db) {
-        $this->db = $db;
-        $this->enseignantModel = new Enseignant($db);
-        $this->persAdminModel = new PersAdmin($db);
-        $this->etudiantModel = new Etudiant($db);
-        $this->auditLog = new AuditLog($db);
-        
-       
+    public function __construct() {
+        $this->db = Database::getConnection();
+        $this->enseignantModel = new Enseignant($this->db);
+        $this->persAdminModel = new PersAdmin($this->db);
+        $this->etudiantModel = new Etudiant($this->db);
+        $this->auditLog = new AuditLog($this->db);
     }
 
-    public function login($login, $password)
+    public function login()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $login = $_POST['login'] ?? '';
+            $password = $_POST['password'] ?? '';
+
+            if ($this->authenticate($login, $password)) {
+                header('Location: /dashboard');
+                exit;
+            } else {
+                $_SESSION['error'] = 'Login ou mot de passe incorrect';
+                header('Location: /');
+                exit;
+            }
+        }
+
+        // GET request - show login page
+        require_once __DIR__ . '/../../page_connexion.php';
+    }
+
+    private function authenticate($login, $password)
     {
         $utilisateur = new Utilisateur($this->db);
         $infoUtilisateur = $utilisateur->verifierConnexion($login, $password);
@@ -87,8 +105,9 @@ class AuthController {
 
     public function logout()
     {
-        $this->auditLog->logDeconnexion($_SESSION['id_utilisateur'] , 'utilisateur', 'Succès');
-       
+        if (isset($_SESSION['id_utilisateur'])) {
+            $this->auditLog->logDeconnexion($_SESSION['id_utilisateur'] , 'utilisateur', 'Succès');
+        }
 
         // Détruire toutes les données de session
         $_SESSION = array();
@@ -103,7 +122,10 @@ class AuthController {
         }
 
         // Finalement, détruire la session
-        return session_destroy();
+        session_destroy();
+        
+        header('Location: /');
+        exit;
     }
 
     public function updatePassword($currentPassword, $newPassword, $confirmPassword) {

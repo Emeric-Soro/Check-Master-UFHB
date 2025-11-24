@@ -187,7 +187,7 @@
                                     </div>
                                     <div class="flex items-center space-x-2 ml-4">
                                         
-                                        <button onclick="window.location.href='layout.php?page=archive_comptes_rendus&action=download_pdf&chemin=<?php echo urlencode($archive['chemin_fichier_pdf']); ?>'" class="flex items-center px-3 py-1 text-sm text-green-600 hover:text-green-800">
+                                        <button onclick="window.location.href='/compte-rendu/archives/telecharger/<?php echo $archive['id_hashed']; ?>'" class="flex items-center px-3 py-1 text-sm text-green-600 hover:text-green-800">
                                             <i class="fas fa-download mr-1"></i>PDF
                                         </button>
                                        
@@ -207,12 +207,12 @@
                                 </div>
                         <div class="flex space-x-2">
                             <?php if ($currentPage > 1): ?>
-                            <a href="?page=archives_compte_rendu&page_num=<?php echo $currentPage - 1; ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?><?php echo $year ? '&year=' . $year : ''; ?>" class="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">
+                            <a href="/compte-rendu/archives?page=<?php echo $currentPage - 1; ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?><?php echo $year ? '&year=' . $year : ''; ?>" class="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">
                                 Précédent
                             </a>
                             <?php endif; ?>
                             <?php if ($currentPage < $totalPages): ?>
-                            <a href="?page=archives_compte_rendu&page_num=<?php echo $currentPage + 1; ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?><?php echo $year ? '&year=' . $year : ''; ?>" class="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">
+                            <a href="/compte-rendu/archives?page=<?php echo $currentPage + 1; ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?><?php echo $year ? '&year=' . $year : ''; ?>" class="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">
                                 Suivant
                             </a>
                             <?php endif; ?>
@@ -262,32 +262,32 @@
         // Fonctions de filtrage et recherche
         function filterArchives(filter) {
             currentFilter = filter;
-            const url = new URL(window.location);
-            if (filter === 'all') {
-                url.searchParams.delete('year');
-            } else {
+            const url = new URL(window.location.origin + '/compte-rendu/archives');
+            if (filter !== 'all') {
                 url.searchParams.set('year', filter);
             }
-            url.searchParams.delete('page');
+            if (currentSearch) {
+                url.searchParams.set('search', currentSearch);
+            }
             window.location.href = url.toString();
         }
 
         function searchArchives() {
             const searchTerm = document.getElementById('searchInput').value;
-            const url = new URL(window.location);
+            const url = new URL(window.location.origin + '/compte-rendu/archives');
             if (searchTerm.trim()) {
                 url.searchParams.set('search', searchTerm);
-            } else {
-                url.searchParams.delete('search');
             }
-            url.searchParams.delete('page');
+            if (currentFilter !== 'all') {
+                url.searchParams.set('year', currentFilter);
+            }
             window.location.href = url.toString();
         }
 
         // Fonctions d'action
         function viewArchive(id) {
             // Charger les détails de l'archive via AJAX
-            fetch(`ressources/routes/archivesCompteRenduRoutes.php?page=archives_compte_rendu&action=view&id=${id}`)
+            fetch(`/compte-rendu/archives/view/${id}`)
                 .then(response => response.text())
                 .then(html => {
                     document.getElementById('archiveContent').innerHTML = html;
@@ -310,7 +310,7 @@
                 const formData = new FormData();
                 formData.append('id_CR', id);
                 
-                fetch('ressources/routes/archivesCompteRenduRoutes.php?page=archives_compte_rendu&action=delete', {
+                fetch('/compte-rendu/archives/delete', {
                     method: 'POST',
                     body: formData
                 })
@@ -331,9 +331,7 @@
         }
 
         function exportArchives() {
-            const url = new URL('ressources/routes/archivesCompteRenduRoutes.php', window.location.origin);
-            url.searchParams.set('page', 'archives_compte_rendu');
-            url.searchParams.set('action', 'export');
+            const url = new URL(window.location.origin + '/compte-rendu/archives/export');
             if (currentSearch) url.searchParams.set('search', currentSearch);
             if (currentFilter !== 'all') url.searchParams.set('year', currentFilter);
             

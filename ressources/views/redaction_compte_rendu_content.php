@@ -426,7 +426,7 @@ if (!empty($_SESSION['success'])) {
         </div>
     </div>
 
-    <form id="formCR" method="POST" action="?page=redaction_compte_rendu">
+    <form id="formCR" method="POST" action="/compte-rendu/redaction">
         <input type="hidden" name="num_etu" id="num_etu" value="">
         <input type="hidden" name="nom_CR" id="nom_CR" value="">
         <input type="hidden" name="contenu_CR" id="contenu_CR" value="">
@@ -910,11 +910,35 @@ if (!empty($_SESSION['success'])) {
         }
 
         function exportToPDF() {
-            // Simulation d'export PDF
-            showNotification('Export PDF en cours...', 'info');
-            setTimeout(() => {
-                showNotification('Rapport exporté en PDF avec succès', 'success');
-            }, 2000);
+            const content = document.getElementById('editorContent').innerHTML;
+            if (!content || content.trim() === '') {
+                showNotification('Aucun contenu à exporter', 'error');
+                return;
+            }
+            
+            // Créer un formulaire temporaire pour l'export
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/compte-rendu/exporter-pdf';
+            form.target = '_blank'; // Ouvrir dans un nouvel onglet
+            
+            const inputContenu = document.createElement('input');
+            inputContenu.type = 'hidden';
+            inputContenu.name = 'contenu_CR';
+            inputContenu.value = content;
+            form.appendChild(inputContenu);
+            
+            const inputNom = document.createElement('input');
+            inputNom.type = 'hidden';
+            inputNom.name = 'nom_CR';
+            inputNom.value = 'Compte_rendu_' + (new Date()).toLocaleDateString('fr-FR').replace(/\//g, '-');
+            form.appendChild(inputNom);
+            
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+            
+            showNotification('Export PDF lancé', 'success');
         }
 
         // Impression du rapport

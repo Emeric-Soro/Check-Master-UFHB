@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/InfoStage.php';
 require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../services/HashIdService.php';
 
 class GestionCandidaturesController {
     private $db;
@@ -14,6 +15,7 @@ class GestionCandidaturesController {
     private $emailService;
     private $pers_admin;
     private $auditLog;
+    private $hashids;
 
     public function __construct() {
         $this->db = Database::getConnection();
@@ -22,6 +24,7 @@ class GestionCandidaturesController {
         $this->emailService = new EmailService();
         $this->pers_admin = new PersAdmin($this->db);
         $this->auditLog = new AuditLog($this->db);
+        $this->hashids = new \App\Services\HashIdService();
     }
     
     public function index() {
@@ -30,8 +33,13 @@ class GestionCandidaturesController {
     }
 
     // Méthode pour gérer l'examen d'une candidature
-    public function examinerCandidature() {
-        $examiner = $_GET['examiner'] ?? null;
+    public function examiner($id) {
+        $decodedId = $this->hashids->decode($id);
+        if (!$decodedId) {
+            die("ID invalide");
+        }
+        $examiner = $decodedId;
+        $encodedExaminer = $id; // Keep the encoded ID for redirects
         $id_candidature = $_GET['id_candidature'] ?? null;
         $etape = intval($_GET['etape'] ?? 1);
         $action = $_GET['action'] ?? '';
@@ -51,11 +59,11 @@ class GestionCandidaturesController {
             
             // Si c'est la dernière étape, aller au résumé final
             if ($etapeValidee == 3) {
-                header("Location: ?page=gestion_candidatures_soutenance&examiner=$examiner&etape=4");
+                header("Location: /gestion-candidatures/examiner/$encodedExaminer?etape=4");
                 exit;
             } else {
                 // Passer à l'étape suivante
-                header("Location: ?page=gestion_candidatures_soutenance&examiner=$examiner&etape=" . ($etape + 1));
+                header("Location: /gestion-candidatures/examiner/$encodedExaminer?etape=" . ($etape + 1));
                 exit;
             }
         }
@@ -69,10 +77,10 @@ class GestionCandidaturesController {
             
             // Passer à l'étape suivante même en cas de rejet
             if ($etapeRejetee < 3) {
-                header("Location: ?page=gestion_candidatures_soutenance&examiner=$examiner&etape=" . ($etapeRejetee + 1));
+                header("Location: /gestion-candidatures/examiner/$encodedExaminer?etape=" . ($etapeRejetee + 1));
             } else {
                 // Si c'est la dernière étape, aller au résumé
-                header("Location: ?page=gestion_candidatures_soutenance&examiner=$examiner&etape=4");
+                header("Location: /gestion-candidatures/examiner/$encodedExaminer?etape=4");
             }
             exit;
         }
@@ -81,7 +89,7 @@ class GestionCandidaturesController {
         if ($action === 'envoyer_resultats' && $examiner) {
             $this->envoyerResultatsFinaux($examiner);
             $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Envoi résultats', 'candidature_soutenance', 'Succès');
-            header("Location: ?page=gestion_candidatures_soutenance&examiner=$examiner&etape=4&email_envoye=1");
+            header("Location: /gestion-candidatures/examiner/$encodedExaminer?etape=4&email_envoye=1");
             exit;
         }
 
@@ -93,7 +101,7 @@ class GestionCandidaturesController {
 
         // Si l'étape précédente n'est pas validée et qu'on n'est pas au résumé final, rediriger vers l'étape précédente
         if ($etape > 1 && $etape < 4 && !$etapePrecedenteValidee) {
-            header("Location: ?page=gestion_candidatures_soutenance&examiner=$examiner&etape=" . ($etape - 1));
+            header("Location: /gestion-candidatures/examiner/$encodedExaminer?etape=" . ($etape - 1));
             exit;
         }
 

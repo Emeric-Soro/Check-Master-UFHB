@@ -20,25 +20,30 @@ $router->map('GET', '/dashboard/commission', 'DashboardCommissionController#inde
 
 // Routes de gestion des utilisateurs
 $router->map('GET', '/utilisateurs', 'GestionUtilisateurController#index', 'gestion_utilisateurs');
+$router->map('POST', '/utilisateurs', 'GestionUtilisateurController#index', 'gestion_utilisateurs_post');
 $router->map('GET', '/profil', 'GestionUtilisateurController#index', 'profil');
+$router->map('GET', '/admin/utilisateurs', 'GestionUtilisateurController#index', 'admin_utilisateurs');
+$router->map('POST', '/admin/utilisateurs', 'GestionUtilisateurController#index', 'admin_utilisateurs_post');
 
 // Routes de gestion RH
 $router->map('GET', '/rh', 'GestionRhController#index', 'gestion_rh');
 
 // Routes de gestion de la scolarité
 $router->map('GET', '/scolarite', 'GestionScolariteController#index', 'gestion_scolarite');
-$router->map('GET', '/scolarite/imprimer-recu/[i:id]', 'GestionScolariteController#imprimerRecu', 'scolarite_imprimer_recu');
+$router->map('GET', '/scolarite/versement/ajouter', 'GestionScolariteController#index', 'scolarite_versement_ajouter');
+$router->map('GET', '/scolarite/imprimer-recu/[a:id]', 'GestionScolariteController#imprimerRecu', 'scolarite_imprimer_recu');
 
 // Routes de gestion des notes
 $router->map('GET', '/notes', 'NotesController#index', 'gestion_notes');
+$router->map('GET', '/notes/saisie', 'NotesController#index', 'notes_saisie');
 $router->map('GET', '/notes-resultats', 'NotesResultatsController#index', 'notes_resultats');
-$router->map('GET', '/notes/imprimer-releve/[i:student]/[a:niveau]', 'NotesController#imprimerReleve', 'notes_imprimer_releve');
+$router->map('GET', '/bulletin/[a:id]', 'NotesController#imprimerReleve', 'notes_imprimer_releve');
 
 // Routes de gestion des étudiants
 $router->map('GET', '/etudiants', 'GestionEtudiantController#index', 'gestion_etudiants');
 $router->map('GET', '/etudiants/ajouter', 'GestionEtudiantController#index', 'etudiants_ajouter');
 $router->map('GET', '/etudiants/inscrire', 'InscriptionController#index', 'etudiants_inscrire');
-$router->map('GET', '/etudiants/imprimer-recu/[i:id]', 'GestionEtudiantController#imprimerRecu', 'etudiants_imprimer_recu');
+$router->map('GET', '/etudiants/recu/[a:id]', 'GestionEtudiantController#imprimerRecu', 'etudiants_imprimer_recu');
 $router->map('GET', '/etudiants/liste', 'GestionEtudiantController#liste', 'liste_etudiants');
 
 // Routes de candidature à la soutenance
@@ -47,7 +52,7 @@ $router->map('GET', '/candidature-soutenance/compte-rendu', 'CandidatureSoutenan
 
 // Routes de gestion des candidatures
 $router->map('GET', '/gestion-candidatures', 'GestionCandidaturesController#index', 'gestion_candidatures');
-$router->map('GET', '/gestion-candidatures/examiner/[i:id]', 'GestionCandidaturesController#examiner', 'gestion_candidatures_examiner');
+$router->map('GET', '/gestion-candidatures/examiner/[a:id]', 'GestionCandidaturesController#examiner', 'gestion_candidatures_examiner');
 
 // Routes de gestion des dossiers de candidatures
 $router->map('GET', '/dossiers-candidatures', 'GestionDossiersCandidaturesController#index', 'gestion_dossiers_candidatures');
@@ -81,12 +86,9 @@ $router->map('GET', '/reclamations-scolarite', 'GestionReclamationsScolariteCont
 $router->map('GET', '/evaluation-dossiers', 'EvaluationDossiersController#index', 'evaluation_dossiers');
 
 // Routes d'évaluation des soutenances
-$router->map('GET', '/evaluation-soutenance', 'EvaluationSoutenanceController#index', 'evaluation_soutenance');
-$router->map('POST', '/evaluation-soutenance/evaluer', 'EvaluationSoutenanceController#enregistrerEvaluation', 'evaluation_soutenance_evaluer');
-$router->map('POST', '/evaluation-soutenance/supprimer', 'EvaluationSoutenanceController#supprimerEvaluation', 'evaluation_soutenance_supprimer');
-$router->map('GET', '/evaluation-soutenance/ajax/evaluation/[a:num_etu]', 'EvaluationSoutenanceController#getEvaluationExistante', 'evaluation_soutenance_ajax_get');
-$router->map('GET', '/evaluation-soutenance/ajax/criteres', 'EvaluationSoutenanceController#getCriteresParAnnee', 'evaluation_soutenance_ajax_criteres');
-$router->map('GET', '/evaluation-soutenance/imprimer-pv', 'EvaluationSoutenanceController#imprimerPV', 'evaluation_soutenance_imprimer_pv');
+$router->map('GET', '/soutenances/planning', 'ProgrammationSoutenanceController#index', 'programmation_soutenance');
+$router->map('GET', '/soutenances/evaluation', 'EvaluationSoutenanceController#index', 'evaluation_soutenance');
+$router->map('GET', '/soutenances/pv/[a:id]', 'EvaluationSoutenanceController#imprimerPV', 'evaluation_soutenance_imprimer_pv');
 
 // Routes de dossier académique
 $router->map('GET', '/dossier-academique', 'DossierAcademiqueController#index', 'dossier_academique');
@@ -106,11 +108,16 @@ $router->map('GET', '/planification-soutenance', 'PlanificationSoutenanceControl
 
 // Routes de rédaction de compte rendu
 $router->map('GET', '/compte-rendu/redaction', 'RedactionCompteRenduController#index', 'redaction_compte_rendu');
-$router->map('POST', '/compte-rendu/redaction', 'RedactionCompteRenduController#traiter', 'redaction_compte_rendu_post');
+$router->map('POST', '/compte-rendu/redaction', 'RedactionCompteRenduController#enregistrer', 'redaction_compte_rendu_post');
+$router->map('POST', '/compte-rendu/exporter-pdf', 'RedactionCompteRenduController#exporterPDF', 'redaction_compte_rendu_exporter');
 
 // Routes des archives de comptes rendus
 $router->map('GET', '/compte-rendu/archives', 'ArchivesCompteRenduController#index', 'archives_compte_rendu');
-$router->map('GET', '/compte-rendu/archives/telecharger/[i:id]', 'ArchivesCompteRenduController#telecharger', 'archives_compte_rendu_telecharger');
+$router->map('GET', '/compte-rendu/archives/telecharger/[a:id]', 'ArchivesCompteRenduController#telecharger', 'archives_compte_rendu_telecharger');
+$router->map('GET', '/compte-rendu/archives/view/[a:id]', 'ArchivesCompteRenduController#viewArchive', 'archives_compte_rendu_view');
+$router->map('POST', '/compte-rendu/archives/delete', 'ArchivesCompteRenduController#deleteArchive', 'archives_compte_rendu_delete');
+$router->map('GET', '/compte-rendu/archives/export', 'ArchivesCompteRenduController#exportArchives', 'archives_compte_rendu_export');
+$router->map('GET', '/compte-rendu/archives/search', 'ArchivesCompteRenduController#searchArchives', 'archives_compte_rendu_search');
 
 // Routes des archives de dossiers de soutenance
 $router->map('GET', '/archives-dossiers-soutenance', 'ArchivesDossiersSoutenanceController#index', 'archives_dossiers_soutenance');
@@ -132,11 +139,17 @@ $router->map('GET', '/processus-validation', 'ProcessusValidationController#inde
 // Routes des paramètres généraux
 $router->map('GET', '/parametres', 'ParametreController#index', 'parametres_generaux');
 $router->map('GET', '/parametres/annees-academiques', 'ParametreController#gestionAnnees', 'parametres_annees');
+$router->map('POST', '/parametres/annees-academiques', 'ParametreController#gestionAnnees', 'parametres_annees_post');
+$router->map('GET', '/admin/annees', 'ParametreController#gestionAnnees', 'admin_annees');
+$router->map('POST', '/admin/annees', 'ParametreController#gestionAnnees', 'admin_annees_post');
 $router->map('GET', '/parametres/grades', 'ParametreController#gestionGrade', 'parametres_grades');
 $router->map('GET', '/parametres/fonction-utilisateur', 'ParametreController#gestionFonctionUtilisateur', 'parametres_fonction_utilisateur');
 $router->map('GET', '/parametres/specialites', 'ParametreController#gestionSpecialite', 'parametres_specialites');
 $router->map('GET', '/parametres/niveaux-etude', 'ParametreController#gestionNiveauEtude', 'parametres_niveaux_etude');
 $router->map('GET', '/parametres/ue', 'ParametreController#gestionUe', 'parametres_ue');
+$router->map('POST', '/parametres/ue', 'ParametreController#gestionUe', 'parametres_ue_post');
+$router->map('GET', '/admin/ue', 'ParametreController#gestionUe', 'admin_ue');
+$router->map('POST', '/admin/ue', 'ParametreController#gestionUe', 'admin_ue_post');
 $router->map('GET', '/parametres/ecue', 'ParametreController#gestionEcue', 'parametres_ecue');
 $router->map('GET', '/parametres/statut-jury', 'ParametreController#gestionStatutJury', 'parametres_statut_jury');
 $router->map('GET', '/parametres/niveaux-approbation', 'ParametreController#gestionNiveauApprobation', 'parametres_niveaux_approbation');

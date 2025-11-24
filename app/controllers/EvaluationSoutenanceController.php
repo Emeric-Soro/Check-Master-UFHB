@@ -1,8 +1,15 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../services/HashIdService.php';
 
 class EvaluationSoutenanceController
 {
+    private $hashids;
+
+    public function __construct()
+    {
+        $this->hashids = new \App\Services\HashIdService();
+    }
     /**
      * Récupérer toutes les soutenances programmées pour évaluation
      */
@@ -458,13 +465,22 @@ class EvaluationSoutenanceController
     /**
      * Imprimer les procès-verbaux (PV) de soutenance en PDF - Les 3 annexes dans un seul document
      */
-    public function imprimerPV()
+    /**
+     * Imprimer les procès-verbaux (PV) de soutenance en PDF
+     */
+    public function imprimerPV($id)
     {
-        try {
-            require_once __DIR__ . '/../../vendor/autoload.php';
+        require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
 
-            $numEtu = $_GET['num_etu'] ?? null;
-            $moyenneMaster1 = $_GET['moyenne_master1'] ?? null;
+        $decodedId = $this->hashids->decode($id);
+        if (!$decodedId) {
+            die("ID invalide");
+        }
+        $id = $decodedId;
+
+        try {
+            // $id correspond ici au numéro étudiant (num_etu) car c'est ce qui est passé dans la route
+            $numEtu = $id; 
 
             if (empty($numEtu)) {
                 throw new Exception('Numéro étudiant requis');
@@ -532,125 +548,39 @@ class EvaluationSoutenanceController
                 throw new Exception('Soutenance non trouvée');
             }
 
-            // Préparer les données communes
-            $data = [
-                'niveau' => $soutenance['niveau'],
-                'date_soutenance' => date('d/m/Y', strtotime($soutenance['date_soutenance'])),
-                'promotion' => $soutenance['promotion_etu'],
-                'theme' => $soutenance['theme_soutenance'],
-                'nom_etudiant' => $soutenance['nom_etudiant'],
-                'president' => $soutenance['president'] ?? '',
-                'examinateur' => $soutenance['examinateur'] ?? '',
-                'directeur' => $soutenance['directeur'] ?? '',
-                'encadreur' => $soutenance['encadreur'] ?? '',
-                'maitre_stage' => $soutenance['maitre_stage'] ?? ''
-            ];
-
-            // Récupérer les évaluations
-            $sqlEval = "
-                SELECT 
-                    e.id_critere,
-                    e.note,
-                    c.lib_critere,
-                    cor.bareme
-                FROM evaluer e
-                JOIN critere_evaluation c ON e.id_critere = c.id_critere
-                LEFT JOIN correspondre cor ON c.id_critere = cor.id_critere
-                WHERE e.num_etudiant = ?
-                ORDER BY e.id_critere
-            ";
+            // Récupérer les évaluations pour calculer la note
+            $sqlEval = "SELECT note FROM evaluer WHERE num_etudiant = ?";
             $stmtEval = $pdo->prepare($sqlEval);
             $stmtEval->execute([$numEtu]);
-            $evaluations = $stmtEval->fetchAll(PDO::FETCH_ASSOC);
+            $notes = $stmtEval->fetchAll(PDO::FETCH_COLUMN);
+            
+            $noteFinale = array_sum($notes);
+            $mention = $this->calculerMention($noteFinale);
 
-            // Calculer la somme des notes
-            $sommeNotes = 0;
-            $sommeBaremes = 0;
-            foreach ($evaluations as $eval) {
-                $sommeNotes += $eval['note'];
-                $sommeBaremes += $eval['bareme'];
-            }
+            // Préparer les données pour la vue
+            $jury = [];
+            if (!empty($soutenance['president'])) $jury[] = ['qualite' => 'Président', 'nom_complet' => $soutenance['president'], 'grade' => ''];
+            if (!empty($soutenance['examinateur'])) $jury[] = ['qualite' => 'Examinateur', 'nom_complet' => $soutenance['examinateur'], 'grade' => ''];
+            if (!empty($soutenance['directeur'])) $jury[] = ['qualite' => 'Rapporteur', 'nom_complet' => $soutenance['directeur'], 'grade' => ''];
+            if (!empty($soutenance['encadreur'])) $jury[] = ['qualite' => 'Encadrant', 'nom_complet' => $soutenance['encadreur'], 'grade' => ''];
 
-            // ========== ANNEXE 1 - Soutenance de Mémoire ==========
-            $dataAnnexe1 = $data;
-            $dataAnnexe1['criteres'] = $evaluations;
-            $dataAnnexe1['note_finale'] = $sommeNotes;
-            $dataAnnexe1['total_bareme'] = $sommeBaremes;
+            $data = [
+                'annee_academique' => '2024-2025', // À dynamiser
+                'etudiant' => [
+                    'nom' => explode(' ', $soutenance['nom_etudiant'])[0], // Simplification
+                    'prenoms' => substr(strstr($soutenance['nom_etudiant'], ' '), 1),
+                    'matricule' => $soutenance['num_etu'],
+                    'filiere' => 'MIAGE',
+                    'niveau' => $soutenance['niveau']
+                ],
+                'sujet' => $soutenance['theme_soutenance'],
+                'jury' => $jury,
+                'note' => $noteFinale,
+                'mention' => $mention
+            ];
 
-            ob_start();
-            extract($dataAnnexe1);
-            $data = $dataAnnexe1; // Pour les templates
-            include __DIR__ . '/../../ressources/views/pv_soutenance/annexe1.php';
-            $htmlAnnexe1 = ob_get_clean();
-
-            // ========== ANNEXE 2 - PV Jury ==========
-            $dataAnnexe2 = $data;
-
-            // Calculer les moyennes depuis la base de données
-            $moyennes = $this->calculerMoyennesPourAnnexe2($numEtu, $pdo);
-
-            $dataAnnexe2['moyenne_master1'] = $moyennes['moyenne_master1'];
-            $dataAnnexe2['moyenne_s1_master2'] = $moyennes['moyenne_s1_master2'];
-            $dataAnnexe2['note_memoire'] = $sommeNotes; // Note de soutenance = note du mémoire
-            $dataAnnexe2['coef_master1'] = 2;
-            $dataAnnexe2['coef_s1_master2'] = 3;
-            $dataAnnexe2['coef_memoire'] = 3;
-            $dataAnnexe2['total_coef'] = 8;
-
-            // Calcul : (Moyenne Master1 * 2 + Moyenne S1 Master2 * 3 + Mémoire * 3) / 8
-            $dataAnnexe2['note_finale'] = (
-                $dataAnnexe2['moyenne_master1'] * $dataAnnexe2['coef_master1'] +
-                $dataAnnexe2['moyenne_s1_master2'] * $dataAnnexe2['coef_s1_master2'] +
-                $dataAnnexe2['note_memoire'] * $dataAnnexe2['coef_memoire']
-            ) / $dataAnnexe2['total_coef'];
-
-            $dataAnnexe2['mention'] = $this->calculerMention($dataAnnexe2['note_finale']);
-
-            ob_start();
-            extract($dataAnnexe2);
-            $data = $dataAnnexe2; // Pour les templates
-            include __DIR__ . '/../../ressources/views/pv_soutenance/annexe2.php';
-            $htmlAnnexe2 = ob_get_clean();
-
-            // ========== ANNEXE 3 - PV Jury FC ==========
-            $dataAnnexe3 = $data;
-            // Utiliser la moyenne Master 1 fournie, sinon valeur par défaut
-            $dataAnnexe3['moyenne_master1'] = !empty($moyenneMaster1) && is_numeric($moyenneMaster1) ? floatval($moyenneMaster1) : 12.0;
-            $dataAnnexe3['note_memoire'] = $sommeNotes;
-            $dataAnnexe3['coef_master1'] = 1;
-            $dataAnnexe3['coef_memoire'] = 2;
-            $dataAnnexe3['total_coef'] = 3;
-            $dataAnnexe3['note_finale'] = ($dataAnnexe3['moyenne_master1'] * 1 + $dataAnnexe3['note_memoire'] * 2) / 3;
-            $dataAnnexe3['mention'] = $this->calculerMention($dataAnnexe3['note_finale']);
-
-            ob_start();
-            extract($dataAnnexe3);
-            $data = $dataAnnexe3; // Pour les templates
-            include __DIR__ . '/../../ressources/views/pv_soutenance/annexe3.php';
-            $htmlAnnexe3 = ob_get_clean();
-
-            // ========== COMBINER LES 3 ANNEXES DANS UN SEUL PDF ==========
-            // Ajouter des sauts de page entre les annexes
-            $htmlComplet = $htmlAnnexe1 . '<div style="page-break-after: always;"></div>' .
-                $htmlAnnexe2 . '<div style="page-break-after: always;"></div>' .
-                $htmlAnnexe3;
-
-            // Générer le PDF
-            $options = new \Dompdf\Options();
-            $options->set('isHtml5ParserEnabled', true);
-            $options->set('isRemoteEnabled', true);
-            $options->set('defaultFont', 'DejaVu Sans');
-
-            $dompdf = new \Dompdf\Dompdf($options);
-            $dompdf->loadHtml($htmlComplet);
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-
-            $pdfFilename = 'PV_Soutenance_' . $numEtu . '_' . date('Y-m-d') . '.pdf';
-
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: inline; filename="' . $pdfFilename . '"');
-            echo $dompdf->output();
+            $generator = new DocumentGeneratorService();
+            $generator->generatePdfFromView('ressources/views/pdf/pv_soutenance.php', $data, 'PV_Soutenance_' . $numEtu . '.pdf');
 
         } catch (Exception $e) {
             error_log('Erreur imprimerPV: ' . $e->getMessage());

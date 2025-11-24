@@ -2,7 +2,7 @@
 
 require_once __DIR__ . '/../../app/controllers/RedactionCompteRenduController.php';
 
-if (isset($_GET['page']) && $_GET['page'] === 'redaction_compte_rendu') {
+if (!isset($GLOBALS['skip_legacy_routing']) && isset($_GET['page']) && $_GET['page'] === 'redaction_compte_rendu') {
     $controller = new RedactionCompteRenduController();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_GET['action']) && $_GET['action'] === 'export_pdf') {

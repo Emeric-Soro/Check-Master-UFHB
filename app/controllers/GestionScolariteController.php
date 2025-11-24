@@ -3,17 +3,20 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Scolarite.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../services/HashIdService.php';
 
 class GestionScolariteController {
     private $scolariteModel;
     private $anneeAcademique;
     private $auditLog;
+    private $hashids;
     
 
     public function __construct() {
         $this->scolariteModel = new Scolarite(Database::getConnection());
         $this->anneeAcademique = new AnneeAcademique(Database::getConnection());
         $this->auditLog = new AuditLog(Database::getConnection());
+        $this->hashids = new \App\Services\HashIdService();
     }
 
     public function index() {
@@ -217,4 +220,42 @@ class GestionScolariteController {
     }
 
 
+    public function imprimerRecu($id)
+    {
+        require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+
+        $decodedId = $this->hashids->decode($id);
+        if (!$decodedId) {
+            die("ID invalide");
+        }
+        $id = $decodedId;
+        
+        // Récupérer les informations du versement
+        $versement = $this->scolariteModel->getVersementById($id);
+        
+        if (!$versement) {
+            die("Versement non trouvé");
+        }
+
+        // Récupérer les informations de l'étudiant via l'inscription
+        $inscription = $this->scolariteModel->getInscriptionById($versement['id_inscription']);
+        $etudiant = $this->scolariteModel->getInfoEtudiant($inscription['id_etudiant']);
+
+        $data = [
+            'etudiant' => [
+                'nom_complet' => $etudiant['nom_etu'] . ' ' . $etudiant['prenom_etu'],
+                'matricule' => $etudiant['num_etu']
+            ],
+            'paiement' => [
+                'reference' => 'REF-' . $versement['id_versement'],
+                'date' => date('d/m/Y', strtotime($versement['date_versement'])),
+                'motif' => 'Versement Scolarité (' . $versement['type_versement'] . ')',
+                'mode' => $versement['methode_paiement'],
+                'montant' => $versement['montant']
+            ]
+        ];
+
+        $generator = new DocumentGeneratorService();
+        $generator->generatePdfFromView('ressources/views/pdf/recu_paiement.php', $data, 'recu_versement_' . $id . '.pdf');
+    }
 }

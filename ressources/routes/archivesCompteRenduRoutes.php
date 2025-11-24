@@ -2,7 +2,7 @@
 
 require_once __DIR__ . '/../../app/controllers/ArchivesCompteRenduController.php';
 
-if (isset($_GET['page']) && $_GET['page'] === 'archive_comptes_rendus') {
+if (!isset($GLOBALS['skip_legacy_routing']) && isset($_GET['page']) && $_GET['page'] === 'archive_comptes_rendus') {
     $controller = new ArchivesCompteRenduController();
     
     // Action pour consulter une archive spécifique

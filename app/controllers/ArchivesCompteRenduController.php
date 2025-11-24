@@ -2,8 +2,14 @@
 
 require_once __DIR__ . '/../models/CompteRendu.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../services/HashIdService.php';
 
 class ArchivesCompteRenduController {
+    private $hashids;
+
+    public function __construct() {
+        $this->hashids = new \App\Services\HashIdService();
+    }
     
     public function index() {
         // Récupérer les paramètres de filtrage
@@ -15,6 +21,12 @@ class ArchivesCompteRenduController {
         
         // Récupérer les archives
         $archives = CompteRendu::getAllArchives($limit, $offset, $search, $year);
+        
+        // Hasher les IDs
+        foreach ($archives as &$archive) {
+            $archive['id_hashed'] = $this->hashids->encode($archive['id_CR']);
+        }
+        
         $stats = CompteRendu::getStatsArchives();
         
         // Calculer le nombre total de pages
@@ -28,14 +40,19 @@ class ArchivesCompteRenduController {
         $GLOBALS['totalPages'] = $totalPages;
         $GLOBALS['search'] = $search;
         $GLOBALS['year'] = $year;
+        
+        // Setup for layout
+        $_GET['page'] = 'archive_comptes_rendus';
+        $GLOBALS['skip_legacy_routing'] = true;
+        require_once __DIR__ . '/../../layout.php';
     }
     
-    public function viewArchive() {
-        $id_CR = $_GET['id'] ?? null;
+    public function viewArchive($id) {
+        $id_CR = $this->hashids->decode($id);
         
         if (!$id_CR) {
             $_SESSION['error'] = "ID du compte rendu manquant.";
-            header('Location: layout.php?page=archives_compte_rendu');
+            header('Location: /compte-rendu/archives');
             exit;
         }
         
@@ -43,7 +60,7 @@ class ArchivesCompteRenduController {
         
         if (!$archive) {
             $_SESSION['error'] = "Compte rendu non trouvé.";
-            header('Location: layout.php?page=archives_compte_rendu');
+            header('Location: /compte-rendu/archives');
             exit;
         }
         
@@ -56,7 +73,8 @@ class ArchivesCompteRenduController {
             exit;
         }
         
-        $id_CR = $_POST['id_CR'] ?? null;
+        $id_hashed = $_POST['id_CR'] ?? null;
+        $id_CR = $this->hashids->decode($id_hashed);
         
         if (!$id_CR) {
             echo json_encode(['success' => false, 'message' => 'ID du compte rendu manquant.']);
@@ -119,6 +137,11 @@ class ArchivesCompteRenduController {
         
         $archives = CompteRendu::getAllArchives(20, 0, $search, $year);
         
+        // Hasher les IDs
+        foreach ($archives as &$archive) {
+            $archive['id_hashed'] = $this->hashids->encode($archive['id_CR']);
+        }
+        
         header('Content-Type: application/json');
         echo json_encode([
             'success' => true,
@@ -128,7 +151,19 @@ class ArchivesCompteRenduController {
         exit;
     }
 
-    public function telechargerPDF($chemin) {
+    public function telecharger($id) {
+        $decodedId = $this->hashids->decode($id);
+        if (!$decodedId) {
+            die("ID invalide");
+        }
+        $id = $decodedId;
+
+        $archive = CompteRendu::getArchiveById($id);
+        if (!$archive || empty($archive['chemin_fichier_pdf'])) {
+            die("Fichier non trouvé");
+        }
+        $chemin = $archive['chemin_fichier_pdf'];
+
         // Sécurisation du chemin
         $chemin = realpath(__DIR__ . '/../../' . $chemin);
         $uploads = realpath(__DIR__ . '/../../ressources/uploads/comptes_rendus/');

@@ -11,7 +11,11 @@ class RedactionCompteRenduController {
         require_once __DIR__ . '/../models/Enseignant.php';
         $enseignantModel = new Enseignant(\Database::getConnection());
         $GLOBALS['enseignants'] = $enseignantModel->getAllEnseignants();
-        // Ne pas inclure la vue ici, le layout s'en charge
+        
+        // Setup for layout
+        $_GET['page'] = 'redaction_compte_rendu';
+        $GLOBALS['skip_legacy_routing'] = true;
+        require_once __DIR__ . '/../../layout.php';
     }
 
     public function enregistrer() {
@@ -26,7 +30,7 @@ class RedactionCompteRenduController {
 
             if (empty($num_etu)) {
                 $_SESSION['error'] = "Aucun étudiant sélectionné.";
-                header('Location: layout.php?page=redaction_compte_rendu');
+                header('Location: /compte-rendu/redaction');
                 exit;
             }
 
@@ -88,7 +92,7 @@ class RedactionCompteRenduController {
             } else {
                 $_SESSION['error'] = 'Erreur lors de l\'enregistrement du compte rendu.';
             }
-            header('Location: layout.php?page=redaction_compte_rendu');
+            header('Location: /compte-rendu/redaction');
             exit;
         }
     }

@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 include '../app/config/database.php';
 include '../app/controllers/AuthController.php';
 include '../app/controllers/MenuController.php';
