@@ -5,3 +5,5 @@ public/assets/css/output_dashboard_admin.css
 .DS_Store
 /vendor/
 composer.phar
+test_*.pdf
+*.log
