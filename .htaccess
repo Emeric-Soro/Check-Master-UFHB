@@ -1,0 +1,36 @@
+# Enable RewriteEngine
+RewriteEngine On
+RewriteBase /
+
+# Security: Block direct access to sensitive directories
+RewriteRule ^app/ - [F,L]
+RewriteRule ^vendor/ - [F,L]
+RewriteRule ^ressources/ - [F,L]
+
+# Block access to .env file
+<Files ".env">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Block access to composer files
+<FilesMatch "^composer\.(json|lock)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Allow access to assets directory
+RewriteCond %{REQUEST_URI} ^/assets/
+RewriteRule ^ - [L]
+
+# Redirect all other requests to index.php if file/directory doesn't exist
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Disable directory browsing
+Options -Indexes
+
+# Error handling
+ErrorDocument 403 /index.php
+ErrorDocument 404 /index.php
