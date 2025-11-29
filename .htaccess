@@ -1,36 +1,32 @@
-# Enable RewriteEngine
+# Active le moteur de réécriture
 RewriteEngine On
 RewriteBase /
 
-# Security: Block direct access to sensitive directories
-RewriteRule ^app/ - [F,L]
-RewriteRule ^vendor/ - [F,L]
-RewriteRule ^ressources/ - [F,L]
+# Bloquer l'accès direct au dossier app/
+RewriteCond %{REQUEST_URI} ^/app/ [NC]
+RewriteRule ^(.*)$ - [F,L]
 
-# Block access to .env file
-<Files ".env">
-    Order allow,deny
-    Deny from all
-</Files>
+# Bloquer l'accès direct au dossier vendor/
+RewriteCond %{REQUEST_URI} ^/vendor/ [NC]
+RewriteRule ^(.*)$ - [F,L]
 
-# Block access to composer files
-<FilesMatch "^composer\.(json|lock)$">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
+# Bloquer l'accès au fichier .env
+RewriteCond %{REQUEST_URI} ^/\.env$ [NC]
+RewriteRule ^(.*)$ - [F,L]
 
-# Allow access to assets directory
+# Autoriser l'accès aux fichiers dans assets/
 RewriteCond %{REQUEST_URI} ^/assets/
-RewriteRule ^ - [L]
+RewriteRule ^(.*)$ - [L]
 
-# Redirect all other requests to index.php if file/directory doesn't exist
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php [QSA,L]
+# Autoriser l'accès aux fichiers dans ressources/
+RewriteCond %{REQUEST_URI} ^/ressources/
+RewriteRule ^(.*)$ - [L]
 
-# Disable directory browsing
-Options -Indexes
+# Si le fichier ou le répertoire existe, le servir directement
+# Ceci permet à layout.php et autres fichiers existants de continuer à fonctionner
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^(.*)$ - [L]
 
-# Error handling
-ErrorDocument 403 /index.php
-ErrorDocument 404 /index.php
+# Sinon, rediriger vers index.php pour le nouveau système de routing
+RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]

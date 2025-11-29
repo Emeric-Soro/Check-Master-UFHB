@@ -9,6 +9,7 @@ require_once __DIR__ . '/../models/Semestre.php';
 require_once __DIR__ . '/../models/Ue.php';
 require_once __DIR__ . '/../models/Ecue.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../services/HashIdService.php';
 
 
 
@@ -21,6 +22,7 @@ class NotesController {
     private $ecueModel;
     private $db;
     private $auditLog;
+    private $hashids;
 
     public function __construct() {
         $this->db = Database::getConnection();
@@ -31,6 +33,7 @@ class NotesController {
         $this->ecueModel = new Ecue($this->db);
         $this->semestreModel = new Semestre($this->db);
         $this->auditLog = new AuditLog($this->db);
+        $this->hashids = new \App\Services\HashIdService();
     }
 
     public function index() {
@@ -203,5 +206,71 @@ class NotesController {
         }
         
         echo json_encode([]);
+    }
+    public function imprimerReleve($id)
+    {
+        require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+
+        $decodedId = $this->hashids->decode($id);
+        if (!$decodedId) {
+            die("ID invalide");
+        }
+        $id = $decodedId;
+        
+        // Récupérer les informations de l'étudiant
+        $etudiant = $this->etudiantModel->getEtudiantById($id);
+        
+        if (!$etudiant) {
+            die("Étudiant non trouvé");
+        }
+
+        // Récupérer les notes de l'étudiant
+        $notesRaw = $this->noteModel->getByStudent($etudiant->num_etu);
+        
+        // Formater les notes pour la vue
+        $notes = [];
+        $totalPoints = 0;
+        $totalCredits = 0;
+
+        if ($notesRaw) {
+            foreach ($notesRaw as $note) {
+                // Récupérer les infos de l'UE (supposons que getByStudent retourne ces infos jointes)
+                // Si ce n'est pas le cas, il faudrait faire des requêtes supplémentaires
+                // Pour l'exemple, on utilise les données disponibles
+                $ue = [
+                    'code' => $note->code_ue ?? 'UE-' . $note->id_ue,
+                    'intitule' => $note->lib_ue ?? 'Unité d\'enseignement ' . $note->id_ue,
+                    'credits' => $note->credit_ue ?? 0,
+                    'moyenne' => $note->moyenne,
+                    'decision' => $note->moyenne >= 10 ? 'Validé' : 'Ajourné'
+                ];
+                
+                $notes[] = $ue;
+                
+                if (is_numeric($note->moyenne) && is_numeric($note->credit_ue)) {
+                    $totalPoints += $note->moyenne * $note->credit_ue;
+                    $totalCredits += $note->credit_ue;
+                }
+            }
+        }
+
+        $moyenneGenerale = $totalCredits > 0 ? $totalPoints / $totalCredits : 0;
+
+        $data = [
+            'annee_academique' => '2024-2025', // À dynamiser
+            'etudiant' => [
+                'nom_complet' => $etudiant->nom_etu . ' ' . $etudiant->prenom_etu,
+                'matricule' => $etudiant->num_etu,
+                'niveau' => $etudiant->promotion_etu, // Ou récupérer le niveau actuel
+                'filiere' => 'MIAGE'
+            ],
+            'notes' => $notes,
+            'moyenne_generale' => $moyenneGenerale,
+            'total_credits' => $totalCredits,
+            'decision_jury' => $moyenneGenerale >= 10 ? 'ADMIS' : 'AJOURNÉ'
+        ];
+
+        $generator = new DocumentGeneratorService();
+        $generator->generatePdfFromView('ressources/views/pdf/releve_notes.php', $data, 'releve_notes_' . $etudiant->num_etu . '.pdf');
     }
 } 

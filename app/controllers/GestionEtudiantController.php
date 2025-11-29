@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . "/../models/Etudiant.php";
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../services/HashIdService.php';
 
 
 class GestionEtudiantController
@@ -10,6 +11,7 @@ class GestionEtudiantController
     private $baseViewPath;
     private $db;
     private $auditLog;
+    private $hashids;
 
     public function __construct()
     {
@@ -21,6 +23,7 @@ class GestionEtudiantController
         $this->db = Database::getConnection();
         $this->etudiant = new Etudiant($this->db);
         $this->auditLog = new AuditLog($this->db);
+        $this->hashids = new \App\Services\HashIdService();
       
     }
 
@@ -259,5 +262,42 @@ class GestionEtudiantController
             error_log("Erreur dans GestionEtudiantController::index : " . $e->getMessage());
             $GLOBALS['messageErreur'] = "Une erreur est survenue. Veuillez réessayer.";
         }
+    }
+    public function imprimerRecu($id)
+    {
+        require_once __DIR__ . '/../utils/DocumentGeneratorService.php';
+        
+        $decodedId = $this->hashids->decode($id);
+        if (!$decodedId) {
+            die("ID invalide");
+        }
+        $id = $decodedId;
+
+        // Récupérer les informations de l'étudiant
+        $etudiant = $this->etudiant->getEtudiantById($id);
+        
+        if (!$etudiant) {
+            die("Étudiant non trouvé");
+        }
+
+        // Simuler des données de paiement pour l'exemple (à adapter selon votre modèle de données réel)
+        $paiement = [
+            'reference' => 'REF-' . date('Ymd') . '-' . $id,
+            'date' => date('d/m/Y'),
+            'motif' => 'Frais de scolarité',
+            'mode' => 'Espèces',
+            'montant' => 0 // À récupérer depuis la base de données
+        ];
+
+        $data = [
+            'etudiant' => [
+                'nom_complet' => $etudiant->nom_etu . ' ' . $etudiant->prenom_etu,
+                'matricule' => $etudiant->num_etu
+            ],
+            'paiement' => $paiement
+        ];
+
+        $generator = new DocumentGeneratorService();
+        $generator->generatePdfFromView('ressources/views/pdf/recu_paiement.php', $data, 'recu_etudiant_' . $id . '.pdf');
     }
 }

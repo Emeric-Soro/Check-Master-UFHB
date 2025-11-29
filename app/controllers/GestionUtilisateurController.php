@@ -38,7 +38,7 @@ class GestionUtilisateurController
 
     }
 
-    // Afficher la liste des étudiants
+    // Afficher la liste des utilisateurs
     public function index()
     {
         $utilisateur_a_modifier = null;
@@ -114,6 +114,9 @@ class GestionUtilisateurController
                                     $messageSuccess = "Utilisateur ajouté avec succès mais erreur lors de l'envoi de l'email.";
                                     $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'utilisateur', 'Partiel');
                                 }
+                                // Redirection après succès
+                                header('Location: /admin/utilisateurs');
+                                exit;
                             } else {
                                 $messageErreur = "Erreur lors de l'ajout de l'utilisateur.";
                                 $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
@@ -190,6 +193,9 @@ class GestionUtilisateurController
                                     $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
                                 }
                             }
+                            // Redirection après succès
+                            header('Location: /admin/utilisateurs');
+                            exit;
                         } catch (Exception $e) {
                             $messageErreur = "Erreur lors de l'ajout en masse : " . $e->getMessage();
                             $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
@@ -232,6 +238,9 @@ class GestionUtilisateurController
                         ) {
                             $messageSuccess = "Utilisateur modifié avec succès.";
                             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
+                            // Redirection après succès
+                            header('Location: /admin/utilisateurs');
+                            exit;
                         } else {
                             $messageErreur = "Erreur lors de la modification de l'utilisateur.";
                             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
@@ -253,6 +262,8 @@ class GestionUtilisateurController
                         if ($success) {
                             $messageSuccess = "Utilisateurs activés avec succès.";
                             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
+                            header('Location: /admin/utilisateurs');
+                            exit;
                         } else {
                             $messageErreur = "Erreur lors de l'activation des utilisateurs.";
                             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
@@ -268,6 +279,8 @@ class GestionUtilisateurController
                         if ($success) {
                             $messageSuccess = "Utilisateurs désactivés avec succès.";
                             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
+                            header('Location: /admin/utilisateurs');
+                            exit;
                         } else {
                             $messageErreur = "Erreur lors de la désactivation des utilisateurs.";
                             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
@@ -291,6 +304,9 @@ class GestionUtilisateurController
         $GLOBALS['enseignantsNonUtilisateurs'] = $enseignantsNonUtilisateurs;
         $GLOBALS['personnelNonUtilisateurs'] = $personnelNonUtilisateurs;
         $GLOBALS['etudiantsNonUtilisateurs'] = $etudiantsNonUtilisateurs;
+        
+        // Inclure la vue
+        require_once $this->baseViewPath . 'gestion_utilisateurs/gestion_utilisateurs.php';
     }
 
 
@@ -355,7 +371,7 @@ class GestionUtilisateurController
                     </div>
                     
                     <p>Vous pouvez dès maintenant vous connecter à votre compte :</p>
-                     <a href="http://localhost:8080/page_connexion.php" class="button " style="color:#fff">Se connecter</a>
+                     <a href="http://localhost:8080/" class="button " style="color:#fff">Se connecter</a>
                     <p>Si vous n\'êtes pas à l\'origine de cette création de compte, veuillez ignorer cet email ou contacter notre support.</p>
                 </div>
                 
@@ -432,7 +448,6 @@ class GestionUtilisateurController
             return false;
         }
     }
-
 
 
 }

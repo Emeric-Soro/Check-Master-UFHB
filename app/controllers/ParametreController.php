@@ -108,6 +108,8 @@ class ParametreController
                         if ($this->anneeAcademique->updateAnneeAcademique($nouvel_id, $dateDebut, $dateFin)) {
                             $messageSuccess = "Année académique modifiée avec succès.";
                             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'annee_academique', 'Succès');
+                            header('Location: /admin/annees');
+                            exit;
                         } else {
                             $messageErreur = "Erreur lors de la mise à jour de l'année académique.";
                             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'annee_academique', 'Erreur');
@@ -117,6 +119,8 @@ class ParametreController
                         if ($this->anneeAcademique->ajouterAnneeAcademique($dateDebut, $dateFin)) {
                             $messageSuccess = "Année académique ajoutée avec succès.";
                             $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'annee_academique', 'Succès');
+                            header('Location: /admin/annees');
+                            exit;
                         } else {
                             $messageErreur = "Erreur lors de l'ajout de l'année académique.";
                             $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'annee_academique', 'Erreur');
@@ -139,6 +143,8 @@ class ParametreController
             if ($success) {
                 $messageSuccess = "Années académiques supprimées avec succès.";
                 $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'annee_academique', 'Succès');
+                header('Location: /admin/annees');
+                exit;
             } else {
                 $messageErreur = "Erreur lors de la suppression des années académiques.";
                 $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'annee_academique', 'Erreur');
@@ -155,6 +161,9 @@ class ParametreController
         $GLOBALS['listeAnnees'] = $this->anneeAcademique->getAllAnneeAcademiques();
         $GLOBALS['messageErreur'] = $messageErreur;
         $GLOBALS['messageSuccess'] = $messageSuccess;
+
+        // Inclure la vue
+        require_once $this->baseViewPath . 'gestion_annees_academiques.php';
     }
     //=============================FIN GESTION ANNEE ACADEMIQUE=============================
 
@@ -492,6 +501,8 @@ class ParametreController
                 if ($this->ue->updateUe($_POST['id_ue'], $lib_ue, $id_niveau_etude, $id_semestre, $id_annee, $credit, $id_enseignant)) {
                     $messageSuccess = "UE modifiée avec succès.";
                     $this->auditLog->logModification($_SESSION['id_utilisateur'], 'ue', 'Succès');
+                    header('Location: /admin/ue');
+                    exit;
                 } else {
                     $messageErreur = "Erreur lors de la modification de l'UE.";
                     $this->auditLog->logModification($_SESSION['id_utilisateur'], 'ue', 'Erreur');
@@ -500,6 +511,8 @@ class ParametreController
                 if ($this->ue->ajouterUe($lib_ue, $id_niveau_etude, $id_semestre, $id_annee, $credit, $id_enseignant)) {
                     $messageSuccess = "UE ajoutée avec succès.";
                     $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'ue', 'Succès');
+                    header('Location: /admin/ue');
+                    exit;
                 } else {
                     $messageErreur = "Erreur lors de l'ajout de l'UE.";
                     $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'ue', 'Erreur');
@@ -519,6 +532,8 @@ class ParametreController
             if ($success) {
                 $messageSuccess = "UEs supprimées avec succès.";
                 $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'ue', 'Succès');
+                header('Location: /admin/ue');
+                exit;
             } else {
                 $messageErreur = "Erreur lors de la suppression des UEs.";
                 $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'ue', 'Erreur');
@@ -537,6 +552,9 @@ class ParametreController
         $GLOBALS['listeEnseignants'] = $this->enseignant->getAllEnseignants();
         $GLOBALS['messageErreur'] = $messageErreur;
         $GLOBALS['messageSuccess'] = $messageSuccess;
+
+        // Inclure la vue
+        require_once $this->baseViewPath . 'gestion_ue.php';
     }
     //=============================FIN GESTION UE=============================
 
