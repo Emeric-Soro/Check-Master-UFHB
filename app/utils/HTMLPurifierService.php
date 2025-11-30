@@ -65,9 +65,7 @@ class HTMLPurifierService
             $config->set('Core.Encoding', 'UTF-8');
             
             // Disable cache in development for easier testing
-            if (getenv('APP_ENV') !== 'production') {
-                $config->set('Cache.DefinitionImpl', null);
-            }
+            $config->set('Cache.DefinitionImpl', null);
             
             self::$purifier = new HTMLPurifier($config);
         }
