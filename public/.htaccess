@@ -1,7 +1,13 @@
 RewriteEngine On
-RewriteBase /
 
-# Si le fichier ou le répertoire n'existe pas, rediriger vers index.php
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]
+# Servir directement les fichiers/dossiers existants
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Si une version .php existe, y pointer (URLs sans extension)
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.+)$ $1.php [L,QSA]
+
+# Fallback vers index.php
+RewriteRule ^ index.php [L,QSA]

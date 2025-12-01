@@ -2,8 +2,13 @@
   "name": "ocean/projet-soutenance",
   "description": "Systeme de gestion de la commission de validation des soutenances",
   "type": "project",
+  "config": {
+    "platform": {
+      "php": "7.4.33"
+    }
+  },
   "require": {
-    "php": "^8.2",
+    "php": "^7.4",
     "ext-pdo": "*",
     "ext-curl": "*",
     "ext-fileinfo": "*",
@@ -13,10 +18,12 @@
     "phpoffice/phpword": "^1.1",
     "mpdf/mpdf": "^8.2",
     "dompdf/dompdf": "^3.1",
-    "ezyang/htmlpurifier": "^4.19"
+    "ezyang/htmlpurifier": "^4.19",
+    "psr/log": "^1.1",
+    "mpdf/psr-log-aware-trait": "^2.0"
   },
   "require-dev": {
-    "symfony/var-dumper": "^7.0"
+    "symfony/var-dumper": "^5.4"
   },
   "autoload": {
     "psr-4": {

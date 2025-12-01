@@ -51,7 +51,7 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars($_SESSION['error'])
     <div class="relative flex min-h-screen items-center justify-center px-6 py-16">
         <div class="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
             <div class="space-y-10">
-                <a href="index.php" class="inline-flex items-center space-x-3 rounded-full border border-primary/20 bg-white/60 px-5 py-2 text-sm font-semibold text-primary shadow-sm backdrop-blur">
+                <a href="https://checkmaster.ufrmi-ufhb-ci.com/" class="inline-flex items-center space-x-3 rounded-full border border-primary/20 bg-white/60 px-5 py-2 text-sm font-semibold text-primary shadow-sm backdrop-blur">
                     <span class="inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-2 ring-primary/20">
                         <img src="image/logo_cm_sbg.png" alt="UFHB" class="h-full w-full object-contain">
                     </span>

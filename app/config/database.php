@@ -2,7 +2,7 @@
 class Database {
     // Configuration de la base de données (sans Docker)
     private static $host = 'localhost';
-    private static $db = 'soutenance_manager';
+    private static $db = 'ufrmi1802974_2q2mpf';
     private static $user = 'root';
     private static $pass = '';
     private static $charset = 'utf8';

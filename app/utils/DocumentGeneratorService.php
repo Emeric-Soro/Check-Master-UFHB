@@ -156,9 +156,7 @@ class DocumentGeneratorService
      * @return string Path to the generated PDF file
      * @throws Exception If template not found or conversion fails
      */
-    public function generateFromTemplate(string $templateName, array $data): string
-    {
-        if (!str_ends_with($templateName, '.docx')) {
+if (substr_compare($templateName, '.docx', -5) !== 0) {
             $templateName .= '.docx';
         }
 
@@ -471,7 +469,7 @@ class DocumentGeneratorService
      */
     public function getTemplatePath(string $templateName): ?string
     {
-        if (!str_ends_with($templateName, '.docx')) {
+        if (substr_compare($templateName, '.docx', -5) !== 0) {
             $templateName .= '.docx';
         }
         
@@ -533,7 +531,7 @@ class DocumentGeneratorService
 
         // Sanitize filename
         $sanitizedName = preg_replace('/[^a-zA-Z0-9_\-.]/', '_', basename($templateName));
-        if (!str_ends_with($sanitizedName, '.docx')) {
+        if (substr_compare($sanitizedName, '.docx', -5) !== 0) {
             $sanitizedName .= '.docx';
         }
 
@@ -624,7 +622,7 @@ class DocumentGeneratorService
     {
         // Sanitize filename
         $filename = preg_replace('/[^a-zA-Z0-9_\-.]/', '_', basename($filename));
-        if (!str_ends_with($filename, '.csv')) {
+        if (substr_compare($filename, '.csv', -4) !== 0) {
             $filename .= '.csv';
         }
 

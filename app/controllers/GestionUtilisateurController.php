@@ -10,7 +10,7 @@ require_once __DIR__ . "/../models/AuditLog.php";
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
-require_once '../vendor/autoload.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 class GestionUtilisateurController
 {
@@ -355,7 +355,7 @@ class GestionUtilisateurController
                     </div>
                     
                     <p>Vous pouvez dès maintenant vous connecter à votre compte :</p>
-                     <a href="http://localhost:8080/page_connexion.php" class="button " style="color:#fff">Se connecter</a>
+                     <a href="http://https://checkmaster.ufrmi-ufhb-ci.com/page_connexion.php" class="button " style="color:#fff">Se connecter</a>
                     <p>Si vous n\'êtes pas à l\'origine de cette création de compte, veuillez ignorer cet email ou contacter notre support.</p>
                 </div>
                 
