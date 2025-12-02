@@ -172,18 +172,18 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
                             <form method="POST" class="space-y-5">
                                 <input type="hidden" name="token" value="<?= htmlspecialchars($_GET['token']) ?>">
                                 <div class="space-y-2">
-                                    <label class="text-sm font-semibold text-slate-800">Nouveau mot de passe</label>
+                                    <label for="newPassword" class="text-sm font-semibold text-slate-800">Nouveau mot de passe</label>
                                     <div class="relative">
-                                        <input name="newPassword" type="password" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10" placeholder="Votre nouveau mot de passe">
+                                        <input id="newPassword" name="newPassword" type="password" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10" placeholder="Votre nouveau mot de passe">
                                         <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
                                             <i class="fas fa-lock"></i>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="space-y-2">
-                                    <label class="text-sm font-semibold text-slate-800">Confirmez le mot de passe</label>
+                                    <label for="confirmPassword" class="text-sm font-semibold text-slate-800">Confirmez le mot de passe</label>
                                     <div class="relative">
-                                        <input name="confirmPassword" type="password" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10" placeholder="Confirmez le mot de passe">
+                                        <input id="confirmPassword" name="confirmPassword" type="password" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10" placeholder="Confirmez le mot de passe">
                                         <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
                                             <i class="fas fa-check"></i>
                                         </div>
@@ -196,9 +196,9 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
                         <?php elseif (!$success): ?>
                             <form method="POST" class="space-y-5">
                                 <div class="space-y-2">
-                                    <label class="text-sm font-semibold text-slate-800">Adresse e-mail</label>
+                                    <label for="email" class="text-sm font-semibold text-slate-800">Adresse e-mail</label>
                                     <div class="relative">
-                                        <input name="email" type="email" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10" placeholder="login@exemple.com">
+                                        <input id="email" name="email" type="email" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10" placeholder="login@exemple.com">
                                         <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
                                             <i class="fas fa-paper-plane"></i>
                                         </div>

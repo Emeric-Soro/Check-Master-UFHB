@@ -59,7 +59,7 @@ class DocumentGeneratorService
 
         // Create a temporary HTML file
         $tempHtmlFile = $this->tempPath . uniqid('html_') . '.html';
-        
+
         // Wrap content in a complete HTML document if not already wrapped
         if (stripos($htmlContent, '<!DOCTYPE') === false) {
             $htmlContent = "<!DOCTYPE html>
@@ -77,20 +77,20 @@ class DocumentGeneratorService
 </body>
 </html>";
         }
-        
+
         if (file_put_contents($tempHtmlFile, $htmlContent) === false) {
             throw new Exception("Erreur lors de la création du fichier temporaire HTML.");
         }
 
         try {
             $pdfPath = $this->gotenbergConvertHtmlToPdf($tempHtmlFile, $options);
-            
+
             if (!file_exists($pdfPath) || filesize($pdfPath) === 0) {
                 throw new Exception("La conversion HTML->PDF a échoué ou le fichier est vide.");
             }
 
             return $pdfPath;
-            
+
         } finally {
             // Clean up temporary HTML file
             if (file_exists($tempHtmlFile)) {
@@ -105,14 +105,14 @@ class DocumentGeneratorService
     private function gotenbergConvertHtmlToPdf(string $htmlFilePath, array $options): string
     {
         $gotenbergHtmlUrl = 'http://gotenberg:3000/forms/chromium/convert/html';
-        
+
         $curl = curl_init();
         if ($curl === false) {
             throw new Exception("Impossible d'initialiser cURL.");
         }
-        
+
         $file = new CURLFile($htmlFilePath, 'text/html', basename($htmlFilePath));
-        
+
         $postData = [
             'files' => $file,
             'paperWidth' => $options['paperWidth'] ?? ($options['paperSize'] === 'A4' ? '8.27' : '11'),
@@ -156,7 +156,9 @@ class DocumentGeneratorService
      * @return string Path to the generated PDF file
      * @throws Exception If template not found or conversion fails
      */
-if (substr_compare($templateName, '.docx', -5) !== 0) {
+    public function generateFromTemplate(string $templateName, array $data): string
+    {
+        if (substr_compare($templateName, '.docx', -5) !== 0) {
             $templateName .= '.docx';
         }
 
@@ -210,12 +212,8 @@ if (substr_compare($templateName, '.docx', -5) !== 0) {
             $stringValue = $this->formatValue($value);
 
             try {
-                // Check if a placeholder with this key exists before setting the value
-                // Note: PHPWord's TemplateProcessor doesn't have a direct `hasPlaceholder` method.
-                // We rely on its internal handling, but we can log if a key is not found.
                 $template->setValue($key, $stringValue);
             } catch (Exception $e) {
-                // Log that a placeholder was in the data but not found in the template
                 error_log("Placeholder '{$key}' was provided in data but not found in the template. Message: " . $e->getMessage());
             }
         }
@@ -272,7 +270,7 @@ if (substr_compare($templateName, '.docx', -5) !== 0) {
             if (empty($rows)) {
                 return;
             }
-            
+
             $firstRow = $rows[0];
             $firstKey = array_key_first($firstRow);
 
@@ -423,7 +421,7 @@ if (substr_compare($templateName, '.docx', -5) !== 0) {
     /**
      * Clean up a temporary PDF file
      *
-     * @param string $pdfPath Path to the PDF file to delete
+     * @param string $filePath Path to the PDF file to delete
      * @return bool True if deleted successfully
      */
     public function cleanupTempFile(string $filePath): bool
@@ -465,20 +463,20 @@ if (substr_compare($templateName, '.docx', -5) !== 0) {
      * Get template file path
      *
      * @param string $templateName
-     * @return string
+     * @return string|null
      */
     public function getTemplatePath(string $templateName): ?string
     {
         if (substr_compare($templateName, '.docx', -5) !== 0) {
             $templateName .= '.docx';
         }
-        
+
         $path = $this->templatesPath . $templateName;
-        
+
         if (file_exists($path)) {
             return $path;
         }
-        
+
         return null;
     }
 
@@ -519,7 +517,7 @@ if (substr_compare($templateName, '.docx', -5) !== 0) {
         // Validate file type based on MIME type
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mimeType = $finfo->file($uploadedFile['tmp_name']);
-        
+
         $allowedMimeTypes = [
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
             'application/msword', // .doc
@@ -545,72 +543,8 @@ if (substr_compare($templateName, '.docx', -5) !== 0) {
     }
 
     /**
-     * Convertit un document Word (.docx) en HTML en utilisant Gotenberg.
-     *
-     * @param string $docxPath Chemin vers le fichier .docx source.
-     * @return string Le contenu HTML du document.
-     * @throws Exception Si la conversion échoue ou si l'extension ZipArchive n'est pas disponible.
-     */
-    public function convertDocxToHtml(string $docxPath): string
-    {
-        if (!file_exists($docxPath)) {
-            throw new Exception("Fichier modèle non trouvé : {$docxPath}");
-        }
-
-        // This functionality is complex and better handled by a dedicated service like Gotenberg.
-        // The existing implementation using Gotenberg is solid.
-        // For robustness, we can add more detailed error logging.
-
-        $gotenbergUrl = 'http://gotenberg:3000/forms/libreoffice/convert';
-
-        $curl = curl_init();
-        if ($curl === false) {
-            throw new Exception("Impossible d'initialiser cURL.");
-        }
-
-        $file = new CURLFile($docxPath, mime_content_type($docxPath) ?: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', basename($docxPath));
-        
-        curl_setopt_array($curl, [
-            CURLOPT_URL => $gotenbergUrl,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => ['files' => $file],
-            CURLOPT_TIMEOUT => 60,
-        ]);
-
-        $response = curl_exec($curl);
-        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        $error = curl_error($curl);
-        curl_close($curl);
-
-        if ($response === false || $httpCode !== 200) {
-            error_log("Gotenberg DOCX->HTML conversion failed. Code: {$httpCode}, Error: {$error}");
-            throw new Exception("Erreur du service de conversion DOCX->HTML.");
-        }
-
-        // Gotenberg returns a zip file containing index.html
-        $tempZipFile = $this->tempPath . uniqid('gotenberg_html_') . '.zip';
-        file_put_contents($tempZipFile, $response);
-
-        $zip = new ZipArchive;
-        if ($zip->open($tempZipFile) === TRUE) {
-            $htmlContent = $zip->getFromName('index.html');
-            $zip->close();
-            unlink($tempZipFile);
-
-            if ($htmlContent === false) {
-                throw new Exception("Le fichier index.html n'a pas été trouvé dans l'archive de conversion.");
-            }
-            return $htmlContent;
-        } else {
-            unlink($tempZipFile);
-            throw new Exception("Impossible d'ouvrir l'archive de conversion.");
-        }
-    }
-
-    /**
      * Export data to CSV with UTF-8 BOM and semicolon separator for Excel compatibility
-     * 
+     *
      * @param array $data Array of associative arrays (rows)
      * @param array $headers Column headers
      * @param string $filename Output filename (without path)
@@ -635,10 +569,10 @@ if (substr_compare($templateName, '.docx', -5) !== 0) {
 
         // Add UTF-8 BOM for Excel compatibility
         fprintf($output, "\xEF\xBB\xBF");
-        
+
         // Write headers
         fputcsv($output, $headers, ';');
-        
+
         // Write data rows
         foreach ($data as $row) {
             $orderedRow = [];
@@ -648,7 +582,7 @@ if (substr_compare($templateName, '.docx', -5) !== 0) {
             }
             fputcsv($output, $orderedRow, ';');
         }
-        
+
         fclose($output);
 
         if ($download) {
@@ -657,7 +591,7 @@ if (substr_compare($templateName, '.docx', -5) !== 0) {
             header('Content-Disposition: attachment; filename="' . $filename . '"');
             header('Content-Length: ' . filesize($csvPath));
             readfile($csvPath);
-            
+
             // Clean up the temp file after download
             $this->cleanupTempFile($csvPath);
             exit;

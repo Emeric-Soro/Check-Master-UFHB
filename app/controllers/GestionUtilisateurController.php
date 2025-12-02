@@ -15,7 +15,6 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 class GestionUtilisateurController
 {
     private $utilisateur;
-    private $baseViewPath;
 
     private $typeUtilisateur;
 
@@ -29,7 +28,6 @@ class GestionUtilisateurController
     public function __construct()
     {
 
-        $this->baseViewPath = __DIR__ . '/../../ressources/views/';
         $this->utilisateur = new Utilisateur(Database::getConnection());
         $this->groupeUtilisateur = new GroupeUtilisateur(Database::getConnection());
         $this->typeUtilisateur = new TypeUtilisateur(Database::getConnection());

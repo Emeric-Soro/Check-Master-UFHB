@@ -1,0 +1,12 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Laisser passer ce qui est deja dans /public
+    RewriteRule ^public/ - [L]
+
+    # Rediriger tout le reste vers /public (chemin relatif pour fonctionner en sous-dossier)
+    RewriteRule ^(.*)$ public/$1 [L,QSA]
+</IfModule>
+
+# Définir le fichier d'index par défaut
+DirectoryIndex index.php
