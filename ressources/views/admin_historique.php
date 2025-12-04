@@ -261,7 +261,7 @@ $messageErreur = $GLOBALS['messageErreur'] ?? '';
                             <?php else: ?>
                                 <?php foreach ($students as $student): ?>
                                     <tr class="hover:bg-gray-50 cursor-pointer"
-                                        onclick="window.location.href='?page=admin_historique&action=view_student&num_etu=<?php echo $student['matricule']; ?>'">
+                                        onclick="window.location.href='?page=admin_historique&action=view_student&num_etu=<?php echo urlencode($student['matricule']); ?>'">>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                             <?php echo htmlspecialchars($student['matricule']); ?>
                                         </td>
@@ -293,7 +293,7 @@ $messageErreur = $GLOBALS['messageErreur'] ?? '';
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <a href="?page=admin_historique&action=view_student&num_etu=<?php echo $student['matricule']; ?>"
+                                            <a href="?page=admin_historique&action=view_student&num_etu=<?php echo urlencode($student['matricule']); ?>"
                                                class="text-primary hover:text-primary-light">
                                                 <i class="fas fa-eye mr-1"></i>Voir
                                             </a>

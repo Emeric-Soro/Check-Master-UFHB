@@ -207,7 +207,9 @@ if (!$studentFile) {
                     </div>
                     <div class="form-group">
                         <label class="form-label">Date de Validation Commission</label>
-                        <input type="text" class="form-input" value="<?php echo htmlspecialchars(date('d/m/Y', strtotime($studentFile['rapport']['date_validation'] ?? 'now'))); ?>" readonly>
+                        <input type="text" class="form-input" 
+                               value="<?php echo !empty($studentFile['rapport']['date_validation']) ? htmlspecialchars(date('d/m/Y', strtotime($studentFile['rapport']['date_validation']))) : 'N/A'; ?>" 
+                               readonly>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Statut</label>
@@ -286,7 +288,7 @@ if (!$studentFile) {
                     <div class="form-group">
                         <label class="form-label">Date de Soutenance</label>
                         <input type="text" class="form-input" 
-                               value="<?php echo htmlspecialchars(date('d/m/Y', strtotime($studentFile['soutenance']['date_soutenance'] ?? 'now'))); ?>" 
+                               value="<?php echo !empty($studentFile['soutenance']['date_soutenance']) ? htmlspecialchars(date('d/m/Y', strtotime($studentFile['soutenance']['date_soutenance']))) : 'N/A'; ?>" 
                                readonly>
                     </div>
                     <div class="form-group">

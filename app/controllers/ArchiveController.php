@@ -165,12 +165,10 @@ class ArchiveController
             if ($success) {
                 // Log the action
                 if (isset($_SESSION['id_utilisateur'])) {
-                    $this->auditLog->log(
+                    $this->auditLog->logModification(
                         $_SESSION['id_utilisateur'],
-                        'UPDATE',
                         'Archive Étudiant',
-                        "Mise à jour du dossier de l'étudiant $numEtu",
-                        $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+                        "Mise à jour du dossier de l'étudiant $numEtu"
                     );
                 }
                 
@@ -235,12 +233,11 @@ class ArchiveController
             
             // Log the import
             if (isset($_SESSION['id_utilisateur'])) {
-                $this->auditLog->log(
+                $this->auditLog->logAction(
                     $_SESSION['id_utilisateur'],
-                    'IMPORT',
+                    'Import',
                     'Archive',
-                    "Import d'archives: {$summary['total_success']} succès, {$summary['total_errors']} erreurs",
-                    $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+                    "Import: {$summary['total_success']} succès, {$summary['total_errors']} erreurs"
                 );
             }
             

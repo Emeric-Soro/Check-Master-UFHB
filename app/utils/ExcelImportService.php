@@ -222,7 +222,10 @@ class ExcelImportService
             VALUES (:num_etu, :nom, :prenom, :email, :date_naiss, :genre, :promotion)
         ");
         
-        $email = strtolower($row[self::COL_PRENOMS]) . '.' . strtolower($row[self::COL_NOM]) . '@example.com';
+        // Generate email from name (sanitized)
+        $prenomClean = $this->sanitizeForEmail($row[self::COL_PRENOMS]);
+        $nomClean = $this->sanitizeForEmail($row[self::COL_NOM]);
+        $email = strtolower($prenomClean) . '.' . strtolower($nomClean) . '@student.ufhb.edu.ci';
         
         $stmt->execute([
             'num_etu' => $matricule,
@@ -235,6 +238,18 @@ class ExcelImportService
         ]);
         
         return $matricule;
+    }
+    
+    /**
+     * Sanitize string for email generation
+     */
+    private function sanitizeForEmail($str)
+    {
+        // Remove accents
+        $str = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $str);
+        // Remove special characters and spaces
+        $str = preg_replace('/[^a-zA-Z0-9]/', '', $str);
+        return $str;
     }
     
     /**
@@ -276,6 +291,10 @@ class ExcelImportService
         $dateDebut = $parts[0] . '-01-01';
         $dateFin = $parts[0] . '-06-30';
         
+        // Use provided values or defaults
+        $emailEncadrant = '';  // Will be empty if not provided
+        $telEncadrant = '';    // Will be empty if not provided
+        
         $stmt->execute([
             'num_etu' => $numEtu,
             'id_entreprise' => $idEntreprise,
@@ -284,8 +303,8 @@ class ExcelImportService
             'sujet' => $row[self::COL_THEME] ?? 'Stage',
             'description' => 'Stage importé depuis archives',
             'encadrant' => $row[self::COL_MAITRE_STAGE] ?? 'Non spécifié',
-            'email' => 'contact@example.com',
-            'tel' => '0000000000'
+            'email' => $emailEncadrant,
+            'tel' => $telEncadrant
         ]);
         
         return $this->db->lastInsertId();
@@ -307,11 +326,12 @@ class ExcelImportService
         $etape = ($statut === 'valider') ? 'approuve_commission' : 'en_attente_commission';
         
         $dateCommission = !empty($row[self::COL_DATE_COMMISSION]) ? $row[self::COL_DATE_COMMISSION] : date('Y-m-d');
+        $dateTime = $dateCommission . ' 00:00:00';
         
         $stmt->execute([
             'num_etu' => $numEtu,
             'nom' => 'Rapport ' . $row[self::COL_NOM] . ' ' . $row[self::COL_PRENOMS],
-            'date' => $dateCommission . ' 00:00:00',
+            'date' => $dateTime,
             'theme' => $row[self::COL_THEME],
             'statut' => $statut,
             'etape' => $etape
@@ -344,7 +364,10 @@ class ExcelImportService
         }
         
         // Create new enseignant
-        $email = strtolower($prenom) . '.' . strtolower($nom) . '@ufhb.edu.ci';
+        // Sanitize name for email
+        $prenomClean = $this->sanitizeForEmail($prenom);
+        $nomClean = $this->sanitizeForEmail($nom);
+        $email = strtolower($prenomClean) . '.' . strtolower($nomClean) . '@ufhb.edu.ci';
         
         $stmt = $this->db->prepare("
             INSERT INTO enseignants (nom_enseignant, prenom_enseignant, mail_enseignant, id_specialite, type_enseignant)
@@ -385,6 +408,7 @@ class ExcelImportService
     private function createValidation($idEnseignant, $idRapport, $row)
     {
         $dateCommission = !empty($row[self::COL_DATE_COMMISSION]) ? $row[self::COL_DATE_COMMISSION] : date('Y-m-d');
+        $dateTime = $dateCommission . ' 00:00:00';
         $avis = $row[self::COL_AVIS_COMMISSION] ?? 'Validé';
         $observations = $row[self::COL_OBSERVATIONS] ?? 'Importé depuis archives';
         
@@ -398,7 +422,7 @@ class ExcelImportService
         $stmt->execute([
             'id_enseignant' => $idEnseignant,
             'id_rapport' => $idRapport,
-            'date' => $dateCommission . ' 00:00:00',
+            'date' => $dateTime,
             'commentaire' => $observations,
             'decision' => $decision
         ]);
@@ -515,11 +539,13 @@ class ExcelImportService
             VALUES (:num_jury, :id_enseignant, :id_qualite, :date)
         ");
         
+        $currentTimestamp = time();
+        
         $stmt->execute([
             'num_jury' => $numJury,
             'id_enseignant' => $idEnseignant,
             'id_qualite' => $idQualite,
-            'date' => time()
+            'date' => $currentTimestamp
         ]);
     }
     
