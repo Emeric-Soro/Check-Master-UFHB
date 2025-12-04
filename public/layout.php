@@ -23,6 +23,7 @@ include __DIR__ . '/../ressources/routes/archivesDossiersSoutenanceRoutes.php';
 include __DIR__ . '/../ressources/routes/auditRoutes.php';
 include __DIR__ . '/../ressources/routes/redactionCompteRenduRoutes.php';
 include __DIR__ . '/../ressources/routes/archivesCompteRenduRoutes.php';
+include __DIR__ . '/../ressources/routes/archiveHistoryRoutes.php';
 if (!isset($_SESSION['id_utilisateur'])) {
     header('Location: page_connexion.php');
     exit;
@@ -246,6 +247,9 @@ if (!isset($_SESSION['id_utilisateur'])) {
             $contentFile = $partialsBasePath . 'redaction_compte_rendu/archives_compte_rendu_content.php';
             $currentPageLabel = 'Archives des comptes rendus';
             break;
+        case 'admin_historique':
+            // Handled by archiveHistoryRoutes.php
+            exit;
         default:
             $groupeUtilisateur = $_SESSION['lib_GU'];
             if ($groupeUtilisateur) {
