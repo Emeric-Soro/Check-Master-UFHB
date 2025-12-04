@@ -10,420 +10,358 @@ $messageSuccess = $GLOBALS['messageSuccess'] ?? '';
 $messageErreur = $GLOBALS['messageErreur'] ?? '';
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historique et Archivage</title>
-    <style>
-        .tab-button {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            font-weight: 500;
-            color: #64748b;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-        }
-        
-        .tab-button.active {
-            color: #0F4C75;
-            border-bottom-color: #0F4C75;
-        }
-        
-        .tab-button:hover {
-            color: #0F4C75;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .filter-section {
-            background: #f8fafc;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-        
-        .status-valider {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .status-rejeter {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        
-        .status-en_cours {
-            background: #fef3c7;
-            color: #92400e;
-        }
-        
-        .notification {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            color: white;
-            max-width: 24rem;
-            z-index: 50;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            animation: slideIn 0.5s ease-out;
-        }
-        
-        .notification.success {
-            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-        }
-        
-        .notification.error {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        }
-        
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-    </style>
-</head>
-<body class="bg-gray-50">
-    <!-- Notifications -->
+<style>
+:root {
+    --cm-primary: #1a5276;
+    --cm-primary-strong: #17405e;
+    --cm-primary-soft: #e8f0f6;
+    --cm-accent: #ff8c00;
+    --cm-muted: #64748b;
+    --cm-border: #e2e8f0;
+    --cm-surface: #ffffff;
+    --cm-bg: #f8fafc;
+}
+
+.archive-shell { color: #0f172a; font-family: 'Poppins', 'Inter', system-ui, -apple-system, sans-serif; }
+.page-header { background: linear-gradient(120deg, #ffffff 0%, #f5f9ff 100%); border: 1px solid var(--cm-border); border-radius: 16px; padding: 20px 24px; box-shadow: 0 12px 30px rgba(17,24,39,.06); }
+.page-kicker { color: var(--cm-accent); font-weight: 600; font-size: 0.95rem; letter-spacing: 0.02em; }
+.page-title { margin: 0.25rem 0; font-size: 1.75rem; color: var(--cm-primary); font-weight: 700; }
+.page-subtitle { color: var(--cm-muted); font-size: 0.95rem; }
+
+.card { background: var(--cm-surface); border: 1px solid var(--cm-border); border-radius: 16px; box-shadow: 0 10px 24px rgba(17,24,39,.06); }
+.card-body { padding: 1.5rem; }
+.section-title { font-size: 1.2rem; font-weight: 700; color: var(--cm-primary); }
+.text-muted { color: var(--cm-muted); }
+
+.btn { display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid transparent; border-radius: 12px; padding: 0.65rem 1.2rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+.btn-primary { background: linear-gradient(135deg, var(--cm-primary), var(--cm-primary-strong)); color: #fff; box-shadow: 0 10px 20px rgba(26,82,118,0.2); }
+.btn-primary:hover { background: var(--cm-primary-strong); }
+.btn-ghost { background: #f8fafc; color: var(--cm-primary); border-color: var(--cm-border); }
+.btn-ghost:hover { background: #eef2f7; border-color: var(--cm-primary); color: var(--cm-primary); }
+.btn-secondary { background: linear-gradient(135deg, #f97316, #f59e0b); color: #fff; box-shadow: 0 10px 20px rgba(249,115,22,0.18); }
+
+.badge { display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 999px; padding: 0.35rem 0.75rem; font-weight: 600; font-size: 0.85rem; border: 1px solid transparent; }
+.status-valider { background: #ecfdf3; color: #027a48; border-color: #bbf7d0; }
+.status-rejeter { background: #fef2f2; color: #b91c1c; border-color: #fecdd3; }
+.status-en_cours { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+
+.tab-nav { display: flex; gap: 1.5rem; padding: 0 1.5rem; border-bottom: 1px solid var(--cm-border); }
+.tab-button { background: none; border: none; padding: 0.95rem 0; position: relative; color: var(--cm-muted); font-weight: 700; cursor: pointer; }
+.tab-button::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; background: transparent; border-radius: 999px; }
+.tab-button.active { color: var(--cm-primary); }
+.tab-button.active::after { background: var(--cm-primary); }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; padding: 1.25rem 1.5rem 1.5rem; }
+
+.filter-card { background: var(--cm-bg); border: 1px solid var(--cm-border); border-radius: 12px; padding: 1.1rem 1.25rem; }
+.input-label { display: block; font-size: 0.9rem; font-weight: 600; color: #0f172a; margin-bottom: 0.35rem; }
+.input-control { width: 100%; border: 1px solid var(--cm-border); border-radius: 10px; padding: 0.7rem 0.85rem; font-size: 0.95rem; background: #fff; }
+.input-control:focus { outline: none; border-color: var(--cm-primary); box-shadow: 0 0 0 3px rgba(26,82,118,0.1); }
+
+.table-shell { overflow-x: auto; border-radius: 14px; border: 1px solid var(--cm-border); background: var(--cm-surface); }
+.table { width: 100%; border-collapse: collapse; }
+.table th { background: var(--cm-bg); color: var(--cm-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; padding: 0.85rem 1rem; border-bottom: 1px solid var(--cm-border); text-align: left; }
+.table td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--cm-border); font-size: 0.95rem; color: #0f172a; }
+.table tr:hover td { background: #f8fbff; }
+
+.pagination { display: flex; gap: 0.35rem; justify-content: center; margin-top: 1.25rem; }
+.page-link { display: inline-flex; align-items: center; justify-content: center; padding: 0.65rem 0.95rem; border-radius: 10px; border: 1px solid var(--cm-border); color: #0f172a; background: #fff; font-weight: 600; text-decoration: none; }
+.page-link.active { background: var(--cm-primary); border-color: var(--cm-primary); color: #fff; box-shadow: 0 10px 20px rgba(26,82,118,0.2); }
+.page-link:hover { background: #f1f5f9; border-color: var(--cm-primary); color: var(--cm-primary); }
+
+.notice { position: fixed; top: 1rem; right: 1rem; z-index: 50; padding: 1rem 1.25rem; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.12); color: #fff; min-width: 280px; }
+.notice.success { background: linear-gradient(135deg, #16a34a, #15803d); }
+.notice.error { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+</style>
+
+<div class="archive-shell space-y-6">
     <?php if ($messageSuccess): ?>
-        <div class="notification success">
-            <div class="flex items-center">
-                <i class="fas fa-check-circle mr-2"></i>
+        <div class="notice success">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-check-circle"></i>
                 <span><?php echo htmlspecialchars($messageSuccess); ?></span>
             </div>
         </div>
-        <script>
-            setTimeout(() => {
-                document.querySelector('.notification.success')?.remove();
-            }, 5000);
-        </script>
+        <script>setTimeout(() => document.querySelector('.notice.success')?.remove(), 5000);</script>
     <?php endif; ?>
-    
+
     <?php if ($messageErreur): ?>
-        <div class="notification error">
-            <div class="flex items-center">
-                <i class="fas fa-exclamation-circle mr-2"></i>
+        <div class="notice error">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-exclamation-circle"></i>
                 <span><?php echo htmlspecialchars($messageErreur); ?></span>
             </div>
         </div>
-        <script>
-            setTimeout(() => {
-                document.querySelector('.notification.error')?.remove();
-            }, 5000);
-        </script>
+        <script>setTimeout(() => document.querySelector('.notice.error')?.remove(), 5000);</script>
     <?php endif; ?>
 
-    <div class="container mx-auto px-4 py-8">
-        <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">
-                <i class="fas fa-archive text-primary mr-3"></i>
-                Historique et Archivage
-            </h1>
-            <p class="text-gray-600">Consultation et gestion des archives des soutenances passées</p>
+    <div class="page-header">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <div class="page-kicker">Archivage & Historique</div>
+                <h1 class="page-title flex items-center gap-3">
+                    <i class="fas fa-archive text-primary"></i>
+                    Historique et archivage
+                </h1>
+                <p class="page-subtitle">Consultation et gestion des archives des soutenances passées.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <span class="badge status-en_cours">
+                    <i class="fas fa-file-csv"></i>
+                    CSV / XLSX
+                </span>
+                <span class="badge status-valider">
+                    <i class="fas fa-shield-alt"></i>
+                    Import sécurisé
+                </span>
+            </div>
         </div>
-        
-        <!-- Import Section -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <i class="fas fa-upload mr-2 text-primary"></i>
-                Importer des Archives
-            </h2>
-            <form action="?page=admin_historique&action=import" method="POST" enctype="multipart/form-data" class="flex items-center gap-4">
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Fichier CSV (Format: ANNEE_ACAD, MATRICULE, NOM, PRENOMS, THEME, ...)
-                    </label>
-                    <input type="file" name="archive_file" accept=".csv,.xlsx,.xls" required
-                           class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
-                </div>
-                <button type="submit" class="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors">
-                    <i class="fas fa-cloud-upload-alt mr-2"></i>
-                    Importer
-                </button>
-            </form>
-            <p class="mt-2 text-sm text-gray-500">
-                <i class="fas fa-info-circle mr-1"></i>
-                Format attendu: CSV avec 20 colonnes (voir documentation pour détails)
-            </p>
-        </div>
-        
-        <!-- Tabs Navigation -->
-        <div class="bg-white rounded-t-lg shadow-md">
-            <div class="border-b border-gray-200">
-                <div class="flex">
-                    <button class="tab-button <?php echo $currentTab === 'students' ? 'active' : ''; ?>"
-                            onclick="switchTab('students')">
-                        <i class="fas fa-user-graduate mr-2"></i>
-                        Historique des Étudiants
-                    </button>
-                    <button class="tab-button <?php echo $currentTab === 'jury' ? 'active' : ''; ?>"
-                            onclick="switchTab('jury')">
-                        <i class="fas fa-users mr-2"></i>
-                        Historique des Jurys
-                    </button>
+    </div>
+
+    <div class="card">
+        <div class="card-body flex flex-col lg:flex-row gap-6 lg:items-center">
+            <div class="flex-1 space-y-3">
+                <h2 class="section-title">Importer des archives</h2>
+                <p class="text-muted leading-relaxed">
+                    Déposez un fichier CSV ou Excel respectant les 20 colonnes attendues. Les entités manquantes
+                    (enseignants, années académiques, salles, entreprises) sont créées automatiquement.
+                </p>
+                <div class="flex flex-wrap gap-2 text-sm">
+                    <span class="badge status-valider"><i class="fas fa-lock"></i> Validation et nettoyage</span>
+                    <span class="badge status-en_cours"><i class="fas fa-cloud-upload-alt"></i> Transactionnelle</span>
                 </div>
             </div>
-            
-            <!-- Tab Content: Students -->
-            <div id="students-tab" class="tab-content <?php echo $currentTab === 'students' ? 'active' : ''; ?> p-6">
-                <!-- Filters -->
-                <div class="filter-section">
-                    <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <form action="?page=admin_historique&action=import" method="POST" enctype="multipart/form-data" class="w-full lg:max-w-xl space-y-3">
+                <label class="input-label" for="archive_file">Fichier CSV ou Excel</label>
+                <input type="file" id="archive_file" name="archive_file" accept=".csv,.xlsx,.xls" required class="input-control">
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        Importer
+                    </button>
+                    <a href="?page=admin_historique&action=import_form" class="btn btn-ghost">
+                        <i class="fas fa-info-circle"></i>
+                        Voir le gabarit
+                    </a>
+                </div>
+                <p class="text-muted text-sm flex items-center gap-2">
+                    <i class="fas fa-circle-info text-primary"></i>
+                    Format: ANNEE_ACAD, MATRICULE, NOM, PRENOMS, THEME, ...
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="tab-nav">
+            <button class="tab-button <?php echo $currentTab === 'students' ? 'active' : ''; ?>" onclick="switchTab(event, 'students')">
+                <i class="fas fa-user-graduate mr-2"></i>
+                Historique des étudiants
+            </button>
+            <button class="tab-button <?php echo $currentTab === 'jury' ? 'active' : ''; ?>" onclick="switchTab(event, 'jury')">
+                <i class="fas fa-users mr-2"></i>
+                Historique des jurys
+            </button>
+        </div>
+
+        <!-- Tab Content: Students -->
+        <div id="students-tab" class="tab-content <?php echo $currentTab === 'students' ? 'active' : ''; ?>">
+            <div class="space-y-4">
+                <div class="filter-card">
+                    <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                         <input type="hidden" name="page" value="admin_historique">
                         <input type="hidden" name="tab" value="students">
-                        
+
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Année Académique</label>
-                            <select name="annee" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <label class="input-label">Année académique</label>
+                            <select name="annee" class="input-control">
                                 <option value="">Toutes les années</option>
                                 <?php foreach ($academicYears as $year): ?>
-                                    <option value="<?php echo htmlspecialchars($year); ?>"
-                                            <?php echo ($filters['annee'] ?? '') === $year ? 'selected' : ''; ?>>
+                                    <option value="<?php echo htmlspecialchars($year); ?>" <?php echo ($filters['annee'] ?? '') === $year ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($year); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        
+
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-                            <select name="statut" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <label class="input-label">Statut</label>
+                            <select name="statut" class="input-control">
                                 <option value="">Tous les statuts</option>
                                 <option value="valider" <?php echo ($filters['statut'] ?? '') === 'valider' ? 'selected' : ''; ?>>Validé</option>
                                 <option value="rejeter" <?php echo ($filters['statut'] ?? '') === 'rejeter' ? 'selected' : ''; ?>>Rejeté</option>
                                 <option value="en_cours" <?php echo ($filters['statut'] ?? '') === 'en_cours' ? 'selected' : ''; ?>>En cours</option>
                             </select>
                         </div>
-                        
+
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
-                            <input type="text" name="search" value="<?php echo htmlspecialchars($filters['search'] ?? ''); ?>"
-                                   placeholder="Nom, prénom, matricule..."
-                                   class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <label class="input-label">Recherche</label>
+                            <input type="text" name="search" value="<?php echo htmlspecialchars($filters['search'] ?? ''); ?>" placeholder="Nom, prénom, matricule..." class="input-control">
                         </div>
-                        
-                        <div class="flex items-end">
-                            <button type="submit" class="w-full bg-primary text-white rounded-lg px-4 py-2 hover:bg-primary-light transition-colors">
-                                <i class="fas fa-search mr-2"></i>Filtrer
+
+                        <div class="flex">
+                            <button type="submit" class="btn btn-primary w-full justify-center">
+                                <i class="fas fa-search"></i>
+                                Filtrer
                             </button>
                         </div>
                     </form>
                 </div>
-                
-                <!-- Students Table -->
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Matricule</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prénoms</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thème</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entreprise</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Année</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
+
+                <div class="table-shell">
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>Matricule</th>
+                            <th>Nom</th>
+                            <th>Prénoms</th>
+                            <th>Thème</th>
+                            <th>Entreprise</th>
+                            <th>Année</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <?php if (empty($students)): ?>
-                                <tr>
-                                    <td colspan="8" class="px-6 py-4 text-center text-gray-500">
-                                        <i class="fas fa-inbox text-4xl mb-2"></i>
+                        <tbody>
+                        <?php if (empty($students)): ?>
+                            <tr>
+                                <td colspan="8" class="text-center py-6 text-muted">
+                                    <div class="flex flex-col items-center gap-2">
+                                        <i class="fas fa-inbox text-3xl"></i>
                                         <p>Aucun étudiant trouvé</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($students as $student): ?>
+                                <tr class="cursor-pointer" onclick="window.location.href='?page=admin_historique&action=view_student&num_etu=<?php echo urlencode($student['matricule']); ?>'">
+                                    <td class="font-semibold"><?php echo htmlspecialchars($student['matricule']); ?></td>
+                                    <td><?php echo htmlspecialchars($student['nom']); ?></td>
+                                    <td><?php echo htmlspecialchars($student['prenoms']); ?></td>
+                                    <td><?php echo htmlspecialchars(substr($student['theme'] ?? '', 0, 60)) . (strlen($student['theme'] ?? '') > 60 ? '...' : ''); ?></td>
+                                    <td><?php echo htmlspecialchars($student['entreprise'] ?? 'N/A'); ?></td>
+                                    <td><?php echo htmlspecialchars($student['annee_academique'] ?? 'N/A'); ?></td>
+                                    <td>
+                                        <span class="badge status-<?php echo $student['statut'] ?? 'en_cours'; ?>">
+                                            <?php
+                                            $statutLabel = [
+                                                'valider' => 'Validé',
+                                                'rejeter' => 'Rejeté',
+                                                'en_cours' => 'En cours'
+                                            ];
+                                            echo $statutLabel[$student['statut'] ?? 'en_cours'] ?? 'N/A';
+                                            ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="?page=admin_historique&action=view_student&num_etu=<?php echo urlencode($student['matricule']); ?>" class="text-primary hover:text-primary-light font-semibold">
+                                            <i class="fas fa-eye mr-1"></i>Voir
+                                        </a>
                                     </td>
                                 </tr>
-                            <?php else: ?>
-                                <?php foreach ($students as $student): ?>
-                                    <tr class="hover:bg-gray-50 cursor-pointer"
-                                        onclick="window.location.href='?page=admin_historique&action=view_student&num_etu=<?php echo urlencode($student['matricule']); ?>'">>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            <?php echo htmlspecialchars($student['matricule']); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo htmlspecialchars($student['nom']); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo htmlspecialchars($student['prenoms']); ?>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm text-gray-900">
-                                            <?php echo htmlspecialchars(substr($student['theme'] ?? '', 0, 50)) . (strlen($student['theme'] ?? '') > 50 ? '...' : ''); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo htmlspecialchars($student['entreprise'] ?? 'N/A'); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo htmlspecialchars($student['annee_academique'] ?? 'N/A'); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="status-badge status-<?php echo $student['statut'] ?? 'en_cours'; ?>">
-                                                <?php 
-                                                    $statutLabel = [
-                                                        'valider' => 'Validé',
-                                                        'rejeter' => 'Rejeté',
-                                                        'en_cours' => 'En cours'
-                                                    ];
-                                                    echo $statutLabel[$student['statut'] ?? 'en_cours'] ?? 'N/A';
-                                                ?>
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <a href="?page=admin_historique&action=view_student&num_etu=<?php echo urlencode($student['matricule']); ?>"
-                                               class="text-primary hover:text-primary-light">
-                                                <i class="fas fa-eye mr-1"></i>Voir
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
-                
-                <!-- Pagination -->
+
                 <?php if ($totalPages > 1): ?>
-                    <div class="mt-6 flex justify-center">
-                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                                <a href="?page=admin_historique&tab=students&p=<?php echo $i; ?>&annee=<?php echo urlencode($filters['annee'] ?? ''); ?>&statut=<?php echo urlencode($filters['statut'] ?? ''); ?>&search=<?php echo urlencode($filters['search'] ?? ''); ?>"
-                                   class="relative inline-flex items-center px-4 py-2 border <?php echo $i === $currentPage ? 'bg-primary text-white border-primary' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'; ?>">
-                                    <?php echo $i; ?>
-                                </a>
-                            <?php endfor; ?>
-                        </nav>
+                    <div class="pagination">
+                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                            <a href="?page=admin_historique&tab=students&p=<?php echo $i; ?>&annee=<?php echo urlencode($filters['annee'] ?? ''); ?>&statut=<?php echo urlencode($filters['statut'] ?? ''); ?>&search=<?php echo urlencode($filters['search'] ?? ''); ?>"
+                               class="page-link <?php echo $i === $currentPage ? 'active' : ''; ?>">
+                                <?php echo $i; ?>
+                            </a>
+                        <?php endfor; ?>
                     </div>
                 <?php endif; ?>
             </div>
-            
-            <!-- Tab Content: Jury -->
-            <div id="jury-tab" class="tab-content <?php echo $currentTab === 'jury' ? 'active' : ''; ?> p-6">
-                <!-- Filters -->
-                <div class="filter-section">
-                    <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        </div>
+
+        <!-- Tab Content: Jury -->
+        <div id="jury-tab" class="tab-content <?php echo $currentTab === 'jury' ? 'active' : ''; ?>">
+            <div class="space-y-4">
+                <div class="filter-card">
+                    <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                         <input type="hidden" name="page" value="admin_historique">
                         <input type="hidden" name="tab" value="jury">
-                        
+
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Année Académique</label>
-                            <select name="annee" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <label class="input-label">Année académique</label>
+                            <select name="annee" class="input-control">
                                 <option value="">Toutes les années</option>
                                 <?php foreach ($academicYears as $year): ?>
-                                    <option value="<?php echo htmlspecialchars($year); ?>"
-                                            <?php echo ($filters['annee'] ?? '') === $year ? 'selected' : ''; ?>>
+                                    <option value="<?php echo htmlspecialchars($year); ?>" <?php echo ($filters['annee'] ?? '') === $year ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($year); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        
-                        <div class="flex items-end col-span-2">
-                            <button type="submit" class="w-full bg-primary text-white rounded-lg px-4 py-2 hover:bg-primary-light transition-colors">
-                                <i class="fas fa-search mr-2"></i>Filtrer
+
+                        <div class="md:col-span-2 flex">
+                            <button type="submit" class="btn btn-primary w-full justify-center">
+                                <i class="fas fa-search"></i>
+                                Filtrer
                             </button>
                         </div>
                     </form>
                 </div>
-                
-                <!-- Jury Table -->
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Étudiant</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Président</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Examinateur</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Encadreur</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Directeur</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Année</th>
-                            </tr>
+
+                <div class="table-shell">
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Étudiant</th>
+                            <th>Président</th>
+                            <th>Examinateur</th>
+                            <th>Encadreur</th>
+                            <th>Directeur</th>
+                            <th>Année</th>
+                        </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <?php if (empty($juries)): ?>
-                                <tr>
-                                    <td colspan="7" class="px-6 py-4 text-center text-gray-500">
-                                        <i class="fas fa-inbox text-4xl mb-2"></i>
+                        <tbody>
+                        <?php if (empty($juries)): ?>
+                            <tr>
+                                <td colspan="7" class="text-center py-6 text-muted">
+                                    <div class="flex flex-col items-center gap-2">
+                                        <i class="fas fa-inbox text-3xl"></i>
                                         <p>Aucun jury trouvé</p>
-                                    </td>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($juries as $jury): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars(date('d/m/Y', strtotime($jury['date_soutenance'] ?? 'now'))); ?></td>
+                                    <td><?php echo htmlspecialchars($jury['etudiant'] ?? 'N/A'); ?></td>
+                                    <td><?php echo htmlspecialchars($jury['president'] ?? 'N/A'); ?></td>
+                                    <td><?php echo htmlspecialchars($jury['examinateur'] ?? 'N/A'); ?></td>
+                                    <td><?php echo htmlspecialchars($jury['encadreur'] ?? 'N/A'); ?></td>
+                                    <td><?php echo htmlspecialchars($jury['directeur'] ?? 'N/A'); ?></td>
+                                    <td><?php echo htmlspecialchars($jury['annee_academique'] ?? 'N/A'); ?></td>
                                 </tr>
-                            <?php else: ?>
-                                <?php foreach ($juries as $jury): ?>
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo htmlspecialchars(date('d/m/Y', strtotime($jury['date_soutenance'] ?? 'now'))); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo htmlspecialchars($jury['etudiant'] ?? 'N/A'); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo htmlspecialchars($jury['president'] ?? 'N/A'); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo htmlspecialchars($jury['examinateur'] ?? 'N/A'); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo htmlspecialchars($jury['encadreur'] ?? 'N/A'); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo htmlspecialchars($jury['directeur'] ?? 'N/A'); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo htmlspecialchars($jury['annee_academique'] ?? 'N/A'); ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
-    
-    <script>
-        function switchTab(tab) {
-            // Update URL
-            const url = new URL(window.location);
-            url.searchParams.set('tab', tab);
-            window.history.pushState({}, '', url);
-            
-            // Update tab buttons
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.closest('.tab-button').classList.add('active');
-            
-            // Update tab content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.getElementById(tab + '-tab').classList.add('active');
-        }
-    </script>
-</body>
-</html>
+</div>
+
+<script>
+function switchTab(event, tab) {
+    const url = new URL(window.location);
+    url.searchParams.set('tab', tab);
+    window.history.pushState({}, '', url);
+
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.getElementById(tab + '-tab').classList.add('active');
+}
+</script>

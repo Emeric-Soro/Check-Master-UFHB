@@ -66,9 +66,6 @@ class ArchiveController
             $GLOBALS['messageErreur'] = $_SESSION['archive_error'] ?? '';
             unset($_SESSION['archive_success'], $_SESSION['archive_error']);
             
-            // Load view
-            require_once __DIR__ . '/../../ressources/views/admin_historique.php';
-            
         } catch (Exception $e) {
             error_log("Error in ArchiveController::index: " . $e->getMessage());
             $_SESSION['archive_error'] = "Une erreur est survenue lors du chargement de l'historique.";
@@ -105,8 +102,7 @@ class ArchiveController
             unset($_SESSION['archive_success'], $_SESSION['archive_error']);
             
             // Load detail view
-            require_once __DIR__ . '/../../ressources/views/fiche_etudiant_archive.php';
-            
+           
         } catch (Exception $e) {
             error_log("Error in ArchiveController::viewStudentFile: " . $e->getMessage());
             $_SESSION['archive_error'] = "Une erreur est survenue lors du chargement du dossier étudiant.";
@@ -281,7 +277,6 @@ class ArchiveController
         unset($_SESSION['import_summary'], $_SESSION['archive_success'], $_SESSION['archive_error']);
         
         // Load result view
-        require_once __DIR__ . '/../../ressources/views/import_result.php';
     }
     
     /**

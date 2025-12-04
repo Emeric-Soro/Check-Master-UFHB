@@ -248,8 +248,18 @@ if (!isset($_SESSION['id_utilisateur'])) {
             $currentPageLabel = 'Archives des comptes rendus';
             break;
         case 'admin_historique':
-            // Handled by archiveHistoryRoutes.php
-            exit;
+            $action = $_GET['action'] ?? 'index';
+            $currentPageLabel = 'Historique et Archivage';
+            if ($action === 'view_student') {
+                $currentPageLabel = 'Fiche étudiant archive';
+                $contentFile = $partialsBasePath . 'fiche_etudiant_archive.php';
+            } elseif ($action === 'import_result') {
+                $currentPageLabel = "Résultat de l'import";
+                $contentFile = $partialsBasePath . 'import_result.php';
+            } else {
+                $contentFile = $partialsBasePath . 'admin_historique.php';
+            }
+            break;
         default:
             $groupeUtilisateur = $_SESSION['lib_GU'];
             if ($groupeUtilisateur) {
