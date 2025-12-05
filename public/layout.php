@@ -445,7 +445,7 @@ if (!isset($_SESSION['id_utilisateur'])) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <style>
         .sidebar-logo { height: 56px; border-radius: 8px; }
-        .topbar { height: 96px; padding: 0 1.5rem; background: var(--tw-bg-opacity, 1); }
+        .topbar { height: 96px; padding: 0 1.5rem; background-color: #ffffff; }
         .card { background: white; border-radius: 12px; box-shadow: 0 8px 20px rgba(15, 20, 30, 0.06); }
         </style>
 </head>

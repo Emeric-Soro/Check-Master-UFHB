@@ -140,11 +140,52 @@ class Archive
             // Soutenance info
             $student['soutenance'] = $this->getSoutenanceInfo($numEtu);
             
+            // Averages for grade report
+            $student['moyenne_m1'] = $this->getMoyenneM1($numEtu);
+            $student['moyenne_m2_s1'] = $this->getMoyenneM2S1($numEtu);
+            
             return $student;
         } catch (PDOException $e) {
             error_log("Error getting complete student file: " . $e->getMessage());
             return null;
         }
+    }
+
+    /**
+     * Get M1 Average
+     */
+    private function getMoyenneM1($numEtu)
+    {
+        $sql = "
+            SELECT SUM(n.moyenne * u.credit) / SUM(u.credit) as moyenne
+            FROM notes n
+            INNER JOIN ue u ON n.id_ue = u.id_ue
+            WHERE n.num_etu = :num_etu AND u.id_niveau_etude = 10 AND n.moyenne IS NOT NULL
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['num_etu' => $numEtu]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['moyenne'] ?? null;
+    }
+
+    /**
+     * Get M2 S1 Average
+     */
+    private function getMoyenneM2S1($numEtu)
+    {
+        $sql = "
+            SELECT SUM(n.moyenne * u.credit) / SUM(u.credit) as moyenne
+            FROM notes n
+            INNER JOIN ue u ON n.id_ue = u.id_ue
+            WHERE n.num_etu = :num_etu AND u.id_semestre > 21 AND n.moyenne IS NOT NULL
+            GROUP BY u.id_semestre
+            ORDER BY u.id_semestre ASC
+            LIMIT 1
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['num_etu' => $numEtu]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['moyenne'] ?? null;
     }
     
     /**
