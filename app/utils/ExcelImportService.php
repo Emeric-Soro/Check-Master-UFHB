@@ -9,7 +9,7 @@ class ExcelImportService
     private $db;
     private $errors = [];
     private $successes = [];
-    
+
     // Column mapping (0-indexed)
     const COL_ANNEE_ACAD = 0;
     const COL_MATRICULE = 1;
@@ -31,12 +31,12 @@ class ExcelImportService
     const COL_NOTE_MEMOIRE = 17;
     const COL_MOYENNE_M1 = 18;
     const COL_MOYENNE_M2_S1 = 19;
-    
+
     public function __construct($db)
     {
         $this->db = $db;
     }
-    
+
     /**
      * Import data from uploaded file
      */
@@ -44,20 +44,19 @@ class ExcelImportService
     {
         $this->errors = [];
         $this->successes = [];
-        
+
         if (!file_exists($filePath)) {
-            $this->errors[] = "Fichier non trouvé: $filePath";
+            $this->errors[] = ['line' => 'Système', 'message' => "Fichier non trouvé: $filePath"];
             return false;
         }
-        
+
         if ($fileType === 'csv') {
             return $this->importCSV($filePath);
         } else {
-            // For Excel files, we'll use a simple parsing approach
             return $this->importExcelAsCSV($filePath);
         }
     }
-    
+
     /**
      * Import CSV file
      */
@@ -65,236 +64,224 @@ class ExcelImportService
     {
         $handle = fopen($filePath, 'r');
         if (!$handle) {
-            $this->errors[] = "Impossible d'ouvrir le fichier";
+            $this->errors[] = ['line' => 'Système', 'message' => "Impossible d'ouvrir le fichier"];
             return false;
         }
-        
+
+        // Détection du séparateur
+        $firstLine = fgets($handle);
+        rewind($handle);
+        $delimiter = (strpos($firstLine, ';') !== false) ? ';' : ',';
+
         $lineNumber = 0;
-        $headers = null;
-        
-        while (($row = fgetcsv($handle, 0, ',')) !== false) {
+
+        while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
             $lineNumber++;
-            
+
             // Skip header row
-            if ($lineNumber === 1) {
-                $headers = $row;
-                continue;
-            }
-            
+            if ($lineNumber === 1) continue;
+
             // Skip empty rows
-            if (empty(array_filter($row))) {
-                continue;
+            if (empty(array_filter($row))) continue;
+
+            // CORRECTION 3 : Remplissage des colonnes manquantes
+            // Si la ligne a moins de 20 colonnes, on ajoute des vides à la fin
+            while (count($row) < 20) {
+                $row[] = '';
             }
-            
+
             try {
                 $this->processRow($row, $lineNumber);
             } catch (Exception $e) {
-                $this->errors[] = "Ligne $lineNumber: " . $e->getMessage();
+                $this->errors[] = [
+                    'line' => $lineNumber,
+                    'message' => $e->getMessage()
+                ];
             }
         }
-        
+
         fclose($handle);
-        
+
         return count($this->errors) === 0;
     }
-    
-    /**
-     * Convert Excel to CSV and import
-     * For simplicity, we expect users to export to CSV from Excel
-     */
+
     private function importExcelAsCSV($filePath)
     {
-        // This would require PhpSpreadsheet or similar library
-        // For now, we'll suggest CSV format
-        $this->errors[] = "Pour le moment, veuillez convertir votre fichier Excel en CSV avant l'importation.";
+        $this->errors[] = ['line' => 'Système', 'message' => "Pour le moment, veuillez convertir votre fichier Excel en CSV avant l'importation."];
         return false;
     }
-    
-    /**
-     * Process a single row of data
-     */
+
     private function processRow($row, $lineNumber)
     {
         // Validate required fields
-        if (empty($row[self::COL_ANNEE_ACAD])) {
-            throw new Exception("Année académique manquante");
-        }
-        if (empty($row[self::COL_MATRICULE])) {
-            throw new Exception("Matricule manquant");
-        }
-        if (empty($row[self::COL_NOM]) || empty($row[self::COL_PRENOMS])) {
-            throw new Exception("Nom ou prénoms manquants");
-        }
-        
+        if (empty($row[self::COL_ANNEE_ACAD])) throw new Exception("Année académique manquante");
+        if (empty($row[self::COL_MATRICULE])) throw new Exception("Matricule manquant");
+        if (empty($row[self::COL_NOM])) throw new Exception("Nom manquant");
+
         // Start transaction
         $this->db->beginTransaction();
-        
+
         try {
-            // 1. Create or get academic year
             $idAnneeAcad = $this->getOrCreateAcademicYear($row[self::COL_ANNEE_ACAD]);
-            
-            // 2. Create or get student
             $numEtu = $this->getOrCreateStudent($row);
-            
-            // 3. Create or get enterprise
+            $this->ensureInscription($numEtu, $row[self::COL_ANNEE_ACAD], $idAnneeAcad);
             $idEntreprise = $this->getOrCreateEnterprise($row[self::COL_ENTREPRISE]);
-            
-            // 4. Create stage information
-            $idInfoStage = $this->createStageInfo($numEtu, $idEntreprise, $row);
-            
-            // 5. Create rapport
+
+            $this->createStageInfo($numEtu, $idEntreprise, $row);
             $idRapport = $this->createRapport($numEtu, $row);
-            
-            // 6. Assign encadrant and directeur
-            $idEncadreur = $this->getOrCreateEnseignant($row[self::COL_ENCADREUR_PEDA]);
-            $this->assignEncadrant($idEncadreur, $idRapport, 'encadrant');
-            
+
+            if (!empty($row[self::COL_ENCADREUR_PEDA])) {
+                $idEncadreur = $this->getOrCreateEnseignant($row[self::COL_ENCADREUR_PEDA]);
+                $this->assignEncadrant($idEncadreur, $idRapport, 'encadrant');
+            }
+
             if (!empty($row[self::COL_DIRECTEUR_MEMOIRE])) {
                 $idDirecteur = $this->getOrCreateEnseignant($row[self::COL_DIRECTEUR_MEMOIRE]);
                 $this->assignEncadrant($idDirecteur, $idRapport, 'directeur');
             }
-            
-            // 7. Create validation record
-            $this->createValidation($idEncadreur, $idRapport, $row);
-            
-            // 8. If soutenance data exists, create programming and jury
+
+            $idValidateur = isset($idDirecteur) ? $idDirecteur : (isset($idEncadreur) ? $idEncadreur : null);
+            if ($idValidateur) {
+                $this->createValidation($idValidateur, $idRapport, $row);
+            }
+
             if (!empty($row[self::COL_DATE_SOUTENANCE])) {
                 $this->createSoutenanceData($numEtu, $idRapport, $row);
             }
-            
+
             $this->db->commit();
-            $this->successes[] = "Ligne $lineNumber: Import réussi pour " . $row[self::COL_NOM] . " " . $row[self::COL_PRENOMS];
-            
+            $this->successes[] = "Ligne $lineNumber: Import réussi pour " . $row[self::COL_NOM];
+
         } catch (Exception $e) {
             $this->db->rollBack();
             throw $e;
         }
     }
-    
-    /**
-     * Get or create academic year
-     */
+
     private function getOrCreateAcademicYear($anneeAcad)
     {
-        // Format: 2010-2011
+        [$startYear, $endYear] = $this->parseAcademicYear($anneeAcad);
+
+        // Generer l'ID unique (ex: 21413 pour 2013-2014)
+        $id = substr($endYear, 0, 1) . substr($endYear, 2, 2) . substr($startYear, 2, 2);
+
+        // CORRECTION 2 : Verifier par ID d'abord pour eviter les doublons de cle primaire
+        $stmt = $this->db->prepare("SELECT id_annee_acad FROM annee_academique WHERE id_annee_acad = :id");
+        $stmt->execute(['id' => $id]);
+        if ($stmt->fetch()) return $id;
+
+        $dateDebut = $startYear . '-09-01';
+        $dateFin = $endYear . '-08-31';
+
+        $stmt = $this->db->prepare("INSERT INTO annee_academique (id_annee_acad, date_deb, date_fin) VALUES (:id, :date_deb, :date_fin)");
+        $stmt->execute(['id' => $id, 'date_deb' => $dateDebut, 'date_fin' => $dateFin]);
+        return $id;
+    }
+
+    /**
+     * Ensure an inscription exists so academic year filters work on history listings.
+     */
+    private function ensureInscription($numEtu, $anneeAcad, $idAnneeAcad)
+    {
+        [$startYear,] = $this->parseAcademicYear($anneeAcad);
+
+        $stmt = $this->db->prepare("SELECT id_inscription FROM inscriptions WHERE id_etudiant = :num AND id_annee_acad = :annee");
+        $stmt->execute(['num' => $numEtu, 'annee' => $idAnneeAcad]);
+        if ($stmt->fetch()) {
+            return;
+        }
+
+        $dateInscription = $startYear . '-09-01 00:00:00';
+        $insert = $this->db->prepare("INSERT INTO inscriptions (id_etudiant, id_niveau, id_annee_acad, date_inscription, statut_inscription, nombre_tranche, reste_a_payer, montant_paye) VALUES (:etudiant, NULL, :annee, :date_inscription, :statut, :tranches, :reste, :paye)");
+        $insert->execute([
+            'etudiant' => $numEtu,
+            'annee' => $idAnneeAcad,
+            'date_inscription' => $dateInscription,
+            'statut' => 'En cours',
+            'tranches' => 1,
+            'reste' => 0,
+            'paye' => 0
+        ]);
+    }
+
+    /**
+     * Normalize/validate an academic year string.
+     */
+    private function parseAcademicYear($anneeAcad)
+    {
         $parts = explode('-', $anneeAcad);
         if (count($parts) !== 2) {
-            throw new Exception("Format d'année académique invalide: $anneeAcad");
+            $parts = explode('/', $anneeAcad);
         }
-        
-        $dateDebut = $parts[0] . '-09-01';
-        $dateFin = $parts[1] . '-08-31';
-        
-        // Check if exists
-        $stmt = $this->db->prepare("SELECT id_annee_acad FROM annee_academique WHERE date_deb = :date_deb AND date_fin = :date_fin");
-        $stmt->execute(['date_deb' => $dateDebut, 'date_fin' => $dateFin]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($result) {
-            return $result['id_annee_acad'];
+        if (count($parts) !== 2) {
+            throw new Exception("Format d'annee academique invalide: $anneeAcad");
         }
-        
-        // Create new
-        $stmt = $this->db->prepare("INSERT INTO annee_academique (date_deb, date_fin) VALUES (:date_deb, :date_fin)");
-        $stmt->execute(['date_deb' => $dateDebut, 'date_fin' => $dateFin]);
-        return $this->db->lastInsertId();
+
+        $startYear = trim($parts[0]);
+        $endYear = trim($parts[1]);
+
+        if (!is_numeric($startYear) || !is_numeric($endYear)) {
+            throw new Exception("Format d'annee academique invalide: $anneeAcad");
+        }
+
+        return [$startYear, $endYear];
     }
-    
-    /**
-     * Get or create student
-     */
+
     private function getOrCreateStudent($row)
     {
-        $matricule = intval($row[self::COL_MATRICULE]);
-        
-        // Check if exists
+        $matricule = trim($row[self::COL_MATRICULE]);
         $stmt = $this->db->prepare("SELECT num_etu FROM etudiants WHERE num_etu = :num_etu");
         $stmt->execute(['num_etu' => $matricule]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($result) {
-            return $result['num_etu'];
-        }
-        
-        // Create new student
-        $stmt = $this->db->prepare("
-            INSERT INTO etudiants (num_etu, nom_etu, prenom_etu, email_etu, date_naiss_etu, genre_etu, promotion_etu) 
-            VALUES (:num_etu, :nom, :prenom, :email, :date_naiss, :genre, :promotion)
-        ");
-        
-        // Generate email from name (sanitized)
+        if ($stmt->fetch()) return $matricule;
+
+        $stmt = $this->db->prepare("INSERT INTO etudiants (num_etu, nom_etu, prenom_etu, email_etu, date_naiss_etu, genre_etu, promotion_etu) VALUES (:num_etu, :nom, :prenom, :email, :date_naiss, :genre, :promotion)");
+
+        [$startYear,] = $this->parseAcademicYear($row[self::COL_ANNEE_ACAD]);
         $prenomClean = $this->sanitizeForEmail($row[self::COL_PRENOMS]);
         $nomClean = $this->sanitizeForEmail($row[self::COL_NOM]);
         $email = strtolower($prenomClean) . '.' . strtolower($nomClean) . '@student.ufhb.edu.ci';
-        
+
         $stmt->execute([
             'num_etu' => $matricule,
             'nom' => $row[self::COL_NOM],
             'prenom' => $row[self::COL_PRENOMS],
             'email' => $email,
-            'date_naiss' => '2000-01-01', // Default date
+            'date_naiss' => '2000-01-01',
             'genre' => 'Neutre',
-            'promotion' => explode('-', $row[self::COL_ANNEE_ACAD])[0]
+            'promotion' => $startYear
         ]);
-        
         return $matricule;
     }
-    
-    /**
-     * Sanitize string for email generation
-     */
+
     private function sanitizeForEmail($str)
     {
-        // Remove accents
         $str = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $str);
-        // Remove special characters and spaces
         $str = preg_replace('/[^a-zA-Z0-9]/', '', $str);
         return $str;
     }
-    
-    /**
-     * Get or create enterprise
-     */
+
     private function getOrCreateEnterprise($nomEntreprise)
     {
-        if (empty($nomEntreprise)) {
-            throw new Exception("Nom d'entreprise manquant");
-        }
-        
-        // Check if exists
+        $nom = !empty($nomEntreprise) ? trim($nomEntreprise) : 'Non spécifiée';
         $stmt = $this->db->prepare("SELECT id_entreprise FROM entreprises WHERE lib_entreprise = :lib");
-        $stmt->execute(['lib' => $nomEntreprise]);
+        $stmt->execute(['lib' => $nom]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($result) {
-            return $result['id_entreprise'];
-        }
-        
-        // Create new
+        if ($result) return $result['id_entreprise'];
+
         $stmt = $this->db->prepare("INSERT INTO entreprises (lib_entreprise) VALUES (:lib)");
-        $stmt->execute(['lib' => $nomEntreprise]);
+        $stmt->execute(['lib' => $nom]);
         return $this->db->lastInsertId();
     }
-    
-    /**
-     * Create stage information
-     */
+
     private function createStageInfo($numEtu, $idEntreprise, $row)
     {
-        $stmt = $this->db->prepare("
-            INSERT INTO informations_stage 
-            (num_etu, id_entreprise, date_debut_stage, date_fin_stage, sujet_stage, description_stage, encadrant_entreprise, email_encadrant, telephone_encadrant)
-            VALUES (:num_etu, :id_entreprise, :date_debut, :date_fin, :sujet, :description, :encadrant, :email, :tel)
-        ");
-        
+        $this->db->prepare("DELETE FROM informations_stage WHERE num_etu = ?")->execute([$numEtu]);
+        $stmt = $this->db->prepare("INSERT INTO informations_stage (num_etu, id_entreprise, date_debut_stage, date_fin_stage, sujet_stage, description_stage, encadrant_entreprise, email_encadrant, telephone_encadrant) VALUES (:num_etu, :id_entreprise, :date_debut, :date_fin, :sujet, :description, :encadrant, :email, :tel)");
+
         $parts = explode('-', $row[self::COL_ANNEE_ACAD]);
-        $dateDebut = $parts[0] . '-01-01';
-        $dateFin = $parts[0] . '-06-30';
-        
-        // Use provided values or defaults
-        $emailEncadrant = '';  // Will be empty if not provided
-        $telEncadrant = '';    // Will be empty if not provided
-        
+        $dateDebut = trim($parts[0]) . '-01-01';
+        $dateFin = trim($parts[0]) . '-06-30';
+
         $stmt->execute([
             'num_etu' => $numEtu,
             'id_entreprise' => $idEntreprise,
@@ -303,295 +290,156 @@ class ExcelImportService
             'sujet' => $row[self::COL_THEME] ?? 'Stage',
             'description' => 'Stage importé depuis archives',
             'encadrant' => $row[self::COL_MAITRE_STAGE] ?? 'Non spécifié',
-            'email' => $emailEncadrant,
-            'tel' => $telEncadrant
+            'email' => '', 'tel' => ''
         ]);
-        
-        return $this->db->lastInsertId();
     }
-    
-    /**
-     * Create rapport
-     */
+
     private function createRapport($numEtu, $row)
     {
-        $stmt = $this->db->prepare("
-            INSERT INTO rapport_etudiants 
-            (num_etu, nom_rapport, date_rapport, theme_rapport, statut_rapport, etape_validation)
-            VALUES (:num_etu, :nom, :date, :theme, :statut, :etape)
-        ");
-        
+        $stmt = $this->db->prepare("SELECT id_rapport FROM rapport_etudiants WHERE num_etu = ?");
+        $stmt->execute([$numEtu]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($existing) return $existing['id_rapport'];
+
+        $stmt = $this->db->prepare("INSERT INTO rapport_etudiants (num_etu, nom_rapport, date_rapport, theme_rapport, statut_rapport, etape_validation) VALUES (:num_etu, :nom, :date, :theme, :statut, :etape)");
+
         $avis = $row[self::COL_AVIS_COMMISSION] ?? '';
-        $statut = (stripos($avis, 'validé') !== false || stripos($avis, 'approuvé') !== false) ? 'valider' : 'en_cours';
+        $statut = (stripos($avis, 'valid') !== false || stripos($avis, 'approuv') !== false) ? 'valider' : 'en_cours';
         $etape = ($statut === 'valider') ? 'approuve_commission' : 'en_attente_commission';
-        
         $dateCommission = !empty($row[self::COL_DATE_COMMISSION]) ? $row[self::COL_DATE_COMMISSION] : date('Y-m-d');
-        $dateTime = $dateCommission . ' 00:00:00';
-        
+
         $stmt->execute([
             'num_etu' => $numEtu,
-            'nom' => 'Rapport ' . $row[self::COL_NOM] . ' ' . $row[self::COL_PRENOMS],
-            'date' => $dateTime,
+            'nom' => 'Rapport ' . $row[self::COL_NOM],
+            'date' => $dateCommission . ' 00:00:00',
             'theme' => $row[self::COL_THEME],
             'statut' => $statut,
             'etape' => $etape
         ]);
-        
         return $this->db->lastInsertId();
     }
-    
-    /**
-     * Get or create enseignant
-     */
+
+    // CORRECTION 1 : Gestion de la spécialité par défaut
+    private function getOrCreateDefaultSpecialite()
+    {
+        // Chercher n'importe quelle spécialité existante
+        $stmt = $this->db->query("SELECT id_specialite FROM specialite LIMIT 1");
+        $id = $stmt->fetchColumn();
+
+        if ($id) return $id;
+
+        // Si aucune n'existe, en créer une "Général"
+        $this->db->exec("INSERT INTO specialite (lib_specialite) VALUES ('Général')");
+        return $this->db->lastInsertId();
+    }
+
     private function getOrCreateEnseignant($nomComplet)
     {
-        if (empty($nomComplet)) {
-            throw new Exception("Nom d'enseignant manquant");
-        }
-        
-        // Parse name (assuming "NOM Prenom" format)
-        $parts = explode(' ', trim($nomComplet), 2);
+        $nomComplet = trim($nomComplet);
+        if (empty($nomComplet) || $nomComplet === 'N/A') return null;
+
+        $cleanName = preg_replace('/^(M\.|Mme|Dr|Pr|Prof\.)\s+/i', '', $nomComplet);
+        $parts = explode(' ', $cleanName, 2);
         $nom = $parts[0];
-        $prenom = $parts[1] ?? '';
-        
-        // Check if exists
-        $stmt = $this->db->prepare("SELECT id_enseignant FROM enseignants WHERE nom_enseignant = :nom AND prenom_enseignant = :prenom");
-        $stmt->execute(['nom' => $nom, 'prenom' => $prenom]);
+        $prenom = $parts[1] ?? 'Enseignant';
+
+        $stmt = $this->db->prepare("SELECT id_enseignant FROM enseignants WHERE nom_enseignant LIKE :nom");
+        $stmt->execute(['nom' => "%$nom%"]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($result) {
-            return $result['id_enseignant'];
-        }
-        
-        // Create new enseignant
-        // Sanitize name for email
+        if ($result) return $result['id_enseignant'];
+
+        // Récupérer un ID de spécialité valide
+        $idSpecialite = $this->getOrCreateDefaultSpecialite();
+
         $prenomClean = $this->sanitizeForEmail($prenom);
         $nomClean = $this->sanitizeForEmail($nom);
         $email = strtolower($prenomClean) . '.' . strtolower($nomClean) . '@ufhb.edu.ci';
-        
-        $stmt = $this->db->prepare("
-            INSERT INTO enseignants (nom_enseignant, prenom_enseignant, mail_enseignant, id_specialite, type_enseignant)
-            VALUES (:nom, :prenom, :email, :specialite, :type)
-        ");
-        
+
+        $stmt = $this->db->prepare("INSERT INTO enseignants (nom_enseignant, prenom_enseignant, mail_enseignant, id_specialite, type_enseignant) VALUES (:nom, :prenom, :email, :specialite, 'Simple')");
         $stmt->execute([
             'nom' => $nom,
             'prenom' => $prenom,
             'email' => $email,
-            'specialite' => 1, // Default specialite
-            'type' => 'Simple'
+            'specialite' => $idSpecialite
         ]);
-        
         return $this->db->lastInsertId();
     }
-    
-    /**
-     * Assign encadrant or directeur to rapport
-     */
+
     private function assignEncadrant($idEnseignant, $idRapport, $role)
     {
-        $stmt = $this->db->prepare("
-            INSERT INTO affecter (id_enseignant, role, id_rapport)
-            VALUES (:id_enseignant, :role, :id_rapport)
-        ");
-        
-        $stmt->execute([
-            'id_enseignant' => $idEnseignant,
-            'role' => $role,
-            'id_rapport' => $idRapport
-        ]);
+        if (!$idEnseignant) return;
+        $stmt = $this->db->prepare("SELECT * FROM affecter WHERE id_enseignant = ? AND id_rapport = ? AND role = ?");
+        $stmt->execute([$idEnseignant, $idRapport, $role]);
+        if ($stmt->fetch()) return;
+
+        $stmt = $this->db->prepare("INSERT INTO affecter (id_enseignant, role, id_rapport) VALUES (?, ?, ?)");
+        $stmt->execute([$idEnseignant, $role, $idRapport]);
     }
-    
-    /**
-     * Create validation record
-     */
+
     private function createValidation($idEnseignant, $idRapport, $row)
     {
+        $stmt = $this->db->prepare("SELECT * FROM valider WHERE id_rapport = ?");
+        $stmt->execute([$idRapport]);
+        if ($stmt->fetch()) return;
+
         $dateCommission = !empty($row[self::COL_DATE_COMMISSION]) ? $row[self::COL_DATE_COMMISSION] : date('Y-m-d');
-        $dateTime = $dateCommission . ' 00:00:00';
         $avis = $row[self::COL_AVIS_COMMISSION] ?? 'Validé';
         $observations = $row[self::COL_OBSERVATIONS] ?? 'Importé depuis archives';
-        
-        $decision = (stripos($avis, 'validé') !== false || stripos($avis, 'approuvé') !== false) ? 'valider' : 'rejeter';
-        
-        $stmt = $this->db->prepare("
-            INSERT INTO valider (id_enseignant, id_rapport, date_validation, commentaire_validation, decision_validation)
-            VALUES (:id_enseignant, :id_rapport, :date, :commentaire, :decision)
-        ");
-        
-        $stmt->execute([
-            'id_enseignant' => $idEnseignant,
-            'id_rapport' => $idRapport,
-            'date' => $dateTime,
-            'commentaire' => $observations,
-            'decision' => $decision
-        ]);
+        $decision = (stripos($avis, 'valid') !== false || stripos($avis, 'approuv') !== false) ? 'valider' : 'rejeter';
+
+        $stmt = $this->db->prepare("INSERT INTO valider (id_enseignant, id_rapport, date_validation, commentaire_validation, decision_validation) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$idEnseignant, $idRapport, $dateCommission . ' 00:00:00', $observations, $decision]);
     }
-    
-    /**
-     * Create soutenance programming and jury
-     */
+
     private function createSoutenanceData($numEtu, $idRapport, $row)
     {
-        // Create or get salle
+        $dateSoutenance = $row[self::COL_DATE_SOUTENANCE];
+        if (empty($dateSoutenance) || $dateSoutenance === 'N/A') return;
+
         $idSalle = null;
-        if (!empty($row[self::COL_SALLE])) {
-            $idSalle = $this->getOrCreateSalle($row[self::COL_SALLE]);
+        if (!empty($row[self::COL_SALLE]) && $row[self::COL_SALLE] !== 'N/A') {
+            $stmt = $this->db->prepare("SELECT id_salle FROM salles WHERE lib_salle = ?");
+            $stmt->execute([$row[self::COL_SALLE]]);
+            $res = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($res) {
+                $idSalle = $res['id_salle'];
+            } else {
+                $this->db->prepare("INSERT INTO salles (lib_salle) VALUES (?)")->execute([$row[self::COL_SALLE]]);
+                $idSalle = $this->db->lastInsertId();
+            }
         }
-        
-        // Create jury
-        $numJury = $this->createJury($row);
-        
-        // Create programming
-        $dateSoutenance = !empty($row[self::COL_DATE_SOUTENANCE]) ? $row[self::COL_DATE_SOUTENANCE] : null;
-        $heureSoutenance = !empty($row[self::COL_HEURE]) ? $row[self::COL_HEURE] : null;
-        
-        if ($dateSoutenance) {
-            $stmt = $this->db->prepare("
-                INSERT INTO programmer (num_etud, num_jury, id_salle, date_soutenance, heure_soutenance, theme_soutenance)
-                VALUES (:num_etud, :num_jury, :id_salle, :date, :heure, :theme)
-            ");
-            
-            $stmt->execute([
-                'num_etud' => $numEtu,
-                'num_jury' => $numJury,
-                'id_salle' => $idSalle,
-                'date' => $dateSoutenance,
-                'heure' => $heureSoutenance,
-                'theme' => $row[self::COL_THEME]
-            ]);
-        }
-        
-        // Create evaluation if note exists
-        if (!empty($row[self::COL_NOTE_MEMOIRE])) {
-            $this->createEvaluation($numEtu, $numJury, $row);
-        }
-    }
-    
-    /**
-     * Get or create salle
-     */
-    private function getOrCreateSalle($nomSalle)
-    {
-        // Check if exists
-        $stmt = $this->db->prepare("SELECT id_salle FROM salles WHERE lib_salle = :lib");
-        $stmt->execute(['lib' => $nomSalle]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($result) {
-            return $result['id_salle'];
-        }
-        
-        // Create new
-        $stmt = $this->db->prepare("INSERT INTO salles (lib_salle) VALUES (:lib)");
-        $stmt->execute(['lib' => $nomSalle]);
-        return $this->db->lastInsertId();
-    }
-    
-    /**
-     * Create jury with members
-     */
-    private function createJury($row)
-    {
-        // For archived data, we create a simple jury entry
-        // The actual jury number would be auto-generated
-        // We'll use a simple counter or max+1 approach
-        
-        $stmt = $this->db->prepare("SELECT MAX(num_jury) as max_jury FROM composer_jury");
-        $stmt->execute();
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $numJury = ($result['max_jury'] ?? 0) + 1;
-        
-        // Add president
+
+        $numJury = rand(1000, 9999);
         if (!empty($row[self::COL_PRESIDENT_JURY])) {
-            $idPresident = $this->getOrCreateEnseignant($row[self::COL_PRESIDENT_JURY]);
-            $this->addJuryMember($numJury, $idPresident, 1); // 1 = President
+            $idPres = $this->getOrCreateEnseignant($row[self::COL_PRESIDENT_JURY]);
+            if ($idPres) $this->addJuryMember($numJury, $idPres, 1);
         }
-        
-        // Add examinateur
         if (!empty($row[self::COL_EXAMINATEUR])) {
-            $idExaminateur = $this->getOrCreateEnseignant($row[self::COL_EXAMINATEUR]);
-            $this->addJuryMember($numJury, $idExaminateur, 2); // 2 = Examinateur
+            $idExam = $this->getOrCreateEnseignant($row[self::COL_EXAMINATEUR]);
+            if ($idExam) $this->addJuryMember($numJury, $idExam, 2);
         }
-        
-        // Add encadreur
-        if (!empty($row[self::COL_ENCADREUR_PEDA])) {
-            $idEncadreur = $this->getOrCreateEnseignant($row[self::COL_ENCADREUR_PEDA]);
-            $this->addJuryMember($numJury, $idEncadreur, 3); // 3 = Encadreur
+
+        $stmt = $this->db->prepare("SELECT id_programmation FROM programmer WHERE num_etud = ?");
+        $stmt->execute([$numEtu]);
+        if (!$stmt->fetch()) {
+            $stmt = $this->db->prepare("INSERT INTO programmer (num_etud, num_jury, id_salle, date_soutenance, heure_soutenance, theme_soutenance) VALUES (?, ?, ?, ?, ?, ?)");
+            $heure = !empty($row[self::COL_HEURE]) ? $row[self::COL_HEURE] : '08:00';
+            $stmt->execute([$numEtu, $numJury, $idSalle, $dateSoutenance, $heure, $row[self::COL_THEME]]);
         }
-        
-        // Add directeur if exists
-        if (!empty($row[self::COL_DIRECTEUR_MEMOIRE])) {
-            $idDirecteur = $this->getOrCreateEnseignant($row[self::COL_DIRECTEUR_MEMOIRE]);
-            $this->addJuryMember($numJury, $idDirecteur, 4); // 4 = Directeur
+
+        if (!empty($row[self::COL_NOTE_MEMOIRE]) && is_numeric($row[self::COL_NOTE_MEMOIRE])) {
+            $this->db->prepare("DELETE FROM evaluer WHERE num_etudiant = ?")->execute([$numEtu]);
+            $stmt = $this->db->prepare("INSERT INTO evaluer (num_etudiant, num_jury, id_critere, date_eval, note) VALUES (?, ?, 1, ?, ?)");
+            $stmt->execute([$numEtu, $numJury, $dateSoutenance, floatval($row[self::COL_NOTE_MEMOIRE])]);
         }
-        
-        return $numJury;
     }
-    
-    /**
-     * Add jury member
-     */
+
     private function addJuryMember($numJury, $idEnseignant, $idQualite)
     {
-        $stmt = $this->db->prepare("
-            INSERT INTO composer_jury (num_jury, id_enseignant, id_qualite_jury, date_composer_jury)
-            VALUES (:num_jury, :id_enseignant, :id_qualite, :date)
-        ");
-        
-        $currentTimestamp = time();
-        
-        $stmt->execute([
-            'num_jury' => $numJury,
-            'id_enseignant' => $idEnseignant,
-            'id_qualite' => $idQualite,
-            'date' => $currentTimestamp
-        ]);
+        $stmt = $this->db->prepare("INSERT INTO composer_jury (num_jury, id_enseignant, id_qualite_jury, date_composer_jury) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$numJury, $idEnseignant, $idQualite, time()]);
     }
-    
-    /**
-     * Create evaluation record
-     */
-    private function createEvaluation($numEtu, $numJury, $row)
-    {
-        if (!empty($row[self::COL_NOTE_MEMOIRE])) {
-            $dateSoutenance = !empty($row[self::COL_DATE_SOUTENANCE]) ? $row[self::COL_DATE_SOUTENANCE] : date('Y-m-d');
-            
-            // We'll use a default criterium ID (adjust based on actual data)
-            $stmt = $this->db->prepare("
-                INSERT INTO evaluer (num_etudiant, num_jury, id_critere, date_eval, note)
-                VALUES (:num_etu, :num_jury, :critere, :date, :note)
-            ");
-            
-            $stmt->execute([
-                'num_etu' => $numEtu,
-                'num_jury' => $numJury,
-                'critere' => 1, // Default critere
-                'date' => $dateSoutenance,
-                'note' => floatval($row[self::COL_NOTE_MEMOIRE])
-            ]);
-        }
-    }
-    
-    /**
-     * Get errors
-     */
-    public function getErrors()
-    {
-        return $this->errors;
-    }
-    
-    /**
-     * Get successes
-     */
-    public function getSuccesses()
-    {
-        return $this->successes;
-    }
-    
-    /**
-     * Get import summary
-     */
+
     public function getSummary()
     {
         return [

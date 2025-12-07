@@ -46,7 +46,7 @@ class AuditLog {
     }
 
     // Enregistre une action générique dans la table pister
-    public function logAction($id_utilisateur, $action, $nom_table,$statut_action) {
+    public function logAction($id_utilisateur, $action, $nom_table, $statut_action) {
         // Si id_utilisateur est null, utiliser 0 comme valeur par défaut pour les tentatives de connexion échouées
         $id_utilisateur = $id_utilisateur ?? 0;
         

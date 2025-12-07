@@ -122,8 +122,12 @@ $timeline_steps = array_reverse($timeline_steps, true);
                     <h4 class="flex items-center mb-1 text-base font-semibold text-gray-900"><?php echo $title; ?>
                         <span class="text-green-500 bg-green-100 text-sm font-medium mr-2 px-2.5 py-0.5 rounded ml-3">Terminé</span>
                     </h4>
-                    <?php if(!empty($step['date'])): ?>
-                        <time class="block mb-2 text-sm font-normal leading-none text-gray-400"><?php echo htmlspecialchars(date('d F Y', strtotime($step['date']))); ?></time>
+                    <?php
+                        $timelineDate = $step['date'] ?? null;
+                        $hasTimelineDate = $timelineDate && !str_starts_with($timelineDate, '0000-00-00');
+                    ?>
+                    <?php if($hasTimelineDate): ?>
+                        <time class="block mb-2 text-sm font-normal leading-none text-gray-400"><?php echo htmlspecialchars(date('d F Y', strtotime($timelineDate))); ?></time>
                     <?php else: ?>
                         <time class="block mb-2 text-sm font-normal leading-none text-gray-400">Date non spécifiée</time>
                     <?php endif; ?>
@@ -176,8 +180,14 @@ $timeline_steps = array_reverse($timeline_steps, true);
                 <div class="bg-white rounded-2xl shadow-sm p-6">
                      <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-graduation-cap mr-3 text-blue-500"></i>Soutenance</h3>
                     <dl class="text-sm space-y-2">
-                         <div class="flex"><dt class="font-medium text-gray-500 w-32">Date</dt><dd class="text-gray-900"><?php echo !empty($studentFile['soutenance']['date_soutenance']) ? htmlspecialchars(date('d/m/Y', strtotime($studentFile['soutenance']['date_soutenance']))) : 'N/A'; ?></dd></div>
-                         <div class="flex"><dt class="font-medium text-gray-500 w-32">Heure</dt><dd class="text-gray-900"><?php echo !empty($studentFile['soutenance']['heure_soutenance']) ? htmlspecialchars(date('H:i', strtotime($studentFile['soutenance']['heure_soutenance']))) : 'N/A'; ?></dd></div>
+                         <?php
+                            $rawDateSout = $studentFile['soutenance']['date_soutenance'] ?? null;
+                            $rawHeureSout = $studentFile['soutenance']['heure_soutenance'] ?? null;
+                            $hasDateSout = $rawDateSout && !str_starts_with($rawDateSout, '0000-00-00');
+                            $hasHeureSout = $rawHeureSout && stripos($rawHeureSout, '00:00:00') === false;
+                         ?>
+                         <div class="flex"><dt class="font-medium text-gray-500 w-32">Date</dt><dd class="text-gray-900"><?php echo $hasDateSout ? htmlspecialchars(date('d/m/Y', strtotime($rawDateSout))) : 'N/A'; ?></dd></div>
+                         <div class="flex"><dt class="font-medium text-gray-500 w-32">Heure</dt><dd class="text-gray-900"><?php echo $hasHeureSout ? htmlspecialchars(date('H:i', strtotime($rawHeureSout))) : 'N/A'; ?></dd></div>
                          <div class="flex"><dt class="font-medium text-gray-500 w-32">Salle</dt><dd class="text-gray-900"><?php echo htmlspecialchars($studentFile['soutenance']['lib_salle'] ?? 'N/A'); ?></dd></div>
                     </dl>
                 </div>

@@ -17,6 +17,7 @@ class Archive
      */
     public function getStudentHistory($anneeAcad = null, $statut = null, $search = null, $limit = 50, $offset = 0)
     {
+        $anneeExpr = "COALESCE(CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)), CASE WHEN e.promotion_etu IS NOT NULL AND e.promotion_etu != '' THEN CONCAT(e.promotion_etu, '-', CAST(e.promotion_etu AS UNSIGNED) + 1) END)";
         $sql = "
             SELECT DISTINCT
                 e.num_etu as matricule,
@@ -27,7 +28,7 @@ class Archive
                 r.statut_rapport as statut,
                 aa.date_deb,
                 aa.date_fin,
-                CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) as annee_academique,
+                " . $anneeExpr . " as annee_academique,
                 r.id_rapport
             FROM etudiants e
             LEFT JOIN rapport_etudiants r ON e.num_etu = r.num_etu
@@ -41,7 +42,7 @@ class Archive
         $params = [];
         
         if ($anneeAcad) {
-            $sql .= " AND CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) = :annee_acad";
+            $sql .= " AND " . $anneeExpr . " = :annee_acad";
             $params['annee_acad'] = $anneeAcad;
         }
         
@@ -55,7 +56,7 @@ class Archive
             $params['search'] = '%' . $search . '%';
         }
         
-        $sql .= " ORDER BY aa.date_deb DESC, e.nom_etu ASC LIMIT :limit OFFSET :offset";
+        $sql .= " ORDER BY COALESCE(aa.date_deb, STR_TO_DATE(CONCAT(e.promotion_etu, '-09-01'), '%Y-%m-%d')) DESC, e.nom_etu ASC LIMIT :limit OFFSET :offset";
         
         try {
             $stmt = $this->db->prepare($sql);
@@ -79,6 +80,7 @@ class Archive
      */
     public function countStudents($anneeAcad = null, $statut = null, $search = null)
     {
+        $anneeExpr = "COALESCE(CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)), CASE WHEN e.promotion_etu IS NOT NULL AND e.promotion_etu != '' THEN CONCAT(e.promotion_etu, '-', CAST(e.promotion_etu AS UNSIGNED) + 1) END)";
         $sql = "
             SELECT COUNT(DISTINCT e.num_etu) as total
             FROM etudiants e
@@ -91,7 +93,7 @@ class Archive
         $params = [];
         
         if ($anneeAcad) {
-            $sql .= " AND CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) = :annee_acad";
+            $sql .= " AND " . $anneeExpr . " = :annee_acad";
             $params['annee_acad'] = $anneeAcad;
         }
         
@@ -107,7 +109,10 @@ class Archive
         
         try {
             $stmt = $this->db->prepare($sql);
-            $stmt->execute($params);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue(":$key", $value);
+            }
+            $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             return $result['total'] ?? 0;
         } catch (PDOException $e) {
@@ -193,7 +198,19 @@ class Archive
      */
     private function getStudentInfo($numEtu)
     {
-        $sql = "SELECT * FROM etudiants WHERE num_etu = :num_etu";
+        $anneeExpr = "COALESCE(CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)), CASE WHEN e.promotion_etu IS NOT NULL AND e.promotion_etu != '' THEN CONCAT(e.promotion_etu, '-', CAST(e.promotion_etu AS UNSIGNED) + 1) END)";
+        $sql = "
+            SELECT 
+                e.*,
+                i.date_inscription,
+                " . $anneeExpr . " as annee_academique
+            FROM etudiants e
+            LEFT JOIN inscriptions i ON e.num_etu = i.id_etudiant
+            LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
+            WHERE e.num_etu = :num_etu
+            ORDER BY i.date_inscription DESC
+            LIMIT 1
+        ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['num_etu' => $numEtu]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -295,7 +312,8 @@ class Archive
             LIMIT 1
         ";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(['num_etu' => $numEtu]);
+        $stmt->bindValue(':num_etu', $numEtu);
+        $stmt->execute();
         $soutenance = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($soutenance) {
@@ -320,7 +338,9 @@ class Archive
             WHERE ev.num_etudiant = :num_etu AND ev.num_jury = :num_jury
         ";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(['num_etu' => $numEtu, 'num_jury' => $numJury]);
+        $stmt->bindValue(':num_etu', $numEtu);
+        $stmt->bindValue(':num_jury', $numJury);
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
@@ -329,19 +349,20 @@ class Archive
      */
     public function getJuryHistory($anneeAcad = null, $session = null, $limit = 50, $offset = 0)
     {
+        $anneeExpr = "COALESCE(CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)), CASE WHEN e.promotion_etu IS NOT NULL AND e.promotion_etu != '' THEN CONCAT(e.promotion_etu, '-', CAST(e.promotion_etu AS UNSIGNED) + 1) END)";
         $sql = "
             SELECT 
                 p.date_soutenance,
-                e.num_etu as matricule,
-                CONCAT(e.nom_etu, ' ', e.prenom_etu) as etudiant,
+                e.num_etu as etudiant_matricule,
+                CONCAT(e.nom_etu, ' ', e.prenom_etu) as etudiant_nom,
                 p.theme_soutenance,
-                MAX(CASE WHEN rj.lib_role = 'Président du jury' THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as president,
-                MAX(CASE WHEN rj.lib_role = 'Examinateur' THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as examinateur,
-                MAX(CASE WHEN rj.lib_role = 'Encadreur' THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as encadreur,
-                MAX(CASE WHEN rj.lib_role = 'Directeur de mémoire' THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as directeur,
+                MAX(CASE WHEN cj.id_qualite_jury = 1 THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as president,
+                MAX(CASE WHEN cj.id_qualite_jury = 2 THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as encadreur,
+                MAX(CASE WHEN cj.id_qualite_jury = 3 THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as examinateur,
+                MAX(CASE WHEN cj.id_qualite_jury = 4 THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as directeur,
                 aa.date_deb,
                 aa.date_fin,
-                CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) as annee_academique
+                " . $anneeExpr . " as annee_academique
             FROM programmer p
             INNER JOIN etudiants e ON p.num_etud = e.num_etu
             LEFT JOIN composer_jury cj ON p.num_jury = cj.num_jury
@@ -355,11 +376,11 @@ class Archive
         $params = [];
         
         if ($anneeAcad) {
-            $sql .= " AND CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) = :annee_acad";
+            $sql .= " AND " . $anneeExpr . " = :annee_acad";
             $params['annee_acad'] = $anneeAcad;
         }
         
-        $sql .= " GROUP BY p.id_programmation, e.num_etu, aa.date_deb, aa.date_fin";
+        $sql .= " GROUP BY p.id_programmation, e.num_etu, aa.date_deb, aa.date_fin, e.promotion_etu";
         $sql .= " ORDER BY p.date_soutenance DESC LIMIT :limit OFFSET :offset";
         
         try {
@@ -375,6 +396,134 @@ class Archive
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error getting jury history: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Global counters for statistics tab
+     */
+    public function getGlobalStats()
+    {
+        $stats = [
+            'total_students' => 0,
+            'total_soutenances' => 0,
+            'total_entreprises' => 0,
+            'total_encadreurs' => 0,
+        ];
+
+        try {
+            $stats['total_students'] = (int)$this->db->query("SELECT COUNT(*) FROM etudiants")->fetchColumn();
+            $stats['total_soutenances'] = (int)$this->db->query("SELECT COUNT(*) FROM programmer WHERE date_soutenance IS NOT NULL AND date_soutenance <> '0000-00-00'")->fetchColumn();
+            $stats['total_entreprises'] = (int)$this->db->query("SELECT COUNT(DISTINCT id_entreprise) FROM entreprises")->fetchColumn();
+            $stats['total_encadreurs'] = (int)$this->db->query("SELECT COUNT(DISTINCT id_enseignant) FROM affecter WHERE role = 'encadrant'")->fetchColumn();
+        } catch (PDOException $e) {
+            error_log("Error getting global stats: " . $e->getMessage());
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Evolution par annee academique
+     */
+    public function getYearlyEvolution()
+    {
+        $sql = "
+            SELECT 
+                CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) as annee,
+                COUNT(DISTINCT i.id_etudiant) as inscrits,
+                SUM(CASE WHEN re.statut_rapport = 'valider' THEN 1 ELSE 0 END) as admis,
+                ROUND(AVG(ev.note), 2) as moyenne_note
+            FROM inscriptions i
+            LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
+            LEFT JOIN etudiants e ON e.num_etu = i.id_etudiant
+            LEFT JOIN rapport_etudiants re ON re.num_etu = e.num_etu
+            LEFT JOIN evaluer ev ON ev.num_etudiant = e.num_etu
+            GROUP BY aa.date_deb, aa.date_fin
+            HAVING annee IS NOT NULL
+            ORDER BY aa.date_deb DESC
+        ";
+
+        try {
+            $stmt = $this->db->query($sql);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rows as &$row) {
+                $row['admis'] = (int)$row['admis'];
+                $row['inscrits'] = (int)$row['inscrits'];
+                $row['taux'] = $row['inscrits'] > 0 ? round($row['admis'] * 100 / $row['inscrits'], 1) : 0;
+                $row['moyenne_note'] = $row['moyenne_note'] !== null ? (float)$row['moyenne_note'] : null;
+            }
+            return $rows;
+        } catch (PDOException $e) {
+            error_log("Error getting yearly evolution: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Distribution des mentions sur la base des moyennes d'evaluation
+     */
+    public function getMentionsDistribution()
+    {
+        $mentions = [
+            'Tres bien' => 0,
+            'Bien' => 0,
+            'Assez bien' => 0,
+            'Passable' => 0,
+        ];
+
+        $sql = "
+            SELECT num_etudiant, AVG(note) as moyenne
+            FROM evaluer
+            GROUP BY num_etudiant
+        ";
+
+        try {
+            $stmt = $this->db->query($sql);
+            $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($students as $row) {
+                $avg = (float)$row['moyenne'];
+                if ($avg >= 16) {
+                    $mentions['Tres bien']++;
+                } elseif ($avg >= 14) {
+                    $mentions['Bien']++;
+                } elseif ($avg >= 12) {
+                    $mentions['Assez bien']++;
+                } else {
+                    $mentions['Passable']++;
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("Error getting mentions distribution: " . $e->getMessage());
+        }
+
+        return $mentions;
+    }
+
+    /**
+     * Top entreprises par nombre de stages declares
+     */
+    public function getTopEntreprises($limit = 10)
+    {
+        $sql = "
+            SELECT 
+                ent.lib_entreprise,
+                COUNT(*) as total
+            FROM informations_stage ist
+            INNER JOIN entreprises ent ON ent.id_entreprise = ist.id_entreprise
+            GROUP BY ent.id_entreprise, ent.lib_entreprise
+            ORDER BY total DESC
+            LIMIT :limit
+        ";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error getting top entreprises: " . $e->getMessage());
             return [];
         }
     }

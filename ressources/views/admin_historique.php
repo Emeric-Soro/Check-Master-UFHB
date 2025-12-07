@@ -6,6 +6,10 @@ $academicYears = $GLOBALS['academicYears'] ?? [];
 $filters = $GLOBALS['filters'] ?? [];
 $totalPages = $GLOBALS['totalPages'] ?? 1;
 $currentPage = $GLOBALS['currentPage'] ?? 1;
+$globalStats = $GLOBALS['globalStats'] ?? [];
+$yearlyEvolution = $GLOBALS['yearlyEvolution'] ?? [];
+$mentionsDistribution = $GLOBALS['mentionsDistribution'] ?? [];
+$topEntreprises = $GLOBALS['topEntreprises'] ?? [];
 $messageSuccess = $GLOBALS['messageSuccess'] ?? '';
 $messageErreur = $GLOBALS['messageErreur'] ?? '';
 ?>
@@ -72,13 +76,13 @@ $messageErreur = $GLOBALS['messageErreur'] ?? '';
         <div class="bg-white rounded-2xl shadow-sm">
             <div class="border-b border-gray-200">
                 <nav class="-mb-px flex gap-6 px-6" aria-label="Tabs">
-                    <button onclick="switchTab(event, 'students')" class="tab-button <?php echo $currentTab === 'students' ? 'active' : ''; ?>">
+                    <button onclick="switchTab('students')" class="tab-button <?php echo $currentTab === 'students' ? 'active' : ''; ?>">
                         <i class="fas fa-user-graduate mr-2"></i> Historique Étudiants
                     </button>
-                    <button onclick="switchTab(event, 'jury')" class="tab-button <?php echo $currentTab === 'jury' ? 'active' : ''; ?>">
+                    <button onclick="switchTab('jury')" class="tab-button <?php echo $currentTab === 'jury' ? 'active' : ''; ?>">
                         <i class="fas fa-users mr-2"></i> Historique Jurys
                     </button>
-                     <button onclick="switchTab(event, 'stats')" class="tab-button <?php echo $currentTab === 'stats' ? 'active' : ''; ?>">
+                     <button onclick="switchTab('stats')" class="tab-button <?php echo $currentTab === 'stats' ? 'active' : ''; ?>">
                         <i class="fas fa-chart-pie mr-2"></i> Statistiques Globales
                     </button>
                 </nav>
@@ -228,7 +232,7 @@ $messageErreur = $GLOBALS['messageErreur'] ?? '';
                         </div>
                     </form>
                 </div>
-                
+
                 <!-- Jury Table -->
                 <div class="overflow-x-auto">
                     <div class="align-middle inline-block min-w-full">
@@ -251,15 +255,26 @@ $messageErreur = $GLOBALS['messageErreur'] ?? '';
                                 <?php else: ?>
                                     <?php foreach ($juries as $jury): ?>
                                         <tr class="hover:bg-gray-50">
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars(date('d/m/Y', strtotime($jury['date_soutenance'] ?? 'now'))); ?></td>
+                                            <?php
+                                                $rawDate = $jury['date_soutenance'] ?? null;
+                                                $hasValidDate = $rawDate && !str_starts_with($rawDate, '0000-00-00');
+                                                $displayDate = $hasValidDate ? date('d/m/Y', strtotime($rawDate)) : 'N/A';
+                                            ?>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars($displayDate); ?></td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <div><?php echo htmlspecialchars($jury['etudiant_nom'] ?? 'N/A'); ?></div>
                                                 <div class="text-xs text-gray-500"><?php echo htmlspecialchars($jury['etudiant_matricule'] ?? 'N/A'); ?></div>
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo htmlspecialchars($jury['president'] ?? 'N/A'); ?></td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo htmlspecialchars($jury['encadreur'] ?? 'N/A'); ?></td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo htmlspecialchars($jury['examinateur'] ?? 'N/A'); ?></td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo htmlspecialchars($jury['directeur'] ?? 'N/A'); ?></td>
+                                            <?php
+                                                $president = trim($jury['president'] ?? '') ?: 'N/A';
+                                                $encadreur = trim($jury['encadreur'] ?? '') ?: 'N/A';
+                                                $examinateur = trim($jury['examinateur'] ?? '') ?: 'N/A';
+                                                $directeur = trim($jury['directeur'] ?? '') ?: 'N/A';
+                                            ?>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo htmlspecialchars($president); ?></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo htmlspecialchars($encadreur); ?></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo htmlspecialchars($examinateur); ?></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo htmlspecialchars($directeur); ?></td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <a href="#" class="text-blue-600 hover:text-blue-900"><i class="fas fa-eye"></i></a>
                                             </td>
@@ -278,19 +293,19 @@ $messageErreur = $GLOBALS['messageErreur'] ?? '';
                 <!-- Overview Stats -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="bg-blue-50 p-6 rounded-2xl text-center">
-                        <div class="text-4xl font-bold text-blue-800">242</div>
+                        <div class="text-4xl font-bold text-blue-800"><?php echo (int)($globalStats['total_students'] ?? 0); ?></div>
                         <div class="text-sm font-semibold text-blue-700 mt-1">Étudiants Total</div>
                     </div>
                     <div class="bg-green-50 p-6 rounded-2xl text-center">
-                        <div class="text-4xl font-bold text-green-800">208</div>
+                        <div class="text-4xl font-bold text-green-800"><?php echo (int)($globalStats['total_soutenances'] ?? 0); ?></div>
                         <div class="text-sm font-semibold text-green-700 mt-1">Soutenances Réalisées</div>
                     </div>
                     <div class="bg-indigo-50 p-6 rounded-2xl text-center">
-                        <div class="text-4xl font-bold text-indigo-800">87</div>
+                        <div class="text-4xl font-bold text-indigo-800"><?php echo (int)($globalStats['total_entreprises'] ?? 0); ?></div>
                         <div class="text-sm font-semibold text-indigo-700 mt-1">Entreprises Partenaires</div>
                     </div>
                      <div class="bg-orange-50 p-6 rounded-2xl text-center">
-                        <div class="text-4xl font-bold text-orange-800">34</div>
+                        <div class="text-4xl font-bold text-orange-800"><?php echo (int)($globalStats['total_encadreurs'] ?? 0); ?></div>
                         <div class="text-sm font-semibold text-orange-700 mt-1">Enseignants Encadreurs</div>
                     </div>
                 </div>
@@ -310,27 +325,19 @@ $messageErreur = $GLOBALS['messageErreur'] ?? '';
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                <tr>
-                                    <td class="px-6 py-4 font-medium">2023-2024 (en cours)</td>
-                                    <td class="px-6 py-4">72</td>
-                                    <td class="px-6 py-4">45</td>
-                                    <td class="px-6 py-4">62.5%</td>
-                                    <td class="px-6 py-4">14.8</td>
-                                </tr>
-                                 <tr class="bg-gray-50">
-                                    <td class="px-6 py-4 font-medium">2022-2023</td>
-                                    <td class="px-6 py-4">68</td>
-                                    <td class="px-6 py-4">65</td>
-                                    <td class="px-6 py-4">95.6%</td>
-                                    <td class="px-6 py-4">14.2</td>
-                                </tr>
-                                <tr>
-                                    <td class="px-6 py-4 font-medium">2021-2022</td>
-                                    <td class="px-6 py-4">54</td>
-                                    <td class="px-6 py-4">52</td>
-                                    <td class="px-6 py-4">96.3%</td>
-                                    <td class="px-6 py-4">13.8</td>
-                                </tr>
+                                <?php if (empty($yearlyEvolution)): ?>
+                                    <tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Aucune donnée disponible.</td></tr>
+                                <?php else: ?>
+                                    <?php foreach ($yearlyEvolution as $index => $row): ?>
+                                        <tr class="<?php echo $index % 2 === 1 ? 'bg-gray-50' : ''; ?>">
+                                            <td class="px-6 py-4 font-medium"><?php echo htmlspecialchars($row['annee']); ?></td>
+                                            <td class="px-6 py-4"><?php echo (int)$row['inscrits']; ?></td>
+                                            <td class="px-6 py-4"><?php echo (int)$row['admis']; ?></td>
+                                            <td class="px-6 py-4"><?php echo number_format($row['taux'], 1); ?>%</td>
+                                            <td class="px-6 py-4"><?php echo $row['moyenne_note'] !== null ? number_format($row['moyenne_note'], 2) : '—'; ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -341,34 +348,45 @@ $messageErreur = $GLOBALS['messageErreur'] ?? '';
                      <div>
                         <h3 class="text-lg font-bold text-gray-800 mb-4">Répartition des Mentions</h3>
                         <div class="bg-white p-6 rounded-2xl shadow-sm space-y-4">
-                            <div class="space-y-1">
-                                <p class="text-sm font-medium text-gray-600">Très Bien (8%)</p>
-                                <div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-purple-600 h-2.5 rounded-full" style="width: 8%"></div></div>
-                            </div>
-                            <div class="space-y-1">
-                                <p class="text-sm font-medium text-gray-600">Bien (28%)</p>
-                                <div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-blue-600 h-2.5 rounded-full" style="width: 28%"></div></div>
-                            </div>
-                            <div class="space-y-1">
-                                <p class="text-sm font-medium text-gray-600">Assez Bien (29%)</p>
-                                <div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-green-600 h-2.5 rounded-full" style="width: 29%"></div></div>
-                            </div>
-                             <div class="space-y-1">
-                                <p class="text-sm font-medium text-gray-600">Passable (35%)</p>
-                                <div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-yellow-500 h-2.5 rounded-full" style="width: 35%"></div></div>
-                            </div>
+                            <?php
+                                $totalMentions = array_sum($mentionsDistribution);
+                                $barColors = [
+                                    'Tres bien' => 'bg-purple-600',
+                                    'Bien' => 'bg-blue-600',
+                                    'Assez bien' => 'bg-green-600',
+                                    'Passable' => 'bg-yellow-500',
+                                ];
+                            ?>
+                            <?php if ($totalMentions === 0): ?>
+                                <p class="text-sm text-gray-500">Aucune évaluation disponible.</p>
+                            <?php else: ?>
+                                <?php foreach ($mentionsDistribution as $label => $count):
+                                    $percent = $totalMentions > 0 ? round($count * 100 / $totalMentions, 1) : 0;
+                                    $color = $barColors[$label] ?? 'bg-gray-400';
+                                ?>
+                                    <div class="space-y-1">
+                                        <p class="text-sm font-medium text-gray-600"><?php echo htmlspecialchars($label); ?> (<?php echo $percent; ?>%)</p>
+                                        <div class="w-full bg-gray-200 rounded-full h-2.5"><div class="<?php echo $color; ?> h-2.5 rounded-full" style="width: <?php echo $percent; ?>%"></div></div>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                      <div>
                         <h3 class="text-lg font-bold text-gray-800 mb-4">Top 10 Entreprises</h3>
                         <div class="bg-white p-6 rounded-2xl shadow-sm">
-                            <ul class="space-y-3">
-                                <li class="text-sm text-gray-600">1. ORANGE CI <span class="font-bold float-right">28</span></li>
-                                <li class="text-sm text-gray-600">2. MTN CI <span class="font-bold float-right">21</span></li>
-                                <li class="text-sm text-gray-600">3. SODECI <span class="font-bold float-right">15</span></li>
-                                <li class="text-sm text-gray-600">4. SGBCI <span class="font-bold float-right">12</span></li>
-                                <li class="text-sm text-gray-600">5. BANK OF AFRICA <span class="font-bold float-right">11</span></li>
-                            </ul>
+                            <?php if (empty($topEntreprises)): ?>
+                                <p class="text-sm text-gray-500">Aucune entreprise déclarée pour le moment.</p>
+                            <?php else: ?>
+                                <ul class="space-y-3">
+                                    <?php foreach ($topEntreprises as $idx => $ent): ?>
+                                        <li class="text-sm text-gray-600">
+                                            <?php echo ($idx + 1) . '. ' . htmlspecialchars($ent['lib_entreprise']); ?>
+                                            <span class="font-bold float-right"><?php echo (int)$ent['total']; ?></span>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -444,22 +462,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-function switchTab(event, tab) {
-    // Update URL
+function switchTab(tab) {
     const url = new URL(window.location);
     url.searchParams.set('tab', tab);
-    window.history.pushState({}, '', url);
-
-    // Update button styles
-    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-    event.currentTarget.classList.add('active');
-
-    // Show/hide content
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
-    const activeTabContent = document.getElementById(tab + '-tab');
-    if (activeTabContent) {
-        activeTabContent.classList.remove('hidden');
-    }
+    url.searchParams.delete('p'); // reset pagination when switching tabs
+    window.location.href = url.toString();
 }
 </script>
 

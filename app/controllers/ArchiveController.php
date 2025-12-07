@@ -43,13 +43,18 @@ class ArchiveController
                 $students = $this->archive->getStudentHistory($anneeAcad, $statut, $search, $perPage, $offset);
                 $totalStudents = $this->archive->countStudents($anneeAcad, $statut, $search);
                 $totalPages = ceil($totalStudents / $perPage);
-                
+
                 $GLOBALS['students'] = $students;
                 $GLOBALS['totalPages'] = $totalPages;
                 $GLOBALS['currentPage'] = $page;
             } elseif ($tab === 'jury') {
                 $juries = $this->archive->getJuryHistory($anneeAcad, null, $perPage, $offset);
                 $GLOBALS['juries'] = $juries;
+            } elseif ($tab === 'stats') {
+                $GLOBALS['globalStats'] = $this->archive->getGlobalStats();
+                $GLOBALS['yearlyEvolution'] = $this->archive->getYearlyEvolution();
+                $GLOBALS['mentionsDistribution'] = $this->archive->getMentionsDistribution();
+                $GLOBALS['topEntreprises'] = $this->archive->getTopEntreprises();
             }
             
             // Get available years for filter
@@ -164,7 +169,7 @@ class ArchiveController
                     $this->auditLog->logModification(
                         $_SESSION['id_utilisateur'],
                         'Archive Étudiant',
-                        "Mise à jour du dossier de l'étudiant $numEtu"
+                        'Succès'
                     );
                 }
                 
@@ -233,7 +238,7 @@ class ArchiveController
                     $_SESSION['id_utilisateur'],
                     'Import',
                     'Archive',
-                    "Import: {$summary['total_success']} succès, {$summary['total_errors']} erreurs"
+                    $summary['total_errors'] > 0 ? 'Succès' : 'Succès'
                 );
             }
             
