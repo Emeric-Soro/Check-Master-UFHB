@@ -21,18 +21,18 @@ $etudiants = $etudiantModel->getAllListeEtudiants();
 
 // Application des filtres
 if ($niveauFiltre) {
-    $etudiants = array_filter($etudiants, function($e) use ($niveauFiltre) {
+    $etudiants = array_filter($etudiants, function ($e) use ($niveauFiltre) {
         return isset($e->id_niv_etude) && $e->id_niv_etude == $niveauFiltre;
     });
 }
 
 if ($searchFiltre) {
-    $etudiants = array_filter($etudiants, function($e) use ($searchFiltre) {
+    $etudiants = array_filter($etudiants, function ($e) use ($searchFiltre) {
         $search = strtolower($searchFiltre);
         return strpos(strtolower($e->nom_etu ?? ''), $search) !== false ||
-               strpos(strtolower($e->prenom_etu ?? ''), $search) !== false ||
-               strpos(strtolower($e->email_etu ?? ''), $search) !== false ||
-               strpos(strtolower($e->lib_niv_etude ?? ''), $search) !== false;
+            strpos(strtolower($e->prenom_etu ?? ''), $search) !== false ||
+            strpos(strtolower($e->email_etu ?? ''), $search) !== false ||
+            strpos(strtolower($e->lib_niv_etude ?? ''), $search) !== false;
     });
 }
 
@@ -51,7 +51,7 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
-<body class="bg-gradient-to-br from-blue-50 to-green-50 min-h-screen font-sans">
+<body class="min-h-screen font-sans" style="background: linear-gradient(135deg, #DFF2FF 0%, #C8E8FF 100%);">
     <div class="max-w-5xl mx-auto py-10 ">
         <h1 class="text-3xl font-bold text-green-700 mb-8 flex items-center gap-3">
             <i class="fas fa-folder-open text-green-400"></i> Dossiers académiques des étudiants
@@ -82,11 +82,10 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                 <select name="niveau" style="outline: none;"
                     class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500">
                     <option value="">Tous les niveaux</option>
-                    <?php foreach($niveaux as $niv): ?>
-                    <option value="<?= htmlspecialchars($niv->id_niv_etude) ?>"
-                        <?= $niveauFiltre == $niv->id_niv_etude ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($niv->lib_niv_etude) ?>
-                    </option>
+                    <?php foreach ($niveaux as $niv): ?>
+                        <option value="<?= htmlspecialchars($niv->id_niv_etude) ?>" <?= $niveauFiltre == $niv->id_niv_etude ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($niv->lib_niv_etude) ?>
+                        </option>
                     <?php endforeach; ?>
                 </select>
                 <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg">Filtrer</button>
@@ -111,66 +110,70 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                     </tr>
                 </thead>
                 <tbody id="studentTableBody" class="bg-white divide-y divide-gray-200">
-                    <?php 
+                    <?php
                     // Vérifier s'il y a des résultats totaux (pas juste sur la page courante)
                     $allEtudiants = $etudiantModel->getAllListeEtudiants();
                     if ($niveauFiltre) {
-                        $allEtudiants = array_filter($allEtudiants, function($e) use ($niveauFiltre) {
+                        $allEtudiants = array_filter($allEtudiants, function ($e) use ($niveauFiltre) {
                             return isset($e->id_niv_etude) && $e->id_niv_etude == $niveauFiltre;
                         });
                     }
                     if ($searchFiltre) {
-                        $allEtudiants = array_filter($allEtudiants, function($e) use ($searchFiltre) {
+                        $allEtudiants = array_filter($allEtudiants, function ($e) use ($searchFiltre) {
                             $search = strtolower($searchFiltre);
                             return strpos(strtolower($e->nom_etu ?? ''), $search) !== false ||
-                                   strpos(strtolower($e->prenom_etu ?? ''), $search) !== false ||
-                                   strpos(strtolower($e->email_etu ?? ''), $search) !== false ||
-                                   strpos(strtolower($e->lib_niv_etude ?? ''), $search) !== false;
+                                strpos(strtolower($e->prenom_etu ?? ''), $search) !== false ||
+                                strpos(strtolower($e->email_etu ?? ''), $search) !== false ||
+                                strpos(strtolower($e->lib_niv_etude ?? ''), $search) !== false;
                         });
                     }
-                    
+
                     if (empty($allEtudiants)): ?>
-                    <tr>
-                        <td colspan="6" class="px-6 py-8 text-center">
-                            <div class="flex flex-col items-center gap-3 text-gray-500">
-                                <i class="fas fa-search text-4xl text-gray-300"></i>
-                                <div class="text-lg font-medium">Aucun étudiant trouvé</div>
-                                <div class="text-sm">Aucun résultat ne correspond à vos critères de recherche</div>
-                                <?php if (!empty($_GET['search']) || !empty($_GET['niveau'])): ?>
-                                <a href="?page=dossiers_academiques"
-                                    class="text-green-600 hover:text-green-700 font-medium">
-                                    <i class="fas fa-times mr-1"></i>Effacer les filtres
-                                </a>
-                                <?php endif; ?>
-                            </div>
-                        </td>
-                    </tr>
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center">
+                                <div class="flex flex-col items-center gap-3 text-gray-500">
+                                    <i class="fas fa-search text-4xl text-gray-300"></i>
+                                    <div class="text-lg font-medium">Aucun étudiant trouvé</div>
+                                    <div class="text-sm">Aucun résultat ne correspond à vos critères de recherche</div>
+                                    <?php if (!empty($_GET['search']) || !empty($_GET['niveau'])): ?>
+                                        <a href="?page=dossiers_academiques"
+                                            class="text-green-600 hover:text-green-700 font-medium">
+                                            <i class="fas fa-times mr-1"></i>Effacer les filtres
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
                     <?php else: ?>
-                    <?php foreach($etudiants as $etu): ?>
-                    <tr class="hover:bg-green-50 transition">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            <?php echo htmlspecialchars($etu->nom_etu ?? ''); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            <?php echo htmlspecialchars($etu->prenom_etu ?? ''); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            <?php echo htmlspecialchars($etu->email_etu ?? ''); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            <?php echo htmlspecialchars($etu->lib_niv_etude ?? ''); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"><?php
-                            if (isset($etu->date_deb, $etu->date_fin)) {
-                                echo htmlspecialchars(date('Y', strtotime($etu->date_deb)) . '-' . date('Y', strtotime($etu->date_fin)));
-                            }
-                        ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <button
-                                class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-green-700 transition open-dossier-modal"
-                                data-num-etu="<?= htmlspecialchars($etu->num_etu) ?>"
-                                data-nom="<?= htmlspecialchars($etu->nom_etu . ' ' . $etu->prenom_etu) ?>">
-                                <i class="fas fa-eye mr-2"></i> Visualiser le dossier
-                            </button>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
+                        <?php foreach ($etudiants as $etu): ?>
+                            <tr class="hover:bg-green-50 transition">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <?php echo htmlspecialchars($etu->nom_etu ?? ''); ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    <?php echo htmlspecialchars($etu->prenom_etu ?? ''); ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    <?php echo htmlspecialchars($etu->email_etu ?? ''); ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    <?php echo htmlspecialchars($etu->lib_niv_etude ?? ''); ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"><?php
+                                if (isset($etu->date_deb, $etu->date_fin)) {
+                                    echo htmlspecialchars(date('Y', strtotime($etu->date_deb)) . '-' . date('Y', strtotime($etu->date_fin)));
+                                }
+                                ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                    <button
+                                        class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-green-700 transition open-dossier-modal"
+                                        data-num-etu="<?= htmlspecialchars($etu->num_etu) ?>"
+                                        data-nom="<?= htmlspecialchars($etu->nom_etu . ' ' . $etu->prenom_etu) ?>">
+                                        <i class="fas fa-eye mr-2"></i> Visualiser le dossier
+                                    </button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -178,54 +181,54 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
 
         <!-- Pagination -->
         <?php if ($totalPages > 1): ?>
-        <div class="mt-6 flex items-center justify-between">
-            <div class="text-sm text-gray-700">
-                Affichage de <?= $offset + 1 ?> à <?= min($offset + $itemsPerPage, $totalItems) ?> sur
-                <?= $totalItems ?> étudiants
+            <div class="mt-6 flex items-center justify-between">
+                <div class="text-sm text-gray-700">
+                    Affichage de <?= $offset + 1 ?> à <?= min($offset + $itemsPerPage, $totalItems) ?> sur
+                    <?= $totalItems ?> étudiants
+                </div>
+                <div class="flex items-center gap-2">
+                    <?php if ($currentPage > 1): ?>
+                        <a href="?page=dossiers_academiques&p=<?= $currentPage - 1 ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
+                            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                            <i class="fas fa-chevron-left mr-1"></i>Précédent
+                        </a>
+                    <?php endif; ?>
+
+                    <?php
+                    $startPage = max(1, $currentPage - 2);
+                    $endPage = min($totalPages, $currentPage + 2);
+
+                    if ($startPage > 1): ?>
+                        <a href="?page=dossiers_academiques&p=1<?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
+                            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">1</a>
+                        <?php if ($startPage > 2): ?>
+                            <span class="px-3 py-2 text-sm text-gray-500">...</span>
+                        <?php endif; ?>
+                    <?php endif; ?>
+
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                        <a href="?page=dossiers_academiques&p=<?= $i ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
+                            class="px-3 py-2 text-sm font-medium <?= $i == $currentPage ? 'text-white bg-green-600 border-green-600' : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50' ?> border rounded-md">
+                            <?= $i ?>
+                        </a>
+                    <?php endfor; ?>
+
+                    <?php if ($endPage < $totalPages): ?>
+                        <?php if ($endPage < $totalPages - 1): ?>
+                            <span class="px-3 py-2 text-sm text-gray-500">...</span>
+                        <?php endif; ?>
+                        <a href="?page=dossiers_academiques&p=<?= $totalPages ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
+                            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50"><?= $totalPages ?></a>
+                    <?php endif; ?>
+
+                    <?php if ($currentPage < $totalPages): ?>
+                        <a href="?page=dossiers_academiques&p=<?= $currentPage + 1 ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
+                            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                            Suivant<i class="fas fa-chevron-right ml-1"></i>
+                        </a>
+                    <?php endif; ?>
+                </div>
             </div>
-            <div class="flex items-center gap-2">
-                <?php if ($currentPage > 1): ?>
-                <a href="?page=dossiers_academiques&p=<?= $currentPage - 1 ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
-                    class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                    <i class="fas fa-chevron-left mr-1"></i>Précédent
-                </a>
-                <?php endif; ?>
-
-                <?php
-                $startPage = max(1, $currentPage - 2);
-                $endPage = min($totalPages, $currentPage + 2);
-                
-                if ($startPage > 1): ?>
-                <a href="?page=dossiers_academiques&p=1<?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
-                    class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">1</a>
-                <?php if ($startPage > 2): ?>
-                <span class="px-3 py-2 text-sm text-gray-500">...</span>
-                <?php endif; ?>
-                <?php endif; ?>
-
-                <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
-                <a href="?page=dossiers_academiques&p=<?= $i ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
-                    class="px-3 py-2 text-sm font-medium <?= $i == $currentPage ? 'text-white bg-green-600 border-green-600' : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50' ?> border rounded-md">
-                    <?= $i ?>
-                </a>
-                <?php endfor; ?>
-
-                <?php if ($endPage < $totalPages): ?>
-                <?php if ($endPage < $totalPages - 1): ?>
-                <span class="px-3 py-2 text-sm text-gray-500">...</span>
-                <?php endif; ?>
-                <a href="?page=dossiers_academiques&p=<?= $totalPages ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
-                    class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50"><?= $totalPages ?></a>
-                <?php endif; ?>
-
-                <?php if ($currentPage < $totalPages): ?>
-                <a href="?page=dossiers_academiques&p=<?= $currentPage + 1 ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
-                    class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                    Suivant<i class="fas fa-chevron-right ml-1"></i>
-                </a>
-                <?php endif; ?>
-            </div>
-        </div>
         <?php endif; ?>
     </div>
     <div id="dossierModal" class="fixed inset-0 z-50 flex items-center justify-center bg-opacity-40 hidden">
@@ -318,133 +321,133 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
         </div>
     </div>
     <script>
-    // Masquer automatiquement les messages de succès/erreur après 5 secondes
-    document.addEventListener('DOMContentLoaded', function() {
-        const successMessage = document.getElementById('successMessage');
-        const errorMessage = document.getElementById('errorMessage');
+        // Masquer automatiquement les messages de succès/erreur après 5 secondes
+        document.addEventListener('DOMContentLoaded', function () {
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
 
-        function hideMessage(element) {
-            if (element) {
-                element.style.opacity = '0';
-                setTimeout(() => {
-                    element.style.display = 'none';
-                }, 500);
+            function hideMessage(element) {
+                if (element) {
+                    element.style.opacity = '0';
+                    setTimeout(() => {
+                        element.style.display = 'none';
+                    }, 500);
+                }
             }
-        }
 
-        // Masquer le message de succès après 5 secondes
-        if (successMessage) {
-            setTimeout(() => hideMessage(successMessage), 5000);
-        }
+            // Masquer le message de succès après 5 secondes
+            if (successMessage) {
+                setTimeout(() => hideMessage(successMessage), 5000);
+            }
 
-        // Masquer le message d'erreur après 5 secondes
-        if (errorMessage) {
-            setTimeout(() => hideMessage(errorMessage), 5000);
-        }
-    });
-
-    // Filtrage JS côté client (pour la démo)
-    const searchInput = document.getElementById('searchInput');
-    const tableBody = document.getElementById('studentTableBody');
-    const rows = Array.from(tableBody.getElementsByTagName('tr'));
-    searchInput.addEventListener('input', function() {
-        const value = this.value.toLowerCase();
-        rows.forEach(row => {
-            const text = row.innerText.toLowerCase();
-            row.style.display = text.includes(value) ? '' : 'none';
+            // Masquer le message d'erreur après 5 secondes
+            if (errorMessage) {
+                setTimeout(() => hideMessage(errorMessage), 5000);
+            }
         });
-    });
-    document.querySelectorAll('.open-dossier-modal').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const numEtu = this.dataset.numEtu;
-            const nom = this.dataset.nom;
 
-            // Affiche la modal immédiatement
-            document.getElementById('dossierModal').classList.remove('hidden');
-            document.getElementById('modalNom').textContent = nom;
-            document.getElementById('modalNumEtu').value = numEtu;
-
-            // Affiche l'indicateur de chargement
-            document.getElementById('loadingIndicator').classList.remove('hidden');
-            document.getElementById('dossierForm').classList.add('hidden');
-
-            // Désactive les champs
-            document.querySelectorAll('#dossierForm input, #dossierForm textarea').forEach(i => {
-                if (i.type !== 'hidden' && i.type !== 'file') i.disabled = true;
+        // Filtrage JS côté client (pour la démo)
+        const searchInput = document.getElementById('searchInput');
+        const tableBody = document.getElementById('studentTableBody');
+        const rows = Array.from(tableBody.getElementsByTagName('tr'));
+        searchInput.addEventListener('input', function () {
+            const value = this.value.toLowerCase();
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(value) ? '' : 'none';
             });
-            document.getElementById('saveBtn').classList.add('hidden');
-            document.getElementById('editBtn').classList.remove('hidden');
-            // Cache les inputs file
-            document.querySelectorAll('#dossierForm input[type=file]').forEach(i => i.style.display =
-                'none');
+        });
+        document.querySelectorAll('.open-dossier-modal').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const numEtu = this.dataset.numEtu;
+                const nom = this.dataset.nom;
 
-            // Charge les infos via AJAX avec timeout
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 secondes de timeout
+                // Affiche la modal immédiatement
+                document.getElementById('dossierModal').classList.remove('hidden');
+                document.getElementById('modalNom').textContent = nom;
+                document.getElementById('modalNumEtu').value = numEtu;
 
-            fetch('?page=dossiers_academiques&action=get_dossier&num_etu=' + encodeURIComponent(
+                // Affiche l'indicateur de chargement
+                document.getElementById('loadingIndicator').classList.remove('hidden');
+                document.getElementById('dossierForm').classList.add('hidden');
+
+                // Désactive les champs
+                document.querySelectorAll('#dossierForm input, #dossierForm textarea').forEach(i => {
+                    if (i.type !== 'hidden' && i.type !== 'file') i.disabled = true;
+                });
+                document.getElementById('saveBtn').classList.add('hidden');
+                document.getElementById('editBtn').classList.remove('hidden');
+                // Cache les inputs file
+                document.querySelectorAll('#dossierForm input[type=file]').forEach(i => i.style.display =
+                    'none');
+
+                // Charge les infos via AJAX avec timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 secondes de timeout
+
+                fetch('?page=dossiers_academiques&action=get_dossier&num_etu=' + encodeURIComponent(
                     numEtu), {
                     signal: controller.signal
                 })
-                .then(r => {
-                    clearTimeout(timeoutId);
-                    if (!r.ok) throw new Error('Erreur réseau');
-                    return r.json();
-                })
-                .then(data => {
-                    // Cache l'indicateur de chargement
-                    document.getElementById('loadingIndicator').classList.add('hidden');
-                    document.getElementById('dossierForm').classList.remove('hidden');
+                    .then(r => {
+                        clearTimeout(timeoutId);
+                        if (!r.ok) throw new Error('Erreur réseau');
+                        return r.json();
+                    })
+                    .then(data => {
+                        // Cache l'indicateur de chargement
+                        document.getElementById('loadingIndicator').classList.add('hidden');
+                        document.getElementById('dossierForm').classList.remove('hidden');
 
-                    // Remplit les champs avec les données existantes
-                    document.getElementById('modalAdresse').value = data.adresse || '';
-                    document.getElementById('modalTelephone').value = data.telephone || '';
-                    document.getElementById('modalNationalite').value = data.nationalite || '';
-                    document.getElementById('modalSituationFamiliale').value = data
-                        .situation_familiale || '';
-                    document.getElementById('modalDernierDiplome').value = data.dernier_diplome ||
-                        '';
-                    document.getElementById('modalEtablissementOrigine').value = data
-                        .etablissement_origine || '';
-                    document.getElementById('modalAnneeObtentionDiplome').value = data
-                        .annee_obtention_diplome || '';
-                    document.getElementById('modalMentionDiplome').value = data.mention_diplome ||
-                        '';
-                })
-                .catch(error => {
-                    clearTimeout(timeoutId);
-                    console.log('Aucun dossier existant pour cet étudiant ou erreur de chargement');
+                        // Remplit les champs avec les données existantes
+                        document.getElementById('modalAdresse').value = data.adresse || '';
+                        document.getElementById('modalTelephone').value = data.telephone || '';
+                        document.getElementById('modalNationalite').value = data.nationalite || '';
+                        document.getElementById('modalSituationFamiliale').value = data
+                            .situation_familiale || '';
+                        document.getElementById('modalDernierDiplome').value = data.dernier_diplome ||
+                            '';
+                        document.getElementById('modalEtablissementOrigine').value = data
+                            .etablissement_origine || '';
+                        document.getElementById('modalAnneeObtentionDiplome').value = data
+                            .annee_obtention_diplome || '';
+                        document.getElementById('modalMentionDiplome').value = data.mention_diplome ||
+                            '';
+                    })
+                    .catch(error => {
+                        clearTimeout(timeoutId);
+                        console.log('Aucun dossier existant pour cet étudiant ou erreur de chargement');
 
-                    // Cache l'indicateur de chargement
-                    document.getElementById('loadingIndicator').classList.add('hidden');
-                    document.getElementById('dossierForm').classList.remove('hidden');
+                        // Cache l'indicateur de chargement
+                        document.getElementById('loadingIndicator').classList.add('hidden');
+                        document.getElementById('dossierForm').classList.remove('hidden');
 
-                    // Vide les champs si pas de dossier existant
-                    document.getElementById('modalAdresse').value = '';
-                    document.getElementById('modalTelephone').value = '';
-                    document.getElementById('modalNationalite').value = '';
-                    document.getElementById('modalSituationFamiliale').value = '';
-                    document.getElementById('modalDernierDiplome').value = '';
-                    document.getElementById('modalEtablissementOrigine').value = '';
-                    document.getElementById('modalAnneeObtentionDiplome').value = '';
-                    document.getElementById('modalMentionDiplome').value = '';
-                });
-        });
-
-        document.getElementById('closeModalBtn').onclick = () => document.getElementById('dossierModal')
-            .classList.add(
-                'hidden');
-        document.getElementById('editBtn').onclick = function() {
-            document.querySelectorAll('#dossierForm input, #dossierForm textarea').forEach(i => {
-                if (i.type !== 'hidden') i.disabled = false;
+                        // Vide les champs si pas de dossier existant
+                        document.getElementById('modalAdresse').value = '';
+                        document.getElementById('modalTelephone').value = '';
+                        document.getElementById('modalNationalite').value = '';
+                        document.getElementById('modalSituationFamiliale').value = '';
+                        document.getElementById('modalDernierDiplome').value = '';
+                        document.getElementById('modalEtablissementOrigine').value = '';
+                        document.getElementById('modalAnneeObtentionDiplome').value = '';
+                        document.getElementById('modalMentionDiplome').value = '';
+                    });
             });
-            // Affiche les inputs file
-            document.querySelectorAll('#dossierForm input[type=file]').forEach(i => i.style.display =
-                'block');
-            document.getElementById('saveBtn').classList.remove('hidden');
-            this.classList.add('hidden');
-        };
-    });
+
+            document.getElementById('closeModalBtn').onclick = () => document.getElementById('dossierModal')
+                .classList.add(
+                    'hidden');
+            document.getElementById('editBtn').onclick = function () {
+                document.querySelectorAll('#dossierForm input, #dossierForm textarea').forEach(i => {
+                    if (i.type !== 'hidden') i.disabled = false;
+                });
+                // Affiche les inputs file
+                document.querySelectorAll('#dossierForm input[type=file]').forEach(i => i.style.display =
+                    'block');
+                document.getElementById('saveBtn').classList.remove('hidden');
+                this.classList.add('hidden');
+            };
+        });
     </script>
 </body>
 

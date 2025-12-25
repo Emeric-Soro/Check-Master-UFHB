@@ -35,7 +35,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
     .section-container {
         border: 1px solid #e2e8f0;
         border-radius: 0.5rem;
-        background-color: #f8fafc;
+        background-color: #DFF2FF;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
         transition: all 0.3s ease-in-out;
@@ -131,7 +131,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
     }
 
     .pagination button:hover {
-        background-color: #f7fafc;
+        background-color: #DFF2FF;
         border-color: #cbd5e0;
     }
 
@@ -170,7 +170,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
     </style>
 </head>
 
-<body class="bg-gray-50">
+<body style="background-color: #DFF2FF;">
     <div class="container mx-auto px-4 py-8">
         <div id="messageContainer"></div>
 

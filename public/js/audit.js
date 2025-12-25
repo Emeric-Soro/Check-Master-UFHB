@@ -77,7 +77,7 @@ function initializePrintFunctionality() {
         @media print {
             .no-print { display: none !important; }
             body { background: white !important; }
-            .bg-white { background: white !important; }
+            .bg-white { background: #DFF2FF !important; }
             .shadow-lg { box-shadow: none !important; }
             .rounded-xl { border-radius: 0 !important; }
             table { border-collapse: collapse; }

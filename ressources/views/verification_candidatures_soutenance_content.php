@@ -161,7 +161,7 @@ function traduireStatut($statut)
         }
 
         .table th {
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            background: linear-gradient(135deg, #DFF2FF 0%, #e2e8f0 100%);
             color: #374151;
             font-weight: 600;
             padding: 1rem;
@@ -182,7 +182,7 @@ function traduireStatut($statut)
         }
 
         .table tbody tr:hover {
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            background: linear-gradient(135deg, #DFF2FF 0%, #e2e8f0 100%);
             transform: scale(1.01);
         }
 
@@ -311,7 +311,7 @@ function traduireStatut($statut)
     </style>
 </head>
 
-<body class="min-h-screen p-4 md:p-8">
+<body class="min-h-screen p-4 md:p-8" style="background-color: #DFF2FF;">
     <?php
     // Afficher les messages de session
     if (isset($_SESSION['message']) && !empty($_SESSION['message'])) {

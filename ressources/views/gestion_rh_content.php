@@ -79,7 +79,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
     </style>
 </head>
 
-<body class="bg-gray-100">
+<body style="background-color: #DFF2FF;">
     <div class="min-h-screen flex flex-col">
         <main class="flex-grow container mx-auto px-4 py-5">
 

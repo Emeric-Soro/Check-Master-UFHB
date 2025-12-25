@@ -3,7 +3,7 @@ $annee_a_modifier = $GLOBALS['annee_a_modifier'] ?? null;
 
 
 // Pagination
-$page = isset($_GET['p']) ? (int)$_GET['p'] : 1;
+$page = isset($_GET['p']) ? (int) $_GET['p'] : 1;
 $limit = 10;
 $offset = ($page - 1) * $limit;
 
@@ -13,7 +13,7 @@ $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
 // Filter the list based on search
 $listeAnnees = $GLOBALS['listeAnnees'] ?? [];
 if (!empty($search)) {
-    $listeAnnees = array_filter($listeAnnees, function($annee) use ($search) {
+    $listeAnnees = array_filter($listeAnnees, function ($annee) use ($search) {
         $anneeStr = date('Y', strtotime($annee->date_deb)) . '-' . date('Y', strtotime($annee->date_fin));
         return stripos($anneeStr, $search) !== false;
     });
@@ -34,155 +34,155 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion des Années Académiques</title>
     <style>
-    /* Animations et transitions */
-    .animate__animated {
-        animation-duration: 0.3s;
-    }
-
-    .transition-all {
-        transition-property: all;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: 200ms;
-    }
-
-    /* Personnalisation des inputs */
-    .form-input:focus {
-        border-color: #22c55e;
-        box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
-        background-color: #f0fdf4;
-    }
-
-    /* Style pour le hover des lignes du tableau */
-    .table-row:hover {
-        background-color: #f0fdf4;
-    }
-
-    /* Style pour les checkboxes */
-    input[type="checkbox"]:checked {
-        background-color: #22c55e;
-        border-color: #22c55e;
-    }
-
-    /* Style pour la pagination active */
-    .pagination-active {
-        background-color: #22c55e;
-        border-color: #22c55e;
-    }
-
-    /* Boutons avec dégradés */
-    .btn-gradient-primary {
-        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    }
-
-    .btn-gradient-secondary {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    }
-
-    .btn-gradient-warning {
-        background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
-    }
-
-    .btn-gradient-danger {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    }
-
-    /* Effet de hover sur les boutons */
-    .btn-hover {
-        transition: all 0.3s ease;
-    }
-
-    .btn-hover:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-
-    @media print {
-        body * {
-            visibility: hidden;
+        /* Animations et transitions */
+        .animate__animated {
+            animation-duration: 0.3s;
         }
 
-        .container table,
-        .container table * {
-            visibility: visible;
+        .transition-all {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 200ms;
         }
 
-        .container table {
-            position: absolute;
-            left: 0;
-            top: 0;
+        /* Personnalisation des inputs */
+        .form-input:focus {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+            background-color: #f0fdf4;
         }
 
-        button,
-        .actions,
-        input[type="checkbox"] {
-            display: none !important;
-        }
-    }
-
-    /* Styles pour les notifications */
-    .notification {
-        position: fixed;
-        top: 1rem;
-        right: 1rem;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        color: white;
-        max-width: 24rem;
-        z-index: 50;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        animation: slideIn 0.5s ease-out;
-    }
-
-    .notification.success {
-        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    }
-
-    .notification.error {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    }
-
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
+        /* Style pour le hover des lignes du tableau */
+        .table-row:hover {
+            background-color: #f0fdf4;
         }
 
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-
-    @keyframes fadeOut {
-        from {
-            opacity: 1;
+        /* Style pour les checkboxes */
+        input[type="checkbox"]:checked {
+            background-color: #22c55e;
+            border-color: #22c55e;
         }
 
-        to {
-            opacity: 0;
+        /* Style pour la pagination active */
+        .pagination-active {
+            background-color: #22c55e;
+            border-color: #22c55e;
         }
-    }
+
+        /* Boutons avec dégradés */
+        .btn-gradient-primary {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        }
+
+        .btn-gradient-secondary {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        }
+
+        .btn-gradient-warning {
+            background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+        }
+
+        .btn-gradient-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        /* Effet de hover sur les boutons */
+        .btn-hover {
+            transition: all 0.3s ease;
+        }
+
+        .btn-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            .container table,
+            .container table * {
+                visibility: visible;
+            }
+
+            .container table {
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+
+            button,
+            .actions,
+            input[type="checkbox"] {
+                display: none !important;
+            }
+        }
+
+        /* Styles pour les notifications */
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            max-width: 24rem;
+            z-index: 50;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 
-<body class="bg-gray-50">
+<body style="background-color: #DFF2FF;">
     <!-- Système de notification -->
     <?php if (!empty($GLOBALS['messageSuccess'])): ?>
-    <div id="successNotification" class="notification success animate__animated animate__fadeIn">
-        <div class="flex items-center">
-            <i class="fas fa-check-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+        <div id="successNotification" class="notification success animate__animated animate__fadeIn">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-2"></i>
+                <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+            </div>
         </div>
-    </div>
     <?php endif; ?>
 
     <?php if (!empty($GLOBALS['messageErreur'])): ?>
-    <div id="errorNotification" class="notification error animate__animated animate__fadeIn">
-        <div class="flex items-center">
-            <i class="fas fa-exclamation-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+        <div id="errorNotification" class="notification error animate__animated animate__fadeIn">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+            </div>
         </div>
-    </div>
     <?php endif; ?>
 
     <div class="min-h-screen">
@@ -198,17 +198,17 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
                 <h3 class="text-lg font-semibold text-gray-600 mb-4 flex items-center">
                     <i
                         class="fas <?= isset($_GET['id_annee_acad']) ? 'fa-edit text-green-500' : 'fa-plus-circle text-green-500' ?> mr-2"></i>
-                    <?php if(isset($_GET['id_annee_acad'])): ?>
-                    Modifier l'année académique
+                    <?php if (isset($_GET['id_annee_acad'])): ?>
+                        Modifier l'année académique
                     <?php else: ?>
-                    Ajouter une année académique
-                    <?php endif;?>
+                        Ajouter une année académique
+                    <?php endif; ?>
                 </h3>
 
                 <form method="POST" action="?page=parametres_generaux&action=annees_academiques" id="anneeForm">
                     <?php if ($annee_a_modifier): ?>
-                    <input type="hidden" name="id_annee_acad"
-                        value="<?= htmlspecialchars($annee_a_modifier->id_annee_acad) ?>">
+                        <input type="hidden" name="id_annee_acad"
+                            value="<?= htmlspecialchars($annee_a_modifier->id_annee_acad) ?>">
                     <?php endif; ?>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
@@ -225,24 +225,24 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
                         </div>
                     </div>
                     <div class="flex justify-between mt-6">
-                        <?php if(isset($_GET['id_annee_acad'])): ?>
-                        <button type="button" name="btn_annuler" id="btnAnnuler"
-                            onclick="window.location.href='?page=parametres_generaux&action=annees_academiques'"
-                            class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
-                            <i class="fas fa-times mr-2"></i>Annuler
-                        </button>
-                        <button type="button" id="btnModifier" name="btn_modifier_annees_academiques"
-                            class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                            <i class="fas fa-save mr-2"></i>Modifier
-                            <input type="hidden" name="btn_modifier_annees_academiques"
-                                id="btn_modifier_annees_academiques_hidden" value="0">
-                        </button>
+                        <?php if (isset($_GET['id_annee_acad'])): ?>
+                            <button type="button" name="btn_annuler" id="btnAnnuler"
+                                onclick="window.location.href='?page=parametres_generaux&action=annees_academiques'"
+                                class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                                <i class="fas fa-times mr-2"></i>Annuler
+                            </button>
+                            <button type="button" id="btnModifier" name="btn_modifier_annees_academiques"
+                                class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                                <i class="fas fa-save mr-2"></i>Modifier
+                                <input type="hidden" name="btn_modifier_annees_academiques"
+                                    id="btn_modifier_annees_academiques_hidden" value="0">
+                            </button>
                         <?php else: ?>
-                        <div></div>
-                        <button type="submit" name="btn_add_annees_academiques"
-                            class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                            <i class="fas fa-plus mr-2"></i>Ajouter une année académique
-                        </button>
+                            <div></div>
+                            <button type="submit" name="btn_add_annees_academiques"
+                                class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                                <i class="fas fa-plus mr-2"></i>Ajouter une année académique
+                            </button>
                         <?php endif; ?>
                     </div>
                 </form>
@@ -325,37 +325,40 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                <?php if (!empty($listeAnnees)) : ?>
-                                <?php foreach ($listeAnnees as $annee) : ?>
-                                <tr class="hover:bg-green-50 transition-colors duration-200">
-                                    <td class="px-3 py-4">
-                                        <input type="checkbox" name="selected_ids[]"
-                                            value="<?= htmlspecialchars($annee->id_annee_acad) ?>"
-                                            class="row-checkbox text-center rounded border-gray-300 text-green-600 focus:ring-green-500 transition-all duration-200">
-                                    </td>
-                                    <td class="px-3 py-4 text-sm text-gray-900 text-center">
-                                        <?= htmlspecialchars($annee->id_annee_acad) ?></td>
-                                    <td class="px-3 py-4 text-sm text-gray-900 font-medium text-center">
-                                        <?= date('Y', strtotime($annee->date_deb)) . '-' . date('Y', strtotime($annee->date_fin)) ?>
-                                    </td>
-                                    <td class="px-3 py-4 text-sm text-gray-500 text-center">
-                                        <?= date('d/m/Y', strtotime($annee->date_deb)) ?></td>
-                                    <td class="px-3 py-4 text-sm text-gray-500 text-center">
-                                        <?= date('d/m/Y', strtotime($annee->date_fin)) ?></td>
-                                    <td class="px-3 py-4 text-sm text-center">
-                                        <a href="?page=parametres_generaux&action=annees_academiques&id_annee_acad=<?= $annee->id_annee_acad ?>"
-                                            class="text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-200">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                                <?php else : ?>
-                                <tr>
-                                    <td colspan="6" class="px-3 py-4 text-sm text-gray-500 text-center">
-                                        <i class="fas fa-info-circle mr-2"></i>Aucune année académique enregistrée.
-                                    </td>
-                                </tr>
+                                <?php if (!empty($listeAnnees)): ?>
+                                    <?php foreach ($listeAnnees as $annee): ?>
+                                        <tr class="hover:bg-green-50 transition-colors duration-200">
+                                            <td class="px-3 py-4">
+                                                <input type="checkbox" name="selected_ids[]"
+                                                    value="<?= htmlspecialchars($annee->id_annee_acad) ?>"
+                                                    class="row-checkbox text-center rounded border-gray-300 text-green-600 focus:ring-green-500 transition-all duration-200">
+                                            </td>
+                                            <td class="px-3 py-4 text-sm text-gray-900 text-center">
+                                                <?= htmlspecialchars($annee->id_annee_acad) ?>
+                                            </td>
+                                            <td class="px-3 py-4 text-sm text-gray-900 font-medium text-center">
+                                                <?= date('Y', strtotime($annee->date_deb)) . '-' . date('Y', strtotime($annee->date_fin)) ?>
+                                            </td>
+                                            <td class="px-3 py-4 text-sm text-gray-500 text-center">
+                                                <?= date('d/m/Y', strtotime($annee->date_deb)) ?>
+                                            </td>
+                                            <td class="px-3 py-4 text-sm text-gray-500 text-center">
+                                                <?= date('d/m/Y', strtotime($annee->date_fin)) ?>
+                                            </td>
+                                            <td class="px-3 py-4 text-sm text-center">
+                                                <a href="?page=parametres_generaux&action=annees_academiques&id_annee_acad=<?= $annee->id_annee_acad ?>"
+                                                    class="text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-200">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="6" class="px-3 py-4 text-sm text-gray-500 text-center">
+                                            <i class="fas fa-info-circle mr-2"></i>Aucune année académique enregistrée.
+                                        </td>
+                                    </tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>
@@ -365,50 +368,50 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
 
             <!-- Pagination en bas du tableau -->
             <?php if ($total_pages > 1): ?>
-            <div class="bg-white rounded-lg shadow-sm p-4 mt-6">
-                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div class="text-sm text-gray-500">
-                        Affichage de <?= $offset + 1 ?> à <?= min($offset + $limit, $total_items) ?> sur
-                        <?= $total_items ?> entrées
-                    </div>
-                    <div class="flex flex-wrap justify-center gap-2">
-                        <?php if ($page > 1): ?>
-                        <a href="?page=parametres_generaux&action=annees_academiques&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
-                            class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            <i class="fas fa-chevron-left mr-1"></i>Précédent
-                        </a>
-                        <?php endif; ?>
+                <div class="bg-white rounded-lg shadow-sm p-4 mt-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div class="text-sm text-gray-500">
+                            Affichage de <?= $offset + 1 ?> à <?= min($offset + $limit, $total_items) ?> sur
+                            <?= $total_items ?> entrées
+                        </div>
+                        <div class="flex flex-wrap justify-center gap-2">
+                            <?php if ($page > 1): ?>
+                                <a href="?page=parametres_generaux&action=annees_academiques&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
+                                    class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    <i class="fas fa-chevron-left mr-1"></i>Précédent
+                                </a>
+                            <?php endif; ?>
 
-                        <?php
-                        $start = max(1, $page - 2);
-                        $end = min($total_pages, $page + 2);
-                        
-                        if ($start > 1) {
-                            echo '<span class="px-3 py-2 text-gray-500">...</span>';
-                        }
-                        
-                        for ($i = $start; $i <= $end; $i++):
-                        ?>
-                        <a href="?page=parametres_generaux&action=annees_academiques&p=<?= $i ?>&search=<?= urlencode($search) ?>"
-                            class="btn-hover px-3 py-2 <?= $i === $page ? 'btn-gradient-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50' ?> border border-gray-300 rounded-lg text-sm font-medium">
-                            <?= $i ?>
-                        </a>
-                        <?php endfor;
+                            <?php
+                            $start = max(1, $page - 2);
+                            $end = min($total_pages, $page + 2);
 
-                        if ($end < $total_pages) {
-                            echo '<span class="px-3 py-2 text-gray-500">...</span>';
-                        }
-                        ?>
+                            if ($start > 1) {
+                                echo '<span class="px-3 py-2 text-gray-500">...</span>';
+                            }
 
-                        <?php if ($page < $total_pages): ?>
-                        <a href="?page=parametres_generaux&action=annees_academiques&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
-                            class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            Suivant<i class="fas fa-chevron-right ml-1"></i>
-                        </a>
-                        <?php endif; ?>
+                            for ($i = $start; $i <= $end; $i++):
+                                ?>
+                                <a href="?page=parametres_generaux&action=annees_academiques&p=<?= $i ?>&search=<?= urlencode($search) ?>"
+                                    class="btn-hover px-3 py-2 <?= $i === $page ? 'btn-gradient-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50' ?> border border-gray-300 rounded-lg text-sm font-medium">
+                                    <?= $i ?>
+                                </a>
+                            <?php endfor;
+
+                            if ($end < $total_pages) {
+                                echo '<span class="px-3 py-2 text-gray-500">...</span>';
+                            }
+                            ?>
+
+                            <?php if ($page < $total_pages): ?>
+                                <a href="?page=parametres_generaux&action=annees_academiques&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
+                                    class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    Suivant<i class="fas fa-chevron-right ml-1"></i>
+                                </a>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
-            </div>
             <?php endif; ?>
         </main>
     </div>
@@ -468,138 +471,138 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
     </div>
 
     <script>
-    // Gestion des checkboxes et du bouton de suppression
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    const deleteButton = document.getElementById('deleteSelectedBtn');
-    const deleteModal = document.getElementById('deleteModal');
-    const confirmDelete = document.getElementById('confirmDelete');
-    const cancelDelete = document.getElementById('cancelDelete');
-    const formListeAnnees = document.getElementById('formListeAnnees');
-    const submitDeleteHidden = document.getElementById('submitDeleteHidden');
-    const btnModifier = document.getElementById('btnModifier');
-    const modifyModal = document.getElementById('modifyModal');
-    const confirmModify = document.getElementById('confirmModify');
-    const cancelModify = document.getElementById('cancelModify');
-    const anneeForm = document.getElementById('anneeForm');
-    const submitModifierHidden = document.getElementById('btn_modifier_annees_academiques_hidden');
+        // Gestion des checkboxes et du bouton de suppression
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        const deleteButton = document.getElementById('deleteSelectedBtn');
+        const deleteModal = document.getElementById('deleteModal');
+        const confirmDelete = document.getElementById('confirmDelete');
+        const cancelDelete = document.getElementById('cancelDelete');
+        const formListeAnnees = document.getElementById('formListeAnnees');
+        const submitDeleteHidden = document.getElementById('submitDeleteHidden');
+        const btnModifier = document.getElementById('btnModifier');
+        const modifyModal = document.getElementById('modifyModal');
+        const confirmModify = document.getElementById('confirmModify');
+        const cancelModify = document.getElementById('cancelModify');
+        const anneeForm = document.getElementById('anneeForm');
+        const submitModifierHidden = document.getElementById('btn_modifier_annees_academiques_hidden');
 
-    // Initialisation
-    updateDeleteButtonState();
-
-    // Select all checkboxes
-    selectAllCheckbox.addEventListener('change', function() {
-        const checkboxes = document.querySelectorAll('.row-checkbox');
-        checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+        // Initialisation
         updateDeleteButtonState();
-    });
 
-    // Update delete button state
-    function updateDeleteButtonState() {
-        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-        deleteButton.disabled = checkedBoxes.length === 0;
-    }
-
-    // Checkbox change events
-    document.addEventListener('change', function(e) {
-        if (e.target.classList.contains('row-checkbox')) {
+        // Select all checkboxes
+        selectAllCheckbox.addEventListener('change', function () {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = this.checked);
             updateDeleteButtonState();
-            const allCheckboxes = document.querySelectorAll('.row-checkbox');
+        });
+
+        // Update delete button state
+        function updateDeleteButtonState() {
             const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-            selectAllCheckbox.checked = checkedBoxes.length === allCheckboxes.length && allCheckboxes.length >
-                0;
+            deleteButton.disabled = checkedBoxes.length === 0;
         }
-    });
 
-    // Delete modal
-    deleteButton.addEventListener('click', function() {
-        if (!this.disabled) {
-            deleteModal.classList.remove('hidden');
+        // Checkbox change events
+        document.addEventListener('change', function (e) {
+            if (e.target.classList.contains('row-checkbox')) {
+                updateDeleteButtonState();
+                const allCheckboxes = document.querySelectorAll('.row-checkbox');
+                const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+                selectAllCheckbox.checked = checkedBoxes.length === allCheckboxes.length && allCheckboxes.length >
+                    0;
+            }
+        });
+
+        // Delete modal
+        deleteButton.addEventListener('click', function () {
+            if (!this.disabled) {
+                deleteModal.classList.remove('hidden');
+            }
+        });
+
+        confirmDelete.addEventListener('click', function () {
+            submitDeleteHidden.value = '1';
+            formListeAnnees.submit();
+        });
+
+        cancelDelete.addEventListener('click', function () {
+            deleteModal.classList.add('hidden');
+        });
+
+        // Modify modal
+        if (btnModifier) {
+            btnModifier.addEventListener('click', function () {
+                modifyModal.classList.remove('hidden');
+            });
         }
-    });
 
-    confirmDelete.addEventListener('click', function() {
-        submitDeleteHidden.value = '1';
-        formListeAnnees.submit();
-    });
-
-    cancelDelete.addEventListener('click', function() {
-        deleteModal.classList.add('hidden');
-    });
-
-    // Modify modal
-    if (btnModifier) {
-        btnModifier.addEventListener('click', function() {
-            modifyModal.classList.remove('hidden');
-        });
-    }
-
-    confirmModify.addEventListener('click', function() {
-        submitModifierHidden.value = '1';
-        anneeForm.submit();
-    });
-
-    cancelModify.addEventListener('click', function() {
-        modifyModal.classList.add('hidden');
-    });
-
-    // Fonction pour exporter en Excel
-    function exportToExcel() {
-        const table = document.querySelector('table');
-        const rows = Array.from(table.querySelectorAll('tr'));
-
-        // Créer le contenu CSV
-        let csvContent = "data:text/csv;charset=utf-8,";
-
-        // Ajouter les en-têtes
-        const headers = Array.from(rows[0].querySelectorAll('th'))
-            .map(header => header.textContent.trim())
-            .filter(header => header !== ''); // Exclure la colonne des checkboxes
-        csvContent += headers.join(',') + '\n';
-
-        // Ajouter les données
-        rows.slice(1).forEach(row => {
-            const cells = Array.from(row.querySelectorAll('td'))
-                .slice(1, -1) // Exclure la colonne des checkboxes et des actions
-                .map(cell => `"${cell.textContent.trim()}"`);
-            csvContent += cells.join(',') + '\n';
+        confirmModify.addEventListener('click', function () {
+            submitModifierHidden.value = '1';
+            anneeForm.submit();
         });
 
-        // Créer le lien de téléchargement
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement('a');
-        link.setAttribute('href', encodedUri);
-        link.setAttribute('download', 'annees_academiques.csv');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-
-    // Fonction pour imprimer
-    function printTable() {
-        const table = document.querySelector('table');
-        const printWindow = window.open('', '_blank');
-
-        // Créer une copie de la table pour la modification
-        const tableClone = table.cloneNode(true);
-
-        // Supprimer les colonnes ID, Actions et Checkboxes
-        const rows = tableClone.querySelectorAll('tr');
-        rows.forEach(row => {
-            // Supprimer la colonne des checkboxes (première colonne)
-            const checkboxCell = row.querySelector('th:first-child, td:first-child');
-            if (checkboxCell) checkboxCell.remove();
-
-            // Supprimer la colonne ID (maintenant première colonne)
-            const idCell = row.querySelector('th:first-child, td:first-child');
-            if (idCell) idCell.remove();
-
-            // Supprimer la colonne Actions (dernière colonne)
-            const actionCell = row.querySelector('th:last-child, td:last-child');
-            if (actionCell) actionCell.remove();
+        cancelModify.addEventListener('click', function () {
+            modifyModal.classList.add('hidden');
         });
 
-        printWindow.document.write(`
+        // Fonction pour exporter en Excel
+        function exportToExcel() {
+            const table = document.querySelector('table');
+            const rows = Array.from(table.querySelectorAll('tr'));
+
+            // Créer le contenu CSV
+            let csvContent = "data:text/csv;charset=utf-8,";
+
+            // Ajouter les en-têtes
+            const headers = Array.from(rows[0].querySelectorAll('th'))
+                .map(header => header.textContent.trim())
+                .filter(header => header !== ''); // Exclure la colonne des checkboxes
+            csvContent += headers.join(',') + '\n';
+
+            // Ajouter les données
+            rows.slice(1).forEach(row => {
+                const cells = Array.from(row.querySelectorAll('td'))
+                    .slice(1, -1) // Exclure la colonne des checkboxes et des actions
+                    .map(cell => `"${cell.textContent.trim()}"`);
+                csvContent += cells.join(',') + '\n';
+            });
+
+            // Créer le lien de téléchargement
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'annees_academiques.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+
+        // Fonction pour imprimer
+        function printTable() {
+            const table = document.querySelector('table');
+            const printWindow = window.open('', '_blank');
+
+            // Créer une copie de la table pour la modification
+            const tableClone = table.cloneNode(true);
+
+            // Supprimer les colonnes ID, Actions et Checkboxes
+            const rows = tableClone.querySelectorAll('tr');
+            rows.forEach(row => {
+                // Supprimer la colonne des checkboxes (première colonne)
+                const checkboxCell = row.querySelector('th:first-child, td:first-child');
+                if (checkboxCell) checkboxCell.remove();
+
+                // Supprimer la colonne ID (maintenant première colonne)
+                const idCell = row.querySelector('th:first-child, td:first-child');
+                if (idCell) idCell.remove();
+
+                // Supprimer la colonne Actions (dernière colonne)
+                const actionCell = row.querySelector('th:last-child, td:last-child');
+                if (actionCell) actionCell.remove();
+            });
+
+            printWindow.document.write(`
             <html>
                 <head>
                     <title>Liste des années académiques</title>
@@ -619,38 +622,38 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
             </html>
         `);
 
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-    }
-
-
-    // Gestion des notifications
-    document.addEventListener('DOMContentLoaded', function() {
-        const successNotification = document.getElementById('successNotification');
-        const errorNotification = document.getElementById('errorNotification');
-
-        if (successNotification) {
-            setTimeout(() => {
-                successNotification.classList.remove('animate__fadeIn');
-                successNotification.classList.add('animate__fadeOut');
-                setTimeout(() => {
-                    successNotification.remove();
-                }, 500);
-            }, 5000);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
         }
 
-        if (errorNotification) {
-            setTimeout(() => {
-                errorNotification.classList.remove('animate__fadeIn');
-                errorNotification.classList.add('animate__fadeOut');
+
+        // Gestion des notifications
+        document.addEventListener('DOMContentLoaded', function () {
+            const successNotification = document.getElementById('successNotification');
+            const errorNotification = document.getElementById('errorNotification');
+
+            if (successNotification) {
                 setTimeout(() => {
-                    errorNotification.remove();
-                }, 500);
-            }, 5000);
-        }
-    });
+                    successNotification.classList.remove('animate__fadeIn');
+                    successNotification.classList.add('animate__fadeOut');
+                    setTimeout(() => {
+                        successNotification.remove();
+                    }, 500);
+                }, 5000);
+            }
+
+            if (errorNotification) {
+                setTimeout(() => {
+                    errorNotification.classList.remove('animate__fadeIn');
+                    errorNotification.classList.add('animate__fadeOut');
+                    setTimeout(() => {
+                        errorNotification.remove();
+                    }, 500);
+                }, 5000);
+            }
+        });
     </script>
 
     <?php

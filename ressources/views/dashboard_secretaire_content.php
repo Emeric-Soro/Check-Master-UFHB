@@ -63,91 +63,91 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <style>
-    body {
-        font-family: 'Inter', sans-serif;
-        background-color: #f3f4f6;
-        /* bg-gray-100 */
-    }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            /* bg-gray-100 */
+        }
 
-    /* Styles personnalisés pour les dégradés et les couleurs spécifiques */
-    .sidebar-bg {
-        background: linear-gradient(135deg, #7c3aed, #9a67ea);
-        /* from-purple-600 to-purple-400 */
-    }
+        /* Styles personnalisés pour les dégradés et les couleurs spécifiques */
+        .sidebar-bg {
+            background: linear-gradient(135deg, #7c3aed, #9a67ea);
+            /* from-purple-600 to-purple-400 */
+        }
 
-    .card-red-gradient {
-        background: linear-gradient(135deg, #ef4444, #f87171);
-        /* from-red-500 to-red-400 */
-    }
+        .card-red-gradient {
+            background: linear-gradient(135deg, #ef4444, #f87171);
+            /* from-red-500 to-red-400 */
+        }
 
-    .card-orange-gradient {
-        background: linear-gradient(135deg, #fb923c, #fdba74);
-        /* from-orange-400 to-orange-300 */
-    }
+        .card-orange-gradient {
+            background: linear-gradient(135deg, #fb923c, #fdba74);
+            /* from-orange-400 to-orange-300 */
+        }
 
-    .chart-placeholder {
-        background-color: #f9fafb;
-        /* bg-gray-50 */
-        border-radius: 0.75rem;
-        /* rounded-xl */
-    }
+        .chart-placeholder {
+            background-color: #f9fafb;
+            /* bg-gray-50 */
+            border-radius: 0.75rem;
+            /* rounded-xl */
+        }
 
-    .donut-chart-segment-1 {
-        background-color: #8b5cf6;
-        /* violet-500 */
-    }
+        .donut-chart-segment-1 {
+            background-color: #8b5cf6;
+            /* violet-500 */
+        }
 
-    .donut-chart-segment-2 {
-        background-color: #6366f1;
-        /* indigo-500 */
-    }
+        .donut-chart-segment-2 {
+            background-color: #6366f1;
+            /* indigo-500 */
+        }
 
-    .donut-chart-segment-3 {
-        background-color: #fcd34d;
-        /* amber-300 */
-    }
+        .donut-chart-segment-3 {
+            background-color: #fcd34d;
+            /* amber-300 */
+        }
 
-    .donut-chart-segment-4 {
-        background-color: #f87171;
-        /* red-400 */
-    }
+        .donut-chart-segment-4 {
+            background-color: #f87171;
+            /* red-400 */
+        }
 
-    /* Simulation du graphique en anneau (donut chart) avec des divs concentriques pour l'effet visuel */
-    .donut-chart-container {
-        width: 150px;
-        height: 150px;
-        border-radius: 50%;
-        background: conic-gradient(#8b5cf6 0% 45%,
-                /* Violet-500 */
-                #6366f1 45% 65%,
-                /* Indigo-500 */
-                #fcd34d 65% 85%,
-                /* Amber-300 */
-                #f87171 85% 100%
-                /* Red-400 */
-            );
-        position: relative;
-    }
+        /* Simulation du graphique en anneau (donut chart) avec des divs concentriques pour l'effet visuel */
+        .donut-chart-container {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: conic-gradient(#8b5cf6 0% 45%,
+                    /* Violet-500 */
+                    #6366f1 45% 65%,
+                    /* Indigo-500 */
+                    #fcd34d 65% 85%,
+                    /* Amber-300 */
+                    #f87171 85% 100%
+                    /* Red-400 */
+                );
+            position: relative;
+        }
 
-    .donut-chart-inner {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 90px;
-        /* Ajuster la taille du trou central */
-        height: 90px;
-        background-color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-    }
+        .donut-chart-inner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90px;
+            /* Ajuster la taille du trou central */
+            height: 90px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
     </style>
 </head>
 
-<body class="flex min-h-screen">
+<body class="flex min-h-screen" style="background-color: #DFF2FF;">
 
 
 
@@ -190,7 +190,8 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                 </div>
                 <div>
                     <div class="text-xl font-bold text-gray-900">
-                        <?php echo number_format($stats['paiements_complets']); ?></div>
+                        <?php echo number_format($stats['paiements_complets']); ?>
+                    </div>
                     <div class="text-gray-500 text-sm">Étudiants Actifs</div>
                 </div>
             </div>
@@ -221,7 +222,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                 </div>
                 <div>
                     <div class="text-lg font-bold">
-                        <?php 
+                        <?php
                         $niveauxAffichage = [];
                         foreach ($inscriptionsParNiveau as $niveau) {
                             $niveauxAffichage[] = $niveau['niveau'] . ': ' . $niveau['total'];
@@ -267,7 +268,8 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                 <div class="mt-4 text-center">
                     <div class="text-sm text-gray-600">Montant total perçu</div>
                     <div class="text-lg font-bold text-green-600">
-                        <?php echo number_format($montantTotalPerçu, 0, ',', ' '); ?> FCFA</div>
+                        <?php echo number_format($montantTotalPerçu, 0, ',', ' '); ?> FCFA
+                    </div>
                 </div>
             </div>
             <!-- Activités du Secrétariat (Gauche) -->
@@ -275,31 +277,32 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Activités du Secrétariat</h2>
                 <div class="space-y-4">
                     <?php if (!empty($activitesRecentes)): ?>
-                    <?php foreach ($activitesRecentes as $activite): ?>
-                    <div class="flex items-start space-x-3">
-                        <div
-                            class="w-10 h-10 flex-shrink-0 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <path fill-rule="evenodd"
-                                    d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L14 11.586V8a6 6 0 00-6-6zM12 15.5V14H8v1.5a2 2 0 104 0z"
-                                    clip-rule="evenodd"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <p class="text-gray-900 font-medium">Inscription traitée</p>
-                            <p class="text-gray-600 text-sm">Dossier d'inscription de
-                                <?php echo htmlspecialchars($activite['prenom_etu'] . ' ' . $activite['nom_etu']); ?>
-                                (<?php echo htmlspecialchars($activite['lib_niv_etude']); ?>)</p>
-                            <span
-                                class="text-gray-400 text-xs"><?php echo date('d/m/Y H:i', strtotime($activite['date_inscription'])); ?></span>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
+                        <?php foreach ($activitesRecentes as $activite): ?>
+                            <div class="flex items-start space-x-3">
+                                <div
+                                    class="w-10 h-10 flex-shrink-0 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd"
+                                            d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L14 11.586V8a6 6 0 00-6-6zM12 15.5V14H8v1.5a2 2 0 104 0z"
+                                            clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-gray-900 font-medium">Inscription traitée</p>
+                                    <p class="text-gray-600 text-sm">Dossier d'inscription de
+                                        <?php echo htmlspecialchars($activite['prenom_etu'] . ' ' . $activite['nom_etu']); ?>
+                                        (<?php echo htmlspecialchars($activite['lib_niv_etude']); ?>)
+                                    </p>
+                                    <span
+                                        class="text-gray-400 text-xs"><?php echo date('d/m/Y H:i', strtotime($activite['date_inscription'])); ?></span>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
                     <?php else: ?>
-                    <div class="text-center text-gray-500 py-4">
-                        <p>Aucune activité récente</p>
-                    </div>
+                        <div class="text-center text-gray-500 py-4">
+                            <p>Aucune activité récente</p>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -343,23 +346,23 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                         <!-- Section Réclamations Récentes -->
                         <tbody id="section-recentes" class="filter-section active bg-white divide-y divide-gray-200">
                             <?php if (!empty($reclamationsRecentes)): ?>
-                            <?php foreach ($reclamationsRecentes as $reclamation): ?>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?php echo date('d/m/Y', strtotime($reclamation['date_creation'])); ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?php echo htmlspecialchars($reclamation['nom_etu'] . ' ' . $reclamation['prenom_etu']); ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?php echo htmlspecialchars($reclamation['type_reclamation']); ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                            <?php 
+                                <?php foreach ($reclamationsRecentes as $reclamation): ?>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?php echo date('d/m/Y', strtotime($reclamation['date_creation'])); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?php echo htmlspecialchars($reclamation['nom_etu'] . ' ' . $reclamation['prenom_etu']); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?php echo htmlspecialchars($reclamation['type_reclamation']); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                            <?php
                                             $statutClass = '';
                                             $statutText = '';
-                                            switch($reclamation['statut_reclamation']) {
+                                            switch ($reclamation['statut_reclamation']) {
                                                 case 'En attente':
                                                     $statutClass = 'bg-yellow-100 text-yellow-800';
                                                     $statutText = 'En attente';
@@ -374,89 +377,89 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                                             }
                                             echo $statutClass;
                                             ?>">
-                                        <?php echo $statutText; ?>
-                                    </span>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
+                                                <?php echo $statutText; ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
                             <?php else: ?>
-                            <tr>
-                                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
-                                    Aucune réclamation récente
-                                </td>
-                            </tr>
+                                <tr>
+                                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        Aucune réclamation récente
+                                    </td>
+                                </tr>
                             <?php endif; ?>
                         </tbody>
 
                         <!-- Section Réclamations En Attente -->
                         <tbody id="section-en-attente" class="filter-section hidden bg-white divide-y divide-gray-200">
-                            <?php 
-                            $reclamationsEnAttente = array_filter($reclamationsRecentes, function($r) {
+                            <?php
+                            $reclamationsEnAttente = array_filter($reclamationsRecentes, function ($r) {
                                 return $r['statut_reclamation'] === 'En attente';
                             });
                             ?>
                             <?php if (!empty($reclamationsEnAttente)): ?>
-                            <?php foreach ($reclamationsEnAttente as $reclamation): ?>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?php echo date('d/m/Y', strtotime($reclamation['date_creation'])); ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?php echo htmlspecialchars($reclamation['nom_etu'] . ' ' . $reclamation['prenom_etu']); ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?php echo htmlspecialchars($reclamation['type_reclamation']); ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span
-                                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                        En attente
-                                    </span>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
+                                <?php foreach ($reclamationsEnAttente as $reclamation): ?>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?php echo date('d/m/Y', strtotime($reclamation['date_creation'])); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?php echo htmlspecialchars($reclamation['nom_etu'] . ' ' . $reclamation['prenom_etu']); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?php echo htmlspecialchars($reclamation['type_reclamation']); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                En attente
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
                             <?php else: ?>
-                            <tr>
-                                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
-                                    Aucune réclamation en attente
-                                </td>
-                            </tr>
+                                <tr>
+                                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        Aucune réclamation en attente
+                                    </td>
+                                </tr>
                             <?php endif; ?>
                         </tbody>
 
                         <!-- Section Réclamations Résolues -->
                         <tbody id="section-resolues" class="filter-section hidden bg-white divide-y divide-gray-200">
-                            <?php 
-                            $reclamationsResolues = array_filter($reclamationsRecentes, function($r) {
+                            <?php
+                            $reclamationsResolues = array_filter($reclamationsRecentes, function ($r) {
                                 return $r['statut_reclamation'] === 'Résolue';
                             });
                             ?>
                             <?php if (!empty($reclamationsResolues)): ?>
-                            <?php foreach ($reclamationsResolues as $reclamation): ?>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?php echo date('d/m/Y', strtotime($reclamation['date_creation'])); ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?php echo htmlspecialchars($reclamation['nom_etu'] . ' ' . $reclamation['prenom_etu']); ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?php echo htmlspecialchars($reclamation['type_reclamation']); ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span
-                                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Résolue
-                                    </span>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
+                                <?php foreach ($reclamationsResolues as $reclamation): ?>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?php echo date('d/m/Y', strtotime($reclamation['date_creation'])); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?php echo htmlspecialchars($reclamation['nom_etu'] . ' ' . $reclamation['prenom_etu']); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?php echo htmlspecialchars($reclamation['type_reclamation']); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                Résolue
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
                             <?php else: ?>
-                            <tr>
-                                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
-                                    Aucune réclamation résolue
-                                </td>
-                            </tr>
+                                <tr>
+                                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        Aucune réclamation résolue
+                                    </td>
+                                </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -466,42 +469,42 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
     </main>
 
     <script>
-    // Fonctionnalité de filtrage des réclamations
-    document.addEventListener('DOMContentLoaded', function() {
-        const filterButtons = document.querySelectorAll('.filter-btn');
-        const filterSections = document.querySelectorAll('.filter-section');
+        // Fonctionnalité de filtrage des réclamations
+        document.addEventListener('DOMContentLoaded', function () {
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const filterSections = document.querySelectorAll('.filter-section');
 
-        filterButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const filterType = this.getAttribute('data-filter');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const filterType = this.getAttribute('data-filter');
 
-                // Retirer la classe active de tous les boutons
-                filterButtons.forEach(btn => {
-                    btn.classList.remove('active', 'text-gray-700', 'font-medium',
-                        'border-b-2', 'border-indigo-500', '-mb-px');
-                    btn.classList.add('text-gray-500');
+                    // Retirer la classe active de tous les boutons
+                    filterButtons.forEach(btn => {
+                        btn.classList.remove('active', 'text-gray-700', 'font-medium',
+                            'border-b-2', 'border-indigo-500', '-mb-px');
+                        btn.classList.add('text-gray-500');
+                    });
+
+                    // Ajouter la classe active au bouton cliqué
+                    this.classList.add('active', 'text-gray-700', 'font-medium', 'border-b-2',
+                        'border-indigo-500', '-mb-px');
+                    this.classList.remove('text-gray-500');
+
+                    // Masquer toutes les sections
+                    filterSections.forEach(section => {
+                        section.classList.add('hidden');
+                        section.classList.remove('active');
+                    });
+
+                    // Afficher la section correspondante
+                    const targetSection = document.getElementById('section-' + filterType);
+                    if (targetSection) {
+                        targetSection.classList.remove('hidden');
+                        targetSection.classList.add('active');
+                    }
                 });
-
-                // Ajouter la classe active au bouton cliqué
-                this.classList.add('active', 'text-gray-700', 'font-medium', 'border-b-2',
-                    'border-indigo-500', '-mb-px');
-                this.classList.remove('text-gray-500');
-
-                // Masquer toutes les sections
-                filterSections.forEach(section => {
-                    section.classList.add('hidden');
-                    section.classList.remove('active');
-                });
-
-                // Afficher la section correspondante
-                const targetSection = document.getElementById('section-' + filterType);
-                if (targetSection) {
-                    targetSection.classList.remove('hidden');
-                    targetSection.classList.add('active');
-                }
             });
         });
-    });
     </script>
 </body>
 

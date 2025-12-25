@@ -26,7 +26,7 @@ if ($ecue_a_modifier) {
 }
 
 // Pagination
-$page = isset($_GET['p']) ? (int)$_GET['p'] : 1;
+$page = isset($_GET['p']) ? (int) $_GET['p'] : 1;
 $limit = 10;
 $offset = ($page - 1) * $limit;
 
@@ -34,7 +34,7 @@ $offset = ($page - 1) * $limit;
 $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
 
 if (!empty($search)) {
-    $listeEcues = array_filter($listeEcues, function($ecue) use ($search) {
+    $listeEcues = array_filter($listeEcues, function ($ecue) use ($search) {
         return stripos($ecue->lib_ecue, $search) !== false;
     });
 }
@@ -56,156 +56,156 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion des ECUE</title>
     <style>
-    /* Animations et transitions */
-    .animate__animated {
-        animation-duration: 0.3s;
-    }
-
-    .transition-all {
-        transition-property: all;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: 200ms;
-    }
-
-    /* Personnalisation des inputs */
-    .form-input:focus {
-        border-color: #22c55e;
-        box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
-        background-color: #f0fdf4;
-    }
-
-    /* Style pour le hover des lignes du tableau */
-    .table-row:hover {
-        background-color: #f0fdf4;
-    }
-
-    /* Style pour les checkboxes */
-    input[type="checkbox"]:checked {
-        background-color: #22c55e;
-        border-color: #22c55e;
-    }
-
-    /* Style pour la pagination active */
-    .pagination-active {
-        background-color: #22c55e;
-        border-color: #22c55e;
-    }
-
-    /* Boutons avec dégradés */
-    .btn-gradient-primary {
-        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    }
-
-    .btn-gradient-secondary {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    }
-
-    .btn-gradient-warning {
-        background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
-    }
-
-    .btn-gradient-danger {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    }
-
-    /* Effet de hover sur les boutons */
-    .btn-hover {
-        transition: all 0.3s ease;
-    }
-
-    .btn-hover:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-
-    @media print {
-        body * {
-            visibility: hidden;
+        /* Animations et transitions */
+        .animate__animated {
+            animation-duration: 0.3s;
         }
 
-        .container table,
-        .container table * {
-            visibility: visible;
+        .transition-all {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 200ms;
         }
 
-        .container table {
-            position: absolute;
-            left: 0;
-            top: 0;
+        /* Personnalisation des inputs */
+        .form-input:focus {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+            background-color: #f0fdf4;
         }
 
-        button,
-        .actions,
-        input[type="checkbox"] {
-            display: none !important;
-        }
-    }
-
-    /* Styles pour les notifications */
-    .notification {
-        position: fixed;
-        top: 1rem;
-        right: 1rem;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        color: white;
-        max-width: 24rem;
-        z-index: 50;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        animation: slideIn 0.5s ease-out;
-    }
-
-    .notification.success {
-        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    }
-
-    .notification.error {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    }
-
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
+        /* Style pour le hover des lignes du tableau */
+        .table-row:hover {
+            background-color: #f0fdf4;
         }
 
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-
-    @keyframes fadeOut {
-        from {
-            opacity: 1;
+        /* Style pour les checkboxes */
+        input[type="checkbox"]:checked {
+            background-color: #22c55e;
+            border-color: #22c55e;
         }
 
-        to {
-            opacity: 0;
+        /* Style pour la pagination active */
+        .pagination-active {
+            background-color: #22c55e;
+            border-color: #22c55e;
         }
-    }
+
+        /* Boutons avec dégradés */
+        .btn-gradient-primary {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        }
+
+        .btn-gradient-secondary {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        }
+
+        .btn-gradient-warning {
+            background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+        }
+
+        .btn-gradient-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        /* Effet de hover sur les boutons */
+        .btn-hover {
+            transition: all 0.3s ease;
+        }
+
+        .btn-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            .container table,
+            .container table * {
+                visibility: visible;
+            }
+
+            .container table {
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+
+            button,
+            .actions,
+            input[type="checkbox"] {
+                display: none !important;
+            }
+        }
+
+        /* Styles pour les notifications */
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            max-width: 24rem;
+            z-index: 50;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 
-<body class="bg-gray-50">
+<body style="background-color: #DFF2FF;">
 
     <!-- Système de notification -->
     <?php if (!empty($GLOBALS['messageSuccess'])): ?>
-    <div id="successNotification" class="notification success animate__animated animate__fadeIn">
-        <div class="flex items-center">
-            <i class="fas fa-check-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+        <div id="successNotification" class="notification success animate__animated animate__fadeIn">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-2"></i>
+                <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+            </div>
         </div>
-    </div>
     <?php endif; ?>
 
     <?php if (!empty($GLOBALS['messageErreur'])): ?>
-    <div id="errorNotification" class="notification error animate__animated animate__fadeIn">
-        <div class="flex items-center">
-            <i class="fas fa-exclamation-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+        <div id="errorNotification" class="notification error animate__animated animate__fadeIn">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+            </div>
         </div>
-    </div>
     <?php endif; ?>
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
@@ -235,7 +235,7 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
                 </div>
 
                 <?php if ($ecue_a_modifier): ?>
-                <input type="hidden" name="id_ecue" value="<?= htmlspecialchars($ecue_a_modifier->id_ecue) ?>">
+                    <input type="hidden" name="id_ecue" value="<?= htmlspecialchars($ecue_a_modifier->id_ecue) ?>">
                 <?php endif; ?>
 
                 <div class="gap-6 ">
@@ -264,12 +264,11 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
                                 class="form-select w-50 px-3 py-2 mb-3 border border-gray-300 rounded-md focus:outline-4 focus:outline-green-300 focus:ring-green-300 focus:border-green-300 focus:ring-opacity-50 transition-all duration-200">
                                 <option value="">Sélectionnez une UE</option>
                                 <?php if (!empty($listeUes)): ?>
-                                <?php foreach ($listeUes as $ue): ?>
-                                <option value="<?= htmlspecialchars($ue->id_ue) ?>"
-                                    <?= ($ecue_a_modifier && $ecue_a_modifier->id_ue == $ue->id_ue) ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($ue->lib_ue) ?>
-                                </option>
-                                <?php endforeach; ?>
+                                    <?php foreach ($listeUes as $ue): ?>
+                                        <option value="<?= htmlspecialchars($ue->id_ue) ?>" <?= ($ecue_a_modifier && $ecue_a_modifier->id_ue == $ue->id_ue) ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($ue->lib_ue) ?>
+                                        </option>
+                                    <?php endforeach; ?>
                                 <?php endif; ?>
                             </select>
                         </div>
@@ -281,10 +280,9 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
                                 class="form-select w-50 px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-green-500 bg-white transition-all duration-200">
                                 <option value="">Sélectionnez un professeur</option>
                                 <?php foreach ($GLOBALS['listeEnseignants'] ?? [] as $enseignant): ?>
-                                <option value="<?= $enseignant->id_enseignant ?>"
-                                    <?= $ecue_a_modifier && $ecue_a_modifier->id_enseignant == $enseignant->id_enseignant ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($enseignant->nom_enseignant . ' ' . $enseignant->prenom_enseignant) ?>
-                                </option>
+                                    <option value="<?= $enseignant->id_enseignant ?>" <?= $ecue_a_modifier && $ecue_a_modifier->id_enseignant == $enseignant->id_enseignant ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($enseignant->nom_enseignant . ' ' . $enseignant->prenom_enseignant) ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -318,22 +316,22 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
 
                 <div class="flex justify-between mt-6">
                     <?php if (isset($_GET['id_ecue'])): ?>
-                    <button type="button" name="btn_annuler" id="btnAnnuler"
-                        onclick="window.location.href='?page=parametres_generaux&action=ecue'"
-                        class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
-                        <i class="fas fa-times mr-2"></i>Annuler
-                    </button>
-                    <button type="button" id="btnModifier" name="btn_modifier_ecue"
-                        class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                        <i class="fas fa-save mr-2"></i>Modifier
-                        <input type="hidden" name="btn_modifier_ecue" id="btn_modifier_ecue_hidden" value="0">
-                    </button>
+                        <button type="button" name="btn_annuler" id="btnAnnuler"
+                            onclick="window.location.href='?page=parametres_generaux&action=ecue'"
+                            class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                            <i class="fas fa-times mr-2"></i>Annuler
+                        </button>
+                        <button type="button" id="btnModifier" name="btn_modifier_ecue"
+                            class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                            <i class="fas fa-save mr-2"></i>Modifier
+                            <input type="hidden" name="btn_modifier_ecue" id="btn_modifier_ecue_hidden" value="0">
+                        </button>
                     <?php else: ?>
-                    <div></div>
-                    <button type="submit" name="btn_add_ecue"
-                        class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                        <i class="fas fa-plus mr-2"></i>Ajouter une ECUE
-                    </button>
+                        <div></div>
+                        <button type="submit" name="btn_add_ecue"
+                            class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                            <i class="fas fa-plus mr-2"></i>Ajouter une ECUE
+                        </button>
                     <?php endif; ?>
 
                 </div>
@@ -429,105 +427,105 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             <?php if (!empty($listeEcues)): ?>
-                            <?php foreach ($listeEcues as $ecue): ?>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-3 text-center">
-                                    <input type="checkbox" name="selected_ids[]"
-                                        value="<?= htmlspecialchars($ecue->id_ecue) ?>"
-                                        class="row-checkbox form-checkbox h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?= htmlspecialchars($ecue->id_annee_acad) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?= htmlspecialchars($ecue->lib_niv_etude) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?= htmlspecialchars($ecue->lib_semestre) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?= htmlspecialchars($ecue->lib_ue) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?= htmlspecialchars($ecue->lib_ecue) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?= htmlspecialchars($ecue->credit) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?= htmlspecialchars($ecue->nom_professeur ?? 'Non assigné') ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                    <a href="?page=parametres_generaux&action=ecue&id_ecue=<?= htmlspecialchars($ecue->id_ecue) ?>"
-                                        class="text-green-600 hover:text-green-900 mr-3">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
+                                <?php foreach ($listeEcues as $ecue): ?>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-4 py-3 text-center">
+                                            <input type="checkbox" name="selected_ids[]"
+                                                value="<?= htmlspecialchars($ecue->id_ecue) ?>"
+                                                class="row-checkbox form-checkbox h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?= htmlspecialchars($ecue->id_annee_acad) ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?= htmlspecialchars($ecue->lib_niv_etude) ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?= htmlspecialchars($ecue->lib_semestre) ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?= htmlspecialchars($ecue->lib_ue) ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?= htmlspecialchars($ecue->lib_ecue) ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?= htmlspecialchars($ecue->credit) ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?= htmlspecialchars($ecue->nom_professeur ?? 'Non assigné') ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                            <a href="?page=parametres_generaux&action=ecue&id_ecue=<?= htmlspecialchars($ecue->id_ecue) ?>"
+                                                class="text-green-600 hover:text-green-900 mr-3">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
 
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
                             <?php else: ?>
-                            <tr class="items-center">
-                                <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500">
-                                    Aucun ECUE enregistré
-                                </td>
-                            </tr>
+                                <tr class="items-center">
+                                    <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        Aucun ECUE enregistré
+                                    </td>
+                                </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
                 <!-- Pagination -->
                 <?php if ($total_pages > 1): ?>
-                <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                        <div>
-                            <p class="text-sm text-gray-700">
-                                Affichage de <span class="font-medium"><?= $offset + 1 ?></span>
-                                à <span class="font-medium"><?= min($offset + $limit, $total_items) ?></span>
-                                sur <span class="font-medium"><?= $total_items ?></span> résultats
-                            </p>
-                        </div>
-                        <div>
-                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
-                                aria-label="Pagination">
-                                <?php if ($page > 1): ?>
-                                <a href="?page=parametres_generaux&action=ecue&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
-                                    class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                    <i class="fas fa-chevron-left"></i>
-                                </a>
-                                <?php endif; ?>
+                    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">
+                                    Affichage de <span class="font-medium"><?= $offset + 1 ?></span>
+                                    à <span class="font-medium"><?= min($offset + $limit, $total_items) ?></span>
+                                    sur <span class="font-medium"><?= $total_items ?></span> résultats
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                                    aria-label="Pagination">
+                                    <?php if ($page > 1): ?>
+                                        <a href="?page=parametres_generaux&action=ecue&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
+                                            class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    <?php endif; ?>
 
-                                <?php
-                                $start = max(1, $page - 2);
-                                $end = min($total_pages, $page + 2);
-                                
-                                if ($start > 1) {
-                                    echo '<span class="px-3 py-2 text-gray-500">...</span>';
-                                }
-                                
-                                for ($i = $start; $i <= $end; $i++):
-                                ?>
-                                <a href="?page=parametres_generaux&action=ecue&p=<?= $i ?>&search=<?= urlencode($search) ?>"
-                                    class="relative inline-flex items-center px-4 py-2 border <?= $i === $page ? 'bg-green-50 text-green-600 border-green-500' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-300' ?>">
-                                    <?= $i ?>
-                                </a>
-                                <?php endfor;
+                                    <?php
+                                    $start = max(1, $page - 2);
+                                    $end = min($total_pages, $page + 2);
 
-                                if ($end < $total_pages) {
-                                    echo '<span class="px-3 py-2 text-gray-500">...</span>';
-                                }
-                                ?>
+                                    if ($start > 1) {
+                                        echo '<span class="px-3 py-2 text-gray-500">...</span>';
+                                    }
 
-                                <?php if ($page < $total_pages): ?>
-                                <a href="?page=parametres_generaux&action=ecue&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
-                                    class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                    <i class="fas fa-chevron-right"></i>
-                                </a>
-                                <?php endif; ?>
-                            </nav>
+                                    for ($i = $start; $i <= $end; $i++):
+                                        ?>
+                                        <a href="?page=parametres_generaux&action=ecue&p=<?= $i ?>&search=<?= urlencode($search) ?>"
+                                            class="relative inline-flex items-center px-4 py-2 border <?= $i === $page ? 'bg-green-50 text-green-600 border-green-500' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-300' ?>">
+                                            <?= $i ?>
+                                        </a>
+                                    <?php endfor;
+
+                                    if ($end < $total_pages) {
+                                        echo '<span class="px-3 py-2 text-gray-500">...</span>';
+                                    }
+                                    ?>
+
+                                    <?php if ($page < $total_pages): ?>
+                                        <a href="?page=parametres_generaux&action=ecue&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
+                                            class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    <?php endif; ?>
+                                </nav>
+                            </div>
                         </div>
                     </div>
-                </div>
                 <?php endif; ?>
             </form>
         </div>
@@ -589,138 +587,138 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
     </div>
 
     <script>
-    // Gestion des checkboxes et du bouton de suppression
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    const deleteButton = document.getElementById('deleteSelectedBtn');
-    const deleteModal = document.getElementById('deleteModal');
-    const confirmDelete = document.getElementById('confirmDelete');
-    const cancelDelete = document.getElementById('cancelDelete');
-    const formListeEcues = document.getElementById('formListeEcues');
-    const submitDeleteHidden = document.getElementById('submitDeleteHidden');
-    const btnModifier = document.getElementById('btnModifier');
-    const modifyModal = document.getElementById('modifyModal');
-    const confirmModify = document.getElementById('confirmModify');
-    const cancelModify = document.getElementById('cancelModify');
-    const ecueForm = document.getElementById('ecueForm');
-    const submitModifierHidden = document.getElementById('btn_modifier_ecue_hidden');
+        // Gestion des checkboxes et du bouton de suppression
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        const deleteButton = document.getElementById('deleteSelectedBtn');
+        const deleteModal = document.getElementById('deleteModal');
+        const confirmDelete = document.getElementById('confirmDelete');
+        const cancelDelete = document.getElementById('cancelDelete');
+        const formListeEcues = document.getElementById('formListeEcues');
+        const submitDeleteHidden = document.getElementById('submitDeleteHidden');
+        const btnModifier = document.getElementById('btnModifier');
+        const modifyModal = document.getElementById('modifyModal');
+        const confirmModify = document.getElementById('confirmModify');
+        const cancelModify = document.getElementById('cancelModify');
+        const ecueForm = document.getElementById('ecueForm');
+        const submitModifierHidden = document.getElementById('btn_modifier_ecue_hidden');
 
-    // Initialisation
-    updateDeleteButtonState();
-
-    // Select all checkboxes
-    selectAllCheckbox.addEventListener('change', function() {
-        const checkboxes = document.querySelectorAll('.row-checkbox');
-        checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+        // Initialisation
         updateDeleteButtonState();
-    });
 
-    // Update delete button state
-    function updateDeleteButtonState() {
-        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-        deleteButton.disabled = checkedBoxes.length === 0;
-    }
-
-    // Checkbox change events
-    document.addEventListener('change', function(e) {
-        if (e.target.classList.contains('row-checkbox')) {
+        // Select all checkboxes
+        selectAllCheckbox.addEventListener('change', function () {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = this.checked);
             updateDeleteButtonState();
-            const allCheckboxes = document.querySelectorAll('.row-checkbox');
+        });
+
+        // Update delete button state
+        function updateDeleteButtonState() {
             const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-            selectAllCheckbox.checked = checkedBoxes.length === allCheckboxes.length && allCheckboxes
-                .length >
-                0;
+            deleteButton.disabled = checkedBoxes.length === 0;
         }
-    });
 
-    // Delete modal
-    deleteButton.addEventListener('click', function() {
-        if (!this.disabled) {
-            deleteModal.classList.remove('hidden');
+        // Checkbox change events
+        document.addEventListener('change', function (e) {
+            if (e.target.classList.contains('row-checkbox')) {
+                updateDeleteButtonState();
+                const allCheckboxes = document.querySelectorAll('.row-checkbox');
+                const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+                selectAllCheckbox.checked = checkedBoxes.length === allCheckboxes.length && allCheckboxes
+                    .length >
+                    0;
+            }
+        });
+
+        // Delete modal
+        deleteButton.addEventListener('click', function () {
+            if (!this.disabled) {
+                deleteModal.classList.remove('hidden');
+            }
+        });
+
+        confirmDelete.addEventListener('click', function () {
+            submitDeleteHidden.value = '1';
+            formListeEcues.submit();
+        });
+
+        cancelDelete.addEventListener('click', function () {
+            deleteModal.classList.add('hidden');
+        });
+
+        // Modify modal
+        if (btnModifier) {
+            btnModifier.addEventListener('click', function () {
+                modifyModal.classList.remove('hidden');
+            });
         }
-    });
 
-    confirmDelete.addEventListener('click', function() {
-        submitDeleteHidden.value = '1';
-        formListeEcues.submit();
-    });
-
-    cancelDelete.addEventListener('click', function() {
-        deleteModal.classList.add('hidden');
-    });
-
-    // Modify modal
-    if (btnModifier) {
-        btnModifier.addEventListener('click', function() {
-            modifyModal.classList.remove('hidden');
-        });
-    }
-
-    confirmModify.addEventListener('click', function() {
-        submitModifierHidden.value = '1';
-        ecueForm.submit();
-    });
-
-    cancelModify.addEventListener('click', function() {
-        modifyModal.classList.add('hidden');
-    });
-
-    // Fonction pour exporter en Excel
-    function exportToExcel() {
-        const table = document.querySelector('table');
-        const rows = Array.from(table.querySelectorAll('tr'));
-
-        // Créer le contenu CSV
-        let csvContent = "data:text/csv;charset=utf-8,";
-
-        // Ajouter les en-têtes
-        const headers = Array.from(rows[0].querySelectorAll('th'))
-            .map(header => header.textContent.trim())
-            .filter(header => header !== ''); // Exclure la colonne des checkboxes
-        csvContent += headers.join(',') + '\n';
-
-        // Ajouter les données
-        rows.slice(1).forEach(row => {
-            const cells = Array.from(row.querySelectorAll('td'))
-                .slice(1, -1) // Exclure la colonne des checkboxes et des actions
-                .map(cell => `"${cell.textContent.trim()}"`);
-            csvContent += cells.join(',') + '\n';
+        confirmModify.addEventListener('click', function () {
+            submitModifierHidden.value = '1';
+            ecueForm.submit();
         });
 
-        // Créer le lien de téléchargement
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement('a');
-        link.setAttribute('href', encodedUri);
-        link.setAttribute('download', 'ecue.csv');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    // Fonction pour imprimer
-    function printTable() {
-        const table = document.querySelector('table');
-        const printWindow = window.open('', '_blank');
-
-        // Créer une copie de la table pour la modification
-        const tableClone = table.cloneNode(true);
-
-        // Supprimer les colonnes ID, Actions et Checkboxes
-        const rows = tableClone.querySelectorAll('tr');
-        rows.forEach(row => {
-            // Supprimer la colonne des checkboxes (première colonne)
-            const checkboxCell = row.querySelector('th:first-child, td:first-child');
-            if (checkboxCell) checkboxCell.remove();
-
-            // Supprimer la colonne ID (maintenant première colonne)
-            const idCell = row.querySelector('th:first-child, td:first-child');
-            if (idCell) idCell.remove();
-
-            // Supprimer la colonne Actions (dernière colonne)
-            const actionCell = row.querySelector('th:last-child, td:last-child');
-            if (actionCell) actionCell.remove();
+        cancelModify.addEventListener('click', function () {
+            modifyModal.classList.add('hidden');
         });
 
-        printWindow.document.write(`
+        // Fonction pour exporter en Excel
+        function exportToExcel() {
+            const table = document.querySelector('table');
+            const rows = Array.from(table.querySelectorAll('tr'));
+
+            // Créer le contenu CSV
+            let csvContent = "data:text/csv;charset=utf-8,";
+
+            // Ajouter les en-têtes
+            const headers = Array.from(rows[0].querySelectorAll('th'))
+                .map(header => header.textContent.trim())
+                .filter(header => header !== ''); // Exclure la colonne des checkboxes
+            csvContent += headers.join(',') + '\n';
+
+            // Ajouter les données
+            rows.slice(1).forEach(row => {
+                const cells = Array.from(row.querySelectorAll('td'))
+                    .slice(1, -1) // Exclure la colonne des checkboxes et des actions
+                    .map(cell => `"${cell.textContent.trim()}"`);
+                csvContent += cells.join(',') + '\n';
+            });
+
+            // Créer le lien de téléchargement
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'ecue.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Fonction pour imprimer
+        function printTable() {
+            const table = document.querySelector('table');
+            const printWindow = window.open('', '_blank');
+
+            // Créer une copie de la table pour la modification
+            const tableClone = table.cloneNode(true);
+
+            // Supprimer les colonnes ID, Actions et Checkboxes
+            const rows = tableClone.querySelectorAll('tr');
+            rows.forEach(row => {
+                // Supprimer la colonne des checkboxes (première colonne)
+                const checkboxCell = row.querySelector('th:first-child, td:first-child');
+                if (checkboxCell) checkboxCell.remove();
+
+                // Supprimer la colonne ID (maintenant première colonne)
+                const idCell = row.querySelector('th:first-child, td:first-child');
+                if (idCell) idCell.remove();
+
+                // Supprimer la colonne Actions (dernière colonne)
+                const actionCell = row.querySelector('th:last-child, td:last-child');
+                if (actionCell) actionCell.remove();
+            });
+
+            printWindow.document.write(`
             <html>
                 <head>
                     <title>Liste des ECUE</title>
@@ -740,76 +738,76 @@ $listeEcues = array_slice($listeEcues, $offset, $limit);
             </html>
         `);
 
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-    }
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        }
 
-    // Gestion des notifications
-    document.addEventListener('DOMContentLoaded', function() {
-        const successNotification = document.getElementById('successNotification');
-        const errorNotification = document.getElementById('errorNotification');
+        // Gestion des notifications
+        document.addEventListener('DOMContentLoaded', function () {
+            const successNotification = document.getElementById('successNotification');
+            const errorNotification = document.getElementById('errorNotification');
 
-        if (successNotification) {
-            setTimeout(() => {
-                successNotification.classList.remove('animate__fadeIn');
-                successNotification.classList.add('animate__fadeOut');
+            if (successNotification) {
                 setTimeout(() => {
-                    successNotification.remove();
-                }, 500);
-            }, 5000);
-        }
+                    successNotification.classList.remove('animate__fadeIn');
+                    successNotification.classList.add('animate__fadeOut');
+                    setTimeout(() => {
+                        successNotification.remove();
+                    }, 500);
+                }, 5000);
+            }
 
-        if (errorNotification) {
-            setTimeout(() => {
-                errorNotification.classList.remove('animate__fadeIn');
-                errorNotification.classList.add('animate__fadeOut');
+            if (errorNotification) {
                 setTimeout(() => {
-                    errorNotification.remove();
-                }, 500);
-            }, 5000);
+                    errorNotification.classList.remove('animate__fadeIn');
+                    errorNotification.classList.add('animate__fadeOut');
+                    setTimeout(() => {
+                        errorNotification.remove();
+                    }, 500);
+                }, 5000);
+            }
+        });
+
+        function updateFields(ueId) {
+            // Récupérer l'UE sélectionnée depuis le tableau PHP
+            const ues = <?= json_encode($listeUes) ?>;
+
+            // Si aucun ID n'est fourni ou si l'ID est vide, vider tous les champs
+            if (!ueId || ueId === '') {
+                document.getElementById('id_annee_acad').value = '';
+                document.getElementById('niveau_etude').value = '';
+                document.getElementById('semestre').value = '';
+                return;
+            }
+
+            // Convertir ueId en nombre pour la comparaison
+            const selectedUe = ues.find(ue => parseInt(ue.id_ue) === parseInt(ueId));
+
+            if (selectedUe) {
+                document.getElementById('id_annee_acad').value = selectedUe.annee || '';
+                document.getElementById('niveau_etude').value = selectedUe.lib_niv_etude || '';
+                document.getElementById('semestre').value = selectedUe.lib_semestre || '';
+            } else {
+                // Si l'UE n'est pas trouvée, vider les champs
+                document.getElementById('id_annee_acad').value = '';
+                document.getElementById('niveau_etude').value = '';
+                document.getElementById('semestre').value = '';
+            }
         }
-    });
 
-    function updateFields(ueId) {
-        // Récupérer l'UE sélectionnée depuis le tableau PHP
-        const ues = <?= json_encode($listeUes) ?>;
+        // Appeler updateFields au chargement de la page si une UE est déjà sélectionnée
+        document.addEventListener('DOMContentLoaded', function () {
+            const ueSelect = document.getElementById('id_ue');
+            // Toujours appeler updateFields au chargement pour s'assurer que les champs sont correctement initialisés
+            updateFields(ueSelect.value);
+        });
 
-        // Si aucun ID n'est fourni ou si l'ID est vide, vider tous les champs
-        if (!ueId || ueId === '') {
-            document.getElementById('id_annee_acad').value = '';
-            document.getElementById('niveau_etude').value = '';
-            document.getElementById('semestre').value = '';
-            return;
-        }
-
-        // Convertir ueId en nombre pour la comparaison
-        const selectedUe = ues.find(ue => parseInt(ue.id_ue) === parseInt(ueId));
-
-        if (selectedUe) {
-            document.getElementById('id_annee_acad').value = selectedUe.annee || '';
-            document.getElementById('niveau_etude').value = selectedUe.lib_niv_etude || '';
-            document.getElementById('semestre').value = selectedUe.lib_semestre || '';
-        } else {
-            // Si l'UE n'est pas trouvée, vider les champs
-            document.getElementById('id_annee_acad').value = '';
-            document.getElementById('niveau_etude').value = '';
-            document.getElementById('semestre').value = '';
-        }
-    }
-
-    // Appeler updateFields au chargement de la page si une UE est déjà sélectionnée
-    document.addEventListener('DOMContentLoaded', function() {
-        const ueSelect = document.getElementById('id_ue');
-        // Toujours appeler updateFields au chargement pour s'assurer que les champs sont correctement initialisés
-        updateFields(ueSelect.value);
-    });
-
-    // Ajouter un écouteur d'événement pour le changement de sélection
-    document.getElementById('id_ue').addEventListener('change', function() {
-        updateFields(this.value);
-    });
+        // Ajouter un écouteur d'événement pour le changement de sélection
+        document.getElementById('id_ue').addEventListener('change', function () {
+            updateFields(this.value);
+        });
     </script>
 
     <?php

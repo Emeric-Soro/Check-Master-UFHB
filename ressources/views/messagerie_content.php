@@ -6,57 +6,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Messagerie Étudiante</title>
     <script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                colors: {
-                    primary: {
-                        50: '#f0fdf4',
-                        100: '#dcfce7',
-                        200: '#bbf7d0',
-                        300: '#86efac',
-                        400: '#4ade80',
-                        500: '#22c55e',
-                        600: '#16a34a',
-                        700: '#15803d',
-                        800: '#166534',
-                        900: '#14532d',
-                    },
-                    secondary: {
-                        50: '#eff6ff',
-                        100: '#dbeafe',
-                        200: '#bfdbfe',
-                        300: '#93c5fd',
-                        400: '#60a5fa',
-                        500: '#3b82f6',
-                        600: '#2563eb',
-                        700: '#1d4ed8',
-                        800: '#1e40af',
-                        900: '#1e3a8a',
-                    },
-                    accent: {
-                        400: '#f59e0b',
-                        500: '#f97316',
-                        600: '#ea580c',
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        secondary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        accent: {
+                            400: '#f59e0b',
+                            500: '#f97316',
+                            600: '#ea580c',
+                        }
                     }
                 }
             }
         }
-    }
     </script>
     <style>
-    .message-unread {
-        border-left: 4px solid #3b82f6;
-        background-color: #f8fafc;
-    }
+        .message-unread {
+            border-left: 4px solid #3b82f6;
+            background-color: #DFF2FF;
+        }
 
-    .message-read {
-        opacity: 0.9;
-    }
+        .message-read {
+            opacity: 0.9;
+        }
     </style>
 </head>
 
-<body class="bg-gray-50 min-h-screen">
+<body class="min-h-screen" style="background-color: #DFF2FF;">
     <div class="flex flex-col h-screen">
         <!-- Header -->
         <header class="bg-green-600 text-white shadow-md">
@@ -443,37 +443,37 @@
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Gestion de la modale de composition
-        const composeBtn = document.getElementById('composeBtn');
-        const composeModal = document.getElementById('composeModal');
-        const closeCompose = document.getElementById('closeCompose');
+        document.addEventListener('DOMContentLoaded', function () {
+            // Gestion de la modale de composition
+            const composeBtn = document.getElementById('composeBtn');
+            const composeModal = document.getElementById('composeModal');
+            const closeCompose = document.getElementById('closeCompose');
 
-        composeBtn.addEventListener('click', () => {
-            composeModal.classList.remove('hidden');
-        });
+            composeBtn.addEventListener('click', () => {
+                composeModal.classList.remove('hidden');
+            });
 
-        closeCompose.addEventListener('click', () => {
-            composeModal.classList.add('hidden');
-        });
+            closeCompose.addEventListener('click', () => {
+                composeModal.classList.add('hidden');
+            });
 
-        // Marquer les messages comme lus
-        const messageItems = document.querySelectorAll('.message-unread');
-        messageItems.forEach(item => {
-            item.addEventListener('click', function() {
-                this.classList.remove('message-unread');
-                this.classList.add('message-read');
-                this.style.borderLeft = 'none';
-                this.style.backgroundColor = '';
+            // Marquer les messages comme lus
+            const messageItems = document.querySelectorAll('.message-unread');
+            messageItems.forEach(item => {
+                item.addEventListener('click', function () {
+                    this.classList.remove('message-unread');
+                    this.classList.add('message-read');
+                    this.style.borderLeft = 'none';
+                    this.style.backgroundColor = '';
+                });
+            });
+
+            // Animation des messages
+            const messages = document.querySelectorAll('.animate-fade-in');
+            messages.forEach((message, index) => {
+                message.style.animationDelay = `${index * 0.1}s`;
             });
         });
-
-        // Animation des messages
-        const messages = document.querySelectorAll('.animate-fade-in');
-        messages.forEach((message, index) => {
-            message.style.animationDelay = `${index * 0.1}s`;
-        });
-    });
     </script>
 </body>
 

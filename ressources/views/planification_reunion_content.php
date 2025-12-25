@@ -7,44 +7,44 @@
     <title>Calendrier des Soutenances | Comité de Validation</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-    .sidebar-hover:hover {
-        background-color: #f0fdf4;
-        border-left: 4px solid #10b981;
-    }
-
-    .fade-in {
-        animation: fadeIn 0.3s ease-in;
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
+        .sidebar-hover:hover {
+            background-color: #f0fdf4;
+            border-left: 4px solid #10b981;
         }
 
-        to {
-            opacity: 1;
-            transform: translateY(0);
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
         }
-    }
 
-    .calendar-day:hover {
-        background-color: #f0fdf4;
-        transform: scale(1.03);
-    }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
 
-    .calendar-day.today {
-        border: 2px solid #10b981;
-    }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-    .event-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
+        .calendar-day:hover {
+            background-color: #f0fdf4;
+            transform: scale(1.03);
+        }
+
+        .calendar-day.today {
+            border: 2px solid #10b981;
+        }
+
+        .event-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 
-<body class="font-sans antialiased bg-gray-50">
+<body class="font-sans antialiased" style="background-color: #DFF2FF;">
     <div class="flex h-screen overflow-hidden">
 
 
@@ -399,29 +399,29 @@
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Mobile menu toggle
-        const mobileMenuButton = document.getElementById('mobileMenuButton');
-        const sidebar = document.querySelector('.hidden.md\\:flex.md\\:flex-shrink-0 > .flex.flex-col.w-64');
+        document.addEventListener('DOMContentLoaded', function () {
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobileMenuButton');
+            const sidebar = document.querySelector('.hidden.md\\:flex.md\\:flex-shrink-0 > .flex.flex-col.w-64');
 
-        if (mobileMenuButton && sidebar) {
-            mobileMenuButton.addEventListener('click', function() {
-                sidebar.classList.toggle('hidden');
-                sidebar.classList.toggle('absolute');
-                sidebar.classList.toggle('z-20');
-            });
-        }
+            if (mobileMenuButton && sidebar) {
+                mobileMenuButton.addEventListener('click', function () {
+                    sidebar.classList.toggle('hidden');
+                    sidebar.classList.toggle('absolute');
+                    sidebar.classList.toggle('z-20');
+                });
+            }
 
-        // Highlight today's date
-        const today = new Date();
-        const todayElement = document.querySelector('.calendar-day.today');
-        if (todayElement) {
-            todayElement.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest'
-            });
-        }
-    });
+            // Highlight today's date
+            const today = new Date();
+            const todayElement = document.querySelector('.calendar-day.today');
+            if (todayElement) {
+                todayElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest'
+                });
+            }
+        });
     </script>
 </body>
 

@@ -188,7 +188,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
 
 </head>
 
-<body class="bg-gray-50">
+<body style="background-color: #DFF2FF;">
 
     <!-- Container pour les notifications -->
     <?php if (!empty($GLOBALS['messageSuccess']) || !empty($GLOBALS['messageErreur'])): ?>

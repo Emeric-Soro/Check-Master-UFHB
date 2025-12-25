@@ -12,7 +12,6 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
-  "dependencies": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/OceaneTra/Projet_Soutenance.git"
@@ -22,9 +21,11 @@
   },
   "homepage": "https://github.com/OceaneTra/Projet_Soutenance#readme",
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
     "autoprefixer": "^10.4.21",
     "concurrently": "^8.x.x",
     "postcss": "^8.5.3",
+    "postcss-cli": "^11.0.1",
     "tailwindcss": "^4.1.7"
   }
 }

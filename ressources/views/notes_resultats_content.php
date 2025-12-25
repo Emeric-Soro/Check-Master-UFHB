@@ -26,7 +26,7 @@ $semestres = $GLOBALS['semestres'] ?? [];
     <title>Portail Étudiant - Mes Résultats</title>
 </head>
 
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+<body class="min-h-screen" style="background: linear-gradient(135deg, #DFF2FF 0%, #C8E8FF 100%);">
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
         <header class="mb-10 text-center animate-fade-in">
@@ -35,7 +35,9 @@ $semestres = $GLOBALS['semestres'] ?? [];
             <div class="flex justify-center mt-4">
                 <div class="bg-white rounded-full shadow-md px-6 py-2 inline-flex items-center">
                     <i class="fas fa-user-graduate text-indigo-500 mr-2"></i>
-                    <span class="font-medium">Étudiant: <?php echo htmlspecialchars($etudiant->nom_etu . ' ' . $etudiant->prenom_etu); ?> | Numéro étudiant: <?php echo htmlspecialchars($etudiant->num_etu); ?></span>
+                    <span class="font-medium">Étudiant:
+                        <?php echo htmlspecialchars($etudiant->nom_etu . ' ' . $etudiant->prenom_etu); ?> | Numéro
+                        étudiant: <?php echo htmlspecialchars($etudiant->num_etu); ?></span>
                 </div>
             </div>
         </header>
@@ -48,7 +50,9 @@ $semestres = $GLOBALS['semestres'] ?? [];
                 </div>
                 <div>
                     <p class="text-white text-sm">Moyenne Générale</p>
-                    <h3 class="text-2xl font-bold text-white"><?php echo $moyenneGenerale !== null ? number_format($moyenneGenerale, 2) . '/20' : 'N/A'; ?></h3>
+                    <h3 class="text-2xl font-bold text-white">
+                        <?php echo $moyenneGenerale !== null ? number_format($moyenneGenerale, 2) . '/20' : 'N/A'; ?>
+                    </h3>
                 </div>
             </div>
 
@@ -68,7 +72,8 @@ $semestres = $GLOBALS['semestres'] ?? [];
                 </div>
                 <div>
                     <p class="text-white text-sm">Classement</p>
-                    <h3 class="text-2xl font-bold text-white"><?php echo $classement !== null ? $classement . '/' . $totalEtudiants : 'N/A'; ?></h3>
+                    <h3 class="text-2xl font-bold text-white">
+                        <?php echo $classement !== null ? $classement . '/' . $totalEtudiants : 'N/A'; ?></h3>
                 </div>
             </div>
 
@@ -83,7 +88,7 @@ $semestres = $GLOBALS['semestres'] ?? [];
                     <i class="fas fa-table mr-2"></i> Bulletin de Notes
                 </h2>
                 <div class="flex space-x-2 mt-2 sm:mt-0">
-                   
+
                     <button id="pdfBtn"
                         class="bg-white text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-50 transition flex items-center"
                         onclick="window.location.href='?action=export_pdf'">
@@ -97,8 +102,8 @@ $semestres = $GLOBALS['semestres'] ?? [];
                         <select id="semesterFilter"
                             class="appearance-none bg-white text-indigo-700 pl-4 pr-8 py-2 rounded-lg hover:bg-indigo-50 transition cursor-pointer">
                             <option value="all">Tous les semestres</option>
-                            <?php if (!empty($semestres)) : ?>
-                                <?php foreach ($semestres as $semestre) : ?>
+                            <?php if (!empty($semestres)): ?>
+                                <?php foreach ($semestres as $semestre): ?>
                                     <option value="<?php echo htmlspecialchars($semestre->id_semestre); ?>">
                                         <?php echo htmlspecialchars($semestre->lib_semestre); ?>
                                     </option>
@@ -136,30 +141,34 @@ $semestres = $GLOBALS['semestres'] ?? [];
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        <?php if (!empty($notes)) : ?>
-                            <?php foreach ($notes as $note) : ?>
+                        <?php if (!empty($notes)): ?>
+                            <?php foreach ($notes as $note): ?>
                                 <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900"><?php echo htmlspecialchars($note->lib_ue); ?></td>
+                                    <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                                        <?php echo htmlspecialchars($note->lib_ue); ?></td>
                                     <td class="px-6 py-4 whitespace-nowrap text-gray-500">-</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-gray-500"><?php echo htmlspecialchars($note->credit); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="grade-<?php echo $note->moyenne >= 16 ? 'A' : ($note->moyenne >= 14 ? 'B' : ($note->moyenne >= 12 ? 'C' : ($note->moyenne >= 10 ? 'D' : 'F'))); ?> px-3 py-1 rounded-full text-sm font-semibold"><?php echo htmlspecialchars($note->moyenne); ?></span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-gray-500"><?php echo htmlspecialchars($note->commentaire); ?></td>
                                     <td class="px-6 py-4 whitespace-nowrap text-gray-500">
-                                        <?php 
-                                            if (!empty($note->lib_semestre)) {
-                                                echo htmlspecialchars($note->lib_semestre);
-                                            } elseif (!empty($note->id_semestre)) {
-                                                echo htmlspecialchars($note->id_semestre);
-                                            } else {
-                                                echo 'N/A';
-                                            }
+                                        <?php echo htmlspecialchars($note->credit); ?></td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span
+                                            class="grade-<?php echo $note->moyenne >= 16 ? 'A' : ($note->moyenne >= 14 ? 'B' : ($note->moyenne >= 12 ? 'C' : ($note->moyenne >= 10 ? 'D' : 'F'))); ?> px-3 py-1 rounded-full text-sm font-semibold"><?php echo htmlspecialchars($note->moyenne); ?></span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-gray-500">
+                                        <?php echo htmlspecialchars($note->commentaire); ?></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-gray-500">
+                                        <?php
+                                        if (!empty($note->lib_semestre)) {
+                                            echo htmlspecialchars($note->lib_semestre);
+                                        } elseif (!empty($note->id_semestre)) {
+                                            echo htmlspecialchars($note->id_semestre);
+                                        } else {
+                                            echo 'N/A';
+                                        }
                                         ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
-                        <?php else : ?>
+                        <?php else: ?>
                             <tr>
                                 <td colspan="6" class="text-center text-gray-500 py-8">Aucune note disponible.</td>
                             </tr>
@@ -175,7 +184,7 @@ $semestres = $GLOBALS['semestres'] ?? [];
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Animation des éléments
             gsap.from(".animate-fade-in", {
                 opacity: 0,
@@ -187,7 +196,7 @@ $semestres = $GLOBALS['semestres'] ?? [];
 
             // Filtrage par semestre
             const semesterFilter = document.getElementById('semesterFilter');
-            semesterFilter.addEventListener('change', function() {
+            semesterFilter.addEventListener('change', function () {
                 const selectedSemester = this.value;
                 const rows = document.querySelectorAll('#gradesTable tbody tr');
 
@@ -203,12 +212,12 @@ $semestres = $GLOBALS['semestres'] ?? [];
             });
 
             // Bouton Imprimer
-            document.getElementById('printBtn').addEventListener('click', function() {
+            document.getElementById('printBtn').addEventListener('click', function () {
                 window.print();
             });
 
             // Bouton PDF (utilisant jsPDF et html2canvas)
-            document.getElementById('pdfBtn').addEventListener('click', function() {
+            document.getElementById('pdfBtn').addEventListener('click', function () {
                 const {
                     jsPDF
                 } = window.jspdf;
@@ -226,7 +235,7 @@ $semestres = $GLOBALS['semestres'] ?? [];
                 });
             });
 
-            
+
 
             // Effet hover sur les lignes du tableau
             const tableRows = document.querySelectorAll('#gradesTable tbody tr');

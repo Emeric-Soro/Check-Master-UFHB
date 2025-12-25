@@ -8,6 +8,7 @@ export const content = [
 export const theme = {
   extend: {
     colors: {
+      white: '#DFF2FF',
       primary: {
           50: '#f0fdf4',
           100: '#dcfce7',

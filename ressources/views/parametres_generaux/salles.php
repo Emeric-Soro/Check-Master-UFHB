@@ -203,7 +203,7 @@ try {
     </style>
 </head>
 
-<body class="bg-gray-50">
+<body style="background-color: #DFF2FF;">
     <!-- Système de notification -->
     <?php if (!empty($messageSuccess)): ?>
         <div id="successNotification" class="notification success animate__animated animate__fadeIn">

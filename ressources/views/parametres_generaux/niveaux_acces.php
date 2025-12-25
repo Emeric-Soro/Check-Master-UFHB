@@ -1,7 +1,7 @@
 <?php
 $niveau_a_modifier = $GLOBALS['niveau_a_modifier'] ?? null;
 // Pagination
-$page = isset($_GET['p']) ? (int)$_GET['p'] : 1;
+$page = isset($_GET['p']) ? (int) $_GET['p'] : 1;
 $limit = 10;
 $offset = ($page - 1) * $limit;
 
@@ -11,7 +11,7 @@ $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
 // Filter the list based on search
 $listeNiveaux = $GLOBALS['listeNiveaux'] ?? [];
 if (!empty($search)) {
-    $listeNiveaux = array_filter($listeNiveaux, function($niveau_acces) use ($search) {
+    $listeNiveaux = array_filter($listeNiveaux, function ($niveau_acces) use ($search) {
         return stripos($niveau_acces->lib_niv_acces, $search) !== false;
     });
 }
@@ -37,155 +37,155 @@ $listeNiveaux = array_slice($listeNiveaux, $offset, $limit);
     <title>Gestion des Niveaux d'Accès</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <style>
-    /* Animations et transitions */
-    .animate__animated {
-        animation-duration: 0.3s;
-    }
-
-    .transition-all {
-        transition-property: all;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: 200ms;
-    }
-
-    /* Personnalisation des inputs */
-    .form-input:focus {
-        border-color: #22c55e;
-        box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
-        background-color: #f0fdf4;
-    }
-
-    /* Style pour le hover des lignes du tableau */
-    .table-row:hover {
-        background-color: #f0fdf4;
-    }
-
-    /* Style pour les checkboxes */
-    input[type="checkbox"]:checked {
-        background-color: #22c55e;
-        border-color: #22c55e;
-    }
-
-    /* Style pour la pagination active */
-    .pagination-active {
-        background-color: #22c55e;
-        border-color: #22c55e;
-    }
-
-    /* Boutons avec dégradés */
-    .btn-gradient-primary {
-        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    }
-
-    .btn-gradient-secondary {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    }
-
-    .btn-gradient-warning {
-        background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
-    }
-
-    .btn-gradient-danger {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    }
-
-    /* Effet de hover sur les boutons */
-    .btn-hover {
-        transition: all 0.3s ease;
-    }
-
-    .btn-hover:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-
-    @media print {
-        body * {
-            visibility: hidden;
+        /* Animations et transitions */
+        .animate__animated {
+            animation-duration: 0.3s;
         }
 
-        .container table,
-        .container table * {
-            visibility: visible;
+        .transition-all {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 200ms;
         }
 
-        .container table {
-            position: absolute;
-            left: 0;
-            top: 0;
+        /* Personnalisation des inputs */
+        .form-input:focus {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+            background-color: #f0fdf4;
         }
 
-        button,
-        .actions,
-        input[type="checkbox"] {
-            display: none !important;
-        }
-    }
-
-    /* Styles pour les notifications */
-    .notification {
-        position: fixed;
-        top: 1rem;
-        right: 1rem;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        color: white;
-        max-width: 24rem;
-        z-index: 50;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        animation: slideIn 0.5s ease-out;
-    }
-
-    .notification.success {
-        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    }
-
-    .notification.error {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    }
-
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
+        /* Style pour le hover des lignes du tableau */
+        .table-row:hover {
+            background-color: #f0fdf4;
         }
 
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-
-    @keyframes fadeOut {
-        from {
-            opacity: 1;
+        /* Style pour les checkboxes */
+        input[type="checkbox"]:checked {
+            background-color: #22c55e;
+            border-color: #22c55e;
         }
 
-        to {
-            opacity: 0;
+        /* Style pour la pagination active */
+        .pagination-active {
+            background-color: #22c55e;
+            border-color: #22c55e;
         }
-    }
+
+        /* Boutons avec dégradés */
+        .btn-gradient-primary {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        }
+
+        .btn-gradient-secondary {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        }
+
+        .btn-gradient-warning {
+            background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+        }
+
+        .btn-gradient-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        /* Effet de hover sur les boutons */
+        .btn-hover {
+            transition: all 0.3s ease;
+        }
+
+        .btn-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            .container table,
+            .container table * {
+                visibility: visible;
+            }
+
+            .container table {
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+
+            button,
+            .actions,
+            input[type="checkbox"] {
+                display: none !important;
+            }
+        }
+
+        /* Styles pour les notifications */
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            max-width: 24rem;
+            z-index: 50;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 
-<body class="bg-gray-50">
+<body style="background-color: #DFF2FF;">
     <!-- Système de notification -->
     <?php if (!empty($GLOBALS['messageSuccess'])): ?>
-    <div id="successNotification" class="notification success animate__animated animate__fadeIn">
-        <div class="flex items-center">
-            <i class="fas fa-check-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+        <div id="successNotification" class="notification success animate__animated animate__fadeIn">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-2"></i>
+                <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+            </div>
         </div>
-    </div>
     <?php endif; ?>
 
     <?php if (!empty($GLOBALS['messageErreur'])): ?>
-    <div id="errorNotification" class="notification error animate__animated animate__fadeIn">
-        <div class="flex items-center">
-            <i class="fas fa-exclamation-circle mr-2"></i>
-            <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+        <div id="errorNotification" class="notification error animate__animated animate__fadeIn">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+            </div>
         </div>
-    </div>
     <?php endif; ?>
 
     <div class="min-h-screen">
@@ -206,9 +206,9 @@ $listeNiveaux = array_slice($listeNiveaux, $offset, $limit);
                 </h3>
 
                 <form method="POST" action="?page=parametres_generaux&action=niveaux_acces" id="niveauForm">
-                    <?php if($niveau_a_modifier): ?>
-                    <input type="hidden" name="id_niveau_acces_donnees"
-                        value="<?= htmlspecialchars($niveau_a_modifier->id_niveau_acces_donnees) ?>">
+                    <?php if ($niveau_a_modifier): ?>
+                        <input type="hidden" name="id_niveau_acces_donnees"
+                            value="<?= htmlspecialchars($niveau_a_modifier->id_niveau_acces_donnees) ?>">
                     <?php endif; ?>
 
                     <div class="mb-4">
@@ -222,23 +222,23 @@ $listeNiveaux = array_slice($listeNiveaux, $offset, $limit);
 
                     <div class="flex justify-between mt-6">
                         <?php if (isset($_GET['id_niveau'])): ?>
-                        <button type="button" name="btn_annuler" id="btnAnnuler"
-                            onclick="window.location.href='?page=parametres_generaux&action=niveaux_acces'"
-                            class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
-                            <i class="fas fa-times mr-2"></i>Annuler
-                        </button>
-                        <button type="button" name="btn_modifier_niveau_acces" id="btnModifier"
-                            class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                            <i class="fas fa-save mr-2"></i>Modifier
-                            <input type="hidden" name="btn_modifier_niveau_acces" id="btn_modifier_niveau_acces_hidden"
-                                value="0">
-                        </button>
+                            <button type="button" name="btn_annuler" id="btnAnnuler"
+                                onclick="window.location.href='?page=parametres_generaux&action=niveaux_acces'"
+                                class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                                <i class="fas fa-times mr-2"></i>Annuler
+                            </button>
+                            <button type="button" name="btn_modifier_niveau_acces" id="btnModifier"
+                                class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                                <i class="fas fa-save mr-2"></i>Modifier
+                                <input type="hidden" name="btn_modifier_niveau_acces" id="btn_modifier_niveau_acces_hidden"
+                                    value="0">
+                            </button>
                         <?php else: ?>
-                        <div></div>
-                        <button type="submit" name="btn_add_niveau"
-                            class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                            <i class="fas fa-plus mr-2"></i>Ajouter un niveau
-                        </button>
+                            <div></div>
+                            <button type="submit" name="btn_add_niveau"
+                                class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                                <i class="fas fa-plus mr-2"></i>Ajouter un niveau
+                            </button>
                         <?php endif; ?>
                     </div>
                 </form>
@@ -312,33 +312,33 @@ $listeNiveaux = array_slice($listeNiveaux, $offset, $limit);
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <?php if (!empty($listeNiveaux)): ?>
-                                    <?php foreach ($listeNiveaux as $niveau): ?>
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                                            <input type="checkbox" name="selected_ids[]"
-                                                value="<?= htmlspecialchars($niveau->id_niveau_acces_donnees) ?>"
-                                                class="row-checkbox rounded border-gray-300 text-green-600 focus:ring-green-500">
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($niveau->id_niveau_acces_donnees) ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($niveau->lib_niveau_acces_donnees) ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                            <a href="?page=parametres_generaux&action=niveaux_acces&id_niveau=<?= htmlspecialchars($niveau->id_niveau_acces_donnees) ?>"
-                                                class="text-green-600 hover:text-green-900">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
+                                        <?php foreach ($listeNiveaux as $niveau): ?>
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                                    <input type="checkbox" name="selected_ids[]"
+                                                        value="<?= htmlspecialchars($niveau->id_niveau_acces_donnees) ?>"
+                                                        class="row-checkbox rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    <?= htmlspecialchars($niveau->id_niveau_acces_donnees) ?>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    <?= htmlspecialchars($niveau->lib_niveau_acces_donnees) ?>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                                    <a href="?page=parametres_generaux&action=niveaux_acces&id_niveau=<?= htmlspecialchars($niveau->id_niveau_acces_donnees) ?>"
+                                                        class="text-green-600 hover:text-green-900">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
                                     <?php else: ?>
-                                    <tr>
-                                        <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
-                                            Aucun niveau enregistré
-                                        </td>
-                                    </tr>
+                                        <tr>
+                                            <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                                Aucun niveau enregistré
+                                            </td>
+                                        </tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
@@ -349,50 +349,50 @@ $listeNiveaux = array_slice($listeNiveaux, $offset, $limit);
             </div>
             <!-- Pagination -->
             <?php if ($total_pages > 1): ?>
-            <div class="bg-white rounded-lg shadow-sm p-4 mt-6">
-                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div class="text-sm text-gray-500">
-                        Affichage de <?= $offset + 1 ?> à <?= min($offset + $limit, $total_items) ?> sur
-                        <?= $total_items ?> entrées
-                    </div>
-                    <div class="flex flex-wrap justify-center gap-2">
-                        <?php if ($page > 1): ?>
-                        <a href="?page=parametres_generaux&action=entreprises&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
-                            class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            <i class="fas fa-chevron-left mr-1"></i>Précédent
-                        </a>
-                        <?php endif; ?>
+                <div class="bg-white rounded-lg shadow-sm p-4 mt-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div class="text-sm text-gray-500">
+                            Affichage de <?= $offset + 1 ?> à <?= min($offset + $limit, $total_items) ?> sur
+                            <?= $total_items ?> entrées
+                        </div>
+                        <div class="flex flex-wrap justify-center gap-2">
+                            <?php if ($page > 1): ?>
+                                <a href="?page=parametres_generaux&action=entreprises&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
+                                    class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    <i class="fas fa-chevron-left mr-1"></i>Précédent
+                                </a>
+                            <?php endif; ?>
 
-                        <?php
-                        $start = max(1, $page - 2);
-                        $end = min($total_pages, $page + 2);
-                        
-                        if ($start > 1) {
-                            echo '<span class="px-3 py-2 text-gray-500">...</span>';
-                        }
-                        
-                        for ($i = $start; $i <= $end; $i++):
-                        ?>
-                        <a href="?page=parametres_generaux&action=niveau_acces&p=<?= $i ?>&search=<?= urlencode($search) ?>"
-                            class="btn-hover px-3 py-2 <?= $i === $page ? 'btn-gradient-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50' ?> border border-gray-300 rounded-lg text-sm font-medium">
-                            <?= $i ?>
-                        </a>
-                        <?php endfor;
+                            <?php
+                            $start = max(1, $page - 2);
+                            $end = min($total_pages, $page + 2);
 
-                        if ($end < $total_pages) {
-                            echo '<span class="px-3 py-2 text-gray-500">...</span>';
-                        }
-                        ?>
+                            if ($start > 1) {
+                                echo '<span class="px-3 py-2 text-gray-500">...</span>';
+                            }
 
-                        <?php if ($page < $total_pages): ?>
-                        <a href="?page=parametres_generaux&action=niveau_acces&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
-                            class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            Suivant<i class="fas fa-chevron-right ml-1"></i>
-                        </a>
-                        <?php endif; ?>
+                            for ($i = $start; $i <= $end; $i++):
+                                ?>
+                                <a href="?page=parametres_generaux&action=niveau_acces&p=<?= $i ?>&search=<?= urlencode($search) ?>"
+                                    class="btn-hover px-3 py-2 <?= $i === $page ? 'btn-gradient-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50' ?> border border-gray-300 rounded-lg text-sm font-medium">
+                                    <?= $i ?>
+                                </a>
+                            <?php endfor;
+
+                            if ($end < $total_pages) {
+                                echo '<span class="px-3 py-2 text-gray-500">...</span>';
+                            }
+                            ?>
+
+                            <?php if ($page < $total_pages): ?>
+                                <a href="?page=parametres_generaux&action=niveau_acces&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
+                                    class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    Suivant<i class="fas fa-chevron-right ml-1"></i>
+                                </a>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
-            </div>
             <?php endif; ?>
         </main>
     </div>
@@ -456,144 +456,144 @@ $listeNiveaux = array_slice($listeNiveaux, $offset, $limit);
     </div>
 
     <script>
-    // Gestion des checkboxes et du bouton de suppression
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-    const deleteModal = document.getElementById('deleteModal');
-    const confirmDelete = document.getElementById('confirmDelete');
-    const cancelDelete = document.getElementById('cancelDelete');
-    const formListeNiveaux = document.getElementById('formListeNiveaux');
-    const submitDeleteHidden = document.getElementById('submitDeleteHidden');
-    const btnModifier = document.getElementById('btnModifier');
-    const modifyModal = document.getElementById('modifyModal');
-    const confirmModify = document.getElementById('confirmModify');
-    const cancelModify = document.getElementById('cancelModify');
-    const niveauForm = document.getElementById('niveauForm');
-    const submitModifierHidden = document.getElementById('btn_modifier_niveau_acces_hidden');
+        // Gestion des checkboxes et du bouton de suppression
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+        const deleteModal = document.getElementById('deleteModal');
+        const confirmDelete = document.getElementById('confirmDelete');
+        const cancelDelete = document.getElementById('cancelDelete');
+        const formListeNiveaux = document.getElementById('formListeNiveaux');
+        const submitDeleteHidden = document.getElementById('submitDeleteHidden');
+        const btnModifier = document.getElementById('btnModifier');
+        const modifyModal = document.getElementById('modifyModal');
+        const confirmModify = document.getElementById('confirmModify');
+        const cancelModify = document.getElementById('cancelModify');
+        const niveauForm = document.getElementById('niveauForm');
+        const submitModifierHidden = document.getElementById('btn_modifier_niveau_acces_hidden');
 
-    // Initialisation
-    updateDeleteButtonState();
-
-    // Select all checkboxes
-    selectAllCheckbox.addEventListener('change', function() {
-        const checkboxes = document.querySelectorAll('.row-checkbox');
-        checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+        // Initialisation
         updateDeleteButtonState();
-    });
 
-    // Update delete button state
-    function updateDeleteButtonState() {
-        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-        deleteSelectedBtn.disabled = checkedBoxes.length === 0;
-    }
-
-    // Checkbox change events
-    document.addEventListener('change', function(e) {
-        if (e.target.classList.contains('row-checkbox')) {
+        // Select all checkboxes
+        selectAllCheckbox.addEventListener('change', function () {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = this.checked);
             updateDeleteButtonState();
-            const allCheckboxes = document.querySelectorAll('.row-checkbox');
+        });
+
+        // Update delete button state
+        function updateDeleteButtonState() {
             const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-            selectAllCheckbox.checked = checkedBoxes.length === allCheckboxes.length && allCheckboxes.length >
-                0;
+            deleteSelectedBtn.disabled = checkedBoxes.length === 0;
         }
-    });
 
-    // Gestion de la suppression
-    deleteSelectedBtn?.addEventListener('click', function(e) {
-        e.preventDefault();
-        deleteModal.classList.remove('hidden');
-    });
+        // Checkbox change events
+        document.addEventListener('change', function (e) {
+            if (e.target.classList.contains('row-checkbox')) {
+                updateDeleteButtonState();
+                const allCheckboxes = document.querySelectorAll('.row-checkbox');
+                const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+                selectAllCheckbox.checked = checkedBoxes.length === allCheckboxes.length && allCheckboxes.length >
+                    0;
+            }
+        });
 
-    confirmDelete?.addEventListener('click', function() {
-        submitDeleteHidden.value = '1';
-        formListeNiveaux.submit();
-    });
+        // Gestion de la suppression
+        deleteSelectedBtn?.addEventListener('click', function (e) {
+            e.preventDefault();
+            deleteModal.classList.remove('hidden');
+        });
 
-    cancelDelete?.addEventListener('click', function() {
-        deleteModal.classList.add('hidden');
-    });
+        confirmDelete?.addEventListener('click', function () {
+            submitDeleteHidden.value = '1';
+            formListeNiveaux.submit();
+        });
 
-    // Gestion de la modification
-    btnModifier?.addEventListener('click', function() {
-        modifyModal.classList.remove('hidden');
-    });
-
-    confirmModify?.addEventListener('click', function() {
-        submitModifierHidden.value = '1';
-        niveauForm.submit();
-    });
-
-    cancelModify?.addEventListener('click', function() {
-        modifyModal.classList.add('hidden');
-    });
-
-    // Fermeture des modales en cliquant en dehors
-    window.addEventListener('click', function(e) {
-        if (e.target === deleteModal) {
+        cancelDelete?.addEventListener('click', function () {
             deleteModal.classList.add('hidden');
-        }
-        if (e.target === modifyModal) {
+        });
+
+        // Gestion de la modification
+        btnModifier?.addEventListener('click', function () {
+            modifyModal.classList.remove('hidden');
+        });
+
+        confirmModify?.addEventListener('click', function () {
+            submitModifierHidden.value = '1';
+            niveauForm.submit();
+        });
+
+        cancelModify?.addEventListener('click', function () {
             modifyModal.classList.add('hidden');
+        });
+
+        // Fermeture des modales en cliquant en dehors
+        window.addEventListener('click', function (e) {
+            if (e.target === deleteModal) {
+                deleteModal.classList.add('hidden');
+            }
+            if (e.target === modifyModal) {
+                modifyModal.classList.add('hidden');
+            }
+        });
+
+        // Fonction pour exporter en Excel
+        function exportToExcel() {
+            const table = document.querySelector('table');
+            const rows = Array.from(table.querySelectorAll('tr'));
+
+            // Créer le contenu CSV
+            let csvContent = "data:text/csv;charset=utf-8,";
+
+            // Ajouter les en-têtes
+            const headers = Array.from(rows[0].querySelectorAll('th'))
+                .map(header => header.textContent.trim())
+                .filter(header => header !== ''); // Exclure la colonne des checkboxes
+            csvContent += headers.join(',') + '\n';
+
+            // Ajouter les données
+            rows.slice(1).forEach(row => {
+                const cells = Array.from(row.querySelectorAll('td'))
+                    .slice(1, -1) // Exclure la colonne des checkboxes et des actions
+                    .map(cell => `"${cell.textContent.trim()}"`);
+                csvContent += cells.join(',') + '\n';
+            });
+
+            // Créer le lien de téléchargement
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'niveaux_acces.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
-    });
 
-    // Fonction pour exporter en Excel
-    function exportToExcel() {
-        const table = document.querySelector('table');
-        const rows = Array.from(table.querySelectorAll('tr'));
+        // Fonction pour imprimer
+        function printTable() {
+            const table = document.querySelector('table');
+            const printWindow = window.open('', '_blank');
 
-        // Créer le contenu CSV
-        let csvContent = "data:text/csv;charset=utf-8,";
+            // Créer une copie de la table pour la modification
+            const tableClone = table.cloneNode(true);
 
-        // Ajouter les en-têtes
-        const headers = Array.from(rows[0].querySelectorAll('th'))
-            .map(header => header.textContent.trim())
-            .filter(header => header !== ''); // Exclure la colonne des checkboxes
-        csvContent += headers.join(',') + '\n';
+            // Supprimer les colonnes ID, Actions et Checkboxes
+            const rows = tableClone.querySelectorAll('tr');
+            rows.forEach(row => {
+                // Supprimer la colonne des checkboxes (première colonne)
+                const checkboxCell = row.querySelector('th:first-child, td:first-child');
+                if (checkboxCell) checkboxCell.remove();
 
-        // Ajouter les données
-        rows.slice(1).forEach(row => {
-            const cells = Array.from(row.querySelectorAll('td'))
-                .slice(1, -1) // Exclure la colonne des checkboxes et des actions
-                .map(cell => `"${cell.textContent.trim()}"`);
-            csvContent += cells.join(',') + '\n';
-        });
+                // Supprimer la colonne ID (maintenant première colonne)
+                const idCell = row.querySelector('th:first-child, td:first-child');
+                if (idCell) idCell.remove();
 
-        // Créer le lien de téléchargement
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement('a');
-        link.setAttribute('href', encodedUri);
-        link.setAttribute('download', 'niveaux_acces.csv');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
+                // Supprimer la colonne Actions (dernière colonne)
+                const actionCell = row.querySelector('th:last-child, td:last-child');
+                if (actionCell) actionCell.remove();
+            });
 
-    // Fonction pour imprimer
-    function printTable() {
-        const table = document.querySelector('table');
-        const printWindow = window.open('', '_blank');
-
-        // Créer une copie de la table pour la modification
-        const tableClone = table.cloneNode(true);
-
-        // Supprimer les colonnes ID, Actions et Checkboxes
-        const rows = tableClone.querySelectorAll('tr');
-        rows.forEach(row => {
-            // Supprimer la colonne des checkboxes (première colonne)
-            const checkboxCell = row.querySelector('th:first-child, td:first-child');
-            if (checkboxCell) checkboxCell.remove();
-
-            // Supprimer la colonne ID (maintenant première colonne)
-            const idCell = row.querySelector('th:first-child, td:first-child');
-            if (idCell) idCell.remove();
-
-            // Supprimer la colonne Actions (dernière colonne)
-            const actionCell = row.querySelector('th:last-child, td:last-child');
-            if (actionCell) actionCell.remove();
-        });
-
-        printWindow.document.write(`
+            printWindow.document.write(`
             <html>
                 <head>
                     <title>Liste des niveaux d'accès</title>
@@ -613,37 +613,37 @@ $listeNiveaux = array_slice($listeNiveaux, $offset, $limit);
             </html>
         `);
 
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-    }
-
-    // Gestion des notifications
-    document.addEventListener('DOMContentLoaded', function() {
-        const successNotification = document.getElementById('successNotification');
-        const errorNotification = document.getElementById('errorNotification');
-
-        if (successNotification) {
-            setTimeout(() => {
-                successNotification.classList.remove('animate__fadeIn');
-                successNotification.classList.add('animate__fadeOut');
-                setTimeout(() => {
-                    successNotification.remove();
-                }, 500);
-            }, 5000);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
         }
 
-        if (errorNotification) {
-            setTimeout(() => {
-                errorNotification.classList.remove('animate__fadeIn');
-                errorNotification.classList.add('animate__fadeOut');
+        // Gestion des notifications
+        document.addEventListener('DOMContentLoaded', function () {
+            const successNotification = document.getElementById('successNotification');
+            const errorNotification = document.getElementById('errorNotification');
+
+            if (successNotification) {
                 setTimeout(() => {
-                    errorNotification.remove();
-                }, 500);
-            }, 5000);
-        }
-    });
+                    successNotification.classList.remove('animate__fadeIn');
+                    successNotification.classList.add('animate__fadeOut');
+                    setTimeout(() => {
+                        successNotification.remove();
+                    }, 500);
+                }, 5000);
+            }
+
+            if (errorNotification) {
+                setTimeout(() => {
+                    errorNotification.classList.remove('animate__fadeIn');
+                    errorNotification.classList.add('animate__fadeOut');
+                    setTimeout(() => {
+                        errorNotification.remove();
+                    }, 500);
+                }, 5000);
+            }
+        });
     </script>
 
 </body>
