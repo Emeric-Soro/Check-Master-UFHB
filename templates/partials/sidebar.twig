@@ -1,0 +1,101 @@
+{#
+ # Sidebar dynamique basée sur les permissions
+ # 
+ # Ce template génère le menu latéral en affichant uniquement
+ # les éléments auxquels l'utilisateur a accès (permission de lecture).
+ #
+ # Usage: {% include 'partials/sidebar.twig' with {'menus': menus} %}
+ #}
+
+<nav class="sidebar bg-gray-900 min-h-screen w-64 p-4 flex-shrink-0">
+    {# Logo et titre #}
+    <div class="flex items-center space-x-3 mb-8 px-2">
+        <div class="w-10 h-10 bg-gradient-to-br from-primary to-primary-light rounded-xl flex items-center justify-center">
+            <i class="fas fa-graduation-cap text-white text-lg"></i>
+        </div>
+        <div class="text-white">
+            <h1 class="text-lg font-bold">CheckMaster</h1>
+            <p class="text-xs text-gray-400">UFHB</p>
+        </div>
+    </div>
+
+    {# Menu principal #}
+    <div class="space-y-1">
+        {% for menu in menus %}
+            {# Vérifie si l'utilisateur peut lire cette ressource #}
+            {% if can(menu.lib_traitement, 'peut_lire') %}
+                <a href="?page={{ menu.lib_traitement }}" 
+                   class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition duration-200 group
+                          {% if current_page == menu.lib_traitement %}bg-gray-800 text-white{% endif %}">
+                    {# Icône du menu #}
+                    {% if menu.icone_traitement %}
+                        <i class="{{ menu.icone_traitement }} mr-3 text-gray-500 group-hover:text-indigo-400 
+                                  {% if current_page == menu.lib_traitement %}text-indigo-400{% endif %}"></i>
+                    {% else %}
+                        <i class="fas fa-circle text-xs mr-3 text-gray-500"></i>
+                    {% endif %}
+                    
+                    {# Label du menu #}
+                    <span class="font-medium">{{ menu.label_traitement }}</span>
+                    
+                    {# Badge si permissions avancées #}
+                    {% if can(menu.lib_traitement, 'peut_valider') %}
+                        <span class="ml-auto">
+                            <i class="fas fa-check-circle text-xs text-emerald-500" title="Permission de validation"></i>
+                        </span>
+                    {% elseif can(menu.lib_traitement, 'peut_modifier') %}
+                        <span class="ml-auto">
+                            <i class="fas fa-edit text-xs text-yellow-500" title="Permission de modification"></i>
+                        </span>
+                    {% endif %}
+                </a>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    {# Section Administration (visible uniquement pour les admins) #}
+    {% if is_admin() %}
+    <div class="mt-8 pt-4 border-t border-gray-700">
+        <p class="px-4 text-xs text-gray-500 uppercase tracking-wider mb-2">Administration</p>
+        <div class="space-y-1">
+            <a href="?page=parametres_generaux&action=gestion_permissions" 
+               class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition duration-200 group">
+                <i class="fas fa-shield-alt mr-3 text-gray-500 group-hover:text-indigo-400"></i>
+                <span class="font-medium">Permissions</span>
+            </a>
+            <a href="?page=parametres_generaux&action=roles_temporaires" 
+               class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition duration-200 group">
+                <i class="fas fa-clock mr-3 text-gray-500 group-hover:text-indigo-400"></i>
+                <span class="font-medium">Rôles temporaires</span>
+            </a>
+            <a href="?page=piste_audit" 
+               class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition duration-200 group">
+                <i class="fas fa-history mr-3 text-gray-500 group-hover:text-indigo-400"></i>
+                <span class="font-medium">Piste d'audit</span>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    {# Profil utilisateur en bas #}
+    <div class="absolute bottom-4 left-4 right-4">
+        <div class="bg-gray-800 rounded-lg p-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">
+                    <i class="fas fa-user text-white"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-white truncate">
+                        {{ session.prenom_utilisateur|default('Utilisateur') }}
+                    </p>
+                    <p class="text-xs text-gray-400 truncate">
+                        {{ session.lib_GU|default('Groupe') }}
+                    </p>
+                </div>
+                <a href="?page=logout" class="text-gray-400 hover:text-white transition" title="Déconnexion">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>

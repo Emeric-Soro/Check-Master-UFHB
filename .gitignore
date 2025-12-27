@@ -2,3 +2,11 @@ node_modules/
 public/assets/css/output_dashboard_admin.css
 .DS_Store
 /vendor/
+
+# Logs (keep directory structure)
+logs/*.log
+!logs/.gitkeep
+
+# Cache (keep directory structure)
+cache/twig/*
+!cache/twig/.gitkeep

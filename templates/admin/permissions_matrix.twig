@@ -1,0 +1,199 @@
+{% extends 'layout/admin.twig' %}
+
+{% block title %}Matrice des Permissions - CheckMaster{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    {# En-tête #}
+    <div class="mb-8">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
+                    <i class="fas fa-shield-alt mr-3 text-indigo-600"></i>
+                    Matrice des Permissions
+                </h1>
+                <p class="text-gray-600 mt-2">Configurez les permissions granulaires pour chaque groupe d'utilisateurs</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="?page=parametres_generaux" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                    <i class="fas fa-arrow-left mr-2"></i>Retour
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {# Messages de notification #}
+    {% if app.request.get('success') %}
+    <div class="mb-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-lg" role="alert">
+        <div class="flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            <p>Les permissions ont été mises à jour avec succès.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if app.request.get('error') == 'csrf' %}
+    <div class="mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-lg" role="alert">
+        <div class="flex items-center">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            <p>Erreur de sécurité: Token CSRF invalide. Veuillez réessayer.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if app.request.get('error') == 'validation' %}
+    <div class="mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-lg" role="alert">
+        <div class="flex items-center">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            <p>Erreur de validation des données. Veuillez vérifier vos entrées.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if app.request.get('error') == 'db' %}
+    <div class="mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-lg" role="alert">
+        <div class="flex items-center">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            <p>Erreur lors de la mise à jour des permissions. Veuillez réessayer.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {# Carte principale #}
+    <div class="card shadow-lg overflow-hidden">
+        <div class="bg-gradient-to-r from-indigo-600 to-blue-600 p-4">
+            <h3 class="text-lg font-semibold text-white flex items-center">
+                <i class="fas fa-table mr-2"></i>
+                Configuration des permissions par groupe
+            </h3>
+            <p class="text-indigo-100 text-sm mt-1">Cochez les permissions à accorder pour chaque traitement</p>
+        </div>
+        
+        <div class="p-6 overflow-x-auto">
+            <form method="POST" action="?page=parametres_generaux&action=update_permissions" id="permissionsForm">
+                {{ csrf_field|raw }}
+                
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="sticky left-0 bg-gray-100 p-3 text-left font-semibold text-gray-700 border-b z-10">
+                                Traitement
+                            </th>
+                            {% for group in groups %}
+                            <th class="p-3 text-center font-semibold text-gray-700 border-b min-w-[200px]">
+                                <div class="flex flex-col items-center">
+                                    <span class="mb-1">{{ group.lib_GU }}</span>
+                                    <span class="text-xs text-gray-500 font-normal">
+                                        Niveau: {{ group.niveau_hierarchique|default(0) }}
+                                    </span>
+                                </div>
+                            </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for traitement in traitements %}
+                        <tr class="hover:bg-gray-50 transition-colors border-b">
+                            <td class="sticky left-0 bg-white p-3 font-medium text-gray-800 z-10">
+                                <div class="flex items-center">
+                                    {% if traitement.icone_traitement %}
+                                    <i class="{{ traitement.icone_traitement }} mr-3 text-indigo-500"></i>
+                                    {% endif %}
+                                    <span>{{ traitement.label_traitement }}</span>
+                                </div>
+                            </td>
+                            {% for group in groups %}
+                            <td class="p-3">
+                                <div class="flex flex-wrap justify-center gap-1">
+                                    {% for action in actions %}
+                                    {% set checked = permissions[group.id_GU][traitement.id_traitement][action.value]|default(false) %}
+                                    <label class="checkbox-label inline-flex items-center cursor-pointer px-2 py-1 rounded" 
+                                           title="{{ action.label() }}">
+                                        <input type="checkbox" 
+                                               name="perms[{{ group.id_GU }}][{{ traitement.id_traitement }}][{{ action.value }}]"
+                                               value="1"
+                                               {% if checked %}checked{% endif %}
+                                               class="form-checkbox h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
+                                        <span class="ml-1 text-xs font-medium {{ action.colorClass() }}">
+                                            {{ action.initial() }}
+                                        </span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                {# Boutons d'action #}
+                <div class="mt-6 flex justify-between items-center border-t pt-4">
+                    <div class="text-sm text-gray-600">
+                        <strong>Légende :</strong> 
+                        <span class="text-blue-600">R</span> = Lire, 
+                        <span class="text-green-600">C</span> = Créer, 
+                        <span class="text-yellow-600">M</span> = Modifier, 
+                        <span class="text-red-600">S</span> = Supprimer, 
+                        <span class="text-purple-600">E</span> = Exporter, 
+                        <span class="text-emerald-600">V</span> = Valider
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="reset" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                            <i class="fas fa-undo mr-2"></i>Réinitialiser
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save mr-2"></i>Enregistrer les permissions
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# Légende complète #}
+    <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <h4 class="font-semibold text-blue-800 mb-2">
+            <i class="fas fa-info-circle mr-2"></i>Aide
+        </h4>
+        <ul class="text-sm text-blue-700 space-y-1">
+            <li><strong>Lire (R)</strong> - Permet de visualiser les données</li>
+            <li><strong>Créer (C)</strong> - Permet d'ajouter de nouvelles entrées</li>
+            <li><strong>Modifier (M)</strong> - Permet de modifier les entrées existantes</li>
+            <li><strong>Supprimer (S)</strong> - Permet de supprimer des entrées</li>
+            <li><strong>Exporter (E)</strong> - Permet d'exporter les données (PDF, Excel, etc.)</li>
+            <li><strong>Valider (V)</strong> - Permet de valider/approuver des éléments</li>
+        </ul>
+        <p class="mt-2 text-sm text-blue-600">
+            <i class="fas fa-shield-alt mr-1"></i>
+            Les administrateurs (niveau 100) ont automatiquement toutes les permissions.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Confirmation avant soumission
+    document.getElementById('permissionsForm').addEventListener('submit', function(e) {
+        if (!confirm('Êtes-vous sûr de vouloir enregistrer ces modifications de permissions ?')) {
+            e.preventDefault();
+        }
+    });
+    
+    // Toggle toutes les permissions d'une colonne (groupe)
+    document.querySelectorAll('th').forEach(function(th, index) {
+        if (index > 0) { // Skip first column (traitement names)
+            th.style.cursor = 'pointer';
+            th.title = 'Cliquez pour basculer toutes les permissions de ce groupe';
+            th.addEventListener('dblclick', function() {
+                const checkboxes = document.querySelectorAll(`tbody tr td:nth-child(${index + 1}) input[type="checkbox"]`);
+                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                checkboxes.forEach(cb => cb.checked = !allChecked);
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
