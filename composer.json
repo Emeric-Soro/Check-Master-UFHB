@@ -4,7 +4,7 @@
   "type": "project",
   "config": {
     "platform": {
-      "php": "7.4.33"
+      "php": "8.4"
     }
   },
   "require": {
@@ -12,6 +12,7 @@
     "ext-pdo": "*",
     "ext-curl": "*",
     "ext-fileinfo": "*",
+    "ext-gd": "*",
     "ext-zip": "*",
     "phpmailer/phpmailer": "^6.10",
     "smalot/pdfparser": "^2.12",
@@ -19,8 +20,15 @@
     "mpdf/mpdf": "^8.2",
     "dompdf/dompdf": "^3.1",
     "ezyang/htmlpurifier": "^4.19",
-    "psr/log": "^1.1",
-    "mpdf/psr-log-aware-trait": "^2.0"
+    "psr/log": "^3.0",
+    "mpdf/psr-log-aware-trait": "^3.0",
+    "vlucas/valitron": "^1.4",
+    "paragonie/anti-csrf": "^2.2",
+    "php-di/php-di": "^7.0",
+    "monolog/monolog": "^3.0",
+    "nesbot/carbon": "^3.0",
+    "hashids/hashids": "^5.0",
+    "twig/twig": "^3.0"
   },
   "require-dev": {
     "symfony/var-dumper": "^5.4"
