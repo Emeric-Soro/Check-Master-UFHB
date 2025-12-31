@@ -16,7 +16,7 @@
 - **Refactor modèles** : encapsuler PDO via un dépôt ou une couche `Repository` avec requêtes préparées et index recommandés; documenter les schémas dans `docs/`.
 - **Tests** : ajouter des tests de fumée (authentification, création utilisateur, import Excel) avec PHPUnit + une base SQLite en mémoire; prévoir quelques tests E2E (Playwright/Cypress) pour le parcours d’inscription.
 - **Observabilité** : métriques basiques (temps de réponse, erreurs, taille des exports), alertes sur échecs d’envoi d’e-mails et sur quotas disque.
-- **Accessibilité** : ajouter navigation clavier, messages d’erreur persistants et alternatives texte sur les images/ICônes.
+- **Accessibilité** : ajouter navigation clavier, messages d’erreur persistants et alternatives texte sur les images/icônes.
 
 ## Gouvernance et dette
 - **CI minimale** : workflow GitHub Actions pour `composer validate`, `composer install --no-dev`, build Tailwind et exécution des tests.
