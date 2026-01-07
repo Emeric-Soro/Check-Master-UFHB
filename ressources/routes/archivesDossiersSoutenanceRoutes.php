@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../app/controllers/ArchivesDossiersSoutenanceControl
  * Routes pour les archives des dossiers de soutenance
  */
 
-if ($_GET['page'] === 'archives_dossiers_soutenance') {
+if (isset($_GET['page']) && $_GET['page'] === 'archives_dossiers_soutenance') {
     $controller = new ArchivesDossiersSoutenanceController();
 
     // Route pour exporter les archives
@@ -18,13 +18,13 @@ if ($_GET['page'] === 'archives_dossiers_soutenance') {
             'date_debut' => $_GET['date_debut'] ?? '',
             'date_fin' => $_GET['date_fin'] ?? ''
         ];
-        
+
         // Logique d'export (CSV, Excel, etc.)
         header('Content-Type: text/csv');
         header('Content-Disposition: attachment; filename="archives_rapports_' . date('Y-m-d') . '.csv"');
-        
+
         $output = fopen('php://output', 'w');
-        
+
         // En-têtes CSV
         fputcsv($output, [
             'ID Rapport',
@@ -37,7 +37,7 @@ if ($_GET['page'] === 'archives_dossiers_soutenance') {
             'Temps Traitement',
             'Commentaire'
         ]);
-        
+
         // Données
         foreach ($archives['rapports_archives'] as $rapport) {
             fputcsv($output, [
@@ -52,7 +52,7 @@ if ($_GET['page'] === 'archives_dossiers_soutenance') {
                 $rapport['commentaire_validation'] ?? ''
             ]);
         }
-        
+
         fclose($output);
         exit;
     }
@@ -63,7 +63,7 @@ if ($_GET['page'] === 'archives_dossiers_soutenance') {
             case 'details_rapport':
                 if (isset($_GET['id'])) {
                     $rapportDetails = $controller->getRapportDetails($_GET['id']);
-                    
+
                     if ($rapportDetails) {
                         $GLOBALS['rapportDetails'] = $rapportDetails;
                     } else {
@@ -71,7 +71,7 @@ if ($_GET['page'] === 'archives_dossiers_soutenance') {
                     }
                 }
                 break;
-                
+
             default:
                 // Action non reconnue, afficher la page principale
                 break;
@@ -81,4 +81,4 @@ if ($_GET['page'] === 'archives_dossiers_soutenance') {
     // Route principale pour afficher les archives
     $controller->index();
     $contentFile = __DIR__ . '/../views/archives_dossiers_soutenance_content.php';
-} 
+}

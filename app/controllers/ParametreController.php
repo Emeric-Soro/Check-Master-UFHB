@@ -1150,73 +1150,118 @@ class ParametreController
         $messageSuccess = '';
         $attribution_a_modifier = null;
 
-        // Récupérer tous les groupes et traitements
+        // NOUVEAU : Utiliser le système de fonctionnalités
+        require_once __DIR__ . '/../models/Fonctionnalite.php';
+        require_once __DIR__ . '/../models/Permission.php';
+
+        $pdo = Database::getConnection();
+        $fonctionnaliteModel = new Fonctionnalite($pdo);
+        $permissionModel = new Permission($pdo);
+
+        // Récupérer tous les groupes et fonctionnalités
         $listeGroupes = $this->groupeUtilisateur->getAllGroupeUtilisateur();
-        $listeTraitements = $this->traitement->getAllTraitements();
+
+        // Récupérer toutes les fonctionnalités (remplace getAllTraitements)
+        $sql = "SELECT f.*, c.lib_categorie, c.code_categorie 
+                FROM fonctionnalites f
+                INNER JOIN categories_fonctionnalites c ON f.id_categorie = c.id_categorie
+                WHERE f.actif = TRUE
+                ORDER BY c.ordre_categorie, f.ordre_fonctionnalite";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute();
+        $listeFonctionnalites = $stmt->fetchAll(PDO::FETCH_OBJ);
 
         // Debug
         error_log("Liste des groupes: " . print_r($listeGroupes, true));
-        error_log("Liste des traitements: " . print_r($listeTraitements, true));
+        error_log("Liste des fonctionnalités: " . count($listeFonctionnalites));
 
         // Récupérer le groupe sélectionné
         $selectedGroupeId = isset($_GET['groupe']) ? $_GET['groupe'] : null;
         $selectedGroupe = null;
-        $attributionsGroupe = [];
+        $permissionsGroupe = [];
 
         if ($selectedGroupeId) {
             $selectedGroupe = $this->groupeUtilisateur->getGroupeUtilisateurById($selectedGroupeId);
-            // Récupérer les traitements attribués au groupe
-            $attributionsGroupe = $this->attribution->getTraitementsByGroupe($selectedGroupeId);
+            // Récupérer les permissions du groupe
+            $permissionsGroupe = $permissionModel->getAllPermissionsForGroupe($selectedGroupeId);
 
-            // Debug
             error_log("Groupe sélectionné: " . print_r($selectedGroupe, true));
-            error_log("Attributions du groupe: " . print_r($attributionsGroupe, true));
+            error_log("Permissions du groupe: " . count($permissionsGroupe));
         }
 
-        // Traiter le formulaire de soumission
+        // Traiter le formulaire de soumission (à adapter)
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_GU'])) {
             $this->handleAttributionSubmit($_POST);
         }
 
         // Préparer les données pour la vue
-        $attributionsMap = [];
+        $permissionsMap = [];
         foreach ($listeGroupes as $groupe) {
-            $attributionsMap[$groupe->id_GU] = $this->attribution->getTraitementsByGroupe($groupe->id_GU);
+            $permissionsMap[$groupe->id_GU] = $permissionModel->getAllPermissionsForGroupe($groupe->id_GU);
         }
 
-        // Debug
-        error_log("Map des attributions: " . print_r($attributionsMap, true));
-
-        $GLOBALS['attributionsMap'] = $attributionsMap;
+        // Passer les données à la vue
+        $GLOBALS['permissionsMap'] = $permissionsMap;
         $GLOBALS['listeGroupes'] = $listeGroupes;
-        $GLOBALS['listeTraitements'] = $listeTraitements;
+        $GLOBALS['listeFonctionnalites'] = $listeFonctionnalites;
         $GLOBALS['selectedGroupe'] = $selectedGroupe;
-        $GLOBALS['attributionsGroupe'] = $attributionsGroupe;
+        $GLOBALS['permissionsGroupe'] = $permissionsGroupe;
         $GLOBALS['messageErreur'] = $messageErreur;
         $GLOBALS['messageSuccess'] = $messageSuccess;
         $GLOBALS['attribution_a_modifier'] = $attribution_a_modifier;
+
+        // COMPATIBILITÉ : Garder les anciennes variables pour la vue (si besoin)
+        $GLOBALS['listeTraitements'] = $listeFonctionnalites;
+        $GLOBALS['attributionsGroupe'] = $permissionsGroupe;
+        $GLOBALS['attributionsMap'] = $permissionsMap;
     }
 
     private function handleAttributionSubmit($postData)
     {
         $groupeId = $postData['id_GU'];
-        $selectedTraitements = isset($postData['traitements']) ? $postData['traitements'] : [];
+        $permissions = isset($postData['permissions']) ? $postData['permissions'] : [];
 
         try {
-            // Supprimer toutes les attributions existantes pour ce groupe
-            $this->attribution->deleteAttribution($groupeId);
+            $conn = Database::getConnection();
 
-            // Ajouter les nouvelles attributions
-            foreach ($selectedTraitements as $traitementId) {
-                $this->attribution->ajouterAttribution($groupeId, $traitementId);
+            // Supprimer toutes les permissions existantes pour ce groupe
+            $stmt = $conn->prepare("DELETE FROM permissions WHERE id_GU = ?");
+            $stmt->execute([$groupeId]);
+
+            // Ajouter les nouvelles permissions avec granularité CRUD
+            $stmt = $conn->prepare(
+                "INSERT INTO permissions (id_GU, id_fonctionnalite, peut_voir, peut_creer, peut_modifier, peut_supprimer) 
+                 VALUES (?, ?, ?, ?, ?, ?)"
+            );
+
+            foreach ($permissions as $fonctionnaliteId => $actions) {
+                // Si au moins une action est cochée, créer la permission
+                if (!empty($actions)) {
+                    $peutVoir = isset($actions['voir']) ? 1 : 0;
+                    $peutCreer = isset($actions['creer']) ? 1 : 0;
+                    $peutModifier = isset($actions['modifier']) ? 1 : 0;
+                    $peutSupprimer = isset($actions['supprimer']) ? 1 : 0;
+
+                    // Si aucune action n'est cochée, ne pas créer de permission
+                    if ($peutVoir || $peutCreer || $peutModifier || $peutSupprimer) {
+                        $stmt->execute([
+                            $groupeId,
+                            $fonctionnaliteId,
+                            $peutVoir,
+                            $peutCreer,
+                            $peutModifier,
+                            $peutSupprimer
+                        ]);
+                    }
+                }
             }
 
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'attribution', 'Succès');
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'attribution', 'Succès - Permissions CRUD enregistrées');
             // Rediriger avec un message de succès
             header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&success=1');
             exit;
         } catch (Exception $e) {
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'attribution', 'Erreur');
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'attribution', 'Erreur: ' . $e->getMessage());
             // Rediriger avec un message d'erreur
             header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&error=1');
             exit;

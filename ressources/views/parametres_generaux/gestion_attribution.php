@@ -21,7 +21,7 @@ if ($searchType === 'groupe' && !empty($searchTerm)) {
 // Filtrer les traitements si une recherche est effectuée
 if ($searchType === 'traitement' && !empty($searchTerm)) {
     $listeTraitements = array_filter($listeTraitements, function ($traitement) use ($searchTerm) {
-        return stripos($traitement->label_traitement, $searchTerm) !== false;
+        return stripos($traitement->lib_fonctionnalite, $searchTerm) !== false;
     });
 }
 ?>
@@ -267,43 +267,41 @@ if ($searchType === 'traitement' && !empty($searchTerm)) {
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <!-- Liste des groupes -->
             <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
                 <div class="bg-gradient-to-r from-green-500 to-green-600 p-4">
                     <h3 class="text-lg font-semibold text-white">
                         <i class="fas fa-users mr-2"></i>
-                        Groupes d'utilisateurs
+                        Groupes
                     </h3>
-                    <p class="text-green-100 text-sm mt-1">Sélectionnez un groupe pour gérer ses traitements</p>
+                    <p class="text-green-100 text-xs mt-1">Sélectionnez un groupe</p>
                 </div>
 
-                <div class="p-4">
-                    <form method="GET" class="mb-4">
+                <div class="p-3">
+                    <form method="GET" class="mb-3">
                         <input type="hidden" name="page" value="parametres_generaux">
                         <input type="hidden" name="action" value="gestion_attribution">
                         <input type="hidden" name="search_type" value="groupe">
                         <div class="relative">
                             <input type="text" name="search" value="<?= htmlspecialchars($searchTerm) ?>"
-                                placeholder="Rechercher un groupe..."
-                                class="pl-10 pr-4 py-2 rounded-lg border border-gray-300 w-full">
-                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                                placeholder="Rechercher..."
+                                class="pl-8 pr-2 py-2 text-sm rounded-lg border border-gray-300 w-full">
+                            <i class="fas fa-search absolute left-2 top-3 text-gray-400 text-xs"></i>
                         </div>
                     </form>
 
-                    <div class="space-y-2 overflow-y-auto min-h-screen" id="groupesList">
+                    <div class="space-y-2 overflow-y-auto max-h-[600px]" id="groupesList">
                         <?php foreach ($listeGroupes as $groupe): ?>
                             <a href="?page=parametres_generaux&action=gestion_attribution&groupe=<?= $groupe->id_GU ?>"
-                                class="block w-full text-left px-4 py-3 rounded-lg transition-all groupe-btn <?= ($selectedGroupe && $selectedGroupe->id_GU == $groupe->id_GU) ? 'selected' : '' ?>">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center">
-                                        <div
-                                            class="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center mr-3">
-                                            <i class="fas fa-user-group text-sm"></i>
-                                        </div>
-                                        <span
-                                            class="font-medium text-gray-700"><?= htmlspecialchars($groupe->lib_GU) ?></span>
+                                class="block w-full text-left px-3 py-2 rounded-lg transition-all groupe-btn <?= ($selectedGroupe && $selectedGroupe->id_GU == $groupe->id_GU) ? 'selected' : '' ?>">
+                                <div class="flex items-center">
+                                    <div
+                                        class="w-7 h-7 rounded-full bg-green-100 text-green-700 flex items-center justify-center mr-2">
+                                        <i class="fas fa-user-group text-xs"></i>
                                     </div>
+                                    <span
+                                        class="font-medium text-gray-700 text-sm"><?= htmlspecialchars($groupe->lib_GU) ?></span>
                                 </div>
                             </a>
                         <?php endforeach; ?>
@@ -312,7 +310,7 @@ if ($searchType === 'traitement' && !empty($searchTerm)) {
             </div>
 
             <!-- Détails du groupe et attributions -->
-            <div class="lg:col-span-2">
+            <div class="lg:col-span-3">
                 <div id="attributionContainer"
                     class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 h-full flex flex-col">
                     <div class="bg-gradient-to-r from-green-500 to-green-600 p-4">
@@ -364,39 +362,124 @@ if ($searchType === 'traitement' && !empty($searchTerm)) {
                             <form method="POST" class="space-y-4 flex-1 flex flex-col">
                                 <input type="hidden" name="id_GU" value="<?= $selectedGroupe->id_GU ?>">
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <?php if (!empty($listeTraitements)): ?>
-                                        <?php foreach ($listeTraitements as $traitement): ?>
-                                            <div
-                                                class="traitement-item border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
-                                                <div class="flex items-center justify-between">
-                                                    <div class="flex items-center space-x-3">
-                                                        <div class="relative">
-                                                            <input type="checkbox" id="traitement_<?= $traitement->id_traitement ?>"
-                                                                name="traitements[]" value="<?= $traitement->id_traitement ?>"
-                                                                class="h-5 w-5 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
-                                                                <?= in_array($traitement->id_traitement, array_column($attributionsGroupe, 'id_traitement')) ? 'checked' : '' ?>>
-                                                        </div>
-                                                        <label for="traitement_<?= $traitement->id_traitement ?>"
-                                                            class="text-gray-700 font-medium cursor-pointer hover:text-emerald-600 transition-colors">
-                                                            <?= htmlspecialchars($traitement->label_traitement) ?>
-                                                        </label>
-                                                    </div>
-                                                    <?php if (isset($traitement->description)): ?>
-                                                        <button type="button"
-                                                            onclick="showTraitementDetails(<?= $traitement->id_traitement ?>)"
-                                                            class="text-gray-400 hover:text-emerald-600 transition-colors">
-                                                            <i class="fas fa-info-circle"></i>
-                                                        </button>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <div class="col-span-full text-center text-gray-500 py-4">
-                                            Aucun traitement disponible
-                                        </div>
-                                    <?php endif; ?>
+                                <!-- Tableau des permissions -->
+                                <div class="overflow-x-auto bg-white rounded-lg shadow">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th scope="col"
+                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Fonctionnalité
+                                                </th>
+                                                <th scope="col"
+                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Catégorie
+                                                </th>
+                                                <th scope="col"
+                                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    <i class="fas fa-eye text-blue-500"></i> Voir
+                                                </th>
+                                                <th scope="col"
+                                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    <i class="fas fa-plus text-green-500"></i> Créer
+                                                </th>
+                                                <th scope="col"
+                                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    <i class="fas fa-edit text-yellow-500"></i> Modifier
+                                                </th>
+                                                <th scope="col"
+                                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    <i class="fas fa-trash text-red-500"></i> Supprimer
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            <?php if (!empty($listeTraitements)): ?>
+                                                <?php foreach ($listeTraitements as $traitement): ?>
+                                                    <?php
+                                                    // Récupérer les permissions actuelles pour cette fonctionnalité
+                                                    $currentPermission = null;
+                                                    foreach ($attributionsGroupe as $perm) {
+                                                        if ($perm->id_fonctionnalite == $traitement->id_fonctionnalite) {
+                                                            $currentPermission = $perm;
+                                                            break;
+                                                        }
+                                                    }
+                                                    ?>
+                                                    <tr class="hover:bg-gray-50 transition-colors">
+                                                        <!-- Fonctionnalité -->
+                                                        <td class="px-6 py-4 whitespace-nowrap">
+                                                            <div class="flex items-center">
+                                                                <div class="text-sm font-medium text-gray-900">
+                                                                    <?= htmlspecialchars($traitement->lib_fonctionnalite) ?>
+                                                                </div>
+                                                                <?php if (isset($traitement->description)): ?>
+                                                                    <button type="button"
+                                                                        onclick="showTraitementDetails(<?= $traitement->id_fonctionnalite ?>)"
+                                                                        class="ml-2 text-gray-400 hover:text-emerald-600 transition-colors"
+                                                                        title="Plus d'informations">
+                                                                        <i class="fas fa-info-circle"></i>
+                                                                    </button>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        </td>
+
+                                                        <!-- Catégorie -->
+                                                        <td class="px-6 py-4 whitespace-nowrap">
+                                                            <?php if (isset($traitement->lib_categorie)): ?>
+                                                                <span
+                                                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                                    <?= htmlspecialchars($traitement->lib_categorie) ?>
+                                                                </span>
+                                                            <?php endif; ?>
+                                                        </td>
+
+                                                        <!-- Voir -->
+                                                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                                                            <input type="checkbox"
+                                                                name="permissions[<?= $traitement->id_fonctionnalite ?>][voir]"
+                                                                value="1"
+                                                                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                <?= ($currentPermission && $currentPermission->peut_voir) ? 'checked' : '' ?>>
+                                                        </td>
+
+                                                        <!-- Créer -->
+                                                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                                                            <input type="checkbox"
+                                                                name="permissions[<?= $traitement->id_fonctionnalite ?>][creer]"
+                                                                value="1"
+                                                                class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                                                                <?= ($currentPermission && $currentPermission->peut_creer) ? 'checked' : '' ?>>
+                                                        </td>
+
+                                                        <!-- Modifier -->
+                                                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                                                            <input type="checkbox"
+                                                                name="permissions[<?= $traitement->id_fonctionnalite ?>][modifier]"
+                                                                value="1"
+                                                                class="h-4 w-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500"
+                                                                <?= ($currentPermission && $currentPermission->peut_modifier) ? 'checked' : '' ?>>
+                                                        </td>
+
+                                                        <!-- Supprimer -->
+                                                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                                                            <input type="checkbox"
+                                                                name="permissions[<?= $traitement->id_fonctionnalite ?>][supprimer]"
+                                                                value="1"
+                                                                class="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                                                <?= ($currentPermission && $currentPermission->peut_supprimer) ? 'checked' : '' ?>>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
+                                                <tr>
+                                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                                                        Aucune fonctionnalité disponible
+                                                    </td>
+                                                </tr>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
                                 </div>
 
                                 <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
@@ -563,7 +646,7 @@ if ($searchType === 'traitement' && !empty($searchTerm)) {
 
             // Récupérer les attributions pour ce groupe
             const groupeAttributions = existingAttributions[id] || [];
-            const groupeAttributionsNumeric = groupeAttributions.map(attr => Number(attr.id_traitement));
+            const groupeAttributionsNumeric = groupeAttributions.map(attr => Number(attr.id_fonctionnalite));
 
             // Mettre à jour les cases à cocher
             traitementCheckboxes.forEach(checkbox => {
@@ -587,7 +670,7 @@ if ($searchType === 'traitement' && !empty($searchTerm)) {
         function resetForm() {
             if (currentGroupeId) {
                 const groupeAttributions = existingAttributions[currentGroupeId] || [];
-                const groupeAttributionsNumeric = groupeAttributions.map(attr => Number(attr.id_traitement));
+                const groupeAttributionsNumeric = groupeAttributions.map(attr => Number(attr.id_fonctionnalite));
 
                 traitementCheckboxes.forEach(checkbox => {
                     const traitementId = Number(checkbox.value);
@@ -639,7 +722,7 @@ if ($searchType === 'traitement' && !empty($searchTerm)) {
             const currentAttributions = Array.from(document.querySelectorAll('.traitement-checkbox:checked')).map(
                 cb => Number(cb.value));
             const originalAttributions = (existingAttributions[currentGroupeId] || []).map(attr => Number(attr
-                .id_traitement));
+                .id_fonctionnalite));
 
             const noChanges = currentAttributions.length === originalAttributions.length &&
                 currentAttributions.every(attr => originalAttributions.includes(attr)) &&
@@ -658,13 +741,13 @@ if ($searchType === 'traitement' && !empty($searchTerm)) {
 
         // Fonction pour afficher les détails d'un traitement
         function showTraitementDetails(traitementId) {
-            const traitement = <?= json_encode($listeTraitements) ?>.find(t => t.id_traitement === traitementId);
+            const traitement = <?= json_encode($listeTraitements) ?>.find(t => t.id_fonctionnalite === traitementId);
             if (traitement) {
-                document.getElementById('traitementDetailsTitle').textContent = traitement.label_traitement;
+                document.getElementById('traitementDetailsTitle').textContent = traitement.lib_fonctionnalite;
                 document.getElementById('traitementDetailsContent').innerHTML = `
                 <div class="space-y-4">
                     <p><strong>Description:</strong> ${traitement.description || 'Non disponible'}</p>
-                    <p><strong>ID:</strong> ${traitement.id_traitement}</p>
+                    <p><strong>ID:</strong> ${traitement.id_fonctionnalite}</p>
                     ${traitement.permissions ? `<p><strong>Permissions:</strong> ${traitement.permissions}</p>` : ''}
                 </div>
             `;

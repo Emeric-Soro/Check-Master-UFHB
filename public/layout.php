@@ -3,6 +3,8 @@ session_start();
 include '../app/config/database.php';
 include '../app/controllers/AuthController.php';
 include '../app/controllers/MenuController.php';
+include '../app/middlewares/PermissionMiddleware.php';
+include '../app/utils/permissions_helper.php';
 include 'menu.php';
 include __DIR__ . '/../ressources/routes/gestionUtilisateurRoutes.php';
 include __DIR__ . '/../ressources/routes/gestionRhRoutes.php';
@@ -28,36 +30,100 @@ if (!isset($_SESSION['id_utilisateur'])) {
     header('Location: page_connexion.php');
     exit;
 } else {
+    // NOUVEAU : Initialiser le middleware de permissions
+    $permissionMiddleware = new PermissionMiddleware();
+
     $menuController = new MenuController();
-    $traitements = $menuController->genererMenu($_SESSION['id_GU']);
-    $currentMenuSlug = '';
+
+    // NOUVEAU : Menu hiérarchique avec catégories
+    $menuHierarchique = $menuController->genererMenuHierarchique($_SESSION['id_GU']);
+
+    // Déterminer la page actuelle et le label
+    $currentMenuSlug = isset($_GET['page']) ? $_GET['page'] : '';
     $currentPageLabel = '';
-    if (isset($_GET['page'])) {
-        foreach ($traitements as $traitement) {
-            if ($traitement['lib_traitement'] === $_GET['page']) {
-                $currentMenuSlug = $traitement['lib_traitement'];
-                $currentPageLabel = $traitement['label_traitement'];
-                break;
-            }
-        }
-        if (empty($currentMenuSlug)) {
-            $specialPages = ['archive_comptes_rendus', 'redaction_compte_rendu'];
-            if (in_array($_GET['page'], $specialPages)) {
-                $currentMenuSlug = $_GET['page'];
-                $currentPageLabel = ($_GET['page'] === 'archive_comptes_rendus') ? 'Archives des comptes rendus' : 'Rédaction de compte rendu';
-            }
-        }
-    }
-    if (empty($currentMenuSlug) && !empty($traitements)) {
-        $currentMenuSlug = $traitements[0]['lib_traitement'];
-        $currentPageLabel = $traitements[0]['label_traitement'];
-        if (!isset($_GET['page'])) {
-            header('Location: layout.php?page=' . urlencode($currentMenuSlug));
+
+    // Pages qui ne nécessitent PAS de vérification de permissions (pour éviter les boucles)
+    $noCheckPages = ['page_connexion', 'logout', 'reset_password', 'access_denied'];
+
+    // NOUVEAU : Vérification des permissions AVANT de charger la page
+    if (!empty($currentMenuSlug) && !in_array($currentMenuSlug, $noCheckPages)) {
+        // Détecter l'action CRUD automatiquement
+        $requiredAction = $permissionMiddleware->detectAction();
+
+        // Vérifier les permissions (sauf pour l'admin qui a tous les droits)
+        $hasPermission = $permissionMiddleware->checkPageAccess(
+            $currentMenuSlug,
+            $_SESSION['id_GU'],
+            $requiredAction
+        );
+
+        if (!$hasPermission) {
+            // Logger la tentative d'accès non autorisé
+            $permissionMiddleware->logUnauthorizedAccess(
+                $_SESSION['id_utilisateur'],
+                $currentMenuSlug,
+                $requiredAction
+            );
+
+            // Stocker le message d'erreur dans la session
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'accéder à cette page (action: $requiredAction).";
+            $_SESSION['error_type'] = 'permission_denied';
+
+            // Rediriger vers une page d'erreur dédiée sans vérification
+            header('Location: layout.php?page=access_denied');
             exit;
         }
     }
+
+    // Chercher le label dans le menu hiérarchique
+    if (!empty($currentMenuSlug)) {
+        foreach ($menuHierarchique as $item) {
+            foreach ($item['fonctionnalites'] as $fonc) {
+                // Extraire le paramètre page de l'URL
+                $query = parse_url($fonc->url_fonctionnalite, PHP_URL_QUERY);
+                if ($query) {
+                    parse_str($query, $params);
+                    if (isset($params['page']) && $params['page'] === $currentMenuSlug) {
+                        $currentPageLabel = $fonc->label_fonctionnalite;
+                        break 2;
+                    }
+                }
+            }
+        }
+    }
+
+    // Pages spéciales
+    if (empty($currentPageLabel)) {
+        $specialPages = [
+            'archive_comptes_rendus' => 'Archives des comptes rendus',
+            'redaction_compte_rendu' => 'Rédaction de compte rendu'
+        ];
+        if (isset($specialPages[$currentMenuSlug])) {
+            $currentPageLabel = $specialPages[$currentMenuSlug];
+        }
+    }
+
+    // Redirection si pas de page spécifiée
+    if (empty($currentMenuSlug) && !empty($menuHierarchique)) {
+        $firstCategorie = $menuHierarchique[0];
+        if (!empty($firstCategorie['fonctionnalites'])) {
+            $firstFonc = $firstCategorie['fonctionnalites'][0];
+            parse_str(parse_url($firstFonc->url_fonctionnalite, PHP_URL_QUERY), $params);
+            if (isset($params['page'])) {
+                $currentMenuSlug = $params['page'];
+                $currentPageLabel = $firstFonc->label_fonctionnalite;
+                header('Location: layout.php?page=' . urlencode($currentMenuSlug));
+                exit;
+            }
+        }
+    }
+
     $menuView = new MenuView();
-    $menuHTML = $menuView->afficherMenu($traitements, $currentMenuSlug);
+    $menuHTML = $menuView->afficherMenuHierarchique($menuHierarchique, $currentMenuSlug);
+
+    // ANCIEN : Menu plat (commenté pour migration progressive)
+    // $menuHTML = $menuView->afficherMenu($traitements, $currentMenuSlug);
+
     $currentAction = null;
     $contentFile = '';
     $partialsBasePath = '..' . DIRECTORY_SEPARATOR . 'ressources' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR;
@@ -247,6 +313,10 @@ if (!isset($_SESSION['id_utilisateur'])) {
             $contentFile = $partialsBasePath . 'redaction_compte_rendu/archives_compte_rendu_content.php';
             $currentPageLabel = 'Archives des comptes rendus';
             break;
+        case 'access_denied':
+            $contentFile = $partialsBasePath . 'access_denied_content.php';
+            $currentPageLabel = 'Accès refusé';
+            break;
         case 'admin_historique':
             $action = $_GET['action'] ?? 'index';
             $currentPageLabel = 'Historique et Archivage';
@@ -270,12 +340,12 @@ if (!isset($_SESSION['id_utilisateur'])) {
             }
             break;
     }
+
+    // Debug : log de la page demandée
     if (isset($_GET['page'])) {
         error_log('PAGE DEMANDEE : ' . $_GET['page']);
-        foreach ($traitements as $t) {
-            error_log('TRAITEMENT AUTORISE : ' . $t['lib_traitement']);
-        }
     }
+
     $cardPGeneraux = [
         [
             'title' => 'Années Académiques',
@@ -404,6 +474,7 @@ if (!isset($_SESSION['id_utilisateur'])) {
 ?>
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -444,92 +515,133 @@ if (!isset($_SESSION['id_utilisateur'])) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <style>
-        .sidebar-logo { height: 56px; border-radius: 8px; }
-        .topbar { height: 96px; padding: 0 1.5rem; background-color: #ffffff; }
-        .card { background: white; border-radius: 12px; box-shadow: 0 8px 20px rgba(15, 20, 30, 0.06); }
-        </style>
+        .sidebar-logo {
+            height: 56px;
+            border-radius: 8px;
+        }
+
+        .topbar {
+            height: 96px;
+            padding: 0 1.5rem;
+            background-color: #ffffff;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(15, 20, 30, 0.06);
+        }
+    </style>
 </head>
+
 <body class="bg-base-200 font-poppins antialiased">
-<div class="flex h-screen overflow-hidden">
-    <div class="hidden md:flex md:flex-shrink-0">
-        <div class="flex flex-col w-72 bg-primary text-white">
-            <div class="flex items-center justify-center h-24 px-4">
-                <div class="flex flex-col items-center text-center">
-                    <img src="image/logo_cm_sbg.png" alt="Logo CheckMaster" class="sidebar-logo mb-2">
-                    <span class="font-bold text-lg tracking-wide">CHECK MASTER</span>
+    <div class="flex h-screen overflow-hidden">
+        <div class="hidden md:flex md:flex-shrink-0">
+            <div class="flex flex-col w-72 bg-primary text-white">
+                <div class="flex items-center justify-center h-24 px-4">
+                    <div class="flex flex-col items-center text-center">
+                        <img src="image/logo_cm_sbg.png" alt="Logo CheckMaster" class="sidebar-logo mb-2">
+                        <span class="font-bold text-lg tracking-wide">CHECK MASTER</span>
+                    </div>
                 </div>
-            </div>
-            <div class="flex flex-col flex-grow px-4 py-4 overflow-y-auto">
-                <div class="space-y-3 pb-3">
-                    <?php echo $menuHTML; ?>
-                </div>
-                <div class="mt-auto px-4 py-3">
-                    <form action="logout.php" method="POST" id="logoutForm" class="w-full">
-                        <button type="submit" form="logoutForm" class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
-                            <i class="fas fa-sign-out-alt text-white/80"></i>
-                            <span class="text-sm">Déconnexion</span>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="flex flex-col flex-1 overflow-hidden">
-        <div class="flex items-center justify-between topbar bg-base-100 border-b border-base-300">
-            <div class="flex items-center">
-                <button id="mobileMenuButton" class="md:hidden text-primary/70 focus:outline-none mr-4">
-                    <i class="fas fa-bars text-2xl"></i>
-                </button>
-                <div>
-                    <h1 class="text-2xl font-bold text-primary"><?php echo htmlspecialchars($currentPageLabel); ?></h1>
-                </div>
-            </div>
-            <div class="flex items-center space-x-6">
-                <div class="relative">
-                    <i class="fas fa-bell text-primary/70 text-xl"></i>
-                </div>
-                <div class="w-px h-10 bg-base-300"></div>
-                <div class="flex items-center space-x-4">
-                    <div class="text-right">
-                        <span class="text-md font-bold text-primary block">Bienvenue, <?php echo htmlspecialchars($_SESSION['nom_utilisateur']) ?></span>
-                        <span class="text-sm text-primary/60 block"><?php echo htmlspecialchars($_SESSION['lib_GU']) ?></span>
+                <div class="flex flex-col flex-grow px-4 py-4 overflow-y-auto">
+                    <div class="space-y-3 pb-3">
+                        <?php echo $menuHTML; ?>
+                    </div>
+                    <div class="mt-auto px-4 py-3">
+                        <form action="logout.php" method="POST" id="logoutForm" class="w-full">
+                            <button type="submit" form="logoutForm"
+                                class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg transition-colors">
+                                <i class="fas fa-sign-out-alt text-white/80"></i>
+                                <span class="text-sm">Déconnexion</span>
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
-        <main class="flex-1 p-6 overflow-y-auto">
-            <?php
-            if (!empty($contentFile) && file_exists($contentFile)) {
-                include $contentFile;
-            } else {
-                echo "<div class='card p-6'>";
-                echo "<div class='text-danger font-semibold mb-2'>Erreur de chargement</div>";
-                if (empty($contentFile)) {
-                    echo "<div>Aucun fichier de contenu n'a été spécifié pour cette vue.</div>";
-                } else {
-                    echo "<div>Le fichier de contenu pour '" . htmlspecialchars($currentPageLabel) . "' est introuvable.</div>";
+        <div class="flex flex-col flex-1 overflow-hidden">
+            <div class="flex items-center justify-between topbar bg-base-100 border-b border-base-300">
+                <div class="flex items-center">
+                    <button id="mobileMenuButton" class="md:hidden text-primary/70 focus:outline-none mr-4">
+                        <i class="fas fa-bars text-2xl"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-2xl font-bold text-primary"><?php echo htmlspecialchars($currentPageLabel); ?>
+                        </h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="relative">
+                        <i class="fas fa-bell text-primary/70 text-xl"></i>
+                    </div>
+                    <div class="w-px h-10 bg-base-300"></div>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right">
+                            <span class="text-md font-bold text-primary block">Bienvenue,
+                                <?php echo htmlspecialchars($_SESSION['nom_utilisateur']) ?></span>
+                            <span
+                                class="text-sm text-primary/60 block"><?php echo htmlspecialchars($_SESSION['lib_GU']) ?></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <main class="flex-1 p-6 overflow-y-auto">
+                <?php
+                // Afficher les messages d'erreur de permissions (sauf sur la page access_denied)
+                if (isset($_SESSION['error_message']) && isset($_SESSION['error_type']) && $currentMenuSlug !== 'access_denied') {
+                    $errorMessage = $_SESSION['error_message'];
+                    $errorType = $_SESSION['error_type'];
+
+                    // Supprimer les messages de la session après affichage
+                    unset($_SESSION['error_message']);
+                    unset($_SESSION['error_type']);
+
+                    echo '<div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg animate__animated animate__fadeIn">';
+                    echo '  <div class="flex items-start">';
+                    echo '    <div class="flex-shrink-0">';
+                    echo '      <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>';
+                    echo '    </div>';
+                    echo '    <div class="ml-3">';
+                    echo '      <h3 class="text-sm font-medium text-red-800">Accès refusé</h3>';
+                    echo '      <p class="mt-1 text-sm text-red-700">' . htmlspecialchars($errorMessage) . '</p>';
+                    echo '    </div>';
+                    echo '  </div>';
+                    echo '</div>';
                 }
-                echo "</div>";
-            }
-            ?>
-        </main>
+
+                if (!empty($contentFile) && file_exists($contentFile)) {
+                    include $contentFile;
+                } else {
+                    echo "<div class='card p-6'>";
+                    echo "<div class='text-danger font-semibold mb-2'>Erreur de chargement</div>";
+                    if (empty($contentFile)) {
+                        echo "<div>Aucun fichier de contenu n'a été spécifié pour cette vue.</div>";
+                    } else {
+                        echo "<div>Le fichier de contenu pour '" . htmlspecialchars($currentPageLabel) . "' est introuvable.</div>";
+                    }
+                    echo "</div>";
+                }
+                ?>
+            </main>
+        </div>
     </div>
-</div>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const mobileMenuButton = document.getElementById('mobileMenuButton');
-        const sidebar = document.querySelector('.hidden.md\\:flex.md\\:flex-shrink-0');
-        if (mobileMenuButton && sidebar) {
-            mobileMenuButton.addEventListener('click', function() {
-                sidebar.classList.toggle('hidden');
-                sidebar.classList.toggle('absolute');
-                sidebar.classList.toggle('z-20');
-                sidebar.classList.toggle('h-full');
-            });
-        }
-    });
-</script>
-<script src="./js/suivi_reclamation.js"></script>
-<script src="./js/historique_reclamation.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const mobileMenuButton = document.getElementById('mobileMenuButton');
+            const sidebar = document.querySelector('.hidden.md\\:flex.md\\:flex-shrink-0');
+            if (mobileMenuButton && sidebar) {
+                mobileMenuButton.addEventListener('click', function () {
+                    sidebar.classList.toggle('hidden');
+                    sidebar.classList.toggle('absolute');
+                    sidebar.classList.toggle('z-20');
+                    sidebar.classList.toggle('h-full');
+                });
+            }
+        });
+    </script>
+    <script src="./js/suivi_reclamation.js"></script>
+    <script src="./js/historique_reclamation.js"></script>
 </body>
+
 </html>
