@@ -487,10 +487,12 @@ if ($searchType === 'traitement' && !empty($searchTerm)) {
                                         class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all">
                                         <i class="fas fa-undo mr-2"></i>Réinitialiser
                                     </a>
+                                    <?php if (canEdit()): ?>
                                     <button type="submit"
                                         class="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all">
                                         <i class="fas fa-save mr-2"></i>Enregistrer
                                     </button>
+                                    <?php endif; ?>
                                 </div>
                             </form>
                         </div>
