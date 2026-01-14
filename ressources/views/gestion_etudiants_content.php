@@ -2,6 +2,7 @@
 
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <?php if (canCreate()): ?>
         <!-- Carte pour ajouter un étudiant -->
         <a href="?page=gestion_etudiants&action=ajouter_des_etudiants" class="block">
             <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
@@ -47,6 +48,7 @@
                 </div>
             </div>
         </a>
+        <?php endif; ?>
     </div>
 </div>
 

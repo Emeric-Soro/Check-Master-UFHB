@@ -151,6 +151,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div class="flex items-center space-x-3">
+                                            <?php if (canEdit()): ?>
                                             <form method="post"
                                                 action="?page=gestion_reclamations_scolarite&action=changer_statut&id=<?= $rec->id_reclamation ?>"
                                                 class="flex items-center space-x-2">
@@ -171,6 +172,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                                                     <i class="fa fa-check mr-1"></i>Valider
                                                 </button>
                                             </form>
+                                            <?php endif; ?>
                                             <button type="button"
                                                 onclick='showReclamationDetails(<?= json_encode($rec, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
                                                 class="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition duration-200">

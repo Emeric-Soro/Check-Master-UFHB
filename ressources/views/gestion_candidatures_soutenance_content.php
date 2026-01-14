@@ -900,10 +900,12 @@ foreach ($candidatures as $c) {
                                     </span></p>
                             </div>
                             <?php if ($candidature['statut_candidature'] === 'En attente'): ?>
+                                <?php if (canEdit()): ?>
                                 <button class="btn-examine"
                                     onclick="window.location.href='?page=gestion_candidatures_soutenance&examiner=<?php echo $candidature['num_etu']; ?>&etape=1'">
                                     Examiner
                                 </button>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
