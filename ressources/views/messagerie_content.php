@@ -79,10 +79,12 @@
             <!-- Sidebar -->
             <div class="w-64 bg-white border-r border-gray-200 flex flex-col">
                 <!-- Composer Button -->
+                <?php if (canCreate()): ?>
                 <button id="composeBtn"
                     class="mx-4 my-4 bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center transition">
                     <i class="fas fa-plus mr-2"></i> Nouveau message
                 </button>
+                <?php endif; ?>
 
                 <!-- Folders -->
                 <nav class="flex-1 overflow-y-auto">
@@ -257,9 +259,11 @@
                         <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition">
                             <i class="fas fa-share"></i>
                         </button>
+                        <?php if (canDelete()): ?>
                         <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition">
                             <i class="fas fa-trash"></i>
                         </button>
+                        <?php endif; ?>
                         <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition">
                             <i class="fas fa-archive"></i>
                         </button>

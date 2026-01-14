@@ -312,10 +312,12 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                     </div>
                 </div>
                 <div class="flex gap-4 mt-6">
+                    <?php if (canEdit()): ?>
                     <button type="button" id="editBtn"
                         class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Modifier</button>
                     <button type="submit" id="saveBtn"
                         class="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700">Enregistrer</button>
+                    <?php endif; ?>
                 </div>
             </form>
         </div>

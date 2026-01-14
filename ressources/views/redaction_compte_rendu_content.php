@@ -426,6 +426,7 @@ if (!empty($_SESSION['success'])) {
         </div>
     </div>
 
+    <?php if (canCreate()): ?>
     <form id="formCR" method="POST" action="?page=redaction_compte_rendu">
         <input type="hidden" name="num_etu" id="num_etu" value="">
         <input type="hidden" name="nom_CR" id="nom_CR" value="">
@@ -436,6 +437,7 @@ if (!empty($_SESSION['success'])) {
             </button>
         </div>
     </form>
+    <?php endif; ?>
 
     <div id="toastNotif" style="display:none; position:fixed; top:30px; right:30px; z-index:9999; min-width:250px;" class="transition-opacity duration-500">
         <div id="toastContent" class="px-4 py-3 rounded shadow-lg flex items-center">

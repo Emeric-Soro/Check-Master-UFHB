@@ -421,6 +421,7 @@ $membresCommission = $donnees['membres_commission'];
                             <button onclick="viewReport(<?= $rapport['id_rapport'] ?>)" class="btn btn-primary"><i
                                     class="fas fa-file-lines"></i> Consulter</button>
                             <?php if ($rapport['statut_vote']['total_votes'] == 4 && !$rapport['statut_vote']['finalise']): ?>
+                                <?php if (canEdit()): ?>
                                 <form id="form-finaliser-<?= $rapport['id_rapport'] ?>" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="finaliser">
                                     <input type="hidden" name="id_rapport" value="<?= $rapport['id_rapport'] ?>">
@@ -429,6 +430,7 @@ $membresCommission = $donnees['membres_commission'];
                                     <button type="button" class="btn btn-success"
                                         onclick="confirmerFinalisation(<?= $rapport['id_rapport'] ?>)">Finaliser</button>
                                 </form>
+                                <?php endif; ?>
                             <?php elseif ($rapport['statut_vote']['finalise']): ?>
                                 <button class="btn btn-<?= $rapport['statut_vote']['statut'] === 'valide' ? 'success' : 'danger' ?>"
                                     disabled>
