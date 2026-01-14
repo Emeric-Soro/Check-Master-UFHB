@@ -1,3 +1,7 @@
+<?php
+// Include permissions helper
+require_once __DIR__ . '/../../../app/utils/permissions_helper.php';
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -198,19 +202,27 @@
                                             <i class="fas fa-ellipsis-v"></i>
                                         </button>
                                         <div id="dropdown1" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
+                                            <?php if (canEdit()): ?>
                                             <a href="#" onclick="editDraft(1)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                 <i class="fas fa-edit mr-2"></i>Continuer la rédaction
                                             </a>
+                                            <?php endif; ?>
+                                            <?php if (canCreate()): ?>
                                             <a href="#" onclick="duplicateDraft(1)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                 <i class="fas fa-copy mr-2"></i>Dupliquer
                                             </a>
+                                            <?php endif; ?>
+                                            <?php if (canEdit()): ?>
                                             <a href="#" onclick="renameDraft(1)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                 <i class="fas fa-signature mr-2"></i>Renommer
                                             </a>
+                                            <?php endif; ?>
+                                            <?php if (canDelete()): ?>
                                             <hr class="my-1">
                                             <a href="#" onclick="deleteDraft(1)" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">
                                                 <i class="fas fa-trash mr-2"></i>Supprimer
                                             </a>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
@@ -239,9 +251,11 @@
                             </div>
                             
                             <div class="flex items-center justify-between">
+                                <?php if (canEdit()): ?>
                                 <button onclick="editDraft(1)" class="flex items-center px-3 py-2 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700">
                                     <i class="fas fa-edit mr-2"></i>Continuer
                                 </button>
+                                <?php endif; ?>
                                 <button onclick="previewDraft(1)" class="flex items-center px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">
                                     <i class="fas fa-eye mr-2"></i>Aperçu
                                 </button>
@@ -262,19 +276,25 @@
                                             <i class="fas fa-ellipsis-v"></i>
                                         </button>
                                         <div id="dropdown2" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
+                                            <?php if (canEdit()): ?>
                                             <a href="#" onclick="editDraft(2)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                 <i class="fas fa-edit mr-2"></i>Modifier
                                             </a>
                                             <a href="#" onclick="finalizeDraft(2)" class="block px-4 py-2 text-sm text-green-600 hover:bg-green-50">
                                                 <i class="fas fa-check mr-2"></i>Finaliser
                                             </a>
+                                            <?php endif; ?>
+                                            <?php if (canCreate()): ?>
                                             <a href="#" onclick="duplicateDraft(2)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                 <i class="fas fa-copy mr-2"></i>Dupliquer
                                             </a>
+                                            <?php endif; ?>
+                                            <?php if (canDelete()): ?>
                                             <hr class="my-1">
                                             <a href="#" onclick="deleteDraft(2)" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">
                                                 <i class="fas fa-trash mr-2"></i>Supprimer
                                             </a>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
@@ -303,9 +323,11 @@
                             </div>
                             
                             <div class="flex items-center justify-between">
+                                <?php if (canEdit()): ?>
                                 <button onclick="finalizeDraft(2)" class="flex items-center px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700">
                                     <i class="fas fa-check mr-2"></i>Finaliser
                                 </button>
+                                <?php endif; ?>
                                 <button onclick="previewDraft(2)" class="flex items-center px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">
                                     <i class="fas fa-eye mr-2"></i>Aperçu
                                 </button>
@@ -326,19 +348,27 @@
                                             <i class="fas fa-ellipsis-v"></i>
                                         </button>
                                         <div id="dropdown3" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
+                                            <?php if (canEdit()): ?>
                                             <a href="#" onclick="editDraft(3)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                 <i class="fas fa-edit mr-2"></i>Continuer la rédaction
                                             </a>
+                                            <?php endif; ?>
+                                            <?php if (canCreate()): ?>
                                             <a href="#" onclick="duplicateDraft(3)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                 <i class="fas fa-copy mr-2"></i>Dupliquer
                                             </a>
+                                            <?php endif; ?>
+                                            <?php if (canEdit()): ?>
                                             <a href="#" onclick="renameDraft(3)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                 <i class="fas fa-signature mr-2"></i>Renommer
                                             </a>
+                                            <?php endif; ?>
+                                            <?php if (canDelete()): ?>
                                             <hr class="my-1">
                                             <a href="#" onclick="deleteDraft(3)" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">
                                                 <i class="fas fa-trash mr-2"></i>Supprimer
                                             </a>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
@@ -367,9 +397,11 @@
                             </div>
                             
                             <div class="flex items-center justify-between">
+                                <?php if (canEdit()): ?>
                                 <button onclick="editDraft(3)" class="flex items-center px-3 py-2 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700">
                                     <i class="fas fa-edit mr-2"></i>Continuer
                                 </button>
+                                <?php endif; ?>
                                 <button onclick="previewDraft(3)" class="flex items-center px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">
                                     <i class="fas fa-eye mr-2"></i>Aperçu
                                 </button>
@@ -420,6 +452,11 @@
     </div>
 
     <script>
+        // Permission variables from PHP
+        const canEditPermission = <?php echo canEdit() ? 'true' : 'false'; ?>;
+        const canDeletePermission = <?php echo canDelete() ? 'true' : 'false'; ?>;
+        const canCreatePermission = <?php echo canCreate() ? 'true' : 'false'; ?>;
+
         // Variables globales
         let draftsData = [
             {
@@ -631,23 +668,27 @@
                                         <i class="fas fa-ellipsis-v"></i>
                                     </button>
                                     <div id="dropdown${draft.id}" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
+                                        ${canEditPermission ? `
                                         <a href="#" onclick="editDraft(${draft.id})" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                             <i class="fas fa-edit mr-2"></i>Continuer la rédaction
-                                        </a>
-                                        ${draft.status === 'Prêt' ? `
+                                        </a>` : ''}
+                                        ${draft.status === 'Prêt' && canEditPermission ? `
                                         <a href="#" onclick="finalizeDraft(${draft.id})" class="block px-4 py-2 text-sm text-green-600 hover:bg-green-50">
                                             <i class="fas fa-check mr-2"></i>Finaliser
                                         </a>` : ''}
+                                        ${canCreatePermission ? `
                                         <a href="#" onclick="duplicateDraft(${draft.id})" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                             <i class="fas fa-copy mr-2"></i>Dupliquer
-                                        </a>
+                                        </a>` : ''}
+                                        ${canEditPermission ? `
                                         <a href="#" onclick="renameDraft(${draft.id})" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                             <i class="fas fa-signature mr-2"></i>Renommer
-                                        </a>
+                                        </a>` : ''}
+                                        ${canDeletePermission ? `
                                         <hr class="my-1">
                                         <a href="#" onclick="deleteDraft(${draft.id})" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">
                                             <i class="fas fa-trash mr-2"></i>Supprimer
-                                        </a>
+                                        </a>` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -676,13 +717,13 @@
                         </div>
                         
                         <div class="flex items-center justify-between">
-                            ${draft.status === 'Prêt' ? 
+                            ${draft.status === 'Prêt' && canEditPermission ? 
                                 `<button onclick="finalizeDraft(${draft.id})" class="flex items-center px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700">
                                     <i class="fas fa-check mr-2"></i>Finaliser
                                 </button>` :
-                                `<button onclick="editDraft(${draft.id})" class="flex items-center px-3 py-2 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700">
+                                (canEditPermission ? `<button onclick="editDraft(${draft.id})" class="flex items-center px-3 py-2 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700">
                                     <i class="fas fa-edit mr-2"></i>Continuer
-                                </button>`
+                                </button>` : '')
                             }
                             <button onclick="previewDraft(${draft.id})" class="flex items-center px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">
                                 <i class="fas fa-eye mr-2"></i>Aperçu

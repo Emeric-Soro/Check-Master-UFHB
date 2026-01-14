@@ -1,3 +1,7 @@
+<?php
+// Include permissions helper
+require_once __DIR__ . '/../../../app/utils/permissions_helper.php';
+?>
 <!-- Contenu de la page de suivi des réclamations -->
 
 <!-- Messages -->
@@ -149,11 +153,13 @@
             Vous n'avez pas encore soumis de réclamation.
             <?php endif; ?>
         </p>
+        <?php if (canCreate()): ?>
         <a href="?page=gestion_reclamations&action=soumettre_reclamation"
             class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
             <i class="fas fa-plus mr-2"></i>
             Créer une réclamation
         </a>
+        <?php endif; ?>
     </div>
     <?php else: ?>
     <div class="overflow-x-auto">

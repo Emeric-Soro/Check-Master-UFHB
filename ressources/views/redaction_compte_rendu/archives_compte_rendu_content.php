@@ -1,3 +1,7 @@
+<?php
+// Include permissions helper
+require_once __DIR__ . '/../../../app/utils/permissions_helper.php';
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
