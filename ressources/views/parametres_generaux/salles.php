@@ -261,17 +261,21 @@ try {
                                 class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                                 <i class="fas fa-times mr-2"></i>Annuler
                             </button>
+                            <?php if (canEdit()): ?>
                             <button type="submit" name="btn_modifier_salle"
                                 class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                                 <i class="fas fa-save mr-2"></i>Modifier
                             </button>
+                            <?php endif; ?>
 
                         <?php else: ?>
                             <div></div>
+                            <?php if (canCreate()): ?>
                             <button type="submit" name="btn_add_salle"
                                 class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                                 <i class="fas fa-plus mr-2"></i>Ajouter une salle
                             </button>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 </form>
@@ -304,10 +308,12 @@ try {
 
                     <!-- Boutons d'action -->
                     <div class="flex gap-3">
+                        <?php if (canDelete()): ?>
                         <button type="button" id="deleteSelectedBtn" disabled
                             class="btn-hover px-4 py-2 btn-gradient-danger text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
                             <i class="fas fa-trash-alt mr-2"></i>Supprimer
                         </button>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -330,10 +336,12 @@ try {
                                         class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         <i class="fas fa-building mr-1"></i>Nom de la salle
                                     </th>
+                                    <?php if (canEdit() || canDelete()): ?>
                                     <th
                                         class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         <i class="fas fa-cog mr-1"></i>Action
                                     </th>
+                                    <?php endif; ?>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -351,17 +359,21 @@ try {
                                             <td class="px-3 py-4 text-sm text-gray-900 font-medium text-center">
                                                 <?= htmlspecialchars($salle->lib_salle) ?>
                                             </td>
+                                            <?php if (canEdit() || canDelete()): ?>
                                             <td class="px-3 py-4 text-sm text-center">
+                                                <?php if (canEdit()): ?>
                                                 <a href="?page=parametres_generaux&action=salles&id_salle=<?= $salle->id_salle ?>"
                                                     class="text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-200">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
+                                                <?php endif; ?>
                                             </td>
+                                            <?php endif; ?>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="4" class="px-3 py-4 text-sm text-gray-500 text-center">
+                                        <td colspan="<?= (canEdit() || canDelete()) ? 4 : 3 ?>" class="px-3 py-4 text-sm text-gray-500 text-center">
                                             <i class="fas fa-info-circle mr-2"></i>Aucune salle enregistrée.
                                         </td>
                                     </tr>

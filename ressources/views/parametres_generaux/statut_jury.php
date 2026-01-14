@@ -232,19 +232,23 @@ $listeStatuts = array_slice($listeStatuts, $offset, $limit);
                                 class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-red-500 hover:bg-red-600 focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transform transition-all duration-300 hover:scale-105">
                                 <i class="fas fa-times mr-2"></i>Annuler
                             </button>
+                            <?php if (canEdit()): ?>
                             <button type="button" name="btn_modifier_statut_jury" id="btnModifier"
                                 class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform transition-all duration-300 hover:scale-105">
                                 <i class="fas fa-save mr-2"></i>Modifier
                                 <input type="hidden" name="btn_modifier_statut_jury" id="btn_modifier_statut_hidden"
                                     value="0">
                             </button>
+                            <?php endif; ?>
 
                         <?php else: ?>
                             <div></div>
+                            <?php if (canCreate()): ?>
                             <button type="submit" name="btn_add_statut_jury"
                                 class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transform transition-all duration-300 hover:scale-105">
                                 <i class="fas fa-plus mr-2"></i>Ajouter
                             </button>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 </form>
@@ -287,10 +291,12 @@ $listeStatuts = array_slice($listeStatuts, $offset, $limit);
                                 class="btn-hover px-4 py-2 btn-gradient-secondary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                                 <i class="fas fa-print mr-2"></i>Imprimer
                             </button>
+                            <?php if (canDelete()): ?>
                             <button type="button" id="deleteSelectedBtn" disabled
                                 class="btn-hover px-4 py-2 btn-gradient-danger text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <i class="fas fa-trash-alt mr-2"></i>Supprimer
                             </button>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <form method="POST" action="?page=parametres_generaux&action=statut_jury" id="formListeStatutJury">
@@ -311,10 +317,12 @@ $listeStatuts = array_slice($listeStatuts, $offset, $limit);
                                             class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             <i class="fas fa-gavel mr-1"></i>Statut
                                         </th>
+                                        <?php if (canEdit() || canDelete()): ?>
                                         <th scope="col"
                                             class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             <i class="fas fa-cog mr-1"></i>Actions
                                         </th>
+                                        <?php endif; ?>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200" id="statutJuryTableBody">
@@ -332,17 +340,21 @@ $listeStatuts = array_slice($listeStatuts, $offset, $limit);
                                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
                                                     <?= htmlspecialchars($statut->lib_jury) ?>
                                                 </td>
+                                                <?php if (canEdit() || canDelete()): ?>
                                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-left">
+                                                    <?php if (canEdit()): ?>
                                                     <a href="?page=parametres_generaux&action=statut_jury&id_statut_jury=<?= $statut->id_jury ?>"
                                                         class="text-orange-500 hover:text-orange-600 transition-colors">
                                                         <i class="fas fa-pen"></i>
                                                     </a>
+                                                    <?php endif; ?>
                                                 </td>
+                                                <?php endif; ?>
                                             </tr>
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="4" class="px-4 py-8 text-center text-sm text-gray-500">
+                                            <td colspan="<?= (canEdit() || canDelete()) ? 4 : 3 ?>" class="px-4 py-8 text-center text-sm text-gray-500">
                                                 <i class="fas fa-info-circle mr-2"></i>Aucun statut de jury enregistré.
                                             </td>
                                         </tr>
