@@ -367,7 +367,9 @@ if ($typeAffichage === 'enseignant') {
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Niveau</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Téléphone</th>
+                            <?php if (canView() || canEdit() || canDelete()): ?>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Actions</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -402,6 +404,7 @@ if ($typeAffichage === 'enseignant') {
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                         <?= isset($etudiant->tel_etu) ? htmlspecialchars($etudiant->tel_etu) : 'N/A' ?>
                                     </td>
+                                    <?php if (canView() || canEdit() || canDelete()): ?>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
                                         <div class="flex items-center justify-center gap-2">
                                             <a href="?page=details_etudiant&id=<?= htmlspecialchars($etudiant->num_etu ?? '') ?>" 
@@ -410,19 +413,24 @@ if ($typeAffichage === 'enseignant') {
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <?php if ($typeAffichage === 'administrateur'): ?>
+                                                <?php if (canEdit()): ?>
                                                 <a href="?page=modifier_etudiant&id=<?= htmlspecialchars($etudiant->num_etu ?? '') ?>" 
                                                     class="inline-flex items-center px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600 transition"
                                                     title="Modifier">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
+                                                <?php endif; ?>
+                                                <?php if (canDelete()): ?>
                                                 <button onclick="confirmerSuppression(<?= htmlspecialchars($etudiant->num_etu ?? '0') ?>, '<?= htmlspecialchars(addslashes($etudiant->nom_etu . ' ' . $etudiant->prenom_etu)) ?>')" 
                                                     class="inline-flex items-center px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded hover:bg-red-600 transition"
                                                     title="Supprimer">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         </div>
                                     </td>
+                                    <?php endif; ?>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>

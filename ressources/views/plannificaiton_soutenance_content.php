@@ -161,12 +161,14 @@ $planifications = $controller->getPlanificationsForView();
         </div>
 
         <!-- Boutons d'action -->
+        <?php if (canCreate() || canEdit()): ?>
         <div class="absolute -bottom-4 right-4 flex space-x-3" id="buttonContainer">
             <button type="submit" id="submitBtn"
                 class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-colors duration-200">
                 <i class="fas fa-calendar-plus mr-2"></i>Planifier
             </button>
         </div>
+        <?php endif; ?>
     </form>
 </div>
 
@@ -195,8 +197,10 @@ $planifications = $controller->getPlanificationsForView();
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut
                     </th>
+                    <?php if (canEdit() || canDelete()): ?>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions
                     </th>
+                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -249,13 +253,17 @@ $planifications = $controller->getPlanificationsForView();
                                     Planifiée
                                 </span>
                             </td>
+                            <?php if (canEdit() || canDelete()): ?>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <div class="flex justify-center space-x-2">
+                                    <?php if (canEdit()): ?>
                                     <button onclick="editPlanification(<?= $planification['id_programmation'] ?>)"
                                         class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-medium py-1 px-3 rounded transition-colors duration-200">
                                         Modifier
                                     </button>
+                                    <?php endif; ?>
 
+                                    <?php if (canDelete()): ?>
                                     <form method="POST" style="display: inline;"
                                         onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette planification ?');">
                                         <input type="hidden" name="action" value="supprimer">
@@ -266,8 +274,10 @@ $planifications = $controller->getPlanificationsForView();
                                             Supprimer
                                         </button>
                                     </form>
+                                    <?php endif; ?>
                                 </div>
                             </td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>

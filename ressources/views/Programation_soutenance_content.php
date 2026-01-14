@@ -136,12 +136,14 @@ $attributions = $controller->getAttributionsForView();
     </div>
 
     <!-- Bouton Enregistrer -->
+    <?php if (canCreate() || canEdit()): ?>
     <div class="absolute -bottom-4 right-4">
         <button onclick="addRow()"
             class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
             Enregistrer
         </button>
     </div>
+    <?php endif; ?>
 </div>
 
 <!-- Section tableau des soutenances -->
@@ -168,8 +170,10 @@ $attributions = $controller->getAttributionsForView();
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Maître de
                         Stage</th>
+                    <?php if (canEdit() || canDelete()): ?>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions
                     </th>
+                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
@@ -218,18 +222,24 @@ $attributions = $controller->getAttributionsForView();
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 <?= htmlspecialchars($attribution['maitre_stage_nom'] ?? '-') ?>
                             </td>
+                            <?php if (canEdit() || canDelete()): ?>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <div class="flex justify-center space-x-2">
+                                    <?php if (canEdit()): ?>
                                     <button onclick="editAttribution(<?= $attribution['id_attribution'] ?>)"
                                         class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-1 px-3 rounded transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                                         Modifier
                                     </button>
+                                    <?php endif; ?>
+                                    <?php if (canDelete()): ?>
                                     <button onclick="deleteAttribution(<?= $attribution['id_attribution'] ?>)"
                                         class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium py-1 px-3 rounded transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                                         Supprimer
                                     </button>
+                                    <?php endif; ?>
                                 </div>
                             </td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>

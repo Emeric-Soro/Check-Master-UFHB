@@ -513,6 +513,7 @@ function traduireStatut($statut)
             id="confirmModalContent">
             <h3 id="confirmModalTitle" class="text-xl font-bold mb-4 text-center text-gray-800"></h3>
 
+            <?php if (canEdit()): ?>
             <!-- Formulaire PHP pour valider -->
             <form id="validerForm" method="POST" action="?page=verification_candidatures_soutenance"
                 style="display: none;">
@@ -560,6 +561,12 @@ function traduireStatut($statut)
                     </button>
                 </div>
             </form>
+            <?php else: ?>
+            <div class="text-center text-gray-500 py-4">
+                <i class="fas fa-lock text-2xl mb-2"></i>
+                <p>Vous n'avez pas les permissions nécessaires pour effectuer cette action.</p>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 

@@ -154,7 +154,7 @@ $stats = [
                         </div>
 
                         <!-- Formulaire de décision pour la commission -->
-                        <?php if (($detail['rapport']['etape_validation'] ?? '') === 'approuve_communication'): ?>
+                        <?php if (($detail['rapport']['etape_validation'] ?? '') === 'approuve_communication' && canEdit()): ?>
                             <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4">
                                     <i class="fas fa-gavel text-yellow-600 mr-2"></i>
@@ -468,15 +468,19 @@ $stats = [
 
                                     <div class="flex space-x-2">
                                         <?php if ($dossier['etape_validation'] === 'approuve_communication'): ?>
+                                            <?php if (canEdit()): ?>
                                             <a href="?page=evaluations_dossiers_soutenance&detail=<?= $dossier['id_rapport'] ?>"
                                                 class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors text-center">
                                                 <i class="fas fa-eye mr-1"></i> Évaluer
                                             </a>
+                                            <?php endif; ?>
                                         <?php elseif ($dossier['etape_validation'] === 'valide'): ?>
+                                            <?php if (canEdit()): ?>
                                             <button
                                                 class="flex-1 bg-white border border-yellow-600 hover:bg-yellow-50 text-yellow-600 py-2 px-3 rounded-md text-sm font-medium transition-colors">
                                                 <i class="fas fa-edit mr-1"></i> Modifier
                                             </button>
+                                            <?php endif; ?>
                                         <?php elseif ($dossier['etape_validation'] === 'desapprouve_commission'): ?>
                                             <button
                                                 class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors">
