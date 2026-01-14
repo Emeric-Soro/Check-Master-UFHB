@@ -1,31 +1,41 @@
 <?php
 
+namespace App\Models;
+
+use PDO;
+use Psr\Log\LoggerInterface;
+use Exception;
+
 class Utilisateur
 {
+    private $pdo;
+    private $logger;
 
-    private $db;
-
-    public function __construct($db)
+    public function __construct(PDO $pdo, LoggerInterface $logger)
     {
-        $this->db = $db;
+        $this->pdo = $pdo;
+        $this->logger = $logger;
     }
 
     public function verifierConnexion($login, $password)
     {
+        try {
+            $query = "SELECT id_utilisateur,id_GU,nom_utilisateur,statut_utilisateur,login_utilisateur,mdp_utilisateur FROM utilisateur WHERE login_utilisateur = :login";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':login', $login);
+            $stmt->execute();
 
-        $query = "SELECT id_utilisateur,id_GU,nom_utilisateur,statut_utilisateur,login_utilisateur,mdp_utilisateur FROM utilisateur WHERE login_utilisateur = :login";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':login', $login);
-        $stmt->execute();
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($user && password_verify($password, $user['mdp_utilisateur']) && $user['statut_utilisateur'] == 'Actif') {
+                return $user;
+            }
 
-        if ($user && password_verify($password, $user['mdp_utilisateur']) && $user['statut_utilisateur'] == 'Actif') {
-            // Vérification du mot de passe
-            return $user;
+            return false;
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la vérification de la connexion : " . $e->getMessage());
+            return false;
         }
-
-        return false;
     }
 
     /**
@@ -35,20 +45,25 @@ class Utilisateur
      */
     public function getLibelleGroupeUtilisateur($idUtilisateur)
     {
-        $query = "SELECT g.lib_GU 
-              FROM utilisateur u
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              WHERE u.id_utilisateur = :id";
+        try {
+            $query = "SELECT g.lib_GU 
+                  FROM utilisateur u
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  WHERE u.id_utilisateur = :id";
 
-        $stmt = $this->db->prepare($query);
-        $stmt->bindValue(':id', $idUtilisateur, PDO::PARAM_INT);
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindValue(':id', $idUtilisateur, PDO::PARAM_INT);
 
-        if ($stmt->execute()) {
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result['lib_GU'] ?? 'Aucun groupe'; // Valeur par défaut
+            if ($stmt->execute()) {
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                return $result['lib_GU'] ?? 'Aucun groupe';
+            }
+
+            return null;
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération du libellé du groupe utilisateur : " . $e->getMessage());
+            return null;
         }
-
-        return null;
     }
 
 
@@ -59,16 +74,21 @@ class Utilisateur
      */
     public function getLibelleTypeUtilisateur($idUtilisateur)
     {
-        $query = "SELECT t.lib_type_utilisateur 
-              FROM utilisateur u
-              JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              WHERE u.id_utilisateur = :id";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':id', $idUtilisateur);
-        $stmt->execute();
+        try {
+            $query = "SELECT t.lib_type_utilisateur 
+                  FROM utilisateur u
+                  JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  WHERE u.id_utilisateur = :id";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':id', $idUtilisateur);
+            $stmt->execute();
 
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result ? $result['lib_type_utilisateur'] : null;
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ? $result['lib_type_utilisateur'] : null;
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération du libellé du type utilisateur : " . $e->getMessage());
+            return null;
+        }
     }
 
 
@@ -80,16 +100,21 @@ class Utilisateur
      */
     public function getLibelleNivAcces($idUtilisateur)
     {
-        $query = "SELECT n.lib_niveau_acces_donnees
-              FROM utilisateur u
-              JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-              WHERE u.id_utilisateur = :id";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':id', $idUtilisateur);
-        $stmt->execute();
+        try {
+            $query = "SELECT n.lib_niveau_acces_donnees
+                  FROM utilisateur u
+                  JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE u.id_utilisateur = :id";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':id', $idUtilisateur);
+            $stmt->execute();
 
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result ? $result['lib_niveau_acces_donnees'] : null;
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ? $result['lib_niveau_acces_donnees'] : null;
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération du libellé du niveau d'accès : " . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -99,93 +124,122 @@ class Utilisateur
      */
     public function getAllUserLabels($idUtilisateur)
     {
-        $query = "SELECT 
-                g.lib_groupe,
-                f.lib_fonction,
-                t.lib_type_utilisateur,
-                n.lib_niveau_acces_donnees
-              FROM utilisateur u
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              LEFT JOIN fonction f ON u.id_fonction = f.id_fonction
-              LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niv_acces_donnees
-              WHERE u.id_utilisateur = :id";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':id', $idUtilisateur);
-        $stmt->execute();
+        try {
+            $query = "SELECT 
+                    g.lib_groupe,
+                    f.lib_fonction,
+                    t.lib_type_utilisateur,
+                    n.lib_niveau_acces_donnees
+                  FROM utilisateur u
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  LEFT JOIN fonction f ON u.id_fonction = f.id_fonction
+                  LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE u.id_utilisateur = :id";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':id', $idUtilisateur);
+            $stmt->execute();
 
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération de tous les libellés utilisateur : " . $e->getMessage());
+            return [];
+        }
     }
 
     public function getAllUtilisateurs()
     {
-        $sql = "SELECT u.*, tu.lib_type_utilisateur as role_utilisateur, 
-                       gu.lib_GU, nad.lib_niveau_acces_donnees as niveau_acces
-                FROM utilisateur u
-                LEFT JOIN type_utilisateur tu ON u.id_type_utilisateur = tu.id_type_utilisateur
-                LEFT JOIN groupe_utilisateur gu ON u.id_GU = gu.id_GU
-                LEFT JOIN niveau_acces_donnees nad ON u.id_niv_acces_donnee = nad.id_niveau_acces_donnees
-                ORDER BY u.nom_utilisateur";
+        try {
+            $sql = "SELECT u.*, tu.lib_type_utilisateur as role_utilisateur, 
+                           gu.lib_GU, nad.lib_niveau_acces_donnees as niveau_acces
+                    FROM utilisateur u
+                    LEFT JOIN type_utilisateur tu ON u.id_type_utilisateur = tu.id_type_utilisateur
+                    LEFT JOIN groupe_utilisateur gu ON u.id_GU = gu.id_GU
+                    LEFT JOIN niveau_acces_donnees nad ON u.id_niv_acces_donnee = nad.id_niveau_acces_donnees
+                    ORDER BY u.nom_utilisateur";
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération de tous les utilisateurs : " . $e->getMessage());
+            return [];
+        }
     }
 
     public function getUtilisateurById($id)
     {
-        $sql = "SELECT u.*, nad.id_niveau_acces_donnees as id_niv_acces_donnee 
-                FROM utilisateur u
-                LEFT JOIN niveau_acces_donnees nad ON u.id_niv_acces_donnee = nad.id_niveau_acces_donnees
-                WHERE u.id_utilisateur = :id";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindParam(':id', $id);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_OBJ);
+        try {
+            $sql = "SELECT u.*, nad.id_niveau_acces_donnees as id_niv_acces_donnee 
+                    FROM utilisateur u
+                    LEFT JOIN niveau_acces_donnees nad ON u.id_niv_acces_donnee = nad.id_niveau_acces_donnees
+                    WHERE u.id_utilisateur = :id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération de l'utilisateur par ID : " . $e->getMessage());
+            return null;
+        }
     }
 
     public function getUtilisateurByLogin($login)
     {
-        $query = "SELECT u.*, t.lib_type_utilisateur, g.lib_GU, n.lib_niveau_acces_donnees
-                 FROM utilisateur u 
-                 JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-                 JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-                 JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-                 WHERE u.login_utilisateur = :login";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':login', $login);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT u.*, t.lib_type_utilisateur, g.lib_GU, n.lib_niveau_acces_donnees
+                     FROM utilisateur u 
+                     JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                     JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                     JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                     WHERE u.login_utilisateur = :login";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':login', $login);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération de l'utilisateur par login : " . $e->getMessage());
+            return null;
+        }
     }
 
     public function ajouterUtilisateur($nom, $id_type_utilisateur, $id_GU, $id_niv_acces_donnees, $statut_utilisateur, $login, $mdp)
     {
-
-        $query = "INSERT INTO utilisateur (nom_utilisateur,id_type_utilisateur,id_GU,id_niv_acces_donnee,statut_utilisateur, login_utilisateur, mdp_utilisateur ) 
-                  VALUES (:nom,:id_type_utilisateur ,:id_GU,:id_niv_acces_donnees, :statut_utilisateur,:login, :mdp )";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':nom', $nom);
-        $stmt->bindParam(':id_type_utilisateur', $id_type_utilisateur);
-        $stmt->bindParam(':id_GU', $id_GU);
-        $stmt->bindParam(':id_niv_acces_donnees', $id_niv_acces_donnees);
-        $stmt->bindParam(':statut_utilisateur', $statut_utilisateur);
-        $stmt->bindParam(':login', $login);
-        $stmt->bindParam(':mdp', $mdp);
-        return $stmt->execute();
+        try {
+            $query = "INSERT INTO utilisateur (nom_utilisateur,id_type_utilisateur,id_GU,id_niv_acces_donnee,statut_utilisateur, login_utilisateur, mdp_utilisateur ) 
+                      VALUES (:nom,:id_type_utilisateur ,:id_GU,:id_niv_acces_donnees, :statut_utilisateur,:login, :mdp )";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':nom', $nom);
+            $stmt->bindParam(':id_type_utilisateur', $id_type_utilisateur);
+            $stmt->bindParam(':id_GU', $id_GU);
+            $stmt->bindParam(':id_niv_acces_donnees', $id_niv_acces_donnees);
+            $stmt->bindParam(':statut_utilisateur', $statut_utilisateur);
+            $stmt->bindParam(':login', $login);
+            $stmt->bindParam(':mdp', $mdp);
+            return $stmt->execute();
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de l'ajout de l'utilisateur : " . $e->getMessage());
+            return false;
+        }
     }
 
     public function updateUtilisateur($nom, $id_type_utilisateur, $id_GU, $id_niv_acces_donnees, $statut_utilisateur, $login, $id)
     {
-        $query = "UPDATE utilisateur SET nom_utilisateur = :nom, login_utilisateur = :login, id_GU = :id_GU, id_type_utilisateur = :id_type_utilisateur, id_niv_acces_donnee = :id_niv_acces_donnees,statut_utilisateur = :statut  WHERE id_utilisateur = :id";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':nom', $nom);
-        $stmt->bindParam(':login', $login);
-        $stmt->bindParam(':id_GU', $id_GU);
-        $stmt->bindParam(':statut', $statut_utilisateur);
-        $stmt->bindParam(':id_type_utilisateur', $id_type_utilisateur);
-        $stmt->bindParam(':id_niv_acces_donnees', $id_niv_acces_donnees);
-        $stmt->bindParam(':id', $id);
-        return $stmt->execute();
+        try {
+            $query = "UPDATE utilisateur SET nom_utilisateur = :nom, login_utilisateur = :login, id_GU = :id_GU, id_type_utilisateur = :id_type_utilisateur, id_niv_acces_donnee = :id_niv_acces_donnees,statut_utilisateur = :statut  WHERE id_utilisateur = :id";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':nom', $nom);
+            $stmt->bindParam(':login', $login);
+            $stmt->bindParam(':id_GU', $id_GU);
+            $stmt->bindParam(':statut', $statut_utilisateur);
+            $stmt->bindParam(':id_type_utilisateur', $id_type_utilisateur);
+            $stmt->bindParam(':id_niv_acces_donnees', $id_niv_acces_donnees);
+            $stmt->bindParam(':id', $id);
+            return $stmt->execute();
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la mise à jour de l'utilisateur : " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -196,10 +250,15 @@ class Utilisateur
      */
     public function desactiverUtilisateur($id)
     {
-        $sql = "UPDATE utilisateur SET statut_utilisateur = 'Inactif' WHERE id_utilisateur = :id";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindParam(':id', $id);
-        return $stmt->execute();
+        try {
+            $sql = "UPDATE utilisateur SET statut_utilisateur = 'Inactif' WHERE id_utilisateur = :id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindParam(':id', $id);
+            return $stmt->execute();
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la désactivation de l'utilisateur : " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -210,288 +269,378 @@ class Utilisateur
      */
     public function reactiverUtilisateur($id)
     {
-        $sql = "UPDATE utilisateur SET statut_utilisateur = 'Actif' WHERE id_utilisateur = :id";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindParam(':id', $id);
-        return $stmt->execute();
+        try {
+            $sql = "UPDATE utilisateur SET statut_utilisateur = 'Actif' WHERE id_utilisateur = :id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindParam(':id', $id);
+            return $stmt->execute();
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la réactivation de l'utilisateur : " . $e->getMessage());
+            return false;
+        }
     }
 
     public function updatePassword($id, $newPassword)
     {
-        $query = "UPDATE utilisateur SET mdp_utilisateur = :mdp WHERE id_utilisateur = :id";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':mdp', $newPassword);
-        $stmt->bindParam(':id', $id);
-        return $stmt->execute();
+        try {
+            $query = "UPDATE utilisateur SET mdp_utilisateur = :mdp WHERE id_utilisateur = :id";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':mdp', $newPassword);
+            $stmt->bindParam(':id', $id);
+            return $stmt->execute();
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la mise à jour du mot de passe : " . $e->getMessage());
+            return false;
+        }
     }
 
     public function getAllUtilisateursActifs()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
-                    u.statut_utilisateur,
-                    t.lib_type_utilisateur as role_utilisateur,
-                    g.lib_GU as gu,
-                    n.lib_niveau_acces_donnees as niveau_acces
-              FROM utilisateur u
-              LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-              WHERE u.statut_utilisateur = 'Actif'
-              ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+                        u.statut_utilisateur,
+                        t.lib_type_utilisateur as role_utilisateur,
+                        g.lib_GU as gu,
+                        n.lib_niveau_acces_donnees as niveau_acces
+                  FROM utilisateur u
+                  LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE u.statut_utilisateur = 'Actif'
+                  ORDER BY u.nom_utilisateur";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des utilisateurs actifs : " . $e->getMessage());
+            return [];
+        }
     }
     public function getAllUtilisateursInactifs()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
-                    u.statut_utilisateur,
-                    t.lib_type_utilisateur as role_utilisateur,
-                    g.lib_GU as gu,
-                    n.lib_niveau_acces_donnees as niveau_acces
-              FROM utilisateur u
-              LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-              WHERE u.statut_utilisateur = 'Inactif'
-              ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+                        u.statut_utilisateur,
+                        t.lib_type_utilisateur as role_utilisateur,
+                        g.lib_GU as gu,
+                        n.lib_niveau_acces_donnees as niveau_acces
+                  FROM utilisateur u
+                  LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE u.statut_utilisateur = 'Inactif'
+                  ORDER BY u.nom_utilisateur";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des utilisateurs inactifs : " . $e->getMessage());
+            return [];
+        }
     }
     public function getAllUtilisateursByType($type)
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
-                    u.statut_utilisateur,
-                    t.lib_type_utilisateur as role_utilisateur,
-                    g.lib_GU as gu,
-                    n.lib_niveau_acces_donnees as niveau_acces
-              FROM utilisateur u
-              LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-              WHERE t.lib_type_utilisateur = :type
-              ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':type', $type);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+                        u.statut_utilisateur,
+                        t.lib_type_utilisateur as role_utilisateur,
+                        g.lib_GU as gu,
+                        n.lib_niveau_acces_donnees as niveau_acces
+                  FROM utilisateur u
+                  LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE t.lib_type_utilisateur = :type
+                  ORDER BY u.nom_utilisateur";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':type', $type);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des utilisateurs par type : " . $e->getMessage());
+            return [];
+        }
     }
 
     public function getAllUtilisateursByGroupe($groupe)
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
-                    u.statut_utilisateur,
-                    t.lib_type_utilisateur as role_utilisateur,
-                    g.lib_GU as gu,
-                    n.lib_niveau_acces_donnees as niveau_acces
-              FROM utilisateur u
-              LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-              WHERE g.lib_GU = :groupe
-              ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':groupe', $groupe);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+                        u.statut_utilisateur,
+                        t.lib_type_utilisateur as role_utilisateur,
+                        g.lib_GU as gu,
+                        n.lib_niveau_acces_donnees as niveau_acces
+                  FROM utilisateur u
+                  LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE g.lib_GU = :groupe
+                  ORDER BY u.nom_utilisateur";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':groupe', $groupe);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des utilisateurs par groupe : " . $e->getMessage());
+            return [];
+        }
     }
 
     public function getEnseignantActif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
-                    u.statut_utilisateur,
-                    t.lib_type_utilisateur as role_utilisateur,
-                    g.lib_GU as gu,
-                    n.lib_niveau_acces_donnees as niveau_acces
-              FROM utilisateur u
-              LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-              WHERE (t.lib_type_utilisateur = 'Enseignant Simple' OR t.lib_type_utilisateur='Enseignant Administratif' ) AND u.statut_utilisateur = 'Actif'
-              ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+                        u.statut_utilisateur,
+                        t.lib_type_utilisateur as role_utilisateur,
+                        g.lib_GU as gu,
+                        n.lib_niveau_acces_donnees as niveau_acces
+                  FROM utilisateur u
+                  LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE (t.lib_type_utilisateur = 'Enseignant Simple' OR t.lib_type_utilisateur='Enseignant Administratif' ) AND u.statut_utilisateur = 'Actif'
+                  ORDER BY u.nom_utilisateur";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des enseignants actifs : " . $e->getMessage());
+            return [];
+        }
     }
 
     public function getEnseignantInactif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
-                    u.statut_utilisateur,
-                    t.lib_type_utilisateur as role_utilisateur,
-                    g.lib_GU as gu,
-                    n.lib_niveau_acces_donnees as niveau_acces
-              FROM utilisateur u
-              LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-              WHERE (t.lib_type_utilisateur = 'Enseignant Simple' OR t.lib_type_utilisateur='Enseignant Administratif' ) AND u.statut_utilisateur = 'Inactif'
-              ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+                        u.statut_utilisateur,
+                        t.lib_type_utilisateur as role_utilisateur,
+                        g.lib_GU as gu,
+                        n.lib_niveau_acces_donnees as niveau_acces
+                  FROM utilisateur u
+                  LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE (t.lib_type_utilisateur = 'Enseignant Simple' OR t.lib_type_utilisateur='Enseignant Administratif' ) AND u.statut_utilisateur = 'Inactif'
+                  ORDER BY u.nom_utilisateur";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des enseignants inactifs : " . $e->getMessage());
+            return [];
+        }
     }
     public function getEtudiantActif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
-                    u.statut_utilisateur,
-                    t.lib_type_utilisateur as role_utilisateur,
-                    g.lib_GU as gu,
-                    n.lib_niveau_acces_donnees as niveau_acces
-              FROM utilisateur u
-              LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-              WHERE t.lib_type_utilisateur = 'Etudiant' AND u.statut_utilisateur = 'Actif'
-              ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+                        u.statut_utilisateur,
+                        t.lib_type_utilisateur as role_utilisateur,
+                        g.lib_GU as gu,
+                        n.lib_niveau_acces_donnees as niveau_acces
+                  FROM utilisateur u
+                  LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE t.lib_type_utilisateur = 'Etudiant' AND u.statut_utilisateur = 'Actif'
+                  ORDER BY u.nom_utilisateur";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des étudiants actifs : " . $e->getMessage());
+            return [];
+        }
     }
 
     public function getEtudiantInactif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
-                    u.statut_utilisateur,
-                    t.lib_type_utilisateur as role_utilisateur,
-                    g.lib_GU as gu,
-                    n.lib_niveau_acces_donnees as niveau_acces
-              FROM utilisateur u
-              LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-              WHERE t.lib_type_utilisateur = 'Etudiant' AND u.statut_utilisateur = 'Inactif'
-              ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+                        u.statut_utilisateur,
+                        t.lib_type_utilisateur as role_utilisateur,
+                        g.lib_GU as gu,
+                        n.lib_niveau_acces_donnees as niveau_acces
+                  FROM utilisateur u
+                  LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE t.lib_type_utilisateur = 'Etudiant' AND u.statut_utilisateur = 'Inactif'
+                  ORDER BY u.nom_utilisateur";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des étudiants inactifs : " . $e->getMessage());
+            return [];
+        }
     }
     public function getPersAdminActif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
-                    u.statut_utilisateur,
-                    t.lib_type_utilisateur as role_utilisateur,
-                    g.lib_GU as gu,
-                    n.lib_niveau_acces_donnees as niveau_acces
-              FROM utilisateur u
-              LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-              WHERE t.lib_type_utilisateur = 'Personnel Administratif' AND u.statut_utilisateur = 'Actif'
-              ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+                        u.statut_utilisateur,
+                        t.lib_type_utilisateur as role_utilisateur,
+                        g.lib_GU as gu,
+                        n.lib_niveau_acces_donnees as niveau_acces
+                  FROM utilisateur u
+                  LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE t.lib_type_utilisateur = 'Personnel Administratif' AND u.statut_utilisateur = 'Actif'
+                  ORDER BY u.nom_utilisateur";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération du personnel administratif actif : " . $e->getMessage());
+            return [];
+        }
     }
     public function getPersAdminInactif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
-                    u.statut_utilisateur,
-                    t.lib_type_utilisateur as role_utilisateur,
-                    g.lib_GU as gu,
-                    n.lib_niveau_acces_donnees as niveau_acces
-              FROM utilisateur u
-              LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-              WHERE t.lib_type_utilisateur = 'Personnel Administratif' AND u.statut_utilisateur = 'Inactif'
-              ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+                        u.statut_utilisateur,
+                        t.lib_type_utilisateur as role_utilisateur,
+                        g.lib_GU as gu,
+                        n.lib_niveau_acces_donnees as niveau_acces
+                  FROM utilisateur u
+                  LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE t.lib_type_utilisateur = 'Personnel Administratif' AND u.statut_utilisateur = 'Inactif'
+                  ORDER BY u.nom_utilisateur";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération du personnel administratif inactif : " . $e->getMessage());
+            return [];
+        }
     }
     public function getAllUtilisateursByStatut($statut)
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
-                    u.statut_utilisateur,
-                    t.lib_type_utilisateur as role_utilisateur,
-                    g.lib_GU as gu,
-                    n.lib_niveau_acces_donnees as niveau_acces
-              FROM utilisateur u
-              LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-              WHERE u.statut_utilisateur = :statut
-              ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':statut', $statut);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+                        u.statut_utilisateur,
+                        t.lib_type_utilisateur as role_utilisateur,
+                        g.lib_GU as gu,
+                        n.lib_niveau_acces_donnees as niveau_acces
+                  FROM utilisateur u
+                  LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE u.statut_utilisateur = :statut
+                  ORDER BY u.nom_utilisateur";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':statut', $statut);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des utilisateurs par statut : " . $e->getMessage());
+            return [];
+        }
     }
 
     public function getUtilisateurActif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
-                    u.statut_utilisateur,
-                    t.lib_type_utilisateur as role_utilisateur,
-                    g.lib_GU as gu,
-                    n.lib_niveau_acces_donnees as niveau_acces
-              FROM utilisateur u
-              LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-              WHERE u.statut_utilisateur = 'Actif'
-              ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+                        u.statut_utilisateur,
+                        t.lib_type_utilisateur as role_utilisateur,
+                        g.lib_GU as gu,
+                        n.lib_niveau_acces_donnees as niveau_acces
+                  FROM utilisateur u
+                  LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE u.statut_utilisateur = 'Actif'
+                  ORDER BY u.nom_utilisateur";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des utilisateurs actifs : " . $e->getMessage());
+            return [];
+        }
     }
     public function getUtilisateurInactif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
-                    u.statut_utilisateur,
-                    t.lib_type_utilisateur as role_utilisateur,
-                    g.lib_GU as gu,
-                    n.lib_niveau_acces_donnees as niveau_acces
-              FROM utilisateur u
-              LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
-              WHERE u.statut_utilisateur = 'Inactif'
-              ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+                        u.statut_utilisateur,
+                        t.lib_type_utilisateur as role_utilisateur,
+                        g.lib_GU as gu,
+                        n.lib_niveau_acces_donnees as niveau_acces
+                  FROM utilisateur u
+                  LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
+                  LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
+                  LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
+                  WHERE u.statut_utilisateur = 'Inactif'
+                  ORDER BY u.nom_utilisateur";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des utilisateurs inactifs : " . $e->getMessage());
+            return [];
+        }
     }
 
     // Récupérer les enseignants non enregistrés comme utilisateurs
     public function getEnseignantsNonUtilisateurs()
     {
-        $query = "SELECT e.id_enseignant, e.nom_enseignant, e.prenom_enseignant, e.mail_enseignant 
-                 FROM enseignants e 
-                 LEFT JOIN utilisateur u ON e.mail_enseignant = u.login_utilisateur 
-                 WHERE u.id_utilisateur IS NULL 
-                 ORDER BY e.nom_enseignant, e.prenom_enseignant";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT e.id_enseignant, e.nom_enseignant, e.prenom_enseignant, e.mail_enseignant 
+                     FROM enseignants e 
+                     LEFT JOIN utilisateur u ON e.mail_enseignant = u.login_utilisateur 
+                     WHERE u.id_utilisateur IS NULL 
+                     ORDER BY e.nom_enseignant, e.prenom_enseignant";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des enseignants non utilisateurs : " . $e->getMessage());
+            return [];
+        }
     }
 
     // Récupérer le personnel administratif non enregistré comme utilisateur
     public function getPersonnelNonUtilisateurs()
     {
-        $query = "SELECT pa.id_pers_admin, pa.nom_pers_admin, pa.prenom_pers_admin, pa.email_pers_admin 
-                 FROM personnel_admin pa 
-                 LEFT JOIN utilisateur u ON pa.email_pers_admin = u.login_utilisateur 
-                 WHERE u.id_utilisateur IS NULL 
-                 ORDER BY pa.nom_pers_admin, pa.prenom_pers_admin";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT pa.id_pers_admin, pa.nom_pers_admin, pa.prenom_pers_admin, pa.email_pers_admin 
+                     FROM personnel_admin pa 
+                     LEFT JOIN utilisateur u ON pa.email_pers_admin = u.login_utilisateur 
+                     WHERE u.id_utilisateur IS NULL 
+                     ORDER BY pa.nom_pers_admin, pa.prenom_pers_admin";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération du personnel administratif non utilisateur : " . $e->getMessage());
+            return [];
+        }
     }
 
     // Récupérer les étudiants non enregistrés comme utilisateurs
     public function getEtudiantsNonUtilisateurs()
     {
-        $query = "SELECT e.num_etu, e.nom_etu, e.prenom_etu,e.email_etu
-                 FROM etudiants e 
-                 LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur 
-                 WHERE u.id_utilisateur IS NULL 
-                 ORDER BY e.nom_etu, e.prenom_etu";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT e.num_etu, e.nom_etu, e.prenom_etu,e.email_etu
+                     FROM etudiants e 
+                     LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur 
+                     WHERE u.id_utilisateur IS NULL 
+                     ORDER BY e.nom_etu, e.prenom_etu";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des étudiants non utilisateurs : " . $e->getMessage());
+            return [];
+        }
     }
 
 
@@ -499,29 +648,39 @@ class Utilisateur
     // Récupérer les étudiants qui ont au moins une inscription et ne sont pas encore utilisateurs
     public function getEtudiantsInscritsNonUtilisateurs()
     {
-        $query = "SELECT DISTINCT e.num_etu, e.nom_etu, e.prenom_etu, e.email_etu
-                 FROM etudiants e
-                 INNER JOIN inscriptions i ON e.num_etu = i.id_etudiant
-                 LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur
-                 WHERE u.id_utilisateur IS NULL
-                 ORDER BY e.nom_etu, e.prenom_etu";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT DISTINCT e.num_etu, e.nom_etu, e.prenom_etu, e.email_etu
+                     FROM etudiants e
+                     INNER JOIN inscriptions i ON e.num_etu = i.id_etudiant
+                     LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur
+                     WHERE u.id_utilisateur IS NULL
+                     ORDER BY e.nom_etu, e.prenom_etu";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des étudiants inscrits non utilisateurs : " . $e->getMessage());
+            return [];
+        }
     }
 
     // Vérifier si un login (email) est déjà utilisé
     public function isLoginUsed($login)
     {
-        $query = "SELECT COUNT(*) as count FROM utilisateur WHERE login_utilisateur = :login";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':login', $login);
-        $stmt->execute();
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['count'] > 0;
+        try {
+            $query = "SELECT COUNT(*) as count FROM utilisateur WHERE login_utilisateur = :login";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':login', $login);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['count'] > 0;
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la vérification du login utilisé : " . $e->getMessage());
+            return true;
+        }
     }
     // Fonction pour générer un mot de passe aléatoire
-    function generateRandomPassword($length = 12)
+    public function generateRandomPassword($length = 12)
     {
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+';
         $password = '';
@@ -533,7 +692,7 @@ class Utilisateur
     // Ajouter plusieurs utilisateurs en masse
     public function ajouterUtilisateursEnMasse($utilisateurs)
     {
-        $this->db->beginTransaction();
+        $this->pdo->beginTransaction();
         try {
             $utilisateursAjoutes = [];
             foreach ($utilisateurs as $utilisateur) {
@@ -560,10 +719,11 @@ class Utilisateur
                     throw new Exception("Erreur lors de l'ajout de l'utilisateur " . $utilisateur['nom']);
                 }
             }
-            $this->db->commit();
+            $this->pdo->commit();
             return $utilisateursAjoutes;
         } catch (Exception $e) {
-            $this->db->rollBack();
+            $this->pdo->rollBack();
+            $this->logger->error("Erreur lors de l'ajout des utilisateurs en masse : " . $e->getMessage());
             throw $e;
         }
     }
@@ -571,31 +731,42 @@ class Utilisateur
     // Récupérer un enseignant par son ID
     public function getEnseignantById($id)
     {
-        $sql = "SELECT * FROM enseignants WHERE id_enseignant = :id";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute(['id' => $id]);
-        return $stmt->fetch(PDO::FETCH_OBJ);
+        try {
+            $sql = "SELECT * FROM enseignants WHERE id_enseignant = :id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['id' => $id]);
+            return $stmt->fetch(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération de l'enseignant par ID : " . $e->getMessage());
+            return null;
+        }
     }
 
     // Récupérer un membre du personnel par son ID
     public function getPersonnelById($id)
     {
-        $sql = "SELECT * FROM personnel_admin WHERE id_pers_admin = :id";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute(['id' => $id]);
-        return $stmt->fetch(PDO::FETCH_OBJ);
+        try {
+            $sql = "SELECT * FROM personnel_admin WHERE id_pers_admin = :id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['id' => $id]);
+            return $stmt->fetch(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération du personnel par ID : " . $e->getMessage());
+            return null;
+        }
     }
 
     // Récupérer un étudiant par son ID
     public function getEtudiantById($id)
     {
-        $sql = "SELECT * FROM etudiants WHERE num_etu = :id";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute(['id' => $id]);
-        return $stmt->fetch(PDO::FETCH_OBJ);
+        try {
+            $sql = "SELECT * FROM etudiants WHERE num_etu = :id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['id' => $id]);
+            return $stmt->fetch(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération de l'étudiant par ID : " . $e->getMessage());
+            return null;
+        }
     }
-
-
-
-
 }

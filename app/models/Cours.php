@@ -1,16 +1,26 @@
 <?php
 
-class Cours {
-    private $pdo;
+namespace App\Models;
 
-    public function __construct($pdo) {
+use PDO;
+use Psr\Log\LoggerInterface;
+
+class Cours
+{
+    private $pdo;
+    private $logger;
+
+    public function __construct(PDO $pdo, LoggerInterface $logger)
+    {
         $this->pdo = $pdo;
+        $this->logger = $logger;
     }
 
     /**
      * Récupère tous les cours assignés à un enseignant
      */
-    public function getCoursByEnseignant($enseignantId) {
+    public function getCoursByEnseignant($enseignantId)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
@@ -28,8 +38,8 @@ class Cours {
             ");
             $stmt->execute([$enseignantId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Erreur récupération cours enseignant: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur récupération cours enseignant: " . $e->getMessage());
             return [];
         }
     }
@@ -37,7 +47,8 @@ class Cours {
     /**
      * Récupère le nombre d'étudiants inscrits à un cours
      */
-    public function getNombreEtudiants($coursId) {
+    public function getNombreEtudiants($coursId)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT COUNT(DISTINCT ie.num_etu) as nombre_etudiants
@@ -47,8 +58,8 @@ class Cours {
             $stmt->execute([$coursId]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             return $result['nombre_etudiants'] ?? 0;
-        } catch (PDOException $e) {
-            error_log("Erreur récupération nombre étudiants: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur récupération nombre étudiants: " . $e->getMessage());
             return 0;
         }
     }
@@ -56,7 +67,8 @@ class Cours {
     /**
      * Récupère les statistiques des cours pour un enseignant
      */
-    public function getStatsCoursEnseignant($enseignantId) {
+    public function getStatsCoursEnseignant($enseignantId)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
@@ -69,8 +81,8 @@ class Cours {
             ");
             $stmt->execute([$enseignantId]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Erreur récupération stats cours: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur récupération stats cours: " . $e->getMessage());
             return [
                 'total_cours' => 0,
                 'total_credits' => 0,
@@ -82,7 +94,8 @@ class Cours {
     /**
      * Récupère les cours récents d'un enseignant
      */
-    public function getCoursRecents($enseignantId, $limit = 5) {
+    public function getCoursRecents($enseignantId, $limit = 5)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
@@ -98,9 +111,9 @@ class Cours {
             ");
             $stmt->execute([$enseignantId, $limit]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Erreur récupération cours récents: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur récupération cours récents: " . $e->getMessage());
             return [];
         }
     }
-} 
+}

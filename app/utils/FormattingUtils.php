@@ -1,5 +1,7 @@
 <?php
 
+namespace App\Utils;
+
 /**
  * FormattingUtils - Centralized formatting utilities
  * 

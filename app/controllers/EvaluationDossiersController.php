@@ -1,366 +1,373 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../models/RapportEtudiant.php';
-require_once __DIR__ . '/../models/Valider.php';
-require_once __DIR__ . '/../models/Approuver.php';
-require_once __DIR__ . '/../models/Etudiant.php';
-require_once __DIR__ . '/../models/EvaluationRapport.php';
-require_once __DIR__ . '/../models/AuditLog.php';   
 
-class EvaluationDossiersController {
-    private $auditLog;
-    private $db;
-    private $rapportEtudiant;
-    private $evaluationRapport;
-    public function __construct($pdo) {
-        $this->auditLog = new AuditLog($this->db);
-        $this->db = Database::getConnection();
-        $this->rapportEtudiant = new RapportEtudiant($this->db);
-        $this->evaluationRapport = new EvaluationRapport($this->db);
+namespace App\Controllers;
+
+use PDO;
+use App\Models\RapportEtudiant;
+use App\Models\Valider;
+use App\Models\EvaluationRapport;
+use App\Models\AuditLog;
+use App\Utils\SecurityUtils;
+use Psr\Log\LoggerInterface;
+use Exception;
+use Error;
+
+/**
+ * EvaluationDossiersController - Gestion de l'évaluation des dossiers par la commission
+ * 
+ * @package App\Controllers
+ */
+class EvaluationDossiersController
+{
+    private PDO $pdo;
+    private RapportEtudiant $rapportEtudiant;
+    private Valider $validerModel;
+    private EvaluationRapport $evaluationRapport;
+    private AuditLog $auditLog;
+    private SecurityUtils $security;
+    private LoggerInterface $logger;
+
+    /**
+     * Constructeur avec Injection de Dépendances
+     */
+    public function __construct(
+        PDO $pdo,
+        RapportEtudiant $rapportEtudiant,
+        Valider $validerModel,
+        EvaluationRapport $evaluationRapport,
+        AuditLog $auditLog,
+        SecurityUtils $security,
+        LoggerInterface $logger
+    ) {
+        $this->pdo = $pdo;
+        $this->rapportEtudiant = $rapportEtudiant;
+        $this->validerModel = $validerModel;
+        $this->evaluationRapport = $evaluationRapport;
+        $this->auditLog = $auditLog;
+        $this->security = $security;
+        $this->logger = $logger;
     }
-    public function index() {
-        $stats = $this->getStatistiques();
-        $dossiers = $this->getDossiersAEvaluer();
+
+    /**
+     * Vérification des permissions
+     */
+    private function checkPermission(string $action): bool
+    {
+        $idGroupe = $_SESSION['id_GU'] ?? 0;
         
-        return [
-            'stats' => $stats,
-            'dossiers' => $dossiers
-        ];
-    }
-    
-    private function getStatistiques() {
-        $pdo = Database::getConnection();
-        
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*) as total
-            FROM rapport_etudiants r
-            JOIN deposer d ON r.id_rapport = d.id_rapport
-            WHERE r.etape_validation = 'approuve_communication' or r.etape_validation = 'en_attente_commission'
-        ");
-        $stmt->execute();
-        $aEvaluer = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-        
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*) as total
-            FROM rapport_etudiants r
-            WHERE r.etape_validation = 'valide'
-        ");
-        $stmt->execute();
-        $valides = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-        
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*) as total
-            FROM rapport_etudiants r
-            WHERE r.etape_validation = 'desapprouve_commission'
-        ");
-        $stmt->execute();
-        $aCorriger = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-        
-        return [
-            'a_evaluer' => $aEvaluer,
-            'valides' => $valides,
-            'a_corriger' => $aCorriger,
-            'moyenne' => '14.5/20'
-        ];
-    }
-    
-    private function getDossiersAEvaluer() {
-        $evaluationRapport = new EvaluationRapport();
-        return $evaluationRapport->getRapportsAvecStatutVote();
-    }
-    
-    public function traiterAction() {
-        error_reporting(E_ALL);
-        ini_set('display_errors', 1);
-        
-        register_shutdown_function(function() {
-            $error = error_get_last();
-            if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
-                echo json_encode([
-                    'success' => false, 
-                    'message' => 'Erreur fatale PHP: ' . $error['message'] . ' dans ' . $error['file'] . ' ligne ' . $error['line']
-                ]);
-            }
-        });
-        
-        try {
-            error_log("DEBUG: traiterAction appelée");
-            error_log("DEBUG: GET params: " . print_r($_GET, true));
-            error_log("DEBUG: POST params: " . print_r($_POST, true));
+        if (!$this->security->can($idGroupe, 'evaluation_dossiers', $action)) {
+            $this->logger->warning(
+                "Accès refusé ({$action}) pour user " . ($_SESSION['id_utilisateur'] ?? 'inconnu') . " sur evaluation_dossiers"
+            );
             
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                $action = $_POST['action'] ?? $_GET['action'] ?? '';
-                error_log("DEBUG: Action récupérée: '$action'");
-                
-                switch ($action) {
-                    case 'valider_dossier':
-                        $this->validerDossier($_POST['id_rapport']);
-                        break;
-                    case 'rejeter_dossier':
-                        $this->rejeterDossier($_POST['id_rapport'], $_POST['commentaire']);
-                        break;
-                    case 'traiter_decision':
-                        // Correction : chaque membre enregistre son avis, sans rendre la décision finale
-                        $decision = $_POST['decision'] ?? '';
-                        $id_rapport = $_POST['id_rapport'] ?? '';
-                        $commentaire = $_POST['commentaire'] ?? '';
-                        $this->traiterDecisionCommission($id_rapport, $decision, $commentaire);
-                        break;
-                    case 'finaliser_decision':
-                        $this->finaliserDecisionCommission($_POST['id_rapport']);
-                        break;
-                    case 'get_statistiques':
-                        echo json_encode($this->getStatistiques());
-                        break;
-                    default:
-                        echo json_encode(['success' => false, 'message' => 'Action non reconnue: "' . $action . '"']);
-                }
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Accès refusé."]);
             } else {
-                echo json_encode(['success' => false, 'message' => 'Méthode non autorisée']);
+                $GLOBALS['messageErreur'] = "Vous n'avez pas les droits nécessaires.";
+                if (file_exists(__DIR__ . '/../../ressources/views/errors/403.php')) {
+                    http_response_code(403);
+                    require __DIR__ . '/../../ressources/views/errors/403.php';
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Action : Afficher la liste des dossiers à évaluer (READ)
+     */
+    public function index(): void
+    {
+        if (!$this->checkPermission('read')) {
+            return;
+        }
+
+        try {
+            $GLOBALS['stats'] = $this->getStatistiques();
+            $GLOBALS['dossiers'] = $this->evaluationRapport->getRapportsAvecStatutVote();
+        } catch (Exception $e) {
+            $this->logger->error("Erreur index EvaluationDossiers: " . $e->getMessage());
+            $GLOBALS['messageErreur'] = "Erreur lors du chargement des données.";
+        }
+    }
+
+    /**
+     * Récupère les statistiques pour le tableau de bord
+     */
+    private function getStatistiques(): array
+    {
+        try {
+            // Dossiers à évaluer
+            $stmt = $this->pdo->prepare("
+                SELECT COUNT(*) as total
+                FROM rapport_etudiants r
+                JOIN deposer d ON r.id_rapport = d.id_rapport
+                WHERE r.etape_validation IN ('approuve_communication', 'en_attente_commission')
+            ");
+            $stmt->execute();
+            $aEvaluer = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+            
+            // Dossiers validés
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) as total FROM rapport_etudiants WHERE etape_validation = 'valide'");
+            $stmt->execute();
+            $valides = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+            
+            // Dossiers à corriger
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) as total FROM rapport_etudiants WHERE etape_validation = 'desapprouve_commission'");
+            $stmt->execute();
+            $aCorriger = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+            
+            return [
+                'a_evaluer' => $aEvaluer,
+                'valides' => $valides,
+                'a_corriger' => $aCorriger,
+                'moyenne' => '14.5/20' // À dynamiser plus tard si nécessaire
+            ];
+        } catch (Exception $e) {
+            $this->logger->error("Erreur getStatistiques: " . $e->getMessage());
+            return ['a_evaluer' => 0, 'valides' => 0, 'a_corriger' => 0, 'moyenne' => '0/20'];
+        }
+    }
+
+    /**
+     * Action : Traitement des requêtes AJAX (POST)
+     */
+    public function traiterAction(): void
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Méthode non autorisée']);
+            return;
+        }
+
+        try {
+            $action = $this->security->sanitizeInput($_POST['action'] ?? $_GET['action'] ?? '');
+            
+            switch ($action) {
+                case 'valider_dossier':
+                    if (!$this->checkPermission('update')) return;
+                    $this->validerDossier((int)$_POST['id_rapport']);
+                    break;
+                case 'rejeter_dossier':
+                    if (!$this->checkPermission('update')) return;
+                    $this->rejeterDossier((int)$_POST['id_rapport'], $this->security->sanitizeInput($_POST['commentaire'] ?? ''));
+                    break;
+                case 'traiter_decision':
+                    if (!$this->checkPermission('create')) return;
+                    $this->traiterDecisionCommission(
+                        (int)$_POST['id_rapport'], 
+                        $this->security->sanitizeInput($_POST['decision'] ?? ''), 
+                        $this->security->sanitizeInput($_POST['commentaire'] ?? '')
+                    );
+                    break;
+                case 'finaliser_decision':
+                    if (!$this->checkPermission('update')) return;
+                    $this->finaliserDecisionCommission((int)$_POST['id_rapport']);
+                    break;
+                case 'get_statistiques':
+                    if (!$this->checkPermission('read')) return;
+                    echo json_encode($this->getStatistiques());
+                    break;
+                default:
+                    echo json_encode(['success' => false, 'message' => 'Action non reconnue']);
             }
         } catch (Exception $e) {
-            echo json_encode([
-                'success' => false, 
-                'message' => 'Exception: ' . $e->getMessage() . ' dans ' . $e->getFile() . ' ligne ' . $e->getLine()
-            ]);
+            $this->logger->error("Exception traiterAction: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Erreur: ' . $e->getMessage()]);
         } catch (Error $e) {
-            echo json_encode([
-                'success' => false, 
-                'message' => 'Erreur PHP: ' . $e->getMessage() . ' dans ' . $e->getFile() . ' ligne ' . $e->getLine()
-            ]);
+            $this->logger->error("Error traiterAction: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Erreur système.']);
         }
     }
-    
-    private function getEnseignantIdFromAdmin($id_utilisateur) {
-        $pdo = Database::getConnection();
-        
-        error_log("DEBUG: ID Utilisateur reçu: " . $id_utilisateur);
-        
-        $stmt = $pdo->prepare("SELECT login_utilisateur FROM utilisateur WHERE id_utilisateur = ?");
-        $stmt->execute([$id_utilisateur]);
-        $utilisateur = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$utilisateur) {
-            error_log("DEBUG: Utilisateur avec ID $id_utilisateur non trouvé");
-            $stmt = $pdo->query("SELECT id_enseignant FROM enseignants LIMIT 1");
+
+    /**
+     * Récupère l'ID enseignant associé à l'utilisateur admin/commission
+     */
+    private function getEnseignantIdFromAdmin(int $id_utilisateur): ?int
+    {
+        try {
+            $stmt = $this->pdo->prepare("SELECT login_utilisateur FROM utilisateur WHERE id_utilisateur = ?");
+            $stmt->execute([$id_utilisateur]);
+            $utilisateur = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$utilisateur) return null;
+            
+            $stmt = $this->pdo->prepare("SELECT id_enseignant FROM enseignants WHERE mail_enseignant = ?");
+            $stmt->execute([$utilisateur['login_utilisateur']]);
+            $enseignant = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($enseignant) return (int)$enseignant['id_enseignant'];
+            
+            // Fallback (pour dev/debug, à retirer en prod si nécessaire)
+            $stmt = $this->pdo->query("SELECT id_enseignant FROM enseignants LIMIT 1");
             $fallback = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $fallback ? $fallback['id_enseignant'] : null;
+            return $fallback ? (int)$fallback['id_enseignant'] : null;
+        } catch (Exception $e) {
+            $this->logger->error("Erreur getEnseignantIdFromAdmin: " . $e->getMessage());
+            return null;
         }
-        
-        error_log("DEBUG: Login de l'utilisateur: " . $utilisateur['login_utilisateur']);
-        
-        $stmt = $pdo->prepare("
-            SELECT e.id_enseignant, e.nom_enseignant, e.prenom_enseignant
-            FROM enseignants e 
-            WHERE e.mail_enseignant = ?
-        ");
-        $stmt->execute([$utilisateur['login_utilisateur']]);
-        $enseignant = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($enseignant) {
-            error_log("DEBUG: Enseignant trouvé: " . $enseignant['prenom_enseignant'] . " " . $enseignant['nom_enseignant'] . " (ID: " . $enseignant['id_enseignant'] . ")");
-            return $enseignant['id_enseignant'];
-        }
-        
-        error_log("DEBUG: Aucun enseignant trouvé avec le login: " . $utilisateur['login_utilisateur']);
-        
-        $stmt = $pdo->query("SELECT id_enseignant, nom_enseignant, prenom_enseignant FROM enseignants LIMIT 1");
-        $fallback = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($fallback) {
-            error_log("DEBUG: Utilisation du fallback - Enseignant: " . $fallback['prenom_enseignant'] . " " . $fallback['nom_enseignant'] . " (ID: " . $fallback['id_enseignant'] . ")");
-            return $fallback['id_enseignant'];
-        }
-        
-        error_log("DEBUG: Aucun enseignant disponible dans la base de données");
-        return null;
     }
-    
-    private function validerDossier($id_rapport) {
+
+    /**
+     * Valide un dossier (Statut final direct)
+     */
+    private function validerDossier(int $id_rapport): void
+    {
         try {
-            $pdo = Database::getConnection();
-            
-            error_log("DEBUG: Variables de session: " . print_r($_SESSION, true));
-            
-            $id_utilisateur = $_SESSION['id_utilisateur'] ?? null;
-            if (!$id_utilisateur) {
-                echo json_encode(['success' => false, 'message' => 'Utilisateur non identifié']);
-                return;
-            }
-            
+            $id_utilisateur = $_SESSION['id_utilisateur'] ?? 0;
             $id_enseignant = $this->getEnseignantIdFromAdmin($id_utilisateur);
+            
             if (!$id_enseignant) {
-                echo json_encode(['success' => false, 'message' => 'Aucun enseignant trouvé pour cet utilisateur']);
+                echo json_encode(['success' => false, 'message' => 'Profil enseignant non trouvé']);
                 return;
             }
+
+            $this->pdo->beginTransaction();
             
-            // Mise à jour du statut du rapport
-            $stmt = $pdo->prepare("UPDATE rapport_etudiants SET etape_validation = 'valide', statut_rapport = 'valider' WHERE id_rapport = ?");
+            $stmt = $this->pdo->prepare("UPDATE rapport_etudiants SET etape_validation = 'valide', statut_rapport = 'valider' WHERE id_rapport = ?");
             $stmt->execute([$id_rapport]);
             
-            Valider::insererDecision($id_enseignant, $id_rapport, 'valider', 'Validé par la commission');
-            $this->auditLog->logValidation($_SESSION['id_utilisateur'], 'rapport_etudiants', 'Succès');
+            $this->validerModel->insererDecision($id_enseignant, $id_rapport, 'valider', 'Validé par la commission');
+            $this->auditLog->logValidation($id_utilisateur, 'rapport_etudiants', 'Succès');
             
+            $this->pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Rapport validé avec succès']);
-            
         } catch (Exception $e) {
-            error_log("Erreur validerDossier: " . $e->getMessage());
-            $this->auditLog->logValidation($_SESSION['id_utilisateur'], 'rapport_etudiants', 'Erreur');
-            echo json_encode(['success' => false, 'message' => 'Erreur lors de la validation: ' . $e->getMessage()]);
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            $this->logger->error("Erreur validerDossier: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => "Erreur lors de la validation."]);
         }
     }
-    
-    private function rejeterDossier($id_rapport, $commentaire) {
+
+    /**
+     * Rejette un dossier (Statut final direct)
+     */
+    private function rejeterDossier(int $id_rapport, string $commentaire): void
+    {
         try {
-            $pdo = Database::getConnection();
-            
-            $id_utilisateur = $_SESSION['id_utilisateur'] ?? null;
-            if (!$id_utilisateur) {
-                echo json_encode(['success' => false, 'message' => 'Utilisateur non identifié']);
-                return;
-            }
-            
+            $id_utilisateur = $_SESSION['id_utilisateur'] ?? 0;
             $id_enseignant = $this->getEnseignantIdFromAdmin($id_utilisateur);
+            
             if (!$id_enseignant) {
-                echo json_encode(['success' => false, 'message' => 'Aucun enseignant trouvé pour cet utilisateur']);
+                echo json_encode(['success' => false, 'message' => 'Profil enseignant non trouvé']);
                 return;
             }
+
+            $this->pdo->beginTransaction();
             
-            // Mise à jour du statut du rapport
-            $stmt = $pdo->prepare("UPDATE rapport_etudiants SET etape_validation = 'desapprouve_commission', statut_rapport = 'rejeter' WHERE id_rapport = ?");
+            $stmt = $this->pdo->prepare("UPDATE rapport_etudiants SET etape_validation = 'desapprouve_commission', statut_rapport = 'rejeter' WHERE id_rapport = ?");
             $stmt->execute([$id_rapport]);
             
-            Valider::insererDecision($id_enseignant, $id_rapport, 'rejeter', $commentaire);
-            $this->auditLog->logRejet($_SESSION['id_utilisateur'], 'rapport_etudiants', 'Succès');
+            $this->validerModel->insererDecision($id_enseignant, $id_rapport, 'rejeter', $commentaire);
+            $this->auditLog->logRejet($id_utilisateur, 'rapport_etudiants', 'Succès');
             
+            $this->pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Rapport rejeté avec succès']);
-            
         } catch (Exception $e) {
-            error_log("Erreur rejeterDossier: " . $e->getMessage());
-            $this->auditLog->logRejet($_SESSION['id_utilisateur'], 'rapport_etudiants', 'Erreur');
-            echo json_encode(['success' => false, 'message' => 'Erreur lors du rejet: ' . $e->getMessage()]);
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            $this->logger->error("Erreur rejeterDossier: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => "Erreur lors du rejet."]);
         }
     }
-    
-    private function traiterDecisionCommission($id_rapport, $decision, $commentaire = '') {
+
+    /**
+     * Enregistre l'avis d'un membre de la commission
+     */
+    private function traiterDecisionCommission(int $id_rapport, string $decision, string $commentaire = ''): void
+    {
         try {
-            $id_utilisateur = $_SESSION['id_utilisateur'] ?? null;
-            if (!$id_utilisateur) {
-                echo json_encode(['success' => false, 'message' => 'Utilisateur non identifié']);
-                return;
-            }
-            
+            $id_utilisateur = $_SESSION['id_utilisateur'] ?? 0;
             $id_enseignant = $this->getEnseignantIdFromAdmin($id_utilisateur);
+            
             if (!$id_enseignant) {
                 echo json_encode(['success' => false, 'message' => 'Enseignant non trouvé']);
                 return;
             }
-            
-            error_log("DEBUG: Traitement décision commission - Rapport: $id_rapport, Décision: $decision, Enseignant: $id_enseignant");
-            
-            $evaluationRapport = new EvaluationRapport();
-            
-            $evaluationExistante = $evaluationRapport->evaluationExiste($id_rapport, $id_enseignant);
+
+            $evaluationExistante = $this->evaluationRapport->evaluationExiste($id_rapport, $id_enseignant);
             
             if ($evaluationExistante) {
-                $success = $evaluationRapport->mettreAJourEvaluation(
-                    $evaluationExistante['id_evaluation'], 
-                    $decision, 
-                    $commentaire
-                );
-                error_log("DEBUG: Évaluation mise à jour");
+                $success = $this->evaluationRapport->mettreAJourEvaluation($evaluationExistante['id_evaluation'], $decision, $commentaire);
             } else {
-                $success = $evaluationRapport->ajouterEvaluation(
-                    $id_rapport, 
-                    $id_enseignant, 
-                    $decision, 
-                    $commentaire
-                );
-                error_log("DEBUG: Nouvelle évaluation créée");
+                $success = $this->evaluationRapport->ajouterEvaluation($id_rapport, $id_enseignant, $decision, $commentaire);
             }
             
-            if (!$success) {
-                echo json_encode(['success' => false, 'message' => 'Erreur lors de l\'enregistrement de l\'évaluation']);
-                return;
+            if ($success) {
+                $statutVote = $this->evaluationRapport->getStatutVotes($id_rapport);
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Votre évaluation a été enregistrée',
+                    'statut_vote' => $statutVote
+                ]);
+            } else {
+                echo json_encode(['success' => false, 'message' => "Erreur lors de l'enregistrement."]);
             }
-            
-            $statutVote = $evaluationRapport->getStatutVotes($id_rapport);
-            
-            echo json_encode([
-                'success' => true, 
-                'message' => 'Votre évaluation a été enregistrée',
-                'statut_vote' => $statutVote
-            ]);
-            
         } catch (Exception $e) {
-            error_log("Erreur lors de l'enregistrement de l'évaluation: " . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Erreur lors de l\'enregistrement de l\'évaluation: ' . $e->getMessage()]);
+            $this->logger->error("Erreur traiterDecisionCommission: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
-    
-    private function finaliserDecisionCommission($id_rapport) {
+
+    /**
+     * Finalise la décision de la commission basée sur les votes
+     */
+    private function finaliserDecisionCommission(int $id_rapport): void
+    {
         try {
-            $evaluationRapport = new EvaluationRapport();
-            
-            $statutVote = $evaluationRapport->getStatutVotes($id_rapport);
+            $statutVote = $this->evaluationRapport->getStatutVotes($id_rapport);
             
             if (!$statutVote['peut_finaliser']) {
                 echo json_encode(['success' => false, 'message' => 'Impossible de finaliser : vote en cours']);
                 return;
             }
             
-            $id_utilisateur = $_SESSION['id_utilisateur'] ?? null;
-            if (!$id_utilisateur) {
-                echo json_encode(['success' => false, 'message' => 'Utilisateur non identifié']);
-                return;
-            }
-            
+            $id_utilisateur = $_SESSION['id_utilisateur'] ?? 0;
             $id_enseignant = $this->getEnseignantIdFromAdmin($id_utilisateur);
-            if (!$id_enseignant) {
-                echo json_encode(['success' => false, 'message' => 'Enseignant non trouvé']);
-                return;
-            }
-            
             $decision = $statutVote['decision_finale'];
             
+            $this->pdo->beginTransaction();
+            
             if ($decision === 'valider') {
-                $pdo = Database::getConnection();
-                // Mise à jour du statut du rapport
-                $stmt = $pdo->prepare("UPDATE rapport_etudiants SET etape_validation = 'valide', statut_rapport = 'valider' WHERE id_rapport = ?");
+                $stmt = $this->pdo->prepare("UPDATE rapport_etudiants SET etape_validation = 'valide', statut_rapport = 'valider' WHERE id_rapport = ?");
                 $stmt->execute([$id_rapport]);
-                
-                Valider::insererDecision($id_enseignant, $id_rapport, 'valider', 'Validé par consensus de la commission');
-                $this->auditLog->logValidation($_SESSION['id_utilisateur'], 'rapport_etudiants', 'Succès');
-                
-                echo json_encode(['success' => true, 'message' => 'Rapport validé par consensus de la commission']);
-                
-            } elseif ($decision === 'rejeter') {
-                $pdo = Database::getConnection();
-                // Mise à jour du statut du rapport
-                $stmt = $pdo->prepare("UPDATE rapport_etudiants SET etape_validation = 'desapprouve_commission', statut_rapport = 'rejeter' WHERE id_rapport = ?");
+                $this->validerModel->insererDecision($id_enseignant, $id_rapport, 'valider', 'Validé par consensus de la commission');
+                $this->auditLog->logValidation($id_utilisateur, 'rapport_etudiants', 'Succès');
+            } else {
+                $stmt = $this->pdo->prepare("UPDATE rapport_etudiants SET etape_validation = 'desapprouve_commission', statut_rapport = 'rejeter' WHERE id_rapport = ?");
                 $stmt->execute([$id_rapport]);
-                
-                Valider::insererDecision($id_enseignant, $id_rapport, 'rejeter', 'Rejeté par la commission');
-                $this->auditLog->logRejet($_SESSION['id_utilisateur'], 'rapport_etudiants', 'Succès');
-                
-                echo json_encode(['success' => true, 'message' => 'Rapport rejeté par la commission']);
+                $this->validerModel->insererDecision($id_enseignant, $id_rapport, 'rejeter', 'Rejeté par la commission');
+                $this->auditLog->logRejet($id_utilisateur, 'rapport_etudiants', 'Succès');
             }
             
+            $this->pdo->commit();
+            echo json_encode(['success' => true, 'message' => 'Décision finalisée avec succès']);
         } catch (Exception $e) {
-            error_log("Erreur lors de la finalisation: " . $e->getMessage());
-            $this->auditLog->logValidation($_SESSION['id_utilisateur'], 'rapport_etudiants', 'Erreur');
-            echo json_encode(['success' => false, 'message' => 'Erreur lors de la finalisation: ' . $e->getMessage()]);
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            $this->logger->error("Erreur finaliserDecisionCommission: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => "Erreur lors de la finalisation."]);
         }
     }
-    
-    public function detail($id_rapport) {
-        $pdo = Database::getConnection();
-        $rapportEtudiant = new RapportEtudiant($pdo);
-        $rapport = $rapportEtudiant->getRapportById($id_rapport);
-        $decisions = Valider::getByRapport($id_rapport);
-        return [
-            'rapport' => $rapport,
-            'decisions' => $decisions
-        ];
+
+    /**
+     * Voir les détails d'un rapport
+     */
+    public function detail(int $id_rapport): void
+    {
+        if (!$this->checkPermission('read')) {
+            return;
+        }
+
+        try {
+            $GLOBALS['rapport'] = $this->rapportEtudiant->getRapportById($id_rapport);
+            $GLOBALS['decisions'] = $this->validerModel->getByRapport($id_rapport);
+        } catch (Exception $e) {
+            $this->logger->error("Erreur detail EvaluationDossiers: " . $e->getMessage());
+            $GLOBALS['messageErreur'] = "Erreur lors du chargement du dossier.";
+        }
     }
-} 
+}
+ 

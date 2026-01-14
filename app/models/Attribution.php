@@ -1,106 +1,114 @@
 <?php
 
+namespace App\Models;
 
+use PDO;
+use Psr\Log\LoggerInterface;
 
-class Attribution{
-  
-    private $db;
+class Attribution
+{
+    private $pdo;
+    private $logger;
 
-    public function __construct($db)
+    public function __construct(PDO $pdo, LoggerInterface $logger)
     {
-        $this->db = $db;
+        $this->pdo = $pdo;
+        $this->logger = $logger;
     }
 
     /**
-     * Ajoute une attribution de traitement à un groupe d'utilisateurs
-     * @param int $id_GU ID du groupe d'utilisateurs
-     * @param int $id_traitement ID du traitement
-     * @return bool Succès de l'opération
+     * Récupère tous les droits configurés pour un groupe
      */
-    public function ajouterAttribution($id_GU, $id_traitement) {
-        $sql = "INSERT INTO rattacher (id_GU, id_traitement) VALUES (:id_GU, :id_traitement)";
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute([
-            ':id_GU' => $id_GU,
-            ':id_traitement' => $id_traitement
-        ]);
-    }
-
-    /**
-     * Supprime toutes les attributions d'un groupe d'utilisateurs
-     * @param int $id_GU ID du groupe d'utilisateurs
-     * @return bool Succès de l'opération
-     */
-    public function deleteAttribution($id_GU) {
-        $sql = "DELETE FROM rattacher WHERE id_GU = :id_GU";
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute([':id_GU' => $id_GU]);
-    }
-
-    /**
-     * Récupère tous les traitements attribués à un groupe d'utilisateurs
-     * @param int $id_GU ID du groupe d'utilisateurs
-     * @return array Liste des traitements
-     */
-    public function getTraitementsByGroupe($id_GU) {
+    public function getDroitsByGroupe(int $idGroupe): array
+    {
+        $sql = "SELECT d.*, t.lib_traitement, t.label_traitement 
+                FROM droits d
+                JOIN traitement t ON d.id_traitement = t.id_traitement
+                WHERE d.id_GU = :id_gu";
+        
         try {
-            $sql = "SELECT t.* FROM traitement t 
-                    INNER JOIN rattacher r ON t.id_traitement = r.id_traitement 
-                    WHERE r.id_GU = :id_GU
-                    ORDER BY t.ordre_traitement ASC";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([':id_GU' => $id_GU]);
-            $result = $stmt->fetchAll(PDO::FETCH_OBJ);
-            
-            // Debug
-            error_log("Traitements pour le groupe $id_GU: " . print_r($result, true));
-            
-            return $result;
-        } catch (PDOException $e) {
-            error_log("Erreur dans getTraitementsByGroupe: " . $e->getMessage());
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['id_gu' => $idGroupe]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur récupération droits : " . $e->getMessage());
             return [];
         }
     }
 
     /**
-     * Vérifie si un traitement est attribué à un groupe d'utilisateurs
-     * @param int $id_GU ID du groupe d'utilisateurs
-     * @param int $id_traitement ID du traitement
-     * @return bool True si le traitement est attribué
+     * Définit ou met à jour une permission spécifique
+     * @param int $idGroupe
+     * @param int $idTraitement
+     * @param array $permissions ['read' => 1, 'create' => 0, etc.]
      */
-    public function isTraitementAttribue($id_GU, $id_traitement) {
-        $sql = "SELECT COUNT(*) FROM rattacher 
-                WHERE id_GU = :id_GU AND id_traitement = :id_traitement";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([
-            ':id_GU' => $id_GU,
-            ':id_traitement' => $id_traitement
-        ]);
-        return $stmt->fetchColumn() > 0;
+    public function setPermissions(int $idGroupe, int $idTraitement, array $permissions): bool
+    {
+        // On utilise ON DUPLICATE KEY UPDATE pour gérer l'insertion ou la mise à jour en une seule requête
+        $sql = "INSERT INTO droits (id_GU, id_traitement, can_read, can_create, can_update, can_delete)
+                VALUES (:id_gu, :id_tr, :read, :create, :update, :delete)
+                ON DUPLICATE KEY UPDATE 
+                can_read = VALUES(can_read),
+                can_create = VALUES(can_create),
+                can_update = VALUES(can_update),
+                can_delete = VALUES(can_delete)";
+
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute([
+                'id_gu'   => $idGroupe,
+                'id_tr'   => $idTraitement,
+                'read'    => $permissions['read'] ?? 0,
+                'create'  => $permissions['create'] ?? 0,
+                'update'  => $permissions['update'] ?? 0,
+                'delete'  => $permissions['delete'] ?? 0
+            ]);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur assignation droits : " . $e->getMessage());
+            return false;
+        }
     }
 
-    public function updateAttribution($id_GU, $id_traitement)
+    /**
+     * Supprime tous les droits d'un groupe (Reset)
+     */
+    public function removeAllDroits(int $idGroupe): bool
     {
-        $sql = "UPDATE rattacher SET id_traitement = :id_traitement WHERE id_GU = :id_GU";
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute([
-            ':id_GU' => $this->$id_GU,
-            ':id_traitement' => $this->$id_traitement
-        ]);
-    }
-    public function getAttributionById($id_attribution)
-    {
-        $stmt = $this->db->prepare("SELECT * FROM rattacher WHERE id_GU = ?");
-        $stmt->execute([$id_attribution]);
-        return $stmt->fetch(PDO::FETCH_OBJ);
-    }
-    public function getAllAttributionS()
-    {
-        $stmt = $this->db->prepare("SELECT * FROM rattacher ORDER BY id_GU");
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $stmt = $this->pdo->prepare("DELETE FROM droits WHERE id_GU = ?");
+            return $stmt->execute([$idGroupe]);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur suppression droits : " . $e->getMessage());
+            return false;
+        }
     }
 
+    /**
+     * Alias pour removeAllDroits (legacy compatibility)
+     */
+    public function deleteAttribution(int $idGroupe): bool
+    {
+        return $this->removeAllDroits($idGroupe);
+    }
 
-    
+    /**
+     * Ajoute une attribution simple (legacy compatibility)
+     * Définit par défaut can_read = 1
+     */
+    public function ajouterAttribution(int $idGroupe, int $idTraitement): bool
+    {
+        return $this->setPermissions($idGroupe, $idTraitement, ['read' => 1]);
+    }
+
+    /**
+     * Récupère les traitements attribués (legacy compatibility)
+     */
+    public function getTraitementsByGroupe(int $idGroupe): array
+    {
+        // On retourne sous forme d'objets pour la compatibilité avec le code existant
+        $droits = $this->getDroitsByGroupe($idGroupe);
+        return array_map(function($item) {
+            return (object)$item;
+        }, $droits);
+    }
 }

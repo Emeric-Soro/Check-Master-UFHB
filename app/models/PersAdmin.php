@@ -1,11 +1,14 @@
 <?php
 
+namespace App\Models;
 
-class PersAdmin{
+use PDO;
+use Psr\Log\LoggerInterface;
 
-
-
-    private $db;
+class PersAdmin
+{
+    private $pdo;
+    private $logger;
     private $id_pers_admin;
     private $nom_pers_admin;
     private $prenom_pers_admin;
@@ -14,9 +17,10 @@ class PersAdmin{
     private $date_embauche;
     private $poste;
 
-    public function __construct($db)
+    public function __construct(PDO $pdo, LoggerInterface $logger)
     {
-        $this->db = $db;
+        $this->pdo = $pdo;
+        $this->logger = $logger;
     }
 
     // Getters
@@ -27,7 +31,7 @@ class PersAdmin{
     public function getTelephonePersAdmin() { return $this->telephone_pers_admin; }
     public function getDateEmbauche() { return $this->date_embauche; }
     public function getPoste() { return $this->poste; }
-   
+
 
     // Setters
     public function setIdPersAdmin($id) { $this->id_pers_admin = $id; }
@@ -39,50 +43,75 @@ class PersAdmin{
     public function setPoste($poste) { $this->poste = $poste; }
 
     // Méthodes CRUD
-    public function getAllPersAdmin() {
-        $query = "SELECT pa.* FROM personnel_admin pa 
-                 ORDER BY pa.nom_pers_admin, pa.prenom_pers_admin";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    public function getAllPersAdmin()
+    {
+        try {
+            $query = "SELECT pa.* FROM personnel_admin pa 
+                     ORDER BY pa.nom_pers_admin, pa.prenom_pers_admin";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération de tout le personnel administratif : " . $e->getMessage());
+            return [];
+        }
     }
 
-    public function getPersAdminById($id) {
-        $query = "SELECT pa.*
-                 FROM personnel_admin pa 
-                 WHERE pa.id_pers_admin = :id";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':id', $id);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_OBJ);
+    public function getPersAdminById($id)
+    {
+        try {
+            $query = "SELECT pa.*
+                     FROM personnel_admin pa 
+                     WHERE pa.id_pers_admin = :id";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération du personnel administratif par ID : " . $e->getMessage());
+            return null;
+        }
     }
 
-    public function getPersAdminByLogin($login) {
-        $query = "SELECT pa.*
-                 FROM personnel_admin pa 
-                 WHERE pa.email_pers_admin = :login";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':login', $login);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_OBJ);
+    public function getPersAdminByLogin($login)
+    {
+        try {
+            $query = "SELECT pa.*
+                     FROM personnel_admin pa 
+                     WHERE pa.email_pers_admin = :login";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':login', $login);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_OBJ);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération du personnel administratif par login : " . $e->getMessage());
+            return null;
+        }
     }
 
-    public function getByUserId($id_utilisateur) {
-        $query = "SELECT pa.*
-                 FROM personnel_admin pa 
-                 JOIN utilisateur u ON pa.email_pers_admin = u.login_utilisateur
-                 WHERE u.id_utilisateur = :id_utilisateur";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':id_utilisateur', $id_utilisateur);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+    public function getByUserId($id_utilisateur)
+    {
+        try {
+            $query = "SELECT pa.*
+                     FROM personnel_admin pa 
+                     JOIN utilisateur u ON pa.email_pers_admin = u.login_utilisateur
+                     WHERE u.id_utilisateur = :id_utilisateur";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':id_utilisateur', $id_utilisateur);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération du personnel administratif par ID utilisateur : " . $e->getMessage());
+            return null;
+        }
     }
 
-    public function ajouterPersAdmin($nom, $prenom, $email, $telephone, $poste, $date_embauche) {
+    public function ajouterPersAdmin($nom, $prenom, $email, $telephone, $poste, $date_embauche)
+    {
         try {
             $query = "INSERT INTO personnel_admin (nom_pers_admin, prenom_pers_admin, email_pers_admin, tel_pers_admin, poste, date_embauche) 
                      VALUES (:nom, :prenom, :email, :telephone, :poste, :date_embauche)";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->bindParam(':nom', $nom);
             $stmt->bindParam(':prenom', $prenom);
             $stmt->bindParam(':email', $email);
@@ -91,13 +120,14 @@ class PersAdmin{
             $stmt->bindParam(':date_embauche', $date_embauche);
 
             return $stmt->execute();
-        } catch (PDOException $e) {
-            error_log("Erreur lors de l'ajout du personnel administratif: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de l'ajout du personnel administratif: " . $e->getMessage());
             return false;
         }
     }
 
-    public function modifierPersAdmin($id, $nom, $prenom, $email, $telephone, $poste, $date_embauche) {
+    public function modifierPersAdmin($id, $nom, $prenom, $email, $telephone, $poste, $date_embauche)
+    {
         try {
             $query = "UPDATE personnel_admin 
                      SET nom_pers_admin = :nom, 
@@ -107,7 +137,7 @@ class PersAdmin{
                          poste = :poste,
                          date_embauche = :date_embauche
                      WHERE id_pers_admin = :id";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->bindParam(':id', $id);
             $stmt->bindParam(':nom', $nom);
             $stmt->bindParam(':prenom', $prenom);
@@ -116,23 +146,22 @@ class PersAdmin{
             $stmt->bindParam(':poste', $poste);
             $stmt->bindParam(':date_embauche', $date_embauche);
             return $stmt->execute();
-        } catch (PDOException $e) {
-            error_log("Erreur lors de la modification du personnel administratif: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la modification du personnel administratif: " . $e->getMessage());
             return false;
         }
     }
 
-    public function supprimerPersAdmin($id) {
+    public function supprimerPersAdmin($id)
+    {
         try {
             $query = "DELETE FROM personnel_admin  WHERE id_pers_admin = :id";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->bindParam(':id', $id);
             return $stmt->execute();
-        } catch (PDOException $e) {
-            error_log("Erreur lors de la suppression du personnel administratif: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur lors de la suppression du personnel administratif: " . $e->getMessage());
             return false;
         }
     }
-
-    
 }

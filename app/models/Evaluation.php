@@ -1,16 +1,26 @@
 <?php
 
-class Evaluation {
-    private $pdo;
+namespace App\Models;
 
-    public function __construct($pdo) {
+use PDO;
+use Psr\Log\LoggerInterface;
+
+class Evaluation
+{
+    private $pdo;
+    private $logger;
+
+    public function __construct(PDO $pdo, LoggerInterface $logger)
+    {
         $this->pdo = $pdo;
+        $this->logger = $logger;
     }
 
     /**
      * Récupère les évaluations en attente pour un enseignant
      */
-    public function getEvaluationsEnAttente($enseignantId) {
+    public function getEvaluationsEnAttente($enseignantId)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
@@ -31,8 +41,8 @@ class Evaluation {
             ");
             $stmt->execute([$enseignantId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Erreur récupération évaluations en attente: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur récupération évaluations en attente: " . $e->getMessage());
             return [];
         }
     }
@@ -40,7 +50,8 @@ class Evaluation {
     /**
      * Récupère les évaluations terminées pour un enseignant
      */
-    public function getEvaluationsTerminees($enseignantId) {
+    public function getEvaluationsTerminees($enseignantId)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
@@ -61,8 +72,8 @@ class Evaluation {
             ");
             $stmt->execute([$enseignantId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Erreur récupération évaluations terminées: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur récupération évaluations terminées: " . $e->getMessage());
             return [];
         }
     }
@@ -70,7 +81,8 @@ class Evaluation {
     /**
      * Récupère les échéances d'évaluation pour un enseignant
      */
-    public function getEcheancesEvaluation($enseignantId) {
+    public function getEcheancesEvaluation($enseignantId)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
@@ -90,8 +102,8 @@ class Evaluation {
             ");
             $stmt->execute([$enseignantId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Erreur récupération échéances: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur récupération échéances: " . $e->getMessage());
             return [];
         }
     }
@@ -99,7 +111,8 @@ class Evaluation {
     /**
      * Récupère les statistiques d'évaluation pour un enseignant
      */
-    public function getStatsEvaluations($enseignantId) {
+    public function getStatsEvaluations($enseignantId)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
@@ -116,8 +129,8 @@ class Evaluation {
             ");
             $stmt->execute([$enseignantId]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Erreur récupération stats évaluations: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur récupération stats évaluations: " . $e->getMessage());
             return [
                 'total_evaluations' => 0,
                 'evaluations_en_attente' => 0,
@@ -132,7 +145,8 @@ class Evaluation {
     /**
      * Récupère les évaluations récentes pour un enseignant
      */
-    public function getEvaluationsRecentes($enseignantId, $limit = 5) {
+    public function getEvaluationsRecentes($enseignantId, $limit = 5)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
@@ -150,9 +164,9 @@ class Evaluation {
             ");
             $stmt->execute([$enseignantId, $limit]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Erreur récupération évaluations récentes: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur récupération évaluations récentes: " . $e->getMessage());
             return [];
         }
     }
-} 
+}

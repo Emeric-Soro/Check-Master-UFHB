@@ -1,44 +1,99 @@
 <?php
 
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../models/Archive.php';
-require_once __DIR__ . '/../utils/ExcelImportService.php';
-require_once __DIR__ . '/../models/AuditLog.php';
+namespace App\Controllers;
+
+use PDO;
+use App\Models\Archive;
+use App\Utils\SecurityUtils;
+use App\Utils\ExcelImportService;
+use App\Models\AuditLog;
+use Psr\Log\LoggerInterface;
+use Exception;
 
 /**
- * Archive Controller - Handles history and archiving operations
+ * ArchiveController - Moteur de recherche global archives
+ * 
+ * Ce contrôleur gère l'historique et les opérations d'archivage :
+ * - Consultation de l'historique des étudiants et des jurys
+ * - Visualisation et mise à jour des dossiers archivés
+ * - Importation de données historiques
+ * 
+ * @package App\Controllers
  */
 class ArchiveController
 {
-    private $archive;
-    private $importService;
-    private $auditLog;
-    private $db;
-    
-    public function __construct()
-    {
-        $this->db = Database::getConnection();
-        $this->archive = new Archive($this->db);
-        $this->importService = new ExcelImportService($this->db);
-        $this->auditLog = new AuditLog($this->db);
-    }
-    
+    private Archive $archive;
+    private ExcelImportService $importService;
+    private AuditLog $auditLog;
+    private SecurityUtils $security;
+    private LoggerInterface $logger;
+    private PDO $pdo;
+
     /**
-     * Display the main archive page
+     * Constructeur avec Injection de Dépendances
      */
-    public function index()
+    public function __construct(
+        Archive $archive,
+        ExcelImportService $importService,
+        AuditLog $auditLog,
+        SecurityUtils $security,
+        LoggerInterface $logger,
+        PDO $pdo
+    ) {
+        $this->archive = $archive;
+        $this->importService = $importService;
+        $this->auditLog = $auditLog;
+        $this->security = $security;
+        $this->logger = $logger;
+        $this->pdo = $pdo;
+    }
+
+    /**
+     * Vérification centralisée des permissions
+     */
+    private function checkPermission(string $action): bool
     {
+        $idGroupe = $_SESSION['id_GU'] ?? 0;
+        
+        if (!$this->security->can($idGroupe, 'admin_historique', $action)) {
+            $this->logger->warning(
+                "Accès refusé ({$action}) pour user " . ($_SESSION['id_utilisateur'] ?? 'inconnu') . " sur admin_historique"
+            );
+            
+            $GLOBALS['messageErreur'] = "Vous n'avez pas les droits nécessaires pour effectuer cette action.";
+            
+            if (file_exists(__DIR__ . '/../../ressources/views/errors/403.php')) {
+                http_response_code(403);
+                require __DIR__ . '/../../ressources/views/errors/403.php';
+            }
+            
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
+     * Action : Afficher la page principale des archives (READ)
+     */
+    public function index(): void
+    {
+        // 4. Sécurité Granulaire
+        if (!$this->checkPermission('read')) {
+            return;
+        }
+
         try {
-            // Get filters from request
-            $tab = $_GET['tab'] ?? 'students';
-            $anneeAcad = $_GET['annee'] ?? null;
-            $statut = $_GET['statut'] ?? null;
-            $search = $_GET['search'] ?? null;
-            $page = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
+            // Récupération des filtres
+            $tab = $this->security->sanitizeInput($_GET['tab'] ?? 'students');
+            $anneeAcad = $this->security->sanitizeInput($_GET['annee'] ?? null);
+            $statut = $this->security->sanitizeInput($_GET['statut'] ?? null);
+            $search = $this->security->sanitizeInput($_GET['search'] ?? null);
+            $page = isset($_GET['p']) ? max(1, (int)$_GET['p']) : 1;
             $perPage = 20;
             $offset = ($page - 1) * $perPage;
             
-            // Get data based on active tab
+            // Récupération des données selon l'onglet actif
             if ($tab === 'students') {
                 $students = $this->archive->getStudentHistory($anneeAcad, $statut, $search, $perPage, $offset);
                 $totalStudents = $this->archive->countStudents($anneeAcad, $statut, $search);
@@ -57,7 +112,7 @@ class ArchiveController
                 $GLOBALS['topEntreprises'] = $this->archive->getTopEntreprises();
             }
             
-            // Get available years for filter
+            // Années académiques pour le filtre
             $GLOBALS['academicYears'] = $this->archive->getAcademicYears();
             $GLOBALS['currentTab'] = $tab;
             $GLOBALS['filters'] = [
@@ -66,26 +121,27 @@ class ArchiveController
                 'search' => $search
             ];
             
-            // Messages
             $GLOBALS['messageSuccess'] = $_SESSION['archive_success'] ?? '';
             $GLOBALS['messageErreur'] = $_SESSION['archive_error'] ?? '';
             unset($_SESSION['archive_success'], $_SESSION['archive_error']);
             
         } catch (Exception $e) {
-            error_log("Error in ArchiveController::index: " . $e->getMessage());
-            $_SESSION['archive_error'] = "Une erreur est survenue lors du chargement de l'historique.";
-            header('Location: ?page=dashboard');
-            exit;
+            $this->logger->error("Erreur dans ArchiveController::index: " . $e->getMessage());
+            $GLOBALS['messageErreur'] = "Une erreur est survenue lors du chargement de l'historique.";
         }
     }
     
     /**
-     * Display student detail file
+     * Action : Afficher le dossier complet d'un étudiant (READ)
      */
-    public function viewStudentFile()
+    public function viewStudentFile(): void
     {
+        if (!$this->checkPermission('read')) {
+            return;
+        }
+
         try {
-            $numEtu = $_GET['num_etu'] ?? null;
+            $numEtu = $this->security->sanitizeInput($_GET['num_etu'] ?? null);
             
             if (!$numEtu) {
                 $_SESSION['archive_error'] = "Matricule étudiant manquant.";
@@ -106,10 +162,8 @@ class ArchiveController
             $GLOBALS['messageErreur'] = $_SESSION['archive_error'] ?? '';
             unset($_SESSION['archive_success'], $_SESSION['archive_error']);
             
-            // Load detail view
-           
         } catch (Exception $e) {
-            error_log("Error in ArchiveController::viewStudentFile: " . $e->getMessage());
+            $this->logger->error("Erreur dans ArchiveController::viewStudentFile: " . $e->getMessage());
             $_SESSION['archive_error'] = "Une erreur est survenue lors du chargement du dossier étudiant.";
             header('Location: ?page=admin_historique');
             exit;
@@ -117,17 +171,21 @@ class ArchiveController
     }
     
     /**
-     * Update student file
+     * Action : Mettre à jour le dossier étudiant (UPDATE)
      */
-    public function updateStudentFile()
+    public function updateStudentFile(): void
     {
+        if (!$this->checkPermission('update')) {
+            return;
+        }
+
         try {
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 header('Location: ?page=admin_historique');
                 exit;
             }
             
-            $numEtu = $_POST['num_etu'] ?? null;
+            $numEtu = $this->security->sanitizeInput($_POST['num_etu'] ?? null);
             
             if (!$numEtu) {
                 $_SESSION['archive_error'] = "Matricule étudiant manquant.";
@@ -135,54 +193,50 @@ class ArchiveController
                 exit;
             }
             
-            // Prepare update data
+            // Préparation des données de mise à jour
             $updateData = [];
             
-            // Basic info
             if (isset($_POST['nom_etu'])) {
-                $updateData['nom_etu'] = $_POST['nom_etu'];
+                $updateData['nom_etu'] = $this->security->sanitizeInput($_POST['nom_etu']);
             }
             if (isset($_POST['prenom_etu'])) {
-                $updateData['prenom_etu'] = $_POST['prenom_etu'];
+                $updateData['prenom_etu'] = $this->security->sanitizeInput($_POST['prenom_etu']);
             }
             if (isset($_POST['email_etu'])) {
-                $updateData['email_etu'] = $_POST['email_etu'];
+                $updateData['email_etu'] = $this->security->sanitizeInput($_POST['email_etu']);
             }
             
-            // Rapport info
             if (isset($_POST['theme_rapport']) || isset($_POST['statut_rapport'])) {
                 $updateData['rapport'] = [];
                 if (isset($_POST['theme_rapport'])) {
-                    $updateData['rapport']['theme_rapport'] = $_POST['theme_rapport'];
+                    $updateData['rapport']['theme_rapport'] = $this->security->sanitizeInput($_POST['theme_rapport']);
                 }
                 if (isset($_POST['statut_rapport'])) {
-                    $updateData['rapport']['statut_rapport'] = $_POST['statut_rapport'];
+                    $updateData['rapport']['statut_rapport'] = $this->security->sanitizeInput($_POST['statut_rapport']);
                 }
             }
             
-            // Update the student
             $success = $this->archive->updateStudentInfo($numEtu, $updateData);
             
             if ($success) {
-                // Log the action
-                if (isset($_SESSION['id_utilisateur'])) {
-                    $this->auditLog->logModification(
-                        $_SESSION['id_utilisateur'],
-                        'Archive Étudiant',
-                        'Succès'
-                    );
-                }
+                $this->auditLog->logModification(
+                    $_SESSION['id_utilisateur'] ?? 0,
+                    'Archive Étudiant',
+                    'Succès'
+                );
                 
                 $_SESSION['archive_success'] = "Dossier étudiant mis à jour avec succès.";
+                $this->logger->info("Dossier étudiant archivé mis à jour : $numEtu");
             } else {
                 $_SESSION['archive_error'] = "Erreur lors de la mise à jour du dossier.";
+                $this->auditLog->logModification($_SESSION['id_utilisateur'] ?? 0, 'Archive Étudiant', 'Erreur');
             }
             
             header("Location: ?page=admin_historique&action=view_student&num_etu=$numEtu");
             exit;
             
         } catch (Exception $e) {
-            error_log("Error in ArchiveController::updateStudentFile: " . $e->getMessage());
+            $this->logger->error("Erreur dans ArchiveController::updateStudentFile: " . $e->getMessage());
             $_SESSION['archive_error'] = "Une erreur est survenue lors de la mise à jour.";
             header('Location: ?page=admin_historique');
             exit;
@@ -190,17 +244,20 @@ class ArchiveController
     }
     
     /**
-     * Handle file import
+     * Action : Importer des données d'archive (CREATE)
      */
-    public function importArchive()
+    public function importArchive(): void
     {
+        if (!$this->checkPermission('create')) {
+            return;
+        }
+
         try {
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 header('Location: ?page=admin_historique');
                 exit;
             }
             
-            // Check if file was uploaded
             if (!isset($_FILES['archive_file']) || $_FILES['archive_file']['error'] !== UPLOAD_ERR_OK) {
                 $_SESSION['archive_error'] = "Aucun fichier uploadé ou erreur lors de l'upload.";
                 header('Location: ?page=admin_historique');
@@ -212,61 +269,56 @@ class ArchiveController
             $fileTmpPath = $file['tmp_name'];
             $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
             
-            // Validate file type
-            $allowedExtensions = ['csv', 'xlsx', 'xls'];
-            if (!in_array($fileExtension, $allowedExtensions)) {
+            if (!in_array($fileExtension, ['csv', 'xlsx', 'xls'])) {
                 $_SESSION['archive_error'] = "Type de fichier non supporté. Veuillez utiliser CSV, XLS ou XLSX.";
                 header('Location: ?page=admin_historique');
                 exit;
             }
             
-            // For now, only CSV is fully supported
             if ($fileExtension !== 'csv') {
-                $_SESSION['archive_error'] = "Pour le moment, seuls les fichiers CSV sont supportés. Veuillez convertir votre fichier Excel en CSV.";
+                $_SESSION['archive_error'] = "Pour le moment, seuls les fichiers CSV sont supportés.";
                 header('Location: ?page=admin_historique');
                 exit;
             }
             
-            // Process the import
             $success = $this->importService->importFile($fileTmpPath, $fileExtension);
-            
             $summary = $this->importService->getSummary();
             
-            // Log the import
-            if (isset($_SESSION['id_utilisateur'])) {
-                $this->auditLog->logAction(
-                    $_SESSION['id_utilisateur'],
-                    'Import',
-                    'Archive',
-                    $summary['total_errors'] > 0 ? 'Succès' : 'Succès'
-                );
-            }
+            $this->auditLog->logAction(
+                $_SESSION['id_utilisateur'] ?? 0,
+                'Import',
+                'Archive',
+                'Succès'
+            );
             
-            // Store results in session
             $_SESSION['import_summary'] = $summary;
             
             if ($summary['total_errors'] > 0) {
-                $_SESSION['archive_error'] = "Import terminé avec {$summary['total_errors']} erreur(s). Consultez les détails ci-dessous.";
+                $_SESSION['archive_error'] = "Import terminé avec " . $summary['total_errors'] . " erreur(s).";
             } else {
-                $_SESSION['archive_success'] = "Import réussi! {$summary['total_success']} enregistrement(s) importé(s).";
+                $_SESSION['archive_success'] = "Import réussi! " . $summary['total_success'] . " enregistrement(s) importé(s).";
             }
             
             header('Location: ?page=admin_historique&action=import_result');
             exit;
             
         } catch (Exception $e) {
-            error_log("Error in ArchiveController::importArchive: " . $e->getMessage());
-            $_SESSION['archive_error'] = "Une erreur est survenue lors de l'import: " . $e->getMessage();
+            $this->logger->error("Erreur dans ArchiveController::importArchive: " . $e->getMessage());
+            $_SESSION['archive_error'] = "Une erreur est survenue lors de l'import.";
             header('Location: ?page=admin_historique');
             exit;
         }
     }
     
     /**
-     * Display import results
+     * Action : Afficher les résultats de l'import (READ)
      */
-    public function showImportResult()
+    public function showImportResult(): void
     {
+        if (!$this->checkPermission('read')) {
+            return;
+        }
+
         $summary = $_SESSION['import_summary'] ?? null;
         
         if (!$summary) {
@@ -278,20 +330,21 @@ class ArchiveController
         $GLOBALS['messageSuccess'] = $_SESSION['archive_success'] ?? '';
         $GLOBALS['messageErreur'] = $_SESSION['archive_error'] ?? '';
         
-        // Clear the session data after displaying
         unset($_SESSION['import_summary'], $_SESSION['archive_success'], $_SESSION['archive_error']);
-        
-        // Load result view
     }
     
     /**
-     * Export history data (future enhancement)
+     * Action : Exporter les données de l'historique (READ)
      */
-    public function exportHistory()
+    public function exportHistory(): void
     {
-        // TODO: Implement export functionality
+        if (!$this->checkPermission('read')) {
+            return;
+        }
+
         $_SESSION['archive_error'] = "Fonctionnalité d'export non encore implémentée.";
         header('Location: ?page=admin_historique');
         exit;
     }
 }
+

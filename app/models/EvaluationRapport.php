@@ -1,34 +1,43 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
 
-class EvaluationRapport {
-    
+namespace App\Models;
+
+use PDO;
+use Psr\Log\LoggerInterface;
+
+class EvaluationRapport
+{
     private $pdo;
-    
-    public function __construct($pdo = null) {
-        $this->pdo = $pdo ?: Database::getConnection();
+    private $logger;
+
+    public function __construct(PDO $pdo, LoggerInterface $logger)
+    {
+        $this->pdo = $pdo;
+        $this->logger = $logger;
     }
-    
+
     /**
      * Ajoute une évaluation pour un rapport
      */
-    public function ajouterEvaluation($id_rapport, $id_evaluateur, $decision, $commentaire) {
+    public function ajouterEvaluation($id_rapport, $id_evaluateur, $decision, $commentaire)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 INSERT INTO evaluations_rapports (id_rapport, id_evaluateur, decision_evaluation, commentaire, date_evaluation)
                 VALUES (?, ?, ?, ?, NOW())
             ");
             return $stmt->execute([$id_rapport, $id_evaluateur, $decision, $commentaire]);
-        } catch (PDOException $e) {
-            error_log("Erreur ajout évaluation rapport: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur ajout évaluation rapport: " . $e->getMessage());
             return false;
         }
     }
-    
+
     /**
      * Met à jour une évaluation existante
      */
-    public function mettreAJourEvaluation($id_evaluation, $decision, $commentaire) {
+    public function mettreAJourEvaluation($id_evaluation, $decision, $commentaire)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 UPDATE evaluations_rapports 
@@ -36,16 +45,17 @@ class EvaluationRapport {
                 WHERE id_evaluation = ?
             ");
             return $stmt->execute([$decision, $commentaire, $id_evaluation]);
-        } catch (PDOException $e) {
-            error_log("Erreur mise à jour évaluation rapport: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur mise à jour évaluation rapport: " . $e->getMessage());
             return false;
         }
     }
-    
+
     /**
      * Vérifie si un évaluateur a déjà évalué un rapport
      */
-    public function evaluationExiste($id_rapport, $id_evaluateur) {
+    public function evaluationExiste($id_rapport, $id_evaluateur)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT id_evaluation FROM evaluations_rapports 
@@ -53,16 +63,17 @@ class EvaluationRapport {
             ");
             $stmt->execute([$id_rapport, $id_evaluateur]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Erreur vérification évaluation: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur vérification évaluation: " . $e->getMessage());
             return false;
         }
     }
-    
+
     /**
      * Récupère toutes les évaluations d'un rapport
      */
-    public function getEvaluationsRapport($id_rapport) {
+    public function getEvaluationsRapport($id_rapport)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT e.*, 
@@ -76,16 +87,17 @@ class EvaluationRapport {
             ");
             $stmt->execute([$id_rapport]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Erreur récupération évaluations rapport: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur récupération évaluations rapport: " . $e->getMessage());
             return [];
         }
     }
-    
+
     /**
      * Récupère le statut des votes pour un rapport
      */
-    public function getStatutVotes($id_rapport, $nombreMembresCommission = 4) {
+    public function getStatutVotes($id_rapport, $nombreMembresCommission = 4)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
@@ -97,11 +109,11 @@ class EvaluationRapport {
             ");
             $stmt->execute([$id_rapport]);
             $resultats = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             $totalVotes = $resultats['total_votes'];
             $votesValider = $resultats['votes_valider'];
             $votesRejeter = $resultats['votes_rejeter'];
-            
+
             // Si tous les membres ont voté
             if ($totalVotes >= $nombreMembresCommission) {
                 // Si tous ont validé
@@ -123,7 +135,7 @@ class EvaluationRapport {
                     ];
                 }
             }
-            
+
             // En cours de vote
             return [
                 'statut' => 'en_cours',
@@ -134,8 +146,8 @@ class EvaluationRapport {
                 'total_votes' => $totalVotes,
                 'total_membres' => $nombreMembresCommission
             ];
-        } catch (PDOException $e) {
-            error_log("Erreur récupération statut votes: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur récupération statut votes: " . $e->getMessage());
             return [
                 'statut' => 'erreur',
                 'message' => 'Erreur lors de la récupération du statut',
@@ -143,11 +155,12 @@ class EvaluationRapport {
             ];
         }
     }
-    
+
     /**
      * Récupère les rapports avec leur statut de vote
      */
-    public function getRapportsAvecStatutVote() {
+    public function getRapportsAvecStatutVote()
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
@@ -177,9 +190,9 @@ class EvaluationRapport {
             ");
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Erreur récupération rapports avec statut: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            $this->logger->error("Erreur récupération rapports avec statut: " . $e->getMessage());
             return [];
         }
     }
-} 
+}

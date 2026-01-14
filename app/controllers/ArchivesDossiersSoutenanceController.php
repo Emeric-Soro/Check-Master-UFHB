@@ -1,58 +1,133 @@
 <?php
 
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../models/AuditLog.php';
+namespace App\Controllers;
+
+use PDO;
+use App\Models\AuditLog;
+use App\Utils\SecurityUtils;
+use Psr\Log\LoggerInterface;
+use Exception;
 
 /**
- * Contrôleur des archives des dossiers de soutenance
+ * ArchivesDossiersSoutenanceController - Liste des mémoires archivés
  * 
  * Ce contrôleur gère l'affichage des archives des rapports validés/rejetés :
  * - Liste des rapports archivés
  * - Détails des rapports
  * - Filtres et recherche
  * - Statistiques des archives
+ * 
+ * @package App\Controllers
  */
 class ArchivesDossiersSoutenanceController
 {
-    private $db;
-    private $auditLog;
+    private PDO $pdo;
+    private AuditLog $auditLog;
+    private SecurityUtils $security;
+    private LoggerInterface $logger;
 
-    public function __construct()
+    /**
+     * Constructeur avec Injection de Dépendances
+     */
+    public function __construct(
+        PDO $pdo,
+        AuditLog $auditLog,
+        SecurityUtils $security,
+        LoggerInterface $logger
+    ) {
+        $this->pdo = $pdo;
+        $this->auditLog = $auditLog;
+        $this->security = $security;
+        $this->logger = $logger;
+    }
+
+    /**
+     * Vérification centralisée des permissions
+     */
+    private function checkPermission(string $action): bool
     {
-        $this->db = Database::getConnection();
-        $this->auditLog = new AuditLog($this->db);
+        $idGroupe = $_SESSION['id_GU'] ?? 0;
+        
+        if (!$this->security->can($idGroupe, 'archives_dossiers_soutenance', $action)) {
+            $this->logger->warning(
+                "Accès refusé ({$action}) pour user " . ($_SESSION['id_utilisateur'] ?? 'inconnu') . " sur archives_dossiers_soutenance"
+            );
+            
+            $GLOBALS['messageErreur'] = "Vous n'avez pas les droits nécessaires pour effectuer cette action.";
+            
+            if (file_exists(__DIR__ . '/../../ressources/views/errors/403.php')) {
+                http_response_code(403);
+                require __DIR__ . '/../../ressources/views/errors/403.php';
+            }
+            
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
+     * Action : Afficher la page des archives (READ)
+     */
+    public function index(): void
+    {
+        if (!$this->checkPermission('read')) {
+            return;
+        }
+
+        try {
+            // Récupérer les filtres depuis la requête
+            $filtres = [
+                'statut' => $this->security->sanitizeInput($_GET['statut'] ?? ''),
+                'annee' => $this->security->sanitizeInput($_GET['annee'] ?? ''),
+                'etudiant' => $this->security->sanitizeInput($_GET['etudiant'] ?? ''),
+                'date_debut' => $this->security->sanitizeInput($_GET['date_debut'] ?? ''),
+                'date_fin' => $this->security->sanitizeInput($_GET['date_fin'] ?? '')
+            ];
+
+            $archives = [
+                'rapports_archives' => $this->getRapportsArchives($filtres),
+                'statistiques' => $this->getStatistiquesArchives(),
+                'filtres' => $filtres
+            ];
+            
+            $GLOBALS['archives'] = $archives;
+            
+        } catch (Exception $e) {
+            $this->logger->error("Erreur dans ArchivesDossiersSoutenanceController::index: " . $e->getMessage());
+            $GLOBALS['archives'] = [
+                'rapports_archives' => [],
+                'statistiques' => [],
+                'filtres' => $filtres ?? []
+            ];
+            $GLOBALS['messageErreur'] = "Erreur lors du chargement des archives.";
+        }
     }
 
     /**
      * Récupère les rapports archivés avec filtres
-     * @param array $filtres
-     * @return array
      */
-    private function getRapportsArchives($filtres = [])
+    private function getRapportsArchives(array $filtres = []): array
     {
         try {
             $whereConditions = [];
             $params = [];
 
-            // Filtre par statut
             if (!empty($filtres['statut'])) {
                 $whereConditions[] = "v.decision_validation = :statut";
                 $params['statut'] = $filtres['statut'];
             }
 
-            // Filtre par année
             if (!empty($filtres['annee'])) {
                 $whereConditions[] = "YEAR(v.date_validation) = :annee";
                 $params['annee'] = (int)$filtres['annee'];
             }
 
-            // Filtre par étudiant
             if (!empty($filtres['etudiant'])) {
                 $whereConditions[] = "(e.nom_etu LIKE :etudiant OR e.prenom_etu LIKE :etudiant OR e.num_etu LIKE :etudiant)";
                 $params['etudiant'] = '%' . $filtres['etudiant'] . '%';
             }
 
-            // Filtre par date
             if (!empty($filtres['date_debut'])) {
                 $whereConditions[] = "v.date_validation >= :date_debut";
                 $params['date_debut'] = $filtres['date_debut'];
@@ -85,79 +160,67 @@ class ArchivesDossiersSoutenanceController
                       $whereClause
                       ORDER BY v.date_validation DESC";
 
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             foreach ($params as $key => $value) {
                 $stmt->bindValue(":$key", $value);
             }
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
-            error_log("Erreur getRapportsArchives: " . $e->getMessage());
+            $this->logger->error("Erreur getRapportsArchives: " . $e->getMessage());
             return [];
         }
     }
 
     /**
      * Récupère les statistiques des archives
-     * @return array
      */
-    private function getStatistiquesArchives()
+    private function getStatistiquesArchives(): array
     {
         try {
             $stats = [];
 
-            // Nombre total d'archives
             $query = "SELECT COUNT(*) as total FROM valider";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $stats['total_archives'] = $result['total'] ?? 0;
 
-            // Répartition par statut
-            $queryStatuts = "SELECT 
-                              decision_validation as statut,
-                              COUNT(*) as nombre
-                            FROM valider 
-                            GROUP BY decision_validation";
-            $stmtStatuts = $this->db->prepare($queryStatuts);
+            $queryStatuts = "SELECT decision_validation as statut, COUNT(*) as nombre FROM valider GROUP BY decision_validation";
+            $stmtStatuts = $this->pdo->prepare($queryStatuts);
             $stmtStatuts->execute();
             $stats['repartition_statuts'] = $stmtStatuts->fetchAll(PDO::FETCH_ASSOC);
 
-            // Répartition par année
-            $query = "SELECT 
-                        YEAR(date_validation) as annee,
-                        COUNT(*) as nombre
-                      FROM valider 
-                      GROUP BY YEAR(date_validation)
-                      ORDER BY annee DESC";
-            $stmt = $this->db->prepare($query);
+            $query = "SELECT YEAR(date_validation) as annee, COUNT(*) as nombre FROM valider GROUP BY YEAR(date_validation) ORDER BY annee DESC";
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute();
             $stats['repartition_annees'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Temps moyen de traitement
             $queryTemps = "SELECT AVG(DATEDIFF(v.date_validation, r.date_rapport)) as temps_moyen
                           FROM valider v
                           LEFT JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
                           WHERE r.date_rapport IS NOT NULL";
-            $stmtTemps = $this->db->prepare($queryTemps);
+            $stmtTemps = $this->pdo->prepare($queryTemps);
             $stmtTemps->execute();
             $resultTemps = $stmtTemps->fetch(PDO::FETCH_ASSOC);
-            $stats['temps_moyen_traitement'] = round($resultTemps['temps_moyen'] ?? 0, 1);
+            $stats['temps_moyen_traitement'] = round((float)($resultTemps['temps_moyen'] ?? 0), 1);
 
             return $stats;
         } catch (Exception $e) {
-            error_log("Erreur getStatistiquesArchives: " . $e->getMessage());
+            $this->logger->error("Erreur getStatistiquesArchives: " . $e->getMessage());
             return [];
         }
     }
 
     /**
-     * Récupère les détails d'un rapport spécifique
-     * @param int $idRapport
-     * @return array
+     * Récupère les détails d'un rapport spécifique (READ)
      */
-    public function getRapportDetails($idRapport)
+    public function getRapportDetails(int $idRapport): ?array
     {
+        if (!$this->checkPermission('read')) {
+            return null;
+        }
+
         try {
             $query = "SELECT 
                         v.*,
@@ -173,48 +236,14 @@ class ArchivesDossiersSoutenanceController
                       LEFT JOIN etudiants e ON r.num_etu = e.num_etu
                       WHERE v.id_rapport = :id";
             
-            $stmt = $this->db->prepare($query);
-            $stmt->bindValue(':id', $idRapport);
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindValue(':id', $idRapport, PDO::PARAM_INT);
             $stmt->execute();
-            return $stmt->fetch(PDO::FETCH_ASSOC);
+            return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
         } catch (Exception $e) {
-            error_log("Erreur getRapportDetails: " . $e->getMessage());
+            $this->logger->error("Erreur getRapportDetails: " . $e->getMessage());
             return null;
         }
     }
-
-    /**
-     * Affiche la page des archives
-     */
-    public function index()
-    {
-        try {
-            // Récupérer les filtres depuis la requête
-            $filtres = [
-                'statut' => $_GET['statut'] ?? '',
-                'annee' => $_GET['annee'] ?? '',
-                'etudiant' => $_GET['etudiant'] ?? '',
-                'date_debut' => $_GET['date_debut'] ?? '',
-                'date_fin' => $_GET['date_fin'] ?? ''
-            ];
-
-            $archives = [
-                'rapports_archives' => $this->getRapportsArchives($filtres),
-                'statistiques' => $this->getStatistiquesArchives(),
-                'filtres' => $filtres
-            ];
-            
-            // Passer les données à la vue
-            $GLOBALS['archives'] = $archives;
-            
-        } catch (Exception $e) {
-            error_log("Erreur dans index: " . $e->getMessage());
-            // En cas d'erreur, utiliser des données par défaut
-            $GLOBALS['archives'] = [
-                'rapports_archives' => [],
-                'statistiques' => [],
-                'filtres' => []
-            ];
-        }
-    }
-} 
+}
+ 

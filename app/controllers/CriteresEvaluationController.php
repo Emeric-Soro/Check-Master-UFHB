@@ -1,78 +1,127 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
 
+namespace App\Controllers;
+
+use PDO;
+use App\Models\CritereEvaluation;
+use App\Models\AnneeAcademique;
+use App\Utils\SecurityUtils;
+use Psr\Log\LoggerInterface;
+use Exception;
+
+/**
+ * CriteresEvaluationController - Configuration des barèmes de notation
+ * 
+ * @package App\Controllers
+ */
 class CriteresEvaluationController
 {
+    private PDO $pdo;
+    private CritereEvaluation $critereModel;
+    private AnneeAcademique $anneeAcadModel;
+    private SecurityUtils $security;
+    private LoggerInterface $logger;
 
-    public function __construct()
-    {
-        // La classe Database utilise des méthodes statiques
+    /**
+     * Constructeur avec Injection de Dépendances
+     */
+    public function __construct(
+        PDO $pdo,
+        CritereEvaluation $critereModel,
+        AnneeAcademique $anneeAcadModel,
+        SecurityUtils $security,
+        LoggerInterface $logger
+    ) {
+        $this->pdo = $pdo;
+        $this->critereModel = $critereModel;
+        $this->anneeAcadModel = $anneeAcadModel;
+        $this->security = $security;
+        $this->logger = $logger;
     }
 
     /**
-     * Afficher la page principale (pas d'action spécifique)
+     * Vérification centralisée des permissions
      */
-    public function index()
+    private function checkPermission(string $action): bool
     {
-        // La vue sera incluse par le layout principal
-        // Pas de logique particulière nécessaire ici
+        $idGroupe = $_SESSION['id_GU'] ?? 0;
+        
+        if (!$this->security->can($idGroupe, 'parametres_generaux', $action)) {
+            $this->logger->warning(
+                "Accès refusé ({$action}) pour user " . ($_SESSION['id_utilisateur'] ?? 'inconnu') . " sur parametres_generaux"
+            );
+            
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Accès refusé."]);
+            } else {
+                $GLOBALS['messageErreur'] = "Vous n'avez pas les droits nécessaires.";
+                if (file_exists(__DIR__ . '/../../ressources/views/errors/403.php')) {
+                    http_response_code(403);
+                    require __DIR__ . '/../../ressources/views/errors/403.php';
+                }
+            }
+            
+            return false;
+        }
+        
+        return true;
     }
 
     /**
-     * Récupérer toutes les années académiques
+     * Action : Afficher la page principale (READ)
      */
-    public function getAnneesAcademiques()
+    public function index(): void
     {
-        try {
-            $pdo = Database::getConnection();
-            $stmt = $pdo->prepare("SELECT id_annee_acad as id, CONCAT(YEAR(date_deb), '-', YEAR(date_fin)) as lib FROM annee_academique ORDER BY id_annee_acad DESC");
-            $stmt->execute();
-            $annees = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'data' => $annees
-            ]);
-        } catch (Exception $e) {
-            header('Content-Type: application/json');
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors du chargement des années académiques : ' . $e->getMessage()
-            ]);
+        if (!$this->checkPermission('read')) {
+            return;
         }
     }
 
     /**
-     * Récupérer tous les critères d'évaluation avec leurs barèmes
+     * Action : Récupérer toutes les années académiques (API/READ)
      */
-    public function getCriteres()
+    public function getAnneesAcademiques(): void
     {
+        if (!$this->checkPermission('read')) {
+            return;
+        }
+
         try {
-            $pdo = Database::getConnection();
+            $annees = $this->anneeAcadModel->getAllAnneeAcademiques();
+            $data = array_map(function($a) {
+                return [
+                    'id' => $a['id_annee_acad'],
+                    'lib' => $a['date_deb'] . ' - ' . $a['date_fin']
+                ];
+            }, $annees);
 
-            // Récupérer les critères avec leurs barèmes
-            $stmt = $pdo->prepare("
-                SELECT 
-                    ce.id_critere as id,
-                    ce.lib_critere as libelle,
-                    c.id_annee_acad as annee_id,
-                    CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) as annee_lib,
-                    c.bareme
-                FROM critere_evaluation ce
-                LEFT JOIN correspondre c ON ce.id_critere = c.id_critere
-                LEFT JOIN annee_academique aa ON c.id_annee_acad = aa.id_annee_acad
-                ORDER BY ce.id_critere, c.id_annee_acad DESC
-            ");
-            $stmt->execute();
-            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'data' => $data]);
+        } catch (Exception $e) {
+            $this->logger->error("Erreur getAnneesAcademiques: " . $e->getMessage());
+            header('Content-Type: application/json');
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Erreur lors du chargement.']);
+        }
+    }
 
-            // Grouper les résultats par critère
+    /**
+     * Action : Récupérer tous les critères d'évaluation (API/READ)
+     */
+    public function getCriteres(): void
+    {
+        if (!$this->checkPermission('read')) {
+            return;
+        }
+
+        try {
+            $results = $this->critereModel->getAllCriteres();
+
             $criteresData = [];
             foreach ($results as $row) {
                 $critereId = $row['id'];
-
                 if (!isset($criteresData[$critereId])) {
                     $criteresData[$critereId] = [
                         'id' => $critereId,
@@ -80,8 +129,6 @@ class CriteresEvaluationController
                         'baremes' => []
                     ];
                 }
-
-                // Ajouter le barème s'il existe
                 if ($row['annee_id'] && $row['bareme'] !== null) {
                     $criteresData[$critereId]['baremes'][] = [
                         'annee_id' => $row['annee_id'],
@@ -91,285 +138,161 @@ class CriteresEvaluationController
                 }
             }
 
-            // Convertir en array indexé
-            $criteresArray = array_values($criteresData);
-
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'data' => $criteresArray
-            ]);
+            echo json_encode(['success' => true, 'data' => array_values($criteresData)]);
         } catch (Exception $e) {
+            $this->logger->error("Erreur getCriteres: " . $e->getMessage());
             header('Content-Type: application/json');
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors du chargement des critères : ' . $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Erreur lors du chargement.']);
         }
     }
 
     /**
-     * Créer un nouveau critère d'évaluation
+     * Action : Créer un critère (CREATE)
      */
-    public function createCritere()
+    public function createCritere(): void
     {
+        if (!$this->checkPermission('create')) {
+            return;
+        }
+
         try {
             $input = json_decode(file_get_contents('php://input'), true);
 
-            // Debug : log des données reçues
-            error_log("Données reçues pour création critère: " . print_r($input, true));
-
             if (!isset($input['libelle']) || empty(trim($input['libelle']))) {
-                throw new Exception('Le libellé du critère est requis');
+                throw new Exception('Libellé requis');
             }
-
             if (!isset($input['baremes']) || empty($input['baremes'])) {
                 throw new Exception('Au moins un barème est requis');
             }
 
-            $pdo = Database::getConnection();
+            $this->validateBaremesTotaux($input['baremes'], null);
 
-            // Validation des barèmes - vérifier que le total par année ne dépasse pas 20
-            $this->validateBaremesTotaux($pdo, $input['baremes'], null);
-
-            $pdo->beginTransaction();
-
-            // Insérer le critère
-            $stmt = $pdo->prepare("INSERT INTO critere_evaluation (lib_critere) VALUES (?)");
-            $stmt->execute([trim($input['libelle'])]);
-            $critereId = $pdo->lastInsertId();
-
-            // Insérer les barèmes
-            $stmtBareme = $pdo->prepare("INSERT INTO correspondre (id_critere, id_annee_acad, bareme) VALUES (?, ?, ?)");
+            $this->pdo->beginTransaction();
+            $critereId = $this->critereModel->createCritere($this->security->sanitizeInput($input['libelle']));
 
             foreach ($input['baremes'] as $bareme) {
                 if (!empty($bareme['annee_id']) && !empty($bareme['bareme'])) {
-                    $stmtBareme->execute([
-                        $critereId,
-                        $bareme['annee_id'],
-                        (int) $bareme['bareme']
-                    ]);
+                    $this->critereModel->addBareme($critereId, $bareme['annee_id'], (int)$bareme['bareme']);
                 }
             }
-
-            $pdo->commit();
+            $this->pdo->commit();
 
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Critère créé avec succès',
-                'data' => ['id' => $critereId]
-            ]);
+            echo json_encode(['success' => true, 'message' => 'Critère créé avec succès']);
         } catch (Exception $e) {
-            if (isset($pdo)) {
-                $pdo->rollBack();
-            }
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            $this->logger->error("Erreur createCritere: " . $e->getMessage());
             header('Content-Type: application/json');
             http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors de la création : ' . $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 
     /**
-     * Mettre à jour un critère d'évaluation
+     * Action : Mettre à jour un critère (UPDATE)
      */
-    public function updateCritere()
+    public function updateCritere(): void
     {
+        if (!$this->checkPermission('update')) {
+            return;
+        }
+
         try {
-            // Lire les données depuis POST ou JSON selon le Content-Type
-            $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
-            if (strpos($contentType, 'application/json') !== false) {
-                $input = json_decode(file_get_contents('php://input'), true);
-            } else {
-                $input = $_POST;
+            $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+
+            if (empty($input['id']) || empty($input['libelle'])) {
+                throw new Exception('Données manquantes');
             }
 
-            if (!isset($input['id']) || empty($input['id'])) {
-                throw new Exception('ID du critère requis');
-            }
+            $this->validateBaremesTotaux($input['baremes'], $input['id']);
 
-            if (!isset($input['libelle']) || empty(trim($input['libelle']))) {
-                throw new Exception('Le libellé du critère est requis');
-            }
-
-            if (!isset($input['baremes']) || empty($input['baremes'])) {
-                throw new Exception('Au moins un barème est requis');
-            }
-
-            $pdo = Database::getConnection();
-
-            // Validation des barèmes - vérifier que le total par année ne dépasse pas 20 (en excluant le critère actuel)
-            $this->validateBaremesTotaux($pdo, $input['baremes'], $input['id']);
-
-            $pdo->beginTransaction();
-
-            // Mettre à jour le critère
-            $stmt = $pdo->prepare("UPDATE critere_evaluation SET lib_critere = ? WHERE id_critere = ?");
-            $stmt->execute([trim($input['libelle']), $input['id']]);
-
-            // Supprimer les anciens barèmes
-            $stmtDelete = $pdo->prepare("DELETE FROM correspondre WHERE id_critere = ?");
-            $stmtDelete->execute([$input['id']]);
-
-            // Insérer les nouveaux barèmes
-            $stmtBareme = $pdo->prepare("INSERT INTO correspondre (id_critere, id_annee_acad, bareme) VALUES (?, ?, ?)");
+            $this->pdo->beginTransaction();
+            $this->critereModel->updateCritere((int)$input['id'], $this->security->sanitizeInput($input['libelle']));
+            $this->critereModel->deleteBaremesByCritere((int)$input['id']);
 
             foreach ($input['baremes'] as $bareme) {
                 if (!empty($bareme['annee_id']) && !empty($bareme['bareme'])) {
-                    $stmtBareme->execute([
-                        $input['id'],
-                        $bareme['annee_id'],
-                        (int) $bareme['bareme']
-                    ]);
+                    $this->critereModel->addBareme((int)$input['id'], $bareme['annee_id'], (int)$bareme['bareme']);
                 }
             }
-
-            $pdo->commit();
+            $this->pdo->commit();
 
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Critère modifié avec succès'
-            ]);
+            echo json_encode(['success' => true, 'message' => 'Critère modifié avec succès']);
         } catch (Exception $e) {
-            if (isset($pdo)) {
-                $pdo->rollBack();
-            }
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            $this->logger->error("Erreur updateCritere: " . $e->getMessage());
             header('Content-Type: application/json');
             http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors de la modification : ' . $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 
     /**
-     * Supprimer un critère d'évaluation
+     * Action : Supprimer un critère (DELETE)
      */
-    public function deleteCritere()
+    public function deleteCritere(): void
     {
+        if (!$this->checkPermission('delete')) {
+            return;
+        }
+
         try {
-            // Lire les données depuis POST ou JSON selon le Content-Type
-            $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
-            if (strpos($contentType, 'application/json') !== false) {
-                $input = json_decode(file_get_contents('php://input'), true);
-            } else {
-                $input = $_POST;
-            }
+            $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+            if (empty($input['id'])) throw new Exception('ID manquant');
 
-            if (!isset($input['id']) || empty($input['id'])) {
-                throw new Exception('ID du critère requis');
-            }
-
-            $pdo = Database::getConnection();
-            $pdo->beginTransaction();
-
-            // Vérifier si le critère existe
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM critere_evaluation WHERE id_critere = ?");
-            $stmt->execute([$input['id']]);
-            if ($stmt->fetchColumn() == 0) {
+            if (!$this->critereModel->exists((int)$input['id'])) {
                 throw new Exception('Critère non trouvé');
             }
 
-            // Supprimer les barèmes associés
-            $stmtBaremes = $pdo->prepare("DELETE FROM correspondre WHERE id_critere = ?");
-            $stmtBaremes->execute([$input['id']]);
-
-            // Supprimer le critère
-            $stmtCritere = $pdo->prepare("DELETE FROM critere_evaluation WHERE id_critere = ?");
-            $stmtCritere->execute([$input['id']]);
-
-            $pdo->commit();
+            $this->pdo->beginTransaction();
+            $this->critereModel->deleteBaremesByCritere((int)$input['id']);
+            $this->critereModel->deleteCritere((int)$input['id']);
+            $this->pdo->commit();
 
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Critère supprimé avec succès'
-            ]);
+            echo json_encode(['success' => true, 'message' => 'Critère supprimé avec succès']);
         } catch (Exception $e) {
-            if (isset($pdo)) {
-                $pdo->rollBack();
-            }
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            $this->logger->error("Erreur deleteCritere: " . $e->getMessage());
             header('Content-Type: application/json');
             http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors de la suppression : ' . $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 
     /**
-     * Valider que les totaux des barèmes par année ne dépassent pas 20 points
-     * @param PDO $pdo Connexion à la base de données
-     * @param array $nouveauxBaremes Nouveaux barèmes à valider
-     * @param int|null $critereIdExclure ID du critère à exclure (pour les modifications)
+     * Valide que le total des points par année ne dépasse pas 20.
      */
-    private function validateBaremesTotaux($pdo, $nouveauxBaremes, $critereIdExclure = null)
+    private function validateBaremesTotaux(array $nouveauxBaremes, ?int $critereIdExclure = null): void
     {
-        // Récupérer les totaux actuels par année (en excluant le critère en cours de modification si applicable)
-        $sqlExclusion = $critereIdExclure ? "AND ce.id_critere != ?" : "";
-        $sql = "
-            SELECT 
-                aa.id_annee_acad,
-                CONCAT(aa.date_deb, ' - ', aa.date_fin) as lib_annee,
-                COALESCE(SUM(c.bareme), 0) as total_actuel
-            FROM annee_academique aa
-            LEFT JOIN correspondre c ON aa.id_annee_acad = c.id_annee_acad
-            LEFT JOIN critere_evaluation ce ON c.id_critere = ce.id_critere
-            WHERE 1=1 $sqlExclusion
-            GROUP BY aa.id_annee_acad, aa.date_deb, aa.date_fin
-            ORDER BY aa.date_deb DESC
-        ";
-
-        $params = $critereIdExclure ? [$critereIdExclure] : [];
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $totauxActuels = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Créer un tableau des totaux actuels indexé par année
+        $totauxActuels = $this->critereModel->getTotauxParAnnee($critereIdExclure);
         $totauxParAnnee = [];
-        foreach ($totauxActuels as $total) {
-            $totauxParAnnee[$total['id_annee_acad']] = [
-                'total' => (float) $total['total_actuel'],
-                'lib_annee' => $total['lib_annee']
+        foreach ($totauxActuels as $t) {
+            $totauxParAnnee[$t['id_annee_acad']] = [
+                'total' => (float) $t['total_actuel'],
+                'lib_annee' => $t['lib_annee']
             ];
         }
 
-        // Calculer les nouveaux totaux avec les barèmes proposés
-        foreach ($nouveauxBaremes as $bareme) {
-            if (!empty($bareme['annee_id']) && !empty($bareme['bareme'])) {
-                $anneeId = $bareme['annee_id'];
-                $points = (float) $bareme['bareme'];
-
-                if (!isset($totauxParAnnee[$anneeId])) {
-                    // Récupérer les infos de l'année si pas encore présente
-                    $stmtAnnee = $pdo->prepare("SELECT CONCAT(date_deb, ' - ', date_fin) as lib_annee FROM annee_academique WHERE id_annee_acad = ?");
-                    $stmtAnnee->execute([$anneeId]);
-                    $anneeInfo = $stmtAnnee->fetch(PDO::FETCH_ASSOC);
-
-                    $totauxParAnnee[$anneeId] = [
-                        'total' => 0,
-                        'lib_annee' => $anneeInfo ? $anneeInfo['lib_annee'] : "Année ID $anneeId"
-                    ];
+        foreach ($nouveauxBaremes as $b) {
+            if (!empty($b['annee_id']) && !empty($b['bareme'])) {
+                $aid = $b['annee_id'];
+                if (!isset($totauxParAnnee[$aid])) {
+                    $totauxParAnnee[$aid] = ['total' => 0, 'lib_annee' => $aid];
                 }
-
-                $totauxParAnnee[$anneeId]['total'] += $points;
+                $totauxParAnnee[$aid]['total'] += (float)$b['bareme'];
             }
         }
 
-        // Vérifier les limites
-        foreach ($totauxParAnnee as $anneeId => $data) {
+        foreach ($totauxParAnnee as $data) {
             if ($data['total'] > 20) {
-                throw new Exception("Le total des points pour l'année {$data['lib_annee']} dépasse 20 points ({$data['total']} points). Veuillez ajuster les barèmes.");
+                throw new Exception("Le total des points pour l'année {$data['lib_annee']} dépasse 20 points ({$data['total']}).");
             }
         }
     }
-
 }
+
 ?>

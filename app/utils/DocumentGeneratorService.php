@@ -1,9 +1,13 @@
 <?php
 
+namespace App\Utils;
+
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use PhpOffice\PhpWord\Exception\Exception;
 use PhpOffice\PhpWord\TemplateProcessor;
+use finfo;
+use CURLFile;
 
 /**
  * DocumentGeneratorService
