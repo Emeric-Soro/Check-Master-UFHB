@@ -1,327 +1,358 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../models/EvaluationRapport.php';
-require_once __DIR__ . '/../models/Approuver.php';
 
-class ProcessusValidationController {
-    
-    private $pdo;
-    private $evaluationRapport;
-    
-    public function __construct() {
-        $this->pdo = Database::getConnection();
-        $this->evaluationRapport = new EvaluationRapport();
-    }
-    
+namespace App\Controllers;
+
+use PDO;
+use App\Models\EvaluationRapport;
+use App\Models\Valider;
+use App\Models\AuditLog;
+use App\Utils\SecurityUtils;
+use Psr\Log\LoggerInterface;
+use Exception;
+
+/**
+ * ProcessusValidationController - Synthèse des évaluations et autorisation de soutenance
+ * 
+ * Ce contrôleur gère le processus de validation :
+ * - Synthèse des évaluations des rapporteurs
+ * - Décision finale (validation/rejet)
+ * - Autorisation de soutenance
+ * 
+ * @package App\Controllers
+ */
+class ProcessusValidationController
+{
+    private PDO $pdo;
+    private EvaluationRapport $evaluationRapport;
+    private Valider $valider;
+    private AuditLog $auditLog;
+    private SecurityUtils $security;
+    private LoggerInterface $logger;
+
     /**
-     * Récupère les statistiques pour le tableau de bord
+     * Constructeur avec Injection de Dépendances
      */
-    public function getStatistiques() {
+    public function __construct(
+        PDO $pdo,
+        EvaluationRapport $evaluationRapport,
+        Valider $valider,
+        AuditLog $auditLog,
+        SecurityUtils $security,
+        LoggerInterface $logger
+    ) {
+        $this->pdo = $pdo;
+        $this->evaluationRapport = $evaluationRapport;
+        $this->valider = $valider;
+        $this->auditLog = $auditLog;
+        $this->security = $security;
+        $this->logger = $logger;
+    }
+
+    /**
+     * Vérification centralisée des permissions
+     */
+    private function checkPermission(string $action): bool
+    {
+        $idGroupe = $_SESSION['id_GU'] ?? 0;
+        
+        if (!$this->security->can($idGroupe, 'processus_validation', $action)) {
+            $this->logger->warning(
+                "Accès refusé ({$action}) pour user " . ($_SESSION['id_utilisateur'] ?? 'inconnu') . " sur processus_validation"
+            );
+            
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Accès refusé."]);
+            } else {
+                $GLOBALS['messageErreur'] = "Vous n'avez pas les droits nécessaires.";
+                if (file_exists(__DIR__ . '/../../ressources/views/errors/403.php')) {
+                    http_response_code(403);
+                    require __DIR__ . '/../../ressources/views/errors/403.php';
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Action : Afficher la page de validation (READ)
+     */
+    public function index(): void
+    {
+        if (!$this->checkPermission('read')) {
+            return;
+        }
+
         try {
-            // Total des rapports approuvés par la chargée de communication
-            $stmt = $this->pdo->prepare("
-                SELECT COUNT(DISTINCT a.id_rapport) as total_rapports
-                FROM approuver a
-                WHERE a.decision = 'approuve'
-            ");
-            $stmt->execute();
-            $totalRapports = $stmt->fetch(PDO::FETCH_ASSOC)['total_rapports'];
-            
-            // Rapports en cours d'évaluation (approuvés mais pas encore finalisés)
-            $stmt = $this->pdo->prepare("
-                SELECT COUNT(DISTINCT a.id_rapport) as en_cours
-                FROM approuver a
-                LEFT JOIN valider v ON a.id_rapport = v.id_rapport
-                WHERE a.decision = 'approuve' AND v.id_rapport IS NULL
-            ");
-            $stmt->execute();
-            $enCours = $stmt->fetch(PDO::FETCH_ASSOC)['en_cours'];
-            
-            // Rapports validés par la commission
-            $stmt = $this->pdo->prepare("
-                SELECT COUNT(DISTINCT v.id_rapport) as valides
-                FROM valider v
-                WHERE v.decision_validation = 'valider'
-            ");
-            $stmt->execute();
-            $valides = $stmt->fetch(PDO::FETCH_ASSOC)['valides'];
-            
-            // Rapports rejetés par la commission
-            $stmt = $this->pdo->prepare("
-                SELECT COUNT(DISTINCT v.id_rapport) as rejetes
-                FROM valider v
-                WHERE v.decision_validation = 'rejeter'
-            ");
-            $stmt->execute();
-            $rejetes = $stmt->fetch(PDO::FETCH_ASSOC)['rejetes'];
-            
-            return [
-                'total_rapports' => $totalRapports,
-                'en_cours' => $enCours,
-                'valides' => $valides,
-                'rejetes' => $rejetes
-            ];
-            
+            $GLOBALS['rapports_a_valider'] = $this->getRapportsAValider();
+            $GLOBALS['rapports_valides'] = $this->getRapportsValides();
+            $GLOBALS['rapports_rejetes'] = $this->getRapportsRejetes();
         } catch (Exception $e) {
-            error_log("Erreur récupération statistiques: " . $e->getMessage());
-            return [
-                'total_rapports' => 0,
-                'en_cours' => 0,
-                'valides' => 0,
-                'rejetes' => 0
-            ];
+            $this->logger->error("Erreur index ProcessusValidation: " . $e->getMessage());
+            $GLOBALS['messageErreur'] = "Erreur lors du chargement des données.";
         }
     }
-    
+
     /**
-     * Récupère tous les rapports approuvés avec leurs évaluations
+     * Récupère les rapports en attente de validation (approuvés mais pas encore validés)
      */
-    public function getRapportsAvecEvaluations() {
+    private function getRapportsAValider(): array
+    {
         try {
-            $stmt = $this->pdo->prepare("
+            $sql = "
+                SELECT DISTINCT
+                    r.id_rapport,
+                    r.nom_rapport,
+                    r.date_rapport,
+                    e.num_etu,
+                    e.nom_etu,
+                    e.prenom_etu,
+                    a.date_approbation,
+                    (SELECT AVG(er.note_ecrite) 
+                     FROM evaluations_rapports er 
+                     WHERE er.id_rapport = r.id_rapport) as moyenne_notes,
+                    (SELECT COUNT(*) 
+                     FROM evaluations_rapports er 
+                     WHERE er.id_rapport = r.id_rapport) as nb_evaluations
+                FROM rapport_etudiants r
+                INNER JOIN etudiants e ON r.num_etu = e.num_etu
+                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
+                LEFT JOIN valider v ON r.id_rapport = v.id_rapport
+                WHERE v.id_rapport IS NULL
+                ORDER BY a.date_approbation ASC
+            ";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            $this->logger->error("Erreur getRapportsAValider: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Récupère les rapports déjà validés
+     */
+    private function getRapportsValides(): array
+    {
+        try {
+            $sql = "
                 SELECT 
                     r.id_rapport,
                     r.nom_rapport,
-                    r.theme_rapport,
-                    r.date_rapport,
-                    r.etape_validation,
+                    e.num_etu,
                     e.nom_etu,
                     e.prenom_etu,
-                    e.email_etu,
-                    e.promotion_etu,
-                    a.date_approv,
-                    a.commentaire_approv,
-                    pa.nom_pers_admin,
-                    pa.prenom_pers_admin
-                FROM approuver a
-                JOIN rapport_etudiants r ON a.id_rapport = r.id_rapport
-                JOIN etudiants e ON r.num_etu = e.num_etu
-                JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
-                WHERE a.decision = 'approuve'
-                ORDER BY a.date_approv DESC
-            ");
-            $stmt->execute();
-            $rapports = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    v.date_validation,
+                    v.decision_validation,
+                    v.commentaire_validation,
+                    ens.nom_enseignant as validateur_nom,
+                    ens.prenom_enseignant as validateur_prenom
+                FROM rapport_etudiants r
+                INNER JOIN etudiants e ON r.num_etu = e.num_etu
+                INNER JOIN valider v ON r.id_rapport = v.id_rapport
+                LEFT JOIN enseignants ens ON v.id_enseignant = ens.id_enseignant
+                WHERE v.decision_validation = 'valider'
+                ORDER BY v.date_validation DESC
+            ";
             
-            // Pour chaque rapport, récupérer les évaluations
-            foreach ($rapports as &$rapport) {
-                $rapport['evaluations'] = $this->getEvaluationsRapport($rapport['id_rapport']);
-                $rapport['statut_vote'] = $this->getStatutVoteRapport($rapport['id_rapport']);
-            }
-            
-            return $rapports;
-            
-        } catch (Exception $e) {
-            error_log("Erreur récupération rapports: " . $e->getMessage());
-            return [];
-        }
-    }
-    
-    /**
-     * Récupère les évaluations d'un rapport spécifique
-     */
-    private function getEvaluationsRapport($id_rapport) {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT 
-                    er.id_evaluation,
-                    er.id_evaluateur,
-                    er.decision_evaluation,
-                    er.commentaire,
-                    er.date_evaluation,
-                    e.nom_enseignant,
-                    e.prenom_enseignant,
-                    e.mail_enseignant
-                FROM evaluations_rapports er
-                JOIN enseignants e ON er.id_evaluateur = e.id_enseignant
-                WHERE er.id_rapport = ?
-                ORDER BY er.date_evaluation DESC
-            ");
-            $stmt->execute([$id_rapport]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-        } catch (Exception $e) {
-            error_log("Erreur récupération évaluations: " . $e->getMessage());
-            return [];
-        }
-    }
-    
-    /**
-     * Récupère le statut de vote d'un rapport
-     */
-    private function getStatutVoteRapport($id_rapport) {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT 
-                    COUNT(*) as total_votes,
-                    COUNT(CASE WHEN decision_evaluation = 'valider' THEN 1 END) as votes_valider,
-                    COUNT(CASE WHEN decision_evaluation = 'rejeter' THEN 1 END) as votes_rejeter
-                FROM evaluations_rapports 
-                WHERE id_rapport = ?
-            ");
-            $stmt->execute([$id_rapport]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            $totalVotes = $result['total_votes'];
-            $votesValider = $result['votes_valider'];
-            $votesRejeter = $result['votes_rejeter'];
-            
-            // Vérifier si le rapport a été finalisé
-            $stmt = $this->pdo->prepare("
-                SELECT decision_validation 
-                FROM valider 
-                WHERE id_rapport = ? 
-                ORDER BY date_validation DESC 
-                LIMIT 1
-            ");
-            $stmt->execute([$id_rapport]);
-            $decisionFinale = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($decisionFinale) {
-                return [
-                    'statut' => $decisionFinale['decision_validation'] === 'valider' ? 'valide' : 'rejete',
-                    'message' => $decisionFinale['decision_validation'] === 'valider' ? 
-                        "Validé ($totalVotes/4 votes)" : "Rejeté ($totalVotes/4 votes)",
-                    'total_votes' => $totalVotes,
-                    'votes_valider' => $votesValider,
-                    'votes_rejeter' => $votesRejeter,
-                    'finalise' => true
-                ];
-            } else {
-                if ($totalVotes == 0) {
-                    return [
-                        'statut' => 'en_cours',
-                        'message' => "En attente (0/4 votes)",
-                        'total_votes' => 0,
-                        'votes_valider' => 0,
-                        'votes_rejeter' => 0,
-                        'finalise' => false
-                    ];
-                } elseif($totalVotes == 4){
-                    return [
-                        'statut' => 'pret_a_finaliser',
-                        'message' => "Prêt à finaliser (4/4 votes)",
-                        'total_votes' => 4,
-                        'votes_valider' => $votesValider,
-                        'votes_rejeter' => $votesRejeter,
-                        'finalise' => false
-                    ];
-                } else {
-                    return [
-                        'statut' => 'en_cours',
-                        'message' => "En cours ($totalVotes/4 votes)",
-                        'total_votes' => $totalVotes,
-                        'votes_valider' => $votesValider,
-                        'votes_rejeter' => $votesRejeter,
-                        'finalise' => false
-                    ];
-                }
-            }
-            
-        } catch (Exception $e) {
-            error_log("Erreur récupération statut vote: " . $e->getMessage());
-            return [
-                'statut' => 'erreur',
-                'message' => 'Erreur',
-                'total_votes' => 0,
-                'votes_valider' => 0,
-                'votes_rejeter' => 0,
-                'finalise' => false
-            ];
-        }
-    }
-    
-    /**
-     * Récupère la liste des membres de la commission
-     */
-    public function getMembresCommission() {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT 
-                    e.id_enseignant,
-                    e.nom_enseignant,
-                    e.prenom_enseignant,
-                    e.mail_enseignant
-                FROM enseignants e
-                JOIN utilisateur u ON e.mail_enseignant = u.login_utilisateur
-                WHERE u.id_GU = 11 or u.id_GU = 5
-                ORDER BY e.nom_enseignant, e.prenom_enseignant
-            ");
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
         } catch (Exception $e) {
-            error_log("Erreur récupération membres commission: " . $e->getMessage());
+            $this->logger->error("Erreur getRapportsValides: " . $e->getMessage());
             return [];
         }
     }
-    
+
     /**
-     * Récupère les données complètes pour la page
+     * Récupère les rapports rejetés
      */
-    public function getDonneesPage() {
-        return [
-            'statistiques' => $this->getStatistiques(),
-            'rapports' => $this->getRapportsAvecEvaluations(),
-            'membres_commission' => $this->getMembresCommission()
-        ];
-    }
-    
-    /**
-     * Vérifie si un ID enseignant existe dans la table enseignants
-     */
-    public function verifierIdEnseignant($id_enseignant) {
+    private function getRapportsRejetes(): array
+    {
         try {
-            $stmt = $this->pdo->prepare("SELECT COUNT(*) as count FROM enseignants WHERE id_enseignant = ?");
-            $stmt->execute([$id_enseignant]);
-            $result = $stmt->fetch();
-            return $result['count'] > 0;
+            $sql = "
+                SELECT 
+                    r.id_rapport,
+                    r.nom_rapport,
+                    e.num_etu,
+                    e.nom_etu,
+                    e.prenom_etu,
+                    v.date_validation,
+                    v.decision_validation,
+                    v.commentaire_validation,
+                    ens.nom_enseignant as validateur_nom,
+                    ens.prenom_enseignant as validateur_prenom
+                FROM rapport_etudiants r
+                INNER JOIN etudiants e ON r.num_etu = e.num_etu
+                INNER JOIN valider v ON r.id_rapport = v.id_rapport
+                LEFT JOIN enseignants ens ON v.id_enseignant = ens.id_enseignant
+                WHERE v.decision_validation = 'rejeter'
+                ORDER BY v.date_validation DESC
+            ";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
-            error_log("Erreur vérification ID enseignant: " . $e->getMessage());
-            return false;
+            $this->logger->error("Erreur getRapportsRejetes: " . $e->getMessage());
+            return [];
         }
     }
-    
+
     /**
-     * Finalise la décision pour un rapport
+     * Récupère les détails d'un rapport pour la validation (READ)
      */
-    public function finaliserRapport($id_rapport, $id_enseignant, $commentaire = null) {
+    public function getDetailsRapport(): void
+    {
+        if (!$this->checkPermission('read')) {
+            return;
+        }
+
         try {
-            // Compter le nombre de validations 'valider'
-            $stmt = $this->pdo->prepare("SELECT COUNT(*) as total FROM evaluations_rapports WHERE id_rapport = ? AND decision_evaluation = 'valider'");
-            $stmt->execute([$id_rapport]);
-            $row = $stmt->fetch();
-            $totalValide = $row['total'];
-            
-            // Décision
-            $decision = ($totalValide >= 4) ? 'valider' : 'rejeter';
-            
-            // Préparer le commentaire
-            $commentaireFinal = $commentaire ? trim($commentaire) : 'Décision finale automatique';
-            if (empty($commentaireFinal)) {
-                $commentaireFinal = 'Décision finale automatique';
+            $idRapport = (int)($_GET['id_rapport'] ?? 0);
+
+            if ($idRapport === 0) {
+                throw new Exception('ID rapport manquant');
             }
+
+            $details = $this->getRapportDetails($idRapport);
+            $evaluations = $this->getEvaluationsRapport($idRapport);
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'rapport' => $details,
+                'evaluations' => $evaluations
+            ]);
+
+        } catch (Exception $e) {
+            $this->logger->error("Erreur getDetailsRapport: " . $e->getMessage());
+            header('Content-Type: application/json');
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erreur : ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Récupère les détails d'un rapport
+     */
+    private function getRapportDetails(int $idRapport): ?array
+    {
+        $sql = "
+            SELECT 
+                r.*,
+                e.nom_etu,
+                e.prenom_etu,
+                e.email_etu
+            FROM rapport_etudiants r
+            INNER JOIN etudiants e ON r.num_etu = e.num_etu
+            WHERE r.id_rapport = ?
+        ";
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$idRapport]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    /**
+     * Récupère les évaluations d'un rapport
+     */
+    private function getEvaluationsRapport(int $idRapport): array
+    {
+        $sql = "
+            SELECT 
+                er.*,
+                ens.nom_enseignant,
+                ens.prenom_enseignant
+            FROM evaluations_rapports er
+            INNER JOIN enseignants ens ON er.id_evaluateur = ens.id_enseignant
+            WHERE er.id_rapport = ?
+            ORDER BY er.date_evaluation DESC
+        ";
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$idRapport]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Action : Valider ou rejeter un rapport (UPDATE)
+     */
+    public function validerRapport(): array
+    {
+        if (!$this->checkPermission('update')) {
+            return ['success' => false, 'message' => 'Accès refusé'];
+        }
+
+        try {
+            $idRapport = (int)($_POST['id_rapport'] ?? 0);
+            $decision = $this->security->sanitizeInput($_POST['decision'] ?? '');
+            $commentaire = $_POST['commentaire'] ?? '';
+            $idEnseignant = $this->getIdEnseignantConnecte();
+
+            if ($idRapport === 0) {
+                throw new Exception('ID rapport manquant');
+            }
+
+            if (!in_array($decision, ['valider', 'rejeter'])) {
+                throw new Exception('Décision invalide');
+            }
+
+            // Vérifier que le rapport n'est pas déjà validé
+            $checkSql = "SELECT COUNT(*) as count FROM valider WHERE id_rapport = ?";
+            $checkStmt = $this->pdo->prepare($checkSql);
+            $checkStmt->execute([$idRapport]);
+            if ($checkStmt->fetch(PDO::FETCH_ASSOC)['count'] > 0) {
+                throw new Exception('Ce rapport a déjà été traité');
+            }
+
+            // Enregistrer la validation
+            $sql = "
+                INSERT INTO valider (id_rapport, id_enseignant, decision_validation, commentaire_validation, date_validation)
+                VALUES (?, ?, ?, ?, NOW())
+            ";
             
-            // Insérer dans la table valider
-            $stmtInsert = $this->pdo->prepare("INSERT INTO valider (id_enseignant, id_rapport, date_validation, commentaire_validation, decision_validation) VALUES (?, ?, NOW(), ?, ?)");
-            $stmtInsert->execute([$id_enseignant, $id_rapport, $commentaireFinal, $decision]);
-            
-            // Mettre à jour le statut du rapport et l'étape de validation
-            $etapeValidation = ($decision === 'valider') ? 'valide' : 'desapprouve_commission';
-            $stmtUpdate = $this->pdo->prepare("UPDATE rapport_etudiants SET statut_rapport = ?, etape_validation = ? WHERE id_rapport = ?");
-            $stmtUpdate->execute([$decision, $etapeValidation, $id_rapport]);
-            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$idRapport, $idEnseignant, $decision, $commentaire]);
+
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'valider', 'Succès');
+            $this->logger->info("Rapport {$idRapport} " . ($decision === 'valider' ? 'validé' : 'rejeté'));
+
             return [
                 'success' => true,
-                'message' => 'Rapport finalisé avec succès. Décision : ' . ($decision === 'valider' ? 'Validé' : 'Rejeté') . ' (' . $totalValide . '/4 votes favorables)'
+                'message' => 'Rapport ' . ($decision === 'valider' ? 'validé' : 'rejeté') . ' avec succès'
             ];
-            
+
         } catch (Exception $e) {
-            error_log("Erreur lors de la finalisation: " . $e->getMessage());
+            $this->logger->error("Erreur validerRapport: " . $e->getMessage());
             return [
                 'success' => false,
-                'message' => 'Erreur lors de la finalisation : ' . $e->getMessage()
+                'message' => 'Erreur : ' . $e->getMessage()
             ];
         }
     }
-} 
+
+    /**
+     * Récupère l'ID de l'enseignant connecté
+     */
+    private function getIdEnseignantConnecte(): ?int
+    {
+        try {
+            $sql = "SELECT id_enseignant FROM enseignants WHERE email_ens = ?";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$_SESSION['login_utilisateur'] ?? '']);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ? (int)$result['id_enseignant'] : null;
+        } catch (Exception $e) {
+            $this->logger->error("Erreur getIdEnseignantConnecte: " . $e->getMessage());
+            return null;
+        }
+    }
+}
