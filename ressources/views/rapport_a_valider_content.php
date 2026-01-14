@@ -1,3 +1,120 @@
+<?php
+// Chargement de la configuration et connexion à la base de données
+require_once __DIR__ . '/../../app/config/database.php';
+require_once __DIR__ . '/../../app/models/RapportEtudiant.php';
+require_once __DIR__ . '/../../app/models/EvaluationRapport.php';
+require_once __DIR__ . '/../../app/models/Etudiant.php';
+require_once __DIR__ . '/../../app/models/AuditLog.php';
+
+// Connexion à la base de données
+$database = new Database();
+$pdo = $database->getConnection();
+
+// Initialisation des modèles
+$rapportModel = new RapportEtudiant($pdo);
+$evaluationModel = new EvaluationRapport($pdo);
+$etudiantModel = new Etudiant($pdo);
+$auditLog = new AuditLog($pdo);
+
+// Récupération des données
+$id_utilisateur = $_SESSION['user_id'];
+
+// Statistiques globales
+try {
+    // Récupérer tous les rapports pour la commission
+    $tousLesRapports = $rapportModel->getAllRapports();
+
+    // Compter par statut
+    $stats = [
+        'en_attente' => 0,
+        'en_cours' => 0,
+        'valider' => 0,
+        'rejeter' => 0
+    ];
+
+    foreach ($tousLesRapports as $rapport) {
+        if (isset($stats[$rapport->statut_rapport])) {
+            $stats[$rapport->statut_rapport]++;
+        }
+    }
+
+    // Récupérer les rapports avec les informations des étudiants
+    $rapportsAvecEtudiants = [];
+    foreach ($tousLesRapports as $rapport) {
+        $etudiant = $etudiantModel->getEtudiantById($rapport->num_etu);
+        if ($etudiant) {
+            $rapport->etudiant = $etudiant;
+
+            // Récupérer les évaluations existantes pour ce rapport
+            $evaluations = $evaluationModel->getEvaluationsRapport($rapport->id_rapport);
+            $rapport->evaluations = $evaluations;
+            $rapport->nb_evaluations = count($evaluations);
+
+            // Vérifier si l'utilisateur actuel a déjà évalué
+            $rapport->deja_evalue = $evaluationModel->evaluationExiste($rapport->id_rapport, $id_utilisateur);
+
+            $rapportsAvecEtudiants[] = $rapport;
+        }
+    }
+
+    // Trier par date (plus récents en premier)
+    usort($rapportsAvecEtudiants, function ($a, $b) {
+        return strtotime($b->date_rapport) - strtotime($a->date_rapport);
+    });
+
+} catch (Exception $e) {
+    $error = "Erreur lors du chargement des rapports : " . $e->getMessage();
+    $rapportsAvecEtudiants = [];
+}
+
+// Traitement des actions POST (votes, commentaires)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['action'])) {
+        try {
+            switch ($_POST['action']) {
+                case 'evaluer':
+                    $id_rapport = $_POST['id_rapport'] ?? null;
+                    $decision = $_POST['decision'] ?? null;
+                    $commentaire = $_POST['commentaire'] ?? '';
+
+                    if ($id_rapport && $decision) {
+                        $evaluationExistante = $evaluationModel->evaluationExiste($id_rapport, $id_utilisateur);
+
+                        if ($evaluationExistante) {
+                            // Mise à jour de l'évaluation existante
+                            $result = $evaluationModel->mettreAJourEvaluation($evaluationExistante['id_evaluation'], $decision, $commentaire);
+                        } else {
+                            // Ajout d'une nouvelle évaluation
+                            $result = $evaluationModel->ajouterEvaluation($id_rapport, $id_utilisateur, $decision, $commentaire);
+                        }
+
+                        if ($result) {
+                            $_SESSION['success_message'] = "Votre évaluation a été enregistrée avec succès.";
+
+                            // Logger l'action
+                            $auditLog->logAction($id_utilisateur, 'EVALUATION', 'evaluations_rapports', 'Évaluation du rapport #' . $id_rapport . ' : ' . $decision);
+                        } else {
+                            $_SESSION['error_message'] = "Erreur lors de l'enregistrement de votre évaluation.";
+                        }
+                    }
+                    break;
+            }
+
+            // Rediriger pour éviter la resoumission du formulaire
+            header('Location: ' . $_SERVER['REQUEST_URI']);
+            exit();
+
+        } catch (Exception $e) {
+            $_SESSION['error_message'] = "Erreur : " . $e->getMessage();
+        }
+    }
+}
+
+// Messages de session
+$success_message = $_SESSION['success_message'] ?? null;
+$error_message = $_SESSION['error_message'] ?? null;
+unset($_SESSION['success_message'], $_SESSION['error_message']);
+?>
 <!DOCTYPE html>
 <html lang="fr">
 
@@ -129,6 +246,20 @@
             <!-- Main content area -->
             <div class="flex-1 p-4 md:p-6 overflow-y-auto bg-gray-50">
                 <div class="max-w-7xl mx-auto">
+
+                    <!-- Messages de succès/erreur -->
+                    <?php if ($success_message): ?>
+                        <div class="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+                            <i class="fas fa-check-circle mr-2"></i><?= htmlspecialchars($success_message) ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($error_message): ?>
+                        <div class="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                            <i class="fas fa-exclamation-circle mr-2"></i><?= htmlspecialchars($error_message) ?>
+                        </div>
+                    <?php endif; ?>
+
                     <!-- Stats -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                         <div class="bg-white rounded-lg shadow p-6 fade-in">
@@ -138,7 +269,7 @@
                                 </div>
                                 <div>
                                     <p class="text-sm font-medium text-gray-500">À évaluer</p>
-                                    <p class="text-2xl font-semibold text-gray-800">8</p>
+                                    <p class="text-2xl font-semibold text-gray-800"><?= $stats['en_attente'] ?></p>
                                 </div>
                             </div>
                         </div>
@@ -149,8 +280,8 @@
                                     <i class="fas fa-check text-lg"></i>
                                 </div>
                                 <div>
-                                    <p class="text-sm font-medium text-gray-500">Mes évaluations</p>
-                                    <p class="text-2xl font-semibold text-gray-800">12</p>
+                                    <p class="text-sm font-medium text-gray-500">En cours</p>
+                                    <p class="text-2xl font-semibold text-gray-800"><?= $stats['en_cours'] ?></p>
                                 </div>
                             </div>
                         </div>
@@ -158,23 +289,23 @@
                         <div class="bg-white rounded-lg shadow p-6 fade-in">
                             <div class="flex items-center">
                                 <div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
-                                    <i class="fas fa-clock text-lg"></i>
+                                    <i class="fas fa-check-circle text-lg"></i>
                                 </div>
                                 <div>
-                                    <p class="text-sm font-medium text-gray-500">En attente décision</p>
-                                    <p class="text-2xl font-semibold text-gray-800">3</p>
+                                    <p class="text-sm font-medium text-gray-500">Validés</p>
+                                    <p class="text-2xl font-semibold text-gray-800"><?= $stats['valider'] ?></p>
                                 </div>
                             </div>
                         </div>
 
                         <div class="bg-white rounded-lg shadow p-6 fade-in">
                             <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
-                                    <i class="fas fa-gavel text-lg"></i>
+                                <div class="p-3 rounded-full bg-red-100 text-red-600 mr-4">
+                                    <i class="fas fa-times-circle text-lg"></i>
                                 </div>
                                 <div>
-                                    <p class="text-sm font-medium text-gray-500">Décisions finales</p>
-                                    <p class="text-2xl font-semibold text-gray-800">45</p>
+                                    <p class="text-sm font-medium text-gray-500">Rejetés</p>
+                                    <p class="text-2xl font-semibold text-gray-800"><?= $stats['rejeter'] ?></p>
                                 </div>
                             </div>
                         </div>
@@ -199,167 +330,273 @@
                         </div>
 
                         <div class="divide-y divide-gray-200">
-                            <!-- Report 1 -->
-                            <div class="px-6 py-4 evaluation-card hover:bg-gray-50">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center flex-1">
-                                        <div class="flex-shrink-0 bg-green-100 p-3 rounded-lg">
-                                            <i class="fas fa-file-alt text-green-600"></i>
-                                        </div>
-                                        <div class="ml-4 flex-1">
-                                            <div class="flex items-center justify-between">
-                                                <p class="text-sm font-medium text-gray-900">Intelligence Artificielle
-                                                    dans le Diagnostic Médical</p>
-                                                <div class="flex items-center space-x-2">
-                                                    <span
-                                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                                        <i class="fas fa-check-circle mr-1"></i>Approuvé par Miss Seri
-                                                    </span>
-                                                    <span
-                                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                        Vote en cours
-                                                    </span>
+                            <?php if (!empty($rapportsAvecEtudiants)): ?>
+                                <?php foreach ($rapportsAvecEtudiants as $rapport): ?>
+                                    <?php
+                                    // Déterminer la couleur du badge de statut
+                                    $statutColors = [
+                                        'en_attente' => 'bg-yellow-100 text-yellow-800',
+                                        'en_cours' => 'bg-blue-100 text-blue-800',
+                                        'valider' => 'bg-green-100 text-green-800',
+                                        'rejeter' => 'bg-red-100 text-red-800'
+                                    ];
+
+                                    $statutLabels = [
+                                        'en_attente' => 'En attente',
+                                        'en_cours' => 'En cours',
+                                        'valider' => 'Validé',
+                                        'rejeter' => 'Rejeté'
+                                    ];
+
+                                    $statutClass = $statutColors[$rapport->statut_rapport] ?? 'bg-gray-100 text-gray-800';
+                                    $statutLabel = $statutLabels[$rapport->statut_rapport] ?? $rapport->statut_rapport;
+
+                                    // Compter votes
+                                    $votes_valider = 0;
+                                    $votes_rejeter = 0;
+                                    foreach ($rapport->evaluations as $eval) {
+                                        if ($eval->decision_evaluation === 'valider')
+                                            $votes_valider++;
+                                        if ($eval->decision_evaluation === 'rejeter')
+                                            $votes_rejeter++;
+                                    }
+                                    ?>
+
+                                    <div class="px-6 py-4 evaluation-card hover:bg-gray-50">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center flex-1">
+                                                <div class="flex-shrink-0 bg-green-100 p-3 rounded-lg">
+                                                    <i class="fas fa-file-alt text-green-600"></i>
+                                                </div>
+                                                <div class="ml-4 flex-1">
+                                                    <div class="flex items-center justify-between">
+                                                        <p class="text-sm font-medium text-gray-900">
+                                                            <?= htmlspecialchars($rapport->nom_rapport) ?>
+                                                        </p>
+                                                        <div class="flex items-center space-x-2">
+                                                            <span
+                                                                class="px-2 py-1 text-xs font-semibold rounded-full <?= $statutClass ?>">
+                                                                <?= $statutLabel ?>
+                                                            </span>
+                                                            <?php if ($rapport->deja_evalue): ?>
+                                                                <span
+                                                                    class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                                                                    <i class="fas fa-check mr-1"></i>Déjà évalué
+                                                                </span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                    <p class="text-sm text-gray-500">
+                                                        Étudiant: <?= htmlspecialchars($rapport->etudiant->nom) ?>
+                                                        <?= htmlspecialchars($rapport->etudiant->prenom) ?>
+                                                        • Thème: <?= htmlspecialchars($rapport->theme_rapport) ?>
+                                                    </p>
+                                                    <div class="mt-2 flex items-center text-xs text-gray-500">
+                                                        <span>Déposé le
+                                                            <?= date('d/m/Y', strtotime($rapport->date_rapport)) ?></span>
+                                                        <span class="mx-2">•</span>
+                                                        <span class="text-green-600"><?= $votes_valider ?> validations</span>
+                                                        <span class="mx-2">•</span>
+                                                        <span class="text-red-600"><?= $votes_rejeter ?> rejets</span>
+                                                        <span class="mx-2">•</span>
+                                                        <span><?= $rapport->nb_evaluations ?> évaluation(s)</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <p class="text-sm text-gray-500">Étudiant: Marie Lambert • Encadrant: Dr.
-                                                Martin</p>
-                                            <div class="mt-2 flex items-center text-xs text-gray-500">
-                                                <span>Approuvé le 20/05/2025</span>
-                                                <span class="mx-2">•</span>
-                                                <span class="text-green-600">2 validations</span>
-                                                <span class="mx-2">•</span>
-                                                <span class="text-red-600">0 rejets</span>
+                                            <div class="flex items-center space-x-2">
+                                                <?php if (!empty($rapport->chemin_fichier) && file_exists($rapport->chemin_fichier)): ?>
+                                                    <a href="<?= htmlspecialchars($rapport->chemin_fichier) ?>" target="_blank"
+                                                        class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors">
+                                                        <i class="fas fa-eye mr-1"></i>Consulter
+                                                    </a>
+                                                <?php endif; ?>
+
+                                                <button
+                                                    onclick="openEvaluationModal(<?= $rapport->id_rapport ?>, '<?= htmlspecialchars($rapport->nom_rapport, ENT_QUOTES) ?>')"
+                                                    class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
+                                                    <?= $rapport->deja_evalue ? '' : '' ?>>
+                                                    <i
+                                                        class="fas fa-vote-yea mr-1"></i><?= $rapport->deja_evalue ? 'Modifier' : 'Voter' ?>
+                                                </button>
+
+                                                <?php if ($rapport->nb_evaluations > 0): ?>
+                                                    <button onclick="viewEvaluations(<?= $rapport->id_rapport ?>)"
+                                                        class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors">
+                                                        <i class="fas fa-users mr-1"></i>Votes (<?= $rapport->nb_evaluations ?>)
+                                                    </button>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="flex items-center space-x-2">
-                                        <button onclick="viewReport(1)"
-                                            class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors">
-                                            <i class="fas fa-eye mr-1"></i>Consulter
-                                        </button>
-                                        <button onclick="openEvaluationModal(1)"
-                                            class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors">
-                                            <i class="fas fa-vote-yea mr-1"></i>Voter
-                                        </button>
-                                        <button onclick="viewEvaluations(1)"
-                                            class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors">
-                                            <i class="fas fa-users mr-1"></i>Votes
-                                        </button>
-                                        <button onclick="makeFinalDecision(1)"
-                                            class="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded-md hover:bg-orange-200 transition-colors"
-                                            disabled>
-                                            <i class="fas fa-gavel mr-1"></i>Finaliser
-                                        </button>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <div class="px-6 py-8 text-center text-gray-500">
+                                    <i class="fas fa-inbox fa-3x mb-4 text-gray-300"></i>
+                                    <p>Aucun rapport à évaluer pour le moment.</p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="px-6 py-4 evaluation-card hover:bg-gray-50">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center flex-1">
+                                <div class="flex-shrink-0 bg-green-100 p-3 rounded-lg">
+                                    <i class="fas fa-file-alt text-green-600"></i>
+                                </div>
+                                <div class="ml-4 flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-sm font-medium text-gray-900">Intelligence Artificielle
+                                            dans le Diagnostic Médical</p>
+                                        <div class="flex items-center space-x-2">
+                                            <span
+                                                class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                <i class="fas fa-check-circle mr-1"></i>Approuvé par Miss Seri
+                                            </span>
+                                            <span
+                                                class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                Vote en cours
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-gray-500">Étudiant: Marie Lambert • Encadrant: Dr.
+                                        Martin</p>
+                                    <div class="mt-2 flex items-center text-xs text-gray-500">
+                                        <span>Approuvé le 20/05/2025</span>
+                                        <span class="mx-2">•</span>
+                                        <span class="text-green-600">2 validations</span>
+                                        <span class="mx-2">•</span>
+                                        <span class="text-red-600">0 rejets</span>
                                     </div>
                                 </div>
                             </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="viewReport(1)"
+                                    class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors">
+                                    <i class="fas fa-eye mr-1"></i>Consulter
+                                </button>
+                                <button onclick="openEvaluationModal(1)"
+                                    class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors">
+                                    <i class="fas fa-vote-yea mr-1"></i>Voter
+                                </button>
+                                <button onclick="viewEvaluations(1)"
+                                    class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors">
+                                    <i class="fas fa-users mr-1"></i>Votes
+                                </button>
+                                <button onclick="makeFinalDecision(1)"
+                                    class="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded-md hover:bg-orange-200 transition-colors"
+                                    disabled>
+                                    <i class="fas fa-gavel mr-1"></i>Finaliser
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
-                            <!-- Report 2 -->
-                            <div class="px-6 py-4 evaluation-card hover:bg-gray-50">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center flex-1">
-                                        <div class="flex-shrink-0 bg-green-100 p-3 rounded-lg">
-                                            <i class="fas fa-file-alt text-green-600"></i>
-                                        </div>
-                                        <div class="ml-4 flex-1">
-                                            <div class="flex items-center justify-between">
-                                                <p class="text-sm font-medium text-gray-900">Système de Gestion des
-                                                    Ressources Humaines</p>
-                                                <div class="flex items-center space-x-2">
-                                                    <span
-                                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                                        <i class="fas fa-check-circle mr-1"></i>Approuvé par Miss Seri
-                                                    </span>
-                                                    <span
-                                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                                        Prêt à finaliser
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <p class="text-sm text-gray-500">Étudiant: Jean Dupont • Encadrant: Dr.
-                                                Dubois</p>
-                                            <div class="mt-2 flex items-center text-xs text-gray-500">
-                                                <span>Approuvé le 18/05/2025</span>
-                                                <span class="mx-2">•</span>
-                                                <span class="text-green-600">4 validations</span>
-                                                <span class="mx-2">•</span>
-                                                <span class="text-red-600">0 rejets</span>
-                                            </div>
+                    <!-- Report 2 -->
+                    <div class="px-6 py-4 evaluation-card hover:bg-gray-50">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center flex-1">
+                                <div class="flex-shrink-0 bg-green-100 p-3 rounded-lg">
+                                    <i class="fas fa-file-alt text-green-600"></i>
+                                </div>
+                                <div class="ml-4 flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-sm font-medium text-gray-900">Système de Gestion des
+                                            Ressources Humaines</p>
+                                        <div class="flex items-center space-x-2">
+                                            <span
+                                                class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                <i class="fas fa-check-circle mr-1"></i>Approuvé par Miss Seri
+                                            </span>
+                                            <span
+                                                class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                Prêt à finaliser
+                                            </span>
                                         </div>
                                     </div>
-                                    <div class="flex items-center space-x-2">
-                                        <button onclick="viewReport(2)"
-                                            class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors">
-                                            <i class="fas fa-eye mr-1"></i>Consulter
-                                        </button>
-                                        <button onclick="viewEvaluations(2)"
-                                            class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors">
-                                            <i class="fas fa-users mr-1"></i>Votes
-                                        </button>
-                                        <button onclick="makeFinalDecision(2)"
-                                            class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors">
-                                            <i class="fas fa-gavel mr-1"></i>Finaliser
-                                        </button>
+                                    <p class="text-sm text-gray-500">Étudiant: Jean Dupont • Encadrant: Dr.
+                                        Dubois</p>
+                                    <div class="mt-2 flex items-center text-xs text-gray-500">
+                                        <span>Approuvé le 18/05/2025</span>
+                                        <span class="mx-2">•</span>
+                                        <span class="text-green-600">4 validations</span>
+                                        <span class="mx-2">•</span>
+                                        <span class="text-red-600">0 rejets</span>
                                     </div>
                                 </div>
                             </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="viewReport(2)"
+                                    class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors">
+                                    <i class="fas fa-eye mr-1"></i>Consulter
+                                </button>
+                                <button onclick="viewEvaluations(2)"
+                                    class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors">
+                                    <i class="fas fa-users mr-1"></i>Votes
+                                </button>
+                                <button onclick="makeFinalDecision(2)"
+                                    class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors">
+                                    <i class="fas fa-gavel mr-1"></i>Finaliser
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
-                            <!-- Report 3 -->
-                            <div class="px-6 py-4 evaluation-card hover:bg-gray-50">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center flex-1">
-                                        <div class="flex-shrink-0 bg-green-100 p-3 rounded-lg">
-                                            <i class="fas fa-file-alt text-green-600"></i>
-                                        </div>
-                                        <div class="ml-4 flex-1">
-                                            <div class="flex items-center justify-between">
-                                                <p class="text-sm font-medium text-gray-900">Application Mobile de
-                                                    Commerce Électronique</p>
-                                                <div class="flex items-center space-x-2">
-                                                    <span
-                                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                                        <i class="fas fa-check-circle mr-1"></i>Approuvé par Miss Seri
-                                                    </span>
-                                                    <span
-                                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                                        Rejeté par commission
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <p class="text-sm text-gray-500">Étudiant: Sophie Martin • Encadrant: Dr.
-                                                Bernard</p>
-                                            <div class="mt-2 flex items-center text-xs text-gray-500">
-                                                <span>Approuvé le 15/05/2025</span>
-                                                <span class="mx-2">•</span>
-                                                <span>Votes: 4/4 membres</span>
-                                                <span class="mx-2">•</span>
-                                                <span class="text-green-600">2 validations</span>
-                                                <span class="mx-2">•</span>
-                                                <span class="text-red-600">2 rejets</span>
-                                            </div>
+                    <!-- Report 3 -->
+                    <div class="px-6 py-4 evaluation-card hover:bg-gray-50">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center flex-1">
+                                <div class="flex-shrink-0 bg-green-100 p-3 rounded-lg">
+                                    <i class="fas fa-file-alt text-green-600"></i>
+                                </div>
+                                <div class="ml-4 flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-sm font-medium text-gray-900">Application Mobile de
+                                            Commerce Électronique</p>
+                                        <div class="flex items-center space-x-2">
+                                            <span
+                                                class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                <i class="fas fa-check-circle mr-1"></i>Approuvé par Miss Seri
+                                            </span>
+                                            <span
+                                                class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                                Rejeté par commission
+                                            </span>
                                         </div>
                                     </div>
-                                    <div class="flex items-center space-x-2">
-                                        <button onclick="viewReport(3)"
-                                            class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors">
-                                            <i class="fas fa-eye mr-1"></i>Consulter
-                                        </button>
-                                        <button onclick="viewEvaluations(3)"
-                                            class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors">
-                                            <i class="fas fa-users mr-1"></i>Votes
-                                        </button>
-                                        <button onclick="makeFinalDecision(3)"
-                                            class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors">
-                                            <i class="fas fa-gavel mr-1"></i>Finaliser
-                                        </button>
+                                    <p class="text-sm text-gray-500">Étudiant: Sophie Martin • Encadrant: Dr.
+                                        Bernard</p>
+                                    <div class="mt-2 flex items-center text-xs text-gray-500">
+                                        <span>Approuvé le 15/05/2025</span>
+                                        <span class="mx-2">•</span>
+                                        <span>Votes: 4/4 membres</span>
+                                        <span class="mx-2">•</span>
+                                        <span class="text-green-600">2 validations</span>
+                                        <span class="mx-2">•</span>
+                                        <span class="text-red-600">2 rejets</span>
                                     </div>
                                 </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="viewReport(3)"
+                                    class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors">
+                                    <i class="fas fa-eye mr-1"></i>Consulter
+                                </button>
+                                <button onclick="viewEvaluations(3)"
+                                    class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors">
+                                    <i class="fas fa-users mr-1"></i>Votes
+                                </button>
+                                <button onclick="makeFinalDecision(3)"
+                                    class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors">
+                                    <i class="fas fa-gavel mr-1"></i>Finaliser
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+    </div>
     </div>
 
     <!-- Modal d'évaluation -->
@@ -379,95 +616,83 @@
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Informations du rapport -->
-                    <div class="space-y-4">
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h4 class="font-semibold text-gray-800 mb-2">Informations du rapport</h4>
-                            <div class="space-y-2 text-sm text-gray-600">
-                                <p><strong>Titre:</strong> Intelligence Artificielle dans le Diagnostic Médical</p>
-                                <p><strong>Étudiant:</strong> Marie Lambert</p>
-                                <p><strong>Encadrant:</strong> Dr. Martin</p>
-                                <p><strong>Date d'approbation:</strong> 20/05/2025</p>
+                <form method="POST" action="" id="formEvaluation">
+                    <input type="hidden" name="action" value="evaluer">
+                    <input type="hidden" name="id_rapport" id="modal_id_rapport">
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Informations du rapport -->
+                        <div class="space-y-4">
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-gray-800 mb-2">Informations du rapport</h4>
+                                <div class="space-y-2 text-sm text-gray-600" id="modalRapportInfo">
+                                    <p><strong>Titre:</strong> <span id="modal_titre"></span></p>
+                                    <p><strong>Étudiant:</strong> <span id="modal_etudiant"></span></p>
+                                    <p><strong>Thème:</strong> <span id="modal_theme"></span></p>
+                                    <p><strong>Date de dépôt:</strong> <span id="modal_date"></span></p>
+                                </div>
+                            </div>
+
+                            <!-- Évaluations des autres membres -->
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-gray-800 mb-3">Évaluations des autres membres</h4>
+                                <div class="space-y-3" id="modalEvaluationsListe">
+                                    <!-- Liste des évaluations sera chargée dynamiquement -->
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Évaluations des autres membres -->
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <h4 class="font-semibold text-gray-800 mb-3">Évaluations des autres membres</h4>
-                            <div class="space-y-3">
-                                <div class="flex items-center justify-between p-2 bg-white rounded">
-                                    <span class="text-sm font-medium">Dr. Koné</span>
-                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                                        <i class="fas fa-check mr-1"></i>Validé
-                                    </span>
+                        <!-- Formulaire d'évaluation -->
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Votre commentaire / Avis
+                                </label>
+                                <textarea name="commentaire" id="evaluationComment" rows="6"
+                                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Veuillez donner votre avis détaillé sur ce rapport..."></textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-3">
+                                    Votre décision
+                                </label>
+                                <div class="space-y-2">
+                                    <label
+                                        class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-green-50 cursor-pointer">
+                                        <input type="radio" name="decision" value="valider"
+                                            class="text-green-600 focus:ring-green-500" required>
+                                        <span class="ml-3 flex items-center text-green-700">
+                                            <i class="fas fa-check-circle mr-2"></i>
+                                            Valider le rapport
+                                        </span>
+                                    </label>
+                                    <label
+                                        class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-red-50 cursor-pointer">
+                                        <input type="radio" name="decision" value="rejeter"
+                                            class="text-red-600 focus:ring-red-500" required>
+                                        <span class="ml-3 flex items-center text-red-700">
+                                            <i class="fas fa-times-circle mr-2"></i>
+                                            Rejeter le rapport
+                                        </span>
+                                    </label>
                                 </div>
-                                <div class="flex items-center justify-between p-2 bg-white rounded">
-                                    <span class="text-sm font-medium">Pr. Assan</span>
-                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                                        <i class="fas fa-check mr-1"></i>Validé
-                                    </span>
-                                </div>
-                                <div class="flex items-center justify-between p-2 bg-white rounded">
-                                    <span class="text-sm font-medium">Dr. Bamba</span>
-                                    <span class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
-                                        <i class="fas fa-clock mr-1"></i>En attente
-                                    </span>
-                                </div>
+                            </div>
+
+                            <div class="flex justify-end space-x-3 pt-4">
+                                <button type="button" onclick="closeEvaluationModal()"
+                                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                    Annuler
+                                </button>
+                                <button type="submit"
+                                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700">
+                                    <i class="fas fa-paper-plane mr-1"></i>
+                                    Soumettre l'évaluation
+                                </button>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Formulaire d'évaluation -->
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Votre commentaire / Avis
-                            </label>
-                            <textarea id="evaluationComment" rows="6"
-                                class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Veuillez donner votre avis détaillé sur ce rapport..."></textarea>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-3">
-                                Votre décision
-                            </label>
-                            <div class="space-y-2">
-                                <label
-                                    class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-green-50 cursor-pointer">
-                                    <input type="radio" name="decision" value="valider"
-                                        class="text-green-600 focus:ring-green-500">
-                                    <span class="ml-3 flex items-center text-green-700">
-                                        <i class="fas fa-check-circle mr-2"></i>
-                                        Valider le rapport
-                                    </span>
-                                </label>
-                                <label
-                                    class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-red-50 cursor-pointer">
-                                    <input type="radio" name="decision" value="rejeter"
-                                        class="text-red-600 focus:ring-red-500">
-                                    <span class="ml-3 flex items-center text-red-700">
-                                        <i class="fas fa-times-circle mr-2"></i>
-                                        Rejeter le rapport
-                                    </span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end space-x-3 pt-4">
-                            <button onclick="closeEvaluationModal()"
-                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                                Annuler
-                            </button>
-                            <button onclick="submitEvaluation()"
-                                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700">
-                                <i class="fas fa-paper-plane mr-1"></i>
-                                Soumettre l'évaluation
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                </form>
             </div>
         </div>
     </div>
@@ -754,9 +979,48 @@
         // Variables globales
         let currentReportId = null;
 
+        // Données des rapports pour le modal (côté PHP)
+        const rapportsData = <?= json_encode($rapportsAvecEtudiants) ?>;
+
         // Fonctions d'ouverture/fermeture des modales
-        function openEvaluationModal(reportId) {
+        function openEvaluationModal(reportId, titre) {
             currentReportId = reportId;
+
+            // Trouver le rapport dans les données
+            const rapport = rapportsData.find(r => r.id_rapport == reportId);
+
+            if (rapport) {
+                // Remplir les informations du rapport
+                document.getElementById('modal_id_rapport').value = reportId;
+                document.getElementById('modal_titre').textContent = rapport.nom_rapport;
+                document.getElementById('modal_etudiant').textContent = rapport.etudiant.nom + ' ' + rapport.etudiant.prenom;
+                document.getElementById('modal_theme').textContent = rapport.theme_rapport;
+                document.getElementById('modal_date').textContent = new Date(rapport.date_rapport).toLocaleDateString('fr-FR');
+
+                // Afficher les évaluations existantes
+                const evaluationsListe = document.getElementById('modalEvaluationsListe');
+                evaluationsListe.innerHTML = '';
+
+                if (rapport.evaluations && rapport.evaluations.length > 0) {
+                    rapport.evaluations.forEach(eval => {
+                        const decisionClass = eval.decision_evaluation === 'valider' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                        const decisionIcon = eval.decision_evaluation === 'valider' ? 'fa-check' : 'fa-times';
+                        const decisionLabel = eval.decision_evaluation === 'valider' ? 'Validé' : 'Rejeté';
+
+                        evaluationsListe.innerHTML += `
+                            <div class="flex items-center justify-between p-2 bg-white rounded">
+                                <span class="text-sm font-medium">Évaluateur #${eval.id_evaluateur}</span>
+                                <span class="px-2 py-1 text-xs ${decisionClass} rounded-full">
+                                    <i class="fas ${decisionIcon} mr-1"></i>${decisionLabel}
+                                </span>
+                            </div>
+                        `;
+                    });
+                } else {
+                    evaluationsListe.innerHTML = '<p class="text-sm text-gray-500">Aucune évaluation pour le moment</p>';
+                }
+            }
+
             document.getElementById('evaluationModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
@@ -799,53 +1063,8 @@
 
         // Fonction pour soumettre une évaluation
         function submitEvaluation() {
-            const comment = document.getElementById('evaluationComment').value;
-            const decision = document.querySelector('input[name="decision"]:checked');
-
-            if (!comment.trim()) {
-                alert('Veuillez saisir un commentaire avant de soumettre votre évaluation.');
-                return;
-            }
-
-            if (!decision) {
-                alert('Veuillez sélectionner une décision (Valider ou Rejeter).');
-                return;
-            }
-
-            // Créer le FormData pour l'envoi AJAX
-            const formData = new FormData();
-            formData.append('action', 'traiter_decision');
-            formData.append('id_rapport', currentReportId);
-            formData.append('decision', decision.value);
-            formData.append('commentaire', comment);
-
-            // Envoyer la requête AJAX
-            fetch('?page=evaluations_dossiers_soutenance', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Votre évaluation a été enregistrée avec succès!');
-
-                        // Fermer la modale et réinitialiser le formulaire
-                        closeEvaluationModal();
-                        document.getElementById('evaluationComment').value = '';
-                        document.querySelector('input[name="decision"]:checked').checked = false;
-
-                        // Recharger la page pour mettre à jour l'affichage
-                        setTimeout(() => {
-                            location.reload();
-                        }, 1000);
-                    } else {
-                        alert('Erreur: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                    alert('Erreur lors de l\'envoi de l\'évaluation');
-                });
+            // Soumettre le formulaire directement
+            document.getElementById('formEvaluation').submit();
         }
 
         // Fonction pour soumettre la décision finale

@@ -1,10 +1,11 @@
 <?php
 
-$students = $GLOBALS['listeEtudiants'];
-$niveauxEtude = $GLOBALS['niveauxEtude'];
-$selectedNiveau = $GLOBALS['selectedNiveau'];
-$selectedStudent = $GLOBALS['selectedStudent'];
-$studentGrades = $GLOBALS['studentGrades'];
+// Initialiser les variables globales si elles n'existent pas
+$students = $GLOBALS['listeEtudiants'] ?? [];
+$niveauxEtude = $GLOBALS['niveauxEtude'] ?? [];
+$selectedNiveau = $GLOBALS['selectedNiveau'] ?? null;
+$selectedStudent = $GLOBALS['selectedStudent'] ?? null;
+$studentGrades = $GLOBALS['studentGrades'] ?? [];
 
 ?>
 

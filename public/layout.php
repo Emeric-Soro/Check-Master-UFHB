@@ -248,6 +248,44 @@ if (!isset($_SESSION['id_utilisateur'])) {
                 $currentPageLabel = 'Gestion des étudiants';
             }
             break;
+        case 'liste_etudiants_resp':
+            include __DIR__ . '/../ressources/routes/listeEtudiantsRoutes.php';
+            $contentFile = $partialsBasePath . 'liste_etudiants_content.php';
+            $currentPageLabel = 'Liste des Étudiants';
+            break;
+        case 'liste_etudiants_ens':
+            include __DIR__ . '/../ressources/routes/listeEtudiantsRoutes.php';
+            $contentFile = $partialsBasePath . 'liste_etudiants_content.php';
+            $currentPageLabel = 'Liste des Étudiants';
+            break;
+        case 'rapport_a_valider':
+            $contentFile = $partialsBasePath . 'rapport_a_valider_content.php';
+            $currentPageLabel = 'Approuver Rapports';
+            break;
+        case 'gestion_candidatures':
+            $contentFile = $partialsBasePath . 'gestion_candidatures_soutenance_content.php';
+            $currentPageLabel = 'Gestion des Candidatures';
+            break;
+        case 'verification_candidatures':
+            $contentFile = $partialsBasePath . 'verification_candidatures_soutenance_content.php';
+            $currentPageLabel = 'Vérification des Candidatures';
+            break;
+        case 'evaluation_dossiers':
+            $contentFile = $partialsBasePath . 'evaluations_dossiers_soutenance_content.php';
+            $currentPageLabel = 'Évaluation des Dossiers';
+            break;
+        case 'programmation_soutenance':
+            $contentFile = $partialsBasePath . 'Programation_soutenance_content.php';
+            $currentPageLabel = 'Programmation Soutenance';
+            break;
+        case 'planification_soutenance':
+            $contentFile = $partialsBasePath . 'plannificaiton_soutenance_content.php';
+            $currentPageLabel = 'Planification Soutenance';
+            break;
+        case 'gestion_notes':
+            $contentFile = $partialsBasePath . 'gestion_notes_evaluations_content.php';
+            $currentPageLabel = 'Gestion des Notes';
+            break;
         case 'gestion_scolarite':
             if (isset($_GET['action']) && $_GET['action'] === 'imprimer_recu' && isset($_GET['id'])) {
                 require_once __DIR__ . '/../vendor/autoload.php';

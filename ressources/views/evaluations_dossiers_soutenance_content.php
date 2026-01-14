@@ -1,3 +1,12 @@
+<?php
+// Initialiser les statistiques par défaut
+$stats = [
+    'a_evaluer' => 0,
+    'valides' => 0,
+    'a_corriger' => 0,
+    'total' => 0
+];
+?>
 <!DOCTYPE html>
 <html lang="fr">
 
@@ -389,9 +398,11 @@
                                     <div class="flex justify-between items-start mb-3">
                                         <div>
                                             <h3 class="font-bold text-lg text-gray-800">
-                                                <?= htmlspecialchars($dossier['nom_rapport']) ?></h3>
+                                                <?= htmlspecialchars($dossier['nom_rapport']) ?>
+                                            </h3>
                                             <p class="text-sm text-gray-500">Étudiant:
-                                                <?= htmlspecialchars($dossier['prenom_etu'] . ' ' . $dossier['nom_etu']) ?></p>
+                                                <?= htmlspecialchars($dossier['prenom_etu'] . ' ' . $dossier['nom_etu']) ?>
+                                            </p>
                                         </div>
                                         <?php
                                         $statusClass = '';
