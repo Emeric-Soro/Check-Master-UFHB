@@ -1,15 +1,80 @@
 <?php
 
+namespace App\Controllers;
+
+use PDO;
+use App\Models\AuditLog;
+use App\Utils\SecurityUtils;
+use Psr\Log\LoggerInterface;
+use DateTime;
+use Exception;
+
+/**
+ * PlanificationSoutenanceController - Logistique (Salles, Heures)
+ * 
+ * Ce contrôleur gère la planification logistique des soutenances :
+ * - Attribution des salles
+ * - Définition des dates et heures
+ * - Gestion des conflits de créneaux
+ * 
+ * @package App\Controllers
+ */
 class PlanificationSoutenanceController
 {
+    private PDO $pdo;
+    private AuditLog $auditLog;
+    private SecurityUtils $security;
+    private LoggerInterface $logger;
+
+    /**
+     * Constructeur avec Injection de Dépendances
+     */
+    public function __construct(
+        PDO $pdo,
+        AuditLog $auditLog,
+        SecurityUtils $security,
+        LoggerInterface $logger
+    ) {
+        $this->pdo = $pdo;
+        $this->auditLog = $auditLog;
+        $this->security = $security;
+        $this->logger = $logger;
+    }
+
+    /**
+     * Vérification centralisée des permissions
+     */
+    private function checkPermission(string $action): bool
+    {
+        $idGroupe = $_SESSION['id_GU'] ?? 0;
+        
+        if (!$this->security->can($idGroupe, 'plannificaiton_soutenance', $action)) {
+            $this->logger->warning(
+                "Accès refusé ({$action}) pour user " . ($_SESSION['id_utilisateur'] ?? 'inconnu') . " sur plannificaiton_soutenance"
+            );
+            
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Accès refusé."]);
+            } else {
+                $GLOBALS['messageErreur'] = "Vous n'avez pas les droits nécessaires.";
+                if (file_exists(__DIR__ . '/../../ressources/views/errors/403.php')) {
+                    http_response_code(403);
+                    require __DIR__ . '/../../ressources/views/errors/403.php';
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Vérifier si un étudiant a déjà une planification complète
      */
-    private function etudiantDejaPlannifie($numEtu, $excludeId = null)
+    private function etudiantDejaPlannifie(string $numEtu, ?int $excludeId = null): bool
     {
         try {
-            $pdo = Database::getConnection();
-
             $sql = "
                 SELECT COUNT(*) as count
                 FROM programmer 
@@ -26,24 +91,26 @@ class PlanificationSoutenanceController
                 $params[] = $excludeId;
             }
 
-            $stmt = $pdo->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
 
             return $stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0;
         } catch (Exception $e) {
-            error_log('Erreur etudiantDejaPlannifie: ' . $e->getMessage());
+            $this->logger->error('Erreur etudiantDejaPlannifie: ' . $e->getMessage());
             return false;
         }
     }
 
     /**
-     * Récupérer tous les étudiants qui ont une attribution de jury
+     * Action : Récupérer tous les étudiants qui ont une attribution de jury (READ)
      */
-    public function getEtudiantsAvecJuryForView()
+    public function getEtudiantsAvecJuryForView(): array
     {
-        try {
-            $pdo = Database::getConnection();
+        if (!$this->checkPermission('read')) {
+            return [];
+        }
 
+        try {
             $sql = "
                 SELECT DISTINCT
                     p.id_programmation,
@@ -69,23 +136,25 @@ class PlanificationSoutenanceController
                 ORDER BY e.nom_etu ASC, e.prenom_etu ASC
             ";
 
-            $stmt = $pdo->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
-            error_log('Erreur getEtudiantsAvecJuryForView: ' . $e->getMessage());
+            $this->logger->error('Erreur getEtudiantsAvecJuryForView: ' . $e->getMessage());
             return [];
         }
     }
 
     /**
-     * Récupérer les étudiants disponibles pour nouvelle planification (non encore planifiés)
+     * Action : Récupérer les étudiants disponibles pour nouvelle planification (READ)
      */
-    public function getEtudiantsDisponiblesForView()
+    public function getEtudiantsDisponiblesForView(): array
     {
-        try {
-            $pdo = Database::getConnection();
+        if (!$this->checkPermission('read')) {
+            return [];
+        }
 
+        try {
             $sql = "
                 SELECT DISTINCT
                     p.id_programmation,
@@ -112,23 +181,25 @@ class PlanificationSoutenanceController
                 ORDER BY e.nom_etu ASC, e.prenom_etu ASC
             ";
 
-            $stmt = $pdo->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
-            error_log('Erreur getEtudiantsDisponiblesForView: ' . $e->getMessage());
+            $this->logger->error('Erreur getEtudiantsDisponiblesForView: ' . $e->getMessage());
             return [];
         }
     }
 
     /**
-     * Récupérer toutes les salles disponibles
+     * Action : Récupérer toutes les salles disponibles (READ)
      */
-    public function getSallesForView()
+    public function getSallesForView(): array
     {
-        try {
-            $pdo = Database::getConnection();
+        if (!$this->checkPermission('read')) {
+            return [];
+        }
 
+        try {
             $sql = "
                 SELECT 
                     id_salle,
@@ -137,23 +208,25 @@ class PlanificationSoutenanceController
                 ORDER BY lib_salle
             ";
 
-            $stmt = $pdo->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
-            error_log('Erreur getSallesForView: ' . $e->getMessage());
+            $this->logger->error('Erreur getSallesForView: ' . $e->getMessage());
             return [];
         }
     }
 
     /**
-     * Récupérer toutes les planifications pour affichage
+     * Action : Récupérer toutes les planifications pour affichage (READ)
      */
-    public function getPlanificationsForView()
+    public function getPlanificationsForView(): array
     {
-        try {
-            $pdo = Database::getConnection();
+        if (!$this->checkPermission('read')) {
+            return [];
+        }
 
+        try {
             $sql = "
                 SELECT 
                     p.id_programmation,
@@ -174,46 +247,49 @@ class PlanificationSoutenanceController
                 ORDER BY p.date_soutenance ASC, p.heure_soutenance ASC
             ";
 
-            $stmt = $pdo->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
-            error_log('Erreur getPlanificationsForView: ' . $e->getMessage());
+            $this->logger->error('Erreur getPlanificationsForView: ' . $e->getMessage());
             return [];
         }
     }
 
     /**
-     * Planifier une soutenance (mettre à jour salle, date, heure) - Version POST
+     * Action : Planifier une soutenance (UPDATE)
      */
-    public function planifierSoutenance()
+    public function planifierSoutenance(): array
     {
+        if (!$this->checkPermission('update')) {
+            return [
+                'success' => false,
+                'message' => 'Accès refusé'
+            ];
+        }
+
         try {
-            // Récupérer les données depuis $_POST
-            $idProgrammation = $_POST['id_programmation'] ?? null;
-            $idSalle = $_POST['id_salle'] ?? null;
-            $dateSoutenance = $_POST['date_soutenance'] ?? null;
-            $heureSoutenance = $_POST['heure_soutenance'] ?? null;
-            $editId = $_POST['edit_id'] ?? null; // Pour détecter le mode édition
+            $idProgrammation = $this->security->sanitizeInput($_POST['id_programmation'] ?? null);
+            $idSalle = $this->security->sanitizeInput($_POST['id_salle'] ?? null);
+            $dateSoutenance = $this->security->sanitizeInput($_POST['date_soutenance'] ?? null);
+            $heureSoutenance = $this->security->sanitizeInput($_POST['heure_soutenance'] ?? null);
+            $editId = $this->security->sanitizeInput($_POST['edit_id'] ?? null);
 
             // Validation des données requises
             if (empty($idProgrammation)) {
                 throw new Exception('ID de programmation requis');
             }
-
             if (empty($idSalle)) {
                 throw new Exception('Salle requise');
             }
-
             if (empty($dateSoutenance)) {
                 throw new Exception('Date de soutenance requise');
             }
-
             if (empty($heureSoutenance)) {
                 throw new Exception('Heure de soutenance requise');
             }
 
-            // Validation de la date (ne doit pas être dans le passé)
+            // Validation de la date
             $selectedDateTime = new DateTime($dateSoutenance . ' ' . $heureSoutenance);
             $now = new DateTime();
 
@@ -221,14 +297,12 @@ class PlanificationSoutenanceController
                 throw new Exception('La date et l\'heure de soutenance doivent être dans le futur');
             }
 
-            $pdo = Database::getConnection();
-            $pdo->beginTransaction();
+            $this->pdo->beginTransaction();
 
-            // Déterminer l'ID à utiliser pour la vérification des conflits
             $conflictCheckId = $editId ? $editId : $idProgrammation;
 
-            // Récupérer le numéro d'étudiant pour les vérifications
-            $etudiantStmt = $pdo->prepare("SELECT num_etud FROM programmer WHERE id_programmation = ?");
+            // Récupérer le numéro d'étudiant
+            $etudiantStmt = $this->pdo->prepare("SELECT num_etud FROM programmer WHERE id_programmation = ?");
             $etudiantStmt->execute([$conflictCheckId]);
             $etudiantData = $etudiantStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -236,13 +310,13 @@ class PlanificationSoutenanceController
                 throw new Exception('Programmation non trouvée');
             }
 
-            // Vérifier si l'étudiant n'a pas déjà une planification complète (sauf en mode édition)
-            if ($this->etudiantDejaPlannifie($etudiantData['num_etud'], $editId)) {
+            // Vérifier si l'étudiant n'a pas déjà une planification complète
+            if ($this->etudiantDejaPlannifie($etudiantData['num_etud'], $editId ? (int)$editId : null)) {
                 throw new Exception('Cet étudiant a déjà une soutenance complètement planifiée');
             }
 
             // Vérifier les conflits de salle
-            $conflictStmt = $pdo->prepare("
+            $conflictStmt = $this->pdo->prepare("
                 SELECT COUNT(*) as conflicts
                 FROM programmer 
                 WHERE id_salle = ? 
@@ -261,7 +335,6 @@ class PlanificationSoutenanceController
                 throw new Exception('Conflit : Cette salle est déjà occupée à cette date et heure');
             }
 
-            // Déterminer l'ID à utiliser pour la mise à jour
             $updateId = $editId ? $editId : $idProgrammation;
 
             // Mettre à jour la programmation
@@ -273,7 +346,7 @@ class PlanificationSoutenanceController
                 WHERE id_programmation = ?
             ";
 
-            $stmt = $pdo->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $success = $stmt->execute([
                 $idSalle,
                 $dateSoutenance,
@@ -285,18 +358,21 @@ class PlanificationSoutenanceController
                 throw new Exception('Erreur lors de la mise à jour en base de données');
             }
 
-            $pdo->commit();
+            $this->pdo->commit();
 
             $message = $editId ? 'Planification modifiée avec succès' : 'Soutenance planifiée avec succès';
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'programmer', 'Succès');
+            $this->logger->info("Planification soutenance {$updateId} effectuée");
 
             return [
                 'success' => true,
                 'message' => $message
             ];
         } catch (Exception $e) {
-            if (isset($pdo)) {
-                $pdo->rollBack();
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
             }
+            $this->logger->error("Erreur planifierSoutenance: " . $e->getMessage());
 
             return [
                 'success' => false,
@@ -306,18 +382,23 @@ class PlanificationSoutenanceController
     }
 
     /**
-     * Supprimer une planification (remettre salle, date, heure à NULL) - Version POST
+     * Action : Supprimer une planification (DELETE)
      */
-    public function supprimerPlanification()
+    public function supprimerPlanification(): array
     {
+        if (!$this->checkPermission('delete')) {
+            return [
+                'success' => false,
+                'message' => 'Accès refusé'
+            ];
+        }
+
         try {
-            $id = $_POST['id_programmation'] ?? null;
+            $id = $this->security->sanitizeInput($_POST['id_programmation'] ?? null);
 
             if (empty($id)) {
                 throw new Exception('ID de programmation requis');
             }
-
-            $pdo = Database::getConnection();
 
             // Remettre à NULL la salle, date et heure (garder l'attribution du jury)
             $sql = "
@@ -328,12 +409,15 @@ class PlanificationSoutenanceController
                 WHERE id_programmation = ?
             ";
 
-            $stmt = $pdo->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $success = $stmt->execute([$id]);
 
             if (!$success) {
                 throw new Exception('Erreur lors de la suppression en base de données');
             }
+
+            $this->auditLog->logSuppression($_SESSION['id_utilisateur'], 'programmer', 'Succès');
+            $this->logger->info("Planification soutenance {$id} supprimée");
 
             return [
                 'success' => true,
@@ -341,6 +425,7 @@ class PlanificationSoutenanceController
             ];
 
         } catch (Exception $e) {
+            $this->logger->error("Erreur supprimerPlanification: " . $e->getMessage());
             return [
                 'success' => false,
                 'message' => 'Erreur lors de la suppression : ' . $e->getMessage()
@@ -349,18 +434,20 @@ class PlanificationSoutenanceController
     }
 
     /**
-     * Récupérer une planification par ID pour modification
+     * Action : Récupérer une planification par ID pour modification (READ - AJAX)
      */
-    public function getPlanification()
+    public function getPlanification(): void
     {
+        if (!$this->checkPermission('read')) {
+            return;
+        }
+
         try {
-            $id = $_GET['id'] ?? null;
+            $id = $this->security->sanitizeInput($_GET['id'] ?? null);
 
             if (!$id) {
                 throw new Exception('ID requis');
             }
-
-            $pdo = Database::getConnection();
 
             $sql = "
                 SELECT 
@@ -376,7 +463,7 @@ class PlanificationSoutenanceController
                 WHERE p.id_programmation = ?
             ";
 
-            $stmt = $pdo->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$id]);
             $planification = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -390,6 +477,7 @@ class PlanificationSoutenanceController
                 'data' => $planification
             ]);
         } catch (Exception $e) {
+            $this->logger->error("Erreur getPlanification: " . $e->getMessage());
             header('Content-Type: application/json');
             http_response_code(400);
             echo json_encode([
@@ -399,4 +487,3 @@ class PlanificationSoutenanceController
         }
     }
 }
-?>

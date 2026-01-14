@@ -1,100 +1,198 @@
 <?php
 
-require_once __DIR__ . '/../models/Etudiant.php';
-require_once __DIR__ . '/../models/Enseignant.php';
-require_once __DIR__ . '/../../app/config/database.php';
+namespace App\Controllers;
 
-class DashboardSecretaireController {
-    private $pdo;
-    private $etudiantModel;
-    private $enseignantModel;
+use PDO;
+use App\Models\Etudiant;
+use App\Models\Enseignant;
+use App\Models\AuditLog;
+use App\Utils\SecurityUtils;
+use Psr\Log\LoggerInterface;
+use Exception;
 
-    public function __construct($pdo) {
+/**
+ * DashboardSecretaireController - Vue spécifique Secrétariat
+ * 
+ * Ce contrôleur gère l'affichage du tableau de bord du secrétariat :
+ * - Statistiques des étudiants et enseignants
+ * - Activités récentes
+ * - Évolution des effectifs
+ * 
+ * @package App\Controllers
+ */
+class DashboardSecretaireController
+{
+    private PDO $pdo;
+    private Etudiant $etudiantModel;
+    private Enseignant $enseignantModel;
+    private AuditLog $auditLog;
+    private SecurityUtils $security;
+    private LoggerInterface $logger;
+
+    /**
+     * Constructeur avec Injection de Dépendances
+     */
+    public function __construct(
+        PDO $pdo,
+        Etudiant $etudiantModel,
+        Enseignant $enseignantModel,
+        AuditLog $auditLog,
+        SecurityUtils $security,
+        LoggerInterface $logger
+    ) {
         $this->pdo = $pdo;
-        $this->etudiantModel = new Etudiant($pdo);
-        $this->enseignantModel = new Enseignant($pdo);
+        $this->etudiantModel = $etudiantModel;
+        $this->enseignantModel = $enseignantModel;
+        $this->auditLog = $auditLog;
+        $this->security = $security;
+        $this->logger = $logger;
     }
 
-    public function index() {
-        $stats = $this->getStats();
-        $activites = $this->getActivitesRecentes();
-        $evolutionEffectifs = $this->getEvolutionEffectifs();
+    /**
+     * Vérification centralisée des permissions
+     */
+    private function checkPermission(string $action): bool
+    {
+        $idGroupe = $_SESSION['id_GU'] ?? 0;
         
+        if (!$this->security->can($idGroupe, 'dashboard_secretaire', $action)) {
+            $this->logger->warning(
+                "Accès refusé ({$action}) pour user " . ($_SESSION['id_utilisateur'] ?? 'inconnu') . " sur dashboard_secretaire"
+            );
+            
+            $GLOBALS['error'] = "Vous n'avez pas les droits nécessaires.";
+            if (file_exists(__DIR__ . '/../../ressources/views/errors/403.php')) {
+                http_response_code(403);
+                require __DIR__ . '/../../ressources/views/errors/403.php';
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Action : Affiche le tableau de bord (READ)
+     */
+    public function index(): array
+    {
+        if (!$this->checkPermission('read')) {
+            return [
+                'stats' => $this->getDefaultStats(),
+                'activites' => [],
+                'evolutionEffectifs' => []
+            ];
+        }
+
+        try {
+            $stats = $this->getStats();
+            $activites = $this->getActivitesRecentes();
+            $evolutionEffectifs = $this->getEvolutionEffectifs();
+            
+            return [
+                'stats' => $stats,
+                'activites' => $activites,
+                'evolutionEffectifs' => $evolutionEffectifs
+            ];
+        } catch (Exception $e) {
+            $this->logger->error("Erreur dans index: " . $e->getMessage());
+            return [
+                'stats' => $this->getDefaultStats(),
+                'activites' => [],
+                'evolutionEffectifs' => []
+            ];
+        }
+    }
+
+    /**
+     * Retourne les statistiques par défaut
+     */
+    private function getDefaultStats(): array
+    {
         return [
-            'stats' => $stats,
-            'activites' => $activites,
-            'evolutionEffectifs' => $evolutionEffectifs
+            'etudiants' => 0,
+            'enseignants' => 0,
+            'rapports' => 0,
+            'reclamations' => 0,
+            'candidatures' => 0,
+            'dossiers' => 0
         ];
     }
 
-    private function getStats() {
-        // Statistiques des étudiants
-        $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM etudiant WHERE statut = 'actif'");
-        $etudiants = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    /**
+     * Récupère les statistiques
+     */
+    private function getStats(): array
+    {
+        $stats = $this->getDefaultStats();
 
-        // Statistiques des enseignants
-        $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM enseignant WHERE statut = 'actif'");
-        $enseignants = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-        // Statistiques des rapports (si la table existe)
         try {
-            $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM rapport");
-            $rapports = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+            // Statistiques des étudiants
+            $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM etudiants WHERE statut_etu = 'actif'");
+            $stats['etudiants'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+            // Statistiques des enseignants
+            $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM enseignants WHERE statut_enseignant = 'actif'");
+            $stats['enseignants'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+            // Statistiques des rapports
+            try {
+                $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM rapport_etudiants");
+                $stats['rapports'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+            } catch (Exception $e) {
+                $stats['rapports'] = 0;
+            }
+
+            // Statistiques des réclamations
+            try {
+                $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM reclamations WHERE statut_reclamation != 'résolue'");
+                $stats['reclamations'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+            } catch (Exception $e) {
+                $stats['reclamations'] = 0;
+            }
+
+            // Statistiques des candidatures
+            try {
+                $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM programmer WHERE num_jury IS NOT NULL");
+                $stats['candidatures'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+            } catch (Exception $e) {
+                $stats['candidatures'] = 0;
+            }
+
+            // Statistiques des dossiers académiques
+            try {
+                $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM inscriptions");
+                $stats['dossiers'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+            } catch (Exception $e) {
+                $stats['dossiers'] = 0;
+            }
         } catch (Exception $e) {
-            $rapports = 0;
+            $this->logger->error("Erreur getStats: " . $e->getMessage());
         }
 
-        // Statistiques des réclamations (si la table existe)
-        try {
-            $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM reclamation WHERE statut != 'resolue'");
-            $reclamations = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-        } catch (Exception $e) {
-            $reclamations = 0;
-        }
-
-        // Statistiques des candidatures (si la table existe)
-        try {
-            $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM candidature_soutenance WHERE statut = 'en_attente'");
-            $candidatures = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-        } catch (Exception $e) {
-            $candidatures = 0;
-        }
-
-        // Statistiques des dossiers académiques (si la table existe)
-        try {
-            $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM dossier_academique");
-            $dossiers = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-        } catch (Exception $e) {
-            $dossiers = 0;
-        }
-
-        return [
-            'etudiants' => $etudiants,
-            'enseignants' => $enseignants,
-            'rapports' => $rapports,
-            'reclamations' => $reclamations,
-            'candidatures' => $candidatures,
-            'dossiers' => $dossiers
-        ];
+        return $stats;
     }
 
-    private function getActivitesRecentes() {
+    /**
+     * Récupère les activités récentes
+     */
+    private function getActivitesRecentes(): array
+    {
         $activites = [];
 
-        // Dernières inscriptions d'étudiants
         try {
+            // Dernières inscriptions d'étudiants
             $stmt = $this->pdo->query("
-                SELECT 'inscription' as type, nom_etu, prenom_etu, date_inscription as date_activite
-                FROM etudiant 
-                WHERE date_inscription >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-                ORDER BY date_inscription DESC 
+                SELECT 'inscription' as type, nom_etu, prenom_etu, date_creation as date_activite
+                FROM etudiants 
+                WHERE date_creation >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                ORDER BY date_creation DESC 
                 LIMIT 3
             ");
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $activites[] = [
                     'type' => 'inscription',
                     'titre' => 'Nouvelle inscription',
-                    'description' => $row['nom_etu'] . ' ' . $row['prenom_etu'] . ' s\'est inscrit(e)',
+                    'description' => ($row['nom_etu'] ?? '') . ' ' . ($row['prenom_etu'] ?? '') . ' s\'est inscrit(e)',
                     'date_activite' => date('d/m/Y', strtotime($row['date_activite'])),
                     'icone' => 'fa-user-plus',
                     'couleur' => 'green'
@@ -104,11 +202,11 @@ class DashboardSecretaireController {
             // Table ou colonne inexistante
         }
 
-        // Dernières réclamations
         try {
+            // Dernières réclamations
             $stmt = $this->pdo->query("
-                SELECT 'reclamation' as type, sujet, date_creation as date_activite
-                FROM reclamation 
+                SELECT 'reclamation' as type, titre_reclamation, date_creation as date_activite
+                FROM reclamations 
                 WHERE date_creation >= DATE_SUB(NOW(), INTERVAL 30 DAY)
                 ORDER BY date_creation DESC 
                 LIMIT 3
@@ -117,8 +215,8 @@ class DashboardSecretaireController {
                 $activites[] = [
                     'type' => 'reclamation',
                     'titre' => 'Nouvelle réclamation',
-                    'description' => substr($row['sujet'], 0, 50) . '...',
-                    'date_activite' => date('d/m/Y', strtotime($row['date_creation'])),
+                    'description' => substr($row['titre_reclamation'] ?? '', 0, 50) . '...',
+                    'date_activite' => date('d/m/Y', strtotime($row['date_activite'])),
                     'icone' => 'fa-exclamation-triangle',
                     'couleur' => 'red'
                 ];
@@ -127,45 +225,21 @@ class DashboardSecretaireController {
             // Table inexistante
         }
 
-        // Dernières candidatures
         try {
+            // Derniers rapports
             $stmt = $this->pdo->query("
-                SELECT 'candidature' as type, e.nom_etu, e.prenom_etu, cs.date_candidature as date_activite
-                FROM candidature_soutenance cs
-                JOIN etudiant e ON cs.num_etu = e.num_etu
-                WHERE cs.date_candidature >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-                ORDER BY cs.date_candidature DESC 
-                LIMIT 3
-            ");
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $activites[] = [
-                    'type' => 'candidature',
-                    'titre' => 'Nouvelle candidature',
-                    'description' => $row['nom_etu'] . ' ' . $row['prenom_etu'] . ' a soumis une candidature',
-                    'date_activite' => date('d/m/Y', strtotime($row['date_activite'])),
-                    'icone' => 'fa-file-signature',
-                    'couleur' => 'purple'
-                ];
-            }
-        } catch (Exception $e) {
-            // Table inexistante
-        }
-
-        // Derniers rapports
-        try {
-            $stmt = $this->pdo->query("
-                SELECT 'rapport' as type, titre, date_creation as date_activite
-                FROM rapport 
-                WHERE date_creation >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-                ORDER BY date_creation DESC 
+                SELECT 'rapport' as type, nom_rapport, date_rapport as date_activite
+                FROM rapport_etudiants 
+                WHERE date_rapport >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                ORDER BY date_rapport DESC 
                 LIMIT 3
             ");
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $activites[] = [
                     'type' => 'rapport',
                     'titre' => 'Nouveau rapport',
-                    'description' => substr($row['titre'], 0, 50) . '...',
-                    'date_activite' => date('d/m/Y', strtotime($row['date_creation'])),
+                    'description' => substr($row['nom_rapport'] ?? '', 0, 50) . '...',
+                    'date_activite' => date('d/m/Y', strtotime($row['date_activite'])),
                     'icone' => 'fa-file-alt',
                     'couleur' => 'blue'
                 ];
@@ -182,15 +256,19 @@ class DashboardSecretaireController {
         return array_slice($activites, 0, 10);
     }
 
-    private function getEvolutionEffectifs() {
+    /**
+     * Récupère l'évolution des effectifs
+     */
+    private function getEvolutionEffectifs(): array
+    {
         try {
             $stmt = $this->pdo->query("
                 SELECT 
-                    YEAR(date_inscription) as annee,
+                    YEAR(date_creation) as annee,
                     COUNT(*) as effectif
-                FROM etudiant 
-                WHERE date_inscription >= '2019-01-01'
-                GROUP BY YEAR(date_inscription)
+                FROM etudiants 
+                WHERE date_creation >= '2019-01-01'
+                GROUP BY YEAR(date_creation)
                 ORDER BY annee
             ");
             
@@ -204,6 +282,7 @@ class DashboardSecretaireController {
             
             return $evolution;
         } catch (Exception $e) {
+            $this->logger->error("Erreur getEvolutionEffectifs: " . $e->getMessage());
             // Données factices si la table n'existe pas
             return [
                 ['annee' => '2019', 'effectif' => 180],
@@ -215,4 +294,4 @@ class DashboardSecretaireController {
             ];
         }
     }
-} 
+}
