@@ -222,18 +222,22 @@ $listeFonctions = array_slice($listeFonctions, $offset, $limit);
                                 class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                                 <i class="fas fa-times mr-2"></i>Annuler
                             </button>
+                            <?php if (canEdit()): ?>
                             <button type="submit" name="btn_modifier_fonction" id="btnModifier"
                                 class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                                 <i class="fas fa-save mr-2"></i>Modifier
                                 <input type="hidden" name="btn_modifier_fonction" id="btn_modifier_fonction_hidden"
                                     value="0">
                             </button>
+                            <?php endif; ?>
                         <?php else: ?>
                             <div></div>
+                            <?php if (canCreate()): ?>
                             <button type="submit" name="btn_add_fonction"
                                 class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                                 <i class="fas fa-plus mr-2"></i>Ajouter une fonction
                             </button>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 </form>
@@ -274,10 +278,12 @@ $listeFonctions = array_slice($listeFonctions, $offset, $limit);
                                 class="btn-hover px-4 py-2 btn-gradient-secondary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                                 <i class="fas fa-print mr-2"></i>Imprimer
                             </button>
+                            <?php if (canDelete()): ?>
                             <button type="button" id="deleteSelectedBtn" disabled
                                 class="btn-hover px-4 py-2 btn-gradient-danger text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <i class="fas fa-trash-alt mr-2"></i>Supprimer
                             </button>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <form method="POST" action="?page=parametres_generaux&action=fonctions" id="formListeFonctions">
@@ -298,10 +304,12 @@ $listeFonctions = array_slice($listeFonctions, $offset, $limit);
                                             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Libellé
                                         </th>
+                                        <?php if (canEdit() || canDelete()): ?>
                                         <th scope="col"
                                             class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Actions
                                         </th>
+                                        <?php endif; ?>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
@@ -319,12 +327,16 @@ $listeFonctions = array_slice($listeFonctions, $offset, $limit);
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                     <?= htmlspecialchars($fonction->lib_fonction) ?>
                                                 </td>
+                                                <?php if (canEdit() || canDelete()): ?>
                                                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                                    <?php if (canEdit()): ?>
                                                     <a href="?page=parametres_generaux&action=fonctions&id_fonction=<?= htmlspecialchars($fonction->id_fonction) ?>"
                                                         class="text-green-600 hover:text-green-900">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
+                                                    <?php endif; ?>
                                                 </td>
+                                                <?php endif; ?>
                                             </tr>
                                         <?php endforeach; ?>
                                     <?php else: ?>

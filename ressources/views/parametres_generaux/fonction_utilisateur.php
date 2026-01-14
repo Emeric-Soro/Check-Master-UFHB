@@ -258,17 +258,21 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                                         class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                                         <i class="fas fa-times mr-2"></i>Annuler
                                     </button>
+                                    <?php if (canEdit()): ?>
                                     <button type="button" name="btn_modifier_groupe" id="btn_modifier_groupe"
                                         class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                                         <i class="fas fa-save mr-2"></i>Modifier
                                     </button>
+                                    <?php endif; ?>
                                     <input type="hidden" name="btn_modifier_groupe" id="btn_modifier_groupe_hidden" value="0">
                                 <?php else: ?>
                                     <div></div>
+                                    <?php if (canCreate()): ?>
                                     <button type="submit" name="submit_add_groupe"
                                         class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                                         <i class="fas fa-plus mr-2"></i>Ajouter un groupe
                                     </button>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </div>
                         </form>
@@ -312,10 +316,12 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                                         class="btn-hover px-4 py-2 btn-gradient-secondary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                                         <i class="fas fa-print mr-2"></i>Imprimer
                                     </button>
+                                    <?php if (canDelete()): ?>
                                     <button type="button" id="deleteSelectedBtn" disabled
                                         class="btn-hover px-4 py-2 btn-gradient-danger text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
                                         <i class="fas fa-trash-alt mr-2"></i>Supprimer
                                     </button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
 
@@ -338,10 +344,12 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                                                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Libellé
                                                 </th>
+                                                <?php if (canEdit() || canDelete()): ?>
                                                 <th scope="col"
                                                     class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Actions
                                                 </th>
+                                                <?php endif; ?>
                                             </tr>
                                         </thead>
                                         <tbody class="bg-white divide-y divide-gray-200">
@@ -359,12 +367,16 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                             <?= htmlspecialchars($groupe->lib_GU) ?>
                                                         </td>
+                                                        <?php if (canEdit() || canDelete()): ?>
                                                         <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                                            <?php if (canEdit()): ?>
                                                             <a href="?page=parametres_generaux&action=fonction_utilisateur&tab=groupes&id_groupe=<?= htmlspecialchars($groupe->id_GU) ?>"
                                                                 class="text-green-600 hover:text-green-900">
                                                                 <i class="fas fa-edit"></i>
                                                             </a>
+                                                            <?php endif; ?>
                                                         </td>
+                                                        <?php endif; ?>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             <?php else: ?>
@@ -442,17 +454,21 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                                         class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                                         <i class="fas fa-times mr-2"></i>Annuler
                                     </button>
+                                    <?php if (canEdit()): ?>
                                     <button type="button" name="btn_modifier_type" id="btn_modifier_type"
                                         class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                                         <i class="fas fa-save mr-2"></i>Modifier
                                     </button>
+                                    <?php endif; ?>
                                     <input type="hidden" name="btn_modifier_type" id="btn_modifier_type_hidden" value="0">
                                 <?php else: ?>
                                     <div></div>
+                                    <?php if (canCreate()): ?>
                                     <button type="submit" name="submit_add_type"
                                         class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                                         <i class="fas fa-plus mr-2"></i>Ajouter un type
                                     </button>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </div>
                         </form>
@@ -496,10 +512,12 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                                         class="btn-hover px-4 py-2 btn-gradient-secondary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                                         <i class="fas fa-print mr-2"></i>Imprimer
                                     </button>
+                                    <?php if (canDelete()): ?>
                                     <button type="button" id="deleteSelectedBtnTypes" disabled
                                         class="btn-hover px-4 py-2 btn-gradient-danger text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
                                         <i class="fas fa-trash-alt mr-2"></i>Supprimer
                                     </button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
 
@@ -522,10 +540,12 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                                                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Libellé
                                                 </th>
+                                                <?php if (canEdit() || canDelete()): ?>
                                                 <th scope="col"
                                                     class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Actions
                                                 </th>
+                                                <?php endif; ?>
                                             </tr>
                                         </thead>
                                         <tbody class="bg-white divide-y divide-gray-200">
@@ -543,12 +563,16 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                             <?= htmlspecialchars($type->lib_type_utilisateur) ?>
                                                         </td>
+                                                        <?php if (canEdit() || canDelete()): ?>
                                                         <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                                            <?php if (canEdit()): ?>
                                                             <a href="?page=parametres_generaux&action=fonction_utilisateur&tab=types&id_type=<?= htmlspecialchars($type->id_type_utilisateur) ?>"
                                                                 class="text-green-600 hover:text-green-900">
                                                                 <i class="fas fa-edit"></i>
                                                             </a>
+                                                            <?php endif; ?>
                                                         </td>
+                                                        <?php endif; ?>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             <?php else: ?>
