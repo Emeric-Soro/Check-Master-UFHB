@@ -65,10 +65,12 @@
                         </button>
                     </div>
                     <div class="flex space-x-2">
+                        <?php if (canCreate()): ?>
                         <button
                             class="px-4 py-2 bg-green-600 text-white rounded-md shadow-sm text-sm font-medium hover:bg-green-700">
                             <i class="fas fa-plus mr-2"></i> Nouvelle soutenance
                         </button>
+                        <?php endif; ?>
                         <div class="relative">
                             <button
                                 class="px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">

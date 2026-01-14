@@ -177,6 +177,7 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                 </div>
 
                 <!-- Payment form -->
+                <?php if (canCreate() || canEdit()): ?>
                 <div class="bg-white rounded-lg shadow-sm overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h2 class="text-lg font-semibold text-gray-800">
@@ -257,6 +258,7 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                         </form>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <!-- Liste des versements -->
                 <div class="bg-white rounded-lg shadow-sm overflow-hidden mt-6">
@@ -341,10 +343,12 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
                                             <div class="flex items-center justify-center space-x-2">
                                                 <?php if ($versement['type_versement'] === 'Tranche'): ?>
+                                                <?php if (canEdit()): ?>
                                                 <a href="?page=gestion_scolarite&action=mettre_a_jour_versement&id=<?php echo $versement['id_versement']; ?>"
                                                     class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200">
                                                     <i class="fas fa-edit mr-1"></i>
                                                 </a>
+                                                <?php endif; ?>
                                                 <?php endif; ?>
                                                 <button
                                                     onclick="imprimerRecu(<?php echo $versement['id_versement']; ?>)"

@@ -427,10 +427,12 @@ $studentGrades = $GLOBALS['studentGrades'] ?? [];
                                 }
                             ?>
                                     <div class="flex justify-end mt-6">
+                                        <?php if (canCreate() || canEdit()): ?>
                                         <button type="submit" name="btn_enregistrer_notes"
                                             class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                                             Enregistrer les notes
                                         </button>
+                                        <?php endif; ?>
                                     </div>
                         </form>
                         <?php } ?>

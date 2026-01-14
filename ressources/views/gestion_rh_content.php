@@ -123,10 +123,12 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
 
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-xl font-semibold text-gray-700">Gestion du personnel administratif</h3>
+                        <?php if (canCreate()): ?>
                         <a href="?page=gestion_rh&tab=pers_admin&action=add" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-sm
                                   transition duration-150 ease-in-out flex items-center">
                             <i class="fas fa-plus mr-2"></i> Ajouter un personnel
                         </a>
+                        <?php endif; ?>
                     </div>
                     <!-- Action Bar for Table -->
                     <div
@@ -147,12 +149,14 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                 class="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50">
                                 <i class="fas fa-file-export mr-2"></i>Exporter
                             </button>
+                            <?php if (canDelete()): ?>
                             <button type="button" onclick="showDeleteModal('pers_admin', 'multiple')"
                                 id="deleteButtonPersAdmin"
                                 class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled>
                                 <i class="fas fa-trash-alt mr-2"></i>Supprimer
                             </button>
+                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -194,9 +198,11 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                         <th scope="col"
                                             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Date d'embauche</th>
+                                        <?php if (canEdit()): ?>
                                         <th scope="col"
                                             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Actions</th>
+                                        <?php endif; ?>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
@@ -232,6 +238,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <?= htmlspecialchars($admin->date_embauche) ?>
                                         </td>
+                                        <?php if (canEdit()): ?>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div class="flex space-x-2">
                                                 <a href="#"
@@ -241,6 +248,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                                 </a>
                                             </div>
                                         </td>
+                                        <?php endif; ?>
                                     </tr>
                                     <?php endforeach; ?>
                                     <?php endif; ?>
@@ -369,10 +377,12 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
 
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-xl font-semibold text-gray-700">Gestion des enseignants</h3>
+                        <?php if (canCreate()): ?>
                         <a href="?page=gestion_rh&tab=enseignant&action=add" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-sm
                                   transition duration-150 ease-in-out flex items-center">
                             <i class="fas fa-plus mr-2"></i> Ajouter un enseignant
                         </a>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Action Bar for Table -->
@@ -394,11 +404,13 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                 class="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50">
                                 <i class="fas fa-file-export mr-2"></i>Exporter
                             </button>
+                            <?php if (canDelete()): ?>
                             <button type="button" onclick="showDeleteModal('enseignant')" id="deleteButtonEnseignant"
                                 class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled>
                                 <i class="fas fa-trash-alt mr-2"></i>Supprimer
                             </button>
+                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -442,9 +454,11 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                         <th scope="col"
                                             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Date grade</th>
+                                        <?php if (canEdit()): ?>
                                         <th scope="col"
                                             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Actions</th>
+                                        <?php endif; ?>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
@@ -484,6 +498,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <?= htmlspecialchars($enseignant->date_grade) ?>
                                         </td>
+                                        <?php if (canEdit()): ?>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div class="flex space-x-2">
                                                 <a href="#"
@@ -493,6 +508,7 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                                 </a>
                                             </div>
                                         </td>
+                                        <?php endif; ?>
                                     </tr>
                                     <?php endforeach; ?>
                                     <?php endif; ?>

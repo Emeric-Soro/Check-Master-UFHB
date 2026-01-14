@@ -7,10 +7,12 @@
                 <h2 class="text-2xl font-bold text-gray-900">Critères d'Évaluation</h2>
                 <p class="text-gray-600 mt-1">Gérez les critères d'évaluation et leurs barèmes par année académique</p>
             </div>
+            <?php if (canCreate()): ?>
             <button onclick="openAddCritereModal()"
                 class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                 <i class="fas fa-plus mr-2"></i>Nouveau Critère
             </button>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -49,8 +51,10 @@
                             Barème (points)</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Statut</th>
+                        <?php if (canEdit() || canDelete()): ?>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Actions</th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody id="criteresBody" class="bg-white divide-y divide-gray-200">

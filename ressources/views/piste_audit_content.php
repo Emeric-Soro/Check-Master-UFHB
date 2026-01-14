@@ -538,11 +538,13 @@ $auditLog = $GLOBALS['auditLog'];
                                         </div>
                                     </td>
                                     <td>
+                                        <?php if (canDelete()): ?>
                                         <button type="button" class="btn btn-muted open-delete-modal"
                                             data-log-id="<?php echo $log['id_piste']; ?>" title="Supprimer ce log"
                                             aria-label="Supprimer le log <?php echo $log['id_piste']; ?>">
                                             <i class="fas fa-trash-alt" style="color:#374151;"></i>
                                         </button>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -596,6 +598,7 @@ $auditLog = $GLOBALS['auditLog'];
             style="margin-top:18px; background:#fff; border-radius:12px; box-shadow:0 8px 24px var(--card-shadow); overflow:hidden;">
             <div style="padding:12px 16px; background:#eee; color:#111; font-weight:700;">Nettoyage des Logs</div>
             <div style="padding:16px;">
+                <?php if (canDelete()): ?>
                 <form id="cleanupForm" method="POST" action="?page=piste_audit&action=cleanup"
                     style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
                     <div style="display:flex; flex-direction:column;">
@@ -613,6 +616,9 @@ $auditLog = $GLOBALS['auditLog'];
                             antérieurs à la période spécifiée.</p>
                     </div>
                 </form>
+                <?php else: ?>
+                <p class="small" style="margin:0; color:#6b7280;">Vous n'avez pas les permissions nécessaires pour nettoyer les logs.</p>
+                <?php endif; ?>
             </div>
         </div>
     </div>

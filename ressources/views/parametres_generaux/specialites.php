@@ -226,18 +226,22 @@ $listeSpecialites = array_slice($listeSpecialites, $offset, $limit);
                             class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                             <i class="fas fa-times mr-2"></i>Annuler
                         </button>
+                        <?php if (canEdit()): ?>
                         <button type="button" name="btn_modifier_specialite" id="btnModifier"
                             class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                             <i class="fas fa-save mr-2"></i>Modifier
                             <input type="hidden" name="btn_modifier_specialite" id="btn_modifier_specialite_hidden"
                                 value="0">
                         </button>
+                        <?php endif; ?>
                         <?php else: ?>
                         <div></div>
+                        <?php if (canCreate()): ?>
                         <button type="submit" name="btn_add_specialite"
                             class=" btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                             <i class="fas fa-plus mr-2"></i>Ajouter une spécialité
                         </button>
+                        <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 </form>
@@ -278,10 +282,12 @@ $listeSpecialites = array_slice($listeSpecialites, $offset, $limit);
                             class="btn-hover px-4 py-2 btn-gradient-secondary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                             <i class="fas fa-print mr-2"></i>Imprimer
                         </button>
+                        <?php if (canDelete()): ?>
                         <button id="deleteSelectedBtn" disabled
                             class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
                             <i class="fas fa-trash-alt mr-2"></i>Supprimer la sélection
                         </button>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -301,10 +307,12 @@ $listeSpecialites = array_slice($listeSpecialites, $offset, $limit);
                                         class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         <i class="fas fa-graduation-cap mr-1"></i>Spécialité
                                     </th>
+                                    <?php if (canEdit() || canDelete()): ?>
                                     <th
                                         class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         <i class="fas fa-cog mr-1"></i>Action
                                     </th>
+                                    <?php endif; ?>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -319,17 +327,21 @@ $listeSpecialites = array_slice($listeSpecialites, $offset, $limit);
                                     <td class="px-3 py-4 text-sm text-gray-900">
                                         <?= htmlspecialchars($specialite->lib_specialite) ?>
                                     </td>
+                                    <?php if (canEdit() || canDelete()): ?>
                                     <td class="px-3 py-4 text-sm text-center">
+                                        <?php if (canEdit()): ?>
                                         <a href="?page=parametres_generaux&action=specialites&id_specialite=<?= $specialite->id_specialite ?>"
                                             class="text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-200">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        <?php endif; ?>
                                     </td>
+                                    <?php endif; ?>
                                 </tr>
                                 <?php endforeach; ?>
                                 <?php else : ?>
                                 <tr>
-                                    <td colspan="3" class="px-3 py-4 text-sm text-gray-500 text-center">
+                                    <td colspan="<?= (canEdit() || canDelete()) ? 3 : 2 ?>" class="px-3 py-4 text-sm text-gray-500 text-center">
                                         <i class="fas fa-info-circle mr-2"></i>Aucune spécialité enregistrée.
                                     </td>
                                 </tr>

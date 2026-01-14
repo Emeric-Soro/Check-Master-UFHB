@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../../app/utils/permissions_helper.php';
+
 // Utilisation des variables globales au lieu d'appeler directement la base de données
 $etudiantsNonInscrits = isset($GLOBALS['etudiantsNonInscrits']) ? $GLOBALS['etudiantsNonInscrits'] : [];
 $niveaux = isset($GLOBALS['niveaux']) ? $GLOBALS['niveaux'] : [];
@@ -406,20 +408,24 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                             <i class="fas fa-times mr-2"></i>Annuler
                         </button>
 
+                        <?php if (canEdit()): ?>
                         <button type="submit" name="btn_modifier_insciption" id="edit_inscription"
                             class="inline-flex items-center px-6 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-blue-500/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
                             <i class="fas fa-save mr-2"></i>Modifier l'inscription
                         </button>
+                        <?php endif; ?>
                     </div>
 
                     <?php else : ?>
                     <div class="flex justify-between">
                         <div>
                         </div>
+                        <?php if (canCreate()): ?>
                         <button type="submit" name="btn_add_insciption" id="add_inscription"
                             class="inline-flex items-center px-6 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-blue-500/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
                             <i class="fas fa-save mr-2"></i>Enregistrer l'inscription
                         </button>
+                        <?php endif; ?>
                     </div>
                     <?php endif ?>
 
@@ -507,15 +513,19 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
                                     <div class="flex items-center justify-center space-x-2">
+                                        <?php if (canEdit()): ?>
                                         <button onclick="modifierInscription(<?php echo $inscrit['id_inscription']; ?>)"
                                             class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200">
                                             <i class="fas fa-edit mr-1"></i>
                                         </button>
+                                        <?php endif; ?>
+                                        <?php if (canDelete()): ?>
                                         <button
                                             onclick="supprimerInscription(<?php echo $inscrit['id_inscription']; ?>)"
                                             class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200">
                                             <i class="fas fa-trash-alt mr-1"></i>
                                         </button>
+                                        <?php endif; ?>
                                         <?php
                                         // Déterminer l'identifiant à envoyer au script d'impression :
                                         // préférer l'id du PREMIER versement si disponible (reçu du premier versement),

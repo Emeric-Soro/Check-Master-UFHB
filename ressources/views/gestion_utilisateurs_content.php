@@ -544,6 +544,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
             <div class=" bg-gradient-to-r from-green-600 to-green-800 px-6 py-4 flex justify-between items-center">
                 <h2 class="text-xl font-bold text-white">Gestion des Utilisateurs</h2>
                 <div class="flex gap-4">
+                    <?php if (canCreate()): ?>
                     <a href="?page=gestion_utilisateurs&action=add"
                     class="bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
                     <i class="fas fa-plus mr-2"></i>Ajouter un Utilisateur
@@ -552,6 +553,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                         class="bg-blue-500  text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                         <i class="fas fa-plus mr-2"></i>Ajouter en masse
                     </a>
+                    <?php endif; ?>
                 </div>
 
             </div>
@@ -620,9 +622,11 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                                     <i class="fas fa-sort ml-1 text-gray-400"></i>
                                 </div>
                             </th>
+                            <?php if (canEdit()): ?>
                             <th
                                 class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Actions</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200" id="usersTableBody">
@@ -695,6 +699,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                                 </div>
                             </td>
 
+                            <?php if (canEdit()): ?>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <div class="flex justify-center space-x-3">
                                     <a href="?page=gestion_utilisateurs&action=edit&id_utilisateur=<?php echo $user->id_utilisateur; ?>"
@@ -704,6 +709,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                                     </a>
                                 </div>
                             </td>
+                            <?php endif; ?>
                         </tr>
                         <?php endforeach; ?>
                         <?php endforeach; ?>

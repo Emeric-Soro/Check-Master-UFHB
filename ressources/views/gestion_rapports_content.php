@@ -212,17 +212,19 @@ if (isset($_SESSION['num_etu'])) {
                 <p class="text-white text-opacity-80 mb-6 text-center">Rédigez et soumettez votre rapport de
                     master directement via notre plateforme sécurisée.</p>
                 <div class="mt-auto">
-                    <?php if ($candidature_validee): ?>
-                        <button
-                            class="bg-white text-indigo-700 font-semibold py-2 px-6 rounded-lg hover:bg-opacity-90 transition duration-300 pulse">
-                            <a href="?page=gestion_rapports&action=creer_rapport">Commencer</a>
-                        </button>
-                    <?php else: ?>
-                        <button onclick="showCandidatureRequiredMessage()"
-                            class="bg-gray-300 text-gray-500 font-semibold py-2 px-6 rounded-lg cursor-not-allowed transition duration-300"
-                            disabled>
-                            Commencer
-                        </button>
+                    <?php if (canCreate()): ?>
+                        <?php if ($candidature_validee): ?>
+                            <button
+                                class="bg-white text-indigo-700 font-semibold py-2 px-6 rounded-lg hover:bg-opacity-90 transition duration-300 pulse">
+                                <a href="?page=gestion_rapports&action=creer_rapport">Commencer</a>
+                            </button>
+                        <?php else: ?>
+                            <button onclick="showCandidatureRequiredMessage()"
+                                class="bg-gray-300 text-gray-500 font-semibold py-2 px-6 rounded-lg cursor-not-allowed transition duration-300"
+                                disabled>
+                                Commencer
+                            </button>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
             </div>
@@ -387,11 +389,13 @@ if (isset($_SESSION['num_etu'])) {
 
                                         <?php if (!$dejaDepose): ?>
                                             <!-- Bouton supprimer seulement si le rapport n'est pas déposé -->
+                                            <?php if (canDelete()): ?>
                                             <button
                                                 onclick="confirmerSuppression(<?= $rapport->id_rapport ?>, '<?= htmlspecialchars(addslashes($rapport->nom_rapport)) ?>')"
                                                 class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                                 <i class="fas fa-trash mr-1"></i> Supprimer
                                             </button>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                     </div>
                                 </div>
@@ -411,17 +415,19 @@ if (isset($_SESSION['num_etu'])) {
                     <div class="text-center py-8">
                         <i class="fas fa-file-alt text-4xl text-gray-300 mb-4"></i>
                         <p class="text-gray-500 text-lg mb-4">Aucun rapport créé pour le moment</p>
-                        <?php if ($candidature_validee): ?>
-                            <a href="?page=gestion_rapports&action=creer_rapport"
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg inline-flex items-center">
-                                <i class="fas fa-plus mr-2"></i> Créer mon premier rapport
-                            </a>
-                        <?php else: ?>
-                            <button onclick="showCandidatureRequiredMessage()"
-                                class="bg-gray-400 text-gray-600 px-6 py-2 rounded-lg inline-flex items-center cursor-not-allowed"
-                                disabled>
-                                <i class="fas fa-plus mr-2"></i> Créer mon premier rapport
-                            </button>
+                        <?php if (canCreate()): ?>
+                            <?php if ($candidature_validee): ?>
+                                <a href="?page=gestion_rapports&action=creer_rapport"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg inline-flex items-center">
+                                    <i class="fas fa-plus mr-2"></i> Créer mon premier rapport
+                                </a>
+                            <?php else: ?>
+                                <button onclick="showCandidatureRequiredMessage()"
+                                    class="bg-gray-400 text-gray-600 px-6 py-2 rounded-lg inline-flex items-center cursor-not-allowed"
+                                    disabled>
+                                    <i class="fas fa-plus mr-2"></i> Créer mon premier rapport
+                                </button>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>

@@ -268,6 +268,7 @@ $timeline_steps = array_reverse($timeline_steps, true);
         <?php endif; ?>
         
         <!-- Formulaire de modification -->
+        <?php if (canEdit()): ?>
         <form method="POST" action="?page=admin_historique&action=update_student" class="bg-white rounded-2xl shadow-sm p-6">
             <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-edit mr-3 text-blue-500"></i>Champs Éditables</h3>
             <input type="hidden" name="num_etu" value="<?php echo htmlspecialchars($studentFile['num_etu']); ?>">
@@ -318,6 +319,7 @@ $timeline_steps = array_reverse($timeline_steps, true);
                 </button>
             </div>
         </form>
+        <?php endif; ?>
     </div>
 </div>
 

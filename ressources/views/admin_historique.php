@@ -41,6 +41,7 @@ $messageErreur = $GLOBALS['messageErreur'] ?? '';
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <!-- Importer -->
+            <?php if (canCreate()): ?>
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-transparent hover:border-blue-500 transition-all">
                 <h2 class="text-lg font-bold text-gray-800 flex items-center">
                     <i class="fas fa-upload mr-3 text-blue-500"></i>
@@ -51,6 +52,7 @@ $messageErreur = $GLOBALS['messageErreur'] ?? '';
                     Lancer l'importation
                 </button>
             </div>
+            <?php endif; ?>
 
             <!-- Exporter -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-transparent hover:border-gray-300 transition-all opacity-60">

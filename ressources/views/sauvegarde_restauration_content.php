@@ -74,6 +74,7 @@
         <?php endif; ?>
 
         <!-- Create Backup Section -->
+        <?php if (isAdmin()): ?>
         <div class="bg-white shadow-sm rounded-lg p-6 md:p-8 mb-8">
             <h2 class="text-2xl font-semibold text-gray-700 mb-4">Créer une Nouvelle Sauvegarde</h2>
             <p class="text-gray-600 mb-6">
@@ -93,6 +94,7 @@
                 </button>
             </form>
         </div>
+        <?php endif; ?>
 
         <!-- Existing Backups Section -->
         <div class="bg-white shadow-sm rounded-lg overflow-hidden mb-6">
@@ -141,6 +143,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                <?php if (isAdmin()): ?>
                                 <button type="button" class="text-green-600 hover:text-green-900 mr-3" title="Restaurer"
                                     onclick="openRestoreModal('<?php echo htmlspecialchars($backup['filename']); ?>')">
                                     <i class="fas fa-undo-alt"></i> Restaurer
@@ -153,6 +156,12 @@
                                     onclick="openDeleteModal('<?php echo htmlspecialchars($backup['filename']); ?>')">
                                     <i class="fas fa-trash"></i>
                                 </button>
+                                <?php else: ?>
+                                <a href="?page=sauvegarde_restauration&action=download&filename=<?php echo urlencode($backup['filename']); ?>"
+                                    class="text-blue-600 hover:text-blue-900" title="Télécharger">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>

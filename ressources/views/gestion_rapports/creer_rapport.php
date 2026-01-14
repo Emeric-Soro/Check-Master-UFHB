@@ -1,3 +1,10 @@
+<?php
+// Inclure le helper de permissions
+require_once __DIR__ . '/../../../app/utils/permissions_helper.php';
+
+// Déterminer si c'est une édition ou création
+$isEditingExisting = isset($isEditMode) && $isEditMode && isset($rapport);
+?>
 <!DOCTYPE html>
 <html lang="fr">
 
@@ -182,6 +189,7 @@
             <div class="flex space-x-3 mt-4 md:mt-0">
                 <?php if (!isset($GLOBALS['rapportDejaDepose']) || !$GLOBALS['rapportDejaDepose']): ?>
                     <!-- Boutons actifs seulement si le rapport n'est pas déposé -->
+                    <?php if (($isEditingExisting && canEdit()) || (!$isEditingExisting && canCreate())): ?>
                     <button id="saveBtn"
                         class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,6 +199,7 @@
                         </svg>
                         Enregistrer
                     </button>
+                    <?php endif; ?>
                     <button id="exportBtn"
                         class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,6 +208,7 @@
                         </svg>
                         Exporter
                     </button>
+                    <?php if (($isEditingExisting && canEdit()) || (!$isEditingExisting && canCreate())): ?>
                     <button id="deposerBtn"
                         class="bg-yellow-500 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -207,6 +217,7 @@
                         </svg>
                         Déposer
                     </button>
+                    <?php endif; ?>
                 <?php else: ?>
                     <!-- Boutons désactivés si le rapport est déjà déposé -->
                     <button disabled
@@ -648,6 +659,7 @@
             });
 
             // Save button event
+            if (saveBtn) {
             saveBtn.addEventListener('click', function () {
                 if (isReadOnly) {
                     showNotification('warning',
@@ -733,9 +745,11 @@
 
                 return false;
             });
+            }
 
 
             // Export button event
+            if (exportBtn) {
             exportBtn.addEventListener('click', function () {
                 if (!editor) {
                     showNotification('error', 'Éditeur non initialisé');
@@ -838,6 +852,7 @@
                             '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>Exporter';
                     });
             });
+            }
 
             // Utility function to show notifications
             function showNotification(type, message, title = null) {
