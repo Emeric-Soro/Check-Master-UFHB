@@ -121,7 +121,11 @@ class NotesResultatsController
             
             // Nombre d'UE validées
             $ueValideResult = $this->noteModel->getValidUe($studentId);
-            $GLOBALS['nbUeValide'] = isset($ueValideResult[0]) ? $ueValideResult[0]->nb_ue_valide ?? 0 : 0;
+            $nbUeValide = 0;
+            if (!empty($ueValideResult) && isset($ueValideResult[0])) {
+                $nbUeValide = $ueValideResult[0]->nb_ue_valide ?? 0;
+            }
+            $GLOBALS['nbUeValide'] = $nbUeValide;
             
             // Classement (et total étudiants du niveau)
             $classementObj = $this->noteModel->getClassementStudent($studentId);

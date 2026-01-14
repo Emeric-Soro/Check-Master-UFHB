@@ -345,7 +345,7 @@ class ProcessusValidationController
     private function getIdEnseignantConnecte(): ?int
     {
         try {
-            $sql = "SELECT id_enseignant FROM enseignants WHERE email_ens = ?";
+            $sql = "SELECT id_enseignant FROM enseignants WHERE mail_enseignant = ?";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$_SESSION['login_utilisateur'] ?? '']);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
