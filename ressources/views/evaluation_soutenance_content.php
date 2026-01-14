@@ -199,7 +199,6 @@ $anneeAcademiqueCourante = $controller->getAnneeAcademiqueCourante();
                     placeholder="Observations générales sur la soutenance..."></textarea>
             </div>
 
-            <?php if (canEdit() || canDelete()): ?>
             <!-- Boutons d'action -->
             <div class="flex justify-end space-x-3 pt-4" id="buttonContainer">
                 <button type="button" onclick="resetForm()"
@@ -213,7 +212,6 @@ $anneeAcademiqueCourante = $controller->getAnneeAcademiqueCourante();
                 </button>
                 <?php endif; ?>
             </div>
-            <?php endif; ?>
         </div>
     </form>
 </div>
