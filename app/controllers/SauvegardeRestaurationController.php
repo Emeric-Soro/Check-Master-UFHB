@@ -1,13 +1,38 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../models/AuditLog.php';
 
-class SauvegardeRestaurationController {
-    private $backupDir;
-    private $auditService;
-    private $auditLog;
+namespace App\Controllers;
 
-    public function __construct() {
+use PDO;
+use App\Models\AuditLog;
+use App\Utils\SecurityUtils;
+use Psr\Log\LoggerInterface;
+use Exception;
+
+/**
+ * SauvegardeRestaurationController - Backup/Restore de la base de données
+ * 
+ * Ce contrôleur gère les opérations de sauvegarde et restauration :
+ * - Création de sauvegardes manuelles
+ * - Restauration de la base de données
+ * - Suppression et téléchargement des sauvegardes
+ * 
+ * @package App\Controllers
+ */
+class SauvegardeRestaurationController
+{
+    private string $backupDir;
+    private AuditLog $auditLog;
+    private SecurityUtils $security;
+    private LoggerInterface $logger;
+
+    /**
+     * Constructeur avec Injection de Dépendances
+     */
+    public function __construct(
+        AuditLog $auditLog,
+        SecurityUtils $security,
+        LoggerInterface $logger
+    ) {
         // Utiliser un chemin absolu pour le dossier de sauvegarde
         $this->backupDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'ressources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'backups' . DIRECTORY_SEPARATOR;
         
@@ -16,11 +41,41 @@ class SauvegardeRestaurationController {
             mkdir($this->backupDir, 0777, true);
         }
         
-        $this->auditLog = new AuditLog(Database::getConnection());
+        $this->auditLog = $auditLog;
+        $this->security = $security;
+        $this->logger = $logger;
     }
 
-    // Obtient la configuration de la base de données
-    public function getDbConfig() {
+    /**
+     * Vérification centralisée des permissions
+     */
+    private function checkPermission(string $action): bool
+    {
+        $idGroupe = $_SESSION['id_GU'] ?? 0;
+        
+        if (!$this->security->can($idGroupe, 'sauvegarde_restauration', $action)) {
+            $this->logger->warning(
+                "Accès refusé ({$action}) pour user " . ($_SESSION['id_utilisateur'] ?? 'inconnu') . " sur sauvegarde_restauration"
+            );
+            
+            $GLOBALS['messageErreur'] = "Vous n'avez pas les droits nécessaires pour effectuer cette action.";
+            
+            if (file_exists(__DIR__ . '/../../ressources/views/errors/403.php')) {
+                http_response_code(403);
+                require __DIR__ . '/../../ressources/views/errors/403.php';
+            }
+            
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
+     * Obtient la configuration de la base de données
+     */
+    public function getDbConfig(): array
+    {
         return [
             'host' => 'db',
             'db'   => 'soutenance_manager',
@@ -29,8 +84,11 @@ class SauvegardeRestaurationController {
         ];
     }
 
-    // Détecte automatiquement le nom du conteneur Docker
-    private function getDockerContainerName() {
+    /**
+     * Détecte automatiquement le nom du conteneur Docker
+     */
+    private function getDockerContainerName(): string
+    {
         // Essayer de détecter le conteneur MySQL
         $cmd = "docker ps --filter 'ancestor=mysql:8.0' --format '{{.Names}}' 2>/dev/null";
         $containerName = shell_exec($cmd);
@@ -46,8 +104,11 @@ class SauvegardeRestaurationController {
         return $containerName;
     }
 
-    // Vérifie si Docker est disponible
-    private function isDockerAvailable() {
+    /**
+     * Vérifie si Docker est disponible
+     */
+    private function isDockerAvailable(): bool
+    {
         // Essayer plusieurs méthodes pour détecter Docker
         $output = shell_exec('docker --version 2>/dev/null');
         if ($output !== null && strpos($output, 'Docker version') !== false) {
@@ -69,8 +130,11 @@ class SauvegardeRestaurationController {
         return false;
     }
 
-    // Sauvegarde avec PHP PDO (méthode de secours)
-    private function createBackupWithPHP($filepath, $dbConfig) {
+    /**
+     * Sauvegarde avec PHP PDO (méthode de secours)
+     */
+    private function createBackupWithPHP(string $filepath, array $dbConfig): bool
+    {
         try {
             $dsn = "mysql:host={$dbConfig['host']};dbname={$dbConfig['db']};charset=utf8";
             $pdo = new PDO($dsn, $dbConfig['user'], $dbConfig['pass']);
@@ -110,33 +174,45 @@ class SauvegardeRestaurationController {
             return true;
             
         } catch (Exception $e) {
+            $this->logger->error("Erreur createBackupWithPHP: " . $e->getMessage());
             return false;
         }
     }
 
-    // Lance une sauvegarde manuelle
-    public function createBackup() {
+    /**
+     * Action : Lance une sauvegarde manuelle (CREATE)
+     */
+    public function createBackup(): bool
+    {
+        // Vérification des permissions
+        if (!$this->checkPermission('create')) {
+            return false;
+        }
+
         // S'assurer qu'aucune sortie n'a été envoyée
         if (headers_sent()) {
             return false;
         }
-        
-        $backupName = isset($_POST['backup_name']) && $_POST['backup_name'] ? preg_replace('/[^a-zA-Z0-9_-]/', '_', $_POST['backup_name']) : 'backup_' . date('Ymd_His');
-        $filename = $backupName . '_' . date('Ymd_His') . '.sql';
-        $filepath = $this->backupDir . $filename;
-        
-        // Essayer d'abord avec la méthode PHP (plus fiable)
-        if ($this->createBackupWithPHP($filepath, $this->getDbConfig())) {
-            // Enregistrer l'action d'audit
-            $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Sauvegarde', 'base_de_donnees', 'Succès');
+
+        try {
+            $backupName = isset($_POST['backup_name']) && $_POST['backup_name'] ? 
+                preg_replace('/[^a-zA-Z0-9_-]/', '_', $this->security->sanitizeInput($_POST['backup_name'])) : 
+                'backup_' . date('Ymd_His');
+            $filename = $backupName . '_' . date('Ymd_His') . '.sql';
+            $filepath = $this->backupDir . $filename;
             
-            header('Location: ?page=sauvegarde_restauration&success=1');
-            exit;
-        }
-        
-        // Si PHP échoue, essayer avec Docker
-        if ($this->isDockerAvailable()) {
-            $containerName = $this->getDockerContainerName();
+            // Essayer d'abord avec la méthode PHP (plus fiable)
+            if ($this->createBackupWithPHP($filepath, $this->getDbConfig())) {
+                $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Sauvegarde', 'base_de_donnees', 'Succès');
+                $this->logger->info("Sauvegarde créée: " . $filename);
+                
+                header('Location: ?page=sauvegarde_restauration&success=1');
+                exit;
+            }
+            
+            // Si PHP échoue, essayer avec Docker
+            if ($this->isDockerAvailable()) {
+                $containerName = $this->getDockerContainerName();
             
             // Vérifier si le conteneur est en cours d'exécution
             if ($this->isContainerRunning($containerName)) {
@@ -172,79 +248,85 @@ class SauvegardeRestaurationController {
         exit;
     }
 
-    // Vérifie si un conteneur est en cours d'exécution
-    private function isContainerRunning($containerName) {
+    /**
+     * Vérifie si un conteneur est en cours d'exécution
+     */
+    private function isContainerRunning(string $containerName): bool
+    {
         $cmd = sprintf('docker ps --filter "name=%s" --format "{{.Names}}" 2>/dev/null', escapeshellarg($containerName));
         $output = shell_exec($cmd);
         return $output !== null && !empty(trim($output));
     }
 
-   /**
-     * Restaure la base de données à partir d'un fichier SQL de sauvegarde.
+    /**
+     * Action : Restaure la base de données à partir d'un fichier SQL de sauvegarde (CREATE - Action critique)
      * Tente d'abord avec PHP PDO, puis avec Docker si disponible et que PHP échoue.
-     * Redirige l'utilisateur après l'opération.
      */
-    public function restoreBackup() {
-        // S'assurer qu'aucune sortie n'a été envoyée avant les redirections
-        if (headers_sent()) {
-            error_log("Erreur: Les en-têtes ont déjà été envoyés, redirection impossible.");
+    public function restoreBackup(): bool
+    {
+        // Vérification des permissions (Action critique)
+        if (!$this->checkPermission('create')) {
             return false;
         }
 
-        if (!isset($_POST['filename'])) {
-            header('Location: ?page=sauvegarde_restauration&error=1');
-            exit;
+        // S'assurer qu'aucune sortie n'a été envoyée avant les redirections
+        if (headers_sent()) {
+            $this->logger->error("Les en-têtes ont déjà été envoyés, redirection impossible.");
+            return false;
         }
 
-        $filename = basename($_POST['filename']);
-        $filepath = $this->backupDir . $filename;
+        try {
+            if (!isset($_POST['filename'])) {
+                header('Location: ?page=sauvegarde_restauration&error=1');
+                exit;
+            }
 
-        if (!file_exists($filepath)) {
-            error_log("Erreur: Fichier de sauvegarde introuvable: " . $filepath);
-            header('Location: ?page=sauvegarde_restauration&error=1');
-            exit;
-        }
+            $filename = basename($this->security->sanitizeInput($_POST['filename']));
+            $filepath = $this->backupDir . $filename;
 
-        $dbConfig = $this->getDbConfig();
+            if (!file_exists($filepath)) {
+                $this->logger->error("Fichier de sauvegarde introuvable: " . $filepath);
+                header('Location: ?page=sauvegarde_restauration&error=1');
+                exit;
+            }
 
-        // Essayer d'abord avec PHP PDO
-        if ($this->restoreBackupWithPHP($filepath, $dbConfig)) {
-            // Enregistrer l'action d'audit
-            $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Restauration', 'base_de_donnees', 'Succès');
-            
-            header('Location: ?page=sauvegarde_restauration&restored=1');
-            exit;
-        }
+            $dbConfig = $this->getDbConfig();
 
-        // Si PHP échoue, essayer avec Docker (si disponible et configuré)
-        if ($this->isDockerAvailable()) {
-            $containerName = $this->getDockerContainerName();
+            // Essayer d'abord avec PHP PDO
+            if ($this->restoreBackupWithPHP($filepath, $dbConfig)) {
+                $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Restauration', 'base_de_donnees', 'Succès');
+                $this->logger->info("Base de données restaurée depuis: " . $filename);
+                
+                header('Location: ?page=sauvegarde_restauration&restored=1');
+                exit;
+            }
 
-            if ($this->isContainerRunning($containerName)) {
-                // Utiliser Docker pour exécuter mysql
-                // ATTENTION: Assurez-vous que le fichier de backup est accessible par le conteneur Docker
-                // Cela peut nécessiter un montage de volume Docker.
-                $cmd = sprintf('docker exec -i %s mysql -h%s -u%s -p%s %s < %s 2>/dev/null',
-                    escapeshellarg($containerName),
-                    escapeshellarg($dbConfig['host']),
-                    escapeshellarg($dbConfig['user']),
-                    escapeshellarg($dbConfig['pass']),
-                    escapeshellarg($dbConfig['db']),
-                    escapeshellarg($filepath) // Le chemin doit être accessible depuis le conteneur
-                );
+            // Si PHP échoue, essayer avec Docker (si disponible et configuré)
+            if ($this->isDockerAvailable()) {
+                $containerName = $this->getDockerContainerName();
 
-                system($cmd, $retval);
-                if ($retval === 0) {
-                    // Enregistrer l'action d'audit
-                    $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Restauration', 'base_de_donnees', 'Succès');
-                    
-                    header('Location: ?page=sauvegarde_restauration&restored=1');
-                    exit;
-                } else {
-                    error_log("Erreur Docker: La commande de restauration Docker a échoué avec le code de retour: " . $retval);
+                if ($this->isContainerRunning($containerName)) {
+                    $cmd = sprintf('docker exec -i %s mysql -h%s -u%s -p%s %s < %s 2>/dev/null',
+                        escapeshellarg($containerName),
+                        escapeshellarg($dbConfig['host']),
+                        escapeshellarg($dbConfig['user']),
+                        escapeshellarg($dbConfig['pass']),
+                        escapeshellarg($dbConfig['db']),
+                        escapeshellarg($filepath)
+                    );
+
+                    system($cmd, $retval);
+                    if ($retval === 0) {
+                        $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Restauration', 'base_de_donnees', 'Succès');
+                        $this->logger->info("Base de données restaurée via Docker depuis: " . $filename);
+                        
+                        header('Location: ?page=sauvegarde_restauration&restored=1');
+                        exit;
+                    } else {
+                        $this->logger->error("La commande de restauration Docker a échoué avec le code: " . $retval);
                 }
             } else {
-                error_log("Erreur Docker: Le conteneur Docker '" . $containerName . "' n'est pas en cours d'exécution.");
+                $this->logger->error("Le conteneur Docker '" . $containerName . "' n'est pas en cours d'exécution.");
             }
         }
 
@@ -252,15 +334,20 @@ class SauvegardeRestaurationController {
         $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Restauration', 'base_de_donnees', 'Erreur');
         header('Location: ?page=sauvegarde_restauration&error=1');
         exit;
+        
+        } catch (Exception $e) {
+            $this->logger->error("Erreur lors de la restauration: " . $e->getMessage());
+            $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Restauration', 'base_de_donnees', 'Erreur');
+            header('Location: ?page=sauvegarde_restauration&error=1');
+            exit;
+        }
     }
 
     /**
      * Restaure la base de données en utilisant PHP PDO.
-     * @param string $filepath Chemin complet vers le fichier SQL de sauvegarde.
-     * @param array $dbConfig Tableau de configuration de la base de données (host, user, pass, db).
-     * @return bool True si la restauration est réussie, false sinon.
      */
-    public function restoreBackupWithPHP($filepath, $dbConfig) {
+    public function restoreBackupWithPHP(string $filepath, array $dbConfig): bool
+    {
         $pdo = null;
         
         try {
@@ -277,13 +364,13 @@ class SauvegardeRestaurationController {
             // Lire le fichier SQL
             $sql = file_get_contents($filepath);
             if ($sql === false) {
-                error_log("Erreur: Impossible de lire le fichier de sauvegarde: $filepath");
+                $this->logger->error("Impossible de lire le fichier de sauvegarde: $filepath");
                 return false;
             }
             
             // Diviser le SQL en requêtes individuelles
             $queries = $this->splitSQL($sql);
-            error_log("Nombre de requêtes parsées: " . count($queries));
+            $this->logger->info("Nombre de requêtes parsées: " . count($queries));
             
             $successCount = 0;
             $errorCount = 0;
@@ -298,27 +385,21 @@ class SauvegardeRestaurationController {
                         if ($result !== false) {
                             $successCount++;
                             
-                            // Compter les types de requêtes
                             if (preg_match('/^INSERT\s+INTO/i', $query)) {
                                 $insertCount++;
                             } elseif (preg_match('/^CREATE\s+TABLE/i', $query)) {
                                 $createCount++;
                             }
                         }
-                    } catch (PDOException $e) {
-                        // Ignorer certaines erreurs courantes
+                    } catch (\PDOException $e) {
                         $errorMsg = $e->getMessage();
                         if (strpos($errorMsg, 'already exists') !== false || 
                             strpos($errorMsg, 'Duplicate entry') !== false ||
                             strpos($errorMsg, 'doesn\'t exist') !== false) {
-                            // Ignorer ces erreurs mais les logger
-                            error_log("Requête ignorée (erreur attendue): " . substr($query, 0, 100) . "... - " . $errorMsg);
                             continue;
                         }
                         
-                        // Logger les erreurs importantes
-                        error_log("Erreur SQL à la requête #$index: " . $errorMsg);
-                        error_log("Requête problématique: " . substr($query, 0, 200) . "...");
+                        $this->logger->error("Erreur SQL à la requête #$index: " . $errorMsg);
                         $errorCount++;
                     }
                 }
@@ -327,14 +408,12 @@ class SauvegardeRestaurationController {
             // Réactiver les vérifications de clés étrangères
             $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
             
-            // Logger les statistiques
-            error_log("Restauration terminée - Succès: $successCount, Erreurs: $errorCount, INSERT: $insertCount, CREATE: $createCount");
+            $this->logger->info("Restauration terminée - Succès: $successCount, Erreurs: $errorCount, INSERT: $insertCount, CREATE: $createCount");
             
-            // Considérer comme réussi si au moins quelques requêtes ont fonctionné
             return $successCount > 0;
             
         } catch (Exception $e) {
-            error_log("Erreur générale lors de la restauration: " . $e->getMessage());
+            $this->logger->error("Erreur générale lors de la restauration: " . $e->getMessage());
             // En cas d'erreur, réactiver les contraintes
             if ($pdo) {
                 try {
@@ -370,13 +449,10 @@ class SauvegardeRestaurationController {
     }
 
     /**
-     * Divise une chaîne SQL en requêtes individuelles, en gérant les commentaires et les délimiteurs.
-     * Version améliorée qui gère correctement les requêtes INSERT multi-lignes.
-     * @param string $sql La chaîne SQL complète.
-     * @return array Un tableau de requêtes SQL individuelles.
+     * Divise une chaîne SQL en requêtes individuelles
      */
-    public function splitSQL($sql) {
-        // Nettoyer le SQL
+    public function splitSQL(string $sql): array
+    {
         $sql = trim($sql);
         
         $queries = [];
@@ -385,43 +461,32 @@ class SauvegardeRestaurationController {
         $stringChar = '';
         $inComment = false;
         $commentType = '';
-        $lineNumber = 0;
         
-        // Parcourir le SQL caractère par caractère
         for ($i = 0; $i < strlen($sql); $i++) {
             $char = $sql[$i];
             $nextChar = ($i < strlen($sql) - 1) ? $sql[$i + 1] : '';
             
-            // Gestion des sauts de ligne
-            if ($char === "\n") {
-                $lineNumber++;
-            }
-            
             // Gestion des commentaires
             if (!$inString && !$inComment) {
-                // Commentaire sur une ligne (--)
                 if ($char === '-' && $nextChar === '-') {
                     $inComment = true;
                     $commentType = 'line';
-                    $i++; // Passer le deuxième tiret
+                    $i++;
                     continue;
                 }
-                // Commentaire sur une ligne (#)
                 if ($char === '#') {
                     $inComment = true;
                     $commentType = 'line';
                     continue;
                 }
-                // Commentaire multi-lignes (/*)
                 if ($char === '/' && $nextChar === '*') {
                     $inComment = true;
                     $commentType = 'block';
-                    $i++; // Passer l'astérisque
+                    $i++;
                     continue;
                 }
             }
             
-            // Fin des commentaires
             if ($inComment) {
                 if ($commentType === 'line' && $char === "\n") {
                     $inComment = false;
@@ -429,7 +494,7 @@ class SauvegardeRestaurationController {
                 } elseif ($commentType === 'block' && $char === '*' && $nextChar === '/') {
                     $inComment = false;
                     $commentType = '';
-                    $i++; // Passer le slash
+                    $i++;
                 }
                 continue;
             }
@@ -440,7 +505,6 @@ class SauvegardeRestaurationController {
                     $inString = true;
                     $stringChar = $char;
                 } elseif ($inString && $char === $stringChar) {
-                    // Vérifier si c'est un caractère d'échappement
                     if ($i > 0 && $sql[$i - 1] !== '\\') {
                         $inString = false;
                         $stringChar = '';
@@ -448,16 +512,13 @@ class SauvegardeRestaurationController {
                 }
             }
             
-            // Ajouter le caractère à la requête courante
             if (!$inComment) {
                 $currentQuery .= $char;
             }
             
-            // Détecter la fin d'une requête (point-virgule hors chaîne)
             if ($char === ';' && !$inString && !$inComment) {
                 $currentQuery = trim($currentQuery);
                 
-                // Ignorer les requêtes vides
                 if (!empty($currentQuery) && !preg_match('/^\s*$/', $currentQuery)) {
                     $queries[] = $currentQuery;
                 }
@@ -466,7 +527,6 @@ class SauvegardeRestaurationController {
             }
         }
         
-        // Ajouter la dernière requête si elle existe
         $currentQuery = trim($currentQuery);
         if (!empty($currentQuery) && !preg_match('/^\s*$/', $currentQuery)) {
             $queries[] = $currentQuery;
@@ -475,68 +535,101 @@ class SauvegardeRestaurationController {
         return $queries;
     }
 
-    // Supprime une sauvegarde
-    public function deleteBackup() {
-        // S'assurer qu'aucune sortie n'a été envoyée
-        if (headers_sent()) {
+    /**
+     * Action : Supprime une sauvegarde (DELETE)
+     */
+    public function deleteBackup(): bool
+    {
+        if (!$this->checkPermission('delete')) {
             return false;
         }
-        
-        if (!isset($_POST['filename'])) {
-            header('Location: ?page=sauvegarde_restauration&error=1');
-            exit;
-        }
-        $filename = basename($_POST['filename']);
-        $filepath = $this->backupDir . $filename;
-        if (file_exists($filepath)) {
-            unlink($filepath);
-            $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Suppression', 'sauvegarde', 'Succès');
-            header('Location: ?page=sauvegarde_restauration&deleted=1');
-        } else {
-            $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Suppression', 'sauvegarde', 'Erreur');
-            header('Location: ?page=sauvegarde_restauration&error=1');
-        }
-        exit;
-    }
 
-    // Télécharge une sauvegarde
-    public function downloadBackup() {
-        // S'assurer qu'aucune sortie n'a été envoyée
         if (headers_sent()) {
             return false;
         }
-        
-        if (!isset($_GET['filename'])) {
-            header('Location: ?page=sauvegarde_restauration&error=1');
+
+        try {
+            if (!isset($_POST['filename'])) {
+                header('Location: ?page=sauvegarde_restauration&error=1');
+                exit;
+            }
+            
+            $filename = basename($this->security->sanitizeInput($_POST['filename']));
+            $filepath = $this->backupDir . $filename;
+            
+            if (file_exists($filepath)) {
+                unlink($filepath);
+                $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Suppression', 'sauvegarde', 'Succès');
+                $this->logger->info("Sauvegarde supprimée: " . $filename);
+                header('Location: ?page=sauvegarde_restauration&deleted=1');
+            } else {
+                $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Suppression', 'sauvegarde', 'Erreur');
+                header('Location: ?page=sauvegarde_restauration&error=1');
+            }
             exit;
-        }
-        $filename = basename($_GET['filename']);
-        $filepath = $this->backupDir . $filename;
-        if (file_exists($filepath)) {
-            $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Téléchargement', 'sauvegarde', 'Succès');
-            header('Content-Description: File Transfer');
-            header('Content-Type: application/octet-stream');
-            header('Content-Disposition: attachment; filename="' . $filename . '"');
-            header('Expires: 0');
-            header('Cache-Control: must-revalidate');
-            header('Pragma: public');
-            header('Content-Length: ' . filesize($filepath));
-            readfile($filepath);
-            exit;
-        } else {
-            $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Téléchargement', 'sauvegarde', 'Erreur');
+            
+        } catch (Exception $e) {
+            $this->logger->error("Erreur lors de la suppression: " . $e->getMessage());
             header('Location: ?page=sauvegarde_restauration&error=1');
             exit;
         }
     }
 
-    // Liste les sauvegardes existantes
-    public function getBackups() {
+    /**
+     * Action : Télécharge une sauvegarde (READ)
+     */
+    public function downloadBackup(): bool
+    {
+        if (!$this->checkPermission('read')) {
+            return false;
+        }
+
+        if (headers_sent()) {
+            return false;
+        }
+
+        try {
+            if (!isset($_GET['filename'])) {
+                header('Location: ?page=sauvegarde_restauration&error=1');
+                exit;
+            }
+            
+            $filename = basename($this->security->sanitizeInput($_GET['filename']));
+            $filepath = $this->backupDir . $filename;
+            if (file_exists($filepath)) {
+                $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Téléchargement', 'sauvegarde', 'Succès');
+                $this->logger->info("Sauvegarde téléchargée: " . $filename);
+                header('Content-Description: File Transfer');
+                header('Content-Type: application/octet-stream');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                header('Expires: 0');
+                header('Cache-Control: must-revalidate');
+                header('Pragma: public');
+                header('Content-Length: ' . filesize($filepath));
+                readfile($filepath);
+                exit;
+            } else {
+                $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Téléchargement', 'sauvegarde', 'Erreur');
+                header('Location: ?page=sauvegarde_restauration&error=1');
+                exit;
+            }
+            
+        } catch (Exception $e) {
+            $this->logger->error("Erreur lors du téléchargement: " . $e->getMessage());
+            header('Location: ?page=sauvegarde_restauration&error=1');
+            exit;
+        }
+    }
+
+    /**
+     * Liste les sauvegardes existantes (READ)
+     */
+    public function getBackups(): array
+    {
         if (!is_dir($this->backupDir)) {
             return [];
         }
         
-        // Rechercher les fichiers .sql
         $pattern = $this->backupDir . '*.sql';
         $files = glob($pattern);
         
@@ -552,7 +645,6 @@ class SauvegardeRestaurationController {
             }
         }
         
-        // Trier par date (plus récent en premier)
         usort($backups, function($a, $b) { 
             return strcmp($b['created_at'], $a['created_at']); 
         });
@@ -560,7 +652,11 @@ class SauvegardeRestaurationController {
         return $backups;
     }
 
-    private function humanFileSize($size, $precision = 2) {
+    /**
+     * Convertit la taille de fichier en format lisible
+     */
+    private function humanFileSize(int $size, int $precision = 2): string
+    {
         $units = array('B', 'KB', 'MB', 'GB', 'TB');
         $unit = 0;
         while ($size >= 1024 && $unit < count($units) - 1) {
@@ -570,50 +666,18 @@ class SauvegardeRestaurationController {
         return round($size, $precision) . ' ' . $units[$unit];
     }
 
-    // Affiche la page principale avec la liste des sauvegardes
-    public function index() {
-        $backups = $this->getBackups();
-        return $backups;
-    }
-
     /**
-     * Méthode de test pour diagnostiquer les problèmes de restauration.
-     * @param string $filepath Chemin vers le fichier de sauvegarde.
-     * @return array Informations de diagnostic.
+     * Action : Affiche la page principale avec la liste des sauvegardes (READ)
      */
-    public function testRestore($filepath) {
-        $diagnostic = [
-            'success' => false,
-            'errors' => [],
-            'warnings' => [],
-            'info' => []
-        ];
-        
-        try {
-            $dbConfig = $this->getDbConfig();
-            $diagnostic['info']['db_config'] = $dbConfig;
-            
-            // Test 1: Vérifier que le fichier existe
-            if (!file_exists($filepath)) {
-                $diagnostic['errors'][] = "Fichier introuvable: $filepath";
-                return $diagnostic;
-            }
-            
-            $diagnostic['info']['file_size'] = filesize($filepath);
-            $diagnostic['info']['file_path'] = $filepath;
-            
-            // Test 2: Tester la connexion à la base de données
-            try {
-                $dsn = "mysql:host={$dbConfig['host']};dbname={$dbConfig['db']};charset=utf8";
-                $pdo = new PDO($dsn, $dbConfig['user'], $dbConfig['pass']);
-                $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                $diagnostic['info']['connection'] = 'success';
-                
-                // Vérifier les tables existantes
-                $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
-                $diagnostic['info']['existing_tables'] = count($tables);
-                
-            } catch (Exception $e) {
+    public function index(): array
+    {
+        if (!$this->checkPermission('read')) {
+            return [];
+        }
+
+        return $this->getBackups();
+    }
+}
                 $diagnostic['errors'][] = "Erreur de connexion: " . $e->getMessage();
                 return $diagnostic;
             }
