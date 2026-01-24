@@ -1,4 +1,5 @@
 // Données de démonstration
+(() => {
 const reclamations = [
     {
         id: "REC-2023-001",
@@ -74,25 +75,39 @@ const reclamations = [
     }
 ];
 
-// Variables pour la pagination
-let currentPage = 1;
-const itemsPerPage = 5;
-let filteredReclamations = [...reclamations];
+// Variables pour la pagination (scopées pour éviter conflits globaux)
+let hrCurrentPage = 1;
+const hrItemsPerPage = 5;
+let hrFilteredReclamations = [...reclamations];
+
+function hrHasDom() {
+    return (
+        document.getElementById('reclamations-body') !== null &&
+        document.getElementById('status-filter') !== null &&
+        document.getElementById('date-filter') !== null &&
+        document.querySelector('.prev-page') !== null &&
+        document.querySelector('.next-page') !== null
+    );
+}
 
 // Fonction pour afficher les réclamations
 function displayReclamations() {
     const tbody = document.getElementById('reclamations-body');
+    if (!tbody) return;
     tbody.innerHTML = '';
 
     // Calcul des éléments à afficher pour la pagination
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedItems = filteredReclamations.slice(startIndex, endIndex);
+    const startIndex = (hrCurrentPage - 1) * hrItemsPerPage;
+    const endIndex = startIndex + hrItemsPerPage;
+    const paginatedItems = hrFilteredReclamations.slice(startIndex, endIndex);
 
     // Mise à jour des infos de pagination
-    document.getElementById('start-item').textContent = startIndex + 1;
-    document.getElementById('end-item').textContent = Math.min(endIndex, filteredReclamations.length);
-    document.getElementById('total-items').textContent = filteredReclamations.length;
+    const startEl = document.getElementById('start-item');
+    const endEl = document.getElementById('end-item');
+    const totalEl = document.getElementById('total-items');
+    if (startEl) startEl.textContent = String(startIndex + 1);
+    if (endEl) endEl.textContent = String(Math.min(endIndex, hrFilteredReclamations.length));
+    if (totalEl) totalEl.textContent = String(hrFilteredReclamations.length);
 
     // Génération des lignes du tableau
     paginatedItems.forEach(reclamation => {
@@ -159,17 +174,24 @@ function updateStatusCounts() {
     const resolues = reclamations.filter(r => r.statut === 'resolue').length;
     const sansSuite = reclamations.filter(r => r.statut === 'sans-suite').length;
 
-    document.getElementById('en-cours-count').textContent = enCours;
-    document.getElementById('resolues-count').textContent = resolues;
-    document.getElementById('sans-suite-count').textContent = sansSuite;
+    const enCoursEl = document.getElementById('en-cours-count');
+    const resoluesEl = document.getElementById('resolues-count');
+    const sansSuiteEl = document.getElementById('sans-suite-count');
+    if (enCoursEl) enCoursEl.textContent = String(enCours);
+    if (resoluesEl) resoluesEl.textContent = String(resolues);
+    if (sansSuiteEl) sansSuiteEl.textContent = String(sansSuite);
 }
 
 // Fonction pour filtrer les réclamations
 function filterReclamations() {
-    const statusFilter = document.getElementById('status-filter').value;
-    const dateFilter = document.getElementById('date-filter').value;
+    const statusEl = document.getElementById('status-filter');
+    const dateEl = document.getElementById('date-filter');
+    if (!statusEl || !dateEl) return;
 
-    filteredReclamations = reclamations.filter(reclamation => {
+    const statusFilter = statusEl.value;
+    const dateFilter = dateEl.value;
+
+    hrFilteredReclamations = reclamations.filter(reclamation => {
         // Filtre par statut
         if (statusFilter !== 'all' && reclamation.statut !== statusFilter) {
             return false;
@@ -179,20 +201,21 @@ function filterReclamations() {
 
     // Trier par date
     if (dateFilter === 'recent') {
-        filteredReclamations.sort((a, b) => new Date(b.date) - new Date(a.date));
+        hrFilteredReclamations.sort((a, b) => new Date(b.date) - new Date(a.date));
     } else {
-        filteredReclamations.sort((a, b) => new Date(a.date) - new Date(b.date));
+        hrFilteredReclamations.sort((a, b) => new Date(a.date) - new Date(b.date));
     }
 
     // Réinitialiser à la première page après filtrage
-    currentPage = 1;
+    hrCurrentPage = 1;
     displayReclamations();
 }
 
 // Fonction pour mettre à jour la pagination
 function updatePagination() {
-    const totalPages = Math.ceil(filteredReclamations.length / itemsPerPage);
+    const totalPages = Math.ceil(hrFilteredReclamations.length / hrItemsPerPage);
     const paginationContainer = document.querySelector('nav.relative');
+    if (!paginationContainer) return;
 
     // Supprimer les numéros de page existants (sauf les boutons précédent/suivant)
     const existingPageNumbers = document.querySelectorAll('.page-number');
@@ -202,11 +225,11 @@ function updatePagination() {
     for (let i = 1; i <= totalPages; i++) {
         const pageLink = document.createElement('a');
         pageLink.href = '#';
-        pageLink.className = `relative inline-flex items-center px-4 py-2 border text-sm font-medium page-number ${i === currentPage ? 'bg-indigo-50 border-indigo-500 text-indigo-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'}`;
+        pageLink.className = `relative inline-flex items-center px-4 py-2 border text-sm font-medium page-number ${i === hrCurrentPage ? 'bg-indigo-50 border-indigo-500 text-indigo-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'}`;
         pageLink.textContent = i;
         pageLink.addEventListener('click', (e) => {
             e.preventDefault();
-            currentPage = i;
+            hrCurrentPage = i;
             displayReclamations();
         });
 
@@ -216,47 +239,54 @@ function updatePagination() {
     }
 
     // Désactiver les boutons précédent/suivant si nécessaire
-    document.querySelector('.prev-page').classList.toggle('opacity-50', currentPage === 1);
-    document.querySelector('.next-page').classList.toggle('opacity-50', currentPage === totalPages);
+    const prevBtn = document.querySelector('.prev-page');
+    const nextBtn = document.querySelector('.next-page');
+    if (prevBtn) prevBtn.classList.toggle('opacity-50', hrCurrentPage === 1);
+    if (nextBtn) nextBtn.classList.toggle('opacity-50', hrCurrentPage === totalPages);
 }
 
-// Gestion des événements
-document.getElementById('status-filter').addEventListener('change', filterReclamations);
-document.getElementById('date-filter').addEventListener('change', filterReclamations);
+document.addEventListener('DOMContentLoaded', () => {
+    // Si on n'est pas sur la page "historique réclamations", ne rien exécuter (évite erreurs globales).
+    if (!hrHasDom()) return;
 
-document.querySelector('.prev-page').addEventListener('click', (e) => {
-    e.preventDefault();
-    if (currentPage > 1) {
-        currentPage--;
-        displayReclamations();
-    }
+    // Gestion des événements
+    document.getElementById('status-filter')?.addEventListener('change', filterReclamations);
+    document.getElementById('date-filter')?.addEventListener('change', filterReclamations);
+
+    document.querySelector('.prev-page')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (hrCurrentPage > 1) {
+            hrCurrentPage--;
+            displayReclamations();
+        }
+    });
+
+    document.querySelector('.next-page')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        const totalPages = Math.ceil(hrFilteredReclamations.length / hrItemsPerPage);
+        if (hrCurrentPage < totalPages) {
+            hrCurrentPage++;
+            displayReclamations();
+        }
+    });
+
+    // Simulation de bouton "Voir" / "Imprimer"
+    document.addEventListener('click', (e) => {
+        const viewBtn = e.target && e.target.closest ? e.target.closest('.view-btn') : null;
+        if (viewBtn) {
+            const id = viewBtn.getAttribute('data-id');
+            if (id) alert(`Affichage des détails de la réclamation ${id}`);
+        }
+        const printBtn = e.target && e.target.closest ? e.target.closest('.print-btn') : null;
+        if (printBtn) {
+            const id = printBtn.getAttribute('data-id');
+            if (id) alert(`Impression de la réclamation ${id}`);
+        }
+    });
+
+    // Initialisation
+    updateStatusCounts();
+    displayReclamations();
 });
 
-document.querySelector('.next-page').addEventListener('click', (e) => {
-    e.preventDefault();
-    const totalPages = Math.ceil(filteredReclamations.length / itemsPerPage);
-    if (currentPage < totalPages) {
-        currentPage++;
-        displayReclamations();
-    }
-});
-
-// Simulation de bouton "Voir"
-document.addEventListener('click', (e) => {
-    if (e.target.closest('.view-btn')) {
-        const id = e.target.closest('.view-btn').getAttribute('data-id');
-        alert(`Affichage des détails de la réclamation ${id}`);
-    }
-});
-
-// Simulation de bouton "Imprimer"
-document.addEventListener('click', (e) => {
-    if (e.target.closest('.print-btn')) {
-        const id = e.target.closest('.print-btn').getAttribute('data-id');
-        alert(`Impression de la réclamation ${id}`);
-    }
-});
-
-// Initialisation
-updateStatusCounts();
-displayReclamations();
+})();

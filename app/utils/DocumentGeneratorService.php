@@ -1,6 +1,10 @@
 <?php
 
-require_once __DIR__ . '/../../vendor/autoload.php';
+// Composer autoload (optionnel). Si vendor/ n'est pas installé, on continue.
+$composerAutoload = __DIR__ . '/../../vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
 
 use PhpOffice\PhpWord\Exception\Exception;
 use PhpOffice\PhpWord\TemplateProcessor;
@@ -30,7 +34,7 @@ class DocumentGeneratorService
         $this->gotenbergUrl = $gotenbergUrl ?? 'http://gotenberg:3000/forms/libreoffice/convert';
 
         // Ensure temp directory exists and is writable
-        if (!is_dir($this->tempPath) && !mkdir($this->tempPath, 0777, true)) {
+        if (!is_dir($this->tempPath) && !mkdir($this->tempPath, 0700, true)) {
             throw new Exception("Temporary directory could not be created: {$this->tempPath}");
         }
         if (!is_writable($this->tempPath)) {
@@ -341,8 +345,16 @@ class DocumentGeneratorService
      */
     private function localConvertToPdf(string $docxPath): ?string
     {
-        if (!is_executable(escapeshellcmd('soffice'))) {
-            error_log("LibreOffice 'soffice' command not found or not executable.");
+        // Hardening: désactiver le shell sur Windows / si shell_exec est indisponible
+        if (PHP_OS_FAMILY === 'Windows' || !function_exists('shell_exec')) {
+            return null;
+        }
+
+        // Security check: uniquement sur un fichier temporaire sous notre tempPath
+        $real = realpath($docxPath);
+        $tempReal = realpath($this->tempPath);
+        if ($real === false || $tempReal === false || strpos($real, $tempReal) !== 0) {
+            error_log("Local PDF conversion refused (path outside temp): " . $docxPath);
             return null;
         }
 

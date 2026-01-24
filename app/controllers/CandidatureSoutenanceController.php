@@ -49,7 +49,8 @@ class CandidatureSoutenanceController
         }
 
         // Vérifier que l'utilisateur est un étudiant ou un administrateur
-        $isAdmin = isset($_SESSION['id_GU']) && $_SESSION['id_GU'] == 5;
+        $lib = $_SESSION['lib_GU'] ?? null;
+        $isAdmin = is_string($lib) && in_array(strtolower(trim($lib)), ['administrateur', 'admin'], true);
 
         if (!isset($_SESSION['num_etu']) && !$isAdmin) {
             $_SESSION['error'] = "Cette page est réservée aux étudiants uniquement.";

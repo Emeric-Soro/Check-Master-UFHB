@@ -10,7 +10,11 @@ require_once __DIR__ . "/../models/AuditLog.php";
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
-require_once __DIR__ . '/../../vendor/autoload.php';
+// Composer autoload (optionnel). Si vendor/ n'est pas installé, certaines fonctions (email) seront indisponibles.
+$composerAutoload = __DIR__ . '/../../vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
 
 class GestionUtilisateurController
 {
@@ -34,6 +38,31 @@ class GestionUtilisateurController
         $this->niveauAcces = new NiveauAccesDonnees(Database::getConnection());
         $this->auditLog = new AuditLog(Database::getConnection());
 
+    }
+
+    private function createPasswordResetToken(string $email): string
+    {
+        $db = Database::getConnection();
+        $token = bin2hex(random_bytes(32));
+        $expires = date('Y-m-d H:i:s', time() + 3600);
+        $stmt = $db->prepare('INSERT INTO password_resets (email, token, expires_at) VALUES (:email, :token, :expires)');
+        $stmt->bindParam(':email', $email);
+        $stmt->bindParam(':token', $token);
+        $stmt->bindParam(':expires', $expires);
+        $stmt->execute();
+        return $token;
+    }
+
+    private function buildResetLink(string $token): string
+    {
+        $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        // reset_password.php est dans /public/
+        $base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/public/'), '/\\');
+        if ($base === '' || $base === '.') {
+            $base = '/public';
+        }
+        return $scheme . $host . $base . '/reset_password.php?token=' . urlencode($token);
     }
 
     // Afficher la liste des étudiants
@@ -91,8 +120,8 @@ class GestionUtilisateurController
                         if ($this->utilisateur->isLoginUsed($login_utilisateur)) {
                             $messageErreur = "Ce login (email) est déjà utilisé par un autre utilisateur.";
                         } else {
-                            $mdp = $this->generateRandomPassword();
-                            $mdp_hash = password_hash($mdp, PASSWORD_DEFAULT);
+                            // Mot de passe technique aléatoire (l'utilisateur doit définir le sien via lien)
+                            $mdp_hash = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
 
                             if (
                                 $this->utilisateur->ajouterUtilisateur(
@@ -105,12 +134,15 @@ class GestionUtilisateurController
                                     $mdp_hash
                                 )
                             ) {
-                                if ($this->envoyerEmailInscriptionPHPMailer($login_utilisateur, $nom_utilisateur, $login_utilisateur, $mdp)) {
-                                    $messageSuccess = "Utilisateur ajouté avec succès et email envoyé.";
+                                $token = $this->createPasswordResetToken($login_utilisateur);
+                                $resetLink = $this->buildResetLink($token);
+                                if ($this->envoyerEmailInscriptionPHPMailer($login_utilisateur, $nom_utilisateur, $login_utilisateur, null, $resetLink)) {
+                                    $messageSuccess = "Utilisateur ajouté avec succès. Un lien de définition du mot de passe a été envoyé.";
                                     $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
                                 } else {
                                     $messageSuccess = "Utilisateur ajouté avec succès mais erreur lors de l'envoi de l'email.";
-                                    $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'utilisateur', 'Partiel');
+                                    // La DB n'accepte que {'Erreur','Succès'}
+                                    $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
                                 }
                             } else {
                                 $messageErreur = "Erreur lors de l'ajout de l'utilisateur.";
@@ -173,12 +205,15 @@ class GestionUtilisateurController
 
                             // Envoyer les emails aux utilisateurs ajoutés
                             foreach ($utilisateursAjoutes as $utilisateur) {
+                                $token = $this->createPasswordResetToken($utilisateur['login']);
+                                $resetLink = $this->buildResetLink($token);
                                 if (
                                     $this->envoyerEmailInscriptionPHPMailer(
                                         $utilisateur['login'],
                                         $utilisateur['nom'],
                                         $utilisateur['login'],
-                                        $utilisateur['mdp']
+                                        null,
+                                        $resetLink
                                     )
                                 ) {
                                     $messageSuccess = count($utilisateursAjoutes) . " utilisateur(s) ajouté(s) avec succès et emails envoyés.";
@@ -303,7 +338,7 @@ class GestionUtilisateurController
         return $password;
     }
 
-    function construireMessageHTML($nom, $login, $motDePasse)
+    function construireMessageHTML($nom, $login, $motDePasse, $resetLink = null)
     {
         // Construction du sujet
         $sujet = "Bienvenue sur Soutenance Manager, " . htmlspecialchars($nom) . " !";
@@ -342,18 +377,17 @@ class GestionUtilisateurController
                         <p><strong>Identifiant de connexion:</strong> ' . htmlspecialchars($login) . '</p>';
 
         // Ajout du mot de passe temporaire si fourni
-        if ($motDePasse) {
-            $message .= '<p><strong>Mot de passe temporaire:</strong> ' . htmlspecialchars($motDePasse) . '</p>
-                        <p style="color: #ef4444; font-size: 0.9em;">
-                            Pour des raisons de sécurité, nous vous recommandons de changer ce mot de passe après votre première connexion.
-                        </p>';
+        if ($resetLink) {
+            $message .= '<p style="margin-top:10px"><strong>Définir votre mot de passe:</strong></p>
+                         <p><a href="' . htmlspecialchars($resetLink) . '">' . htmlspecialchars($resetLink) . '</a></p>
+                         <p style="color:#ef4444; font-size:0.9em;">Ce lien expire dans 1 heure.</p>';
         }
 
         $message .= '
                     </div>
                     
                     <p>Vous pouvez dès maintenant vous connecter à votre compte :</p>
-                     <a href="http://https://checkmaster.ufrmi-ufhb-ci.com/page_connexion.php" class="button " style="color:#fff">Se connecter</a>
+                     <a href="page_connexion.php" class="button " style="color:#fff">Se connecter</a>
                     <p>Si vous n\'êtes pas à l\'origine de cette création de compte, veuillez ignorer cet email ou contacter notre support.</p>
                 </div>
                 
@@ -369,7 +403,7 @@ class GestionUtilisateurController
     }
 
 
-    function envoyerEmailInscriptionPHPMailer($email, $nom, $login, $motDePasse)
+    function envoyerEmailInscriptionPHPMailer($email, $nom, $login, $motDePasse = null, $resetLink = null)
     {
         $mail = new PHPMailer(true);
 
@@ -403,7 +437,7 @@ class GestionUtilisateurController
             $mail->Subject = "Bienvenue sur notre plateforme, $nom !";
 
             // Construction du message HTML
-            $message = $this->construireMessageHTML($nom, $login, $motDePasse);
+            $message = $this->construireMessageHTML($nom, $login, $motDePasse, $resetLink);
             $mail->Body = $message;
             $mail->AltBody = strip_tags($message);
 

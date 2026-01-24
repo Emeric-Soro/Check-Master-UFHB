@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../Core/Autoload.php';
+
+use CheckMaster\Core\Csrf;
 
 class SauvegardeRestaurationController {
     private $backupDir;
@@ -13,20 +16,36 @@ class SauvegardeRestaurationController {
         
         // Créer le dossier s'il n'existe pas
         if (!is_dir($this->backupDir)) {
-            mkdir($this->backupDir, 0777, true);
+            // Permissions Unix: 0750 (sur Windows, ce paramètre est ignoré)
+            mkdir($this->backupDir, 0750, true);
         }
         
         $this->auditLog = new AuditLog(Database::getConnection());
     }
 
+    private function requireAdmin(): void
+    {
+        $lib = $_SESSION['lib_GU'] ?? null;
+        $isAdmin = is_string($lib) && in_array(strtolower(trim($lib)), ['administrateur', 'admin'], true);
+        if (!$isAdmin) {
+            header('Location: ?page=access_denied');
+            exit;
+        }
+    }
+
+    private function requireCsrf(): void
+    {
+        $ok = Csrf::validate($_POST['csrf_token'] ?? null);
+        if (!$ok) {
+            header('Location: ?page=sauvegarde_restauration&error=csrf');
+            exit;
+        }
+    }
+
     // Obtient la configuration de la base de données
     public function getDbConfig() {
-        return [
-            'host' => 'db',
-            'db'   => 'soutenance_manager',
-            'user' => 'root',
-            'pass' => 'password',
-        ];
+        // Centraliser la configuration (évite les secrets dupliqués en dur)
+        return Database::getConfig();
     }
 
     // Détecte automatiquement le nom du conteneur Docker
@@ -116,6 +135,8 @@ class SauvegardeRestaurationController {
 
     // Lance une sauvegarde manuelle
     public function createBackup() {
+        $this->requireAdmin();
+        $this->requireCsrf();
         // S'assurer qu'aucune sortie n'a été envoyée
         if (headers_sent()) {
             return false;
@@ -185,6 +206,8 @@ class SauvegardeRestaurationController {
      * Redirige l'utilisateur après l'opération.
      */
     public function restoreBackup() {
+        $this->requireAdmin();
+        $this->requireCsrf();
         // S'assurer qu'aucune sortie n'a été envoyée avant les redirections
         if (headers_sent()) {
             error_log("Erreur: Les en-têtes ont déjà été envoyés, redirection impossible.");
@@ -477,6 +500,8 @@ class SauvegardeRestaurationController {
 
     // Supprime une sauvegarde
     public function deleteBackup() {
+        $this->requireAdmin();
+        $this->requireCsrf();
         // S'assurer qu'aucune sortie n'a été envoyée
         if (headers_sent()) {
             return false;
@@ -501,6 +526,12 @@ class SauvegardeRestaurationController {
 
     // Télécharge une sauvegarde
     public function downloadBackup() {
+        // téléchargement permis si la page est accessible (RBAC layout),
+        // mais on protège au minimum contre accès non authentifié direct.
+        if (!isset($_SESSION['id_utilisateur'])) {
+            header('Location: page_connexion.php');
+            exit;
+        }
         // S'assurer qu'aucune sortie n'a été envoyée
         if (headers_sent()) {
             return false;

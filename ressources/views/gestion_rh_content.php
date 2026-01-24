@@ -489,14 +489,14 @@ $enseignant_edit = $enseignant_a_modifier ?? null;
                                             <?= htmlspecialchars($enseignant->lib_specialite) ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <?= htmlspecialchars($enseignant->lib_fonction) ?>
+                                            <?= htmlspecialchars((string)($enseignant->lib_fonction ?? ''), ENT_QUOTES, 'UTF-8') ?>
                                         </td>
 
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <?= htmlspecialchars($enseignant->lib_grade) ?>
+                                            <?= htmlspecialchars((string)($enseignant->lib_grade ?? ''), ENT_QUOTES, 'UTF-8') ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <?= htmlspecialchars($enseignant->date_grade) ?>
+                                            <?= htmlspecialchars((string)($enseignant->date_grade ?? ''), ENT_QUOTES, 'UTF-8') ?>
                                         </td>
                                         <?php if (canEdit()): ?>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">

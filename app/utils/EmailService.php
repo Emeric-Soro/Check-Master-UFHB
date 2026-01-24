@@ -3,7 +3,11 @@ use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
-require_once __DIR__ . '/../../vendor/autoload.php';
+// Composer autoload (optionnel). Si vendor/ n'est pas installé, on continue.
+$composerAutoload = __DIR__ . '/../../vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
 
 class EmailService {
     private $mailer;
@@ -32,7 +36,8 @@ class EmailService {
             $this->mailer->setFrom($config['smtp']['from_email'], $config['smtp']['from_name']);
             
         } catch (Exception $e) {
-            error_log("Erreur de configuration PHPMailer: " . $e->getMessage());
+            // Ne pas logger de secrets
+            error_log("Erreur de configuration PHPMailer.");
         }
     }
 
@@ -53,7 +58,7 @@ class EmailService {
 
             return $this->mailer->send();
         } catch (Exception $e) {
-            error_log("Erreur d'envoi d'email: " . $e->getMessage());
+            error_log("Erreur d'envoi d'email.");
             return false;
         }
     }
@@ -82,7 +87,7 @@ class EmailService {
 
             return $this->mailer->send();
         } catch (Exception $e) {
-            error_log("Erreur d'envoi d'email avec pièce jointe: " . $e->getMessage());
+            error_log("Erreur d'envoi d'email avec pièce jointe.");
             return false;
         }
     }

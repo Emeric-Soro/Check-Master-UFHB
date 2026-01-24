@@ -29,10 +29,81 @@ class MenuController
             // Récupérer les fonctionnalités de cette catégorie accessibles par le groupe
             $fonctionnalites = $fonctionnaliteModel->getFonctionnalitesForGroupeAndCategorie($idGroupe, $categorie->id_categorie);
 
-            // Ne garder que les pages principales (pas les sous-pages pour le menu)
-            $fonctionnalitesPrincipales = array_filter($fonctionnalites, function ($f) {
-                return !$f->est_sous_page;
+            // Construire un 2e niveau "sous-menus" via (est_sous_page, page_parente)
+            $parentsByCode = [];
+            $childrenByParent = [];
+            $orphans = [];
+
+            foreach ($fonctionnalites as $f) {
+                $isSousPage = !empty($f->est_sous_page);
+                $parentCode = isset($f->page_parente) ? (string) $f->page_parente : '';
+
+                // Sous-page sans parent = écran "action" (pas dans le menu)
+                if ($isSousPage && $parentCode === '') {
+                    continue;
+                }
+
+                if ($isSousPage && $parentCode !== '') {
+                    if (!isset($childrenByParent[$parentCode])) {
+                        $childrenByParent[$parentCode] = [];
+                    }
+                    $childrenByParent[$parentCode][] = $f;
+                    continue;
+                }
+
+                if (!$isSousPage && !empty($f->code_fonctionnalite)) {
+                    $parentsByCode[(string)$f->code_fonctionnalite] = $f;
+                } else {
+                    $orphans[] = $f;
+                }
+            }
+
+            // Attacher les enfants aux parents
+            foreach ($parentsByCode as $code => $parent) {
+                $children = $childrenByParent[$code] ?? [];
+                usort($children, function ($a, $b) {
+                    return ((int)($a->ordre_fonctionnalite ?? 0)) <=> ((int)($b->ordre_fonctionnalite ?? 0));
+                });
+                $parent->children = array_values($children);
+            }
+
+            // Si des enfants existent sans parent visible, créer un parent "virtuel"
+            foreach ($childrenByParent as $pcode => $children) {
+                if (isset($parentsByCode[$pcode])) {
+                    continue;
+                }
+                if (empty($children)) {
+                    continue;
+                }
+                usort($children, function ($a, $b) {
+                    return ((int)($a->ordre_fonctionnalite ?? 0)) <=> ((int)($b->ordre_fonctionnalite ?? 0));
+                });
+                $first = $children[0];
+                $hub = new stdClass();
+                $hub->id_fonctionnalite = 0;
+                $hub->id_categorie = $categorie->id_categorie;
+                $hub->code_fonctionnalite = (string) $pcode;
+                $hub->lib_fonctionnalite = (string) $pcode;
+                $hub->label_fonctionnalite = (string) $pcode;
+                $hub->url_fonctionnalite = (string)($first->url_fonctionnalite ?? '#');
+                $hub->icone_fonctionnalite = 'fa-folder';
+                $hub->ordre_fonctionnalite = (int)($first->ordre_fonctionnalite ?? 0);
+                $hub->est_sous_page = 0;
+                $hub->page_parente = null;
+                $hub->children = array_values($children);
+                $hub->is_virtual = true;
+                $parentsByCode[$pcode] = $hub;
+            }
+
+            $fonctionnalitesPrincipales = array_values($parentsByCode);
+            usort($fonctionnalitesPrincipales, function ($a, $b) {
+                return ((int)($a->ordre_fonctionnalite ?? 0)) <=> ((int)($b->ordre_fonctionnalite ?? 0));
             });
+            // Ajouter aussi les orphelins (en fin)
+            foreach ($orphans as $o) {
+                $o->children = [];
+                $fonctionnalitesPrincipales[] = $o;
+            }
 
             // Ajouter la catégorie seulement si elle a des fonctionnalités visibles
             if (!empty($fonctionnalitesPrincipales)) {

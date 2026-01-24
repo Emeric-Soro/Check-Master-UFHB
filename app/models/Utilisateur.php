@@ -526,7 +526,7 @@ class Utilisateur
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+';
         $password = '';
         for ($i = 0; $i < $length; $i++) {
-            $password .= $chars[rand(0, strlen($chars) - 1)];
+            $password .= $chars[random_int(0, strlen($chars) - 1)];
         }
         return $password;
     }
@@ -537,8 +537,8 @@ class Utilisateur
         try {
             $utilisateursAjoutes = [];
             foreach ($utilisateurs as $utilisateur) {
-                $mdp = $this->generateRandomPassword();
-                $mdp_hash = password_hash($mdp, PASSWORD_DEFAULT);
+                // Mot de passe technique aléatoire (l'utilisateur définira le sien via lien)
+                $mdp_hash = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
 
                 if (
                     $this->ajouterUtilisateur(
@@ -553,8 +553,7 @@ class Utilisateur
                 ) {
                     $utilisateursAjoutes[] = [
                         'nom' => $utilisateur['nom'],
-                        'login' => $utilisateur['login'],
-                        'mdp' => $mdp
+                        'login' => $utilisateur['login']
                     ];
                 } else {
                     throw new Exception("Erreur lors de l'ajout de l'utilisateur " . $utilisateur['nom']);

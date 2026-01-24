@@ -233,7 +233,7 @@ class Scolarite
     // Récupérer un versement par son ID
     public function getVersementById($id_versement)
     {
-        $query = "SELECT v.*, e.nom_etu as nom_etudiant, e.prenom_etu as prenom_etudiant, i.id_inscription 
+        $query = "SELECT v.*, e.nom_etu as nom_etudiant, e.prenom_etu as prenom_etudiant, i.id_inscription, i.id_etudiant as num_etu
                   FROM versements v
                   JOIN inscriptions i ON v.id_inscription = i.id_inscription
                   JOIN etudiants e ON i.id_etudiant = e.num_etu

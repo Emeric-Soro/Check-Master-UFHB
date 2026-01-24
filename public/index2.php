@@ -1,8 +1,9 @@
 <?php
-
-
-
-session_start();
+require_once __DIR__ . '/../app/Core/Autoload.php';
+use CheckMaster\Core\Session;
+use CheckMaster\Core\Bootstrap;
+Bootstrap::init();
+Session::start();
 
 ?>
 

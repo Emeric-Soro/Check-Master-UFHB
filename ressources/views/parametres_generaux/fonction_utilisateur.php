@@ -7,6 +7,7 @@ $type_a_modifier = $GLOBALS['type_a_modifier'] ?? null;
 
 $listeGroupe = $GLOBALS['listeGroupes'] ?? [];
 $listeType = $GLOBALS['listeTypes'] ?? [];
+$listeTypesAll = $GLOBALS['listeTypesAll'] ?? $listeType;
 
 // Pagination
 $page = isset($_GET['p']) ? (int) $_GET['p'] : 1;
@@ -249,6 +250,25 @@ if (!in_array($activeTab, ['groupes', 'types'])) {
                                     placeholder="Entrer le libellé du groupe utilisateur"
                                     value="<?= $groupe_a_modifier ? htmlspecialchars($groupe_a_modifier->lib_GU) : '' ?>"
                                     class="form-input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-4 focus:outline-green-300 focus:ring-green-300 focus:border-green-300 focus:ring-opacity-50 transition-all duration-200">
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="id_type_utilisateur" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Type d'utilisateur (lié au groupe)
+                                </label>
+                                <select name="id_type_utilisateur" id="id_type_utilisateur"
+                                    class="form-input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-4 focus:outline-green-300 focus:ring-green-300 focus:border-green-300 focus:ring-opacity-50 transition-all duration-200">
+                                    <option value="">(Non défini)</option>
+                                    <?php foreach ($listeTypesAll as $t): ?>
+                                        <option value="<?= (int)$t->id_type_utilisateur ?>"
+                                            <?= ($groupe_a_modifier && isset($groupe_a_modifier->id_type_utilisateur) && (int)$groupe_a_modifier->id_type_utilisateur === (int)$t->id_type_utilisateur) ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($t->lib_type_utilisateur) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Sert à filtrer les groupes par type (ex: Étudiant → groupe Étudiant).
+                                </p>
                             </div>
 
                             <div class="flex justify-between mt-6">

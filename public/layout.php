@@ -1,11 +1,24 @@
 <?php
-session_start();
-include '../app/config/database.php';
-include '../app/controllers/AuthController.php';
-include '../app/controllers/MenuController.php';
-include '../app/middlewares/PermissionMiddleware.php';
-include '../app/utils/permissions_helper.php';
-include 'menu.php';
+require_once __DIR__ . '/../app/Core/Autoload.php';
+
+use CheckMaster\Core\Session;
+use CheckMaster\Core\Bootstrap;
+
+Bootstrap::init();
+Session::start();
+
+// Bufferiser la sortie pour injecter CSRF sur les formulaires legacy (migration progressive).
+ob_start();
+
+include __DIR__ . '/../app/config/database.php';
+include __DIR__ . '/../app/controllers/AuthController.php';
+include __DIR__ . '/../app/controllers/MenuController.php';
+include __DIR__ . '/../app/middlewares/PermissionMiddleware.php';
+include __DIR__ . '/../app/utils/permissions_helper.php';
+
+use CheckMaster\Security\RoutePermissionService;
+
+include __DIR__ . '/menu.php';
 include __DIR__ . '/../ressources/routes/gestionUtilisateurRoutes.php';
 include __DIR__ . '/../ressources/routes/gestionRhRoutes.php';
 include __DIR__ . '/../ressources/routes/gestionDashboardRoutes.php';
@@ -30,6 +43,26 @@ if (!isset($_SESSION['id_utilisateur'])) {
     header('Location: page_connexion.php');
     exit;
 } else {
+    // Protection CSRF globale pour toutes les actions POST du legacy.
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+        if (!\CheckMaster\Core\Csrf::validate($_POST['csrf_token'] ?? null)) {
+            // AJAX
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                header('Content-Type: application/json; charset=UTF-8');
+                echo json_encode(['success' => false, 'message' => 'Session expirée. Veuillez réessayer.']);
+                exit;
+            }
+
+            $_SESSION['error_message'] = 'Session expirée. Veuillez réessayer.';
+            $_SESSION['error_type'] = 'csrf';
+            $fallback = 'layout.php?page=' . urlencode($_GET['page'] ?? 'dashboard');
+            $redirect = $_SERVER['HTTP_REFERER'] ?? $fallback;
+            header('Location: ' . $redirect);
+            exit;
+        }
+    }
+
     // NOUVEAU : Initialiser le middleware de permissions
     $permissionMiddleware = new PermissionMiddleware();
 
@@ -42,20 +75,35 @@ if (!isset($_SESSION['id_utilisateur'])) {
     $currentMenuSlug = isset($_GET['page']) ? $_GET['page'] : '';
     $currentPageLabel = '';
 
+    // Canonicalisation progressive: quelques écrans critiques passent par le Router.
+    // Le flag _r=1 évite les boucles (Router -> layout -> Router ...).
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && empty($_GET['_r'])) {
+        $action = $_GET['action'] ?? '';
+        if ($currentMenuSlug === 'parametres_generaux' && $action === 'gestion_attribution') {
+            header('Location: index.php?_path=/admin/permissions');
+            exit;
+        }
+        if ($currentMenuSlug === 'sauvegarde_restauration') {
+            header('Location: index.php?_path=/admin/backups');
+            exit;
+        }
+        if ($currentMenuSlug === 'gestion_utilisateurs') {
+            header('Location: index.php?_path=/admin/users');
+            exit;
+        }
+    }
+
     // Pages qui ne nécessitent PAS de vérification de permissions (pour éviter les boucles)
     $noCheckPages = ['page_connexion', 'logout', 'reset_password', 'access_denied'];
 
     // NOUVEAU : Vérification des permissions AVANT de charger la page
     if (!empty($currentMenuSlug) && !in_array($currentMenuSlug, $noCheckPages)) {
-        // Détecter l'action CRUD automatiquement
-        $requiredAction = $permissionMiddleware->detectAction();
+        $permService = new RoutePermissionService(Database::getConnection());
+        $resolved = $permService->resolveLegacy($_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'GET');
+        $requiredAction = $resolved['action'];
 
-        // Vérifier les permissions (sauf pour l'admin qui a tous les droits)
-        $hasPermission = $permissionMiddleware->checkPageAccess(
-            $currentMenuSlug,
-            $_SESSION['id_GU'],
-            $requiredAction
-        );
+        // Vérification: page+action (si présent) -> fonctionnalité -> permission CRUD
+        $hasPermission = $permService->canAccessLegacy((int) $_SESSION['id_GU'], $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'GET');
 
         if (!$hasPermission) {
             // Logger la tentative d'accès non autorisé
@@ -66,7 +114,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
             );
 
             // Stocker le message d'erreur dans la session
-            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'accéder à cette page (action: $requiredAction).";
+            $routeHint = $resolved['pattern'] !== '' ? (' (' . $resolved['pattern'] . ')') : '';
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'accéder à cette page$routeHint (action: $requiredAction).";
             $_SESSION['error_type'] = 'permission_denied';
 
             // Rediriger vers une page d'erreur dédiée sans vérification
@@ -126,7 +175,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
 
     $currentAction = null;
     $contentFile = '';
-    $partialsBasePath = '..' . DIRECTORY_SEPARATOR . 'ressources' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR;
+    // IMPORTANT: chemin absolu (car layout peut être appelé via /public/app/layout.php)
+    $partialsBasePath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'ressources' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR;
     switch ($currentMenuSlug) {
         case 'parametres_generaux':
             include __DIR__ . '/../ressources/routes/parametreGenerauxRouteur.php';
@@ -150,6 +200,7 @@ if (!isset($_SESSION['id_utilisateur'])) {
                     'fonctions_enseignants',
                     'messages',
                     'gestion_attribution',
+                    'gestion_menus',
                 ];
                 if (in_array($_GET['action'], $allowedActions)) {
                     $currentAction = $_GET['action'];
@@ -217,7 +268,17 @@ if (!isset($_SESSION['id_utilisateur'])) {
             include __DIR__ . '/../ressources/routes/gestionEtudiantRoutes.php';
             if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'imprimer_recu' && isset($_GET['id_inscription'])) {
                 require_once __DIR__ . '/../vendor/autoload.php';
-                $id_inscription = $_GET['id_inscription'];
+                $id_inscription = (int) $_GET['id_inscription'];
+                // Anti-IDOR: si étudiant, ne permettre que ses propres documents
+                if (isset($_SESSION['id_GU']) && (int)$_SESSION['id_GU'] === 13) {
+                    require_once __DIR__ . '/../app/models/Scolarite.php';
+                    $scolarite = new Scolarite(Database::getConnection());
+                    $inscription = $scolarite->getInscriptionById($id_inscription);
+                    if (!$inscription || (int)$inscription['id_etudiant'] !== (int)($_SESSION['num_etu'] ?? 0)) {
+                        header('Location: layout.php?page=access_denied');
+                        exit;
+                    }
+                }
                 ob_start();
                 include __DIR__ . '../../ressources/views/gestion_etudiants/recu_inscription.php';
                 $html = ob_get_clean();
@@ -289,7 +350,17 @@ if (!isset($_SESSION['id_utilisateur'])) {
         case 'gestion_scolarite':
             if (isset($_GET['action']) && $_GET['action'] === 'imprimer_recu' && isset($_GET['id'])) {
                 require_once __DIR__ . '/../vendor/autoload.php';
-                $id_versement = $_GET['id'];
+                $id_versement = (int) $_GET['id'];
+                // Anti-IDOR: si étudiant, ne permettre que ses propres versements
+                if (isset($_SESSION['id_GU']) && (int)$_SESSION['id_GU'] === 13) {
+                    require_once __DIR__ . '/../app/models/Scolarite.php';
+                    $scolarite = new Scolarite(Database::getConnection());
+                    $versement = $scolarite->getVersementById($id_versement);
+                    if (!$versement || (int)$versement['num_etu'] !== (int)($_SESSION['num_etu'] ?? 0)) {
+                        header('Location: layout.php?page=access_denied');
+                        exit;
+                    }
+                }
                 ob_start();
                 include __DIR__ . '../../ressources/views/recu_versement.php';
                 $html = ob_get_clean();
@@ -316,8 +387,15 @@ if (!isset($_SESSION['id_utilisateur'])) {
         case 'gestion_notes_evaluations':
             if (isset($_GET['action']) && $_GET['action'] === 'imprimer_releve' && isset($_GET['student']) && isset($_GET['niveau'])) {
                 require_once __DIR__ . '/../vendor/autoload.php';
-                $id_etudiant = $_GET['student'];
+                $id_etudiant = (int) $_GET['student'];
                 $niveau = $_GET['niveau'];
+                // Anti-IDOR: étudiant ne peut imprimer que son relevé
+                if (isset($_SESSION['id_GU']) && (int)$_SESSION['id_GU'] === 13) {
+                    if ($id_etudiant !== (int)($_SESSION['num_etu'] ?? 0)) {
+                        header('Location: layout.php?page=access_denied');
+                        exit;
+                    }
+                }
                 ob_start();
                 include __DIR__ . '../../ressources/views/releve_notes.php';
                 $html = ob_get_clean();
@@ -487,6 +565,12 @@ if (!isset($_SESSION['id_utilisateur'])) {
             'link' => '?page=parametres_generaux&action=gestion_attribution',
             'icon' => './images/attribution.png'
         ],
+        [
+            'title' => 'Gestion des Menus',
+            'description' => 'Gérer les menus, sous-menus et écrans (structure de navigation).',
+            'link' => '?page=parametres_generaux&action=gestion_menus',
+            'icon' => './images/bd.png'
+        ],
     ];
     $cardReclamation = [
         [
@@ -587,7 +671,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
                         <?php echo $menuHTML; ?>
                     </div>
                     <div class="mt-auto px-4 py-3">
-                        <form action="logout.php" method="POST" id="logoutForm" class="w-full">
+                        <form action="index.php?_path=/logout" method="POST" id="logoutForm" class="w-full">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(\CheckMaster\Core\Csrf::token()); ?>">
                             <button type="submit" form="logoutForm"
                                 class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg transition-colors">
                                 <i class="fas fa-sign-out-alt text-white/80"></i>
@@ -683,3 +768,25 @@ if (!isset($_SESSION['id_utilisateur'])) {
 </body>
 
 </html>
+
+<?php
+/**
+ * Injecte un champ CSRF dans les formulaires POST du legacy.
+ * Objectif: sécuriser l'existant sans modifier toutes les vues d'un coup.
+ */
+function injectCsrfIntoPostForms(string $html): string
+{
+    $token = htmlspecialchars(\CheckMaster\Core\Csrf::token(), ENT_QUOTES, 'UTF-8');
+    $field = '<input type="hidden" name="csrf_token" value="' . $token . '">';
+
+    // Ajout juste après la balise <form ... method="post" ...>
+    return preg_replace(
+        '/(<form\\b[^>]*\\bmethod\\s*=\\s*(?:\"|\\\')?post(?:\"|\\\')?[^>]*>)/i',
+        '$1' . $field,
+        $html
+    ) ?? $html;
+}
+
+$__out = ob_get_clean();
+echo injectCsrfIntoPostForms($__out);
+?>

@@ -6,6 +6,9 @@ require_once __DIR__ . '/../models/InfoStage.php';
 require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../Core/Autoload.php';
+
+use CheckMaster\Core\Session;
 
 class GestionCandidaturesController {
     private $db;
@@ -36,10 +39,8 @@ class GestionCandidaturesController {
         $etape = intval($_GET['etape'] ?? 1);
         $action = $_GET['action'] ?? '';
 
-        // Démarrer la session pour stocker les étapes validées/rejetées
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        // Session (centralisée)
+        Session::start();
 
         // Gestion des actions - DOIT être avant tout output HTML
         if ($action === 'valider_etape' && $examiner) {

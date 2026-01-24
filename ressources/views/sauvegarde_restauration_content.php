@@ -82,6 +82,7 @@
                 modification majeure du système.
             </p>
             <form id="createBackupForm" method="POST" action="?page=sauvegarde_restauration&action=create">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(\CheckMaster\Core\Csrf::token()); ?>">
                 <div class="mb-4">
                     <label for="backup_name" class="block text-sm font-medium text-gray-700 mb-3">Nom de la sauvegarde
                         (optionnel)</label>
@@ -194,6 +195,7 @@
                 </div>
                 <div class="items-center px-4 py-3">
                     <form id="deleteForm" method="POST" action="?page=sauvegarde_restauration&action=delete">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(\CheckMaster\Core\Csrf::token()); ?>">
                         <input type="hidden" name="filename" id="deleteFileInput">
                         <div class="flex justify-center space-x-3">
                             <button type="button" id="cancelDelete"
@@ -236,6 +238,7 @@
                 </div>
                 <div class="items-center px-4 py-3">
                     <form id="restoreForm" method="POST" action="?page=sauvegarde_restauration&action=restore">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(\CheckMaster\Core\Csrf::token()); ?>">
                         <input type="hidden" name="filename" id="restoreFileInput">
                         <div class="flex justify-center space-x-3">
                             <button type="button" id="cancelRestore"

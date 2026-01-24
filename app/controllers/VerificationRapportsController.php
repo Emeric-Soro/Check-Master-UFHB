@@ -6,6 +6,9 @@ require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../Core/Autoload.php';
+
+use CheckMaster\Core\Session;
 
 class VerificationRapportsController
 {
@@ -92,9 +95,7 @@ class VerificationRapportsController
 
             // Déterminer l'administrateur courant (personnel_admin) à partir de l'utilisateur connecté
             $id_admin = null;
-            if (session_status() === PHP_SESSION_NONE) {
-                @session_start();
-            }
+            Session::start();
             if (!empty($_SESSION['id_utilisateur'])) {
                 $pers = $this->persAdminModel->getByUserId($_SESSION['id_utilisateur']);
                 if ($pers) {
@@ -149,9 +150,7 @@ class VerificationRapportsController
 
             // Déterminer l'administrateur courant (personnel_admin) à partir de l'utilisateur connecté
             $id_admin = null;
-            if (session_status() === PHP_SESSION_NONE) {
-                @session_start();
-            }
+            Session::start();
             if (!empty($_SESSION['id_utilisateur'])) {
                 $pers = $this->persAdminModel->getByUserId($_SESSION['id_utilisateur']);
                 if ($pers) {

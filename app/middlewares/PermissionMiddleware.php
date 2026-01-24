@@ -36,8 +36,8 @@ class PermissionMiddleware
             return true;
         }
 
-        // Administrateur a tous les droits (id_GU = 5)
-        if ($idGroupe == 5) {
+        // Admin: règle “données” via libellé du groupe
+        if ($this->isAdminGroup((int) $idGroupe)) {
             return true;
         }
 
@@ -149,7 +149,7 @@ class PermissionMiddleware
         $_SESSION['error_type'] = 'permission_denied';
 
         // Rediriger vers la page d'accueil ou la page précédente
-        if (isset($_SESSION['id_GU']) && $_SESSION['id_GU'] == 5) {
+        if (isset($_SESSION['id_GU']) && $this->isAdminGroup((int) $_SESSION['id_GU'])) {
             // Pour l'admin, rediriger vers le dashboard
             header('Location: layout.php?page=dashboard_admin&error=permission');
         } else {
@@ -168,12 +168,28 @@ class PermissionMiddleware
      */
     public function checkPermissionByCode($codeFonctionnalite, $idGroupe, $action = 'voir')
     {
-        // Administrateur a tous les droits
-        if ($idGroupe == 5) {
+        // Administrateur a tous les droits (règle données)
+        if ($this->isAdminGroup((int) $idGroupe)) {
             return true;
         }
 
         return $this->permissionModel->checkPermissionByCode($idGroupe, $codeFonctionnalite, $action);
+    }
+
+    private function isAdminGroup(int $idGroupe): bool
+    {
+        try {
+            $stmt = $this->pdo->prepare("SELECT lib_GU FROM groupe_utilisateur WHERE id_GU = ?");
+            $stmt->execute([$idGroupe]);
+            $lib = $stmt->fetchColumn();
+            if (!is_string($lib)) {
+                return false;
+            }
+            $lib = strtolower(trim($lib));
+            return $lib === 'administrateur' || $lib === 'admin';
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
     /**
@@ -217,6 +233,6 @@ class PermissionMiddleware
         $auditLog = new AuditLog($this->pdo);
 
         $details = "Tentative d'accès non autorisé - Page: $page, Action: $action";
-        $auditLog->logAction($idUtilisateur, 'acces_refuse', 'permission', 0, $details);
+        $auditLog->logAction($idUtilisateur, 'acces_refuse', 'permission', 'Erreur', $details);
     }
 }

@@ -181,6 +181,50 @@ class Fonctionnalite
     }
 
     /**
+     * Mise à jour complète (admin menus): structure + catégorie + visibilité
+     * - permet de modifier: id_categorie, (lib/label/desc/url/icone/ordre), est_sous_page, page_parente, actif
+     * - par défaut, ne modifie pas code_fonctionnalite (unique) sauf si fourni explicitement.
+     */
+    public function updateFonctionnaliteAdmin($id_fonctionnalite, $data)
+    {
+        $set = [
+            "id_categorie = :id_categorie",
+            "lib_fonctionnalite = :lib",
+            "label_fonctionnalite = :label",
+            "description_fonctionnalite = :description",
+            "url_fonctionnalite = :url",
+            "icone_fonctionnalite = :icone",
+            "ordre_fonctionnalite = :ordre",
+            "est_sous_page = :est_sous_page",
+            "page_parente = :page_parente",
+            "actif = :actif",
+        ];
+
+        $hasCode = isset($data['code_fonctionnalite']) && $data['code_fonctionnalite'] !== '';
+        if ($hasCode) {
+            $set[] = "code_fonctionnalite = :code";
+        }
+
+        $sql = "UPDATE fonctionnalites SET " . implode(", ", $set) . " WHERE id_fonctionnalite = :id_fonctionnalite";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindParam(':id_fonctionnalite', $id_fonctionnalite, PDO::PARAM_INT);
+        $stmt->bindParam(':id_categorie', $data['id_categorie'], PDO::PARAM_INT);
+        $stmt->bindParam(':lib', $data['lib_fonctionnalite']);
+        $stmt->bindParam(':label', $data['label_fonctionnalite']);
+        $stmt->bindParam(':description', $data['description_fonctionnalite']);
+        $stmt->bindParam(':url', $data['url_fonctionnalite']);
+        $stmt->bindParam(':icone', $data['icone_fonctionnalite']);
+        $stmt->bindParam(':ordre', $data['ordre_fonctionnalite'], PDO::PARAM_INT);
+        $stmt->bindParam(':est_sous_page', $data['est_sous_page'], PDO::PARAM_BOOL);
+        $stmt->bindParam(':page_parente', $data['page_parente']);
+        $stmt->bindParam(':actif', $data['actif'], PDO::PARAM_BOOL);
+        if ($hasCode) {
+            $stmt->bindParam(':code', $data['code_fonctionnalite']);
+        }
+        return $stmt->execute();
+    }
+
+    /**
      * Supprimer une fonctionnalité
      */
     public function deleteFonctionnalite($id_fonctionnalite)

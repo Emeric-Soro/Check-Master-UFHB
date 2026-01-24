@@ -70,27 +70,30 @@ class EvaluationDossiersController {
     }
     
     public function traiterAction() {
-        error_reporting(E_ALL);
-        ini_set('display_errors', 1);
-        
         register_shutdown_function(function() {
             $error = error_get_last();
             if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+                // Ne pas exposer les détails techniques à l'utilisateur
+                error_log('Erreur fatale PHP: ' . ($error['message'] ?? '') . ' dans ' . ($error['file'] ?? '') . ' ligne ' . ($error['line'] ?? ''));
                 echo json_encode([
                     'success' => false, 
-                    'message' => 'Erreur fatale PHP: ' . $error['message'] . ' dans ' . $error['file'] . ' ligne ' . $error['line']
+                    'message' => 'Une erreur interne est survenue. Veuillez réessayer.'
                 ]);
             }
         });
         
         try {
-            error_log("DEBUG: traiterAction appelée");
-            error_log("DEBUG: GET params: " . print_r($_GET, true));
-            error_log("DEBUG: POST params: " . print_r($_POST, true));
+            if (isset($_GET['debug'])) {
+                error_log("DEBUG: traiterAction appelée");
+                error_log("DEBUG: GET params: " . print_r($_GET, true));
+                error_log("DEBUG: POST params: " . print_r($_POST, true));
+            }
             
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $action = $_POST['action'] ?? $_GET['action'] ?? '';
-                error_log("DEBUG: Action récupérée: '$action'");
+                if (isset($_GET['debug'])) {
+                    error_log("DEBUG: Action récupérée: '$action'");
+                }
                 
                 switch ($action) {
                     case 'valider_dossier':

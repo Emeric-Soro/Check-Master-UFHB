@@ -2,6 +2,9 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . "/../models/Etudiant.php";
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../Core/Autoload.php';
+
+use CheckMaster\Core\Session;
 
 
 class GestionEtudiantController
@@ -13,9 +16,7 @@ class GestionEtudiantController
 
     public function __construct()
     {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
+        Session::start();
 
         $this->baseViewPath = __DIR__ . '/../../ressources/views/';
         $this->db = Database::getConnection();

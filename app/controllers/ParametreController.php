@@ -238,9 +238,10 @@ class ParametreController
         if (isset($_GET['tab']) && $_GET['tab'] === 'groupes') {
             if (isset($_POST['submit_add_groupe']) || isset($_POST['btn_modifier_groupe'])) {
                 $lib_groupe = $_POST['lib_groupe'];
+                $idTypeUtilisateur = isset($_POST['id_type_utilisateur']) && $_POST['id_type_utilisateur'] !== '' ? (int) $_POST['id_type_utilisateur'] : null;
 
                 if (!empty($_POST['id_groupe'])) {
-                    if ($this->groupeUtilisateur->updateGroupeUtilisateur($_POST['id_groupe'], $lib_groupe)) {
+                    if ($this->groupeUtilisateur->updateGroupeUtilisateur($_POST['id_groupe'], $lib_groupe, $idTypeUtilisateur)) {
                         $messageSuccess = "Groupe utilisateur modifié avec succès.";
                         $this->auditLog->logModification($_SESSION['id_utilisateur'], 'groupe_utilisateur', 'Succès');
                     } else {
@@ -248,7 +249,7 @@ class ParametreController
                         $this->auditLog->logModification($_SESSION['id_utilisateur'], 'groupe_utilisateur', 'Erreur');
                     }
                 } else {
-                    if ($this->groupeUtilisateur->ajouterGroupeUtilisateur($lib_groupe)) {
+                    if ($this->groupeUtilisateur->ajouterGroupeUtilisateur($lib_groupe, $idTypeUtilisateur)) {
                         $messageSuccess = "Groupe utilisateur ajouté avec succès.";
                         $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'groupe_utilisateur', 'Succès');
                     } else {
@@ -285,6 +286,7 @@ class ParametreController
             // 📦 Variables disponibles pour la vue
             $GLOBALS['groupe_a_modifier'] = $groupe_a_modifier;
             $GLOBALS['listeGroupes'] = $this->groupeUtilisateur->getAllGroupeUtilisateur();
+            $GLOBALS['listeTypesAll'] = $this->typeUtilisateur->getAllTypeUtilisateur();
         }
 
         //======PARTIE TYPE UTILISATEUR======
@@ -343,6 +345,10 @@ class ParametreController
         // 📦 Variables communes pour la vue
         $GLOBALS['messageErreur'] = $messageErreur;
         $GLOBALS['messageSuccess'] = $messageSuccess;
+        // utile pour les dropdowns (groupes/types) même hors onglet types
+        if (!isset($GLOBALS['listeTypesAll'])) {
+            $GLOBALS['listeTypesAll'] = $this->typeUtilisateur->getAllTypeUtilisateur();
+        }
     }
     //=============================FIN GESTION FONCTION UTILISATEUR=============================
 
@@ -1158,8 +1164,15 @@ class ParametreController
         $fonctionnaliteModel = new Fonctionnalite($pdo);
         $permissionModel = new Permission($pdo);
 
-        // Récupérer tous les groupes et fonctionnalités
-        $listeGroupes = $this->groupeUtilisateur->getAllGroupeUtilisateur();
+        // Types + filtre type -> groupes
+        $listeTypesAll = $this->typeUtilisateur->getAllTypeUtilisateur();
+        $selectedTypeId = isset($_GET['type']) && $_GET['type'] !== '' ? (string) $_GET['type'] : 'all';
+
+        if ($selectedTypeId !== 'all') {
+            $listeGroupes = $this->groupeUtilisateur->getGroupesByTypeUtilisateur((int) $selectedTypeId);
+        } else {
+            $listeGroupes = $this->groupeUtilisateur->getAllGroupeUtilisateur();
+        }
 
         // Récupérer toutes les fonctionnalités (remplace getAllTraitements)
         $sql = "SELECT f.*, c.lib_categorie, c.code_categorie 
@@ -1171,9 +1184,11 @@ class ParametreController
         $stmt->execute();
         $listeFonctionnalites = $stmt->fetchAll(PDO::FETCH_OBJ);
 
-        // Debug
-        error_log("Liste des groupes: " . print_r($listeGroupes, true));
-        error_log("Liste des fonctionnalités: " . count($listeFonctionnalites));
+        // Debug (désactivé par défaut)
+        if (isset($_GET['debug']) && $_GET['debug'] === 'permissions') {
+            error_log("Liste des groupes: " . print_r($listeGroupes, true));
+            error_log("Liste des fonctionnalités: " . count($listeFonctionnalites));
+        }
 
         // Récupérer le groupe sélectionné
         $selectedGroupeId = isset($_GET['groupe']) ? $_GET['groupe'] : null;
@@ -1185,8 +1200,10 @@ class ParametreController
             // Récupérer les permissions du groupe
             $permissionsGroupe = $permissionModel->getAllPermissionsForGroupe($selectedGroupeId);
 
-            error_log("Groupe sélectionné: " . print_r($selectedGroupe, true));
-            error_log("Permissions du groupe: " . count($permissionsGroupe));
+            if (isset($_GET['debug']) && $_GET['debug'] === 'permissions') {
+                error_log("Groupe sélectionné: " . print_r($selectedGroupe, true));
+                error_log("Permissions du groupe: " . count($permissionsGroupe));
+            }
         }
 
         // Traiter le formulaire de soumission (à adapter)
@@ -1203,6 +1220,8 @@ class ParametreController
         // Passer les données à la vue
         $GLOBALS['permissionsMap'] = $permissionsMap;
         $GLOBALS['listeGroupes'] = $listeGroupes;
+        $GLOBALS['listeTypesAll'] = $listeTypesAll;
+        $GLOBALS['selectedTypeId'] = $selectedTypeId;
         $GLOBALS['listeFonctionnalites'] = $listeFonctionnalites;
         $GLOBALS['selectedGroupe'] = $selectedGroupe;
         $GLOBALS['permissionsGroupe'] = $permissionsGroupe;
@@ -1216,13 +1235,208 @@ class ParametreController
         $GLOBALS['attributionsMap'] = $permissionsMap;
     }
 
+    //============================GESTION MENUS (CATEGORIES / SOUS-MENUS / ÉCRANS)==================================
+    public function gestionMenus()
+    {
+        $messageErreur = '';
+        $messageSuccess = '';
+
+        require_once __DIR__ . '/../models/Categorie.php';
+        require_once __DIR__ . '/../models/Fonctionnalite.php';
+
+        $pdo = Database::getConnection();
+        $categorieModel = new Categorie($pdo);
+        $fonctionnaliteModel = new Fonctionnalite($pdo);
+
+        // CSRF + droits (lecture seule si pas d'édition)
+        $isEditable = function_exists('canEdit') ? (bool)canEdit() : true;
+
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+            if (!\CheckMaster\Core\Csrf::validate($_POST['csrf_token'] ?? null)) {
+                header('Location: ?page=parametres_generaux&action=gestion_menus&error=csrf');
+                exit;
+            }
+            if (!$isEditable) {
+                header('Location: ?page=parametres_generaux&action=gestion_menus&error=readonly');
+                exit;
+            }
+
+            $op = isset($_POST['op']) ? (string)$_POST['op'] : '';
+
+            try {
+                if ($op === 'create_category') {
+                    $categorieModel->createCategorie([
+                        'code_categorie' => strtoupper(trim((string)($_POST['code_categorie'] ?? ''))),
+                        'lib_categorie' => trim((string)($_POST['lib_categorie'] ?? '')),
+                        'description_categorie' => trim((string)($_POST['description_categorie'] ?? '')),
+                        'icone_categorie' => trim((string)($_POST['icone_categorie'] ?? '')),
+                        'ordre_categorie' => (int)($_POST['ordre_categorie'] ?? 0),
+                        'actif' => isset($_POST['actif']) ? 1 : 0,
+                    ]);
+                    $messageSuccess = 'Catégorie créée.';
+                } elseif ($op === 'update_category') {
+                    $id = (int)($_POST['id_categorie'] ?? 0);
+                    $categorieModel->updateCategorie($id, [
+                        'lib_categorie' => trim((string)($_POST['lib_categorie'] ?? '')),
+                        'description_categorie' => trim((string)($_POST['description_categorie'] ?? '')),
+                        'icone_categorie' => trim((string)($_POST['icone_categorie'] ?? '')),
+                        'ordre_categorie' => (int)($_POST['ordre_categorie'] ?? 0),
+                        'actif' => isset($_POST['actif']) ? 1 : 0,
+                    ]);
+                    $messageSuccess = 'Catégorie mise à jour.';
+                } elseif ($op === 'deactivate_category') {
+                    $id = (int)($_POST['id_categorie'] ?? 0);
+                    // Soft-delete: désactiver la catégorie + ses fonctionnalités
+                    $pdo->prepare("UPDATE categories_fonctionnalites SET actif = 0 WHERE id_categorie = ?")->execute([$id]);
+                    $pdo->prepare("UPDATE fonctionnalites SET actif = 0 WHERE id_categorie = ?")->execute([$id]);
+                    $messageSuccess = 'Catégorie désactivée.';
+                } elseif ($op === 'activate_category') {
+                    $id = (int)($_POST['id_categorie'] ?? 0);
+                    // Réactiver la catégorie + ses fonctionnalités (symétrique)
+                    $pdo->prepare("UPDATE categories_fonctionnalites SET actif = 1 WHERE id_categorie = ?")->execute([$id]);
+                    $pdo->prepare("UPDATE fonctionnalites SET actif = 1 WHERE id_categorie = ?")->execute([$id]);
+                    $messageSuccess = 'Catégorie réactivée.';
+                } elseif ($op === 'create_fonctionnalite') {
+                    $idCategorie = (int)($_POST['id_categorie'] ?? 0);
+                    $type = (string)($_POST['type_item'] ?? 'parent'); // parent | child
+                    $code = strtoupper(trim((string)($_POST['code_fonctionnalite'] ?? '')));
+                    $label = trim((string)($_POST['label_fonctionnalite'] ?? ''));
+                    $lib = trim((string)($_POST['lib_fonctionnalite'] ?? $label));
+                    $url = trim((string)($_POST['url_fonctionnalite'] ?? '#'));
+                    $icone = trim((string)($_POST['icone_fonctionnalite'] ?? ''));
+                    $ordre = (int)($_POST['ordre_fonctionnalite'] ?? 0);
+                    $actif = isset($_POST['actif']) ? 1 : 0;
+
+                    $estSousPage = $type === 'child' ? 1 : 0;
+                    $pageParente = null;
+                    if ($estSousPage) {
+                        $pageParente = trim((string)($_POST['page_parente'] ?? ''));
+                        if ($pageParente === '') {
+                            throw new Exception('Pour créer un écran, il faut choisir un sous-menu parent.');
+                        }
+                    }
+
+                    $fonctionnaliteModel->createFonctionnalite([
+                        'id_categorie' => $idCategorie,
+                        'code_fonctionnalite' => $code,
+                        'lib_fonctionnalite' => $lib,
+                        'label_fonctionnalite' => $label,
+                        'description_fonctionnalite' => trim((string)($_POST['description_fonctionnalite'] ?? '')),
+                        'url_fonctionnalite' => $url,
+                        'icone_fonctionnalite' => $icone,
+                        'ordre_fonctionnalite' => $ordre,
+                        'est_sous_page' => $estSousPage,
+                        'page_parente' => $pageParente,
+                        'actif' => $actif,
+                    ]);
+                    $messageSuccess = 'Élément créé.';
+                } elseif ($op === 'update_fonctionnalite') {
+                    $id = (int)($_POST['id_fonctionnalite'] ?? 0);
+                    $idCategorie = (int)($_POST['id_categorie'] ?? 0);
+                    $type = (string)($_POST['type_item'] ?? 'parent');
+                    $estSousPage = $type === 'child' ? 1 : 0;
+                    $pageParente = null;
+                    if ($estSousPage) {
+                        $pageParente = trim((string)($_POST['page_parente'] ?? ''));
+                        if ($pageParente === '') {
+                            throw new Exception('Pour un écran, le parent est obligatoire.');
+                        }
+                    }
+                    $fonctionnaliteModel->updateFonctionnaliteAdmin($id, [
+                        'id_categorie' => $idCategorie,
+                        'lib_fonctionnalite' => trim((string)($_POST['lib_fonctionnalite'] ?? '')),
+                        'label_fonctionnalite' => trim((string)($_POST['label_fonctionnalite'] ?? '')),
+                        'description_fonctionnalite' => trim((string)($_POST['description_fonctionnalite'] ?? '')),
+                        'url_fonctionnalite' => trim((string)($_POST['url_fonctionnalite'] ?? '#')),
+                        'icone_fonctionnalite' => trim((string)($_POST['icone_fonctionnalite'] ?? '')),
+                        'ordre_fonctionnalite' => (int)($_POST['ordre_fonctionnalite'] ?? 0),
+                        'est_sous_page' => $estSousPage,
+                        'page_parente' => $pageParente,
+                        'actif' => isset($_POST['actif']) ? 1 : 0,
+                    ]);
+                    $messageSuccess = 'Élément mis à jour.';
+                } elseif ($op === 'deactivate_fonctionnalite') {
+                    $id = (int)($_POST['id_fonctionnalite'] ?? 0);
+                    $pdo->prepare("UPDATE fonctionnalites SET actif = 0 WHERE id_fonctionnalite = ?")->execute([$id]);
+                    $messageSuccess = 'Élément désactivé.';
+                } elseif ($op === 'activate_fonctionnalite') {
+                    $id = (int)($_POST['id_fonctionnalite'] ?? 0);
+                    $pdo->prepare("UPDATE fonctionnalites SET actif = 1 WHERE id_fonctionnalite = ?")->execute([$id]);
+                    $messageSuccess = 'Élément réactivé.';
+                }
+            } catch (Throwable $e) {
+                $messageErreur = $e->getMessage();
+            }
+        }
+
+        // Charger la liste pour l'affichage (inclut inactifs)
+        $categories = $pdo->query("SELECT * FROM categories_fonctionnalites ORDER BY ordre_categorie ASC, id_categorie ASC")->fetchAll(PDO::FETCH_OBJ);
+        $fonctionnalites = $pdo->query("SELECT * FROM fonctionnalites ORDER BY id_categorie ASC, ordre_fonctionnalite ASC, id_fonctionnalite ASC")->fetchAll(PDO::FETCH_OBJ);
+
+        // Construire arborescence par catégorie
+        $tree = [];
+        foreach ($categories as $c) {
+            $tree[(int)$c->id_categorie] = [
+                'categorie' => $c,
+                'items' => [],
+                'parents' => [],
+            ];
+        }
+        foreach ($fonctionnalites as $f) {
+            $cid = (int)($f->id_categorie ?? 0);
+            if (!isset($tree[$cid])) {
+                continue;
+            }
+            $tree[$cid]['items'][] = $f;
+        }
+        foreach ($tree as $cid => &$node) {
+            $items = $node['items'];
+            $parentsByCode = [];
+            $childrenByParent = [];
+            foreach ($items as $f) {
+                $isSous = !empty($f->est_sous_page);
+                $code = (string)($f->code_fonctionnalite ?? '');
+                $parentCode = (string)($f->page_parente ?? '');
+                if ($isSous && $parentCode !== '') {
+                    $childrenByParent[$parentCode] = $childrenByParent[$parentCode] ?? [];
+                    $childrenByParent[$parentCode][] = $f;
+                } elseif (!$isSous && $code !== '') {
+                    $parentsByCode[$code] = $f;
+                }
+            }
+            foreach ($parentsByCode as $code => $p) {
+                $children = $childrenByParent[$code] ?? [];
+                usort($children, fn($a, $b) => ((int)($a->ordre_fonctionnalite ?? 0)) <=> ((int)($b->ordre_fonctionnalite ?? 0)));
+                $p->children = array_values($children);
+            }
+            $parents = array_values($parentsByCode);
+            usort($parents, fn($a, $b) => ((int)($a->ordre_fonctionnalite ?? 0)) <=> ((int)($b->ordre_fonctionnalite ?? 0)));
+            $node['parents'] = $parents;
+        }
+        unset($node);
+
+        $GLOBALS['menuMgmtCategories'] = $categories;
+        $GLOBALS['menuMgmtTree'] = $tree;
+        $GLOBALS['menuMgmtIsEditable'] = $isEditable;
+        $GLOBALS['messageErreur'] = $messageErreur;
+        $GLOBALS['messageSuccess'] = $messageSuccess;
+    }
+    //============================FIN GESTION MENUS==================================
+
     private function handleAttributionSubmit($postData)
     {
         $groupeId = $postData['id_GU'];
         $permissions = isset($postData['permissions']) ? $postData['permissions'] : [];
 
+        // CSRF
+        if (!\CheckMaster\Core\Csrf::validate($postData['csrf_token'] ?? null)) {
+            header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&error=csrf');
+            exit;
+        }
+
         try {
             $conn = Database::getConnection();
+            $conn->beginTransaction();
 
             // Supprimer toutes les permissions existantes pour ce groupe
             $stmt = $conn->prepare("DELETE FROM permissions WHERE id_GU = ?");
@@ -1256,12 +1470,35 @@ class ParametreController
                 }
             }
 
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'attribution', 'Succès - Permissions CRUD enregistrées');
+            $conn->commit();
+
+            // Audit (statut enum strict)
+            $this->auditLog->logAction(
+                $_SESSION['id_utilisateur'],
+                'Modification',
+                'permissions',
+                'Succès',
+                "Mise à jour permissions CRUD groupe={$groupeId}"
+            );
             // Rediriger avec un message de succès
             header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&success=1');
             exit;
         } catch (Exception $e) {
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'attribution', 'Erreur: ' . $e->getMessage());
+            try {
+                if (isset($conn) && $conn->inTransaction()) {
+                    $conn->rollBack();
+                }
+            } catch (Exception $e2) {
+                // ignore rollback errors
+            }
+
+            $this->auditLog->logAction(
+                $_SESSION['id_utilisateur'],
+                'Modification',
+                'permissions',
+                'Erreur',
+                'Erreur attribution permissions CRUD: ' . $e->getMessage()
+            );
             // Rediriger avec un message d'erreur
             header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&error=1');
             exit;

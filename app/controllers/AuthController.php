@@ -9,6 +9,9 @@ require_once __DIR__ . '/../models/Grade.php';
 require_once __DIR__ . '/../models/Fonction.php';
 require_once __DIR__ . '/../models/Specialite.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../Core/Autoload.php';
+
+use CheckMaster\Security\DbRateLimiter;
 
 // Si nécessaire pour d'autres opérations
 
@@ -31,10 +34,26 @@ class AuthController {
 
     public function login($login, $password)
     {
+        // Rate limiting (DB only) - fail-open si la table n'est pas encore créée
+        $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+        $identifier = strtolower(trim((string) $login));
+        if ($identifier === '') {
+            $identifier = '-';
+        }
+        $limiter = new DbRateLimiter($this->db);
+        if (!$limiter->isAllowed('login', $ip, $identifier)) {
+            $_SESSION['error'] = 'Trop de tentatives. Veuillez patienter avant de réessayer.';
+            return false;
+        }
+
         $utilisateur = new Utilisateur($this->db);
         $infoUtilisateur = $utilisateur->verifierConnexion($login, $password);
 
         if ($infoUtilisateur) {
+            // Durcir la session après authentification
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_regenerate_id(true);
+            }
             
            
             // Stocker les infos de session
@@ -78,10 +97,12 @@ class AuthController {
                 }
             }
             $this->auditLog->logConnexion($infoUtilisateur['id_utilisateur'], 'utilisateur', 'Succès');
+            // Succès: reset rate limit
+            $limiter->reset('login', $ip, $identifier);
             return true;
         } 
-        // Ne pas enregistrer les tentatives de connexion échouées dans l'audit
-        // Les logs du serveur web capturent déjà ces informations
+        // Échec: incrémenter tentative (5 essais / 15 min, blocage 10 min)
+        $limiter->hit('login', $ip, $identifier, 5, 15 * 60, 10 * 60);
         return false;
     }
 
@@ -179,7 +200,7 @@ class AuthController {
         $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
 
         // Mettre à jour le mot de passe
-        if ($utilisateur->updatePassword($hashedPassword, $_SESSION['id_utilisateur'])) {
+        if ($utilisateur->updatePassword($_SESSION['id_utilisateur'], $hashedPassword)) {
             $messageSuccess = 'Mot de passe mis à jour avec succès.';
             $GLOBALS['messageSuccess'] = $messageSuccess;
             $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès'); 

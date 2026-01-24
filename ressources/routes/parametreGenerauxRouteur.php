@@ -56,6 +56,12 @@ if ($_GET['page'] === 'parametres_generaux') {
             case 'gestion_attribution':
                 $controller->gestionAttribution();
                 break;
+            case 'gestion_menus':
+                // Guard (outil d'analyse statique / compat)
+                if (method_exists($controller, 'gestionMenus')) {
+                    $controller->gestionMenus();
+                }
+                break;
             case 'salles':
                 $controller->gestionSalles();
                 break;

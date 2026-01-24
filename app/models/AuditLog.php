@@ -46,13 +46,43 @@ class AuditLog {
     }
 
     // Enregistre une action générique dans la table pister
-    public function logAction($id_utilisateur, $action, $nom_table, $statut_action) {
-        // Si id_utilisateur est null, utiliser 0 comme valeur par défaut pour les tentatives de connexion échouées
+    // $statut_action doit être dans {'Erreur','Succès'} pour respecter l'ENUM de la DB.
+    public function logAction($id_utilisateur, $action, $nom_table, $statut_action, $details = null) {
+        // Si id_utilisateur est null, utiliser 0 comme valeur par défaut pour les tentatives/événements anonymes
         $id_utilisateur = $id_utilisateur ?? 0;
-        
+
+        // Normaliser statut
+        $statut = (string) $statut_action;
+        if ($statut === 'Partiel' || $statut === 'partial') {
+            $statut = 'Erreur';
+        }
+        if ($statut !== 'Erreur' && $statut !== 'Succès') {
+            $statut = 'Erreur';
+        }
+
+        // Si la colonne details n'existe pas, on ignore silencieusement.
+        $hasDetails = false;
+        try {
+            $cols = $this->db->query("SHOW COLUMNS FROM pister")->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($cols as $col) {
+                if (($col['Field'] ?? '') === 'details') {
+                    $hasDetails = true;
+                    break;
+                }
+            }
+        } catch (Exception $e) {
+            $hasDetails = false;
+        }
+
+        if ($hasDetails) {
+            $sql = "INSERT INTO pister (id_utilisateur, action, nom_table, statut_action, details) VALUES (?, ?, ?, ?, ?)";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([$id_utilisateur, $action, $nom_table, $statut, $details]);
+        }
+
         $sql = "INSERT INTO pister (id_utilisateur, action, nom_table, statut_action) VALUES (?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([$id_utilisateur, $action, $nom_table, $statut_action]);
+        return $stmt->execute([$id_utilisateur, $action, $nom_table, $statut]);
     }
 
     // Méthodes spécifiques pour chaque type d'action

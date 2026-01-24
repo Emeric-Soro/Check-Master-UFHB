@@ -1,29 +1,133 @@
 <?php
-// Connexion à la base de données et récupération des données
-$listeGroupes = $GLOBALS['listeGroupes'];
-$listeTraitements = $GLOBALS['listeTraitements'];
+$listeGroupes = $GLOBALS['listeGroupes'] ?? [];
+$listeTypesAll = $GLOBALS['listeTypesAll'] ?? [];
+$selectedTypeId = $GLOBALS['selectedTypeId'] ?? ($_GET['type'] ?? 'all');
+
+$listeFonctionnalites = $GLOBALS['listeFonctionnalites'] ?? ($GLOBALS['listeTraitements'] ?? []);
 $selectedGroupe = $GLOBALS['selectedGroupe'] ?? null;
-$attributionsGroupe = $GLOBALS['attributionsGroupe'] ?? [];
+$permissionsGroupe = $GLOBALS['permissionsGroupe'] ?? ($GLOBALS['attributionsGroupe'] ?? []);
 $messageSuccess = $GLOBALS['messageSuccess'] ?? '';
 $messageErreur = $GLOBALS['messageErreur'] ?? '';
 
-// Gestion de la recherche
-$searchTerm = isset($_GET['search']) ? trim($_GET['search']) : '';
-$searchType = isset($_GET['search_type']) ? $_GET['search_type'] : '';
+// CSRF (centralisé)
+$csrfToken = \CheckMaster\Core\Csrf::token();
 
-// Filtrer les groupes si une recherche est effectuée
-if ($searchType === 'groupe' && !empty($searchTerm)) {
-    $listeGroupes = array_filter($listeGroupes, function ($groupe) use ($searchTerm) {
-        return stripos($groupe->lib_GU, $searchTerm) !== false;
-    });
+// Map permissions par id_fonctionnalite (accès O(1))
+$permByFoncId = [];
+foreach ($permissionsGroupe as $p) {
+    if (isset($p->id_fonctionnalite)) {
+        $permByFoncId[(int)$p->id_fonctionnalite] = $p;
+    }
 }
 
-// Filtrer les traitements si une recherche est effectuée
-if ($searchType === 'traitement' && !empty($searchTerm)) {
-    $listeTraitements = array_filter($listeTraitements, function ($traitement) use ($searchTerm) {
-        return stripos($traitement->lib_fonctionnalite, $searchTerm) !== false;
-    });
+function parseLegacyPageAction(?string $url): array
+{
+    $url = (string) $url;
+    $query = parse_url($url, PHP_URL_QUERY);
+    if (!$query) {
+        return ['', ''];
+    }
+    $params = [];
+    parse_str($query, $params);
+    $page = isset($params['page']) ? (string) $params['page'] : '';
+    $action = isset($params['action']) ? (string) $params['action'] : '';
+    return [$page, $action];
 }
+
+// Construire une structure hiérarchique "menu": Catégorie -> Sous-menu(parent) -> Écrans(enfants)
+// Basé sur `est_sous_page` + `page_parente` (cohérent avec le menu affiché dans l'app).
+$tree = [];
+foreach ($listeFonctionnalites as $f) {
+    $cat = (string)($f->lib_categorie ?? 'Autres');
+    $catCode = (string)($f->code_categorie ?? 'autres');
+
+    if (!isset($tree[$catCode])) {
+        $tree[$catCode] = [
+            'label' => $cat,
+            'items' => [],
+            'parents' => [],
+            'orphans' => [],
+        ];
+    }
+
+    $tree[$catCode]['items'][] = $f;
+}
+
+foreach ($tree as $catCode => &$catData) {
+    $items = $catData['items'];
+    $parentsByCode = [];
+    $childrenByParent = [];
+    $orphans = [];
+
+    foreach ($items as $f) {
+        $isSousPage = !empty($f->est_sous_page);
+        $code = isset($f->code_fonctionnalite) ? (string)$f->code_fonctionnalite : '';
+        $parentCode = isset($f->page_parente) ? (string)$f->page_parente : '';
+
+        if ($isSousPage) {
+            if ($parentCode !== '') {
+                if (!isset($childrenByParent[$parentCode])) {
+                    $childrenByParent[$parentCode] = [];
+                }
+                $childrenByParent[$parentCode][] = $f;
+            } else {
+                $orphans[] = $f;
+            }
+            continue;
+        }
+
+        if ($code !== '') {
+            $parentsByCode[$code] = $f;
+        } else {
+            $orphans[] = $f;
+        }
+    }
+
+    foreach ($parentsByCode as $code => $p) {
+        $children = $childrenByParent[$code] ?? [];
+        usort($children, function ($a, $b) {
+            return ((int)($a->ordre_fonctionnalite ?? 0)) <=> ((int)($b->ordre_fonctionnalite ?? 0));
+        });
+        $p->children = array_values($children);
+    }
+
+    // Parents manquants: créer un hub virtuel (au besoin)
+    foreach ($childrenByParent as $pcode => $children) {
+        if (isset($parentsByCode[$pcode])) {
+            continue;
+        }
+        if (empty($children)) {
+            continue;
+        }
+        usort($children, function ($a, $b) {
+            return ((int)($a->ordre_fonctionnalite ?? 0)) <=> ((int)($b->ordre_fonctionnalite ?? 0));
+        });
+        $hub = new stdClass();
+        $hub->id_fonctionnalite = 0;
+        $hub->code_fonctionnalite = (string)$pcode;
+        $hub->lib_fonctionnalite = (string)$pcode;
+        $hub->label_fonctionnalite = (string)$pcode;
+        $hub->url_fonctionnalite = '#';
+        $hub->icone_fonctionnalite = 'fas fa-folder';
+        $hub->ordre_fonctionnalite = (int)($children[0]->ordre_fonctionnalite ?? 0);
+        $hub->est_sous_page = 0;
+        $hub->page_parente = null;
+        $hub->children = array_values($children);
+        $hub->is_virtual = true;
+        $parentsByCode[$pcode] = $hub;
+    }
+
+    $parents = array_values($parentsByCode);
+    usort($parents, function ($a, $b) {
+        return ((int)($a->ordre_fonctionnalite ?? 0)) <=> ((int)($b->ordre_fonctionnalite ?? 0));
+    });
+
+    $catData['parents'] = $parents;
+    $catData['orphans'] = $orphans;
+}
+unset($catData);
+
+$isEditable = function_exists('canEdit') ? (bool)canEdit() : true;
 ?>
 
 <!DOCTYPE html>
@@ -62,6 +166,63 @@ if ($searchType === 'traitement' && !empty($searchTerm)) {
         input[type="checkbox"]:checked {
             background-color: #22c55e;
             border-color: #22c55e;
+        }
+
+        /* Hiérarchie visuelle (table) */
+        .treeParentCell {
+            position: relative;
+        }
+        .treeChildCell {
+            position: relative;
+            padding-left: 2.25rem !important;
+        }
+        .treeChildCell:before {
+            content: "";
+            position: absolute;
+            left: 1.1rem;
+            top: 0;
+            bottom: 0;
+            border-left: 1px dashed #cbd5e1;
+            opacity: 0.8;
+        }
+        .treeChildCell:after {
+            content: "";
+            position: absolute;
+            left: 1.1rem;
+            top: 50%;
+            width: 0.75rem;
+            border-top: 1px dashed #cbd5e1;
+            transform: translateY(-50%);
+            opacity: 0.8;
+        }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            border-radius: 9999px;
+            padding: 0.125rem 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .chipParent {
+            background: #eef2ff;
+            color: #3730a3;
+        }
+        .chipChild {
+            background: #ecfeff;
+            color: #0e7490;
+        }
+        .permHeader {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+        .permHeader input[type="checkbox"] {
+            width: 1rem;
+            height: 1rem;
         }
 
         /* Style pour la pagination active */
@@ -254,255 +415,220 @@ if ($searchType === 'traitement' && !empty($searchTerm)) {
     <?php endif; ?>
 
     <div class="container mx-auto px-4 py-8">
-        <header class="mb-8">
-            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <header class="mb-6">
+            <div class="flex items-start justify-between gap-4">
                 <div>
                     <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
-                        <i class="fas fa-tasks mr-3 text-emerald-600"></i>
-                        Gestion des Attributions
+                        <i class="fas fa-user-shield mr-3 text-emerald-600"></i>
+                        Gestion des habilitations
                     </h1>
-                    <p class="text-gray-600 mt-2">Attribuez des traitements aux groupes d'utilisateurs</p>
+                    <p class="text-gray-600 mt-2">Définissez les permissions par groupe utilisateur (CRUD)</p>
                 </div>
-
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <!-- Liste des groupes -->
-            <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-                <div class="bg-gradient-to-r from-green-500 to-green-600 p-4">
-                    <h3 class="text-lg font-semibold text-white">
-                        <i class="fas fa-users mr-2"></i>
-                        Groupes
-                    </h3>
-                    <p class="text-green-100 text-xs mt-1">Sélectionnez un groupe</p>
-                </div>
-
-                <div class="p-3">
-                    <form method="GET" class="mb-3">
-                        <input type="hidden" name="page" value="parametres_generaux">
-                        <input type="hidden" name="action" value="gestion_attribution">
-                        <input type="hidden" name="search_type" value="groupe">
-                        <div class="relative">
-                            <input type="text" name="search" value="<?= htmlspecialchars($searchTerm) ?>"
-                                placeholder="Rechercher..."
-                                class="pl-8 pr-2 py-2 text-sm rounded-lg border border-gray-300 w-full">
-                            <i class="fas fa-search absolute left-2 top-3 text-gray-400 text-xs"></i>
-                        </div>
-                    </form>
-
-                    <div class="space-y-2 overflow-y-auto max-h-[600px]" id="groupesList">
-                        <?php foreach ($listeGroupes as $groupe): ?>
-                            <a href="?page=parametres_generaux&action=gestion_attribution&groupe=<?= $groupe->id_GU ?>"
-                                class="block w-full text-left px-3 py-2 rounded-lg transition-all groupe-btn <?= ($selectedGroupe && $selectedGroupe->id_GU == $groupe->id_GU) ? 'selected' : '' ?>">
-                                <div class="flex items-center">
-                                    <div
-                                        class="w-7 h-7 rounded-full bg-green-100 text-green-700 flex items-center justify-center mr-2">
-                                        <i class="fas fa-user-group text-xs"></i>
-                                    </div>
-                                    <span
-                                        class="font-medium text-gray-700 text-sm"><?= htmlspecialchars($groupe->lib_GU) ?></span>
-                                </div>
-                            </a>
-                        <?php endforeach; ?>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-4 border-b border-gray-100">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-2">
+                            <i class="fas fa-user-tag text-emerald-600"></i>
+                            Type d'utilisateur
+                        </label>
+                        <select id="typeSelect" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                            <option value="all" <?= ($selectedTypeId === 'all') ? 'selected' : '' ?>>Tous les types</option>
+                            <?php foreach ($listeTypesAll as $t): ?>
+                                <option value="<?= (int)$t->id_type_utilisateur ?>" <?= ((string)$selectedTypeId === (string)$t->id_type_utilisateur) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($t->lib_type_utilisateur) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-2">
+                            <i class="fas fa-users text-emerald-600"></i>
+                            Groupe utilisateur
+                        </label>
+                        <select id="groupSelect" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                            <option value="">Sélectionnez un groupe utilisateur</option>
+                            <?php foreach ($listeGroupes as $g): ?>
+                                <option value="<?= (int)$g->id_GU ?>" <?= ($selectedGroupe && (int)$selectedGroupe->id_GU === (int)$g->id_GU) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($g->lib_GU) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                 </div>
             </div>
 
-            <!-- Détails du groupe et attributions -->
-            <div class="lg:col-span-3">
-                <div id="attributionContainer"
-                    class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 h-full flex flex-col">
-                    <div class="bg-gradient-to-r from-green-500 to-green-600 p-4">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-semibold text-white">
-                                <i class="fas fa-cogs mr-2"></i>
-                                Gestion des traitements
-                            </h3>
-                            <span id="attributionCounter"
-                                class="bg-white text-green-700 text-sm px-3 py-1 rounded-full font-medium">
-                                <?= count($attributionsGroupe) ?>
-                                traitement<?= count($attributionsGroupe) > 1 ? 's' : '' ?>
-                                attribué<?= count($attributionsGroupe) > 1 ? 's' : '' ?>
-                            </span>
-                        </div>
-                        <p class="text-green-100 text-sm mt-1">Attribuez des traitements au groupe sélectionné</p>
-                    </div>
+            <?php if ($selectedGroupe): ?>
+                <form method="POST" class="p-4" id="permForm">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                    <input type="hidden" name="id_GU" value="<?= (int)$selectedGroupe->id_GU ?>">
 
-                    <?php if ($selectedGroupe): ?>
-                        <div id="attributionContent" class="p-6 flex-1 flex flex-col">
-                            <div class="mb-6">
-                                <div class="flex items-center mb-4">
-                                    <div
-                                        class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mr-3">
-                                        <i class="fas fa-user-group text-green-500"></i>
-                                    </div>
-                                    <div>
-                                        <h4 id="selectedGroupeName" class="text-lg font-semibold text-gray-900">
-                                            <?= htmlspecialchars($selectedGroupe->lib_GU) ?>
-                                        </h4>
-                                        <p class="text-gray-500 text-sm">Sélectionnez les traitements à attribuer</p>
-                                    </div>
-                                </div>
+                    <div class="overflow-x-auto rounded-lg border border-gray-200">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">#</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Code</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Menu / Écran</th>
+                                    <th class="px-2 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">+/-</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        <div class="permHeader">
+                                            <input type="checkbox" class="permColToggle" data-col="creer" <?= $isEditable ? '' : 'disabled' ?> aria-label="Tout cocher: Ajouter">
+                                            <span class="inline-flex items-center gap-2"><i class="fas fa-plus text-emerald-600"></i>Ajouter</span>
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        <div class="permHeader">
+                                            <input type="checkbox" class="permColToggle" data-col="modifier" <?= $isEditable ? '' : 'disabled' ?> aria-label="Tout cocher: Modifier">
+                                            <span class="inline-flex items-center gap-2"><i class="fas fa-pen text-amber-600"></i>Modifier</span>
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        <div class="permHeader">
+                                            <input type="checkbox" class="permColToggle" data-col="supprimer" <?= $isEditable ? '' : 'disabled' ?> aria-label="Tout cocher: Supprimer">
+                                            <span class="inline-flex items-center gap-2"><i class="fas fa-trash text-red-600"></i>Supprimer</span>
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        <div class="permHeader">
+                                            <input type="checkbox" class="permColToggle" data-col="voir" <?= $isEditable ? '' : 'disabled' ?> aria-label="Tout cocher: Consulter">
+                                            <span class="inline-flex items-center gap-2"><i class="fas fa-eye text-blue-600"></i>Consulter</span>
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-100" id="permTableBody">
+                                <?php $rowNum = 0; ?>
+                                <?php foreach ($tree as $catCode => $catData): ?>
+                                    <tr class="bg-gray-100">
+                                        <td colspan="8" class="px-4 py-2 text-sm font-semibold text-gray-700">
+                                            <?= htmlspecialchars($catData['label']) ?>
+                                        </td>
+                                    </tr>
 
-                                <form method="GET" class="mb-4">
-                                    <input type="hidden" name="page" value="parametres_generaux">
-                                    <input type="hidden" name="action" value="gestion_attribution">
-                                    <input type="hidden" name="groupe" value="<?= $selectedGroupe->id_GU ?>">
-                                    <input type="hidden" name="search_type" value="traitement">
-                                    <div class="relative">
-                                        <input type="text" name="search" value="<?= htmlspecialchars($searchTerm) ?>"
-                                            placeholder="Filtrer les traitements..."
-                                            class="pl-10 pr-4 py-2 rounded-lg border border-gray-300 w-full">
-                                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                                    </div>
-                                </form>
-                            </div>
+                                    <?php foreach (($catData['parents'] ?? []) as $parent): ?>
+                                        <?php
+                                        $parentId = (int)($parent->id_fonctionnalite ?? 0);
+                                        $parentCodeF = (string)($parent->code_fonctionnalite ?? '');
+                                        $parentLabel = (string)($parent->label_fonctionnalite ?? $parent->lib_fonctionnalite ?? $parentCodeF);
+                                        $children = (isset($parent->children) && is_array($parent->children)) ? $parent->children : [];
+                                        $hasChildren = !empty($children);
+                                        $groupId = 'grp-' . md5($catCode . '|' . $parentCodeF . '|' . (string)$parentId);
+                                        $parentPerm = $parentId > 0 && isset($permByFoncId[$parentId]) ? $permByFoncId[$parentId] : null;
+                                        $disabled = ($parentId <= 0) || !$isEditable;
+                                        $nameBase = $parentId > 0 ? "permissions[$parentId]" : '';
+                                        ?>
 
-                            <form method="POST" class="space-y-4 flex-1 flex flex-col">
-                                <input type="hidden" name="id_GU" value="<?= $selectedGroupe->id_GU ?>">
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-4 py-3 text-sm text-gray-500"><?= ++$rowNum ?></td>
+                                            <td class="px-4 py-3 text-sm text-gray-700">
+                                                <?= htmlspecialchars($parentCodeF !== '' ? $parentCodeF : (string)$parentId) ?>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm font-medium text-gray-900 treeParentCell">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="<?= $hasChildren ? 'fas fa-folder text-indigo-600' : 'fas fa-file-alt text-slate-500' ?>"></i>
+                                                    <span><?= htmlspecialchars($parentLabel) ?></span>
+                                                    <span class="chip <?= $hasChildren ? 'chipParent' : 'chipChild' ?>">
+                                                        <?= $hasChildren ? 'SOUS-MENU' : 'ÉCRAN' ?>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td class="px-2 py-3 text-center">
+                                                <?php if ($hasChildren): ?>
+                                                    <button type="button" class="toggleRow inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-blue-700 border border-blue-200"
+                                                        data-target="<?= $groupId ?>" aria-label="Déplier/Replier">
+                                                        <span class="toggleIcon">+</span>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <span class="text-gray-300">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <?php if ($parentId <= 0): ?>-<?php else: ?>
+                                                    <input class="permBox" data-col="creer" type="checkbox" name="<?= $nameBase ?>[creer]" value="1"
+                                                        <?= ($parentPerm && !empty($parentPerm->peut_creer)) ? 'checked' : '' ?> <?= $disabled ? 'disabled' : '' ?>>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <?php if ($parentId <= 0): ?>-<?php else: ?>
+                                                    <input class="permBox" data-col="modifier" type="checkbox" name="<?= $nameBase ?>[modifier]" value="1"
+                                                        <?= ($parentPerm && !empty($parentPerm->peut_modifier)) ? 'checked' : '' ?> <?= $disabled ? 'disabled' : '' ?>>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <?php if ($parentId <= 0): ?>-<?php else: ?>
+                                                    <input class="permBox" data-col="supprimer" type="checkbox" name="<?= $nameBase ?>[supprimer]" value="1"
+                                                        <?= ($parentPerm && !empty($parentPerm->peut_supprimer)) ? 'checked' : '' ?> <?= $disabled ? 'disabled' : '' ?>>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <?php if ($parentId <= 0): ?>-<?php else: ?>
+                                                    <input class="permBox" data-col="voir" type="checkbox" name="<?= $nameBase ?>[voir]" value="1"
+                                                        <?= ($parentPerm && !empty($parentPerm->peut_voir)) ? 'checked' : '' ?> <?= $disabled ? 'disabled' : '' ?>>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
 
-                                <!-- Tableau des permissions -->
-                                <div class="overflow-x-auto bg-white rounded-lg shadow">
-                                    <table class="min-w-full divide-y divide-gray-200">
-                                        <thead class="bg-gray-50">
-                                            <tr>
-                                                <th scope="col"
-                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Fonctionnalité
-                                                </th>
-                                                <th scope="col"
-                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Catégorie
-                                                </th>
-                                                <th scope="col"
-                                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    <i class="fas fa-eye text-blue-500"></i> Voir
-                                                </th>
-                                                <th scope="col"
-                                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    <i class="fas fa-plus text-green-500"></i> Créer
-                                                </th>
-                                                <th scope="col"
-                                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    <i class="fas fa-edit text-yellow-500"></i> Modifier
-                                                </th>
-                                                <th scope="col"
-                                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    <i class="fas fa-trash text-red-500"></i> Supprimer
-                                                </th>
+                                        <?php foreach ($children as $child): ?>
+                                            <?php
+                                            $cid = (int)($child->id_fonctionnalite ?? 0);
+                                            $ccode = (string)($child->code_fonctionnalite ?? (string)$cid);
+                                            $clabel = (string)($child->label_fonctionnalite ?? $child->lib_fonctionnalite ?? $ccode);
+                                            $cperm = $cid > 0 && isset($permByFoncId[$cid]) ? $permByFoncId[$cid] : null;
+                                            $cdisabled = !$isEditable;
+                                            ?>
+                                            <tr class="childRow hidden bg-white hover:bg-gray-50" data-parent="<?= $groupId ?>">
+                                                <td class="px-4 py-3 text-sm text-gray-400"><?= ++$rowNum ?></td>
+                                                <td class="px-4 py-3 text-sm text-gray-600"><?= htmlspecialchars($ccode) ?></td>
+                                                <td class="px-4 py-3 text-sm text-gray-900 treeChildCell">
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="fas fa-file-alt text-slate-400"></i>
+                                                        <span><?= htmlspecialchars($clabel) ?></span>
+                                                        <span class="chip chipChild">ÉCRAN</span>
+                                                    </div>
+                                                </td>
+                                                <td class="px-2 py-3 text-center text-gray-300"> </td>
+                                                <td class="px-4 py-3 text-center">
+                                                    <input class="permBox" data-col="creer" type="checkbox" name="permissions[<?= $cid ?>][creer]" value="1" <?= ($cperm && !empty($cperm->peut_creer)) ? 'checked' : '' ?> <?= $cdisabled ? 'disabled' : '' ?>>
+                                                </td>
+                                                <td class="px-4 py-3 text-center">
+                                                    <input class="permBox" data-col="modifier" type="checkbox" name="permissions[<?= $cid ?>][modifier]" value="1" <?= ($cperm && !empty($cperm->peut_modifier)) ? 'checked' : '' ?> <?= $cdisabled ? 'disabled' : '' ?>>
+                                                </td>
+                                                <td class="px-4 py-3 text-center">
+                                                    <input class="permBox" data-col="supprimer" type="checkbox" name="permissions[<?= $cid ?>][supprimer]" value="1" <?= ($cperm && !empty($cperm->peut_supprimer)) ? 'checked' : '' ?> <?= $cdisabled ? 'disabled' : '' ?>>
+                                                </td>
+                                                <td class="px-4 py-3 text-center">
+                                                    <input class="permBox" data-col="voir" type="checkbox" name="permissions[<?= $cid ?>][voir]" value="1" <?= ($cperm && !empty($cperm->peut_voir)) ? 'checked' : '' ?> <?= $cdisabled ? 'disabled' : '' ?>>
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody class="bg-white divide-y divide-gray-200">
-                                            <?php if (!empty($listeTraitements)): ?>
-                                                <?php foreach ($listeTraitements as $traitement): ?>
-                                                    <?php
-                                                    // Récupérer les permissions actuelles pour cette fonctionnalité
-                                                    $currentPermission = null;
-                                                    foreach ($attributionsGroupe as $perm) {
-                                                        if ($perm->id_fonctionnalite == $traitement->id_fonctionnalite) {
-                                                            $currentPermission = $perm;
-                                                            break;
-                                                        }
-                                                    }
-                                                    ?>
-                                                    <tr class="hover:bg-gray-50 transition-colors">
-                                                        <!-- Fonctionnalité -->
-                                                        <td class="px-6 py-4 whitespace-nowrap">
-                                                            <div class="flex items-center">
-                                                                <div class="text-sm font-medium text-gray-900">
-                                                                    <?= htmlspecialchars($traitement->lib_fonctionnalite) ?>
-                                                                </div>
-                                                                <?php if (isset($traitement->description)): ?>
-                                                                    <button type="button"
-                                                                        onclick="showTraitementDetails(<?= $traitement->id_fonctionnalite ?>)"
-                                                                        class="ml-2 text-gray-400 hover:text-emerald-600 transition-colors"
-                                                                        title="Plus d'informations">
-                                                                        <i class="fas fa-info-circle"></i>
-                                                                    </button>
-                                                                <?php endif; ?>
-                                                            </div>
-                                                        </td>
+                                        <?php endforeach; ?>
+                                    <?php endforeach; ?>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
 
-                                                        <!-- Catégorie -->
-                                                        <td class="px-6 py-4 whitespace-nowrap">
-                                                            <?php if (isset($traitement->lib_categorie)): ?>
-                                                                <span
-                                                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                                    <?= htmlspecialchars($traitement->lib_categorie) ?>
-                                                                </span>
-                                                            <?php endif; ?>
-                                                        </td>
-
-                                                        <!-- Voir -->
-                                                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                            <input type="checkbox"
-                                                                name="permissions[<?= $traitement->id_fonctionnalite ?>][voir]"
-                                                                value="1"
-                                                                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                                                <?= ($currentPermission && $currentPermission->peut_voir) ? 'checked' : '' ?>>
-                                                        </td>
-
-                                                        <!-- Créer -->
-                                                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                            <input type="checkbox"
-                                                                name="permissions[<?= $traitement->id_fonctionnalite ?>][creer]"
-                                                                value="1"
-                                                                class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                                                                <?= ($currentPermission && $currentPermission->peut_creer) ? 'checked' : '' ?>>
-                                                        </td>
-
-                                                        <!-- Modifier -->
-                                                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                            <input type="checkbox"
-                                                                name="permissions[<?= $traitement->id_fonctionnalite ?>][modifier]"
-                                                                value="1"
-                                                                class="h-4 w-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500"
-                                                                <?= ($currentPermission && $currentPermission->peut_modifier) ? 'checked' : '' ?>>
-                                                        </td>
-
-                                                        <!-- Supprimer -->
-                                                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                            <input type="checkbox"
-                                                                name="permissions[<?= $traitement->id_fonctionnalite ?>][supprimer]"
-                                                                value="1"
-                                                                class="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                                                                <?= ($currentPermission && $currentPermission->peut_supprimer) ? 'checked' : '' ?>>
-                                                        </td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            <?php else: ?>
-                                                <tr>
-                                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
-                                                        Aucune fonctionnalité disponible
-                                                    </td>
-                                                </tr>
-                                            <?php endif; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                                    <a href="?page=parametres_generaux&action=gestion_attribution&groupe=<?= $selectedGroupe->id_GU ?>"
-                                        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all">
-                                        <i class="fas fa-undo mr-2"></i>Réinitialiser
-                                    </a>
-                                    <?php if (canEdit()): ?>
-                                    <button type="submit"
-                                        class="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all">
-                                        <i class="fas fa-save mr-2"></i>Enregistrer
-                                    </button>
-                                    <?php endif; ?>
-                                </div>
-                            </form>
-                        </div>
-                    <?php else: ?>
-                        <div class="p-6 text-center text-gray-500">
-                            Veuillez sélectionner un groupe d'utilisateurs
-                        </div>
-                    <?php endif; ?>
+                    <div class="flex justify-end gap-3 mt-4">
+                        <a href="?page=parametres_generaux&action=gestion_attribution&type=<?= urlencode((string)$selectedTypeId) ?>&groupe=<?= (int)$selectedGroupe->id_GU ?>"
+                            class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                            Réinitialiser
+                        </a>
+                        <?php if ($isEditable): ?>
+                            <button type="submit"
+                                class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700">
+                                Enregistrer
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            <?php else: ?>
+                <div class="p-10 text-center text-gray-500">
+                    Sélectionnez un type et un groupe utilisateur pour gérer les permissions.
                 </div>
-            </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -520,252 +646,110 @@ if ($searchType === 'traitement' && !empty($searchTerm)) {
     </div>
 
     <script>
-        // Variables globales
-        let currentGroupeId = null;
-        let currentGroupeName = null;
-        const groupeButtons = document.querySelectorAll('.groupe-btn');
-        const traitementItems = document.querySelectorAll('.traitement-item');
-        const traitementCheckboxes = document.querySelectorAll('.traitement-checkbox');
-        const selectedGroupeId = document.getElementById('selectedGroupeId');
-        const selectedGroupeName = document.getElementById('selectedGroupeName');
-        const attributionForm = document.getElementById('attributionForm');
-        const saveButton = document.getElementById('saveButton');
-        const noSelectionMessage = document.getElementById('noSelectionMessage');
-        const attributionContent = document.getElementById('attributionContent');
-        const attributionCounter = document.getElementById('attributionCounter');
-        const searchInput = document.getElementById('searchInput');
-        const mobileSearchGroupe = document.getElementById('mobileSearchGroupe');
-        const searchTraitements = document.getElementById('searchTraitements');
-        const traitementDetailsModal = document.getElementById('traitementDetailsModal');
+        (function () {
+            const typeSelect = document.getElementById('typeSelect');
+            const groupSelect = document.getElementById('groupSelect');
 
-        // Structure pour stocker les attributions existantes
-        const existingAttributions = attributionsMap || {};
-
-        // Initialisation
-        document.addEventListener('DOMContentLoaded', function () {
-            setupSearch();
-            saveButton.disabled = true;
-            saveButton.classList.add('opacity-50', 'cursor-not-allowed');
-
-            // Sélection automatique si groupe dans l'URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const groupeIdFromUrl = urlParams.get('groupe');
-
-            if (groupeIdFromUrl) {
-                const groupeButton = document.querySelector(`.groupe-btn[data-groupe-id="${groupeIdFromUrl}"]`);
-                if (groupeButton) {
-                    const groupeId = groupeButton.dataset.groupeId;
-                    const groupeName = groupeButton.dataset.groupeName;
-                    selectGroupe(groupeId, groupeName);
-                }
+            function buildUrl(params) {
+                // Garder _r=1 pour éviter la canonicalisation (sinon perte de type/groupe via redirection Router)
+                const q = new URLSearchParams();
+                q.set('page', 'parametres_generaux');
+                q.set('action', 'gestion_attribution');
+                q.set('_r', '1');
+                Object.keys(params || {}).forEach((k) => {
+                    const v = params[k];
+                    if (v === undefined || v === null || v === '') {
+                        q.delete(k);
+                    } else {
+                        q.set(k, String(v));
+                    }
+                });
+                return '?' + q.toString();
             }
 
-            // Fermeture de la modale au clic en dehors
-            window.addEventListener('click', function (e) {
-                if (e.target === traitementDetailsModal) {
-                    closeTraitementDetails();
-                }
-            });
-        });
-
-        // Configuration des champs de recherche
-        function setupSearch() {
-            // Recherche globale
-            searchInput.addEventListener('input', function (e) {
-                const searchTerm = e.target.value.toLowerCase();
-                filterGroupes(searchTerm);
-                if (currentGroupeId) filterTraitements(searchTerm);
-            });
-
-            // Recherche mobile pour les groupes
-            mobileSearchGroupe.addEventListener('input', function (e) {
-                filterGroupes(e.target.value.toLowerCase());
-            });
-
-            // Recherche des traitements
-            searchTraitements.addEventListener('input', function (e) {
-                filterTraitements(e.target.value.toLowerCase());
-            });
-        }
-
-        // Filtrer les groupes
-        function filterGroupes(searchTerm) {
-            document.querySelectorAll('.groupe-btn').forEach(btn => {
-                const groupeName = btn.dataset.groupeName.toLowerCase();
-                btn.style.display = groupeName.includes(searchTerm) ? 'block' : 'none';
-            });
-        }
-
-        // Filtrer les traitements
-        function filterTraitements(searchTerm) {
-            const items = document.querySelectorAll('.traitement-item');
-            items.forEach(item => {
-                const traitementName = item.dataset.traitementName.toLowerCase();
-                const traitementId = item.dataset.traitementId;
-                const isVisible = traitementName.includes(searchTerm.toLowerCase()) ||
-                    traitementId.toString().includes(searchTerm);
-                item.style.display = isVisible ? 'block' : 'none';
-            });
-        }
-
-        // Sélectionner un groupe
-        function selectGroupe(id, name) {
-            currentGroupeId = id;
-            currentGroupeName = name;
-            selectedGroupeId.value = id;
-            selectedGroupeName.textContent = name;
-
-            // Mettre à jour l'URL
-            const newUrl = '?page=parametres_generaux&action=gestion_attribution&groupe=' + id;
-            window.history.replaceState({
-                path: newUrl
-            }, '', newUrl);
-
-            // Activer le bouton d'enregistrement
-            saveButton.disabled = false;
-            saveButton.classList.remove('opacity-50', 'cursor-not-allowed');
-
-            // Vérifier si 'groupe' est présent dans l'URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const hasGroupParam = urlParams.has('groupe');
-
-            if (noSelectionMessage && attributionContent) {
-                if (hasGroupParam) {
-                    // S'il y a un paramètre 'groupe' dans l'URL
-                    noSelectionMessage.classList.add('hidden');
-                    attributionContent.classList.remove('hidden');
-                } else {
-                    // S'il n'y a pas de paramètre 'groupe'
-                    noSelectionMessage.classList.remove('hidden');
-                    attributionContent.classList.add('hidden');
-                }
+            // Type -> recharge en filtrant les groupes (on reset le groupe)
+            if (typeSelect) {
+                typeSelect.addEventListener('change', function () {
+                    const t = typeSelect.value || 'all';
+                    window.location.href = buildUrl({ type: t });
+                });
             }
 
-            // Mettre à jour l'apparence des boutons
-            groupeButtons.forEach(btn => {
-                btn.classList.toggle('selected', btn.dataset.groupeId == id);
+            // Groupe -> recharge en gardant le type sélectionné
+            if (groupSelect) {
+                groupSelect.addEventListener('change', function () {
+                    const g = groupSelect.value || '';
+                    const t = typeSelect ? (typeSelect.value || 'all') : 'all';
+                    window.location.href = buildUrl({ type: t, groupe: g });
+                });
+            }
+
+            // Expand/collapse
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest ? e.target.closest('.toggleRow') : null;
+                if (!btn) return;
+                const target = btn.getAttribute('data-target');
+                if (!target) return;
+                const rows = document.querySelectorAll(`tr.childRow[data-parent="${target}"]`);
+                const icon = btn.querySelector('.toggleIcon');
+                const isHidden = rows.length > 0 ? rows[0].classList.contains('hidden') : true;
+                rows.forEach(r => r.classList.toggle('hidden', !isHidden));
+                if (icon) icon.textContent = isHidden ? '-' : '+';
             });
 
-            // Récupérer les attributions pour ce groupe
-            const groupeAttributions = existingAttributions[id] || [];
-            const groupeAttributionsNumeric = groupeAttributions.map(attr => Number(attr.id_fonctionnalite));
+            // Tout cocher par colonne (CRUD)
+            // IMPORTANT: il peut y avoir d'autres <form> dans le layout global (logout, recherche, etc.)
+            // Donc on cible explicitement le formulaire des permissions.
+            const form = document.getElementById('permForm');
+            if (form) {
+                const colToggles = form.querySelectorAll('.permColToggle');
 
-            // Mettre à jour les cases à cocher
-            traitementCheckboxes.forEach(checkbox => {
-                const traitementId = Number(checkbox.value);
-                checkbox.checked = groupeAttributionsNumeric.includes(traitementId);
-            });
+                function getBoxes(col) {
+                    return Array.from(form.querySelectorAll(`input.permBox[data-col="${col}"]`))
+                        .filter((el) => el && el.type === 'checkbox');
+                }
 
-            updateAttributionCounter();
-        }
+                function updateColState(col) {
+                    const toggle = form.querySelector(`.permColToggle[data-col="${col}"]`);
+                    if (!toggle) return;
+                    const boxes = getBoxes(col).filter((b) => !b.disabled);
+                    if (boxes.length === 0) {
+                        toggle.checked = false;
+                        toggle.indeterminate = false;
+                        return;
+                    }
+                    const checkedCount = boxes.reduce((acc, b) => acc + (b.checked ? 1 : 0), 0);
+                    toggle.checked = checkedCount === boxes.length;
+                    toggle.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
+                }
 
-        // Mettre à jour le compteur d'attributions
-        function updateAttributionCounter() {
-            const count = document.querySelectorAll('.traitement-checkbox:checked').length;
-            attributionCounter.textContent =
-                `${count} traitement${count !== 1 ? 's' : ''} attribué${count !== 1 ? 's' : ''}`;
-            attributionCounter.classList.toggle('bg-emerald-100', count > 0);
-            attributionCounter.classList.toggle('text-emerald-700', count > 0);
-        }
+                function setAll(col, checked) {
+                    const boxes = getBoxes(col);
+                    boxes.forEach((b) => {
+                        if (!b.disabled) b.checked = checked;
+                    });
+                    updateColState(col);
+                }
 
-        // Réinitialiser le formulaire
-        function resetForm() {
-            if (currentGroupeId) {
-                const groupeAttributions = existingAttributions[currentGroupeId] || [];
-                const groupeAttributionsNumeric = groupeAttributions.map(attr => Number(attr.id_fonctionnalite));
-
-                traitementCheckboxes.forEach(checkbox => {
-                    const traitementId = Number(checkbox.value);
-                    checkbox.checked = groupeAttributionsNumeric.includes(traitementId);
+                colToggles.forEach((t) => {
+                    const col = t.getAttribute('data-col');
+                    if (!col) return;
+                    updateColState(col);
+                    t.addEventListener('change', () => {
+                        t.indeterminate = false;
+                        setAll(col, !!t.checked);
+                    });
                 });
 
-                updateAttributionCounter();
-
-                // Notification visuelle
-                showNotification('Les attributions ont été réinitialisées', 'info');
+                form.addEventListener('change', (e) => {
+                    const el = e.target;
+                    if (!el || !el.classList || !el.classList.contains('permBox')) return;
+                    const col = el.getAttribute('data-col');
+                    if (!col) return;
+                    updateColState(col);
+                });
             }
-        }
-
-        // Afficher une notification
-        function showNotification(message, type = 'info') {
-            const colors = {
-                info: 'bg-blue-100 border-blue-500 text-blue-700',
-                success: 'bg-green-100 border-green-500 text-green-700',
-                error: 'bg-red-100 border-red-500 text-red-700'
-            };
-
-            const icons = {
-                info: 'fa-info-circle',
-                success: 'fa-check-circle',
-                error: 'fa-exclamation-circle'
-            };
-
-            const notification = document.createElement('div');
-            notification.className =
-                `fixed top-4 right-4 border-l-4 p-4 rounded-lg shadow-md flex items-center ${colors[type]} animate__animated animate__fadeInRight`;
-            notification.innerHTML = `<i class="fas ${icons[type]} mr-3"></i><span>${message}</span>`;
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                notification.classList.add('animate__fadeOutRight');
-                setTimeout(() => notification.remove(), 500);
-            }, 3000);
-        }
-
-        // Gérer la soumission du formulaire
-        attributionForm.addEventListener('submit', function (e) {
-            if (!currentGroupeId) {
-                e.preventDefault();
-                showNotification('Veuillez sélectionner un groupe d\'utilisateurs.', 'error');
-                return;
-            }
-
-            // Vérifier les modifications
-            const currentAttributions = Array.from(document.querySelectorAll('.traitement-checkbox:checked')).map(
-                cb => Number(cb.value));
-            const originalAttributions = (existingAttributions[currentGroupeId] || []).map(attr => Number(attr
-                .id_fonctionnalite));
-
-            const noChanges = currentAttributions.length === originalAttributions.length &&
-                currentAttributions.every(attr => originalAttributions.includes(attr)) &&
-                originalAttributions.every(attr => currentAttributions.includes(attr));
-
-            if (noChanges) {
-                e.preventDefault();
-                showNotification('Aucune modification n\'a été effectuée.', 'info');
-                return;
-            }
-
-            // Effet de chargement
-            saveButton.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>Enregistrement...';
-            saveButton.disabled = true;
-        });
-
-        // Fonction pour afficher les détails d'un traitement
-        function showTraitementDetails(traitementId) {
-            const traitement = <?= json_encode($listeTraitements) ?>.find(t => t.id_fonctionnalite === traitementId);
-            if (traitement) {
-                document.getElementById('traitementDetailsTitle').textContent = traitement.lib_fonctionnalite;
-                document.getElementById('traitementDetailsContent').innerHTML = `
-                <div class="space-y-4">
-                    <p><strong>Description:</strong> ${traitement.description || 'Non disponible'}</p>
-                    <p><strong>ID:</strong> ${traitement.id_fonctionnalite}</p>
-                    ${traitement.permissions ? `<p><strong>Permissions:</strong> ${traitement.permissions}</p>` : ''}
-                </div>
-            `;
-                traitementDetailsModal.classList.remove('hidden');
-            }
-        }
-
-        // Fonction pour fermer la modale de détails
-        function closeTraitementDetails() {
-            traitementDetailsModal.classList.add('hidden');
-        }
-    </script>
-
-    <!-- Passer les attributions à JavaScript -->
-    <script>
-        const attributionsMap = <?php echo json_encode($GLOBALS['attributionsMap'] ?? []); ?>;
+        })();
     </script>
 
     <?php if (isset($_GET['debug']) && $_GET['debug'] === 'attributions'): ?>

@@ -52,10 +52,15 @@ const claimsData = [
     }
 ];
 
-// Variables globales
-let currentPage = 1;
-const itemsPerPage = 5;
-let filteredClaims = [...claimsData];
+// Variables (scopées pour éviter conflits globaux)
+let srCurrentPage = 1;
+const srItemsPerPage = 5;
+let srFilteredClaims = [...claimsData];
+
+function srIsClaimsPage() {
+    // Si les éléments principaux n'existent pas, on est sur une autre page.
+    return document.getElementById('claimsTableBody') && document.getElementById('applyFilters');
+}
 
 // Fonction pour formater la date
 function formatDate(dateString) {
@@ -98,11 +103,13 @@ function getTypeText(type) {
 
 // Fonction pour afficher les réclamations
 function displayClaims() {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedClaims = filteredClaims.slice(startIndex, endIndex);
-
     const tableBody = document.getElementById('claimsTableBody');
+    if (!tableBody) return;
+
+    const startIndex = (srCurrentPage - 1) * srItemsPerPage;
+    const endIndex = startIndex + srItemsPerPage;
+    const paginatedClaims = srFilteredClaims.slice(startIndex, endIndex);
+
     tableBody.innerHTML = '';
 
     if (paginatedClaims.length === 0) {
@@ -138,30 +145,44 @@ function displayClaims() {
     }
 
     // Mettre à jour la pagination
-    document.getElementById('startItem').textContent = startIndex + 1;
-    document.getElementById('endItem').textContent = Math.min(endIndex, filteredClaims.length);
-    document.getElementById('totalItems').textContent = filteredClaims.length;
+    const startEl = document.getElementById('startItem');
+    const endEl = document.getElementById('endItem');
+    const totalEl = document.getElementById('totalItems');
+    if (startEl) startEl.textContent = String(startIndex + 1);
+    if (endEl) endEl.textContent = String(Math.min(endIndex, srFilteredClaims.length));
+    if (totalEl) totalEl.textContent = String(srFilteredClaims.length);
 
     // Activer/désactiver les boutons de pagination
-    document.getElementById('prevPage').disabled = currentPage === 1;
-    document.getElementById('nextPage').disabled = endIndex >= filteredClaims.length;
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    if (prevBtn) prevBtn.disabled = srCurrentPage === 1;
+    if (nextBtn) nextBtn.disabled = endIndex >= srFilteredClaims.length;
 }
 
 // Fonction pour afficher les statistiques
 function updateStats() {
-    document.getElementById('totalClaims').textContent = claimsData.length;
-    document.getElementById('pendingClaims').textContent = claimsData.filter(c => c.status === 'pending').length;
-    document.getElementById('inProgressClaims').textContent = claimsData.filter(c => c.status === 'in_progress').length;
-    document.getElementById('resolvedClaims').textContent = claimsData.filter(c => c.status === 'resolved').length;
+    const total = document.getElementById('totalClaims');
+    const pending = document.getElementById('pendingClaims');
+    const inProgress = document.getElementById('inProgressClaims');
+    const resolved = document.getElementById('resolvedClaims');
+    if (total) total.textContent = String(claimsData.length);
+    if (pending) pending.textContent = String(claimsData.filter(c => c.status === 'pending').length);
+    if (inProgress) inProgress.textContent = String(claimsData.filter(c => c.status === 'in_progress').length);
+    if (resolved) resolved.textContent = String(claimsData.filter(c => c.status === 'resolved').length);
 }
 
 // Fonction pour filtrer les réclamations
 function filterClaims() {
-    const statusFilter = document.getElementById('statusFilter').value;
-    const typeFilter = document.getElementById('typeFilter').value;
-    const dateFilter = document.getElementById('dateFilter').value;
+    const statusEl = document.getElementById('statusFilter');
+    const typeEl = document.getElementById('typeFilter');
+    const dateEl = document.getElementById('dateFilter');
+    if (!statusEl || !typeEl || !dateEl) return;
 
-    filteredClaims = claimsData.filter(claim => {
+    const statusFilter = statusEl.value;
+    const typeFilter = typeEl.value;
+    const dateFilter = dateEl.value;
+
+    srFilteredClaims = claimsData.filter(claim => {
         // Filtre par statut
         if (statusFilter !== 'all' && claim.status !== statusFilter) {
             return false;
@@ -195,7 +216,7 @@ function filterClaims() {
         return true;
     });
 
-    currentPage = 1; // Réinitialiser à la première page après filtrage
+    srCurrentPage = 1; // Réinitialiser à la première page après filtrage
     displayClaims();
 }
 
@@ -206,6 +227,7 @@ function showClaimDetails(claimId) {
 
     const modal = document.getElementById('claimModal');
     const modalContent = document.getElementById('modalContent');
+    if (!modal || !modalContent) return;
 
     // Construire le contenu du modal
     let attachmentsHtml = '';
@@ -270,35 +292,42 @@ function showClaimDetails(claimId) {
 
 // Fonction pour fermer le modal
 function closeModal() {
-    document.getElementById('claimModal').classList.add('hidden');
+    const modal = document.getElementById('claimModal');
+    if (modal) modal.classList.add('hidden');
 }
 
 // Événements
 document.addEventListener('DOMContentLoaded', () => {
+    if (!srIsClaimsPage()) return;
+
+    // Exposer les fonctions pour les onclick inline du HTML
+    window.showClaimDetails = showClaimDetails;
+    window.closeModal = closeModal;
+
     // Initialiser l'affichage
     updateStats();
     displayClaims();
 
     // Gestion des filtres
-    document.getElementById('applyFilters').addEventListener('click', filterClaims);
+    document.getElementById('applyFilters')?.addEventListener('click', filterClaims);
 
     // Gestion de la pagination
-    document.getElementById('prevPage').addEventListener('click', () => {
-        if (currentPage > 1) {
-            currentPage--;
+    document.getElementById('prevPage')?.addEventListener('click', () => {
+        if (srCurrentPage > 1) {
+            srCurrentPage--;
             displayClaims();
         }
     });
 
-    document.getElementById('nextPage').addEventListener('click', () => {
-        const totalPages = Math.ceil(filteredClaims.length / itemsPerPage);
-        if (currentPage < totalPages) {
-            currentPage++;
+    document.getElementById('nextPage')?.addEventListener('click', () => {
+        const totalPages = Math.ceil(srFilteredClaims.length / srItemsPerPage);
+        if (srCurrentPage < totalPages) {
+            srCurrentPage++;
             displayClaims();
         }
     });
 
     // Gestion du modal
-    document.getElementById('closeModal').addEventListener('click', closeModal);
-    document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+    document.getElementById('closeModal')?.addEventListener('click', closeModal);
+    document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
 });

@@ -1,4 +1,30 @@
+# Dépendances
 node_modules/
-public/assets/css/output_dashboard_admin.css
-.DS_Store
 /vendor/
+
+# Assets compilés / build
+public/assets/css/output_dashboard_admin.css
+
+# Logs (local)
+/logs/*.log
+/logs/*.txt
+/logs/php-error.log
+/logs/email.log
+
+# Uploads runtime (local)
+/ressources/uploads/**
+!/ressources/uploads/.htaccess
+
+# Config locale (ne pas versionner des secrets)
+/app/config/database.php
+/app/config/email.php
+
+# Dumps / exports contenant potentiellement des données sensibles
+/ufrmi1802974_2q2mpf*.sql
+/soutenance_manager.sql
+/BaseDonneesHistoriqueComplete.tex.csv
+
+# IDE / local env
+.DS_Store
+/.idea/
+/.cursor/

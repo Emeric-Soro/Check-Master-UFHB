@@ -1,11 +1,23 @@
 <?php
 
-session_start();
+// Endpoint legacy: délègue vers le nouveau Router.
+$_GET['_path'] = $_GET['_path'] ?? '/logout';
+require __DIR__ . '/index.php';
+exit;
+
 require_once __DIR__.'/../app/config/database.php';
 require_once __DIR__.'/../app/controllers/AuthController.php';
 
-// Vérifier le token CSRF
+use CheckMaster\Core\Csrf;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Vérifier le token CSRF
+    $csrfOk = Csrf::validate($_POST['csrf_token'] ?? null);
+    if (!$csrfOk) {
+        $_SESSION['error'] = 'Session expirée. Veuillez réessayer.';
+        header('Location: layout.php');
+        exit;
+    }
     
     $authController = new AuthController(Database::getConnection());
     if ($authController->logout()) {
@@ -18,4 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
         
     
+} else {
+    header('Location: layout.php');
+    exit;
 }

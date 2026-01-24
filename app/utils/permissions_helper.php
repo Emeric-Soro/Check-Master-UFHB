@@ -15,13 +15,16 @@ function canView($codeFonctionnalite = null)
         return false;
     }
 
-    // Admin a tous les droits
-    if ($_SESSION['id_GU'] == 5) {
+    // Admin (règle données via libellé)
+    if (isAdmin()) {
         return true;
     }
 
     if ($codeFonctionnalite === null) {
         $codeFonctionnalite = $_GET['page'] ?? '';
+        if ($codeFonctionnalite !== '' && isset($_GET['action']) && is_string($_GET['action']) && $_GET['action'] !== '') {
+            $codeFonctionnalite .= '&action=' . $_GET['action'];
+        }
     }
 
     global $permissionMiddleware;
@@ -44,13 +47,16 @@ function canCreate($codeFonctionnalite = null)
         return false;
     }
 
-    // Admin a tous les droits
-    if ($_SESSION['id_GU'] == 5) {
+    // Admin (règle données via libellé)
+    if (isAdmin()) {
         return true;
     }
 
     if ($codeFonctionnalite === null) {
         $codeFonctionnalite = $_GET['page'] ?? '';
+        if ($codeFonctionnalite !== '' && isset($_GET['action']) && is_string($_GET['action']) && $_GET['action'] !== '') {
+            $codeFonctionnalite .= '&action=' . $_GET['action'];
+        }
     }
 
     global $permissionMiddleware;
@@ -73,13 +79,16 @@ function canEdit($codeFonctionnalite = null)
         return false;
     }
 
-    // Admin a tous les droits
-    if ($_SESSION['id_GU'] == 5) {
+    // Admin (règle données via libellé)
+    if (isAdmin()) {
         return true;
     }
 
     if ($codeFonctionnalite === null) {
         $codeFonctionnalite = $_GET['page'] ?? '';
+        if ($codeFonctionnalite !== '' && isset($_GET['action']) && is_string($_GET['action']) && $_GET['action'] !== '') {
+            $codeFonctionnalite .= '&action=' . $_GET['action'];
+        }
     }
 
     global $permissionMiddleware;
@@ -102,13 +111,16 @@ function canDelete($codeFonctionnalite = null)
         return false;
     }
 
-    // Admin a tous les droits
-    if ($_SESSION['id_GU'] == 5) {
+    // Admin (règle données via libellé)
+    if (isAdmin()) {
         return true;
     }
 
     if ($codeFonctionnalite === null) {
         $codeFonctionnalite = $_GET['page'] ?? '';
+        if ($codeFonctionnalite !== '' && isset($_GET['action']) && is_string($_GET['action']) && $_GET['action'] !== '') {
+            $codeFonctionnalite .= '&action=' . $_GET['action'];
+        }
     }
 
     global $permissionMiddleware;
@@ -191,6 +203,9 @@ function getCurrentPermissions($codeFonctionnalite = null)
 {
     if ($codeFonctionnalite === null) {
         $codeFonctionnalite = $_GET['page'] ?? '';
+        if ($codeFonctionnalite !== '' && isset($_GET['action']) && is_string($_GET['action']) && $_GET['action'] !== '') {
+            $codeFonctionnalite .= '&action=' . $_GET['action'];
+        }
     }
 
     return [
@@ -207,5 +222,9 @@ function getCurrentPermissions($codeFonctionnalite = null)
  */
 function isAdmin()
 {
-    return isset($_SESSION['id_GU']) && $_SESSION['id_GU'] == 5;
+    if (!isset($_SESSION['lib_GU']) || !is_string($_SESSION['lib_GU'])) {
+        return false;
+    }
+    $lib = strtolower(trim($_SESSION['lib_GU']));
+    return $lib === 'administrateur' || $lib === 'admin';
 }

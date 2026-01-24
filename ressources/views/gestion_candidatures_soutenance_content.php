@@ -7,10 +7,8 @@ $etape = $GLOBALS['etape'] ?? 1;
 $etudiantData = $GLOBALS['etudiantData'] ?? null;
 $etapeData = $GLOBALS['etapeData'] ?? null;
 
-// Démarrer la session pour accéder aux étapes validées/rejetées
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Session (centralisée)
+\CheckMaster\Core\Session::start();
 
 $statutFiltre = $_GET['statut'] ?? 'all';
 if ($statutFiltre !== 'all') {

@@ -210,7 +210,20 @@ class ArchiveController
             $file = $_FILES['archive_file'];
             $fileName = $file['name'];
             $fileTmpPath = $file['tmp_name'];
+            $fileSize = (int) ($file['size'] ?? 0);
             $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+            // Basic hardening: upload réel + taille max
+            if (!is_string($fileTmpPath) || $fileTmpPath === '' || !is_uploaded_file($fileTmpPath)) {
+                $_SESSION['archive_error'] = "Upload invalide (fichier non reconnu).";
+                header('Location: ?page=admin_historique');
+                exit;
+            }
+            if ($fileSize <= 0 || $fileSize > 10 * 1024 * 1024) { // 10 MB
+                $_SESSION['archive_error'] = "Fichier trop volumineux (max 10 MB).";
+                header('Location: ?page=admin_historique');
+                exit;
+            }
             
             // Validate file type
             $allowedExtensions = ['csv', 'xlsx', 'xls'];
@@ -223,6 +236,22 @@ class ArchiveController
             // For now, only CSV is fully supported
             if ($fileExtension !== 'csv') {
                 $_SESSION['archive_error'] = "Pour le moment, seuls les fichiers CSV sont supportés. Veuillez convertir votre fichier Excel en CSV.";
+                header('Location: ?page=admin_historique');
+                exit;
+            }
+
+            // MIME check (CSV)
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($fileTmpPath) ?: '';
+            $allowedMimes = [
+                'text/plain',
+                'text/csv',
+                'application/csv',
+                'application/vnd.ms-excel',
+                'text/x-csv',
+            ];
+            if ($mime !== '' && !in_array($mime, $allowedMimes, true)) {
+                $_SESSION['archive_error'] = "Type MIME non autorisé pour CSV ($mime).";
                 header('Location: ?page=admin_historique');
                 exit;
             }

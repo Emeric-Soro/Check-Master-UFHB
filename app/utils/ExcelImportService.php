@@ -409,7 +409,7 @@ class ExcelImportService
             }
         }
 
-        $numJury = rand(1000, 9999);
+        $numJury = random_int(1000, 9999);
         if (!empty($row[self::COL_PRESIDENT_JURY])) {
             $idPres = $this->getOrCreateEnseignant($row[self::COL_PRESIDENT_JURY]);
             if ($idPres) $this->addJuryMember($numJury, $idPres, 1);

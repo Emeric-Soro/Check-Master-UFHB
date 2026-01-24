@@ -7,6 +7,17 @@ class Database {
     private static $pass = '';
     private static $charset = 'utf8';
 
+    public static function getConfig(): array
+    {
+        return [
+            'host' => self::$host,
+            'db' => self::$db,
+            'user' => self::$user,
+            'pass' => self::$pass,
+            'charset' => self::$charset,
+        ];
+    }
+
     public static function getConnection() {
         try {
             $dsn = "mysql:host=" . self::$host . ";dbname=" . self::$db . ";charset=" . self::$charset;
@@ -14,7 +25,9 @@ class Database {
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             return $pdo;
         } catch (PDOException $e) {
-            die("Erreur de connexion : " . $e->getMessage());
+            // Ne pas exposer les détails techniques (DSN, creds, etc.)
+            error_log("Erreur de connexion DB: " . $e->getMessage());
+            die("Erreur de connexion à la base de données.");
         }
     }
 }
