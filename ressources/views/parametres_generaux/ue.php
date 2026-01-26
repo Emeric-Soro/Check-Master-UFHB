@@ -28,6 +28,9 @@ $total_pages = ceil($total_items / $limit);
 // Slice the array for pagination
 $listeUes = array_slice($listeUes, $offset, $limit);
 
+// Dynamic page slug
+$pageSlug = $_GET['page'] ?? 'parametres_generaux';
+
 // Préparer les données des semestres pour le JavaScript
 $semestresData = array_map(function ($semestre) {
     return [
@@ -204,7 +207,7 @@ $semestresData = array_map(function ($semestre) {
                     Gestion des UE
                 </h2>
             </div>
-            <form method="POST" action="?page=parametres_generaux&action=ue" id="ueForm">
+            <form method="POST" action="?page=<?= $pageSlug ?>&action=ue" id="ueForm">
                 <!-- Formulaire -->
                 <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
                     <div class="flex justify-between mb-4">
@@ -290,7 +293,7 @@ $semestresData = array_map(function ($semestre) {
                     <div class="flex justify-between mt-6">
                         <?php if (isset($_GET['id_ue'])): ?>
                             <button type="button" name="btn_annuler" id="btnAnnuler"
-                                onclick="window.location.href='?page=parametres_generaux&action=ue'"
+                                onclick="window.location.href='?page=<?= htmlspecialchars($pageSlug) ?>&action=ue'"
                                 class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                                 <i class="fas fa-times mr-2"></i>Annuler
                             </button>
@@ -324,7 +327,7 @@ $semestresData = array_map(function ($semestre) {
             <!-- Barre de recherche -->
             <div class="flex-1 max-w-md">
                 <form action="" method="GET" class="flex gap-3">
-                    <input type="hidden" name="page" value="parametres_generaux">
+                    <input type="hidden" name="page" value="<?= $pageSlug ?>">
                     <input type="hidden" name="action" value="ue">
                     <div class="relative flex-1">
                         <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
@@ -357,7 +360,7 @@ $semestresData = array_map(function ($semestre) {
             </div>
         </div>
 
-        <form class="overflow-x-auto" method="POST" action="?page=parametres_generaux&action=ue" id="formListeUes">
+        <form class="overflow-x-auto" method="POST" action="?page=<?= $pageSlug ?>&action=ue" id="formListeUes">
             <input type="hidden" name="submit_delete_multiple" id="submitDeleteHidden" value="0">
             <table class="w-full">
                 <thead class="bg-gray-50">
@@ -410,7 +413,7 @@ $semestresData = array_map(function ($semestre) {
                                 <td class="px-4 py-3 text-center">
                                     <div class="flex justify-center space-x-2">
                                         <?php if (canEdit()): ?>
-                                        <a href="?page=parametres_generaux&action=ue&id_ue=<?= $ue->id_ue ?>"
+                                        <a href="?page=<?= $pageSlug ?>&action=ue&id_ue=<?= $ue->id_ue ?>"
                                             class="text-blue-500 hover:text-blue-700 transition-colors">
                                             <i class="fas fa-edit"></i>
                                         </a>
@@ -445,7 +448,7 @@ $semestresData = array_map(function ($semestre) {
                     <div>
                         <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                             <?php if ($page > 1): ?>
-                                <a href="?page=parametres_generaux&action=ue&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
+                                <a href="?page=<?= $pageSlug ?>&action=ue&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
                                     class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                                     <i class="fas fa-chevron-left"></i>
                                 </a>
@@ -461,7 +464,7 @@ $semestresData = array_map(function ($semestre) {
 
                             for ($i = $start; $i <= $end; $i++):
                                 ?>
-                                <a href="?page=parametres_generaux&action=ue&p=<?= $i ?>&search=<?= urlencode($search) ?>"
+                                <a href="?page=<?= $pageSlug ?>&action=ue&p=<?= $i ?>&search=<?= urlencode($search) ?>"
                                     class="relative inline-flex items-center px-4 py-2 border <?= $i === $page ? 'bg-green-50 text-green-600 border-green-500' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-300' ?>">
                                     <?= $i ?>
                                 </a>
@@ -473,7 +476,7 @@ $semestresData = array_map(function ($semestre) {
                             ?>
 
                             <?php if ($page < $total_pages): ?>
-                                <a href="?page=parametres_generaux&action=ue&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
+                                <a href="?page=<?= $pageSlug ?>&action=ue&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
                                     class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                                     <i class="fas fa-chevron-right"></i>
                                 </a>
@@ -542,7 +545,7 @@ $semestresData = array_map(function ($semestre) {
     </div>
 
     <script>
-        // Gestion des checkboxes et du bouton de suppression
+        const pageSlug = "<?= htmlspecialchars($pageSlug) ?>";
         const selectAllCheckbox = document.getElementById('selectAllCheckbox');
         const deleteButton = document.getElementById('deleteSelectedBtn');
         const deleteModal = document.getElementById('deleteModal');

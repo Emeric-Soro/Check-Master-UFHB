@@ -1427,10 +1427,13 @@ class ParametreController
     {
         $groupeId = $postData['id_GU'];
         $permissions = isset($postData['permissions']) ? $postData['permissions'] : [];
+        
+        // Récupérer la page actuelle pour les redirections dynamiques
+        $pageSlug = $_GET['page'] ?? 'parametres_generaux';
 
         // CSRF
         if (!\CheckMaster\Core\Csrf::validate($postData['csrf_token'] ?? null)) {
-            header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&error=csrf');
+            header('Location: ?page=' . urlencode($pageSlug) . '&action=gestion_attribution&groupe=' . $groupeId . '&error=csrf');
             exit;
         }
 
@@ -1481,7 +1484,7 @@ class ParametreController
                 "Mise à jour permissions CRUD groupe={$groupeId}"
             );
             // Rediriger avec un message de succès
-            header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&success=1');
+            header('Location: ?page=' . urlencode($pageSlug) . '&action=gestion_attribution&groupe=' . $groupeId . '&success=1');
             exit;
         } catch (Exception $e) {
             try {
@@ -1500,7 +1503,7 @@ class ParametreController
                 'Erreur attribution permissions CRUD: ' . $e->getMessage()
             );
             // Rediriger avec un message d'erreur
-            header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&error=1');
+            header('Location: ?page=' . urlencode($pageSlug) . '&action=gestion_attribution&groupe=' . $groupeId . '&error=1');
             exit;
         }
     }

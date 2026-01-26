@@ -4,6 +4,9 @@ $salle_a_modifier = null;
 $messageErreur = '';
 $messageSuccess = '';
 
+// Dynamic page slug
+$pageSlug = $_GET['page'] ?? 'parametres_generaux';
+
 try {
     $pdo = Database::getConnection();
 
@@ -244,7 +247,7 @@ try {
                     <?php endif; ?>
                 </h3>
 
-                <form method="POST" action="?page=parametres_generaux&action=salles" id="salleForm">
+                <form method="POST" action="?page=<?= $pageSlug ?>&action=salles" id="salleForm">
                     <?php if ($salle_a_modifier): ?>
                         <input type="hidden" name="id_salle" value="<?= htmlspecialchars($salle_a_modifier->id_salle) ?>">
                     <?php endif; ?>
@@ -257,7 +260,7 @@ try {
                     <div class="flex justify-between mt-6">
                         <?php if (isset($_GET['id_salle'])): ?>
                             <button type="button" name="btn_annuler" id="btnAnnuler"
-                                onclick="window.location.href='?page=parametres_generaux&action=salles'"
+                                onclick="window.location.href='?page=<?= htmlspecialchars($pageSlug) ?>&action=salles'"
                                 class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                                 <i class="fas fa-times mr-2"></i>Annuler
                             </button>
@@ -291,7 +294,7 @@ try {
                     <!-- Barre de recherche -->
                     <div class="flex-1 max-w-md">
                         <form action="" method="GET" class="flex gap-3">
-                            <input type="hidden" name="page" value="parametres_generaux">
+                            <input type="hidden" name="page" value="<?= $pageSlug ?>">
                             <input type="hidden" name="action" value="salles">
                             <div class="relative flex-1">
                                 <i
@@ -319,7 +322,7 @@ try {
 
                 <!-- Tableau -->
                 <div class="overflow-x-auto">
-                    <form method="POST" action="?page=parametres_generaux&action=salles" id="formListeSalles">
+                    <form method="POST" action="?page=<?= $pageSlug ?>&action=salles" id="formListeSalles">
                         <input type="hidden" name="submit_delete_multiple" id="submitDeleteHidden" value="0">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
@@ -362,7 +365,7 @@ try {
                                             <?php if (canEdit() || canDelete()): ?>
                                             <td class="px-3 py-4 text-sm text-center">
                                                 <?php if (canEdit()): ?>
-                                                <a href="?page=parametres_generaux&action=salles&id_salle=<?= $salle->id_salle ?>"
+                                                <a href="?page=<?= $pageSlug ?>&action=salles&id_salle=<?= $salle->id_salle ?>"
                                                     class="text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-200">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
@@ -394,7 +397,7 @@ try {
                         </div>
                         <div class="flex flex-wrap justify-center gap-2">
                             <?php if ($page > 1): ?>
-                                <a href="?page=parametres_generaux&action=salles&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
+                                <a href="?page=<?= $pageSlug ?>&action=salles&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
                                     class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
                                     <i class="fas fa-chevron-left mr-1"></i>Précédent
                                 </a>
@@ -406,14 +409,14 @@ try {
 
                             for ($i = $start; $i <= $end; $i++):
                                 ?>
-                                <a href="?page=parametres_generaux&action=salles&p=<?= $i ?>&search=<?= urlencode($search) ?>"
+                                <a href="?page=<?= $pageSlug ?>&action=salles&p=<?= $i ?>&search=<?= urlencode($search) ?>"
                                     class="btn-hover px-3 py-2 <?= $i === $page ? 'btn-gradient-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50' ?> border border-gray-300 rounded-lg text-sm font-medium">
                                     <?= $i ?>
                                 </a>
                             <?php endfor; ?>
 
                             <?php if ($page < $total_pages): ?>
-                                <a href="?page=parametres_generaux&action=salles&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
+                                <a href="?page=<?= $pageSlug ?>&action=salles&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
                                     class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
                                     Suivant<i class="fas fa-chevron-right ml-1"></i>
                                 </a>
@@ -453,6 +456,7 @@ try {
     </div>
 
     <script>
+        const pageSlug = "<?= htmlspecialchars($pageSlug) ?>";
         // Gestion des checkboxes et du bouton de suppression
         const selectAllCheckbox = document.getElementById('selectAllCheckbox');
         const deleteButton = document.getElementById('deleteSelectedBtn');

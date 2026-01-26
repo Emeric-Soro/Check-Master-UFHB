@@ -9,6 +9,9 @@ $offset = ($page - 1) * $limit;
 // Search functionality
 $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
 
+// Dynamic page slug
+$pageSlug = $_GET['page'] ?? 'parametres_generaux';
+
 // Filter the list based on search
 $listeEntreprises = $GLOBALS['listeEntreprises'] ?? [];
 if (!empty($search)) {
@@ -202,7 +205,7 @@ $listeEntreprises = array_slice($listeEntreprises, $offset, $limit);
                     <?= isset($_GET['id_entreprise']) ? 'Modifier l\'entreprise' : 'Ajouter une nouvelle entreprise' ?>
                 </h3>
 
-                <form method="POST" action="?page=parametres_generaux&action=entreprises" id="entrepriseForm">
+                <form method="POST" action="?page=<?= $pageSlug ?>&action=entreprises" id="entrepriseForm">
                     <?php if ($entreprise_a_modifier): ?>
                         <input type="hidden" name="id_entreprise"
                             value="<?= htmlspecialchars($entreprise_a_modifier->id_entreprise) ?>">
@@ -219,7 +222,7 @@ $listeEntreprises = array_slice($listeEntreprises, $offset, $limit);
                     <div class="flex justify-between mt-6">
                         <?php if (isset($_GET['id_entreprise'])): ?>
                             <button type="button" name="btn_annuler" id="btnAnnuler"
-                                onclick="window.location.href='?page=parametres_generaux&action=entreprises'"
+                                onclick="window.location.href='?page=<?= htmlspecialchars($pageSlug) ?>&action=entreprises'"
                                 class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                                 <i class="fas fa-times mr-2"></i>Annuler
                             </button>
@@ -255,7 +258,7 @@ $listeEntreprises = array_slice($listeEntreprises, $offset, $limit);
                         <!-- Barre de recherche -->
                         <div class="flex-1 max-w-md">
                             <form action="" method="GET" class="flex gap-3">
-                                <input type="hidden" name="page" value="parametres_generaux">
+                                <input type="hidden" name="page" value="<?= $pageSlug ?>">
                                 <input type="hidden" name="action" value="entreprises">
                                 <div class="relative flex-1">
                                     <i
@@ -287,7 +290,7 @@ $listeEntreprises = array_slice($listeEntreprises, $offset, $limit);
                             <?php endif; ?>
                         </div>
                     </div>
-                    <form method="POST" action="?page=parametres_generaux&action=entreprises" id="formListeEntreprises">
+                    <form method="POST" action="?page=<?= $pageSlug ?>&action=entreprises" id="formListeEntreprises">
                         <input type="hidden" name="submit_delete_multiple" id="submitDeleteHidden" value="0">
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
@@ -331,7 +334,7 @@ $listeEntreprises = array_slice($listeEntreprises, $offset, $limit);
                                                 <?php if (canEdit() || canDelete()): ?>
                                                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
                                                     <?php if (canEdit()): ?>
-                                                    <a href="?page=parametres_generaux&action=entreprises&id_entreprise=<?= htmlspecialchars($entreprise->id_entreprise) ?>"
+                                                    <a href="?page=<?= $pageSlug ?>&action=entreprises&id_entreprise=<?= htmlspecialchars($entreprise->id_entreprise) ?>"
                                                         class="text-green-600 hover:text-green-900">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
@@ -364,7 +367,7 @@ $listeEntreprises = array_slice($listeEntreprises, $offset, $limit);
                         </div>
                         <div class="flex flex-wrap justify-center gap-2">
                             <?php if ($page > 1): ?>
-                                <a href="?page=parametres_generaux&action=entreprises&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
+                                <a href="?page=<?= $pageSlug ?>&action=entreprises&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
                                     class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
                                     <i class="fas fa-chevron-left mr-1"></i>Précédent
                                 </a>
@@ -380,7 +383,7 @@ $listeEntreprises = array_slice($listeEntreprises, $offset, $limit);
 
                             for ($i = $start; $i <= $end; $i++):
                                 ?>
-                                <a href="?page=parametres_generaux&action=entreprises&p=<?= $i ?>&search=<?= urlencode($search) ?>"
+                                <a href="?page=<?= $pageSlug ?>&action=entreprises&p=<?= $i ?>&search=<?= urlencode($search) ?>"
                                     class="btn-hover px-3 py-2 <?= $i === $page ? 'btn-gradient-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50' ?> border border-gray-300 rounded-lg text-sm font-medium">
                                     <?= $i ?>
                                 </a>
@@ -392,7 +395,7 @@ $listeEntreprises = array_slice($listeEntreprises, $offset, $limit);
                             ?>
 
                             <?php if ($page < $total_pages): ?>
-                                <a href="?page=parametres_generaux&action=entreprises&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
+                                <a href="?page=<?= $pageSlug ?>&action=entreprises&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
                                     class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
                                     Suivant<i class="fas fa-chevron-right ml-1"></i>
                                 </a>
@@ -463,6 +466,7 @@ $listeEntreprises = array_slice($listeEntreprises, $offset, $limit);
     </div>
 
     <script>
+        const pageSlug = "<?= htmlspecialchars($pageSlug) ?>";
         // Gestion des checkboxes et du bouton de suppression
         const selectAllCheckbox = document.getElementById('selectAllCheckbox');
         const deleteButton = document.getElementById('deleteSelectedBtn');

@@ -9,6 +9,9 @@ $offset = ($page - 1) * $limit;
 // Search functionality
 $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
 
+// Dynamic page slug
+$pageSlug = $_GET['page'] ?? 'parametres_generaux';
+
 // Filter the list based on search
 $listeTraitements = $GLOBALS['listeTraitements'] ?? [];
 if (!empty($search)) {
@@ -200,7 +203,7 @@ $listeTraitements = array_slice($listeTraitements, $offset, $limit);
                     <?= isset($_GET['id_traitement']) ? "Modifier le traitement" : "Ajouter un nouveau traitement" ?>
                 </h3>
 
-                <form method="POST" action="?page=parametres_generaux&action=traitements" id="traitementForm">
+                <form method="POST" action="?page=<?= $pageSlug ?>&action=traitements" id="traitementForm">
                     <?php if ($traitement_a_modifier): ?>
                         <input type="hidden" name="id_traitement"
                             value="<?= htmlspecialchars($traitement_a_modifier->id_traitement) ?>">
@@ -237,7 +240,7 @@ $listeTraitements = array_slice($listeTraitements, $offset, $limit);
                     <div class="flex justify-between mt-6">
                         <?php if (isset($_GET['id_traitement'])): ?>
                             <button type="button" name="btn_annuler" id="btnAnnuler"
-                                onclick="window.location.href='?page=parametres_generaux&action=traitements'"
+                                onclick="window.location.href='?page=<?= htmlspecialchars($pageSlug) ?>&action=traitements'"
                                 class="btn-hover px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                                 <i class="fas fa-times mr-2"></i>Annuler
                             </button>
@@ -271,9 +274,9 @@ $listeTraitements = array_slice($listeTraitements, $offset, $limit);
                 <div class="flex justify-between items-center mb-4">
                     <!-- Barre de recherche -->
                     <div class="flex-1 max-w-md">
-                        <form action="" method="GET" class="flex gap-3">
-                            <input type="hidden" name="page" value="parametres_generaux">
-                            <input type="hidden" name="action" value="traitements">
+                <form action="" method="GET" class="flex gap-3">
+                    <input type="hidden" name="page" value="<?= $pageSlug ?>">
+                    <input type="hidden" name="action" value="traitements">
                             <div class="relative flex-1">
                                 <i
                                     class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
@@ -306,7 +309,7 @@ $listeTraitements = array_slice($listeTraitements, $offset, $limit);
                     </div>
                 </div>
 
-                <form class="overflow-x-auto" method="POST" action="?page=parametres_generaux&action=traitements"
+                <form class="overflow-x-auto" method="POST" action="?page=<?= $pageSlug ?>&action=traitements"
                     id="formListeTraitements">
                     <input type="hidden" name="submit_delete_multiple" id="submitDeleteHidden" value="0">
                     <table class="w-full">
@@ -358,7 +361,7 @@ $listeTraitements = array_slice($listeTraitements, $offset, $limit);
                                         <td class="px-4 py-3 text-center">
                                             <div class="flex justify-center space-x-2">
                                                 <?php if (canEdit()): ?>
-                                                <a href="?page=parametres_generaux&action=traitements&id_traitement=<?= $traitement->id_traitement ?>"
+                                                <a href="?page=<?= $pageSlug ?>&action=traitements&id_traitement=<?= $traitement->id_traitement ?>"
                                                     class="text-blue-500 hover:text-blue-700 transition-colors">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
@@ -395,7 +398,7 @@ $listeTraitements = array_slice($listeTraitements, $offset, $limit);
                                 <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
                                     aria-label="Pagination">
                                     <?php if ($page > 1): ?>
-                                        <a href="?page=parametres_generaux&action=traitements&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
+                                        <a href="?page=<?= $pageSlug ?>&action=traitements&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
                                             class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                                             <i class="fas fa-chevron-left"></i>
                                         </a>
@@ -411,7 +414,7 @@ $listeTraitements = array_slice($listeTraitements, $offset, $limit);
 
                                     for ($i = $start; $i <= $end; $i++):
                                         ?>
-                                        <a href="?page=parametres_generaux&action=traitements&p=<?= $i ?>&search=<?= urlencode($search) ?>"
+                                        <a href="?page=<?= $pageSlug ?>&action=traitements&p=<?= $i ?>&search=<?= urlencode($search) ?>"
                                             class="relative inline-flex items-center px-4 py-2 border <?= $i === $page ? 'bg-green-50 text-green-600 border-green-500' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-300' ?>">
                                             <?= $i ?>
                                         </a>
@@ -423,7 +426,7 @@ $listeTraitements = array_slice($listeTraitements, $offset, $limit);
                                     ?>
 
                                     <?php if ($page < $total_pages): ?>
-                                        <a href="?page=parametres_generaux&action=traitements&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
+                                        <a href="?page=<?= $pageSlug ?>&action=traitements&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
                                             class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                                             <i class="fas fa-chevron-right"></i>
                                         </a>
@@ -492,6 +495,7 @@ $listeTraitements = array_slice($listeTraitements, $offset, $limit);
     </div>
 
     <script>
+        const pageSlug = "<?= htmlspecialchars($pageSlug) ?>";
         // Gestion des checkboxes et du bouton de suppression
         const selectAllCheckbox = document.getElementById('selectAllCheckbox');
         const deleteButton = document.getElementById('deleteSelectedBtn');

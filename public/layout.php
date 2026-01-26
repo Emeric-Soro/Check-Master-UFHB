@@ -79,10 +79,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
     // Le flag _r=1 évite les boucles (Router -> layout -> Router ...).
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && empty($_GET['_r'])) {
         $action = $_GET['action'] ?? '';
-        if ($currentMenuSlug === 'parametres_generaux' && $action === 'gestion_attribution') {
-            header('Location: index.php?_path=/admin/permissions');
-            exit;
-        }
+        // gestion_attribution est maintenant géré par layout.php directement (via ParametreController)
+        // donc on ne redirige plus vers index.php
         if ($currentMenuSlug === 'sauvegarde_restauration') {
             header('Location: index.php?_path=/admin/backups');
             exit;
@@ -179,41 +177,57 @@ if (!isset($_SESSION['id_utilisateur'])) {
     $partialsBasePath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'ressources' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR;
     switch ($currentMenuSlug) {
         case 'parametres_generaux':
-            include __DIR__ . '/../ressources/routes/parametreGenerauxRouteur.php';
+        case 'parametres_specifiques':
+            // On charge le contrôleur manuellement pour être sûr qu'il s'exécute
+            require_once __DIR__ . '/../app/controllers/ParametreController.php';
+            $paramController = new ParametreController();
+
             if (isset($_GET['action'])) {
-                $allowedActions = [
-                    'annees_academiques',
-                    'grades',
-                    'fonctions',
-                    'fonction_utilisateur',
-                    'specialites',
-                    'niveaux_etude',
-                    'ue',
-                    'ecue',
-                    'statut_jury',
-                    'niveaux_approbation',
-                    'semestres',
-                    'niveaux_acces',
-                    'traitements',
-                    'entreprises',
-                    'actions',
-                    'fonctions_enseignants',
-                    'messages',
-                    'gestion_attribution',
-                    'gestion_menus',
+                $currentAction = $_GET['action'];
+                
+                // Mapping manuel des actions vers les méthodes du contrôleur
+                // Cela remplace le routeur s'il fait défaut
+                $actionsPédagogiques = [
+                    'annees_academiques'   => 'gestionAnnees',
+                    'grades'               => 'gestionGrade',
+                    'fonctions'            => 'gestionFonction',
+                    'fonction_utilisateur' => 'gestionFonctionUtilisateur',
+                    'specialites'          => 'gestionSpecialite',
+                    'niveaux_etude'        => 'gestionNiveauEtude',
+                    'ue'                   => 'gestionUe',
+                    'ecue'                 => 'gestionEcue',
+                    'statut_jury'          => 'gestionStatutJury',
+                    'niveaux_approbation'  => 'gestionNiveauApprobation',
+                    'semestres'            => 'gestionSemestre',
+                    'niveaux_acces'        => 'gestionNiveauAccesDonnees',
+                    'traitements'          => 'gestionTraitement',
+                    'entreprises'          => 'gestionEntreprise',
+                    'actions'              => 'gestionAction',
+                    'messages'             => 'gestionMessagerie',
+                    'gestion_attribution'  => 'gestionAttribution',
+                    'gestion_menus'        => 'gestionMenus'
                 ];
-                if (in_array($_GET['action'], $allowedActions)) {
-                    $currentAction = $_GET['action'];
-                    $contentFile = $partialsBasePath . 'parametres_generaux' . DIRECTORY_SEPARATOR . $currentAction . '.php';
-                    $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
+
+                if (array_key_exists($currentAction, $actionsPédagogiques)) {
+                    $methode = $actionsPédagogiques[$currentAction];
+                    $paramController->$methode();
                 }
+
+                // Le fichier de vue reste dans le dossier parametres_generaux
+                $contentFile = $partialsBasePath . 'parametres_generaux' . DIRECTORY_SEPARATOR . $currentAction . '.php';
+                $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
             } else {
-                $contentFile = $partialsBasePath . 'parametres_generaux_content.php';
-                $currentPageLabel = 'Paramètres Généraux';
+                // Si pas d'action, on affiche le Hub correspondant
+                if ($currentMenuSlug === 'parametres_generaux') {
+                    $contentFile = $partialsBasePath . 'parametres_generaux_content.php';
+                    $currentPageLabel = 'Paramètres Généraux';
+                } else {
+                    $contentFile = $partialsBasePath . 'parametres_specifiques_content.php';
+                    $currentPageLabel = 'Paramètres Spécifiques';
+                }
             }
             break;
         case 'gestion_reclamations':
-            include __DIR__ . '/../ressources/routes/gestionReclamationsRouteur.php';
             $allowedActions = ['soumettre_reclamation', 'suivi_historique_reclamation'];
             $ajaxActions = ['get_reclamation_details'];
             if (isset($_GET['action'])) {
@@ -462,115 +476,126 @@ if (!isset($_SESSION['id_utilisateur'])) {
         error_log('PAGE DEMANDEE : ' . $_GET['page']);
     }
 
+    // 1. Paramètres GÉNÉRAUX (Structurels)
     $cardPGeneraux = [
         [
             'title' => 'Années Académiques',
-            'description' => 'Gérer les années académiques, les dates de début et de fin.',
+            'description' => 'Gestion des périodes.',
             'link' => '?page=parametres_generaux&action=annees_academiques',
             'icon' => './images/date-du-calendrier.png'
         ],
         [
-            'title' => 'Gestion des Grades',
-            'description' => 'Définir et administrer les différents grades académiques.',
-            'link' => '?page=parametres_generaux&action=grades',
-            'icon' => './images/diplome.png'
-        ],
-        [
-            'title' => 'Fonctions Utilisateurs',
-            'description' => 'Configurer les rôles et fonctions des utilisateurs du système.',
-            'link' => '?page=parametres_generaux&action=fonction_utilisateur&tab=groupes',
-            'icon' => './images/equipe.png'
-        ],
-        [
-            'title' => 'Spécialités des enseignants',
-            'description' => 'Administrer les spécialités et filières proposées.',
-            'link' => '?page=parametres_generaux&action=specialites',
-            'icon' => './images/marche-de-niche.png'
-        ],
-        [
             'title' => 'Niveaux d\'Étude',
-            'description' => 'Gérer les différents niveaux d\'étude (Licence, Master, etc.).',
+            'description' => 'L1, L2, M1, M2...',
             'link' => '?page=parametres_generaux&action=niveaux_etude',
             'icon' => './images/livre.png'
         ],
         [
-            'title' => 'Unités d\'Enseignement (UE)',
-            'description' => 'Définir les unités d\'enseignement et leurs crédits.',
-            'link' => '?page=parametres_generaux&action=ue',
-            'icon' => './images/livre-ouvert.png'
-        ],
-        [
-            'title' => 'Éléments Constitutifs (ECUE)',
-            'description' => 'Gérer les éléments constitutifs des unités d\'enseignement.',
-            'link' => '?page=parametres_generaux&action=ecue',
-            'icon' => './images/piece-de-puzzle.png'
-        ],
-        [
-            'title' => 'Statuts du Jury',
-            'description' => 'Configurer les différents statuts possibles pour les membres du jury.',
-            'link' => '?page=parametres_generaux&action=statut_jury',
-            'icon' => './images/droit.png'
-        ],
-        [
-            'title' => 'Niveaux d\'Approbation',
-            'description' => 'Définir les circuits et niveaux d\'approbation pour les documents.',
-            'link' => '?page=parametres_generaux&action=niveaux_approbation',
-            'icon' => './images/check.png'
-        ],
-        [
             'title' => 'Semestres',
-            'description' => 'Définir les différents semestres et UE associées.',
+            'description' => 'S1, S2...',
             'link' => '?page=parametres_generaux&action=semestres',
             'icon' => './images/diplome.png'
         ],
         [
-            'title' => 'Niveaux d\'Accès',
-            'description' => 'Définir les différents niveaux d\'accès pour les utilisateurs',
-            'link' => '?page=parametres_generaux&action=niveaux_acces',
-            'icon' => './images/check.png',
+            'title' => 'Spécialités',
+            'description' => 'Filières.',
+            'link' => '?page=parametres_generaux&action=specialites',
+            'icon' => './images/marche-de-niche.png'
         ],
         [
-            'title' => 'Traitements',
-            'description' => 'Définir les traitements à affecter aux différents utilisateurs.',
-            'link' => '?page=parametres_generaux&action=traitements',
-            'icon' => './images/bd.png'
+            'title' => 'Grades',
+            'description' => 'Grades enseignants.',
+            'link' => '?page=parametres_generaux&action=grades',
+            'icon' => './images/diplome.png'
         ],
         [
-            'title' => 'Entreprises',
-            'description' => 'Gérer les entreprises partenaires et leurs informations.',
-            'link' => '?page=parametres_generaux&action=entreprises',
-            'icon' => './images/valise.png'
-        ],
-        [
-            'title' => 'Actions',
-            'description' => 'Définir les actions possibles pour les utilisateurs dans le système.',
-            'link' => '?page=parametres_generaux&action=actions',
-            'icon' => './images/cible.png'
-        ],
-        [
-            'title' => 'Fonctions',
-            'description' => 'Définir les fonctions exercées par les enseignants dans le système.',
+            'title' => 'Fonctions Personnel',
+            'description' => 'Rôles administratifs.',
             'link' => '?page=parametres_generaux&action=fonctions',
             'icon' => './images/valise.png'
         ],
         [
-            'title' => 'Messagerie',
-            'description' => 'Définition des messages d\'erreur à afficher dans le système.',
-            'link' => '?page=parametres_generaux&action=messages',
-            'icon' => './images/enveloppe.png'
+            'title' => 'Fonctions Utilisateurs',
+            'description' => 'Groupes et types.',
+            'link' => '?page=parametres_generaux&action=fonction_utilisateur&tab=groupes',
+            'icon' => './images/equipe.png'
         ],
         [
-            'title' => 'Gestion des Attributions',
-            'description' => 'Gérer les attributions de traitement pour chacun des groupes utilisateurs dans le système.',
-            'link' => '?page=parametres_generaux&action=gestion_attribution',
-            'icon' => './images/attribution.png'
+            'title' => 'Niveaux d\'Accès',
+            'description' => 'Lecture/Écriture.',
+            'link' => '?page=parametres_generaux&action=niveaux_acces',
+            'icon' => './images/check.png'
+        ],
+        [
+            'title' => 'Niveaux d\'Approbation',
+            'description' => 'Workflow.',
+            'link' => '?page=parametres_generaux&action=niveaux_approbation',
+            'icon' => './images/check.png'
+        ],
+        [
+            'title' => 'Statuts du Jury',
+            'description' => 'Rôles jury.',
+            'link' => '?page=parametres_generaux&action=statut_jury',
+            'icon' => './images/droit.png'
+        ]
+    ];
+
+    // 2. Paramètres SPÉCIFIQUES (Opérationnels + Menus)
+    $cardPSpecifiques = [
+        [
+            'title' => 'Unités d\'Enseignement (UE)',
+            'description' => 'Gestion des matières.',
+            'link' => '?page=parametres_specifiques&action=ue',
+            'icon' => './images/livre-ouvert.png'
+        ],
+        [
+            'title' => 'Éléments Constitutifs (ECUE)',
+            'description' => 'Détail des cours.',
+            'link' => '?page=parametres_specifiques&action=ecue',
+            'icon' => './images/piece-de-puzzle.png'
+        ],
+        [
+            'title' => 'Critères Évaluation',
+            'description' => 'Barèmes de soutenance.',
+            'link' => '?page=parametres_specifiques&action=criteres_evaluation',
+            'icon' => 'fas fa-list-ol'
+        ],
+        [
+            'title' => 'Salles',
+            'description' => 'Lieux de soutenance.',
+            'link' => '?page=parametres_specifiques&action=salles',
+            'icon' => './images/door-open.png'
+        ],
+        [
+            'title' => 'Entreprises',
+            'description' => 'Partenaires de stage.',
+            'link' => '?page=parametres_specifiques&action=entreprises',
+            'icon' => './images/valise.png'
         ],
         [
             'title' => 'Gestion des Menus',
-            'description' => 'Gérer les menus, sous-menus et écrans (structure de navigation).',
-            'link' => '?page=parametres_generaux&action=gestion_menus',
+            'description' => 'Structure de navigation.',
+            'link' => '?page=parametres_specifiques&action=gestion_menus',
             'icon' => './images/bd.png'
         ],
+        [
+            'title' => 'Habilitations (Attributions)',
+            'description' => 'Droits par groupe.',
+            'link' => '?page=parametres_specifiques&action=gestion_attribution',
+            'icon' => './images/attribution.png'
+        ],
+        [
+            'title' => 'Traitements',
+            'description' => 'Actions techniques.',
+            'link' => '?page=parametres_specifiques&action=traitements',
+            'icon' => './images/bd.png'
+        ],
+        [
+            'title' => 'Messages Système',
+            'description' => 'Libellés d\'erreurs.',
+            'link' => '?page=parametres_specifiques&action=messages',
+            'icon' => './images/enveloppe.png'
+        ]
     ];
     $cardReclamation = [
         [

@@ -3,6 +3,9 @@ $listeGroupes = $GLOBALS['listeGroupes'] ?? [];
 $listeTypesAll = $GLOBALS['listeTypesAll'] ?? [];
 $selectedTypeId = $GLOBALS['selectedTypeId'] ?? ($_GET['type'] ?? 'all');
 
+// Détecter la page actuelle
+$pageSlug = $_GET['page'] ?? 'parametres_generaux';
+
 $listeFonctionnalites = $GLOBALS['listeFonctionnalites'] ?? ($GLOBALS['listeTraitements'] ?? []);
 $selectedGroupe = $GLOBALS['selectedGroupe'] ?? null;
 $permissionsGroupe = $GLOBALS['permissionsGroupe'] ?? ($GLOBALS['attributionsGroupe'] ?? []);
@@ -612,7 +615,7 @@ $isEditable = function_exists('canEdit') ? (bool)canEdit() : true;
                     </div>
 
                     <div class="flex justify-end gap-3 mt-4">
-                        <a href="?page=parametres_generaux&action=gestion_attribution&type=<?= urlencode((string)$selectedTypeId) ?>&groupe=<?= (int)$selectedGroupe->id_GU ?>"
+                        <a href="?page=<?php echo htmlspecialchars($pageSlug); ?>&action=gestion_attribution&type=<?= urlencode((string)$selectedTypeId) ?>&groupe=<?= (int)$selectedGroupe->id_GU ?>"
                             class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">
                             Réinitialiser
                         </a>
@@ -646,14 +649,14 @@ $isEditable = function_exists('canEdit') ? (bool)canEdit() : true;
     </div>
 
     <script>
-        (function () {
+        const pageSlug = "<?php echo htmlspecialchars($pageSlug); ?>";
             const typeSelect = document.getElementById('typeSelect');
             const groupSelect = document.getElementById('groupSelect');
 
             function buildUrl(params) {
                 // Garder _r=1 pour éviter la canonicalisation (sinon perte de type/groupe via redirection Router)
                 const q = new URLSearchParams();
-                q.set('page', 'parametres_generaux');
+                q.set('page', pageSlug);
                 q.set('action', 'gestion_attribution');
                 q.set('_r', '1');
                 Object.keys(params || {}).forEach((k) => {
