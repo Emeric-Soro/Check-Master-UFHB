@@ -1,9 +1,0 @@
-ANNEE_ACAD,MATRICULE,NOM,PRENOMS,THEME,ENTREPRISE,MAITRE_STAGE,ENCADREUR_PEDA,DIRECTEUR_MEMOIRE,DATE_COMMISSION,AVIS_COMMISSION,OBSERVATIONS,DATE_SOUTENANCE,HEURE,SALLE,PRESIDENT_JURY,EXAMINATEUR,NOTE_MEMOIRE,MOYENNE_M1,MOYENNE_M2_S1
-2010-2011,20100001,KOUASSI,Jean-Baptiste,Développement d'une application web de gestion des étudiants,SODECI,TRAORE Ibrahim,KOUA Brou,,,2011-06-15,Validé,Thème bien défini,,,,,,,,
-2010-2011,20100002,YAO,Marie-Claire,Système de gestion de bibliothèque en ligne,MTN CI,DIALLO Aminata,N'GUESSAN Paul,,,2011-06-15,Validé,RAS,2011-09-20,10:00,Amphi A,KOUA Brou,SORO Emeric,15,13.5,14.2
-2015-2016,20150001,BAMBA,Kouadio,Plateforme e-commerce pour produits locaux,Orange CI,KOUAME Sylvie,SORO Emeric,N'GUESSAN Paul,2016-05-20,Approuvé,Excellent travail,2016-09-15,14:00,Amphi B,N'GUESSAN Paul,KOUA Brou,16,14.8,15.1
-2015-2016,20150002,KONE,Fatou,Application mobile de suivi médical,Centre Hospitalier,DIABY Moussa,KOUA Brou,SORO Emeric,2016-05-20,Validé,Bon projet,2016-09-15,16:00,Amphi A,SORO Emeric,N'GUESSAN Paul,14,13.2,13.8
-2020-2021,20200001,TOURE,Abdoul,Intelligence artificielle pour la détection de fraudes,CI-TELCOM,SANGARE Karim,N'GUESSAN Paul,KOUA Brou,2021-06-10,Validé,Projet innovant,2021-10-05,09:00,Amphi C,KOUA Brou,SORO Emeric,17,15.5,16.0
-2020-2021,20200002,DIALLO,Mariam,Blockchain pour la traçabilité alimentaire,Nestlé CI,OUATTARA Aissata,SORO Emeric,N'GUESSAN Paul,2021-06-10,Approuvé,Très prometteur,2021-10-05,11:00,Amphi C,N'GUESSAN Paul,KOUA Brou,16.5,15.0,15.5
-2023-2024,20230001,ASSANDE,Patrick,Application de gestion de flotte de véhicules,SITARAIL,KOFFI Jean,KOUA Brou,SORO Emeric,2024-05-15,Validé,Projet bien mené,2024-09-25,08:30,Amphi A,SORO Emeric,N'GUESSAN Paul,15.5,14.5,15.0
-2023-2024,20230002,OUEDRAOGO,Salimata,Système de recommandation pour plateforme éducative,E-School,KABORE Mathieu,N'GUESSAN Paul,KOUA Brou,2024-05-15,Validé,Bon travail,2024-09-25,10:30,Amphi B,KOUA Brou,SORO Emeric,14.5,13.8,14.2
