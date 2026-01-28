@@ -1344,12 +1344,12 @@ class ParametreController
                     }
                     $fonctionnaliteModel->updateFonctionnaliteAdmin($id, [
                         'id_categorie' => $idCategorie,
-                        'lib_fonctionnalite' => trim((string)($_POST['lib_fonctionnalite'] ?? '')),
-                        'label_fonctionnalite' => trim((string)($_POST['label_fonctionnalite'] ?? '')),
-                        'description_fonctionnalite' => trim((string)($_POST['description_fonctionnalite'] ?? '')),
-                        'url_fonctionnalite' => trim((string)($_POST['url_fonctionnalite'] ?? '#')),
-                        'icone_fonctionnalite' => trim((string)($_POST['icone_fonctionnalite'] ?? '')),
-                        'ordre_fonctionnalite' => (int)($_POST['ordre_fonctionnalite'] ?? 0),
+                        'lib_fonctionnalite' => trim((string) ($_POST['lib_fonctionnalite'] ?? '')),
+                        'label_fonctionnalite' => trim((string) ($_POST['label_fonctionnalite'] ?? '')),
+                        'description_fonctionnalite' => trim((string) ($_POST['description_fonctionnalite'] ?? '')),
+                        'url_fonctionnalite' => trim((string) ($_POST['url_fonctionnalite'] ?? '#')),
+                        'icone_fonctionnalite' => trim((string) ($_POST['icone_fonctionnalite'] ?? '')),
+                        'ordre_fonctionnalite' => (int) ($_POST['ordre_fonctionnalite'] ?? 0),
                         'est_sous_page' => $estSousPage,
                         'page_parente' => $pageParente,
                         'actif' => isset($_POST['actif']) ? 1 : 0,
@@ -1428,9 +1428,6 @@ class ParametreController
         $groupeId = $postData['id_GU'];
         $permissions = isset($postData['permissions']) ? $postData['permissions'] : [];
 
-        // Récupérer la page actuelle pour les redirections dynamiques
-        $pageSlug = $_GET['page'] ?? 'parametres_generaux';
-
         // CSRF
         if (!\CheckMaster\Core\Csrf::validate($postData['csrf_token'] ?? null)) {
             error_log("❌ ERREUR CSRF - Abandon");
@@ -1442,12 +1439,13 @@ class ParametreController
             $conn = Database::getConnection();
             $conn->beginTransaction();
 
-            // PROTECTION: Si l'utilisateur modifie son propre groupe,
+            // PROTECTION: Si l'utilisateur modifie son propre groupe, 
             // s'assurer qu'il garde au minimum le droit "voir" sur la page actuelle
             $isModifyingOwnGroup = (int) $groupeId === (int) $_SESSION['id_GU'];
 
             // DEBUG: Logger la protection
             error_log("=== PROTECTION ANTI-LOCKOUT ===");
+            error_log("Groupe modifié: $groupeId");
             error_log("Groupe de l'utilisateur: " . $_SESSION['id_GU']);
             error_log("isModifyingOwnGroup: " . ($isModifyingOwnGroup ? 'OUI' : 'NON'));
 
@@ -1492,7 +1490,6 @@ class ParametreController
                  VALUES (?, ?, ?, ?, ?, ?)"
             );
 
-            $insertCount = 0;
             foreach ($permissions as $fonctionnaliteId => $actions) {
                 // Si au moins une action est cochée, créer la permission
                 if (!empty($actions)) {
@@ -1511,13 +1508,9 @@ class ParametreController
                             $peutModifier,
                             $peutSupprimer
                         ]);
-                        $insertCount++;
-                        error_log("  ✅ Permission ajoutée: Fonc=$fonctionnaliteId V=$peutVoir C=$peutCreer M=$peutModifier S=$peutSupprimer");
                     }
                 }
             }
-
-            $conn->commit();
 
             // Audit (statut enum strict)
             $this->auditLog->logAction(
