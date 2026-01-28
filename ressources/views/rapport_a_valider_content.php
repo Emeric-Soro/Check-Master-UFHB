@@ -386,11 +386,11 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                                             <?php endif; ?>
                                                         </div>
                                                     </div>
-                                                    <p class="text-sm text-gray-500">
-                                                        Étudiant: <?= htmlspecialchars($rapport->etudiant->nom) ?>
-                                                        <?= htmlspecialchars($rapport->etudiant->prenom) ?>
-                                                        • Thème: <?= htmlspecialchars($rapport->theme_rapport) ?>
-                                                    </p>
+                                                     <p class="text-sm text-gray-500">
+                                                         Étudiant: <?= htmlspecialchars($rapport->etudiant->nom_etu ?? 'N/A') ?>
+                                                         <?= htmlspecialchars($rapport->etudiant->prenom_etu ?? 'N/A') ?>
+                                                         • Thème: <?= htmlspecialchars($rapport->theme_rapport) ?>
+                                                     </p>
                                                     <div class="mt-2 flex items-center text-xs text-gray-500">
                                                         <span>Déposé le
                                                             <?= date('d/m/Y', strtotime($rapport->date_rapport)) ?></span>
@@ -1003,7 +1003,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 // Remplir les informations du rapport
                 document.getElementById('modal_id_rapport').value = reportId;
                 document.getElementById('modal_titre').textContent = rapport.nom_rapport;
-                document.getElementById('modal_etudiant').textContent = rapport.etudiant.nom + ' ' + rapport.etudiant.prenom;
+                document.getElementById('modal_etudiant').textContent = (rapport.etudiant.nom_etu || 'N/A') + ' ' + (rapport.etudiant.prenom_etu || 'N/A');
                 document.getElementById('modal_theme').textContent = rapport.theme_rapport;
                 document.getElementById('modal_date').textContent = new Date(rapport.date_rapport).toLocaleDateString('fr-FR');
 

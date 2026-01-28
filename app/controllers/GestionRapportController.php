@@ -444,218 +444,77 @@ class GestionRapportController {
                 throw new Exception('Le contenu du rapport est vide.');
             }
 
-            // Style CSS amélioré pour préserver exactement la mise en page TinyMCE
+            // Style CSS optimisé pour l'approche hybride (page de couverture + corps du rapport)
             $css = "
                 <style>
-                    /* Styles de base */
+                    /* Reset et base */
+                    * {
+                        box-sizing: border-box;
+                        margin: 0;
+                        padding: 0;
+                    }
+                    
                     body { 
                         font-family: Arial, sans-serif; 
-                        margin: 2cm; 
+                        margin: 0; 
+                        padding: 0;
                         line-height: 1.6; 
                         font-size: 12pt;
                         color: #333;
-                        text-align: left;
                     }
                     
-                    /* Préserver tous les styles inline */
-                    * {
-                        box-sizing: border-box;
+                    /* Page breaks */
+                    div[style*='page-break'] {
+                        page-break-before: always !important;
                     }
                     
-                    /* Préserver les tailles de police exactes */
-                    h1, h2, h3, h4, h5, h6 {
-                        margin: 0;
-                        padding: 0;
-                        text-align: center;
-                    }
-                    
-                    /* Préserver les dispositions flexbox */
-                    div[style*='display: flex'] {
-                        display: flex !important;
-                    }
-                    
-                    div[style*='justify-content'] {
-                        justify-content: inherit !important;
-                    }
-                    
-                    div[style*='align-items'] {
-                        align-items: inherit !important;
-                    }
-                    
-                    div[style*='flex-direction'] {
-                        flex-direction: inherit !important;
-                    }
-                    
-                    /* Préserver les marges et paddings */
-                    div[style*='margin'] {
-                        margin: inherit !important;
-                    }
-                    
-                    div[style*='padding'] {
-                        padding: inherit !important;
-                    }
-                    
-                    /* Préserver les tailles de police */
-                    span[style*='font-size'], p[style*='font-size'], div[style*='font-size'] {
-                        font-size: inherit !important;
-                    }
-                    
-                    /* Préserver les couleurs */
-                    span[style*='color'], p[style*='color'], div[style*='color'] {
-                        color: inherit !important;
-                    }
-                    
-                    /* Préserver les alignements de texte */
-                    div[style*='text-align'] {
-                        text-align: inherit !important;
-                    }
-                    
-                    /* Alignement par défaut pour les paragraphes - JUSTIFIÉ */
-                    p {
-                        text-align: justify !important;
-                        margin: 0 0 10px 0;
-                    }
-                    
-                    /* Préserver l'alignement centré pour les éléments spécifiques */
-                    div[style*='text-align: center'] {
-                        text-align: center !important;
-                    }
-                    
-                    /* Préserver les bordures et backgrounds */
-                    div[style*='border'] {
-                        border: inherit !important;
-                    }
-                    
-                    div[style*='background'] {
-                        background: inherit !important;
-                    }
-                    
-                    /* Préserver les largeurs et hauteurs */
-                    div[style*='width'] {
-                        width: inherit !important;
-                    }
-                    
-                    div[style*='height'] {
-                        height: inherit !important;
-                    }
-                    
-                    /* Préserver les positions */
-                    div[style*='position'] {
-                        position: inherit !important;
-                    }
-                    
-                    /* Assurer que les images ne dépassent pas */
-                    img {
-                        max-width: 100%;
-                        height: auto;
-                    }
-                    
-                    /* Assurer que les tableaux s'affichent correctement */
+                    /* Tableaux - Configuration essentielle pour DOMPDF */
                     table {
                         border-collapse: collapse;
                         width: 100%;
                     }
                     
-                    th, td {
-                        border: 1px solid #ddd;
-                        padding: 8px;
-                        text-align: left;
+                    td, th {
+                        vertical-align: top;
                     }
                     
-                    /* Préserver les listes */
+                    /* Images */
+                    img {
+                        max-width: 100%;
+                        height: auto;
+                        display: inline-block;
+                    }
+                    
+                    /* Titres */
+                    h1, h2, h3, h4, h5, h6 {
+                        margin: 15px 0 10px 0;
+                        padding: 0;
+                        page-break-after: avoid;
+                    
+                    /* Paragraphes */
+                    p {
+                        margin: 0 0 10px 0;
+                    }
+                    
+                    /* Listes */
                     ul, ol {
-                        margin: 0;
-                        padding-left: 20px;
-                        text-align: left;
+                        margin: 10px 0 10px 30px;
+                        padding: 0;
                     }
                     
                     li {
                         margin-bottom: 5px;
-                        text-align: left;
                     }
                     
-                    /* Préserver les espaces entre les éléments */
-                    div {
-                        margin-bottom: 0;
+                    /* Liens */
+                    a {
+                        color: #1a5f7a;
+                        text-decoration: none;
                     }
                     
-                    /* Assurer que les éléments flex s'affichent correctement */
-                    .flex-container {
-                        display: flex !important;
-                    }
-                    
-                    /* Préserver les styles spécifiques du template */
-                    div[style*='display: flex'][style*='justify-content: space-between'] {
-                        display: flex !important;
-                        justify-content: space-between !important;
-                    }
-                    
-                    div[style*='margin-bottom'] {
-                        margin-bottom: inherit !important;
-                    }
-                    
-                    /* Règles spécifiques pour le contenu du rapport */
-                    /* S'assurer que les sections principales du corps sont justifiées */
-                    div[style*='margin-bottom: 40px'] p {
-                        text-align: justify !important;
-                    }
-                    
-                    /* S'assurer que les paragraphes dans les sections sont justifiés */
-                    div[style*='margin-bottom: 40px'] {
-                        text-align: justify !important;
-                    }
-                    
-                    /* Préserver l'alignement des titres de sections à gauche */
-                    h1[style*='border-bottom'] {
-                        text-align: left !important;
-                    }
-                    
-                    /* S'assurer que tous les paragraphes de contenu sont justifiés */
-                    div:not([style*='text-align: center']) p {
-                        text-align: justify !important;
-                    }
-                    
-                    /* Exception pour les paragraphes centrés */
-                    div[style*='text-align: center'] p {
-                        text-align: center !important;
-                    }
-                    
-                    /* Centrer spécifiquement le contenu de la div theme_rapport */
-                    #theme_rapport {
-                        text-align: center !important;
-                        margin-botton:20px;
-                    }
-                    
-                    #theme_rapport p {
-                        text-align: center !important;
-                    }
-                    
-                    #theme_rapport h2 {
-                        text-align: center !important;
-                    }
-                    
-                    /* S'assurer que header_rapport utilise flexbox */
-                    #header_rapport {
-                        display: flex !important;
-                        justify-content: space-between !important;
-                        align-items: flex-start !important;
-                        width: 100% !important;
-                        margin : 0;
-                        text-align: left;
-                    }
-                    
-                    /* S'assurer que les éléments enfants de header_rapport s'affichent correctement */
-                    #header_rapport1, #header_rapport2 {
-                        flex: 1 !important;
-                        margin: 0 !important;
-                    }
-                    
-                    #header_rapport1 {
-                        text-align: center !important;
-                    }
-                    
-                    #header_rapport2 {
-                        text-align: center !important;
+                    /* Forcer la préservation des styles inline */
+                    [style] {
+                        /* Les styles inline sont prioritaires */
                     }
                 </style>
             ";
@@ -680,13 +539,15 @@ class GestionRapportController {
             $options = new \Dompdf\Options();
             $options->set('isHtml5ParserEnabled', true);
             $options->set('isPhpEnabled', false);
-            $options->set('isRemoteEnabled', false);
+            $options->set('isRemoteEnabled', true); // Activer pour charger les images
             $options->set('defaultFont', 'Arial');
             $options->set('defaultPaperSize', 'A4');
             $options->set('defaultPaperOrientation', 'portrait');
             $options->set('isFontSubsettingEnabled', true);
             $options->set('isCssFloatEnabled', true);
             $options->set('isJavascriptEnabled', false);
+            // Définir le chemin racine pour les ressources locales
+            $options->set('chroot', __DIR__ . '/../../public/');
 
             $dompdf = new \Dompdf\Dompdf($options);
             
