@@ -7,326 +7,260 @@
 $reclamationsEnCours = $GLOBALS['reclamationsEnCours'] ?? [];
 $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
 ?>
-<div class="p-4 sm:p-6 md:p-8">
-    <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
-        <!-- En-tête de la page -->
-        <div class="bg-green-600 px-6 py-8 text-white">
-            <h1 class="text-3xl font-bold text-center mb-2">Gestion des Réclamations</h1>
-            <p class="text-green-100 text-center">Service de la Scolarité</p>
+<div class="container">
+    <div class="page-header">
+        <h1>Gestion des Réclamations</h1>
+        <p>Service de la Scolarité</p>
+    </div>
+
+    <!-- Barre de recherche et actions -->
+    <div class="filter-bar">
+        <div class="filter-bar-search">
+            <i class="fa fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Rechercher une réclamation..." class="input">
+        </div>
+    </div>
+
+    <!-- Statistiques rapides -->
+    <div class="stats-grid">
+        <div class="stat-card stat-card-warning">
+            <div class="stat-card-content">
+                <div class="stat-card-info">
+                    <p class="stat-card-label">En attente</p>
+                    <p class="stat-card-value" id="countEnAttente">0</p>
+                </div>
+                <div class="stat-card-icon">
+                    <i class="fa fa-clock"></i>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card stat-card-success">
+            <div class="stat-card-content">
+                <div class="stat-card-info">
+                    <p class="stat-card-label">Résolue</p>
+                    <p class="stat-card-value" id="countResolue">0</p>
+                </div>
+                <div class="stat-card-icon">
+                    <i class="fa fa-check-circle"></i>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card stat-card-danger">
+            <div class="stat-card-content">
+                <div class="stat-card-info">
+                    <p class="stat-card-label">Rejeté</p>
+                    <p class="stat-card-value" id="countRejete">0</p>
+                </div>
+                <div class="stat-card-icon">
+                    <i class="fa fa-times-circle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des réclamations en cours -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="fa fa-exclamation-triangle"></i>
+                Réclamations à traiter
+            </h2>
+            <div class="card-actions">
+                <button onclick="exportTableToCSV('tableReclamationsEnCours', 'reclamations_a_traiter')" class="btn btn-warning btn-sm">
+                    <i class="fa fa-download"></i>Exporter
+                </button>
+                <button onclick="printTable('tableReclamationsEnCours', 'Réclamations à traiter')" class="btn btn-primary btn-sm">
+                    <i class="fa fa-print"></i>Imprimer
+                </button>
+                <span class="badge badge-warning" id="countEnCoursBadge">0</span>
+            </div>
         </div>
 
-        <div class="p-6 md:p-8">
-            <!-- Barre de recherche et actions -->
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-4">
-                <div class="flex-1 max-w-md">
-                    <div class="relative">
-                        <input type="text" id="searchInput" placeholder="Rechercher une réclamation..."
-                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm transition duration-200">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fa fa-search text-gray-400"></i>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Statistiques rapides -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-yellow-500 rounded-lg p-6 text-white shadow-lg">
-                    <div class="flex items-center">
-                        <div class="flex-1">
-                            <p class="text-yellow-100 text-sm font-medium">En attente</p>
-                            <p class="text-2xl font-bold" id="countEnAttente">0</p>
-                        </div>
-                        <div class="text-3xl opacity-75">
-                            <i class="fa fa-clock"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-green-500 rounded-lg p-6 text-white shadow-lg">
-                    <div class="flex items-center">
-                        <div class="flex-1">
-                            <p class="text-green-100 text-sm font-medium">Résolue</p>
-                            <p class="text-2xl font-bold" id="countResolue">0</p>
-                        </div>
-                        <div class="text-3xl opacity-75">
-                            <i class="fa fa-check-circle"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-red-500 rounded-lg p-6 text-white shadow-lg">
-                    <div class="flex items-center">
-                        <div class="flex-1">
-                            <p class="text-red-100 text-sm font-medium">Rejeté</p>
-                            <p class="text-2xl font-bold" id="countRejete">0</p>
-                        </div>
-                        <div class="text-3xl opacity-75">
-                            <i class="fa fa-times-circle"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Liste des réclamations en cours -->
-            <div class="mb-8">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900 flex items-center">
-                        <i class="fa fa-exclamation-triangle text-yellow-500 mr-3"></i>
-                        Réclamations à traiter
-                    </h2>
-                    <div class="flex items-center gap-3">
-                        <button onclick="exportTableToCSV('tableReclamationsEnCours', 'reclamations_a_traiter')"
-                            class="inline-flex items-center px-3 py-1 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition duration-200">
-                            <i class="fa fa-download mr-1"></i>Exporter
-                        </button>
-                        <button onclick="printTable('tableReclamationsEnCours', 'Réclamations à traiter')"
-                            class="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition duration-200">
-                            <i class="fa fa-print mr-1"></i>Imprimer
-                        </button>
-                        <span class="bg-yellow-100 text-yellow-800 text-sm font-medium px-3 py-1 rounded-full"
-                            id="countEnCoursBadge">0</span>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200" id="tableReclamationsEnCours">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        #</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Étudiant</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Objet</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Message</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Date</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Statut</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <?php if (!empty($reclamationsEnCours)): ?>
-                                <?php foreach ($reclamationsEnCours as $i => $rec): ?>
-                                <tr class="hover:bg-gray-50 transition duration-150">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        <?= $i+1 ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">
-                                            <?= htmlspecialchars($rec->nom_etu . ' ' . $rec->prenom_etu) ?></div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-sm text-gray-900 max-w-xs truncate"
-                                            title="<?= htmlspecialchars($rec->titre_reclamation ?? '') ?>">
-                                            <?= htmlspecialchars($rec->titre_reclamation ?? '') ?>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-sm text-gray-600 max-w-xs truncate"
-                                            title="<?= htmlspecialchars($rec->description_reclamation ?? '') ?>">
-                                            <?= htmlspecialchars($rec->description_reclamation ?? '') ?>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <?= htmlspecialchars($rec->date_creation ?? '') ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                                            <?php if($rec->statut_reclamation === 'en attente') echo 'bg-yellow-100 text-yellow-800';
-                                                  elseif($rec->statut_reclamation === 'en cours') echo 'bg-blue-100 text-blue-800';
-                                                  ?>">
-                                            <?= htmlspecialchars($rec->statut_reclamation) ?>
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <div class="flex items-center space-x-3">
-                                            <?php if (canEdit()): ?>
-                                            <form method="post"
-                                                action="?page=gestion_reclamations_scolarite&action=changer_statut&id=<?= $rec->id_reclamation ?>"
-                                                class="flex items-center space-x-2">
-                                                <select name="nouveau_statut"
-                                                    class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                                                    <option value="En attente"
-                                                        <?= strtolower($rec->statut_reclamation) === 'En attente' ? 'selected' : '' ?>>
-                                                        En attente</option>
-                                                    <option value="Résolue"
-                                                        <?= strtolower($rec->statut_reclamation) === 'Résolue' ? 'selected' : '' ?>>
-                                                        Résolue</option>
-                                                    <option value="Rejetée"
-                                                        <?= strtolower($rec->statut_reclamation) === 'Rejetée' ? 'selected' : '' ?>>
-                                                        Rejeté</option>
-                                                </select>
-                                                <button type="submit"
-                                                    class="inline-flex items-center px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition duration-200">
-                                                    <i class="fa fa-check mr-1"></i>Valider
-                                                </button>
-                                            </form>
-                                            <?php endif; ?>
-                                            <button type="button"
-                                                onclick='showReclamationDetails(<?= json_encode($rec, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
-                                                class="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition duration-200">
-                                                <i class="fa fa-eye mr-1"></i>Détails
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                                <?php else: ?>
-                                <tr>
-                                    <td colspan="7" class="px-6 py-12 text-center">
-                                        <div class="text-gray-500">
-                                            <i class="fa fa-inbox text-4xl mb-4 text-gray-300"></i>
-                                            <p class="text-lg font-medium">Aucune réclamation à traiter</p>
-                                            <p class="text-sm">Toutes les réclamations ont été traitées</p>
-                                        </div>
-                                    </td>
-                                </tr>
+        <div class="table-wrapper">
+            <table id="tableReclamationsEnCours">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Étudiant</th>
+                        <th>Objet</th>
+                        <th>Message</th>
+                        <th>Date</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($reclamationsEnCours)): ?>
+                    <?php foreach ($reclamationsEnCours as $i => $rec): ?>
+                    <tr>
+                        <td><?= $i+1 ?></td>
+                        <td>
+                            <strong><?= htmlspecialchars($rec->nom_etu . ' ' . $rec->prenom_etu) ?></strong>
+                        </td>
+                        <td>
+                            <span title="<?= htmlspecialchars($rec->titre_reclamation ?? '') ?>">
+                                <?= htmlspecialchars($rec->titre_reclamation ?? '') ?>
+                            </span>
+                        </td>
+                        <td>
+                            <span title="<?= htmlspecialchars($rec->description_reclamation ?? '') ?>">
+                                <?= htmlspecialchars($rec->description_reclamation ?? '') ?>
+                            </span>
+                        </td>
+                        <td><?= htmlspecialchars($rec->date_creation ?? '') ?></td>
+                        <td>
+                            <span class="badge 
+                                <?php if($rec->statut_reclamation === 'en attente') echo 'badge-warning';
+                                      elseif($rec->statut_reclamation === 'en cours') echo 'badge-info';
+                                      ?>">
+                                <?= htmlspecialchars($rec->statut_reclamation) ?>
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <?php if (canEdit()): ?>
+                                <form method="post"
+                                    action="?page=gestion_reclamations_scolarite&action=changer_statut&id=<?= $rec->id_reclamation ?>"
+                                    class="inline-form">
+                                    <select name="nouveau_statut" class="input input-sm">
+                                        <option value="En attente"
+                                            <?= strtolower($rec->statut_reclamation) === 'En attente' ? 'selected' : '' ?>>
+                                            En attente</option>
+                                        <option value="Résolue"
+                                            <?= strtolower($rec->statut_reclamation) === 'Résolue' ? 'selected' : '' ?>>
+                                            Résolue</option>
+                                        <option value="Rejetée"
+                                            <?= strtolower($rec->statut_reclamation) === 'Rejetée' ? 'selected' : '' ?>>
+                                            Rejeté</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fa fa-check"></i>Valider
+                                    </button>
+                                </form>
                                 <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                                <button type="button"
+                                    onclick='showReclamationDetails(<?= json_encode($rec, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
+                                    class="btn btn-primary btn-sm">
+                                    <i class="fa fa-eye"></i>Détails
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php else: ?>
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <i class="fa fa-inbox"></i>
+                                <p>Aucune réclamation à traiter</p>
+                                <small>Toutes les réclamations ont été traitées</small>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Historique des réclamations -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="fa fa-history"></i>
+                Historique des réclamations
+            </h2>
+            <div class="card-actions">
+                <button onclick="exportTableToCSV('tableReclamationsTraitees', 'historique_reclamations')" class="btn btn-secondary btn-sm">
+                    <i class="fa fa-download"></i>Exporter
+                </button>
+                <button onclick="printTable('tableReclamationsTraitees', 'Historique des réclamations')" class="btn btn-primary btn-sm">
+                    <i class="fa fa-print"></i>Imprimer
+                </button>
+                <span class="badge badge-secondary" id="countTraiteesBadge">0</span>
             </div>
+        </div>
 
-            <!-- Historique des réclamations -->
-            <div>
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900 flex items-center">
-                        <i class="fa fa-history text-gray-500 mr-3"></i>
-                        Historique des réclamations
-                    </h2>
-                    <div class="flex items-center gap-3">
-                        <button onclick="exportTableToCSV('tableReclamationsTraitees', 'historique_reclamations')"
-                            class="inline-flex items-center px-3 py-1 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700 transition duration-200">
-                            <i class="fa fa-download mr-1"></i>Exporter
-                        </button>
-                        <button onclick="printTable('tableReclamationsTraitees', 'Historique des réclamations')"
-                            class="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition duration-200">
-                            <i class="fa fa-print mr-1"></i>Imprimer
-                        </button>
-                        <span class="bg-gray-100 text-gray-800 text-sm font-medium px-3 py-1 rounded-full"
-                            id="countTraiteesBadge">0</span>
-                    </div>
-                </div>
+        <div class="table-wrapper">
+            <table id="tableReclamationsTraitees">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Étudiant</th>
+                        <th>Objet</th>
+                        <th>Message</th>
+                        <th>Date</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($reclamationsTraitees)): ?>
+                    <?php foreach ($reclamationsTraitees as $i => $rec): ?>
+                    <tr>
+                        <td><?= $i+1 ?></td>
+                        <td>
+                            <strong><?= htmlspecialchars($rec->nom_etu . ' ' . $rec->prenom_etu) ?></strong>
+                        </td>
+                        <td>
+                            <span title="<?= htmlspecialchars($rec->titre_reclamation ?? '') ?>">
+                                <?= htmlspecialchars($rec->titre_reclamation ?? '') ?>
+                            </span>
+                        </td>
+                        <td>
+                            <span title="<?= htmlspecialchars($rec->description_reclamation ?? '') ?>">
+                                <?= htmlspecialchars($rec->description_reclamation ?? '') ?>
+                            </span>
+                        </td>
+                        <td><?= htmlspecialchars($rec->date_creation ?? '') ?></td>
+                        <td>
+                            <span class="badge 
+                                <?php if(strtolower($rec->statut_reclamation) === 'résolue' || strtolower($rec->statut_reclamation) === 'traitée') echo 'badge-success';
+                                      elseif(strtolower($rec->statut_reclamation) === 'rejeté' || strtolower($rec->statut_reclamation) === 'rejetée') echo 'badge-danger';
+                                      else echo 'badge-secondary'; ?>">
+                                <?= htmlspecialchars($rec->statut_reclamation) ?>
+                            </span>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php else: ?>
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="fa fa-archive"></i>
+                                <p>Aucun historique de réclamation</p>
+                                <small>Les réclamations traitées apparaîtront ici</small>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
 
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200" id="tableReclamationsTraitees">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        #</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Étudiant</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Objet</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Message</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Date</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Statut</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <?php if (!empty($reclamationsTraitees)): ?>
-                                <?php foreach ($reclamationsTraitees as $i => $rec): ?>
-                                <tr class="hover:bg-gray-50 transition duration-150">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        <?= $i+1 ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">
-                                            <?= htmlspecialchars($rec->nom_etu . ' ' . $rec->prenom_etu) ?></div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-sm text-gray-900 max-w-xs truncate"
-                                            title="<?= htmlspecialchars($rec->titre_reclamation ?? '') ?>">
-                                            <?= htmlspecialchars($rec->titre_reclamation ?? '') ?>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-sm text-gray-600 max-w-xs truncate"
-                                            title="<?= htmlspecialchars($rec->description_reclamation ?? '') ?>">
-                                            <?= htmlspecialchars($rec->description_reclamation ?? '') ?>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <?= htmlspecialchars($rec->date_creation ?? '') ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                                            <?php if(strtolower($rec->statut_reclamation) === 'résolue' || strtolower($rec->statut_reclamation) === 'traitée') echo 'bg-green-100 text-green-800';
-                                                  elseif(strtolower($rec->statut_reclamation) === 'rejeté' || strtolower($rec->statut_reclamation) === 'rejetée') echo 'bg-red-100 text-red-800';
-                                                  else echo 'bg-gray-100 text-gray-800'; ?>">
-                                            <?= htmlspecialchars($rec->statut_reclamation) ?>
-                                        </span>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                                <?php else: ?>
-                                <tr>
-                                    <td colspan="6" class="px-6 py-12 text-center">
-                                        <div class="text-gray-500">
-                                            <i class="fa fa-archive text-4xl mb-4 text-gray-300"></i>
-                                            <p class="text-lg font-medium">Aucun historique de réclamation</p>
-                                            <p class="text-sm">Les réclamations traitées apparaîtront ici</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Pagination -->
-                <div class="flex flex-col md:flex-row md:items-center md:justify-between mt-6 gap-4">
-                    <div class="text-gray-600 text-sm">
-                        <span id="paginationInfo">Affichage des réclamations traitées</span>
-                    </div>
-                    <div class="flex justify-center" id="pagination">
-                        <!-- La pagination sera générée par JavaScript -->
-                    </div>
-                </div>
-            </div>
+        <!-- Pagination -->
+        <div class="card-footer">
+            <span id="paginationInfo">Affichage des réclamations traitées</span>
+            <div id="pagination"></div>
         </div>
     </div>
 </div>
 
 <!-- Modal détails réclamation -->
-<div id="detailsModal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl mx-4 relative transform transition-all">
-        <button onclick="closeDetailsModal()"
-            class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl transition duration-200">
+<div id="detailsModal" class="modal">
+    <div class="modal-content">
+        <button onclick="closeDetailsModal()" class="modal-close">
             <i class="fa fa-times"></i>
         </button>
-        <div class="flex items-center mb-6">
-            <div class="bg-blue-100 p-3 rounded-full mr-4">
-                <i class="fa fa-file-text text-blue-600 text-xl"></i>
+        <div class="modal-header">
+            <div class="modal-icon">
+                <i class="fa fa-file-text"></i>
             </div>
             <div>
-                <h3 class="text-2xl font-bold text-gray-900">Détails de la réclamation</h3>
-                <p class="text-gray-600">Informations complètes</p>
+                <h3>Détails de la réclamation</h3>
+                <p>Informations complètes</p>
             </div>
         </div>
-        <div id="detailsContent" class="space-y-4 text-sm">
+        <div id="detailsContent" class="modal-body">
             <!-- Le contenu sera généré par JavaScript -->
         </div>
     </div>
@@ -599,33 +533,23 @@ function printTable(tableId, title) {
 
 // Fonction pour afficher les messages de feedback
 function showFeedback(message, type = 'info') {
-    // Créer l'élément de notification
     const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 transform translate-x-full ${
-        type === 'success' ? 'bg-green-500 text-white' : 
-        type === 'error' ? 'bg-red-500 text-white' : 
-        'bg-blue-500 text-white'
-    }`;
+    notification.className = `alert alert-${type} alert-toast`;
     notification.innerHTML = `
-        <div class="flex items-center">
-            <span class="mr-2">
-                ${type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ'}
-            </span>
-            <span>${message}</span>
-        </div>
+        <span class="alert-icon">
+            ${type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ'}
+        </span>
+        <span>${message}</span>
     `;
 
-    // Ajouter au DOM
     document.body.appendChild(notification);
 
-    // Animer l'entrée
     setTimeout(() => {
-        notification.classList.remove('translate-x-full');
+        notification.classList.add('show');
     }, 100);
 
-    // Supprimer après 3 secondes
     setTimeout(() => {
-        notification.classList.add('translate-x-full');
+        notification.classList.remove('show');
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.parentNode.removeChild(notification);
@@ -681,8 +605,7 @@ function initializePagination() {
         // Bouton précédent
         const prevBtn = document.createElement('button');
         prevBtn.innerHTML = '<i class="fa fa-chevron-left"></i>';
-        prevBtn.className =
-            `px-3 py-2 border border-gray-300 bg-white text-sm font-medium ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'} rounded-l-md transition duration-200`;
+        prevBtn.className = `btn btn-sm ${currentPage === 1 ? 'btn-disabled' : 'btn-secondary'}`;
         prevBtn.disabled = currentPage === 1;
         prevBtn.onclick = () => showPage(currentPage - 1);
         pagination.appendChild(prevBtn);
@@ -691,8 +614,7 @@ function initializePagination() {
         for (let i = 1; i <= pageCount; i++) {
             const btn = document.createElement('button');
             btn.textContent = i;
-            btn.className =
-                `px-3 py-2 border border-gray-300 text-sm font-medium ${i === currentPage ? 'bg-green-100 text-green-700 font-bold' : 'bg-white text-gray-700 hover:bg-gray-50'} transition duration-200`;
+            btn.className = `btn btn-sm ${i === currentPage ? 'btn-primary' : 'btn-secondary'}`;
             btn.onclick = () => showPage(i);
             pagination.appendChild(btn);
         }
@@ -700,8 +622,7 @@ function initializePagination() {
         // Bouton suivant
         const nextBtn = document.createElement('button');
         nextBtn.innerHTML = '<i class="fa fa-chevron-right"></i>';
-        nextBtn.className =
-            `px-3 py-2 border border-gray-300 bg-white text-sm font-medium ${currentPage === pageCount ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'} rounded-r-md transition duration-200`;
+        nextBtn.className = `btn btn-sm ${currentPage === pageCount ? 'btn-disabled' : 'btn-secondary'}`;
         nextBtn.disabled = currentPage === pageCount;
         nextBtn.onclick = () => showPage(currentPage + 1);
         pagination.appendChild(nextBtn);
@@ -715,54 +636,45 @@ function showReclamationDetails(rec) {
     let html = '';
 
     html += `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-gray-50 p-4 rounded-lg">
-                <h4 class="font-semibold text-gray-900 mb-2">Informations étudiant</h4>
-                <p class="text-gray-700"><span class="font-medium">Nom complet :</span> ${rec.nom_etu} ${rec.prenom_etu}</p>
+        <div class="detail-grid">
+            <div class="detail-item">
+                <h4>Informations étudiant</h4>
+                <p><strong>Nom complet :</strong> ${rec.nom_etu} ${rec.prenom_etu}</p>
             </div>
-            <div class="bg-gray-50 p-4 rounded-lg">
-                <h4 class="font-semibold text-gray-900 mb-2">Statut</h4>
-                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                    ${rec.statut_reclamation === 'en attente' ? 'bg-yellow-100 text-yellow-800' : 
-                      rec.statut_reclamation === 'résolue' || rec.statut_reclamation === 'traitée' ? 'bg-green-100 text-green-800' :
-                      rec.statut_reclamation === 'rejeté' || rec.statut_reclamation === 'rejetée' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}">
+            <div class="detail-item">
+                <h4>Statut</h4>
+                <span class="badge 
+                    ${rec.statut_reclamation === 'en attente' ? 'badge-warning' : 
+                      rec.statut_reclamation === 'résolue' || rec.statut_reclamation === 'traitée' ? 'badge-success' :
+                      rec.statut_reclamation === 'rejeté' || rec.statut_reclamation === 'rejetée' ? 'badge-danger' : 'badge-secondary'}">
                     ${rec.statut_reclamation}
                 </span>
             </div>
         </div>
-        <div class="bg-gray-50 p-4 rounded-lg">
-            <h4 class="font-semibold text-gray-900 mb-2">Objet de la réclamation</h4>
-            <p class="text-gray-700">${rec.titre_reclamation || 'Non spécifié'}</p>
+        <div class="detail-item">
+            <h4>Objet de la réclamation</h4>
+            <p>${rec.titre_reclamation || 'Non spécifié'}</p>
         </div>
-        <div class="bg-gray-50 p-4 rounded-lg">
-            <h4 class="font-semibold text-gray-900 mb-2">Description détaillée</h4>
-            <p class="text-gray-700 whitespace-pre-wrap">${rec.description_reclamation || 'Aucune description fournie'}</p>
+        <div class="detail-item">
+            <h4>Description détaillée</h4>
+            <p>${rec.description_reclamation || 'Aucune description fournie'}</p>
         </div>
-        <div class="bg-gray-50 p-4 rounded-lg">
-            <h4 class="font-semibold text-gray-900 mb-2">Date de création</h4>
-            <p class="text-gray-700">${rec.date_creation || 'Date non disponible'}</p>
+        <div class="detail-item">
+            <h4>Date de création</h4>
+            <p>${rec.date_creation || 'Date non disponible'}</p>
         </div>
     `;
 
     detailsContent.innerHTML = html;
     document.getElementById('detailsModal').classList.remove('hidden');
-
-    // Animation d'entrée
-    setTimeout(() => {
-        document.querySelector('#detailsModal > div').classList.add('scale-100');
-    }, 10);
+    document.getElementById('detailsModal').classList.add('active');
 }
 
 function closeDetailsModal() {
     const modal = document.getElementById('detailsModal');
-    const modalContent = modal.querySelector('div');
-
-    modalContent.classList.remove('scale-100');
-    modalContent.classList.add('scale-95');
-
+    modal.classList.remove('active');
     setTimeout(() => {
         modal.classList.add('hidden');
-        modalContent.classList.remove('scale-95');
     }, 200);
 }
 
@@ -782,5 +694,3 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('searchInput').addEventListener('input', filterReclamations);
 });
 </script>
-
-</rewritten_file>
