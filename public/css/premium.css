@@ -261,6 +261,28 @@ body {
   height: 2rem;
 }
 
+/* Tab Buttons (pour les onglets de navigation dans les cartes) */
+.btn-tab {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--radius);
+  border: none;
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-tab:hover {
+  background-color: var(--muted-light);
+}
+
+.btn-tab.active {
+  background-color: var(--primary);
+  color: #ffffff;
+}
+
 /* ==========================================================================
    4. COMPOSANTS CARTES
    ========================================================================== */
@@ -544,6 +566,39 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
+}
+
+/* Generic table styles (for simple tables) */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+table thead {
+  background-color: var(--muted-light);
+}
+
+table th {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--foreground);
+  border-bottom: 1px solid var(--border);
+}
+
+table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+}
+
+table tbody tr:hover {
+  background-color: var(--muted-light);
+}
+
+table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .data-table th {
@@ -1658,6 +1713,43 @@ body {
   background-color: var(--success);
 }
 
+.bg-primary {
+  background-color: var(--primary);
+}
+
+.bg-warning {
+  background-color: var(--warning);
+}
+
+.bg-danger {
+  background-color: var(--danger);
+}
+
+.bg-info {
+  background-color: var(--info);
+}
+
+.bg-muted {
+  background-color: var(--muted);
+}
+
 .bg-muted-light {
   background-color: var(--muted-light);
+}
+
+.bg-accent-light {
+  background-color: var(--accent-light);
+}
+
+.bg-white {
+  background-color: #ffffff;
+}
+
+/* Hover transitions */
+.transition-all {
+  transition: all var(--transition);
+}
+
+.hover\:shadow-lg:hover {
+  box-shadow: var(--shadow-lg);
 }
