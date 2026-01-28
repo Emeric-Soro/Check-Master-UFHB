@@ -3,15 +3,16 @@
   "version": "1.0.0",
   "description": "Système de gestion des soutenances académiques",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "tailwind:dev": "tailwindcss -i ./src/input.css -o ./public/css/output.css --watch",
+    "tailwind:build": "postcss ./src/input.css -o ./public/css/output.css",
+    "tailwind:dev": "postcss ./src/input.css -o ./public/css/output.css --watch",
     "start": "...",
     "dev": "concurrently \"npm run tailwind:dev\" \"php -S https://checkmaster.ufrmi-ufhb-ci.com -t public\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/OceaneTra/Projet_Soutenance.git"

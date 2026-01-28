@@ -4,6 +4,7 @@ node_modules/
 
 # Assets compilés / build
 public/assets/css/output_dashboard_admin.css
+public/css/output.css
 
 # Logs (local)
 /logs/*.log
