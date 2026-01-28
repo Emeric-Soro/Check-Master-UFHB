@@ -369,5 +369,3 @@ if (isset($_SESSION['num_etu'])) {
         document.getElementById('deleteModal').style.display = 'none';
     }
 </script>
-
-</html>

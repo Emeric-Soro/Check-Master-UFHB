@@ -491,7 +491,6 @@ foreach ($candidatures as $c) {
                                 </button>
                             </form>
                         <?php endif; ?>
-                    <?php endif; ?>
                     </div>
                 </div>
             </div>

@@ -563,5 +563,3 @@ if (errorNotification) {
     setTimeout(() => removeNotification(errorNotification), 5000);
 }
 </script>
-
-</html>
