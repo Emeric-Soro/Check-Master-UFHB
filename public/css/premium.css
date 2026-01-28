@@ -103,6 +103,43 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Container & Layout */
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.page-header h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.page-content {
+  flex: 1;
+  padding: var(--spacing-lg);
+}
+
 /* ==========================================================================
    3. COMPOSANTS BOUTONS
    ========================================================================== */
@@ -222,6 +259,28 @@ body {
   padding: 0.375rem;
   width: 2rem;
   height: 2rem;
+}
+
+/* Tab Buttons (pour les onglets de navigation dans les cartes) */
+.btn-tab {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--radius);
+  border: none;
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-tab:hover {
+  background-color: var(--muted-light);
+}
+
+.btn-tab.active {
+  background-color: var(--primary);
+  color: #ffffff;
 }
 
 /* ==========================================================================
@@ -507,6 +566,39 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
+}
+
+/* Generic table styles (for simple tables) */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+table thead {
+  background-color: var(--muted-light);
+}
+
+table th {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--foreground);
+  border-bottom: 1px solid var(--border);
+}
+
+table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+}
+
+table tbody tr:hover {
+  background-color: var(--muted-light);
+}
+
+table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .data-table th {
@@ -1389,37 +1481,118 @@ body {
 /* Flex utilities */
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-grow { flex-grow: 1; }
+.items-start { align-items: flex-start; }
 .items-center { align-items: center; }
+.items-end { align-items: flex-end; }
+.justify-start { justify-content: flex-start; }
 .justify-between { justify-content: space-between; }
 .justify-center { justify-content: center; }
+.justify-end { justify-content: flex-end; }
+.gap-xs { gap: var(--spacing-xs); }
 .gap-sm { gap: var(--spacing-sm); }
 .gap-md { gap: var(--spacing-md); }
 .gap-lg { gap: var(--spacing-lg); }
+.gap-xl { gap: var(--spacing-xl); }
 
 /* Grid utilities */
 .grid { display: grid; }
+.grid-cols-1 { grid-template-columns: repeat(1, 1fr); }
 .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
 .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
 
+/* Width & Height utilities */
+.w-full { width: 100%; }
+.w-auto { width: auto; }
+.h-full { height: 100%; }
+.h-auto { height: auto; }
+.min-h-screen { min-height: 100vh; }
+
+/* Position utilities */
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+.sticky { position: sticky; }
+
+/* Display utilities */
+.block { display: block; }
+.inline-block { display: inline-block; }
+.inline { display: inline; }
+
+/* Border utilities */
+.rounded { border-radius: var(--radius); }
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-full { border-radius: var(--radius-full); }
+
+/* Shadow utilities */
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow { box-shadow: var(--shadow); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+.overflow-auto { overflow: auto; }
+.overflow-x-auto { overflow-x: auto; }
+.overflow-y-auto { overflow-y: auto; }
+
 /* Spacing utilities */
+.m-0 { margin: 0; }
 .mt-sm { margin-top: var(--spacing-sm); }
 .mt-md { margin-top: var(--spacing-md); }
 .mt-lg { margin-top: var(--spacing-lg); }
+.mt-xl { margin-top: var(--spacing-xl); }
 .mb-sm { margin-bottom: var(--spacing-sm); }
 .mb-md { margin-bottom: var(--spacing-md); }
 .mb-lg { margin-bottom: var(--spacing-lg); }
+.mb-xl { margin-bottom: var(--spacing-xl); }
+.ml-sm { margin-left: var(--spacing-sm); }
+.ml-md { margin-left: var(--spacing-md); }
+.mr-sm { margin-right: var(--spacing-sm); }
+.mr-md { margin-right: var(--spacing-md); }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.my-sm { margin-top: var(--spacing-sm); margin-bottom: var(--spacing-sm); }
+.my-md { margin-top: var(--spacing-md); margin-bottom: var(--spacing-md); }
+.my-lg { margin-top: var(--spacing-lg); margin-bottom: var(--spacing-lg); }
+
+.p-0 { padding: 0; }
+.p-sm { padding: var(--spacing-sm); }
+.p-md { padding: var(--spacing-md); }
+.p-lg { padding: var(--spacing-lg); }
+.p-xl { padding: var(--spacing-xl); }
+.px-sm { padding-left: var(--spacing-sm); padding-right: var(--spacing-sm); }
+.px-md { padding-left: var(--spacing-md); padding-right: var(--spacing-md); }
+.px-lg { padding-left: var(--spacing-lg); padding-right: var(--spacing-lg); }
+.py-sm { padding-top: var(--spacing-sm); padding-bottom: var(--spacing-sm); }
+.py-md { padding-top: var(--spacing-md); padding-bottom: var(--spacing-md); }
+.py-lg { padding-top: var(--spacing-lg); padding-bottom: var(--spacing-lg); }
 
 /* Text utilities */
 .text-center { text-align: center; }
 .text-right { text-align: right; }
+.text-left { text-align: left; }
 .text-muted { color: var(--muted); }
 .text-primary { color: var(--primary); }
 .text-success { color: var(--success); }
 .text-warning { color: var(--warning); }
 .text-danger { color: var(--danger); }
+.text-white { color: #ffffff; }
+.font-normal { font-weight: 400; }
+.font-medium { font-weight: 500; }
 .font-semibold { font-weight: 600; }
 .font-bold { font-weight: 700; }
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-base { font-size: 1rem; line-height: 1.5rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
 
 /* Visibility utilities */
 .hidden { display: none; }
@@ -1487,3 +1660,96 @@ body {
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 .animate-slide-up { animation: slideUp 0.3s ease-out; }
 .animate-pulse { animation: pulse 2s infinite; }
+
+/* ==========================================================================
+   26. RESPONSIVE UTILITIES
+   ========================================================================== */
+
+/* Large screens (1024px and up) */
+@media (min-width: 1024px) {
+  .lg\:col-span-1 {
+    grid-column: span 1 / span 1;
+  }
+  
+  .lg\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+  
+  .lg\:col-span-3 {
+    grid-column: span 3 / span 3;
+  }
+  
+  .lg\:grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .lg\:grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .lg\:grid-cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Flex-shrink utility */
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+/* Additional padding utilities */
+.px-3 {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.py-2 {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* Background utilities */
+.bg-success {
+  background-color: var(--success);
+}
+
+.bg-primary {
+  background-color: var(--primary);
+}
+
+.bg-warning {
+  background-color: var(--warning);
+}
+
+.bg-danger {
+  background-color: var(--danger);
+}
+
+.bg-info {
+  background-color: var(--info);
+}
+
+.bg-muted {
+  background-color: var(--muted);
+}
+
+.bg-muted-light {
+  background-color: var(--muted-light);
+}
+
+.bg-accent-light {
+  background-color: var(--accent-light);
+}
+
+.bg-white {
+  background-color: #ffffff;
+}
+
+/* Hover transitions */
+.transition-all {
+  transition: all var(--transition);
+}
+
+.hover\:shadow-lg:hover {
+  box-shadow: var(--shadow-lg);
+}

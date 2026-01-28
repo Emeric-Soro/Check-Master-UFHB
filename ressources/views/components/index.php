@@ -25,9 +25,13 @@ require_once $componentsPath . '/ui/dropdown.php';
 require_once $componentsPath . '/ui/skeleton.php';
 require_once $componentsPath . '/ui/tooltip.php';
 require_once $componentsPath . '/ui/separator.php';
+require_once $componentsPath . '/ui/search-bar.php';
+require_once $componentsPath . '/ui/empty-state.php';
 
 // Form Components
 require_once $componentsPath . '/form/input.php';
+require_once $componentsPath . '/form/select.php';
+require_once $componentsPath . '/form/checkbox.php';
 
 // Layout Components
 require_once $componentsPath . '/layout/sidebar.php';
