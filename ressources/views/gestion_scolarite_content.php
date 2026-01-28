@@ -387,7 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Validation du formulaire
-    document.getElementById('paymentForm').addEventListener('submit', function(e) {
+    document.getElementById('versementsForm').addEventListener('submit', function(e) {
         const amount = parseFloat(paymentAmount.value);
         const selectedOption = studentSelect.options[studentSelect.selectedIndex];
         const resteAPayer = parseFloat(selectedOption.dataset.resteAPayer);
