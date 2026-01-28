@@ -627,9 +627,11 @@ if (!isset($_SESSION['id_utilisateur'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CheckMaster | <?php echo htmlspecialchars($currentPageLabel); ?></title>
     <link rel="stylesheet" href="css/output.css">
+    <link rel="stylesheet" href="css/premium.css">
     <link rel="shortcut icon" href="image/logo_cm_sbg.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/premium.js"></script>
     <script>
         tailwind.config = {
             theme: {

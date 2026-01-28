@@ -1594,6 +1594,10 @@ table tbody tr:last-child td {
 .text-2xl { font-size: 1.5rem; line-height: 2rem; }
 .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
 
+/* Font utilities */
+.font-poppins { font-family: 'Poppins', sans-serif; }
+.font-montserrat { font-family: 'Montserrat', sans-serif; }
+
 /* Visibility utilities */
 .hidden { display: none; }
 .visible { visibility: visible; }
@@ -1743,6 +1747,15 @@ table tbody tr:last-child td {
 
 .bg-white {
   background-color: #ffffff;
+}
+
+/* Additional background utilities for compatibility */
+.bg-base-200 {
+  background-color: #f1f5f9;
+}
+
+.bg-gray-50 {
+  background-color: #f9fafb;
 }
 
 /* Hover transitions */

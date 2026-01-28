@@ -8,6 +8,7 @@
 
 require_once __DIR__ . '/../app/Core/Autoload.php';
 
+use CheckMaster\Core\Csrf;
 use CheckMaster\Core\Session;
 use CheckMaster\Core\Bootstrap;
 
@@ -36,7 +37,7 @@ if (!isset($_SESSION['id_utilisateur'])) {
 
 // Protection CSRF globale pour les POST
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-    if (!\CheckMaster\Core\Csrf::validate($_POST['csrf_token'] ?? null)) {
+    if (!Csrf::validate($_POST['csrf_token'] ?? null)) {
         if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
             http_response_code(403);
             header('Content-Type: application/json; charset=UTF-8');
@@ -197,45 +198,17 @@ $userRole = $_SESSION['lib_GU'] ?? '';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CheckMaster | <?php echo htmlspecialchars($currentPageLabel ?: 'Application'); ?></title>
     
-    <!-- Premium Design System CSS -->
-    <link rel="stylesheet" href="css/premium.css">
-    
-    <!-- Tailwind CSS (for legacy compatibility during migration) -->
-    <link rel="stylesheet" href="css/output.css">
-    
-    <!-- Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Favicon -->
-    <link rel="shortcut icon" href="image/logo_cm_sbg.png" type="image/x-icon">
-    
-    <!-- Tailwind CDN (for migration) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#1a5276',
-                        'primary-light': '#2980b9',
-                        'primary-lighter': '#3498db',
-                        secondary: '#ff8c00',
-                        accent: '#4caf50',
-                        success: '#4caf50',
-                        warning: '#f39c12',
-                        danger: '#e74c3c',
-                        'base-100': '#FFFFFF',
-                        'base-200': '#F8FAFC',
-                        'base-300': '#E2E8F0'
-                    },
-                    fontFamily: {
-                        'poppins': ['Poppins', 'sans-serif'],
-                        'montserrat': ['Montserrat', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
+     <!-- Premium Design System CSS -->
+     <link rel="stylesheet" href="css/premium.css">
+     
+     <!-- Tailwind CSS (for legacy compatibility during migration) -->
+     <link rel="stylesheet" href="css/output.css">
+     
+     <!-- Icons -->
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+     
+     <!-- Favicon -->
+     <link rel="shortcut icon" href="image/logo_cm_sbg.png" type="image/x-icon">
     
     <!-- External libraries -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" rel="stylesheet">
@@ -287,7 +260,7 @@ $userRole = $_SESSION['lib_GU'] ?? '';
                 <!-- Sidebar Footer -->
                 <div class="px-4 py-3 border-t border-white/10">
                     <form action="index.php?_path=/logout" method="POST" id="logoutForm" class="w-full">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(\CheckMaster\Core\Csrf::token()); ?>">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Csrf::token()); ?>">
                         <button type="submit" class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors">
                             <i class="fas fa-sign-out-alt"></i>
                             <span class="text-sm">Déconnexion</span>
@@ -421,7 +394,7 @@ $userRole = $_SESSION['lib_GU'] ?? '';
  */
 function injectCsrfIntoPostForms(string $html): string
 {
-    $token = htmlspecialchars(\CheckMaster\Core\Csrf::token(), ENT_QUOTES, 'UTF-8');
+    $token = htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8');
     $field = '<input type="hidden" name="csrf_token" value="' . $token . '">';
 
     return preg_replace(
