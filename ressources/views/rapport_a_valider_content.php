@@ -437,12 +437,13 @@ function viewEvaluations(reportId) {
         votesContent.innerHTML = '';
         rapport.evaluations.forEach(eval => {
             const badgeType = eval.decision_evaluation === 'valider' ? 'success' : 'danger';
+            const badgeText = eval.decision_evaluation === 'valider' ? 'Validé' : 'Rejeté';
             votesContent.innerHTML += `
                 <div class="card">
                     <div class="card-content">
                         <div class="flex items-center justify-between mb-sm">
                             <span class="font-semibold">Évaluateur #${eval.id_evaluateur}</span>
-                            ${renderBadge(eval.decision_evaluation === 'valider' ? 'Validé' : 'Rejeté', badgeType)}
+                            <span class="badge badge-${badgeType}">${badgeText}</span>
                         </div>
                         <p class="text-sm text-muted">${eval.commentaire_evaluation || 'Aucun commentaire'}</p>
                     </div>
