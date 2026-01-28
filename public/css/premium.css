@@ -1605,3 +1605,59 @@ body {
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 .animate-slide-up { animation: slideUp 0.3s ease-out; }
 .animate-pulse { animation: pulse 2s infinite; }
+
+/* ==========================================================================
+   26. RESPONSIVE UTILITIES
+   ========================================================================== */
+
+/* Large screens (1024px and up) */
+@media (min-width: 1024px) {
+  .lg\:col-span-1 {
+    grid-column: span 1 / span 1;
+  }
+  
+  .lg\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+  
+  .lg\:col-span-3 {
+    grid-column: span 3 / span 3;
+  }
+  
+  .lg\:grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .lg\:grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .lg\:grid-cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Flex-shrink utility */
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+/* Additional padding utilities */
+.px-3 {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.py-2 {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* Background utilities */
+.bg-success {
+  background-color: var(--success);
+}
+
+.bg-muted-light {
+  background-color: var(--muted-light);
+}
