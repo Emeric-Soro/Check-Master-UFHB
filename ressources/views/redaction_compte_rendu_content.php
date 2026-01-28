@@ -12,6 +12,25 @@ if (!empty($_SESSION['success'])) {
     $notifMsg = $_SESSION['error'];
     unset($_SESSION['error']);
 }
+
+// Encoder les logos en base64 pour DOMPDF
+$logoUfhbPath = __DIR__ . '/../../public/image/logo_ufhb.png';
+$logoMiPath = __DIR__ . '/../../public/image/logo_mi.png';
+
+$logoUfhbBase64 = '';
+$logoMiBase64 = '';
+
+if (file_exists($logoUfhbPath) && is_readable($logoUfhbPath)) {
+    $type = mime_content_type($logoUfhbPath) ?: 'image/png';
+    $data = base64_encode(file_get_contents($logoUfhbPath));
+    $logoUfhbBase64 = 'data:' . $type . ';base64,' . $data;
+}
+
+if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
+    $type = mime_content_type($logoMiPath) ?: 'image/png';
+    $data = base64_encode(file_get_contents($logoMiPath));
+    $logoMiBase64 = 'data:' . $type . ';base64,' . $data;
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -455,6 +474,10 @@ if (!empty($_SESSION['success'])) {
         let selectedReports = [];
         let currentReportIndex = 0;
 
+        // Logos encodés en base64 pour DOMPDF
+        const logoUfhbBase64 = '<?php echo $logoUfhbBase64; ?>';
+        const logoMiBase64 = '<?php echo $logoMiBase64; ?>';
+
         // Tableau associatif des rapports pour accès rapide côté JS
         const rapportsData = <?php echo json_encode($rapports_valides); ?>;
 
@@ -694,23 +717,24 @@ if (!empty($_SESSION['success'])) {
             // Génère dynamiquement les cas à partir des rapports sélectionnés
             let casHTML = '';
             selectedReports.forEach((rapport, idx) => {
-                const encadrant = rapport.encadrant_nom || '<span class="text-gray-400">[Non attribué]</span>';
-                const directeur = rapport.directeur_nom || '<span class="text-gray-400">[Non attribué]</span>';
+                const encadrant = rapport.encadrant_nom || '[Non attribué]';
+                const directeur = rapport.directeur_nom || '[Non attribué]';
                 casHTML += `
-                <div class="cas">
-                    <div class="cas-titre">Cas ${idx + 1}</div>
-                    <strong>Étudiant :</strong> ${rapport.prenom_etu} ${rapport.nom_etu}<br>
-                    <strong>Thème :</strong> ${rapport.theme_rapport}<br>
-                    <strong>Recommandations de la commission :</strong>
-                    <ul>
-                        <li>thème valide</li>
-                        <li>bien décrire le processus de règlement de chèques</li>
-                        <li>décrire exactement le contexte</li>
+                <!-- Cas ${idx + 1} -->
+                <div class="cas-box-container">
+                    <div class="cas-box">Cas ${idx + 1}</div>
+                </div>
+                <div class="cas-content">
+                    <p style="text-indent:0;"><strong>Étudiant :</strong> M. ${rapport.nom_etu} ${rapport.prenom_etu}</p>
+                    <p style="text-indent:0;"><strong>Thème :</strong> ${rapport.theme_rapport}</p>
+                    <p style="text-indent:0;" class="recommandations-title">Recommandations de la commission :</p>
+                    <ul style="list-style-type:none; margin-left:1em;">
+                        <li>- thème valide ;</li>
+                        <li>- bien décrire le processus de règlement de chèques ;</li>
+                        <li>- décrire exactement le contexte.</li>
                     </ul>
-                    <div class="cas-footer">
-                        <strong>Directeur de mémoire :</strong> ${directeur} &nbsp;&nbsp;
-                        <strong>Encadrant pédagogique :</strong> ${encadrant}
-                    </div>
+                    <p style="text-indent:0; margin-top:15px;"><strong>Directeur de mémoire :</strong> ${directeur}</p>
+                    <p style="text-indent:0;"><strong>Encadreur pédagogique :</strong> ${encadrant}</p>
                 </div>
                 `;
             });
@@ -726,63 +750,194 @@ if (!empty($_SESSION['success'])) {
             const editor = document.getElementById('editorContent');
             let template = `
                 <style>
-                .editor-content { font-family: 'Times New Roman', Times, serif; }
-                .header-logos .right { float: right; }
-                .header-logos .center { text-align: center; margin: 0 auto; }
-                .editor-content h1 { font-size: 2.2em; font-weight: bold; margin-bottom: 0.5em; text-align: center; }
-                .editor-content h2 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; text-align: center; }
-                .editor-content h3 { font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em; }
-                .section-title { border-bottom: 2px solid #222; margin-bottom: 0.7em; margin-top: 1.5em; }
-                .editor-content p { margin-bottom: 0.7em; }
-                .editor-content ul { margin-left: 1.5em; margin-bottom: 0.7em; }
-                .encadre { background: #f6faff; border: 2px solid #b6d4fe; border-radius: 8px; padding: 1em; margin-bottom: 1em; }
-                .cas { background: #fff; border: 1px solid #b6d4fe; border-radius: 8px; padding: 1em; margin-bottom: 1em; }
-                .cas-titre { font-weight: bold; margin-bottom: 0.5em; }
-                .cas-footer { margin-top: 1em; font-size: 1em; }
+                @page {
+                    size: A4;
+                    margin: 2cm;
+                }
+                .editor-content { 
+                    font-family: 'Times New Roman', Times, serif; 
+                    font-size: 12pt;
+                    line-height: 1.5;
+                    color: #000;
+                }
+                .header-container {
+                    display: table;
+                    width: 100%;
+                    margin-bottom: 15px;
+                }
+                .header-left, .header-center, .header-right {
+                    display: table-cell;
+                    vertical-align: middle;
+                }
+                .header-left {
+                    width: 15%;
+                    text-align: left;
+                }
+                .header-center {
+                    width: 70%;
+                    text-align: center;
+                }
+                .header-right {
+                    width: 15%;
+                    text-align: right;
+                }
+                .header-logo {
+                    max-width: 70px;
+                    height: auto;
+                }
+                .header-text {
+                    font-size: 11pt;
+                    font-weight: bold;
+                    letter-spacing: 0.5px;
+                }
+                .header-subtext {
+                    font-size: 10pt;
+                    font-style: italic;
+                }
+                .title-box {
+                    border: 2px solid #C4A000;
+                    border-radius: 0;
+                    padding: 8px 20px;
+                    margin: 20px auto;
+                    text-align: center;
+                    display: inline-block;
+                }
+                .title-box-container {
+                    text-align: center;
+                    margin: 20px 0;
+                }
+                .title-main {
+                    font-size: 14pt;
+                    font-weight: bold;
+                    text-decoration: underline;
+                    margin: 0;
+                }
+                .title-date {
+                    font-size: 12pt;
+                    font-weight: bold;
+                    margin: 5px 0 0 0;
+                    text-decoration: underline;
+                }
+                .section-title-num {
+                    font-size: 12pt;
+                    font-weight: bold;
+                    margin-top: 20px;
+                    margin-bottom: 10px;
+                }
+                .editor-content p {
+                    margin-bottom: 10px;
+                    text-align: justify;
+                    text-indent: 1.5em;
+                }
+                .editor-content p.no-indent {
+                    text-indent: 0;
+                }
+                .editor-content ul {
+                    margin-left: 2em;
+                    margin-bottom: 10px;
+                    list-style-type: disc;
+                }
+                .editor-content li {
+                    margin-bottom: 3px;
+                }
+                .cas-box {
+                    border: 1px solid #000;
+                    padding: 8px 15px;
+                    margin: 15px auto;
+                    text-align: center;
+                    display: inline-block;
+                }
+                .cas-box-container {
+                    text-align: center;
+                    margin: 15px 0;
+                }
+                .cas-content {
+                    margin-bottom: 15px;
+                }
+                .cas-content p {
+                    text-indent: 0;
+                }
+                .recommandations-title {
+                    font-weight: bold;
+                    margin-top: 10px;
+                    margin-bottom: 5px;
+                }
+                .signature-section {
+                    text-align: right;
+                    margin-top: 30px;
+                    font-weight: bold;
+                }
+                .page-number {
+                    text-align: right;
+                    font-size: 10pt;
+                    margin-top: 40px;
+                }
                 .text-center { text-align: center; }
+                .text-right { text-align: right; }
                 .italic { font-style: italic; }
+                .bold { font-weight: bold; }
+                .underline { text-decoration: underline; }
                 </style>
-                <div class="header-logos">
-                    <div class="center">
-                        <div style="font-size:13px; font-weight:bold; letter-spacing:1px;">REPUBLIQUE DE COTE D'IVOIRE</div>
-                        <div style="font-size:12px;">Ministère de l'Enseignement Supérieur et de la Recherche Scientifique</div>
-                        </div>
-                        </div>
-                <h1>Procès-Verbal de séance de validation de thèmes</h1>
-                <h2>Thèmes de Soutenance - Filière MIAGE-GI</h2>
-                <div class="text-center" style="margin-bottom:1em;">
-                    Université Félix Houphouët-Boigny<br>
-                    UFR Mathématiques et Informatique
-                        </div>
-                <h3 class="section-title">CONTEXTE DE LA SÉANCE</h3>
+                
+                <!-- En-tête avec logos - Table pour compatibilité DOMPDF -->
+                <table class="header-table" style="width:100%; border-collapse:collapse; margin-bottom:15px;">
+                    <tr>
+                        <td style="width:15%; text-align:left; vertical-align:middle;">
+                            <img src="${logoUfhbBase64}" alt="Logo UFHB" style="max-height:70px; height:auto;">
+                        </td>
+                        <td style="width:70%; text-align:center; vertical-align:middle;">
+                            <div style="font-size:11pt; font-weight:bold; letter-spacing:0.5px;">REPUBLIQUE DE COTE D'IVOIRE</div>
+                            <div style="font-size:10pt; font-style:italic;">Ministère de l'Enseignement Supérieur<br>et de la Recherche Scientifique</div>
+                        </td>
+                        <td style="width:15%; text-align:right; vertical-align:middle;">
+                            <img src="${logoMiBase64}" alt="Logo UFR MI" style="max-height:70px; height:auto;">
+                        </td>
+                    </tr>
+                </table>
+
+                <hr style="border: 1px solid #C4A000; margin: 10px 0;">
+
+                <!-- Titre encadré -->
+                <div style="text-align:center; margin:20px 0;">
+                    <div style="border:2px solid #C4A000; padding:8px 20px; display:inline-block;">
+                        <p style="margin:0; text-indent:0; font-size:14pt; font-weight:bold; text-decoration:underline;">Procès-Verbal de séance de validation de thèmes</p>
+                        <p style="margin:5px 0 0 0; text-indent:0; font-size:12pt; font-weight:bold; text-decoration:underline;">[DATE]</p>
+                    </div>
+                </div>
+
+                <!-- Corps du document -->
                 <p>Dans le bureau du Prof KOUA Brou à l'UFR MI, le [DATE] s'est tenue de 11 h 00 à 12 h 30 une séance de validation de thèmes de soutenance des étudiants en fin de cycle de la filière MIAGE-GI.</p>
+                
                 <p>La réunion était animée par Prof KOUA Brou le responsable de ladite filière. Etaient présents Prof. KOUA Brou, Dr MAMADOU Diarra, M. WAH Médard et M. BROU Patrice. Les membres de la commission de validation ont examiné [N] dossiers.</p>
-                <div class="encadre">
-                    <strong>Ordre du jour :</strong>
-                    <ul>
-                        <li>Informations</li>
-                        <li>Validation de thèmes</li>
-                        <li>Divers</li>
-                                </ul>
-                            </div>
-                <h3 class="section-title">1. INFORMATIONS</h3>
-                <p class="italic">[Le responsable de la filière a exposé sur l'intérêt des séances de validation. Il a donné des informations sur le choix des thèmes niveau ingénieur et la tenue mensuelle des séances de validation.]</p>
-                <p class="italic">[L'organisation des séances de validation permet de faire le point des encadrements, le contenu potentiel de thèmes, et le suivi des mémoires par des encadreurs pédagogiques.]</p>
-                <h3 class="section-title">2. VALIDATION DE THÈMES</h3>
-                <div id="casDynamique"></div>
-                <h3 class="section-title">3. DIVERS</h3>
-                <p class="italic">[La commission a recommandé au Directeur de la filière d'améliorer le partenariat avec les entreprises car elles le souhaitent compte tenu du rendement des stagiaires déjà reçus.]</p>
-                <strong>Recommandations aux étudiants :</strong>
+                
+                <p class="no-indent">L'ordre du jour débattu est le suivant :</p>
                 <ul>
-                    <li>Respecter toutes les rubriques du template de présentation de thème en possession de la chargée de communication</li>
-                    <li>Joindre un CV contenant une photo d'identité</li>
-                    <li>Soutenir au plus tard à la session suivante pour ne pas tomber sous le coup d'une pénalité</li>
-                                </ul>
-                <div class="text-center" style="margin-top:2em;">
-                    Les travaux de la commission ont pris fin à 12 h 30.<br>
-                    Fait à Abidjan, le [DATE]<br>
-                    <strong>La commission</strong>
-                        </div>
+                    <li>Informations</li>
+                    <li>Validation de thèmes</li>
+                    <li>Divers</li>
+                </ul>
+
+                <p class="section-title-num">1. Informations</p>
+                <p>Le responsable de la filière a exposé sur l'intérêt des séances de validation. Il a donné des informations sur le choix des thèmes niveau ingénieur et la tenue mensuelle des séances de validation.</p>
+                <p>L'organisation des séances de validation permet de faire le point des encadrements, le contenu potentiel de thèmes, et le suivi des mémoires par des encadreurs pédagogiques.</p>
+
+                <p class="section-title-num">2. Validation de thèmes</p>
+                <div id="casDynamique"></div>
+
+                <p class="section-title-num">3. Divers</p>
+                <p>La commission a recommandé au Directeur de la filière d'améliorer le partenariat avec les entreprises car elles le souhaitent compte tenu du rendement des stagiaires déjà reçus.</p>
+                <p>Aussi, la commission a fait les recommandations suivantes aux étudiants :</p>
+                <ul>
+                    <li>Respecter toutes les rubriques du template de présentation de thème en possession de la chargée de communication ;</li>
+                    <li>Joindre un CV contenant une photo d'identité ;</li>
+                    <li>Soutenir au plus tard à la session suivante pour ne pas tomber sous le coup d'une pénalité.</li>
+                </ul>
+                
+                <p>Les travaux de la commission ont pris fin à 12 h 30.</p>
+
+                <div class="signature-section">
+                    La commission
+                </div>
                     `;
             editor.innerHTML = template;
             window.baseTemplate = template;
@@ -919,7 +1074,7 @@ if (!empty($_SESSION['success'])) {
             }, 2000);
         }
 
-        // Impression du rapport
+        // Impression du rapport via DOMPDF
         function printReport() {
             const content = document.getElementById('editorContent').innerHTML;
 
@@ -928,145 +1083,172 @@ if (!empty($_SESSION['success'])) {
                 return;
             }
 
-            // Créer une nouvelle fenêtre pour l'impression
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
+            // Créer le HTML complet avec les styles pour DOMPDF
+            const fullHtml = `
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Compte Rendu - Impression</title>
+                    <meta charset="UTF-8">
+                    <title>Procès-Verbal de séance de validation de thèmes</title>
                     <style>
+                        @page {
+                            size: A4;
+                            margin: 2cm;
+                        }
                         body {
-                            font-family: 'Times New Roman', serif;
-                            line-height: 1.6;
-                            margin: 20px;
-                            color: black;
+                            font-family: 'Times New Roman', Times, serif;
+                            font-size: 12pt;
+                            line-height: 1.5;
+                            margin: 0;
+                            padding: 0;
+                            color: #000;
                             background: white;
                         }
-                        h1 {
-                            font-size: 2.2em;
+                        .header-container {
+                            width: 100%;
+                            margin-bottom: 15px;
+                        }
+                        .header-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                        }
+                        .header-table td {
+                            vertical-align: middle;
+                        }
+                        .header-logo {
+                            max-width: 70px;
+                            height: auto;
+                        }
+                        .header-text {
+                            font-size: 11pt;
                             font-weight: bold;
-                            margin-bottom: 0.5em;
+                            letter-spacing: 0.5px;
                             text-align: center;
                         }
-                        h2 {
-                            font-size: 1.5em;
-                            font-weight: bold;
-                            margin-bottom: 0.5em;
+                        .header-subtext {
+                            font-size: 10pt;
+                            font-style: italic;
                             text-align: center;
                         }
-                        h3 {
-                            font-size: 1.2em;
+                        hr {
+                            border: 1px solid #C4A000;
+                            margin: 10px 0;
+                        }
+                        .title-box {
+                            border: 2px solid #C4A000;
+                            padding: 8px 20px;
+                            margin: 20px auto;
+                            text-align: center;
+                            display: inline-block;
+                        }
+                        .title-box-container {
+                            text-align: center;
+                            margin: 20px 0;
+                        }
+                        .title-main {
+                            font-size: 14pt;
                             font-weight: bold;
-                            margin-bottom: 0.5em;
+                            text-decoration: underline;
+                            margin: 0;
+                        }
+                        .title-date {
+                            font-size: 12pt;
+                            font-weight: bold;
+                            margin: 5px 0 0 0;
+                            text-decoration: underline;
+                        }
+                        .section-title-num {
+                            font-size: 12pt;
+                            font-weight: bold;
+                            margin-top: 20px;
+                            margin-bottom: 10px;
                         }
                         p {
-                            margin-bottom: 0.7em;
+                            margin-bottom: 10px;
+                            text-align: justify;
+                            text-indent: 1.5em;
+                        }
+                        p.no-indent {
+                            text-indent: 0;
                         }
                         ul {
-                            margin-left: 1.5em;
-                            margin-bottom: 0.7em;
+                            margin-left: 2em;
+                            margin-bottom: 10px;
                         }
                         li {
-                            margin-bottom: 0.3em;
+                            margin-bottom: 3px;
                         }
-                        .text-center {
+                        .cas-box {
+                            border: 1px solid #000;
+                            padding: 8px 15px;
+                            margin: 15px auto;
                             text-align: center;
+                            display: inline-block;
                         }
-                        .font-bold {
+                        .cas-box-container {
+                            text-align: center;
+                            margin: 15px 0;
+                        }
+                        .cas-content {
+                            margin-bottom: 15px;
+                        }
+                        .cas-content p {
+                            text-indent: 0;
+                        }
+                        .recommandations-title {
+                            font-weight: bold;
+                            margin-top: 10px;
+                            margin-bottom: 5px;
+                        }
+                        .signature-section {
+                            text-align: right;
+                            margin-top: 30px;
                             font-weight: bold;
                         }
-                        .font-semibold {
-                            font-weight: 600;
-                        }
-                        .mb-8 {
-                            margin-bottom: 2em;
-                        }
-                        .mb-4 {
-                            margin-bottom: 1em;
-                        }
-                        .mt-4 {
-                            margin-top: 1em;
-                        }
-                        .mt-12 {
-                            margin-top: 3em;
-                        }
-                        .bg-blue-50 {
-                            background-color: #eff6ff;
-                            padding: 1em;
-                            border-radius: 4px;
-                            border-left: 4px solid #3b82f6;
-                        }
-                        .bg-gray-50 {
-                            background-color: #f9fafb;
-                            padding: 1em;
-                            border-radius: 4px;
-                            border-left: 4px solid #3b82f6;
-                        }
-                        .bg-yellow-50 {
-                            background-color: #fffbeb;
-                            padding: 1em;
-                            border-radius: 4px;
-                            border-left: 4px solid #f59e0b;
-                        }
-                        .border-b-2 {
-                            border-bottom: 2px solid #374151;
-                            padding-bottom: 0.75em;
-                        }
-                        .text-gray-800 {
-                            color: #1f2937;
-                        }
-                        .text-gray-700 {
-                            color: #374151;
-                        }
-                        .text-gray-600 {
-                            color: #4b5563;
-                        }
-                        .text-lg {
-                            font-size: 1.125em;
-                        }
-                        .text-xl {
-                            font-size: 1.25em;
-                        }
-                        .text-3xl {
-                            font-size: 1.875em;
-                        }
-                        .italic {
-                            font-style: italic;
-                        }
-                        .list-disc {
-                            list-style-type: disc;
-                        }
-                        .list-inside {
-                            list-style-position: inside;
-                        }
-                        .ml-4 {
-                            margin-left: 1em;
-                        }
-                        .flex {
-                            display: flex;
-                        }
-                        .justify-center {
-                            justify-content: center;
-                        }
-                        .space-x-8 > * + * {
-                            margin-left: 2em;
-                        }
-                        @media print {
-                            body {
-                                margin: 0;
-                                padding: 20px;
-                            }
-                        }
+                        .text-center { text-align: center; }
+                        .text-right { text-align: right; }
+                        .italic { font-style: italic; }
+                        .bold { font-weight: bold; }
+                        .underline { text-decoration: underline; }
                     </style>
                 </head>
                 <body>
                     ${content}
                 </body>
                 </html>
-            `);
-            printWindow.document.close();
-            printWindow.print();
+            `;
+
+            // Créer un formulaire pour envoyer au contrôleur DOMPDF
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '?page=redaction_compte_rendu&action=export_pdf';
+            form.target = '_blank';
+
+            // Ajouter le token CSRF (obligatoire pour les requêtes POST)
+            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '<?php echo \CheckMaster\Core\Csrf::token(); ?>';
+            const inputCsrf = document.createElement('input');
+            inputCsrf.type = 'hidden';
+            inputCsrf.name = 'csrf_token';
+            inputCsrf.value = csrfToken;
+            form.appendChild(inputCsrf);
+
+            const inputContenu = document.createElement('input');
+            inputContenu.type = 'hidden';
+            inputContenu.name = 'contenu_CR';
+            inputContenu.value = fullHtml;
+            form.appendChild(inputContenu);
+
+            const inputNom = document.createElement('input');
+            inputNom.type = 'hidden';
+            inputNom.name = 'nom_CR';
+            inputNom.value = 'Proces_Verbal_Validation_Themes_' + new Date().toISOString().slice(0,10);
+            form.appendChild(inputNom);
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+
+            showNotification('Génération du PDF en cours...', 'success');
         }
 
         // Mise à jour des étapes de progression
