@@ -41,46 +41,38 @@ $totalItems = count($etudiants);
 $totalPages = ceil($totalItems / $itemsPerPage);
 $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
 ?>
-<!DOCTYPE html>
-<html lang="fr">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liste des dossiers académiques</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-
-<body class="min-h-screen font-sans" style="background: linear-gradient(135deg, #DFF2FF 0%, #C8E8FF 100%);">
-    <div class="max-w-5xl mx-auto py-10 ">
-        <h1 class="text-3xl font-bold text-green-700 mb-8 flex items-center gap-3">
-            <i class="fas fa-folder-open text-green-400"></i> Dossiers académiques des étudiants
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="fas fa-folder-open"></i> Dossiers académiques des étudiants
         </h1>
+    </div>
 
-        <!-- Messages de succès/erreur en haut -->
-        <?php
-        if (isset($_GET['success']) && $_GET['success'] === '1') {
-            echo '<div id="successMessage" class="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg flex items-center gap-2 transition-opacity duration-500">
-                    <i class="fas fa-check-circle"></i>
-                    <span class="font-semibold">Dossier enregistré avec succès !</span>
-                  </div>';
-        } elseif (isset($_GET['success']) && $_GET['success'] === '0') {
-            echo '<div id="errorMessage" class="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center gap-2 transition-opacity duration-500">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <span class="font-semibold">Erreur lors de l\'enregistrement du dossier.</span>
-                  </div>';
-        }
-        ?>
+    <!-- Messages de succès/erreur en haut -->
+    <?php
+    if (isset($_GET['success']) && $_GET['success'] === '1') {
+        echo '<div id="successMessage" class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                <span>Dossier enregistré avec succès !</span>
+              </div>';
+    } elseif (isset($_GET['success']) && $_GET['success'] === '0') {
+        echo '<div id="errorMessage" class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>Erreur lors de l\'enregistrement du dossier.</span>
+              </div>';
+    }
+    ?>
 
-        <div class="mb-6 flex flex-col md:flex-row md:items-center gap-4">
-            <form method="get" class="flex gap-4 w-full">
+    <div class="card">
+        <div class="card-header">
+            <form method="get" class="form-grid">
                 <input type="hidden" name="page" value="dossiers_academiques">
-                <input type="text" name="search" id="searchInput" style="outline: none;"
+                <input type="text" name="search" id="searchInput"
                     placeholder="Rechercher par nom, email, niveau..."
                     value="<?= htmlspecialchars($_GET['search'] ?? '') ?>"
-                    class="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">
-                <select name="niveau" style="outline: none;"
-                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500">
+                    class="form-control">
+                <select name="niveau" class="form-control">
                     <option value="">Tous les niveaux</option>
                     <?php foreach ($niveaux as $niv): ?>
                         <option value="<?= htmlspecialchars($niv->id_niv_etude) ?>" <?= $niveauFiltre == $niv->id_niv_etude ? 'selected' : '' ?>>
@@ -88,28 +80,25 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg">Filtrer</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter"></i> Filtrer
+                </button>
             </form>
         </div>
-        <div class="bg-white rounded-xl shadow-lg overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-green-50">
+
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-green-700 uppercase tracking-wider">Nom
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-green-700 uppercase tracking-wider">
-                            Prénom</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-green-700 uppercase tracking-wider">
-                            Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-green-700 uppercase tracking-wider">
-                            Niveau</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-green-700 uppercase tracking-wider">
-                            Promotion</th>
-                        <th class="px-6 py-3 text-center text-xs font-bold text-green-700 uppercase tracking-wider">
-                            Action</th>
+                        <th>Nom</th>
+                        <th>Prénom</th>
+                        <th>Email</th>
+                        <th>Niveau</th>
+                        <th>Promotion</th>
+                        <th class="text-center">Action</th>
                     </tr>
                 </thead>
-                <tbody id="studentTableBody" class="bg-white divide-y divide-gray-200">
+                <tbody id="studentTableBody">
                     <?php
                     // Vérifier s'il y a des résultats totaux (pas juste sur la page courante)
                     $allEtudiants = $etudiantModel->getAllListeEtudiants();
@@ -130,46 +119,34 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
 
                     if (empty($allEtudiants)): ?>
                         <tr>
-                            <td colspan="6" class="px-6 py-8 text-center">
-                                <div class="flex flex-col items-center gap-3 text-gray-500">
-                                    <i class="fas fa-search text-4xl text-gray-300"></i>
-                                    <div class="text-lg font-medium">Aucun étudiant trouvé</div>
-                                    <div class="text-sm">Aucun résultat ne correspond à vos critères de recherche</div>
-                                    <?php if (!empty($_GET['search']) || !empty($_GET['niveau'])): ?>
-                                        <a href="?page=dossiers_academiques"
-                                            class="text-green-600 hover:text-green-700 font-medium">
-                                            <i class="fas fa-times mr-1"></i>Effacer les filtres
-                                        </a>
-                                    <?php endif; ?>
-                                </div>
+                            <td colspan="6" class="empty-state">
+                                <i class="fas fa-search"></i>
+                                <p class="empty-state-title">Aucun étudiant trouvé</p>
+                                <p class="empty-state-text">Aucun résultat ne correspond à vos critères de recherche</p>
+                                <?php if (!empty($_GET['search']) || !empty($_GET['niveau'])): ?>
+                                    <a href="?page=dossiers_academiques" class="btn btn-ghost">
+                                        <i class="fas fa-times"></i> Effacer les filtres
+                                    </a>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($etudiants as $etu): ?>
-                            <tr class="hover:bg-green-50 transition">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    <?php echo htmlspecialchars($etu->nom_etu ?? ''); ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                    <?php echo htmlspecialchars($etu->prenom_etu ?? ''); ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                    <?php echo htmlspecialchars($etu->email_etu ?? ''); ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                    <?php echo htmlspecialchars($etu->lib_niv_etude ?? ''); ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"><?php
+                            <tr>
+                                <td><?php echo htmlspecialchars($etu->nom_etu ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($etu->prenom_etu ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($etu->email_etu ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($etu->lib_niv_etude ?? ''); ?></td>
+                                <td><?php
                                 if (isset($etu->date_deb, $etu->date_fin)) {
                                     echo htmlspecialchars(date('Y', strtotime($etu->date_deb)) . '-' . date('Y', strtotime($etu->date_fin)));
                                 }
                                 ?></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <button
-                                        class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-green-700 transition open-dossier-modal"
+                                <td class="text-center">
+                                    <button class="btn btn-primary open-dossier-modal"
                                         data-num-etu="<?= htmlspecialchars($etu->num_etu) ?>"
                                         data-nom="<?= htmlspecialchars($etu->nom_etu . ' ' . $etu->prenom_etu) ?>">
-                                        <i class="fas fa-eye mr-2"></i> Visualiser le dossier
+                                        <i class="fas fa-eye"></i> Visualiser le dossier
                                     </button>
                                 </td>
                             </tr>
@@ -178,150 +155,144 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                 </tbody>
             </table>
         </div>
-
-        <!-- Pagination -->
-        <?php if ($totalPages > 1): ?>
-            <div class="mt-6 flex items-center justify-between">
-                <div class="text-sm text-gray-700">
-                    Affichage de <?= $offset + 1 ?> à <?= min($offset + $itemsPerPage, $totalItems) ?> sur
-                    <?= $totalItems ?> étudiants
-                </div>
-                <div class="flex items-center gap-2">
-                    <?php if ($currentPage > 1): ?>
-                        <a href="?page=dossiers_academiques&p=<?= $currentPage - 1 ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
-                            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                            <i class="fas fa-chevron-left mr-1"></i>Précédent
-                        </a>
-                    <?php endif; ?>
-
-                    <?php
-                    $startPage = max(1, $currentPage - 2);
-                    $endPage = min($totalPages, $currentPage + 2);
-
-                    if ($startPage > 1): ?>
-                        <a href="?page=dossiers_academiques&p=1<?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
-                            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">1</a>
-                        <?php if ($startPage > 2): ?>
-                            <span class="px-3 py-2 text-sm text-gray-500">...</span>
-                        <?php endif; ?>
-                    <?php endif; ?>
-
-                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
-                        <a href="?page=dossiers_academiques&p=<?= $i ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
-                            class="px-3 py-2 text-sm font-medium <?= $i == $currentPage ? 'text-white bg-green-600 border-green-600' : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50' ?> border rounded-md">
-                            <?= $i ?>
-                        </a>
-                    <?php endfor; ?>
-
-                    <?php if ($endPage < $totalPages): ?>
-                        <?php if ($endPage < $totalPages - 1): ?>
-                            <span class="px-3 py-2 text-sm text-gray-500">...</span>
-                        <?php endif; ?>
-                        <a href="?page=dossiers_academiques&p=<?= $totalPages ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
-                            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50"><?= $totalPages ?></a>
-                    <?php endif; ?>
-
-                    <?php if ($currentPage < $totalPages): ?>
-                        <a href="?page=dossiers_academiques&p=<?= $currentPage + 1 ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
-                            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                            Suivant<i class="fas fa-chevron-right ml-1"></i>
-                        </a>
-                    <?php endif; ?>
-                </div>
-            </div>
-        <?php endif; ?>
     </div>
-    <div id="dossierModal" class="fixed inset-0 z-50 flex items-center justify-center bg-opacity-40 hidden">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 relative overflow-y-auto max-h-[90vh]">
-            <button id="closeModalBtn" class="absolute top-4 left-4  text-gray-500 flex items-center justify-center"><i
-                    class="fas fa-times text-lg"></i></button>
-            <h2 class="text-2xl font-bold mb-6 text-green-700 text-center">Dossier académique de <span
-                    id="modalNom"></span></h2>
 
-            <!-- Indicateur de chargement -->
-            <div id="loadingIndicator" class="hidden flex items-center justify-center py-8">
-                <div class="flex items-center gap-3 text-green-600">
-                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
-                    <span class="font-medium">Chargement des données...</span>
-                </div>
+    <!-- Pagination -->
+    <?php if ($totalPages > 1): ?>
+        <div class="pagination">
+            <div class="pagination-info">
+                Affichage de <?= $offset + 1 ?> à <?= min($offset + $itemsPerPage, $totalItems) ?> sur
+                <?= $totalItems ?> étudiants
             </div>
+            <div class="pagination-controls">
+                <?php if ($currentPage > 1): ?>
+                    <a href="?page=dossiers_academiques&p=<?= $currentPage - 1 ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
+                        class="btn btn-ghost">
+                        <i class="fas fa-chevron-left"></i> Précédent
+                    </a>
+                <?php endif; ?>
 
-            <form id="dossierForm" method="POST" action="?page=dossiers_academiques&action=enregistrer_dossier">
-                <input type="hidden" name="num_etu" id="modalNumEtu">
-                <!-- Informations personnelles -->
-                <div class="mb-6">
-                    <h3 class="font-semibold text-green-600 mb-3 text-base flex items-center gap-2"><i
-                            class="fas fa-user"></i> Informations personnelles</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-gray-700">Adresse</label>
-                            <input type="text" name="adresse" id="modalAdresse"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
-                                disabled>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Téléphone</label>
-                            <input type="tel" name="telephone" id="modalTelephone"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
-                                disabled>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Nationalité</label>
-                            <input type="text" name="nationalite" id="modalNationalite"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
-                                disabled>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Situation familiale</label>
-                            <input type="text" name="situation_familiale" id="modalSituationFamiliale"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
-                                disabled>
-                        </div>
-                    </div>
-                </div>
-                <hr class="my-4 border-gray-200">
-                <!-- Informations académiques -->
-                <div class="mb-6">
-                    <h3 class="font-semibold text-blue-600 mb-3 text-base flex items-center gap-2"><i
-                            class="fas fa-graduation-cap"></i> Informations académiques</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-gray-700">Dernier diplôme</label>
-                            <input type="text" name="dernier_diplome" id="modalDernierDiplome"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
-                                disabled>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Établissement d'origine</label>
-                            <input type="text" name="etablissement_origine" id="modalEtablissementOrigine"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
-                                disabled>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Année d'obtention du diplôme</label>
-                            <input type="number" name="annee_obtention_diplome" id="modalAnneeObtentionDiplome"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
-                                min="1900" max="2030" placeholder="Ex: 2023" disabled>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Mention du diplôme</label>
-                            <input type="text" name="mention_diplome" id="modalMentionDiplome"
-                                class="w-full border border-gray-300 rounded px-3 py-2 focus:border-green-500 focus:ring-green-500"
-                                disabled>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex gap-4 mt-6">
-                    <?php if (canEdit()): ?>
-                    <button type="button" id="editBtn"
-                        class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Modifier</button>
-                    <button type="submit" id="saveBtn"
-                        class="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700">Enregistrer</button>
+                <?php
+                $startPage = max(1, $currentPage - 2);
+                $endPage = min($totalPages, $currentPage + 2);
+
+                if ($startPage > 1): ?>
+                    <a href="?page=dossiers_academiques&p=1<?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
+                        class="btn btn-ghost">1</a>
+                    <?php if ($startPage > 2): ?>
+                        <span>...</span>
                     <?php endif; ?>
-                </div>
-            </form>
+                <?php endif; ?>
+
+                <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                    <a href="?page=dossiers_academiques&p=<?= $i ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
+                        class="btn <?= $i == $currentPage ? 'btn-primary' : 'btn-ghost' ?>">
+                        <?= $i ?>
+                    </a>
+                <?php endfor; ?>
+
+                <?php if ($endPage < $totalPages): ?>
+                    <?php if ($endPage < $totalPages - 1): ?>
+                        <span>...</span>
+                    <?php endif; ?>
+                    <a href="?page=dossiers_academiques&p=<?= $totalPages ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
+                        class="btn btn-ghost"><?= $totalPages ?></a>
+                <?php endif; ?>
+
+                <?php if ($currentPage < $totalPages): ?>
+                    <a href="?page=dossiers_academiques&p=<?= $currentPage + 1 ?><?= !empty($searchFiltre) ? '&search=' . urlencode($searchFiltre) : '' ?><?= !empty($niveauFiltre) ? '&niveau=' . urlencode($niveauFiltre) : '' ?>"
+                        class="btn btn-ghost">
+                        Suivant <i class="fas fa-chevron-right"></i>
+                    </a>
+                <?php endif; ?>
+            </div>
         </div>
+    <?php endif; ?>
+</div>
+
+<!-- Modal -->
+<div id="dossierModal" class="modal">
+    <div class="modal-content">
+        <button id="closeModalBtn" class="modal-close">
+            <i class="fas fa-times"></i>
+        </button>
+        <h2 class="modal-title">Dossier académique de <span id="modalNom"></span></h2>
+
+        <!-- Indicateur de chargement -->
+        <div id="loadingIndicator" class="skeleton" style="display: none;">
+            <div class="skeleton-loader"></div>
+            <span>Chargement des données...</span>
+        </div>
+
+        <form id="dossierForm" method="POST" action="?page=dossiers_academiques&action=enregistrer_dossier">
+            <input type="hidden" name="num_etu" id="modalNumEtu">
+            
+            <!-- Informations personnelles -->
+            <div class="form-section">
+                <h3 class="form-section-title">
+                    <i class="fas fa-user"></i> Informations personnelles
+                </h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Adresse</label>
+                        <input type="text" name="adresse" id="modalAdresse" class="form-control" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Téléphone</label>
+                        <input type="tel" name="telephone" id="modalTelephone" class="form-control" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nationalité</label>
+                        <input type="text" name="nationalite" id="modalNationalite" class="form-control" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Situation familiale</label>
+                        <input type="text" name="situation_familiale" id="modalSituationFamiliale" class="form-control" disabled>
+                    </div>
+                </div>
+            </div>
+
+            <div class="separator"></div>
+
+            <!-- Informations académiques -->
+            <div class="form-section">
+                <h3 class="form-section-title">
+                    <i class="fas fa-graduation-cap"></i> Informations académiques
+                </h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Dernier diplôme</label>
+                        <input type="text" name="dernier_diplome" id="modalDernierDiplome" class="form-control" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Établissement d'origine</label>
+                        <input type="text" name="etablissement_origine" id="modalEtablissementOrigine" class="form-control" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Année d'obtention du diplôme</label>
+                        <input type="number" name="annee_obtention_diplome" id="modalAnneeObtentionDiplome" 
+                            class="form-control" min="1900" max="2030" placeholder="Ex: 2023" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mention du diplôme</label>
+                        <input type="text" name="mention_diplome" id="modalMentionDiplome" class="form-control" disabled>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <?php if (canEdit()): ?>
+                <button type="button" id="editBtn" class="btn btn-secondary">
+                    <i class="fas fa-edit"></i> Modifier
+                </button>
+                <button type="submit" id="saveBtn" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+                <?php endif; ?>
+            </div>
+        </form>
     </div>
+</div>
     <script>
         // Masquer automatiquement les messages de succès/erreur après 5 secondes
         document.addEventListener('DOMContentLoaded', function () {
@@ -365,23 +336,22 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                 const nom = this.dataset.nom;
 
                 // Affiche la modal immédiatement
-                document.getElementById('dossierModal').classList.remove('hidden');
+                document.getElementById('dossierModal').style.display = 'flex';
                 document.getElementById('modalNom').textContent = nom;
                 document.getElementById('modalNumEtu').value = numEtu;
 
                 // Affiche l'indicateur de chargement
-                document.getElementById('loadingIndicator').classList.remove('hidden');
-                document.getElementById('dossierForm').classList.add('hidden');
+                document.getElementById('loadingIndicator').style.display = 'flex';
+                document.getElementById('dossierForm').style.display = 'none';
 
                 // Désactive les champs
                 document.querySelectorAll('#dossierForm input, #dossierForm textarea').forEach(i => {
                     if (i.type !== 'hidden' && i.type !== 'file') i.disabled = true;
                 });
-                document.getElementById('saveBtn').classList.add('hidden');
-                document.getElementById('editBtn').classList.remove('hidden');
+                document.getElementById('saveBtn').style.display = 'none';
+                document.getElementById('editBtn').style.display = 'inline-flex';
                 // Cache les inputs file
-                document.querySelectorAll('#dossierForm input[type=file]').forEach(i => i.style.display =
-                    'none');
+                document.querySelectorAll('#dossierForm input[type=file]').forEach(i => i.style.display = 'none');
 
                 // Charge les infos via AJAX avec timeout
                 const controller = new AbortController();
@@ -398,8 +368,8 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                     })
                     .then(data => {
                         // Cache l'indicateur de chargement
-                        document.getElementById('loadingIndicator').classList.add('hidden');
-                        document.getElementById('dossierForm').classList.remove('hidden');
+                        document.getElementById('loadingIndicator').style.display = 'none';
+                        document.getElementById('dossierForm').style.display = 'block';
 
                         // Remplit les champs avec les données existantes
                         document.getElementById('modalAdresse').value = data.adresse || '';
@@ -421,8 +391,8 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                         console.log('Aucun dossier existant pour cet étudiant ou erreur de chargement');
 
                         // Cache l'indicateur de chargement
-                        document.getElementById('loadingIndicator').classList.add('hidden');
-                        document.getElementById('dossierForm').classList.remove('hidden');
+                        document.getElementById('loadingIndicator').style.display = 'none';
+                        document.getElementById('dossierForm').style.display = 'block';
 
                         // Vide les champs si pas de dossier existant
                         document.getElementById('modalAdresse').value = '';
@@ -435,22 +405,19 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                         document.getElementById('modalMentionDiplome').value = '';
                     });
             });
-
-            document.getElementById('closeModalBtn').onclick = () => document.getElementById('dossierModal')
-                .classList.add(
-                    'hidden');
-            document.getElementById('editBtn').onclick = function () {
-                document.querySelectorAll('#dossierForm input, #dossierForm textarea').forEach(i => {
-                    if (i.type !== 'hidden') i.disabled = false;
-                });
-                // Affiche les inputs file
-                document.querySelectorAll('#dossierForm input[type=file]').forEach(i => i.style.display =
-                    'block');
-                document.getElementById('saveBtn').classList.remove('hidden');
-                this.classList.add('hidden');
-            };
         });
-    </script>
-</body>
 
-</html>
+        document.getElementById('closeModalBtn').onclick = () => {
+            document.getElementById('dossierModal').style.display = 'none';
+        };
+
+        document.getElementById('editBtn').onclick = function () {
+            document.querySelectorAll('#dossierForm input, #dossierForm textarea').forEach(i => {
+                if (i.type !== 'hidden') i.disabled = false;
+            });
+            // Affiche les inputs file
+            document.querySelectorAll('#dossierForm input[type=file]').forEach(i => i.style.display = 'block');
+            document.getElementById('saveBtn').style.display = 'inline-flex';
+            this.style.display = 'none';
+        };
+    </script>
