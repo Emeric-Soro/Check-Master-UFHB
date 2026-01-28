@@ -649,6 +649,7 @@ $isEditable = function_exists('canEdit') ? (bool)canEdit() : true;
     </div>
 
     <script>
+(function() {
         const pageSlug = "<?php echo htmlspecialchars($pageSlug); ?>";
             const typeSelect = document.getElementById('typeSelect');
             const groupSelect = document.getElementById('groupSelect');

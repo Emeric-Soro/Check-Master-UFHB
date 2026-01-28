@@ -82,6 +82,7 @@ class ArchiveController
     /**
      * Display student detail file
      */
+    #[NoReturn]
     public function viewStudentFile()
     {
         try {
@@ -119,6 +120,7 @@ class ArchiveController
     /**
      * Update student file
      */
+    #[NoReturn]
     public function updateStudentFile()
     {
         try {
@@ -192,6 +194,7 @@ class ArchiveController
     /**
      * Handle file import
      */
+    #[NoReturn]
     public function importArchive()
     {
         try {
@@ -267,7 +270,7 @@ class ArchiveController
                     $_SESSION['id_utilisateur'],
                     'Import',
                     'Archive',
-                    $summary['total_errors'] > 0 ? 'Succès' : 'Succès'
+                    $summary['total_errors'] > 0 ? 'Erreur' : 'Succès'
                 );
             }
             
@@ -294,6 +297,7 @@ class ArchiveController
     /**
      * Display import results
      */
+    #[NoReturn]
     public function showImportResult()
     {
         $summary = $_SESSION['import_summary'] ?? null;
@@ -316,6 +320,7 @@ class ArchiveController
     /**
      * Export history data (future enhancement)
      */
+    #[NoReturn]
     public function exportHistory()
     {
         // TODO: Implement export functionality

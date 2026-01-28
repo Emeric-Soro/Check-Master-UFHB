@@ -182,15 +182,8 @@ class GestionEtudiantController
                 // Suppression d'étudiants
                 if (isset($_POST['selected_ids']) && !empty($_POST['selected_ids'])) {
                     $success = true;
-                    $etudiantsSupprimes = [];
                     
                     foreach ($_POST['selected_ids'] as $num_etu) {
-                        // Récupérer les informations de l'étudiant avant suppression
-                        $etudiant = $this->etudiant->getEtudiantById($num_etu);
-                        if ($etudiant) {
-                            $etudiantsSupprimes[] = "{$etudiant->nom_etu} {$etudiant->prenom_etu} ($num_etu)";
-                        }
-                        
                         if (!$this->etudiant->supprimerEtudiant($num_etu)) {
                             $success = false;
                             break;
@@ -205,7 +198,7 @@ class GestionEtudiantController
                         }
                     } else {
                         $GLOBALS['messageErreur'] = "Erreur lors de la suppression des étudiants.";
-                       
+                        
                     }
                 }
             }

@@ -10,7 +10,6 @@ require_once __DIR__ . "/../models/AuditLog.php";
 
 class GestionRhController
 {
-    private $baseViewPath;
     private $enseignantModel;
     private $persAdminModel;
     private $gradeModel;
@@ -20,7 +19,6 @@ class GestionRhController
 
     public function __construct()
     {
-        $this->baseViewPath = __DIR__ . '/../../ressources/views/gestion_rh_content.php';
         $this->enseignantModel = new Enseignant(Database::getConnection());
         $this->persAdminModel = new PersAdmin(Database::getConnection());
         $this->gradeModel = new Grade(Database::getConnection());
@@ -100,7 +98,7 @@ class GestionRhController
 
         }
         // Gestion du personnel administratif
-        else if (isset($_GET['tab']) && $_GET['tab'] === 'pers_admin') {
+        elseif (isset($_GET['tab']) && $_GET['tab'] === 'pers_admin') {
             // Ajout ou modification d'un membre du personnel
             if (isset($_POST['btn_add_pers_admin']) || isset($_POST['btn_modifier_pers_admin'])) {
                 $nom = $_POST['nom'] ?? '';

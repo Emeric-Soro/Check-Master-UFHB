@@ -11,26 +11,26 @@ class ExcelImportService
     private $successes = [];
 
     // Column mapping (0-indexed)
-    const COL_ANNEE_ACAD = 0;
-    const COL_MATRICULE = 1;
-    const COL_NOM = 2;
-    const COL_PRENOMS = 3;
-    const COL_THEME = 4;
-    const COL_ENTREPRISE = 5;
-    const COL_MAITRE_STAGE = 6;
-    const COL_ENCADREUR_PEDA = 7;
-    const COL_DIRECTEUR_MEMOIRE = 8;
-    const COL_DATE_COMMISSION = 9;
-    const COL_AVIS_COMMISSION = 10;
-    const COL_OBSERVATIONS = 11;
-    const COL_DATE_SOUTENANCE = 12;
-    const COL_HEURE = 13;
-    const COL_SALLE = 14;
-    const COL_PRESIDENT_JURY = 15;
-    const COL_EXAMINATEUR = 16;
-    const COL_NOTE_MEMOIRE = 17;
-    const COL_MOYENNE_M1 = 18;
-    const COL_MOYENNE_M2_S1 = 19;
+    public const COL_ANNEE_ACAD = 0;
+    public const COL_MATRICULE = 1;
+    public const COL_NOM = 2;
+    public const COL_PRENOMS = 3;
+    public const COL_THEME = 4;
+    public const COL_ENTREPRISE = 5;
+    public const COL_MAITRE_STAGE = 6;
+    public const COL_ENCADREUR_PEDA = 7;
+    public const COL_DIRECTEUR_MEMOIRE = 8;
+    public const COL_DATE_COMMISSION = 9;
+    public const COL_AVIS_COMMISSION = 10;
+    public const COL_OBSERVATIONS = 11;
+    public const COL_DATE_SOUTENANCE = 12;
+    public const COL_HEURE = 13;
+    public const COL_SALLE = 14;
+    public const COL_PRESIDENT_JURY = 15;
+    public const COL_EXAMINATEUR = 16;
+    public const COL_NOTE_MEMOIRE = 17;
+    public const COL_MOYENNE_M1 = 18;
+    public const COL_MOYENNE_M2_S1 = 19;
 
     public function __construct($db)
     {

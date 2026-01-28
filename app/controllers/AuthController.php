@@ -80,7 +80,7 @@ class AuthController {
                         $_SESSION['date_grade'] = $enseignant->date_grade;
                         $_SESSION['date_fonction'] = $enseignant->date_occupation;
                     }
-                } else if ($type_utilisateur === 'Personnel administratif') {
+                } elseif ($type_utilisateur === 'Personnel administratif') {
                     // Récupérer les informations du personnel administratif
                     $persAdmin = $this->persAdminModel->getPersAdminByLogin($infoUtilisateur['login_utilisateur']);
                     if ($persAdmin) {

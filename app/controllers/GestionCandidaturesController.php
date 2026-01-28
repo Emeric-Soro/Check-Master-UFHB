@@ -276,7 +276,7 @@ class GestionCandidaturesController {
         $studentName = $etudiant['prenom_etu'] . ' ' . $etudiant['nom_etu'];
         
         // Utiliser le service EmailService avec PHPMailer
-        return $this->emailService->sendResultEmail($etudiant['email_etu'], $studentName, $resume, $decision);
+        $this->emailService->sendResultEmail($etudiant['email_etu'], $studentName, $resume, $decision);
     }
 
     // Nouvelle méthode pour récupérer le résumé de candidature
