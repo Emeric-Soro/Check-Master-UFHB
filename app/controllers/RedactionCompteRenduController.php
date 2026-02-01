@@ -101,30 +101,50 @@ class RedactionCompteRenduController {
             if (!class_exists('Dompdf\\Dompdf')) {
                 throw new \Exception('Dompdf n\'est pas installé.');
             }
+            
             $contenu = $_POST['contenu_CR'] ?? '';
             $nom_CR = $_POST['nom_CR'] ?? 'compte_rendu';
+            
             if (empty($contenu)) {
                 throw new \Exception('Le contenu du compte rendu est vide.');
             }
-            $html = '<html><head><meta charset="UTF-8"><style>body{font-family:Times New Roman,serif;line-height:1.6;margin:40px;}</style></head><body>' . $contenu . '</body></html>';
-            $dompdf = new \Dompdf\Dompdf();
+
+            // Si le contenu est déjà un HTML complet, l'utiliser directement
+            if (strpos($contenu, '<!DOCTYPE html>') !== false || strpos($contenu, '<html') !== false) {
+                $html = $contenu;
+            } else {
+                // Sinon, envelopper le contenu dans un HTML basique
+                $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:"Times New Roman",serif;line-height:1.6;margin:40px;}</style></head><body>' . $contenu . '</body></html>';
+            }
+
+            // Configuration DOMPDF optimisée
+            $options = new \Dompdf\Options();
+            $options->set('isRemoteEnabled', true);
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('defaultFont', 'Times New Roman');
+            $options->set('chroot', __DIR__ . '/../../');
+
+            $dompdf = new \Dompdf\Dompdf($options);
             $dompdf->loadHtml($html);
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
+            
             $pdf = $dompdf->output();
             $pdfName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nom_CR) . '.pdf';
+            
             header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="' . $pdfName . '"');
+            header('Content-Disposition: inline; filename="' . $pdfName . '"');
             header('Cache-Control: private, max-age=0, must-revalidate');
             header('Pragma: public');
+            header('Content-Length: ' . strlen($pdf));
+            
             echo $pdf;
             exit;
         } catch (\Exception $e) {
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors de la génération du PDF : ' . $e->getMessage()
-            ]);
+            header('Content-Type: text/html; charset=utf-8');
+            echo '<h1>Erreur lors de la génération du PDF</h1>';
+            echo '<p>' . htmlspecialchars($e->getMessage()) . '</p>';
+            echo '<p><a href="javascript:history.back()">Retour</a></p>';
             exit;
         }
     }

@@ -11,8 +11,8 @@ if (isset($_GET['page']) && $_GET['page'] === 'notes_resultats') {
 
 }
 
-// Route pour l'export PDF du relevé de notes
-if (isset($_GET['action']) && $_GET['action'] === 'export_pdf') {
+// Route pour l'export PDF du relevé de notes - CORRECTION: vérifier aussi la page
+if (isset($_GET['page']) && $_GET['page'] === 'notes_resultats' && isset($_GET['action']) && $_GET['action'] === 'export_pdf') {
     require_once __DIR__ . '/../../app/config/database.php';
     require_once __DIR__ . '/../../app/controllers/NotesResultatsController.php';
     $controller = new NotesResultatsController();

@@ -199,7 +199,7 @@
                     <strong>DATE DE NAISSANCE :</strong>
                     <?= htmlspecialchars($GLOBALS['selectedStudent']->date_naiss_etu) ?>
                     <strong style="margin-left:18px">PARCOURS :</strong> MIAGE<br>
-                    <strong>NIVEAU :</strong> <?= htmlspecialchars($GLOBALS['niveau']->lib_niv_etude ?? '') ?>
+                    <strong>NIVEAU :</strong> <?= htmlspecialchars($GLOBALS['niveau'] ?? '') ?>
                     <strong style="margin-left:18px">N° CARTE ETUDIANT :</strong>
                     <?= htmlspecialchars($GLOBALS['selectedStudent']->num_etu) ?>
                 </div>

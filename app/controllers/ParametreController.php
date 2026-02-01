@@ -1250,6 +1250,7 @@ class ParametreController
 
         // CSRF + droits (lecture seule si pas d'édition)
         $isEditable = function_exists('canEdit') ? (bool) canEdit() : true;
+        $isEditable = function_exists('canEdit') ? (bool) canEdit() : true;
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             if (!\CheckMaster\Core\Csrf::validate($_POST['csrf_token'] ?? null)) {
@@ -1271,12 +1272,22 @@ class ParametreController
                         'description_categorie' => trim((string) ($_POST['description_categorie'] ?? '')),
                         'icone_categorie' => trim((string) ($_POST['icone_categorie'] ?? '')),
                         'ordre_categorie' => (int) ($_POST['ordre_categorie'] ?? 0),
+                        'code_categorie' => strtoupper(trim((string) ($_POST['code_categorie'] ?? ''))),
+                        'lib_categorie' => trim((string) ($_POST['lib_categorie'] ?? '')),
+                        'description_categorie' => trim((string) ($_POST['description_categorie'] ?? '')),
+                        'icone_categorie' => trim((string) ($_POST['icone_categorie'] ?? '')),
+                        'ordre_categorie' => (int) ($_POST['ordre_categorie'] ?? 0),
                         'actif' => isset($_POST['actif']) ? 1 : 0,
                     ]);
                     $messageSuccess = 'Catégorie créée.';
                 } elseif ($op === 'update_category') {
                     $id = (int) ($_POST['id_categorie'] ?? 0);
+                    $id = (int) ($_POST['id_categorie'] ?? 0);
                     $categorieModel->updateCategorie($id, [
+                        'lib_categorie' => trim((string) ($_POST['lib_categorie'] ?? '')),
+                        'description_categorie' => trim((string) ($_POST['description_categorie'] ?? '')),
+                        'icone_categorie' => trim((string) ($_POST['icone_categorie'] ?? '')),
+                        'ordre_categorie' => (int) ($_POST['ordre_categorie'] ?? 0),
                         'lib_categorie' => trim((string) ($_POST['lib_categorie'] ?? '')),
                         'description_categorie' => trim((string) ($_POST['description_categorie'] ?? '')),
                         'icone_categorie' => trim((string) ($_POST['icone_categorie'] ?? '')),
@@ -1286,11 +1297,13 @@ class ParametreController
                     $messageSuccess = 'Catégorie mise à jour.';
                 } elseif ($op === 'deactivate_category') {
                     $id = (int) ($_POST['id_categorie'] ?? 0);
+                    $id = (int) ($_POST['id_categorie'] ?? 0);
                     // Soft-delete: désactiver la catégorie + ses fonctionnalités
                     $pdo->prepare("UPDATE categories_fonctionnalites SET actif = 0 WHERE id_categorie = ?")->execute([$id]);
                     $pdo->prepare("UPDATE fonctionnalites SET actif = 0 WHERE id_categorie = ?")->execute([$id]);
                     $messageSuccess = 'Catégorie désactivée.';
                 } elseif ($op === 'activate_category') {
+                    $id = (int) ($_POST['id_categorie'] ?? 0);
                     $id = (int) ($_POST['id_categorie'] ?? 0);
                     // Réactiver la catégorie + ses fonctionnalités (symétrique)
                     $pdo->prepare("UPDATE categories_fonctionnalites SET actif = 1 WHERE id_categorie = ?")->execute([$id]);
@@ -1305,11 +1318,20 @@ class ParametreController
                     $url = trim((string) ($_POST['url_fonctionnalite'] ?? '#'));
                     $icone = trim((string) ($_POST['icone_fonctionnalite'] ?? ''));
                     $ordre = (int) ($_POST['ordre_fonctionnalite'] ?? 0);
+                    $idCategorie = (int) ($_POST['id_categorie'] ?? 0);
+                    $type = (string) ($_POST['type_item'] ?? 'parent'); // parent | child
+                    $code = strtoupper(trim((string) ($_POST['code_fonctionnalite'] ?? '')));
+                    $label = trim((string) ($_POST['label_fonctionnalite'] ?? ''));
+                    $lib = trim((string) ($_POST['lib_fonctionnalite'] ?? $label));
+                    $url = trim((string) ($_POST['url_fonctionnalite'] ?? '#'));
+                    $icone = trim((string) ($_POST['icone_fonctionnalite'] ?? ''));
+                    $ordre = (int) ($_POST['ordre_fonctionnalite'] ?? 0);
                     $actif = isset($_POST['actif']) ? 1 : 0;
 
                     $estSousPage = $type === 'child' ? 1 : 0;
                     $pageParente = null;
                     if ($estSousPage) {
+                        $pageParente = trim((string) ($_POST['page_parente'] ?? ''));
                         $pageParente = trim((string) ($_POST['page_parente'] ?? ''));
                         if ($pageParente === '') {
                             throw new Exception('Pour créer un écran, il faut choisir un sous-menu parent.');
@@ -1321,6 +1343,7 @@ class ParametreController
                         'code_fonctionnalite' => $code,
                         'lib_fonctionnalite' => $lib,
                         'label_fonctionnalite' => $label,
+                        'description_fonctionnalite' => trim((string) ($_POST['description_fonctionnalite'] ?? '')),
                         'description_fonctionnalite' => trim((string) ($_POST['description_fonctionnalite'] ?? '')),
                         'url_fonctionnalite' => $url,
                         'icone_fonctionnalite' => $icone,
@@ -1334,9 +1357,13 @@ class ParametreController
                     $id = (int) ($_POST['id_fonctionnalite'] ?? 0);
                     $idCategorie = (int) ($_POST['id_categorie'] ?? 0);
                     $type = (string) ($_POST['type_item'] ?? 'parent');
+                    $id = (int) ($_POST['id_fonctionnalite'] ?? 0);
+                    $idCategorie = (int) ($_POST['id_categorie'] ?? 0);
+                    $type = (string) ($_POST['type_item'] ?? 'parent');
                     $estSousPage = $type === 'child' ? 1 : 0;
                     $pageParente = null;
                     if ($estSousPage) {
+                        $pageParente = trim((string) ($_POST['page_parente'] ?? ''));
                         $pageParente = trim((string) ($_POST['page_parente'] ?? ''));
                         if ($pageParente === '') {
                             throw new Exception('Pour un écran, le parent est obligatoire.');
@@ -1350,6 +1377,12 @@ class ParametreController
                         'url_fonctionnalite' => trim((string) ($_POST['url_fonctionnalite'] ?? '#')),
                         'icone_fonctionnalite' => trim((string) ($_POST['icone_fonctionnalite'] ?? '')),
                         'ordre_fonctionnalite' => (int) ($_POST['ordre_fonctionnalite'] ?? 0),
+                        'lib_fonctionnalite' => trim((string) ($_POST['lib_fonctionnalite'] ?? '')),
+                        'label_fonctionnalite' => trim((string) ($_POST['label_fonctionnalite'] ?? '')),
+                        'description_fonctionnalite' => trim((string) ($_POST['description_fonctionnalite'] ?? '')),
+                        'url_fonctionnalite' => trim((string) ($_POST['url_fonctionnalite'] ?? '#')),
+                        'icone_fonctionnalite' => trim((string) ($_POST['icone_fonctionnalite'] ?? '')),
+                        'ordre_fonctionnalite' => (int) ($_POST['ordre_fonctionnalite'] ?? 0),
                         'est_sous_page' => $estSousPage,
                         'page_parente' => $pageParente,
                         'actif' => isset($_POST['actif']) ? 1 : 0,
@@ -1357,9 +1390,11 @@ class ParametreController
                     $messageSuccess = 'Élément mis à jour.';
                 } elseif ($op === 'deactivate_fonctionnalite') {
                     $id = (int) ($_POST['id_fonctionnalite'] ?? 0);
+                    $id = (int) ($_POST['id_fonctionnalite'] ?? 0);
                     $pdo->prepare("UPDATE fonctionnalites SET actif = 0 WHERE id_fonctionnalite = ?")->execute([$id]);
                     $messageSuccess = 'Élément désactivé.';
                 } elseif ($op === 'activate_fonctionnalite') {
+                    $id = (int) ($_POST['id_fonctionnalite'] ?? 0);
                     $id = (int) ($_POST['id_fonctionnalite'] ?? 0);
                     $pdo->prepare("UPDATE fonctionnalites SET actif = 1 WHERE id_fonctionnalite = ?")->execute([$id]);
                     $messageSuccess = 'Élément réactivé.';
@@ -1377,12 +1412,15 @@ class ParametreController
         $tree = [];
         foreach ($categories as $c) {
             $tree[(int) $c->id_categorie] = [
-                'categorie' => $c,
-                'items' => [],
-                'parents' => [],
+                $tree[(int) $c->id_categorie] = [
+                    'categorie' => $c,
+                    'items' => [],
+                    'parents' => [],
+                ]
             ];
         }
         foreach ($fonctionnalites as $f) {
+            $cid = (int) ($f->id_categorie ?? 0);
             $cid = (int) ($f->id_categorie ?? 0);
             if (!isset($tree[$cid])) {
                 continue;
@@ -1397,6 +1435,8 @@ class ParametreController
                 $isSous = !empty($f->est_sous_page);
                 $code = (string) ($f->code_fonctionnalite ?? '');
                 $parentCode = (string) ($f->page_parente ?? '');
+                $code = (string) ($f->code_fonctionnalite ?? '');
+                $parentCode = (string) ($f->page_parente ?? '');
                 if ($isSous && $parentCode !== '') {
                     $childrenByParent[$parentCode] = $childrenByParent[$parentCode] ?? [];
                     $childrenByParent[$parentCode][] = $f;
@@ -1407,9 +1447,11 @@ class ParametreController
             foreach ($parentsByCode as $code => $p) {
                 $children = $childrenByParent[$code] ?? [];
                 usort($children, fn($a, $b) => ((int) ($a->ordre_fonctionnalite ?? 0)) <=> ((int) ($b->ordre_fonctionnalite ?? 0)));
+                usort($children, fn($a, $b) => ((int) ($a->ordre_fonctionnalite ?? 0)) <=> ((int) ($b->ordre_fonctionnalite ?? 0)));
                 $p->children = array_values($children);
             }
             $parents = array_values($parentsByCode);
+            usort($parents, fn($a, $b) => ((int) ($a->ordre_fonctionnalite ?? 0)) <=> ((int) ($b->ordre_fonctionnalite ?? 0)));
             usort($parents, fn($a, $b) => ((int) ($a->ordre_fonctionnalite ?? 0)) <=> ((int) ($b->ordre_fonctionnalite ?? 0)));
             $node['parents'] = $parents;
         }
@@ -1428,8 +1470,16 @@ class ParametreController
         $groupeId = $postData['id_GU'];
         $permissions = isset($postData['permissions']) ? $postData['permissions'] : [];
 
+        // DEBUG COMPLET
+        error_log("=== DÉBUT SAUVEGARDE PERMISSIONS ===");
+        error_log("Groupe modifié: $groupeId");
+        error_log("Nombre de permissions reçues: " . count($permissions));
+        error_log("Permissions POST: " . json_encode($permissions, JSON_PRETTY_PRINT));
+
         // CSRF
         if (!\CheckMaster\Core\Csrf::validate($postData['csrf_token'] ?? null)) {
+            error_log("❌ ERREUR CSRF - Abandon");
+            header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&error=csrf&_r=1');
             error_log("❌ ERREUR CSRF - Abandon");
             header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&error=csrf&_r=1');
             exit;
@@ -1483,6 +1533,7 @@ class ParametreController
             // Supprimer toutes les permissions existantes pour ce groupe
             $stmt = $conn->prepare("DELETE FROM permissions WHERE id_GU = ?");
             $stmt->execute([$groupeId]);
+            error_log("🗑️ Permissions supprimées pour groupe $groupeId");
 
             // Ajouter les nouvelles permissions avec granularité CRUD
             $stmt = $conn->prepare(
@@ -1490,6 +1541,7 @@ class ParametreController
                  VALUES (?, ?, ?, ?, ?, ?)"
             );
 
+            $insertCount = 0;
             foreach ($permissions as $fonctionnaliteId => $actions) {
                 // Si au moins une action est cochée, créer la permission
                 if (!empty($actions)) {
@@ -1508,9 +1560,14 @@ class ParametreController
                             $peutModifier,
                             $peutSupprimer
                         ]);
+                        $insertCount++;
+                        error_log("  ✅ Permission ajoutée: Fonc=$fonctionnaliteId V=$peutVoir C=$peutCreer M=$peutModifier S=$peutSupprimer");
                     }
                 }
             }
+
+            $conn->commit();
+            error_log("💾 Transaction validée: $insertCount permissions insérées pour groupe $groupeId");
 
             // Audit (statut enum strict)
             $this->auditLog->logAction(
@@ -1520,6 +1577,8 @@ class ParametreController
                 'Succès',
                 "Mise à jour permissions CRUD groupe={$groupeId}"
             );
+            // Rediriger avec un message de succès (avec flag _r=1 pour éviter la boucle de redirection)
+            header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&success=1&_r=1');
             // Rediriger avec un message de succès (avec flag _r=1 pour éviter la boucle de redirection)
             header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&success=1&_r=1');
             exit;
@@ -1539,6 +1598,8 @@ class ParametreController
                 'Erreur',
                 'Erreur attribution permissions CRUD: ' . $e->getMessage()
             );
+            // Rediriger avec un message d'erreur (avec flag _r=1)
+            header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&error=1&_r=1');
             // Rediriger avec un message d'erreur (avec flag _r=1)
             header('Location: ?page=parametres_generaux&action=gestion_attribution&groupe=' . $groupeId . '&error=1&_r=1');
             exit;

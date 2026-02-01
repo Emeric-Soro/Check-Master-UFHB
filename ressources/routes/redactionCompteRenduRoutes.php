@@ -7,6 +7,7 @@ if (isset($_GET['page']) && $_GET['page'] === 'redaction_compte_rendu') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_GET['action']) && $_GET['action'] === 'export_pdf') {
             $controller->exporterPDF();
+            exit; // S'assurer que le script s'arrête après l'export
         } else {
             $controller->enregistrer();
         }
