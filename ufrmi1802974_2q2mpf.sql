@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : mer. 11 fév. 2026 à 02:01
+-- Généré le : mer. 11 fév. 2026 à 15:14
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.3.6
 
@@ -195,7 +195,7 @@ CREATE TABLE IF NOT EXISTS `categories_fonctionnalites` (
     `date_creation` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id_categorie`),
     UNIQUE KEY `code_categorie` (`code_categorie`)
-) ENGINE = InnoDB AUTO_INCREMENT = 24 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 25 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `categories_fonctionnalites`
@@ -248,7 +248,7 @@ VALUES (
         'Administration plateforme',
         'Administration, paramètres, utilisateurs, audit, sauvegardes',
         'fas fa-tools',
-        4,
+        5,
         1,
         '2026-01-24 21:20:25'
     ),
@@ -258,9 +258,19 @@ VALUES (
         'Soutenance',
         'ce menu fais reference au soutenance',
         'fa-solid fa-user-graduate',
-        5,
+        4,
         1,
         '2026-02-05 23:35:33'
+    ),
+    (
+        24,
+        'PROFIL',
+        'Profil utilisateur',
+        'ce menu fais reference au profil de l\'utilisateur',
+        'fa-solid fa-circle-user',
+        6,
+        1,
+        '2026-02-11 15:04:46'
     );
 
 -- --------------------------------------------------------
@@ -584,7 +594,7 @@ CREATE TABLE IF NOT EXISTS `fonctionnalites` (
     PRIMARY KEY (`id_fonctionnalite`),
     UNIQUE KEY `code_fonctionnalite` (`code_fonctionnalite`),
     KEY `id_categorie` (`id_categorie`)
-) ENGINE = InnoDB AUTO_INCREMENT = 104 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 116 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `fonctionnalites`
@@ -607,21 +617,6 @@ INSERT INTO
         `date_creation`
     )
 VALUES (
-        1,
-        16,
-        'DASH_GLOBAL',
-        'Dashboard Global',
-        'Vue d\'ensemble',
-        NULL,
-        '?page=dashboard',
-        'fas fa-tachometer-alt',
-        1,
-        1,
-        'ADM_DASHBOARD',
-        1,
-        '2026-01-05 22:57:10'
-    ),
-    (
         2,
         15,
         'DASH_ENSEIGNANT',
@@ -633,66 +628,6 @@ VALUES (
         1,
         1,
         'COM_ESPACES',
-        1,
-        '2026-01-05 22:57:10'
-    ),
-    (
-        4,
-        16,
-        'DASH_SECRETAIRE',
-        'Dashboard Secrétaire',
-        'Gestion administrative',
-        NULL,
-        '?page=dashboard_secretaire',
-        'fas fa-user-tie',
-        2,
-        1,
-        'ADM_PARAMETRAGE',
-        1,
-        '2026-01-05 22:57:10'
-    ),
-    (
-        5,
-        15,
-        'DASH_COMMISSION',
-        'Dashboard Commission',
-        'Suivi commission',
-        NULL,
-        '?page=dashboard_commission',
-        'fas fa-users',
-        1,
-        1,
-        'COM_GESTION',
-        1,
-        '2026-01-05 22:57:10'
-    ),
-    (
-        19,
-        15,
-        'SOUT_PLANIFIER',
-        'Planifier Soutenance',
-        'Date/Heure/Salle',
-        NULL,
-        '?page=planification_soutenance',
-        'fas fa-calendar-check',
-        3,
-        1,
-        'COM_GESTION',
-        1,
-        '2026-01-05 22:57:10'
-    ),
-    (
-        20,
-        15,
-        'SOUT_EVALUER',
-        'Évaluer Soutenance',
-        'Grille évaluation',
-        NULL,
-        '?page=evaluation_soutenance',
-        'fas fa-star',
-        1,
-        1,
-        'COM_EVALUATION',
         1,
         '2026-01-05 22:57:10'
     ),
@@ -757,27 +692,12 @@ VALUES (
         '2026-01-05 22:57:10'
     ),
     (
-        29,
-        16,
-        'RH_GESTION',
-        'Gestion Personnel',
-        'Personnel',
-        NULL,
-        '?page=gestion_rh',
-        'fas fa-id-card',
-        1,
-        1,
-        'ADM_REFERENTIEL',
-        1,
-        '2026-01-05 22:57:10'
-    ),
-    (
         30,
         16,
         'PARAM_HUB',
         'Paramètres Généraux',
-        'Configuration',
-        NULL,
+        'Paramètres Géneraux',
+        '',
         '?page=parametres_generaux',
         'fas fa-cogs',
         1,
@@ -1107,12 +1027,12 @@ VALUES (
         'SYS_BACKUP',
         'Sauvegarde/Restauration',
         'Backup',
-        NULL,
+        '',
         '?page=sauvegarde_restauration',
         'fas fa-database',
+        3,
         1,
-        1,
-        'ADM_SYSTEME',
+        'ADM_SECURITE',
         1,
         '2026-01-05 22:57:10'
     ),
@@ -1121,105 +1041,15 @@ VALUES (
         16,
         'SYS_HISTORIQUE',
         'Historique et Archivage',
-        'Historique',
+        'Import de donées',
         'Historique et archivage des données',
         '?page=admin_historique',
         'fas fa-archive',
-        2,
+        4,
         1,
-        'ADM_SYSTEME',
+        'ADM_SECURITE',
         1,
         '2026-01-14 19:01:01'
-    ),
-    (
-        56,
-        15,
-        'RAPP_VALIDER',
-        'Rapports à Valider',
-        'Approuver rapports',
-        'Approuver les rapports des étudiants',
-        '?page=rapport_a_valider',
-        'fas fa-check-circle',
-        5,
-        0,
-        NULL,
-        1,
-        '2026-01-14 19:01:02'
-    ),
-    (
-        59,
-        15,
-        'CR_ARCH_MAIN',
-        'Archives Comptes Rendus',
-        'Archives CR',
-        'Archives des comptes rendus',
-        '?page=archive_comptes_rendus',
-        'fas fa-box-archive',
-        2,
-        1,
-        'COM_RAPPORTS',
-        1,
-        '2026-01-14 19:01:02'
-    ),
-    (
-        69,
-        15,
-        'COM_GESTION',
-        'Gestion commissions',
-        'Gestion commissions',
-        NULL,
-        '#',
-        'fas fa-users',
-        10,
-        0,
-        NULL,
-        1,
-        '2026-01-24 22:09:02'
-    ),
-    (
-        70,
-        15,
-        'COM_JURY',
-        'Jury',
-        'Jury',
-        NULL,
-        '#',
-        'fas fa-user-friends',
-        20,
-        0,
-        NULL,
-        1,
-        '2026-01-24 22:09:02'
-    ),
-    (
-        71,
-        15,
-        'COM_EVALUATION',
-        'Évaluation',
-        'Évaluation',
-        NULL,
-        '#',
-        'fas fa-star',
-        30,
-        0,
-        NULL,
-        1,
-        '2026-01-24 22:09:02'
-    ),
-    (
-        72,
-        15,
-        'COM_RAPPORTS',
-        'Rapports',
-        'Rapports',
-        NULL,
-        '#',
-        'fas fa-clipboard-check',
-        40,
-        0,
-        NULL,
-        1,
-        '2026-01-24 22:09:02'
     ),
     (
         73,
@@ -1242,10 +1072,10 @@ VALUES (
         'ADM_DASHBOARD',
         'Dashboard',
         'Dashboard',
-        NULL,
-        '#',
+        '',
+        '?page=dashboard',
         'fas fa-tachometer-alt',
-        10,
+        1,
         0,
         NULL,
         1,
@@ -1257,10 +1087,10 @@ VALUES (
         'ADM_PARAMETRAGE',
         'Paramétrage',
         'Paramétrage',
-        NULL,
+        '',
         '#',
         'fas fa-cogs',
-        20,
+        3,
         0,
         NULL,
         1,
@@ -1272,25 +1102,10 @@ VALUES (
         'ADM_SECURITE',
         'Sécurité',
         'Sécurité',
-        NULL,
+        '',
         '#',
         'fas fa-shield-alt',
-        30,
-        0,
-        NULL,
-        1,
-        '2026-01-24 22:09:02'
-    ),
-    (
-        77,
-        16,
-        'ADM_SYSTEME',
-        'Système',
-        'Système',
-        NULL,
-        '#',
-        'fas fa-server',
-        40,
+        4,
         0,
         NULL,
         1,
@@ -1302,10 +1117,10 @@ VALUES (
         'ADM_REFERENTIEL',
         'Référentiel',
         'Référentiel',
-        NULL,
+        '',
         '#',
         'fas fa-id-card',
-        50,
+        5,
         0,
         NULL,
         1,
@@ -1313,14 +1128,14 @@ VALUES (
     ),
     (
         79,
-        16,
+        24,
         'PROFIL',
         'Mon Profil',
-        'Profil utilisateur',
+        'Mon profil',
         'Consulter et modifier mon profil utilisateur, changer mon mot de passe',
         '?page=profil',
         'fas fa-user-circle',
-        99,
+        1,
         0,
         NULL,
         1,
@@ -1520,6 +1335,186 @@ VALUES (
         NULL,
         1,
         '2026-02-11 01:58:28'
+    ),
+    (
+        104,
+        15,
+        'COM_DASHBOARD',
+        'Tableau de bord commission',
+        'Tableau de bord commission',
+        '',
+        '?page=dashboard_commission',
+        'fa-solid fa-gauge-high',
+        1,
+        0,
+        NULL,
+        1,
+        '2026-02-11 13:43:57'
+    ),
+    (
+        105,
+        15,
+        'COM_GEST_RAPPORT',
+        'Gestion des rapports de stage',
+        'Gestion des rapports de stage',
+        '',
+        '',
+        'fa-solid fa-folder-open',
+        2,
+        0,
+        NULL,
+        1,
+        '2026-02-11 13:46:20'
+    ),
+    (
+        106,
+        15,
+        'COM_RECEPTION_RAPPORT',
+        'Reception des rapports de stage',
+        'Reception des rapports de stage',
+        '',
+        '?page=reception_rapport_com',
+        'fa-solid fa-inbox',
+        1,
+        1,
+        'COM_GEST_RAPPORT',
+        1,
+        '2026-02-11 13:48:25'
+    ),
+    (
+        107,
+        15,
+        'ANA_APP_RAPPORT',
+        'analyse et approbation des rapports',
+        'analyse et approbation des rapports',
+        '',
+        '?page=evaluation_dossiers',
+        'fa-solid fa-check-to-slot',
+        2,
+        1,
+        'COM_GEST_RAPPORT',
+        1,
+        '2026-02-11 14:19:22'
+    ),
+    (
+        108,
+        15,
+        'SUIVI_VALIDATION_COM',
+        'Suivi d\'avancement',
+        'Suivi d\'avancement',
+        '',
+        '?page=processus_validation',
+        'fa-solid fa-stamp',
+        3,
+        1,
+        'COM_GEST_RAPPORT',
+        1,
+        '2026-02-11 14:21:26'
+    ),
+    (
+        109,
+        15,
+        'COM_REDACTION_CR',
+        'redaction du CR',
+        'redaction du CR',
+        '',
+        '?=redaction_compte_rendu',
+        'fa-solid fa-file-pen',
+        3,
+        0,
+        NULL,
+        1,
+        '2026-02-11 14:26:39'
+    ),
+    (
+        110,
+        17,
+        'SOUT_COMPOS_JURY',
+        'Composition de jury',
+        'Composition de jury',
+        '',
+        '?=programmation_soutenance',
+        'fa-solid fa-users-line',
+        1,
+        0,
+        NULL,
+        1,
+        '2026-02-11 14:36:25'
+    ),
+    (
+        111,
+        17,
+        'SOUT_EVALUATION',
+        'Evaluation Soutenance',
+        'Evaluation Soutenance',
+        '',
+        '?page=evaluation_soutenance',
+        'fa-solid fa-pencil',
+        2,
+        0,
+        NULL,
+        1,
+        '2026-02-11 14:38:37'
+    ),
+    (
+        112,
+        17,
+        'SOUT_EDITION_BULLETIN',
+        'Edition des bulletins',
+        'Edition des bulletins',
+        '',
+        '?=edition_bulletin',
+        'fa-solid fa-file-circle-check',
+        3,
+        0,
+        NULL,
+        1,
+        '2026-02-11 14:43:15'
+    ),
+    (
+        113,
+        16,
+        'ADMIN_ANNEE_ACADEMIQUE',
+        'Ouverture/Fermeture AC',
+        'Ouverture/Fermeture AC',
+        '',
+        '?page=parametres_generaux&action=annees_academiques',
+        'fa-solid fa-calendar-day',
+        2,
+        0,
+        NULL,
+        1,
+        '2026-02-11 14:58:39'
+    ),
+    (
+        114,
+        16,
+        'MAJ_ENSEIGNANT',
+        'Mise a jour enseignant',
+        'Mise a jour enseignant',
+        '',
+        '?page=maj_enseignant',
+        'fa-solid fa-person-chalkboard',
+        1,
+        1,
+        'ADM_REFERENTIEL',
+        1,
+        '2026-02-11 15:01:43'
+    ),
+    (
+        115,
+        16,
+        'MAJ_PERSONNEL_ADMIN',
+        'mise a jour personnel administratif',
+        'mise a jour personnel administratif',
+        '',
+        '?page=maj_personnel_admin',
+        'fa-solid fa-user-tie',
+        2,
+        1,
+        'ADM_REFERENTIEL',
+        1,
+        '2026-02-11 15:02:57'
     );
 
 -- --------------------------------------------------------
@@ -1845,7 +1840,7 @@ CREATE TABLE IF NOT EXISTS `permissions` (
     PRIMARY KEY (`id_permission`),
     UNIQUE KEY `unique_permission` (`id_GU`, `id_fonctionnalite`),
     KEY `id_fonctionnalite` (`id_fonctionnalite`)
-) ENGINE = InnoDB AUTO_INCREMENT = 1679 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 1756 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `permissions`
@@ -1863,394 +1858,384 @@ INSERT INTO
         `date_attribution`
     )
 VALUES (
-        1640,
+        1718,
         5,
         93,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1641,
+        1719,
         5,
         94,
         1,
         0,
         0,
         0,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1642,
+        1720,
         5,
         95,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1643,
+        1721,
         5,
         96,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1644,
+        1722,
         5,
         97,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1645,
+        1723,
         5,
         98,
         1,
         0,
         0,
         0,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1646,
+        1724,
         5,
         99,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1647,
+        1725,
         5,
         100,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1648,
+        1726,
         5,
         101,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1649,
+        1727,
         5,
         91,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1650,
+        1728,
         5,
         102,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1651,
+        1729,
         5,
         103,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1652,
+        1730,
         5,
-        56,
+        104,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1653,
+        1731,
         5,
-        69,
+        105,
         1,
-        1,
-        1,
-        1,
-        '2026-02-11 01:59:43'
+        0,
+        0,
+        0,
+        '2026-02-11 15:07:14'
     ),
     (
-        1654,
+        1732,
         5,
-        5,
+        106,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1655,
+        1733,
         5,
-        19,
+        107,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1656,
+        1734,
         5,
-        70,
+        108,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1657,
+        1735,
         5,
-        71,
+        109,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1658,
-        5,
-        20,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 01:59:43'
-    ),
-    (
-        1659,
-        5,
-        72,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 01:59:43'
-    ),
-    (
-        1660,
-        5,
-        59,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 01:59:43'
-    ),
-    (
-        1661,
+        1736,
         5,
         73,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1662,
+        1737,
         5,
         2,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1663,
+        1738,
+        5,
+        110,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-11 15:07:14'
+    ),
+    (
+        1739,
+        5,
+        111,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-11 15:07:14'
+    ),
+    (
+        1740,
+        5,
+        112,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-11 15:07:14'
+    ),
+    (
+        1741,
         5,
         74,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1664,
+        1742,
         5,
+        113,
         1,
         1,
         1,
         1,
-        1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1665,
+        1743,
         5,
         75,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1666,
+        1744,
         5,
         30,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1667,
-        5,
-        4,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 01:59:43'
-    ),
-    (
-        1668,
+        1745,
         5,
         81,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1669,
+        1746,
         5,
         76,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1670,
+        1747,
         5,
         50,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1671,
+        1748,
         5,
         51,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1672,
-        5,
-        77,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 01:59:43'
-    ),
-    (
-        1673,
+        1749,
         5,
         52,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1674,
+        1750,
         5,
         55,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1675,
+        1751,
         5,
         78,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1676,
+        1752,
         5,
-        29,
+        114,
         1,
         1,
         1,
         1,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     ),
     (
-        1677,
+        1753,
+        5,
+        115,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-11 15:07:14'
+    ),
+    (
+        1754,
         5,
         79,
         1,
         1,
         1,
-        0,
-        '2026-02-11 01:59:43'
+        1,
+        '2026-02-11 15:07:14'
     ),
     (
-        1678,
+        1755,
         5,
         38,
         1,
         0,
         1,
         0,
-        '2026-02-11 01:59:43'
+        '2026-02-11 15:07:14'
     );
 
 -- --------------------------------------------------------
@@ -2295,7 +2280,7 @@ CREATE TABLE IF NOT EXISTS `pister` (
     KEY `idx_utilisateur_action` (`id_utilisateur`, `action`),
     KEY `id_action` (`action`),
     KEY `id_action_2` (`action`)
-) ENGINE = InnoDB AUTO_INCREMENT = 15 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 21 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `pister`
@@ -2421,6 +2406,54 @@ VALUES (
         'Succès',
         'permissions',
         '2026-02-11 01:59:43'
+    ),
+    (
+        15,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-11 13:41:14'
+    ),
+    (
+        16,
+        5,
+        'Modification',
+        'Succès',
+        'permissions',
+        '2026-02-11 14:46:13'
+    ),
+    (
+        17,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-11 14:51:13'
+    ),
+    (
+        18,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-11 14:52:15'
+    ),
+    (
+        19,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-11 14:52:18'
+    ),
+    (
+        20,
+        5,
+        'Modification',
+        'Succès',
+        'permissions',
+        '2026-02-11 15:07:14'
     );
 
 -- --------------------------------------------------------
