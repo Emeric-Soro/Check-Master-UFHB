@@ -117,7 +117,7 @@ class DashboardCommissionController
             $stmt = Database::getConnection()->prepare($query);
             $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if ($result['total'] > 0) {
                 return round(($result['valides'] / $result['total']) * 100, 1);
             }
@@ -272,7 +272,7 @@ class DashboardCommissionController
                         ens.prenom_enseignant
                       FROM valider v
                       LEFT JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                      LEFT JOIN etudiants e ON r.num_etu = e.num_etu
+                      LEFT JOIN etudiants e ON r.num_etu = e.num_carte_etud
                       LEFT JOIN enseignants ens ON v.id_enseignant = ens.id_enseignant
                       ORDER BY v.date_validation DESC
                       LIMIT 10";
@@ -305,7 +305,7 @@ class DashboardCommissionController
                         DATEDIFF(v.date_validation, r.date_rapport) as temps_traitement
                       FROM valider v
                       LEFT JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                      LEFT JOIN etudiants e ON r.num_etu = e.num_etu
+                      LEFT JOIN etudiants e ON r.num_etu = e.num_carte_etud
                       LEFT JOIN enseignants ens ON v.id_enseignant = ens.id_enseignant
                       ORDER BY v.date_validation DESC
                       LIMIT 20";
@@ -318,7 +318,7 @@ class DashboardCommissionController
         }
     }
 
-  
+
 
     /**
      * Affiche le tableau de bord
@@ -327,11 +327,11 @@ class DashboardCommissionController
     {
         try {
             $dashboardData = $this->getDashboardData();
-            
+
             // Passer les données à la vue
             global $stats;
             $stats = $dashboardData;
-            
+
         } catch (Exception $e) {
             error_log("Erreur dans index: " . $e->getMessage());
             // En cas d'erreur, utiliser des données par défaut
@@ -350,4 +350,4 @@ class DashboardCommissionController
             ];
         }
     }
-} 
+}

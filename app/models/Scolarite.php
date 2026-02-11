@@ -48,7 +48,7 @@ class Scolarite
     // Récupérer les étudiants non inscrits
     public function getEtudiantsNonInscrits()
     {
-        $query = "SELECT num_etu, nom_etu, prenom_etu FROM etudiants WHERE num_etu NOT IN (SELECT id_etudiant FROM inscriptions)";
+        $query = "SELECT num_carte_etud as num_etu, nom_etu, prenom_etu FROM etudiants WHERE num_carte_etud NOT IN (SELECT id_etudiant FROM inscriptions)";
         $stmt = $this->db->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -57,7 +57,7 @@ class Scolarite
     // Récupérer les informations d'un étudiant
     public function getInfoEtudiant($numEtu)
     {
-        $query = "SELECT num_etu, nom_etu, prenom_etu FROM etudiants WHERE num_etu = ?";
+        $query = "SELECT num_carte_etud as num_etu, nom_etu, prenom_etu FROM etudiants WHERE num_carte_etud = ?";
         $stmt = $this->db->prepare($query);
         $stmt->execute([$numEtu]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -209,7 +209,7 @@ class Scolarite
            FROM inscriptions i 
            JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude 
            JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad 
-           JOIN etudiants e ON i.id_etudiant = e.num_etu
+           JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
            LEFT JOIN versements v ON i.id_inscription = v.id_inscription AND v.type_versement = 'Premier versement'
            WHERE i.id_inscription = ?";
         $stmt = $this->db->prepare($query);
@@ -223,7 +223,7 @@ class Scolarite
         $query = "SELECT v.*, e.nom_etu as nom_etudiant, e.prenom_etu as prenom_etudiant, i.id_inscription 
                   FROM versements v
                   JOIN inscriptions i ON v.id_inscription = i.id_inscription
-                  JOIN etudiants e ON i.id_etudiant = e.num_etu
+                  JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
                   ORDER BY v.date_versement DESC";
         $stmt = $this->db->prepare($query);
         $stmt->execute();
@@ -236,7 +236,7 @@ class Scolarite
         $query = "SELECT v.*, e.nom_etu as nom_etudiant, e.prenom_etu as prenom_etudiant, i.id_inscription, i.id_etudiant as num_etu
                   FROM versements v
                   JOIN inscriptions i ON v.id_inscription = i.id_inscription
-                  JOIN etudiants e ON i.id_etudiant = e.num_etu
+                  JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
                   WHERE v.id_versement = ?";
         $stmt = $this->db->prepare($query);
         $stmt->execute([$id_versement]);
@@ -249,7 +249,7 @@ class Scolarite
         $query = "SELECT v.*, e.nom_etu as nom_etudiant, e.prenom_etu as prenom_etudiant, i.id_inscription
                   FROM versements v
                   JOIN inscriptions i ON v.id_inscription = i.id_inscription
-                  JOIN etudiants e ON i.id_etudiant = e.num_etu
+                  JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
                   WHERE v.id_inscription = ?
                   ORDER BY v.date_versement DESC
                   LIMIT 1";

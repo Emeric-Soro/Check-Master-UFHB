@@ -416,7 +416,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                                 </optgroup>
                                 <optgroup label="Étudiants">
                                     <?php foreach($etudiantsNonUtilisateurs as $etudiant): ?>
-                                    <option value="etu_<?php echo $etudiant->num_etu; ?>"
+                                    <option value="etu_<?php echo $etudiant->num_carte_etud; ?>"
                                         class="py-1 px-2 hover:bg-green-50 cursor-pointer">
                                         <?php echo htmlspecialchars($etudiant->nom_etu . ' ' . $etudiant->prenom_etu); ?>
                                     </option>

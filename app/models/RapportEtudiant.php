@@ -1,23 +1,27 @@
 <?php
 
-class RapportEtudiant {
+class RapportEtudiant
+{
     public $pdo;
 
-    public function __construct($pdo) {
+    public function __construct($pdo)
+    {
         $this->pdo = $pdo;
     }
 
-    public function getAllRapports() {
+    public function getAllRapports()
+    {
         $stmt = $this->pdo->query("
             SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu 
             FROM rapport_etudiants r
-            JOIN etudiants e ON r.num_etu = e.num_etu
+            JOIN etudiants e ON r.num_etu = e.num_carte_etud
             ORDER BY r.date_rapport DESC
         ");
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
-    public function getRapportById($id_rapport) {
+    public function getRapportById($id_rapport)
+    {
         $stmt = $this->pdo->prepare("
             SELECT 
                 r.*, 
@@ -27,7 +31,7 @@ class RapportEtudiant {
                 e.promotion_etu,
                 d.date_depot
             FROM rapport_etudiants r
-            JOIN etudiants e ON r.num_etu = e.num_etu
+            JOIN etudiants e ON r.num_etu = e.num_carte_etud
             LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
             WHERE r.id_rapport = ?
         ");
@@ -35,11 +39,12 @@ class RapportEtudiant {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function getRapportDetail($id_rapport) {
+    public function getRapportDetail($id_rapport)
+    {
         $stmt = $this->pdo->prepare("
             SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu, d.date_depot
             FROM rapport_etudiants r
-            JOIN etudiants e ON r.num_etu = e.num_etu
+            JOIN etudiants e ON r.num_etu = e.num_carte_etud
             LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
             WHERE r.id_rapport = ?
         ");
@@ -47,22 +52,24 @@ class RapportEtudiant {
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
-    public function getRapportByIdAndEtudiant($id_rapport, $num_etu) {
+    public function getRapportByIdAndEtudiant($id_rapport, $num_etu)
+    {
         $stmt = $this->pdo->prepare("
-            SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu 
+            SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu
             FROM rapport_etudiants r
-            JOIN etudiants e ON r.num_etu = e.num_etu
+            JOIN etudiants e ON r.num_etu = e.num_carte_etud
             WHERE r.id_rapport = ? AND r.num_etu = ?
         ");
         $stmt->execute([$id_rapport, $num_etu]);
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
-    public function getRapportsByEtudiant($num_etu) {
+    public function getRapportsByEtudiant($num_etu)
+    {
         $stmt = $this->pdo->prepare("
-            SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu 
+            SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu
             FROM rapport_etudiants r
-            JOIN etudiants e ON r.num_etu = e.num_etu
+            JOIN etudiants e ON r.num_etu = e.num_carte_etud
             WHERE r.num_etu = ?
             ORDER BY r.date_rapport DESC
         ");
@@ -70,7 +77,8 @@ class RapportEtudiant {
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
-    public function ajouterRapport($num_etu, $nom_rapport, $theme_rapport) {
+    public function ajouterRapport($num_etu, $nom_rapport, $theme_rapport)
+    {
         try {
             if (!$this->isEtudiantExist($num_etu)) {
                 error_log("Tentative d'ajout de rapport pour étudiant inexistant: " . $num_etu);
@@ -92,7 +100,8 @@ class RapportEtudiant {
         }
     }
 
-    public function updateRapport($id_rapport, $num_etu, $nom_rapport, $theme_rapport) {
+    public function updateRapport($id_rapport, $num_etu, $nom_rapport, $theme_rapport)
+    {
         try {
             // Vérifier que le rapport appartient bien à l'étudiant
             if (!$this->isRapportOwnedByEtudiant($id_rapport, $num_etu)) {
@@ -112,7 +121,8 @@ class RapportEtudiant {
         }
     }
 
-    public function deleteRapport($id_rapport, $num_etu) {
+    public function deleteRapport($id_rapport, $num_etu)
+    {
         try {
             // Vérifier que le rapport appartient bien à l'étudiant
             if (!$this->isRapportOwnedByEtudiant($id_rapport, $num_etu)) {
@@ -128,25 +138,29 @@ class RapportEtudiant {
         }
     }
 
-    public function isRapportExist($id_rapport) {
+    public function isRapportExist($id_rapport)
+    {
         $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM rapport_etudiants WHERE id_rapport = ?");
         $stmt->execute([$id_rapport]);
         return $stmt->fetchColumn() > 0;
     }
 
-    public function isRapportOwnedByEtudiant($id_rapport, $num_etu) {
+    public function isRapportOwnedByEtudiant($id_rapport, $num_etu)
+    {
         $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM rapport_etudiants WHERE id_rapport = ? AND num_etu = ?");
         $stmt->execute([$id_rapport, $num_etu]);
         return $stmt->fetchColumn() > 0;
     }
 
-    public function isEtudiantExist($num_etu) {
-        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM etudiants WHERE num_etu = ?");
+    public function isEtudiantExist($num_etu)
+    {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM etudiants WHERE num_carte_etud = ?");
         $stmt->execute([$num_etu]);
         return $stmt->fetchColumn() > 0;
     }
 
-    public function isRapportNomExist($nom_rapport, $num_etu, $id_rapport = null) {
+    public function isRapportNomExist($nom_rapport, $num_etu, $id_rapport = null)
+    {
         try {
             $sql = "SELECT COUNT(*) FROM rapport_etudiants WHERE nom_rapport = ? AND num_etu = ?";
             $params = [$nom_rapport, $num_etu];
@@ -167,7 +181,8 @@ class RapportEtudiant {
         }
     }
 
-    public function getStatsEtudiant($num_etu) {
+    public function getStatsEtudiant($num_etu)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
@@ -187,12 +202,13 @@ class RapportEtudiant {
         }
     }
 
-    public function searchRapports($search_term, $num_etu = null) {
+    public function searchRapports($search_term, $num_etu = null)
+    {
         try {
             $sql = "
-                SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu 
+                SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu
                 FROM rapport_etudiants r
-                JOIN etudiants e ON r.num_etu = e.num_etu
+                JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 WHERE (r.nom_rapport LIKE ? OR r.theme_rapport LIKE ?)
             ";
 
@@ -214,12 +230,13 @@ class RapportEtudiant {
         }
     }
 
-    public function getRecentRapports($limit = 10) {
+    public function getRecentRapports($limit = 10)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu 
                 FROM rapport_etudiants r
-                JOIN etudiants e ON r.num_etu = e.num_etu
+                JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 ORDER BY r.date_rapport DESC
                 LIMIT ?
             ");
@@ -231,7 +248,8 @@ class RapportEtudiant {
         }
     }
 
-    public function countRapportsByEtudiant($num_etu) {
+    public function countRapportsByEtudiant($num_etu)
+    {
         try {
             $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM rapport_etudiants WHERE num_etu = ?");
             $stmt->execute([$num_etu]);
@@ -242,14 +260,15 @@ class RapportEtudiant {
         }
     }
 
-    public function getEtudiantInfo($num_etu) {
+    public function getEtudiantInfo($num_etu)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT e.*, COUNT(r.id_rapport) as nb_rapports
                 FROM etudiants e
-                LEFT JOIN rapport_etudiants r ON e.num_etu = r.num_etu
-                WHERE e.num_etu = ?
-                GROUP BY e.num_etu
+                LEFT JOIN rapport_etudiants r ON e.num_carte_etud = r.num_etu
+                WHERE e.num_carte_etud = ?
+                GROUP BY e.num_carte_etud
             ");
             $stmt->execute([$num_etu]);
             return $stmt->fetch(PDO::FETCH_OBJ);
@@ -259,7 +278,8 @@ class RapportEtudiant {
         }
     }
 
-    public function updateStatutRapport($id_rapport, $statut) {
+    public function updateStatutRapport($id_rapport, $statut)
+    {
         try {
             $stmt = $this->pdo->prepare("UPDATE rapport_etudiants SET statut_rapport = ?, date_modification = NOW() WHERE id_rapport = ?");
             return $stmt->execute([$statut, $id_rapport]);
@@ -269,7 +289,8 @@ class RapportEtudiant {
         }
     }
 
-    public function setRapportEnCours($id_rapport) {
+    public function setRapportEnCours($id_rapport)
+    {
         try {
             $stmt = $this->pdo->prepare("UPDATE rapport_etudiants SET statut_rapport = 'en_cours', date_modification = NOW() WHERE id_rapport = ?");
             return $stmt->execute([$id_rapport]);
@@ -279,7 +300,8 @@ class RapportEtudiant {
         }
     }
 
-    public function updateCheminFichier($id_rapport, $chemin_fichier, $taille_fichier = null) {
+    public function updateCheminFichier($id_rapport, $chemin_fichier, $taille_fichier = null)
+    {
         try {
             $stmt = $this->pdo->prepare("UPDATE rapport_etudiants SET chemin_fichier = ?, taille_fichier = ?, date_modification = NOW() WHERE id_rapport = ?");
             return $stmt->execute([$chemin_fichier, $taille_fichier, $id_rapport]);
@@ -289,12 +311,13 @@ class RapportEtudiant {
         }
     }
 
-    public function getRapportsByStatut($statut) {
+    public function getRapportsByStatut($statut)
+    {
         try {
             $stmt = $this->pdo->prepare("
             SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu 
             FROM rapport_etudiants r
-            JOIN etudiants e ON r.num_etu = e.num_etu
+            JOIN etudiants e ON r.num_etu = e.num_carte_etud
             WHERE r.statut_rapport = ?
             ORDER BY r.date_rapport DESC
         ");
@@ -306,7 +329,8 @@ class RapportEtudiant {
         }
     }
 
-    public function ajouterEvaluation($id_rapport, $id_evaluateur, $type_evaluateur, $commentaire, $note = null) {
+    public function ajouterEvaluation($id_rapport, $id_evaluateur, $type_evaluateur, $commentaire, $note = null)
+    {
         try {
             $stmt = $this->pdo->prepare("
             INSERT INTO evaluations_rapports (id_rapport, id_evaluateur, type_evaluateur, commentaire, note) 
@@ -319,7 +343,8 @@ class RapportEtudiant {
         }
     }
 
-    public function getEvaluationsRapport($id_rapport) {
+    public function getEvaluationsRapport($id_rapport)
+    {
         try {
             $stmt = $this->pdo->prepare("
             SELECT e.*, 
@@ -345,13 +370,14 @@ class RapportEtudiant {
         }
     }
 
-    public function getRapportsDeposes() {
+    public function getRapportsDeposes()
+    {
         try {
             $stmt = $this->pdo->query("
                 SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu, d.date_depot
                 FROM deposer d
                 JOIN rapport_etudiants r ON d.id_rapport = r.id_rapport
-                JOIN etudiants e ON d.num_etu = e.num_etu
+                JOIN etudiants e ON d.num_etu = e.num_carte_etud
                 ORDER BY d.date_depot DESC
             ");
             return $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -361,7 +387,8 @@ class RapportEtudiant {
         }
     }
 
-    public function getDecisionsEvaluation($id_rapport) {
+    public function getDecisionsEvaluation($id_rapport)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 

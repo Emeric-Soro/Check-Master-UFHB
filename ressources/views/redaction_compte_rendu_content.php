@@ -34,6 +34,7 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
 ?>
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,41 +44,59 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
         .fade-in {
             animation: fadeIn 0.3s ease-in;
         }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
+
         .editor-toolbar {
             border-bottom: 1px solid #e5e7eb;
         }
+
         .editor-button {
             transition: all 0.2s ease;
         }
+
         .editor-button:hover {
             background-color: #f3f4f6;
             transform: scale(1.05);
         }
+
         .editor-content {
             min-height: 400px;
             font-family: 'Times New Roman', serif;
         }
+
         .template-section {
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
         }
+
         .progress-step {
             transition: all 0.3s ease;
         }
+
         .progress-step.active {
             background-color: #f59e0b;
             color: white;
         }
+
         .progress-step.completed {
             background-color: #10b981;
             color: white;
         }
+
         .modal-overlay {
             background-color: rgba(0, 0, 0, 0.5);
         }
+
         .preview-content {
             font-family: 'Times New Roman', serif;
             line-height: 1.6;
@@ -85,6 +104,7 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
 
         /* Styles pour masquer les éléments lors de l'impression */
         @media print {
+
             /* Masquer seulement les éléments d'interface */
             .editor-toolbar,
             .template-section,
@@ -149,6 +169,7 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
         }
     </style>
 </head>
+
 <body class="font-sans antialiased bg-gray-50">
     <div class="flex h-screen overflow-hidden">
         <!-- Main content -->
@@ -167,17 +188,21 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                                 </h3>
                                 <div class="space-y-3">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Ajouter un rapport</label>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Ajouter un
+                                            rapport</label>
                                         <div class="flex items-center space-x-2">
-                                            <select id="reportSelect" class="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500" style="height:36px; width: 100px;">
-                                            <option value="">Sélectionner un rapport...</option>
+                                            <select id="reportSelect"
+                                                class="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                                                style="height:36px; width: 100px;">
+                                                <option value="">Sélectionner un rapport...</option>
                                                 <?php foreach (
                                                     $rapports_valides as $rapport): ?>
                                                     <option value="<?= htmlspecialchars($rapport['id_rapport']) ?>">
-                                                        <?= htmlspecialchars($rapport['theme_rapport']) ?> - <?= htmlspecialchars($rapport['prenom_etu'] . ' ' . $rapport['nom_etu']) ?>
+                                                        <?= htmlspecialchars($rapport['theme_rapport']) ?> -
+                                                        <?= htmlspecialchars($rapport['prenom_etu'] . ' ' . $rapport['nom_etu']) ?>
                                                     </option>
                                                 <?php endforeach; ?>
-                                        </select>
+                                            </select>
                                             <button onclick="addReport()"
                                                 class="bg-blue-200 text-gray-700 rounded-full hover:bg-gray-300 focus:ring-2 focus:ring-blue-400 flex items-center justify-center"
                                                 style="height:28px; width:28px; min-width:28px;">
@@ -231,9 +256,10 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
 
                             <!-- Templates -->
                             <div class="template-section p-6 rounded-lg shadow mb-8 text-center">
-                                <button onclick="loadTemplate('validation_seance')" class="px-6 py-3 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600 transition-colors font-semibold text-lg">
+                                <button onclick="loadTemplate('validation_seance')"
+                                    class="px-6 py-3 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600 transition-colors font-semibold text-lg">
                                     <i class="fas fa-file-import mr-2"></i>Charger le modèle
-                                    </button>
+                                </button>
                             </div>
                         </div>
 
@@ -257,20 +283,25 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                                 <!-- Toolbar -->
                                 <div class="editor-toolbar px-6 py-3 bg-white">
                                     <div class="flex items-center space-x-2">
-                                        <button onclick="formatText('bold')" class="editor-button p-2 rounded hover:bg-gray-100" title="Gras">
+                                        <button onclick="formatText('bold')"
+                                            class="editor-button p-2 rounded hover:bg-gray-100" title="Gras">
                                             <i class="fas fa-bold"></i>
                                         </button>
-                                        <button onclick="formatText('italic')" class="editor-button p-2 rounded hover:bg-gray-100" title="Italique">
+                                        <button onclick="formatText('italic')"
+                                            class="editor-button p-2 rounded hover:bg-gray-100" title="Italique">
                                             <i class="fas fa-italic"></i>
                                         </button>
-                                        <button onclick="formatText('underline')" class="editor-button p-2 rounded hover:bg-gray-100" title="Souligné">
+                                        <button onclick="formatText('underline')"
+                                            class="editor-button p-2 rounded hover:bg-gray-100" title="Souligné">
                                             <i class="fas fa-underline"></i>
                                         </button>
                                         <div class="w-px h-6 bg-gray-300 mx-2"></div>
-                                        <button onclick="insertList('ul')" class="editor-button p-2 rounded hover:bg-gray-100" title="Liste à puces">
+                                        <button onclick="insertList('ul')"
+                                            class="editor-button p-2 rounded hover:bg-gray-100" title="Liste à puces">
                                             <i class="fas fa-list-ul"></i>
                                         </button>
-                                        <button onclick="insertList('ol')" class="editor-button p-2 rounded hover:bg-gray-100" title="Liste numérotée">
+                                        <button onclick="insertList('ol')"
+                                            class="editor-button p-2 rounded hover:bg-gray-100" title="Liste numérotée">
                                             <i class="fas fa-list-ol"></i>
                                         </button>
                                         <div class="w-px h-6 bg-gray-300 mx-2"></div>
@@ -279,63 +310,92 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
 
                                 <!-- Editor Content -->
                                 <div class="p-6">
-                                    <div id="editorContent" class="editor-content w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500" contenteditable="true" style="min-height: 500px;">
+                                    <div id="editorContent"
+                                        class="editor-content w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                                        contenteditable="true" style="min-height: 500px;">
                                         <div class="text-center mb-8">
-                                            <h1 class="text-3xl font-bold mb-3 text-gray-800">COMPTE RENDU D'ÉVALUATION</h1>
-                                            <h2 class="text-xl font-semibold text-gray-700 mb-2">Commission de Validation des Rapports de Soutenance</h2>
+                                            <h1 class="text-3xl font-bold mb-3 text-gray-800">COMPTE RENDU D'ÉVALUATION
+                                            </h1>
+                                            <h2 class="text-xl font-semibold text-gray-700 mb-2">Commission de
+                                                Validation des Rapports de Soutenance</h2>
                                             <p class="text-gray-600 text-lg">Université Félix Houphouët-Boigny</p>
-                                            <p class="text-gray-600">Institut de Formation et de Recherche en Informatique</p>
+                                            <p class="text-gray-600">Institut de Formation et de Recherche en
+                                                Informatique</p>
                                             <p class="text-gray-600">Département MIAGE</p>
                                         </div>
 
                                         <div class="mb-8">
-                                            <h3 class="text-xl font-bold border-b-2 border-gray-400 pb-3 mb-4 text-gray-800">I. INFORMATIONS GÉNÉRALES</h3>
+                                            <h3
+                                                class="text-xl font-bold border-b-2 border-gray-400 pb-3 mb-4 text-gray-800">
+                                                I. INFORMATIONS GÉNÉRALES</h3>
                                             <div class="mb-4">
-                                                <p><strong class="text-gray-700">Nombre de rapports évalués :</strong><br><span class="text-gray-600">[À compléter]</span></p>
-                                                    <p><strong class="text-gray-700">Date d'évaluation :</strong><br><span class="text-gray-600">[À compléter]</span></p>
-                                                <p><strong class="text-gray-700">Membres de la commission d'évaluation :</strong><br><span class="text-gray-600">[À compléter]</span></p>
-                                                </div>
+                                                <p><strong class="text-gray-700">Nombre de rapports évalués
+                                                        :</strong><br><span class="text-gray-600">[À compléter]</span>
+                                                </p>
+                                                <p><strong class="text-gray-700">Date d'évaluation :</strong><br><span
+                                                        class="text-gray-600">[À compléter]</span></p>
+                                                <p><strong class="text-gray-700">Membres de la commission d'évaluation
+                                                        :</strong><br><span class="text-gray-600">[À compléter]</span>
+                                                </p>
+                                            </div>
 
                                             <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
                                                 <h4 class="font-semibold text-gray-700 mb-2">Rapports évalués :</h4>
                                                 <div class="text-gray-600">
                                                     [À compléter]
-                                            </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="mb-8">
-                                            <h3 class="text-xl font-bold border-b-2 border-gray-400 pb-3 mb-4 text-gray-800">II. PRÉSENTATION DES TRAVAUX</h3>
-                                            <div class="mb-4">
-                                                <h4 class="text-lg font-semibold mb-2 text-gray-700">2.1 Contexte général</h4>
-                                                <p class="text-gray-600 italic">[Présentation du contexte général et des problématiques abordées dans les rapports...]</p>
-                                            </div>
-                                            <div class="mb-4">
-                                                <h4 class="text-lg font-semibold mb-2 text-gray-700">2.2 Objectifs et méthodologies</h4>
-                                                <p class="text-gray-600 italic">[Description des objectifs poursuivis et des méthodologies adoptées dans les différents travaux...]</p>
-                                            </div>
-                                            <div class="mb-4">
-                                                <h4 class="text-lg font-semibold mb-2 text-gray-700">2.3 Résultats obtenus</h4>
-                                                <p class="text-gray-600 italic">[Synthèse des principaux résultats obtenus dans l'ensemble des travaux...]</p>
+                                                </div>
                                             </div>
                                         </div>
 
                                         <div class="mb-8">
-                                            <h3 class="text-xl font-bold border-b-2 border-gray-400 pb-3 mb-4 text-gray-800">III. ÉVALUATIONS PAR RAPPORT</h3>
-                                            <p class="text-gray-600 italic mb-4">[Les évaluations détaillées de chaque rapport seront automatiquement insérées ici...]</p>
+                                            <h3
+                                                class="text-xl font-bold border-b-2 border-gray-400 pb-3 mb-4 text-gray-800">
+                                                II. PRÉSENTATION DES TRAVAUX</h3>
+                                            <div class="mb-4">
+                                                <h4 class="text-lg font-semibold mb-2 text-gray-700">2.1 Contexte
+                                                    général</h4>
+                                                <p class="text-gray-600 italic">[Présentation du contexte général et des
+                                                    problématiques abordées dans les rapports...]</p>
+                                            </div>
+                                            <div class="mb-4">
+                                                <h4 class="text-lg font-semibold mb-2 text-gray-700">2.2 Objectifs et
+                                                    méthodologies</h4>
+                                                <p class="text-gray-600 italic">[Description des objectifs poursuivis et
+                                                    des méthodologies adoptées dans les différents travaux...]</p>
+                                            </div>
+                                            <div class="mb-4">
+                                                <h4 class="text-lg font-semibold mb-2 text-gray-700">2.3 Résultats
+                                                    obtenus</h4>
+                                                <p class="text-gray-600 italic">[Synthèse des principaux résultats
+                                                    obtenus dans l'ensemble des travaux...]</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-8">
+                                            <h3
+                                                class="text-xl font-bold border-b-2 border-gray-400 pb-3 mb-4 text-gray-800">
+                                                III. ÉVALUATIONS PAR RAPPORT</h3>
+                                            <p class="text-gray-600 italic mb-4">[Les évaluations détaillées de chaque
+                                                rapport seront automatiquement insérées ici...]</p>
 
                                             <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
-                                                <h4 class="font-semibold text-gray-700 mb-2">Résumé global des votes :</h4>
-                                                <p class="text-sm text-gray-600">Total des votes favorables : [X]/[Total]</p>
-                                                <p class="text-sm text-gray-600">Total des votes défavorables : [X]/[Total]</p>
+                                                <h4 class="font-semibold text-gray-700 mb-2">Résumé global des votes :
+                                                </h4>
+                                                <p class="text-sm text-gray-600">Total des votes favorables :
+                                                    [X]/[Total]</p>
+                                                <p class="text-sm text-gray-600">Total des votes défavorables :
+                                                    [X]/[Total]</p>
                                                 <p class="text-sm text-gray-600">Taux de validation global : [X]%</p>
                                             </div>
                                         </div>
 
                                         <div class="mb-8">
-                                            <h3 class="text-xl font-bold border-b-2 border-gray-400 pb-3 mb-4 text-gray-800">IV. ANALYSE ET SYNTHÈSE GLOBALES</h3>
+                                            <h3
+                                                class="text-xl font-bold border-b-2 border-gray-400 pb-3 mb-4 text-gray-800">
+                                                IV. ANALYSE ET SYNTHÈSE GLOBALES</h3>
                                             <div class="mb-4">
-                                                <h4 class="text-lg font-semibold mb-2 text-gray-700">4.1 Points forts de l'ensemble des travaux</h4>
+                                                <h4 class="text-lg font-semibold mb-2 text-gray-700">4.1 Points forts de
+                                                    l'ensemble des travaux</h4>
                                                 <ul class="list-disc list-inside text-gray-600 ml-4">
                                                     <li>[Point fort global 1]</li>
                                                     <li>[Point fort global 2]</li>
@@ -343,7 +403,8 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                                                 </ul>
                                             </div>
                                             <div class="mb-4">
-                                                <h4 class="text-lg font-semibold mb-2 text-gray-700">4.2 Points à améliorer</h4>
+                                                <h4 class="text-lg font-semibold mb-2 text-gray-700">4.2 Points à
+                                                    améliorer</h4>
                                                 <ul class="list-disc list-inside text-gray-600 ml-4">
                                                     <li>[Point à améliorer global 1]</li>
                                                     <li>[Point à améliorer global 2]</li>
@@ -351,22 +412,29 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                                                 </ul>
                                             </div>
                                             <div class="mb-4">
-                                                <h4 class="text-lg font-semibold mb-2 text-gray-700">4.3 Recommandations générales</h4>
-                                                <p class="text-gray-600 italic">[Recommandations pour l'amélioration de l'ensemble des travaux...]</p>
+                                                <h4 class="text-lg font-semibold mb-2 text-gray-700">4.3 Recommandations
+                                                    générales</h4>
+                                                <p class="text-gray-600 italic">[Recommandations pour l'amélioration de
+                                                    l'ensemble des travaux...]</p>
                                             </div>
                                         </div>
 
                                         <div class="mb-8">
-                                            <h3 class="text-xl font-bold border-b-2 border-gray-400 pb-3 mb-4 text-gray-800">V. DÉCISIONS DE LA COMMISSION</h3>
+                                            <h3
+                                                class="text-xl font-bold border-b-2 border-gray-400 pb-3 mb-4 text-gray-800">
+                                                V. DÉCISIONS DE LA COMMISSION</h3>
                                             <div class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
-                                                <p class="text-lg font-semibold text-gray-800 mb-2">Décisions finales par rapport :</p>
+                                                <p class="text-lg font-semibold text-gray-800 mb-2">Décisions finales
+                                                    par rapport :</p>
                                                 <div class="text-gray-600">
                                                     [Les décisions finales pour chaque rapport seront ajoutées ici]
                                                 </div>
                                             </div>
                                             <div class="mt-4">
-                                                <h4 class="text-lg font-semibold mb-2 text-gray-700">Justification des décisions :</h4>
-                                                <p class="text-gray-600 italic">[Justification détaillée des décisions prises par la commission pour chaque rapport...]</p>
+                                                <h4 class="text-lg font-semibold mb-2 text-gray-700">Justification des
+                                                    décisions :</h4>
+                                                <p class="text-gray-600 italic">[Justification détaillée des décisions
+                                                    prises par la commission pour chaque rapport...]</p>
                                             </div>
                                         </div>
 
@@ -374,7 +442,8 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                                             <p class="text-gray-600 mb-4">Fait à Abidjan, le [DATE]</p>
                                             <div class="flex justify-center space-x-8">
                                                 <div class="text-center">
-                                                    <p class="font-semibold text-gray-700">Président de la Commission</p>
+                                                    <p class="font-semibold text-gray-700">Président de la Commission
+                                                    </p>
                                                     <p class="text-gray-600">[Signature]</p>
                                                 </div>
                                                 <div class="text-center">
@@ -390,15 +459,18 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                                 <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center space-x-3">
-                                            <button onclick="saveAsDraft()" class="flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
+                                            <button onclick="saveAsDraft()"
+                                                class="flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
                                                 <i class="fas fa-save mr-2"></i>Sauvegarder en brouillon
                                             </button>
-                                            <button onclick="autoSave()" class="flex items-center px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                                            <button onclick="autoSave()"
+                                                class="flex items-center px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
                                                 <i class="fas fa-clock mr-2"></i>Sauvegarde auto
                                             </button>
                                         </div>
                                         <div class="flex items-center space-x-3">
-                                            <button onclick="printReport()" class="flex items-center px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700">
+                                            <button onclick="printReport()"
+                                                class="flex items-center px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700">
                                                 <i class="fas fa-print mr-2"></i>Imprimer
                                             </button>
                                         </div>
@@ -417,17 +489,20 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 transition-opacity modal-overlay" onclick="closePreviewModal()"></div>
 
-            <div class="inline-block w-full max-w-4xl p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
+            <div
+                class="inline-block w-full max-w-4xl p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-medium text-gray-900">
                         <i class="fas fa-eye text-green-600 mr-2"></i>
                         Aperçu du compte rendu
                     </h3>
                     <div class="flex items-center space-x-2">
-                        <button onclick="printReport()" class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
+                        <button onclick="printReport()"
+                            class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
                             <i class="fas fa-print mr-1"></i>Imprimer
                         </button>
-                        <button onclick="exportToPDF()" class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700">
+                        <button onclick="exportToPDF()"
+                            class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700">
                             <i class="fas fa-file-pdf mr-1"></i>PDF
                         </button>
                         <button onclick="closePreviewModal()" class="text-gray-400 hover:text-gray-600">
@@ -446,19 +521,21 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
     </div>
 
     <?php if (canCreate()): ?>
-    <form id="formCR" method="POST" action="?page=redaction_compte_rendu">
-        <input type="hidden" name="num_etu" id="num_etu" value="">
-        <input type="hidden" name="nom_CR" id="nom_CR" value="">
-        <input type="hidden" name="contenu_CR" id="contenu_CR" value="">
-        <div class="flex justify-end mt-6">
-            <button type="button" onclick="submitCR()" class="px-6 py-3 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition-colors font-semibold text-lg">
-                <i class="fas fa-save mr-2"></i>Enregistrer le compte rendu
-            </button>
-        </div>
-    </form>
+        <form id="formCR" method="POST" action="?page=redaction_compte_rendu">
+            <input type="hidden" name="num_etu" id="num_etu" value="">
+            <input type="hidden" name="nom_CR" id="nom_CR" value="">
+            <input type="hidden" name="contenu_CR" id="contenu_CR" value="">
+            <div class="flex justify-end mt-6">
+                <button type="button" onclick="submitCR()"
+                    class="px-6 py-3 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition-colors font-semibold text-lg">
+                    <i class="fas fa-save mr-2"></i>Enregistrer le compte rendu
+                </button>
+            </div>
+        </form>
     <?php endif; ?>
 
-    <div id="toastNotif" style="display:none; position:fixed; top:30px; right:30px; z-index:9999; min-width:250px;" class="transition-opacity duration-500">
+    <div id="toastNotif" style="display:none; position:fixed; top:30px; right:30px; z-index:9999; min-width:250px;"
+        class="transition-opacity duration-500">
         <div id="toastContent" class="px-4 py-3 rounded shadow-lg flex items-center">
             <span id="toastIcon" class="mr-3"></span>
             <span id="toastMsg"></span>
@@ -558,32 +635,32 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                 return;
             }
 
-        // Données simulées des rapports
+            // Données simulées des rapports
             const reportData = {
-            '1': {
+                '1': {
                     title: 'IA Diagnostic Médical',
-                student: 'Marie Lambert',
+                    student: 'Marie Lambert',
                     supervisor: 'Dr. Martin Dubois',
                     date: '15 Janvier 2025',
                     duration: '45 minutes',
                     grade: '16/20',
                     status: 'Validé',
-                evaluations: [
+                    evaluations: [
                         { evaluator: 'Dr. Kouassi', decision: 'Validé', comment: 'Excellent travail technique' },
                         { evaluator: 'Dr. Koné', decision: 'Validé', comment: 'Méthodologie solide' },
                         { evaluator: 'Pr. Assan', decision: 'Validé', comment: 'Présentation claire' },
                         { evaluator: 'Dr. Bamba', decision: 'Validé', comment: 'Résultats convaincants' }
-                ]
-            },
-            '2': {
+                    ]
+                },
+                '2': {
                     title: 'Blockchain Sécurité',
-                student: 'Jean Dupont',
+                    student: 'Jean Dupont',
                     supervisor: 'Prof. Sophie Martin',
                     date: '12 Janvier 2025',
                     duration: '50 minutes',
                     grade: '14/20',
                     status: 'Validé',
-                evaluations: [
+                    evaluations: [
                         { evaluator: 'Dr. Kouassi', decision: 'Validé', comment: 'Approche innovante' },
                         { evaluator: 'Dr. Koné', decision: 'Validé', comment: 'Bonne analyse' },
                         { evaluator: 'Pr. Assan', decision: 'Rejeté', comment: 'Manque de profondeur' },
@@ -681,8 +758,8 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                     `;
 
                     data.evaluations.forEach(eval => {
-                    const bgColor = eval.decision === 'Validé' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
-                    const textColor = eval.decision === 'Validé' ? 'text-green-800' : 'text-red-800';
+                        const bgColor = eval.decision === 'Validé' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
+                        const textColor = eval.decision === 'Validé' ? 'text-green-800' : 'text-red-800';
 
                         allEvaluationsHTML += `
                             <div class="p-3 border rounded-lg ${bgColor} mb-2">
@@ -695,7 +772,7 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                             <p class="text-xs text-gray-600">${eval.comment}</p>
                         </div>
                     `;
-                });
+                    });
 
                     allEvaluationsHTML += `</div>`;
                 }
@@ -703,7 +780,7 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
 
             reportDetails.innerHTML = html;
             document.getElementById('evaluationsContent').innerHTML = allEvaluationsHTML;
-                evaluationsSummary.classList.remove('hidden');
+            evaluationsSummary.classList.remove('hidden');
 
             // Mettre à jour l'éditeur si le modèle de séance de validation est chargé
             const editor = document.getElementById('editorContent');
@@ -941,7 +1018,7 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                     `;
             editor.innerHTML = template;
             window.baseTemplate = template;
-                updateEditorWithReportData();
+            updateEditorWithReportData();
         }
 
         // Fonctions de formatage de texte
@@ -962,7 +1039,7 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
             const range = selection.getRangeAt(0);
 
             let sectionHTML = '';
-            switch(sectionType) {
+            switch (sectionType) {
                 case 'evaluation':
                     sectionHTML = `
                         <div class="mb-4 p-4 border-l-4 border-blue-500 bg-blue-50">
@@ -1241,7 +1318,7 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
             const inputNom = document.createElement('input');
             inputNom.type = 'hidden';
             inputNom.name = 'nom_CR';
-            inputNom.value = 'Proces_Verbal_Validation_Themes_' + new Date().toISOString().slice(0,10);
+            inputNom.value = 'Proces_Verbal_Validation_Themes_' + new Date().toISOString().slice(0, 10);
             form.appendChild(inputNom);
 
             document.body.appendChild(form);
@@ -1267,11 +1344,10 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
         // Système de notifications
         function showNotification(message, type) {
             const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 px-4 py-2 rounded-md text-white text-sm font-medium z-50 ${
-                type === 'success' ? 'bg-green-600' :
-                type === 'error' ? 'bg-red-600' :
-                type === 'info' ? 'bg-blue-600' : 'bg-gray-600'
-            }`;
+            notification.className = `fixed top-4 right-4 px-4 py-2 rounded-md text-white text-sm font-medium z-50 ${type === 'success' ? 'bg-green-600' :
+                    type === 'error' ? 'bg-red-600' :
+                        type === 'info' ? 'bg-blue-600' : 'bg-gray-600'
+                }`;
             notification.innerHTML = `
                 <div class="flex items-center">
                     <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : 'info'} mr-2"></i>
@@ -1287,13 +1363,13 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
         }
 
         // Initialisation
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
 
             // Sauvegarde automatique lors de la saisie
             const editor = document.getElementById('editorContent');
             let saveTimeout;
 
-            editor.addEventListener('input', function() {
+            editor.addEventListener('input', function () {
                 clearTimeout(saveTimeout);
                 saveTimeout = setTimeout(() => {
                     if (autoSaveInterval) {
@@ -1303,9 +1379,9 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
             });
 
             // Raccourcis clavier
-            document.addEventListener('keydown', function(e) {
+            document.addEventListener('keydown', function (e) {
                 if (e.ctrlKey || e.metaKey) {
-                    switch(e.key) {
+                    switch (e.key) {
                         case 's':
                             e.preventDefault();
                             saveAsDraft();
@@ -1324,7 +1400,7 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
         });
 
         // Charger le modèle de séance de validation par défaut à l'ouverture de la page
-        window.addEventListener('DOMContentLoaded', function() {
+        window.addEventListener('DOMContentLoaded', function () {
             loadTemplate('validation_seance');
         });
 
@@ -1386,11 +1462,11 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                 container.appendChild(div);
 
                 // Ajout des listeners pour mettre à jour l'éditeur dynamiquement
-                div.querySelector(`#encadrant_${rapport.id_rapport}`).addEventListener('change', function() {
+                div.querySelector(`#encadrant_${rapport.id_rapport}`).addEventListener('change', function () {
                     rapport.encadrant_nom = this.options[this.selectedIndex].text;
                     updateEditorWithReportData();
                 });
-                div.querySelector(`#directeur_${rapport.id_rapport}`).addEventListener('change', function() {
+                div.querySelector(`#directeur_${rapport.id_rapport}`).addEventListener('change', function () {
                     rapport.directeur_nom = this.options[this.selectedIndex].text;
                     updateEditorWithReportData();
                 });
@@ -1404,7 +1480,7 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
             }
             document.getElementById('contenu_CR').value = document.getElementById('editorContent').innerHTML;
             let selected = selectedReports[0] || {};
-            document.getElementById('num_etu').value = selected.num_etu || '';
+            document.getElementById('num_etu').value = selected.num_carte_etud || '';
             document.getElementById('nom_CR').value = 'Compte rendu séance du ' + (new Date()).toLocaleDateString('fr-FR');
             let rapportsIds = selectedReports.map(r => r.id_rapport);
             // Supprimer les anciens inputs rapports[]
@@ -1435,11 +1511,11 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                     form.appendChild(input);
                 }
             });
-            console.log("num_etu envoyé :", selected.num_etu);
+            console.log("num_etu envoyé :", selected.num_carte_etud);
             document.getElementById('formCR').submit();
         }
 
-        window.addEventListener('DOMContentLoaded', function() {
+        window.addEventListener('DOMContentLoaded', function () {
             var notifType = <?php echo json_encode($notifType); ?>;
             var notifMsg = <?php echo json_encode($notifMsg); ?>;
             if (notifType && notifMsg) {
@@ -1457,12 +1533,13 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                 }
                 toast.style.display = 'block';
                 toast.style.opacity = 1;
-                setTimeout(function() {
+                setTimeout(function () {
                     toast.style.opacity = 0;
-                    setTimeout(function() { toast.style.display = 'none'; }, 500);
+                    setTimeout(function () { toast.style.display = 'none'; }, 500);
                 }, 3000);
             }
         });
     </script>
 </body>
+
 </html>

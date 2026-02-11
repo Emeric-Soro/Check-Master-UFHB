@@ -43,7 +43,7 @@ class ArchivesDossiersSoutenanceController
             // Filtre par année
             if (!empty($filtres['annee'])) {
                 $whereConditions[] = "YEAR(v.date_validation) = :annee";
-                $params['annee'] = (int)$filtres['annee'];
+                $params['annee'] = (int) $filtres['annee'];
             }
 
             // Filtre par étudiant
@@ -81,7 +81,7 @@ class ArchivesDossiersSoutenanceController
                         DATEDIFF(v.date_validation, r.date_rapport) as temps_traitement
                       FROM valider v
                       LEFT JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                      LEFT JOIN etudiants e ON r.num_etu = e.num_etu
+                      LEFT JOIN etudiants e ON r.num_etu = e.num_carte_etud
                       $whereClause
                       ORDER BY v.date_validation DESC";
 
@@ -170,9 +170,9 @@ class ArchivesDossiersSoutenanceController
                         e.email_etu
                       FROM valider v
                       LEFT JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                      LEFT JOIN etudiants e ON r.num_etu = e.num_etu
+                      LEFT JOIN etudiants e ON r.num_etu = e.num_carte_etud
                       WHERE v.id_rapport = :id";
-            
+
             $stmt = $this->db->prepare($query);
             $stmt->bindValue(':id', $idRapport);
             $stmt->execute();
@@ -203,10 +203,10 @@ class ArchivesDossiersSoutenanceController
                 'statistiques' => $this->getStatistiquesArchives(),
                 'filtres' => $filtres
             ];
-            
+
             // Passer les données à la vue
             $GLOBALS['archives'] = $archives;
-            
+
         } catch (Exception $e) {
             error_log("Erreur dans index: " . $e->getMessage());
             // En cas d'erreur, utiliser des données par défaut
@@ -217,4 +217,4 @@ class ArchivesDossiersSoutenanceController
             ];
         }
     }
-} 
+}

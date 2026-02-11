@@ -407,21 +407,21 @@ if ($typeAffichage === 'enseignant') {
                                     <?php if (canView() || canEdit() || canDelete()): ?>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
                                         <div class="flex items-center justify-center gap-2">
-                                            <a href="?page=details_etudiant&id=<?= htmlspecialchars($etudiant->num_etu ?? '') ?>" 
+                                            <a href="?page=details_etudiant&id=<?= htmlspecialchars($etudiant->num_carte_etud ?? '') ?>" 
                                                 class="inline-flex items-center px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded hover:bg-blue-600 transition"
                                                 title="Voir les détails">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <?php if ($typeAffichage === 'administrateur'): ?>
                                                 <?php if (canEdit()): ?>
-                                                <a href="?page=modifier_etudiant&id=<?= htmlspecialchars($etudiant->num_etu ?? '') ?>" 
+                                                <a href="?page=modifier_etudiant&id=<?= htmlspecialchars($etudiant->num_carte_etud ?? '') ?>" 
                                                     class="inline-flex items-center px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600 transition"
                                                     title="Modifier">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
                                                 <?php endif; ?>
                                                 <?php if (canDelete()): ?>
-                                                <button onclick="confirmerSuppression(<?= htmlspecialchars($etudiant->num_etu ?? '0') ?>, '<?= htmlspecialchars(addslashes($etudiant->nom_etu . ' ' . $etudiant->prenom_etu)) ?>')" 
+                                                <button onclick="confirmerSuppression(<?= htmlspecialchars($etudiant->num_carte_etud ?? '0') ?>, '<?= htmlspecialchars(addslashes($etudiant->nom_etu . ' ' . $etudiant->prenom_etu)) ?>')" 
                                                     class="inline-flex items-center px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded hover:bg-red-600 transition"
                                                     title="Supprimer">
                                                     <i class="fas fa-trash"></i>

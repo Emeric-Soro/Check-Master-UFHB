@@ -1241,6 +1241,31 @@ class ParametreController
         $messageErreur = '';
         $messageSuccess = '';
 
+        // Gérer les messages de succès depuis l'URL (après redirection)
+        if (isset($_GET['success'])) {
+            $successMessages = [
+                'category_created' => 'Catégorie créée avec succès.',
+                'category_updated' => 'Catégorie mise à jour.',
+                'category_deactivated' => 'Catégorie désactivée.',
+                'category_activated' => 'Catégorie réactivée.',
+                'item_created' => 'Élément créé avec succès.',
+                'item_updated' => 'Élément mis à jour.',
+                'item_deactivated' => 'Élément désactivé.',
+                'item_activated' => 'Élément réactivé.',
+            ];
+            $messageSuccess = $successMessages[$_GET['success']] ?? 'Opération réussie.';
+        }
+
+        // Gérer les messages d'erreur depuis l'URL
+        if (isset($_GET['error'])) {
+            $errorMessages = [
+                'csrf' => 'Erreur de sécurité CSRF. Veuillez réessayer.',
+                'readonly' => 'Vous n\'avez pas les droits de modification.',
+                'exception' => isset($_GET['msg']) ? urldecode($_GET['msg']) : 'Une erreur est survenue.',
+            ];
+            $messageErreur = $errorMessages[$_GET['error']] ?? 'Une erreur est survenue.';
+        }
+
         require_once __DIR__ . '/../models/Categorie.php';
         require_once __DIR__ . '/../models/Fonctionnalite.php';
 
@@ -1272,52 +1297,36 @@ class ParametreController
                         'description_categorie' => trim((string) ($_POST['description_categorie'] ?? '')),
                         'icone_categorie' => trim((string) ($_POST['icone_categorie'] ?? '')),
                         'ordre_categorie' => (int) ($_POST['ordre_categorie'] ?? 0),
-                        'code_categorie' => strtoupper(trim((string) ($_POST['code_categorie'] ?? ''))),
-                        'lib_categorie' => trim((string) ($_POST['lib_categorie'] ?? '')),
-                        'description_categorie' => trim((string) ($_POST['description_categorie'] ?? '')),
-                        'icone_categorie' => trim((string) ($_POST['icone_categorie'] ?? '')),
-                        'ordre_categorie' => (int) ($_POST['ordre_categorie'] ?? 0),
                         'actif' => isset($_POST['actif']) ? 1 : 0,
                     ]);
-                    $messageSuccess = 'Catégorie créée.';
+                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=category_created');
+                    exit;
                 } elseif ($op === 'update_category') {
-                    $id = (int) ($_POST['id_categorie'] ?? 0);
                     $id = (int) ($_POST['id_categorie'] ?? 0);
                     $categorieModel->updateCategorie($id, [
                         'lib_categorie' => trim((string) ($_POST['lib_categorie'] ?? '')),
                         'description_categorie' => trim((string) ($_POST['description_categorie'] ?? '')),
                         'icone_categorie' => trim((string) ($_POST['icone_categorie'] ?? '')),
                         'ordre_categorie' => (int) ($_POST['ordre_categorie'] ?? 0),
-                        'lib_categorie' => trim((string) ($_POST['lib_categorie'] ?? '')),
-                        'description_categorie' => trim((string) ($_POST['description_categorie'] ?? '')),
-                        'icone_categorie' => trim((string) ($_POST['icone_categorie'] ?? '')),
-                        'ordre_categorie' => (int) ($_POST['ordre_categorie'] ?? 0),
                         'actif' => isset($_POST['actif']) ? 1 : 0,
                     ]);
-                    $messageSuccess = 'Catégorie mise à jour.';
+                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=category_updated');
+                    exit;
                 } elseif ($op === 'deactivate_category') {
-                    $id = (int) ($_POST['id_categorie'] ?? 0);
                     $id = (int) ($_POST['id_categorie'] ?? 0);
                     // Soft-delete: désactiver la catégorie + ses fonctionnalités
                     $pdo->prepare("UPDATE categories_fonctionnalites SET actif = 0 WHERE id_categorie = ?")->execute([$id]);
                     $pdo->prepare("UPDATE fonctionnalites SET actif = 0 WHERE id_categorie = ?")->execute([$id]);
-                    $messageSuccess = 'Catégorie désactivée.';
+                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=category_deactivated');
+                    exit;
                 } elseif ($op === 'activate_category') {
-                    $id = (int) ($_POST['id_categorie'] ?? 0);
                     $id = (int) ($_POST['id_categorie'] ?? 0);
                     // Réactiver la catégorie + ses fonctionnalités (symétrique)
                     $pdo->prepare("UPDATE categories_fonctionnalites SET actif = 1 WHERE id_categorie = ?")->execute([$id]);
                     $pdo->prepare("UPDATE fonctionnalites SET actif = 1 WHERE id_categorie = ?")->execute([$id]);
-                    $messageSuccess = 'Catégorie réactivée.';
+                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=category_activated');
+                    exit;
                 } elseif ($op === 'create_fonctionnalite') {
-                    $idCategorie = (int) ($_POST['id_categorie'] ?? 0);
-                    $type = (string) ($_POST['type_item'] ?? 'parent'); // parent | child
-                    $code = strtoupper(trim((string) ($_POST['code_fonctionnalite'] ?? '')));
-                    $label = trim((string) ($_POST['label_fonctionnalite'] ?? ''));
-                    $lib = trim((string) ($_POST['lib_fonctionnalite'] ?? $label));
-                    $url = trim((string) ($_POST['url_fonctionnalite'] ?? '#'));
-                    $icone = trim((string) ($_POST['icone_fonctionnalite'] ?? ''));
-                    $ordre = (int) ($_POST['ordre_fonctionnalite'] ?? 0);
                     $idCategorie = (int) ($_POST['id_categorie'] ?? 0);
                     $type = (string) ($_POST['type_item'] ?? 'parent'); // parent | child
                     $code = strtoupper(trim((string) ($_POST['code_fonctionnalite'] ?? '')));
@@ -1332,7 +1341,6 @@ class ParametreController
                     $pageParente = null;
                     if ($estSousPage) {
                         $pageParente = trim((string) ($_POST['page_parente'] ?? ''));
-                        $pageParente = trim((string) ($_POST['page_parente'] ?? ''));
                         if ($pageParente === '') {
                             throw new Exception('Pour créer un écran, il faut choisir un sous-menu parent.');
                         }
@@ -1344,7 +1352,6 @@ class ParametreController
                         'lib_fonctionnalite' => $lib,
                         'label_fonctionnalite' => $label,
                         'description_fonctionnalite' => trim((string) ($_POST['description_fonctionnalite'] ?? '')),
-                        'description_fonctionnalite' => trim((string) ($_POST['description_fonctionnalite'] ?? '')),
                         'url_fonctionnalite' => $url,
                         'icone_fonctionnalite' => $icone,
                         'ordre_fonctionnalite' => $ordre,
@@ -1352,18 +1359,15 @@ class ParametreController
                         'page_parente' => $pageParente,
                         'actif' => $actif,
                     ]);
-                    $messageSuccess = 'Élément créé.';
+                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=item_created');
+                    exit;
                 } elseif ($op === 'update_fonctionnalite') {
-                    $id = (int) ($_POST['id_fonctionnalite'] ?? 0);
-                    $idCategorie = (int) ($_POST['id_categorie'] ?? 0);
-                    $type = (string) ($_POST['type_item'] ?? 'parent');
                     $id = (int) ($_POST['id_fonctionnalite'] ?? 0);
                     $idCategorie = (int) ($_POST['id_categorie'] ?? 0);
                     $type = (string) ($_POST['type_item'] ?? 'parent');
                     $estSousPage = $type === 'child' ? 1 : 0;
                     $pageParente = null;
                     if ($estSousPage) {
-                        $pageParente = trim((string) ($_POST['page_parente'] ?? ''));
                         $pageParente = trim((string) ($_POST['page_parente'] ?? ''));
                         if ($pageParente === '') {
                             throw new Exception('Pour un écran, le parent est obligatoire.');
@@ -1377,30 +1381,28 @@ class ParametreController
                         'url_fonctionnalite' => trim((string) ($_POST['url_fonctionnalite'] ?? '#')),
                         'icone_fonctionnalite' => trim((string) ($_POST['icone_fonctionnalite'] ?? '')),
                         'ordre_fonctionnalite' => (int) ($_POST['ordre_fonctionnalite'] ?? 0),
-                        'lib_fonctionnalite' => trim((string) ($_POST['lib_fonctionnalite'] ?? '')),
-                        'label_fonctionnalite' => trim((string) ($_POST['label_fonctionnalite'] ?? '')),
-                        'description_fonctionnalite' => trim((string) ($_POST['description_fonctionnalite'] ?? '')),
-                        'url_fonctionnalite' => trim((string) ($_POST['url_fonctionnalite'] ?? '#')),
-                        'icone_fonctionnalite' => trim((string) ($_POST['icone_fonctionnalite'] ?? '')),
-                        'ordre_fonctionnalite' => (int) ($_POST['ordre_fonctionnalite'] ?? 0),
                         'est_sous_page' => $estSousPage,
                         'page_parente' => $pageParente,
                         'actif' => isset($_POST['actif']) ? 1 : 0,
                     ]);
-                    $messageSuccess = 'Élément mis à jour.';
+                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=item_updated');
+                    exit;
                 } elseif ($op === 'deactivate_fonctionnalite') {
                     $id = (int) ($_POST['id_fonctionnalite'] ?? 0);
-                    $id = (int) ($_POST['id_fonctionnalite'] ?? 0);
                     $pdo->prepare("UPDATE fonctionnalites SET actif = 0 WHERE id_fonctionnalite = ?")->execute([$id]);
-                    $messageSuccess = 'Élément désactivé.';
+                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=item_deactivated');
+                    exit;
                 } elseif ($op === 'activate_fonctionnalite') {
                     $id = (int) ($_POST['id_fonctionnalite'] ?? 0);
-                    $id = (int) ($_POST['id_fonctionnalite'] ?? 0);
                     $pdo->prepare("UPDATE fonctionnalites SET actif = 1 WHERE id_fonctionnalite = ?")->execute([$id]);
-                    $messageSuccess = 'Élément réactivé.';
+                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=item_activated');
+                    exit;
                 }
             } catch (Throwable $e) {
-                $messageErreur = $e->getMessage();
+                // Rediriger avec message d'erreur
+                $errorMsg = urlencode($e->getMessage());
+                header('Location: ?page=parametres_generaux&action=gestion_menus&error=exception&msg=' . $errorMsg);
+                exit;
             }
         }
 
@@ -1412,15 +1414,12 @@ class ParametreController
         $tree = [];
         foreach ($categories as $c) {
             $tree[(int) $c->id_categorie] = [
-                $tree[(int) $c->id_categorie] = [
-                    'categorie' => $c,
-                    'items' => [],
-                    'parents' => [],
-                ]
+                'categorie' => $c,
+                'items' => [],
+                'parents' => [],
             ];
         }
         foreach ($fonctionnalites as $f) {
-            $cid = (int) ($f->id_categorie ?? 0);
             $cid = (int) ($f->id_categorie ?? 0);
             if (!isset($tree[$cid])) {
                 continue;
@@ -1435,8 +1434,6 @@ class ParametreController
                 $isSous = !empty($f->est_sous_page);
                 $code = (string) ($f->code_fonctionnalite ?? '');
                 $parentCode = (string) ($f->page_parente ?? '');
-                $code = (string) ($f->code_fonctionnalite ?? '');
-                $parentCode = (string) ($f->page_parente ?? '');
                 if ($isSous && $parentCode !== '') {
                     $childrenByParent[$parentCode] = $childrenByParent[$parentCode] ?? [];
                     $childrenByParent[$parentCode][] = $f;
@@ -1447,11 +1444,9 @@ class ParametreController
             foreach ($parentsByCode as $code => $p) {
                 $children = $childrenByParent[$code] ?? [];
                 usort($children, fn($a, $b) => ((int) ($a->ordre_fonctionnalite ?? 0)) <=> ((int) ($b->ordre_fonctionnalite ?? 0)));
-                usort($children, fn($a, $b) => ((int) ($a->ordre_fonctionnalite ?? 0)) <=> ((int) ($b->ordre_fonctionnalite ?? 0)));
                 $p->children = array_values($children);
             }
             $parents = array_values($parentsByCode);
-            usort($parents, fn($a, $b) => ((int) ($a->ordre_fonctionnalite ?? 0)) <=> ((int) ($b->ordre_fonctionnalite ?? 0)));
             usort($parents, fn($a, $b) => ((int) ($a->ordre_fonctionnalite ?? 0)) <=> ((int) ($b->ordre_fonctionnalite ?? 0)));
             $node['parents'] = $parents;
         }

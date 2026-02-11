@@ -37,7 +37,7 @@ $semestres = $GLOBALS['semestres'] ?? [];
                     <i class="fas fa-user-graduate text-indigo-500 mr-2"></i>
                     <span class="font-medium">Étudiant:
                         <?php echo htmlspecialchars($etudiant->nom_etu . ' ' . $etudiant->prenom_etu); ?> | Numéro
-                        étudiant: <?php echo htmlspecialchars($etudiant->num_etu); ?></span>
+                        étudiant: <?php echo htmlspecialchars($etudiant->num_carte_etud); ?></span>
                 </div>
             </div>
         </header>
@@ -73,7 +73,8 @@ $semestres = $GLOBALS['semestres'] ?? [];
                 <div>
                     <p class="text-white text-sm">Classement</p>
                     <h3 class="text-2xl font-bold text-white">
-                        <?php echo $classement !== null ? $classement . '/' . $totalEtudiants : 'N/A'; ?></h3>
+                        <?php echo $classement !== null ? $classement . '/' . $totalEtudiants : 'N/A'; ?>
+                    </h3>
                 </div>
             </div>
 
@@ -145,16 +146,19 @@ $semestres = $GLOBALS['semestres'] ?? [];
                             <?php foreach ($notes as $note): ?>
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                                        <?php echo htmlspecialchars($note->lib_ue); ?></td>
+                                        <?php echo htmlspecialchars($note->lib_ue); ?>
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-gray-500">-</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-gray-500">
-                                        <?php echo htmlspecialchars($note->credit); ?></td>
+                                        <?php echo htmlspecialchars($note->credit); ?>
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span
                                             class="grade-<?php echo $note->moyenne >= 16 ? 'A' : ($note->moyenne >= 14 ? 'B' : ($note->moyenne >= 12 ? 'C' : ($note->moyenne >= 10 ? 'D' : 'F'))); ?> px-3 py-1 rounded-full text-sm font-semibold"><?php echo htmlspecialchars($note->moyenne); ?></span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-gray-500">
-                                        <?php echo htmlspecialchars($note->commentaire); ?></td>
+                                        <?php echo htmlspecialchars($note->commentaire); ?>
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-gray-500">
                                         <?php
                                         if (!empty($note->lib_semestre)) {

@@ -51,7 +51,7 @@ class PlanificationSoutenanceController
                     e.nom_etu as nom_etudiant,
                     e.prenom_etu as prenom_etudiant,
                     CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_complet,
-                    e.num_etu as matricule_etudiant,
+                    e.num_carte_etud as matricule_etudiant,
                     p.theme_soutenance,
                     p.date_soutenance,
                     p.heure_soutenance,
@@ -63,7 +63,7 @@ class PlanificationSoutenanceController
                         ELSE 'none'
                     END as statut_planification
                 FROM programmer p
-                INNER JOIN etudiants e ON p.num_etud = e.num_etu
+                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
                 WHERE p.num_jury IS NOT NULL
                 ORDER BY e.nom_etu ASC, e.prenom_etu ASC
@@ -93,7 +93,7 @@ class PlanificationSoutenanceController
                     e.nom_etu as nom_etudiant,
                     e.prenom_etu as prenom_etudiant,
                     CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_complet,
-                    e.num_etu as matricule_etudiant,
+                    e.num_carte_etud as matricule_etudiant,
                     p.theme_soutenance,
                     p.date_soutenance,
                     p.heure_soutenance,
@@ -105,7 +105,7 @@ class PlanificationSoutenanceController
                         ELSE 'none'
                     END as statut_planification
                 FROM programmer p
-                INNER JOIN etudiants e ON p.num_etud = e.num_etu
+                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
                 WHERE p.num_jury IS NOT NULL
                 AND (p.id_salle IS NULL OR p.date_soutenance IS NULL OR p.heure_soutenance IS NULL)
@@ -159,14 +159,14 @@ class PlanificationSoutenanceController
                     p.id_programmation,
                     p.num_etud as id_etudiant,
                     CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_etudiant,
-                    e.num_etu as matricule_etudiant,
+                    e.num_carte_etud as matricule_etudiant,
                     p.theme_soutenance,
                     p.date_soutenance,
                     p.heure_soutenance,
                     p.id_salle,
                     s.lib_salle as nom_salle
                 FROM programmer p
-                INNER JOIN etudiants e ON p.num_etud = e.num_etu
+                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
                 WHERE p.id_salle IS NOT NULL 
                 AND p.date_soutenance IS NOT NULL 
@@ -372,7 +372,7 @@ class PlanificationSoutenanceController
                     p.heure_soutenance,
                     p.id_salle
                 FROM programmer p
-                INNER JOIN etudiants e ON p.num_etud = e.num_etu
+                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
                 WHERE p.id_programmation = ?
             ";
 

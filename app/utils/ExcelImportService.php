@@ -79,10 +79,12 @@ class ExcelImportService
             $lineNumber++;
 
             // Skip header row
-            if ($lineNumber === 1) continue;
+            if ($lineNumber === 1)
+                continue;
 
             // Skip empty rows
-            if (empty(array_filter($row))) continue;
+            if (empty(array_filter($row)))
+                continue;
 
             // CORRECTION 3 : Remplissage des colonnes manquantes
             // Si la ligne a moins de 20 colonnes, on ajoute des vides à la fin
@@ -114,9 +116,12 @@ class ExcelImportService
     private function processRow($row, $lineNumber)
     {
         // Validate required fields
-        if (empty($row[self::COL_ANNEE_ACAD])) throw new Exception("Année académique manquante");
-        if (empty($row[self::COL_MATRICULE])) throw new Exception("Matricule manquant");
-        if (empty($row[self::COL_NOM])) throw new Exception("Nom manquant");
+        if (empty($row[self::COL_ANNEE_ACAD]))
+            throw new Exception("Année académique manquante");
+        if (empty($row[self::COL_MATRICULE]))
+            throw new Exception("Matricule manquant");
+        if (empty($row[self::COL_NOM]))
+            throw new Exception("Nom manquant");
 
         // Start transaction
         $this->db->beginTransaction();
@@ -168,7 +173,8 @@ class ExcelImportService
         // CORRECTION 2 : Verifier par ID d'abord pour eviter les doublons de cle primaire
         $stmt = $this->db->prepare("SELECT id_annee_acad FROM annee_academique WHERE id_annee_acad = :id");
         $stmt->execute(['id' => $id]);
-        if ($stmt->fetch()) return $id;
+        if ($stmt->fetch())
+            return $id;
 
         $dateDebut = $startYear . '-09-01';
         $dateFin = $endYear . '-08-31';
@@ -230,11 +236,12 @@ class ExcelImportService
     private function getOrCreateStudent($row)
     {
         $matricule = trim($row[self::COL_MATRICULE]);
-        $stmt = $this->db->prepare("SELECT num_etu FROM etudiants WHERE num_etu = :num_etu");
+        $stmt = $this->db->prepare("SELECT num_carte_etud FROM etudiants WHERE num_carte_etud = :num_etu");
         $stmt->execute(['num_etu' => $matricule]);
-        if ($stmt->fetch()) return $matricule;
+        if ($stmt->fetch())
+            return $matricule;
 
-        $stmt = $this->db->prepare("INSERT INTO etudiants (num_etu, nom_etu, prenom_etu, email_etu, date_naiss_etu, genre_etu, promotion_etu) VALUES (:num_etu, :nom, :prenom, :email, :date_naiss, :genre, :promotion)");
+        $stmt = $this->db->prepare("INSERT INTO etudiants (num_carte_etud, nom_etu, prenom_etu, email_etu, date_naiss_etu, genre_etu, promotion_etu) VALUES (:num_etu, :nom, :prenom, :email, :date_naiss, :genre, :promotion)");
 
         [$startYear,] = $this->parseAcademicYear($row[self::COL_ANNEE_ACAD]);
         $prenomClean = $this->sanitizeForEmail($row[self::COL_PRENOMS]);
@@ -247,7 +254,7 @@ class ExcelImportService
             'prenom' => $row[self::COL_PRENOMS],
             'email' => $email,
             'date_naiss' => '2000-01-01',
-            'genre' => 'Neutre',
+            'genre' => 3,
             'promotion' => $startYear
         ]);
         return $matricule;
@@ -266,7 +273,8 @@ class ExcelImportService
         $stmt = $this->db->prepare("SELECT id_entreprise FROM entreprises WHERE lib_entreprise = :lib");
         $stmt->execute(['lib' => $nom]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($result) return $result['id_entreprise'];
+        if ($result)
+            return $result['id_entreprise'];
 
         $stmt = $this->db->prepare("INSERT INTO entreprises (lib_entreprise) VALUES (:lib)");
         $stmt->execute(['lib' => $nom]);
@@ -290,7 +298,8 @@ class ExcelImportService
             'sujet' => $row[self::COL_THEME] ?? 'Stage',
             'description' => 'Stage importé depuis archives',
             'encadrant' => $row[self::COL_MAITRE_STAGE] ?? 'Non spécifié',
-            'email' => '', 'tel' => ''
+            'email' => '',
+            'tel' => ''
         ]);
     }
 
@@ -299,7 +308,8 @@ class ExcelImportService
         $stmt = $this->db->prepare("SELECT id_rapport FROM rapport_etudiants WHERE num_etu = ?");
         $stmt->execute([$numEtu]);
         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($existing) return $existing['id_rapport'];
+        if ($existing)
+            return $existing['id_rapport'];
 
         $stmt = $this->db->prepare("INSERT INTO rapport_etudiants (num_etu, nom_rapport, date_rapport, theme_rapport, statut_rapport, etape_validation) VALUES (:num_etu, :nom, :date, :theme, :statut, :etape)");
 
@@ -326,7 +336,8 @@ class ExcelImportService
         $stmt = $this->db->query("SELECT id_specialite FROM specialite LIMIT 1");
         $id = $stmt->fetchColumn();
 
-        if ($id) return $id;
+        if ($id)
+            return $id;
 
         // Si aucune n'existe, en créer une "Général"
         $this->db->exec("INSERT INTO specialite (lib_specialite) VALUES ('Général')");
@@ -336,7 +347,8 @@ class ExcelImportService
     private function getOrCreateEnseignant($nomComplet)
     {
         $nomComplet = trim($nomComplet);
-        if (empty($nomComplet) || $nomComplet === 'N/A') return null;
+        if (empty($nomComplet) || $nomComplet === 'N/A')
+            return null;
 
         $cleanName = preg_replace('/^(M\.|Mme|Dr|Pr|Prof\.)\s+/i', '', $nomComplet);
         $parts = explode(' ', $cleanName, 2);
@@ -346,7 +358,8 @@ class ExcelImportService
         $stmt = $this->db->prepare("SELECT id_enseignant FROM enseignants WHERE nom_enseignant LIKE :nom");
         $stmt->execute(['nom' => "%$nom%"]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($result) return $result['id_enseignant'];
+        if ($result)
+            return $result['id_enseignant'];
 
         // Récupérer un ID de spécialité valide
         $idSpecialite = $this->getOrCreateDefaultSpecialite();
@@ -367,10 +380,12 @@ class ExcelImportService
 
     private function assignEncadrant($idEnseignant, $idRapport, $role)
     {
-        if (!$idEnseignant) return;
+        if (!$idEnseignant)
+            return;
         $stmt = $this->db->prepare("SELECT * FROM affecter WHERE id_enseignant = ? AND id_rapport = ? AND role = ?");
         $stmt->execute([$idEnseignant, $idRapport, $role]);
-        if ($stmt->fetch()) return;
+        if ($stmt->fetch())
+            return;
 
         $stmt = $this->db->prepare("INSERT INTO affecter (id_enseignant, role, id_rapport) VALUES (?, ?, ?)");
         $stmt->execute([$idEnseignant, $role, $idRapport]);
@@ -380,7 +395,8 @@ class ExcelImportService
     {
         $stmt = $this->db->prepare("SELECT * FROM valider WHERE id_rapport = ?");
         $stmt->execute([$idRapport]);
-        if ($stmt->fetch()) return;
+        if ($stmt->fetch())
+            return;
 
         $dateCommission = !empty($row[self::COL_DATE_COMMISSION]) ? $row[self::COL_DATE_COMMISSION] : date('Y-m-d');
         $avis = $row[self::COL_AVIS_COMMISSION] ?? 'Validé';
@@ -394,7 +410,8 @@ class ExcelImportService
     private function createSoutenanceData($numEtu, $idRapport, $row)
     {
         $dateSoutenance = $row[self::COL_DATE_SOUTENANCE];
-        if (empty($dateSoutenance) || $dateSoutenance === 'N/A') return;
+        if (empty($dateSoutenance) || $dateSoutenance === 'N/A')
+            return;
 
         $idSalle = null;
         if (!empty($row[self::COL_SALLE]) && $row[self::COL_SALLE] !== 'N/A') {
@@ -412,11 +429,13 @@ class ExcelImportService
         $numJury = random_int(1000, 9999);
         if (!empty($row[self::COL_PRESIDENT_JURY])) {
             $idPres = $this->getOrCreateEnseignant($row[self::COL_PRESIDENT_JURY]);
-            if ($idPres) $this->addJuryMember($numJury, $idPres, 1);
+            if ($idPres)
+                $this->addJuryMember($numJury, $idPres, 1);
         }
         if (!empty($row[self::COL_EXAMINATEUR])) {
             $idExam = $this->getOrCreateEnseignant($row[self::COL_EXAMINATEUR]);
-            if ($idExam) $this->addJuryMember($numJury, $idExam, 2);
+            if ($idExam)
+                $this->addJuryMember($numJury, $idExam, 2);
         }
 
         $stmt = $this->db->prepare("SELECT id_programmation FROM programmer WHERE num_etud = ?");

@@ -1,18 +1,21 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 
-class EvaluationRapport {
-    
+class EvaluationRapport
+{
+
     private $pdo;
-    
-    public function __construct($pdo = null) {
+
+    public function __construct($pdo = null)
+    {
         $this->pdo = $pdo ?: Database::getConnection();
     }
-    
+
     /**
      * Ajoute une évaluation pour un rapport
      */
-    public function ajouterEvaluation($id_rapport, $id_evaluateur, $decision, $commentaire) {
+    public function ajouterEvaluation($id_rapport, $id_evaluateur, $decision, $commentaire)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 INSERT INTO evaluations_rapports (id_rapport, id_evaluateur, decision_evaluation, commentaire, date_evaluation)
@@ -24,11 +27,12 @@ class EvaluationRapport {
             return false;
         }
     }
-    
+
     /**
      * Met à jour une évaluation existante
      */
-    public function mettreAJourEvaluation($id_evaluation, $decision, $commentaire) {
+    public function mettreAJourEvaluation($id_evaluation, $decision, $commentaire)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 UPDATE evaluations_rapports 
@@ -41,11 +45,12 @@ class EvaluationRapport {
             return false;
         }
     }
-    
+
     /**
      * Vérifie si un évaluateur a déjà évalué un rapport
      */
-    public function evaluationExiste($id_rapport, $id_evaluateur) {
+    public function evaluationExiste($id_rapport, $id_evaluateur)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT id_evaluation FROM evaluations_rapports 
@@ -58,11 +63,12 @@ class EvaluationRapport {
             return false;
         }
     }
-    
+
     /**
      * Récupère toutes les évaluations d'un rapport
      */
-    public function getEvaluationsRapport($id_rapport) {
+    public function getEvaluationsRapport($id_rapport)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT e.*, 
@@ -81,11 +87,12 @@ class EvaluationRapport {
             return [];
         }
     }
-    
+
     /**
      * Récupère le statut des votes pour un rapport
      */
-    public function getStatutVotes($id_rapport, $nombreMembresCommission = 4) {
+    public function getStatutVotes($id_rapport, $nombreMembresCommission = 4)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
@@ -97,11 +104,11 @@ class EvaluationRapport {
             ");
             $stmt->execute([$id_rapport]);
             $resultats = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             $totalVotes = $resultats['total_votes'];
             $votesValider = $resultats['votes_valider'];
             $votesRejeter = $resultats['votes_rejeter'];
-            
+
             // Si tous les membres ont voté
             if ($totalVotes >= $nombreMembresCommission) {
                 // Si tous ont validé
@@ -123,7 +130,7 @@ class EvaluationRapport {
                     ];
                 }
             }
-            
+
             // En cours de vote
             return [
                 'statut' => 'en_cours',
@@ -143,11 +150,12 @@ class EvaluationRapport {
             ];
         }
     }
-    
+
     /**
      * Récupère les rapports avec leur statut de vote
      */
-    public function getRapportsAvecStatutVote() {
+    public function getRapportsAvecStatutVote()
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
@@ -166,7 +174,7 @@ class EvaluationRapport {
                     COUNT(CASE WHEN ev.decision_evaluation = 'valider' THEN 1 END) as votes_valider,
                     COUNT(CASE WHEN ev.decision_evaluation = 'rejeter' THEN 1 END) as votes_rejeter
                 FROM rapport_etudiants r
-                JOIN etudiants e ON r.num_etu = e.num_etu
+                JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 JOIN deposer d ON r.id_rapport = d.id_rapport
                 LEFT JOIN evaluations_rapports ev ON r.id_rapport = ev.id_rapport
                 WHERE r.etape_validation = 'approuve_communication'
@@ -182,4 +190,4 @@ class EvaluationRapport {
             return [];
         }
     }
-} 
+}

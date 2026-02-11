@@ -135,7 +135,7 @@ $studentGrades = $GLOBALS['studentGrades'] ?? [];
                 },
                 body: JSON.stringify({
                     semestre: semestre,
-                    etudiant_id: '<?php echo $GLOBALS['selectedStudent']->num_etu; ?>'
+                    etudiant_id: '<?php echo $GLOBALS['selectedStudent']->num_carte_etud; ?>'
                 })
             })
             .then(response => response.json())
@@ -223,8 +223,8 @@ $studentGrades = $GLOBALS['studentGrades'] ?? [];
                                     class="block w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                     <option value="">Sélectionner un étudiant</option>
                                     <?php foreach ($GLOBALS['etudiants'] as $etudiant): ?>
-                                    <option value="<?php echo htmlspecialchars($etudiant->num_etu); ?>"
-                                        <?php echo isset($GLOBALS['selectedStudent']) && $GLOBALS['selectedStudent']->num_etu == $etudiant->num_etu ? 'selected' : ''; ?>>
+                                    <option value="<?php echo htmlspecialchars($etudiant->num_carte_etud); ?>"
+                                        <?php echo isset($GLOBALS['selectedStudent']) && $GLOBALS['selectedStudent']->num_carte_etud == $etudiant->num_carte_etud ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($etudiant->nom_etu . ' ' . $etudiant->prenom_etu); ?>
                                     </option>
                                     <?php endforeach; ?>
@@ -259,7 +259,7 @@ $studentGrades = $GLOBALS['studentGrades'] ?? [];
                                     <?php echo htmlspecialchars($GLOBALS['selectedStudent']->nom_etu . ' ' . $GLOBALS['selectedStudent']->prenom_etu); ?>
                                 </h3>
                                 <p class="text-gray-600">Numéro d'étudiant:
-                                    <?php echo htmlspecialchars($GLOBALS['selectedStudent']->num_etu); ?></p>
+                                    <?php echo htmlspecialchars($GLOBALS['selectedStudent']->num_carte_etud); ?></p>
                             </div>
                         </div>
                     </div>
@@ -271,7 +271,7 @@ $studentGrades = $GLOBALS['studentGrades'] ?? [];
 
                         <form id="saisiForm" class="space-y-6" action="?page=gestion_notes_evaluations<?php 
                                 echo !empty($GLOBALS['selectedNiveau']) ? '&niveau=' . htmlspecialchars($GLOBALS['selectedNiveau']) : '';
-                                echo !empty($GLOBALS['selectedStudent']) ? '&student=' . htmlspecialchars($GLOBALS['selectedStudent']->num_etu) : '';
+                                echo !empty($GLOBALS['selectedStudent']) ? '&student=' . htmlspecialchars($GLOBALS['selectedStudent']->num_carte_etud) : '';
                             ?>&action=enregistrer_notes" method="POST">
                             <?php 
                                 $currentSemestre = null;
@@ -524,7 +524,7 @@ $studentGrades = $GLOBALS['studentGrades'] ?? [];
 
                     <?php if (!empty($GLOBALS['selectedStudent'])): ?>
                     <div class="flex justify-end mb-4 no-print">
-                        <a href="?page=gestion_notes_evaluations&action=imprimer_releve&student=<?= urlencode($GLOBALS['selectedStudent']->num_etu) ?>&niveau=<?= urlencode($GLOBALS['selectedNiveau']) ?>"
+                        <a href="?page=gestion_notes_evaluations&action=imprimer_releve&student=<?= urlencode($GLOBALS['selectedStudent']->num_carte_etud) ?>&niveau=<?= urlencode($GLOBALS['selectedNiveau']) ?>"
                             target="_blank" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
                             <i class="fa fa-file-pdf mr-2"></i> Imprimer le relevé de notes (PDF)
                         </a>

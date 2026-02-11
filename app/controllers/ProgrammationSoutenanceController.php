@@ -266,8 +266,8 @@ class ProgrammationSoutenanceController
                     NULL as maitre_stage_id,
                     ist.encadrant_entreprise as maitre_stage_nom
                 FROM programmer p
-                LEFT JOIN etudiants e ON p.num_etud = e.num_etu
-                LEFT JOIN informations_stage ist ON e.num_etu = ist.num_etu
+                LEFT JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
                 ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
             ";
 
@@ -484,8 +484,8 @@ class ProgrammationSoutenanceController
                     NULL as maitre_stage_id,
                     ist.encadrant_entreprise as maitre_stage_nom
                 FROM programmer p
-                LEFT JOIN etudiants e ON p.num_etud = e.num_etu
-                LEFT JOIN informations_stage ist ON e.num_etu = ist.num_etu
+                LEFT JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
                 ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
             ";
 

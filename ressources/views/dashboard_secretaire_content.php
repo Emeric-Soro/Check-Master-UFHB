@@ -24,7 +24,7 @@ $pourcentageReussite = $totalInscriptions > 0 ? round(($paiementsComplets / $tot
 $db = Database::getConnection();
 $queryActivites = "SELECT i.date_inscription, e.nom_etu, e.prenom_etu, n.lib_niv_etude 
                    FROM inscriptions i 
-                   JOIN etudiants e ON i.id_etudiant = e.num_etu 
+                   JOIN etudiants e ON i.id_etudiant = e.num_carte_etud 
                    JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude 
                    ORDER BY i.date_inscription DESC 
                    LIMIT 5";
@@ -35,7 +35,7 @@ $activitesRecentes = $stmtActivites->fetchAll(PDO::FETCH_ASSOC);
 // Récupérer les réclamations récentes
 $queryReclamations = "SELECT r.date_creation, e.nom_etu, e.prenom_etu, r.type_reclamation, r.statut_reclamation 
                       FROM reclamations r 
-                      JOIN etudiants e ON r.num_etu = e.num_etu 
+                      JOIN etudiants e ON r.num_carte_etud = e.num_carte_etud 
                       ORDER BY r.date_creation DESC 
                       LIMIT 5";
 $stmtReclamations = $db->prepare($queryReclamations);

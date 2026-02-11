@@ -1,14 +1,17 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 
-class Reclamation {
+class Reclamation
+{
     private $db;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->db = Database::getConnection();
     }
 
-    public function creer($donnees) {
+    public function creer($donnees)
+    {
         try {
             $sql = "INSERT INTO reclamations (
                         num_etu,  
@@ -43,12 +46,13 @@ class Reclamation {
         }
     }
 
-    public function getTous($limit = 10, $offset = 0, $filtres = []) {
+    public function getTous($limit = 10, $offset = 0, $filtres = [])
+    {
         try {
             $sql = "SELECT r.*, 
                            CONCAT(e.nom_etu, ' ', e.prenom_etu) as nom_etu
                     FROM reclamations r
-                    LEFT JOIN etudiants e ON r.num_etu = e.num_etu
+                    LEFT JOIN etudiants e ON r.num_etu = e.num_carte_etud
                     WHERE 1=1";
 
             $params = [];
@@ -93,13 +97,14 @@ class Reclamation {
     }
 
 
-    public function getParId($id) {
+    public function getParId($id)
+    {
         try {
             $sql = "SELECT r.*, 
                            CONCAT(e.nom_etu, ' ', e.prenom_etu) as nom_etu,
                            e.email_etu
                     FROM reclamations r
-                    LEFT JOIN etudiants e ON r.num_etu = e.num_etu
+                    LEFT JOIN etudiants e ON r.num_etu = e.num_carte_etud
                     WHERE r.id_reclamation = :id";
 
             $stmt = $this->db->prepare($sql);
@@ -112,7 +117,8 @@ class Reclamation {
         }
     }
 
-    public function compterTotal($filtres = []) {
+    public function compterTotal($filtres = [])
+    {
         try {
             $sql = "SELECT COUNT(*) FROM reclamations r WHERE 1=1";
             $params = [];
@@ -141,7 +147,8 @@ class Reclamation {
         }
     }
 
-    public function getStatistiques() {
+    public function getStatistiques()
+    {
         try {
             $sql = "SELECT 
                         COUNT(*) as total,
@@ -163,17 +170,19 @@ class Reclamation {
         }
     }
 
-    public function getAllReclamationsWithEtudiant() {
+    public function getAllReclamationsWithEtudiant()
+    {
         $sql = "SELECT r.*, e.nom_etu, e.prenom_etu
                 FROM reclamations r
-                JOIN etudiants e ON r.num_etu = e.num_etu
+                JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 ORDER BY r.date_creation DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
-    public function updateStatut($id, $statut) {
+    public function updateStatut($id, $statut)
+    {
         $sql = "UPDATE reclamations SET statut_reclamation = ? WHERE id_reclamation = ?";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([$statut, $id]);

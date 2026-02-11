@@ -167,7 +167,7 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <button
                                         class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-green-700 transition open-dossier-modal"
-                                        data-num-etu="<?= htmlspecialchars($etu->num_etu) ?>"
+                                        data-num-etu="<?= htmlspecialchars($etu->num_carte_etud) ?>"
                                         data-nom="<?= htmlspecialchars($etu->nom_etu . ' ' . $etu->prenom_etu) ?>">
                                         <i class="fas fa-eye mr-2"></i> Visualiser le dossier
                                     </button>
@@ -313,10 +313,10 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                 </div>
                 <div class="flex gap-4 mt-6">
                     <?php if (canEdit()): ?>
-                    <button type="button" id="editBtn"
-                        class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Modifier</button>
-                    <button type="submit" id="saveBtn"
-                        class="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700">Enregistrer</button>
+                        <button type="button" id="editBtn"
+                            class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Modifier</button>
+                        <button type="submit" id="saveBtn"
+                            class="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700">Enregistrer</button>
                     <?php endif; ?>
                 </div>
             </form>

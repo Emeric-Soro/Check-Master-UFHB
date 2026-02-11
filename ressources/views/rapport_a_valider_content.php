@@ -41,7 +41,7 @@ try {
     // Récupérer les rapports avec les informations des étudiants
     $rapportsAvecEtudiants = [];
     foreach ($tousLesRapports as $rapport) {
-        $etudiant = $etudiantModel->getEtudiantById($rapport->num_etu);
+        $etudiant = $etudiantModel->getEtudiantById($rapport->num_carte_etud);
         if ($etudiant) {
             $rapport->etudiant = $etudiant;
 
@@ -386,11 +386,11 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                                             <?php endif; ?>
                                                         </div>
                                                     </div>
-                                                     <p class="text-sm text-gray-500">
-                                                         Étudiant: <?= htmlspecialchars($rapport->etudiant->nom_etu ?? 'N/A') ?>
-                                                         <?= htmlspecialchars($rapport->etudiant->prenom_etu ?? 'N/A') ?>
-                                                         • Thème: <?= htmlspecialchars($rapport->theme_rapport) ?>
-                                                     </p>
+                                                    <p class="text-sm text-gray-500">
+                                                        Étudiant: <?= htmlspecialchars($rapport->etudiant->nom_etu ?? 'N/A') ?>
+                                                        <?= htmlspecialchars($rapport->etudiant->prenom_etu ?? 'N/A') ?>
+                                                        • Thème: <?= htmlspecialchars($rapport->theme_rapport) ?>
+                                                    </p>
                                                     <div class="mt-2 flex items-center text-xs text-gray-500">
                                                         <span>Déposé le
                                                             <?= date('d/m/Y', strtotime($rapport->date_rapport)) ?></span>
@@ -412,14 +412,14 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                                 <?php endif; ?>
 
                                                 <?php if (canEdit()): ?>
-                                            <button
-                                                    onclick="openEvaluationModal(<?= $rapport->id_rapport ?>, '<?= htmlspecialchars($rapport->nom_rapport, ENT_QUOTES) ?>')"
-                                                    class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
-                                                    <?= $rapport->deja_evalue ? '' : '' ?>>
-                                                    <i
-                                                        class="fas fa-vote-yea mr-1"></i><?= $rapport->deja_evalue ? 'Modifier' : 'Voter' ?>
-                                                </button>
-                                            <?php endif; ?>
+                                                    <button
+                                                        onclick="openEvaluationModal(<?= $rapport->id_rapport ?>, '<?= htmlspecialchars($rapport->nom_rapport, ENT_QUOTES) ?>')"
+                                                        class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
+                                                        <?= $rapport->deja_evalue ? '' : '' ?>>
+                                                        <i
+                                                            class="fas fa-vote-yea mr-1"></i><?= $rapport->deja_evalue ? 'Modifier' : 'Voter' ?>
+                                                    </button>
+                                                <?php endif; ?>
 
                                                 <?php if ($rapport->nb_evaluations > 0): ?>
                                                     <button onclick="viewEvaluations(<?= $rapport->id_rapport ?>)"
@@ -477,21 +477,21 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                     <i class="fas fa-eye mr-1"></i>Consulter
                                 </button>
                                 <?php if (canEdit()): ?>
-                                <button onclick="openEvaluationModal(1)"
-                                    class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors">
-                                    <i class="fas fa-vote-yea mr-1"></i>Voter
-                                </button>
+                                    <button onclick="openEvaluationModal(1)"
+                                        class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors">
+                                        <i class="fas fa-vote-yea mr-1"></i>Voter
+                                    </button>
                                 <?php endif; ?>
                                 <button onclick="viewEvaluations(1)"
                                     class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors">
                                     <i class="fas fa-users mr-1"></i>Votes
                                 </button>
                                 <?php if (canEdit()): ?>
-                                <button onclick="makeFinalDecision(1)"
-                                    class="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded-md hover:bg-orange-200 transition-colors"
-                                    disabled>
-                                    <i class="fas fa-gavel mr-1"></i>Finaliser
-                                </button>
+                                    <button onclick="makeFinalDecision(1)"
+                                        class="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded-md hover:bg-orange-200 transition-colors"
+                                        disabled>
+                                        <i class="fas fa-gavel mr-1"></i>Finaliser
+                                    </button>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -540,10 +540,10 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                     <i class="fas fa-users mr-1"></i>Votes
                                 </button>
                                 <?php if (canEdit()): ?>
-                                <button onclick="makeFinalDecision(2)"
-                                    class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors">
-                                    <i class="fas fa-gavel mr-1"></i>Finaliser
-                                </button>
+                                    <button onclick="makeFinalDecision(2)"
+                                        class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors">
+                                        <i class="fas fa-gavel mr-1"></i>Finaliser
+                                    </button>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -594,10 +594,10 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                     <i class="fas fa-users mr-1"></i>Votes
                                 </button>
                                 <?php if (canEdit()): ?>
-                                <button onclick="makeFinalDecision(3)"
-                                    class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors">
-                                    <i class="fas fa-gavel mr-1"></i>Finaliser
-                                </button>
+                                    <button onclick="makeFinalDecision(3)"
+                                        class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors">
+                                        <i class="fas fa-gavel mr-1"></i>Finaliser
+                                    </button>
                                 <?php endif; ?>
                             </div>
                         </div>

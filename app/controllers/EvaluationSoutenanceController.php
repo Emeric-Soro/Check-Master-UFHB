@@ -18,9 +18,9 @@ class EvaluationSoutenanceController
                     p.date_soutenance,
                     p.heure_soutenance,
                     -- Étudiant
-                    e.num_etu,
+                    e.num_carte_etud as num_etu,
                     CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_etudiant,
-                    e.num_etu as matricule_etudiant,
+                    e.num_carte_etud as matricule_etudiant,
                     e.promotion_etu,
                     -- Salle
                     s.lib_salle as nom_salle,
@@ -52,12 +52,12 @@ class EvaluationSoutenanceController
                     -- Maître de stage
                     ist.encadrant_entreprise as maitre_stage_nom,
                     -- Vérifier si déjà évalué et calculer la note finale (somme des notes)
-                    (SELECT COUNT(*) FROM evaluer ev WHERE ev.num_etudiant = e.num_etu) as est_evalue,
-                    (SELECT SUM(ev.note) FROM evaluer ev WHERE ev.num_etudiant = e.num_etu) as note_finale
+                    (SELECT COUNT(*) FROM evaluer ev WHERE ev.num_etudiant = e.num_carte_etud) as est_evalue,
+                    (SELECT SUM(ev.note) FROM evaluer ev WHERE ev.num_etudiant = e.num_carte_etud) as note_finale
                 FROM programmer p
-                INNER JOIN etudiants e ON p.num_etud = e.num_etu
+                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
-                LEFT JOIN informations_stage ist ON e.num_etu = ist.num_etu
+                LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
                 WHERE p.id_salle IS NOT NULL 
                 AND p.date_soutenance IS NOT NULL 
                 AND p.heure_soutenance IS NOT NULL
@@ -571,64 +571,64 @@ class EvaluationSoutenanceController
                 $sommeBaremes += $eval['bareme'];
             }
 
-             // ========== ANNEXE 1 - Soutenance de Mémoire ==========
-             $dataAnnexe1 = $data;
-             $dataAnnexe1['criteres'] = $evaluations;
-             $dataAnnexe1['note_finale'] = $sommeNotes;
-             $dataAnnexe1['total_bareme'] = $sommeBaremes;
+            // ========== ANNEXE 1 - Soutenance de Mémoire ==========
+            $dataAnnexe1 = $data;
+            $dataAnnexe1['criteres'] = $evaluations;
+            $dataAnnexe1['note_finale'] = $sommeNotes;
+            $dataAnnexe1['total_bareme'] = $sommeBaremes;
 
-             ob_start();
-             $data = $dataAnnexe1; // Pour les templates
-             include __DIR__ . '/../../ressources/views/pv_soutenance/annexe1.php';
-             $htmlAnnexe1 = ob_get_clean();
+            ob_start();
+            $data = $dataAnnexe1; // Pour les templates
+            include __DIR__ . '/../../ressources/views/pv_soutenance/annexe1.php';
+            $htmlAnnexe1 = ob_get_clean();
 
-             // ========== ANNEXE 2 - PV Jury ==========
-             $dataAnnexe2 = $dataAnnexe1;
+            // ========== ANNEXE 2 - PV Jury ==========
+            $dataAnnexe2 = $dataAnnexe1;
 
-             // Calculer les moyennes depuis la base de données
-             $moyennes = $this->calculerMoyennesPourAnnexe2($numEtu, $pdo);
+            // Calculer les moyennes depuis la base de données
+            $moyennes = $this->calculerMoyennesPourAnnexe2($numEtu, $pdo);
 
-             $dataAnnexe2['moyenne_master1'] = $moyennes['moyenne_master1'];
-             $dataAnnexe2['moyenne_s1_master2'] = $moyennes['moyenne_s1_master2'];
-             $dataAnnexe2['note_memoire'] = $sommeNotes; // Note de soutenance = note du mémoire
-             $dataAnnexe2['coef_master1'] = 2;
-             $dataAnnexe2['coef_s1_master2'] = 3;
-             $dataAnnexe2['coef_memoire'] = 3;
-             $dataAnnexe2['total_coef'] = 8;
+            $dataAnnexe2['moyenne_master1'] = $moyennes['moyenne_master1'];
+            $dataAnnexe2['moyenne_s1_master2'] = $moyennes['moyenne_s1_master2'];
+            $dataAnnexe2['note_memoire'] = $sommeNotes; // Note de soutenance = note du mémoire
+            $dataAnnexe2['coef_master1'] = 2;
+            $dataAnnexe2['coef_s1_master2'] = 3;
+            $dataAnnexe2['coef_memoire'] = 3;
+            $dataAnnexe2['total_coef'] = 8;
 
-             // Calcul : (Moyenne Master1 * 2 + Moyenne S1 Master2 * 3 + Mémoire * 3) / 8
-             $dataAnnexe2['note_finale'] = (
-                 $dataAnnexe2['moyenne_master1'] * $dataAnnexe2['coef_master1'] +
-                 $dataAnnexe2['moyenne_s1_master2'] * $dataAnnexe2['coef_s1_master2'] +
-                 $dataAnnexe2['note_memoire'] * $dataAnnexe2['coef_memoire']
-             ) / $dataAnnexe2['total_coef'];
+            // Calcul : (Moyenne Master1 * 2 + Moyenne S1 Master2 * 3 + Mémoire * 3) / 8
+            $dataAnnexe2['note_finale'] = (
+                $dataAnnexe2['moyenne_master1'] * $dataAnnexe2['coef_master1'] +
+                $dataAnnexe2['moyenne_s1_master2'] * $dataAnnexe2['coef_s1_master2'] +
+                $dataAnnexe2['note_memoire'] * $dataAnnexe2['coef_memoire']
+            ) / $dataAnnexe2['total_coef'];
 
-             $dataAnnexe2['mention'] = $this->calculerMention($dataAnnexe2['note_finale']);
+            $dataAnnexe2['mention'] = $this->calculerMention($dataAnnexe2['note_finale']);
 
-             ob_start();
-             $data = $dataAnnexe2; // Pour les templates
-             include __DIR__ . '/../../ressources/views/pv_soutenance/annexe2.php';
-             $htmlAnnexe2 = ob_get_clean();
+            ob_start();
+            $data = $dataAnnexe2; // Pour les templates
+            include __DIR__ . '/../../ressources/views/pv_soutenance/annexe2.php';
+            $htmlAnnexe2 = ob_get_clean();
 
-             // ========== ANNEXE 3 - PV Jury FC ==========
-             $dataAnnexe3 = $dataAnnexe1;
-             // Utiliser la moyenne Master 1 fournie, sinon valeur par défaut
-             $dataAnnexe3['moyenne_master1'] = !empty($moyenneMaster1) && is_numeric($moyenneMaster1) ? floatval($moyenneMaster1) : 12.0;
-             $dataAnnexe3['note_memoire'] = $sommeNotes;
-             $dataAnnexe3['coef_master1'] = 1;
+            // ========== ANNEXE 3 - PV Jury FC ==========
+            $dataAnnexe3 = $dataAnnexe1;
+            // Utiliser la moyenne Master 1 fournie, sinon valeur par défaut
+            $dataAnnexe3['moyenne_master1'] = !empty($moyenneMaster1) && is_numeric($moyenneMaster1) ? floatval($moyenneMaster1) : 12.0;
+            $dataAnnexe3['note_memoire'] = $sommeNotes;
+            $dataAnnexe3['coef_master1'] = 1;
             $dataAnnexe3['coef_memoire'] = 2;
             $dataAnnexe3['total_coef'] = 3;
-             $dataAnnexe3['note_finale'] = ($dataAnnexe3['moyenne_master1'] * 1 + $dataAnnexe3['note_memoire'] * 2) / 3;
-             $dataAnnexe3['mention'] = $this->calculerMention($dataAnnexe3['note_finale']);
+            $dataAnnexe3['note_finale'] = ($dataAnnexe3['moyenne_master1'] * 1 + $dataAnnexe3['note_memoire'] * 2) / 3;
+            $dataAnnexe3['mention'] = $this->calculerMention($dataAnnexe3['note_finale']);
 
-             ob_start();
-             $data = $dataAnnexe3; // Pour les templates
-             include __DIR__ . '/../../ressources/views/pv_soutenance/annexe3.php';
-             $htmlAnnexe3 = ob_get_clean();
+            ob_start();
+            $data = $dataAnnexe3; // Pour les templates
+            include __DIR__ . '/../../ressources/views/pv_soutenance/annexe3.php';
+            $htmlAnnexe3 = ob_get_clean();
 
-              // ========== COMBINER LES 3 ANNEXES DANS UN SEUL PDF ==========
-              // Structure HTML unique avec sauts de page CSS
-              $htmlComplet = '<!DOCTYPE html>
+            // ========== COMBINER LES 3 ANNEXES DANS UN SEUL PDF ==========
+            // Structure HTML unique avec sauts de page CSS
+            $htmlComplet = '<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -665,25 +665,25 @@ class EvaluationSoutenanceController
 </body>
 </html>';
 
-              // Générer le PDF
-              $options = new \Dompdf\Options();
-              $options->set('isHtml5ParserEnabled', true);
-              $options->set('isRemoteEnabled', true);
-              $options->set('defaultFont', 'DejaVu Sans');
-              $options->set('enable_font_subsetting', true);
-              // Disable image loading to avoid GD requirement
-              $options->set('enablePhp', false);
+            // Générer le PDF
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'DejaVu Sans');
+            $options->set('enable_font_subsetting', true);
+            // Disable image loading to avoid GD requirement
+            $options->set('enablePhp', false);
 
-              $dompdf = new \Dompdf\Dompdf($options);
-              $dompdf->loadHtml($htmlComplet);
-              $dompdf->setPaper('A4', 'portrait');
-              $dompdf->render();
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($htmlComplet);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
 
-              $pdfFilename = 'PV_Soutenance_' . $numEtu . '_' . date('Y-m-d') . '.pdf';
+            $pdfFilename = 'PV_Soutenance_' . $numEtu . '_' . date('Y-m-d') . '.pdf';
 
-              header('Content-Type: application/pdf');
-              header('Content-Disposition: inline; filename="' . $pdfFilename . '"');
-              echo $dompdf->output();
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $pdfFilename . '"');
+            echo $dompdf->output();
 
         } catch (Exception $e) {
             error_log('Erreur imprimerPV: ' . $e->getMessage());

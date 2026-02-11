@@ -201,7 +201,7 @@
                     <strong style="margin-left:18px">PARCOURS :</strong> MIAGE<br>
                     <strong>NIVEAU :</strong> <?= htmlspecialchars($GLOBALS['niveau'] ?? '') ?>
                     <strong style="margin-left:18px">N° CARTE ETUDIANT :</strong>
-                    <?= htmlspecialchars($GLOBALS['selectedStudent']->num_etu) ?>
+                    <?= htmlspecialchars($GLOBALS['selectedStudent']->num_carte_etud) ?>
                 </div>
                 <div class="faculty">FILIERES PROFESSIONNALISEES (GI-MIAGE) —
                     <?= htmlspecialchars($GLOBALS['annee_universitaire'] ?? '2023-2024') ?>

@@ -1,12 +1,7 @@
 <?php
-require_once __DIR__ . '/../../app/Core/Autoload.php';
-
+// Les imports et l'initialisation sont déjà faits par le routeur (app/index.php)
+// On récupère juste le token CSRF et le message d'erreur
 use CheckMaster\Core\Csrf;
-use CheckMaster\Core\Session;
-use CheckMaster\Core\Bootstrap;
-
-Bootstrap::init();
-Session::start();
 
 $csrfToken = Csrf::token();
 $errorMessage = isset($_SESSION['error']) ? htmlspecialchars((string) $_SESSION['error']) : '';
@@ -182,4 +177,3 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars((string) $_SESSION[
 </body>
 
 </html>
-

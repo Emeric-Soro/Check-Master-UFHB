@@ -240,7 +240,7 @@ $rapportsPage = array_slice($rapportsVerifies, $startIndex, $perPage);
                     const modalContent = document.getElementById('modalContent');
                     modalContent.innerHTML = `
                         <p class="mb-2"><span class="font-semibold">Étudiant :</span> ${data.nom_etu} ${data.prenom_etu}</p>
-                        <p class="mb-2"><span class="font-semibold">Numéro étudiant :</span> ${data.num_etu}</p>
+                        <p class="mb-2"><span class="font-semibold">Numéro étudiant :</span> ${data.num_carte_etud}</p>
                         <p class="mb-2"><span class="font-semibold">Rapport :</span> ${data.nom_rapport}</p>
                         <p class="mb-2"><span class="font-semibold">Thème :</span> ${data.theme_rapport}</p>
                         <p class="mb-2"><span class="font-semibold">Date de dépôt :</span> ${new Date(data.date_rapport).toLocaleDateString('fr-FR')}</p>

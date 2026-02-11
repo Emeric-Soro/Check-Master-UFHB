@@ -32,7 +32,7 @@ class Approuver
         $pdo = Database::getConnection();
         $stmt = $pdo->query("SELECT DISTINCT r.id_rapport, r.nom_rapport, r.theme_rapport, r.date_rapport, r.etape_validation, e.nom_etu, e.prenom_etu
             FROM rapport_etudiants r
-            JOIN etudiants e ON r.num_etu = e.num_etu
+            JOIN etudiants e ON r.num_etu = e.num_carte_etud
             JOIN approuver a ON r.id_rapport = a.id_rapport
             ORDER BY r.date_rapport DESC");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

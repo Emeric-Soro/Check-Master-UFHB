@@ -484,7 +484,7 @@ class Utilisateur
     // Récupérer les étudiants non enregistrés comme utilisateurs
     public function getEtudiantsNonUtilisateurs()
     {
-        $query = "SELECT e.num_etu, e.nom_etu, e.prenom_etu,e.email_etu
+        $query = "SELECT e.num_carte_etud as num_etu, e.nom_etu, e.prenom_etu,e.email_etu
                  FROM etudiants e 
                  LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur 
                  WHERE u.id_utilisateur IS NULL 
@@ -499,9 +499,9 @@ class Utilisateur
     // Récupérer les étudiants qui ont au moins une inscription et ne sont pas encore utilisateurs
     public function getEtudiantsInscritsNonUtilisateurs()
     {
-        $query = "SELECT DISTINCT e.num_etu, e.nom_etu, e.prenom_etu, e.email_etu
+        $query = "SELECT DISTINCT e.num_carte_etud as num_etu, e.nom_etu, e.prenom_etu, e.email_etu
                  FROM etudiants e
-                 INNER JOIN inscriptions i ON e.num_etu = i.id_etudiant
+                 INNER JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
                  LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur
                  WHERE u.id_utilisateur IS NULL
                  ORDER BY e.nom_etu, e.prenom_etu";
@@ -588,7 +588,7 @@ class Utilisateur
     // Récupérer un étudiant par son ID
     public function getEtudiantById($id)
     {
-        $sql = "SELECT * FROM etudiants WHERE num_etu = :id";
+        $sql = "SELECT * FROM etudiants WHERE num_carte_etud = :id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['id' => $id]);
         return $stmt->fetch(PDO::FETCH_OBJ);

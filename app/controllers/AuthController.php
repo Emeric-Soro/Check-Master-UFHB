@@ -15,27 +15,29 @@ use CheckMaster\Security\DbRateLimiter;
 
 // Si nécessaire pour d'autres opérations
 
-class AuthController {
+class AuthController
+{
     private $db;
     private $enseignantModel;
     private $persAdminModel;
     private $etudiantModel;
     private $auditLog;
 
-    public function __construct($db) {
+    public function __construct($db)
+    {
         $this->db = $db;
         $this->enseignantModel = new Enseignant($db);
         $this->persAdminModel = new PersAdmin($db);
         $this->etudiantModel = new Etudiant($db);
         $this->auditLog = new AuditLog($db);
-        
-       
+
+
     }
 
     public function login($login, $password)
     {
         // Rate limiting (DB only) - fail-open si la table n'est pas encore créée
-        $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+        $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
         $identifier = strtolower(trim((string) $login));
         if ($identifier === '') {
             $identifier = '-';
@@ -54,8 +56,8 @@ class AuthController {
             if (session_status() === PHP_SESSION_ACTIVE) {
                 session_regenerate_id(true);
             }
-            
-           
+
+
             // Stocker les infos de session
             $_SESSION['id_utilisateur'] = $infoUtilisateur['id_utilisateur'];
             $_SESSION['nom_utilisateur'] = $infoUtilisateur['nom_utilisateur'];
@@ -93,14 +95,14 @@ class AuthController {
             if ($type_utilisateur == 'Etudiant') {
                 $etudiant = $this->etudiantModel->getEtudiantByLogin($infoUtilisateur['login_utilisateur']);
                 if ($etudiant) {
-                    $_SESSION['num_etu'] = $etudiant->num_etu;
+                    $_SESSION['num_etu'] = $etudiant->num_carte_etud;
                 }
             }
             $this->auditLog->logConnexion($infoUtilisateur['id_utilisateur'], 'utilisateur', 'Succès');
             // Succès: reset rate limit
             $limiter->reset('login', $ip, $identifier);
             return true;
-        } 
+        }
         // Échec: incrémenter tentative (5 essais / 15 min, blocage 10 min)
         $limiter->hit('login', $ip, $identifier, 5, 15 * 60, 10 * 60);
         return false;
@@ -108,8 +110,8 @@ class AuthController {
 
     public function logout()
     {
-        $this->auditLog->logDeconnexion($_SESSION['id_utilisateur'] , 'utilisateur', 'Succès');
-       
+        $this->auditLog->logDeconnexion($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
+
 
         // Détruire toutes les données de session
         $_SESSION = array();
@@ -117,9 +119,14 @@ class AuthController {
         // Si vous voulez détruire complètement la session, effacez aussi le cookie
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000,
-                $params["path"], $params["domain"],
-                $params["secure"], $params["httponly"]
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $params["path"],
+                $params["domain"],
+                $params["secure"],
+                $params["httponly"]
             );
         }
 
@@ -127,7 +134,8 @@ class AuthController {
         return session_destroy();
     }
 
-    public function updatePassword($currentPassword, $newPassword, $confirmPassword) {
+    public function updatePassword($currentPassword, $newPassword, $confirmPassword)
+    {
         $utilisateur = new Utilisateur($this->db);
         $user = $utilisateur->getUtilisateurById($_SESSION['id_utilisateur']);
         $messageErreur = '';
@@ -137,8 +145,8 @@ class AuthController {
         if (!password_verify($currentPassword, $user->mdp_utilisateur)) {
             $messageErreur = 'Le mot de passe actuel est incorrect.';
             $GLOBALS['messageErreur'] = $messageErreur;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
-        
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
+
             return false;
         }
 
@@ -146,8 +154,8 @@ class AuthController {
         if ($newPassword !== $confirmPassword) {
             $messageErreur = 'Les mots de passe ne correspondent pas.';
             $GLOBALS['messageErreur'] = $messageErreur;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
-            
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
+
             return false;
         }
 
@@ -155,8 +163,8 @@ class AuthController {
         if (password_verify($newPassword, $user->mdp_utilisateur)) {
             $messageErreur = 'Le nouveau mot de passe doit être différent de l\'ancien.';
             $GLOBALS['messageErreur'] = $messageErreur;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
-            
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
+
             return false;
         }
 
@@ -164,8 +172,8 @@ class AuthController {
         if (strlen($newPassword) < 8) {
             $messageErreur = 'Le mot de passe doit contenir au moins 8 caractères.';
             $GLOBALS['messageErreur'] = $messageErreur;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
-            
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
+
             return false;
         }
 
@@ -173,8 +181,8 @@ class AuthController {
         if (!preg_match('/[A-Z]/', $newPassword)) {
             $messageErreur = 'Le mot de passe doit contenir au moins une majuscule.';
             $GLOBALS['messageErreur'] = $messageErreur;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
-            
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
+
             return false;
         }
 
@@ -182,8 +190,8 @@ class AuthController {
         if (!preg_match('/[0-9]/', $newPassword)) {
             $messageErreur = 'Le mot de passe doit contenir au moins un chiffre.';
             $GLOBALS['messageErreur'] = $messageErreur;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
-         
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
+
             return false;
         }
 
@@ -191,8 +199,8 @@ class AuthController {
         if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]+/', $newPassword)) {
             $messageErreur = 'Le mot de passe doit contenir au moins un caractère spécial.';
             $GLOBALS['messageErreur'] = $messageErreur;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
-          
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur');
+
             return false;
         }
 
@@ -203,7 +211,7 @@ class AuthController {
         if ($utilisateur->updatePassword($_SESSION['id_utilisateur'], $hashedPassword)) {
             $messageSuccess = 'Mot de passe mis à jour avec succès.';
             $GLOBALS['messageSuccess'] = $messageSuccess;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès'); 
+            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès');
             return true;
         }
 

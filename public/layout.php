@@ -91,37 +91,6 @@ if (!isset($_SESSION['id_utilisateur'])) {
         }
     }
 
-    // Pages qui ne nécessitent PAS de vérification de permissions (pour éviter les boucles)
-    $noCheckPages = ['page_connexion', 'logout', 'reset_password', 'access_denied'];
-
-    // NOUVEAU : Vérification des permissions AVANT de charger la page
-    if (!empty($currentMenuSlug) && !in_array($currentMenuSlug, $noCheckPages)) {
-        $permService = new RoutePermissionService(Database::getConnection());
-        $resolved = $permService->resolveLegacy($_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'GET');
-        $requiredAction = $resolved['action'];
-
-        // Vérification: page+action (si présent) -> fonctionnalité -> permission CRUD
-        $hasPermission = $permService->canAccessLegacy((int) $_SESSION['id_GU'], $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'GET');
-
-        if (!$hasPermission) {
-            // Logger la tentative d'accès non autorisé
-            $permissionMiddleware->logUnauthorizedAccess(
-                $_SESSION['id_utilisateur'],
-                $currentMenuSlug,
-                $requiredAction
-            );
-
-            // Stocker le message d'erreur dans la session
-            $routeHint = $resolved['pattern'] !== '' ? (' (' . $resolved['pattern'] . ')') : '';
-            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'accéder à cette page$routeHint (action: $requiredAction).";
-            $_SESSION['error_type'] = 'permission_denied';
-
-            // Rediriger vers une page d'erreur dédiée sans vérification
-            header('Location: layout.php?page=access_denied');
-            exit;
-        }
-    }
-
     // Chercher le label dans le menu hiérarchique
     if (!empty($currentMenuSlug)) {
         foreach ($menuHierarchique as $item) {
@@ -184,28 +153,28 @@ if (!isset($_SESSION['id_utilisateur'])) {
 
             if (isset($_GET['action'])) {
                 $currentAction = $_GET['action'];
-                
+
                 // Mapping manuel des actions vers les méthodes du contrôleur
                 // Cela remplace le routeur s'il fait défaut
                 $actionsPédagogiques = [
-                    'annees_academiques'   => 'gestionAnnees',
-                    'grades'               => 'gestionGrade',
-                    'fonctions'            => 'gestionFonction',
+                    'annees_academiques' => 'gestionAnnees',
+                    'grades' => 'gestionGrade',
+                    'fonctions' => 'gestionFonction',
                     'fonction_utilisateur' => 'gestionFonctionUtilisateur',
-                    'specialites'          => 'gestionSpecialite',
-                    'niveaux_etude'        => 'gestionNiveauEtude',
-                    'ue'                   => 'gestionUe',
-                    'ecue'                 => 'gestionEcue',
-                    'statut_jury'          => 'gestionStatutJury',
-                    'niveaux_approbation'  => 'gestionNiveauApprobation',
-                    'semestres'            => 'gestionSemestre',
-                    'niveaux_acces'        => 'gestionNiveauAccesDonnees',
-                    'traitements'          => 'gestionTraitement',
-                    'entreprises'          => 'gestionEntreprise',
-                    'actions'              => 'gestionAction',
-                    'messages'             => 'gestionMessagerie',
-                    'gestion_attribution'  => 'gestionAttribution',
-                    'gestion_menus'        => 'gestionMenus'
+                    'specialites' => 'gestionSpecialite',
+                    'niveaux_etude' => 'gestionNiveauEtude',
+                    'ue' => 'gestionUe',
+                    'ecue' => 'gestionEcue',
+                    'statut_jury' => 'gestionStatutJury',
+                    'niveaux_approbation' => 'gestionNiveauApprobation',
+                    'semestres' => 'gestionSemestre',
+                    'niveaux_acces' => 'gestionNiveauAccesDonnees',
+                    'traitements' => 'gestionTraitement',
+                    'entreprises' => 'gestionEntreprise',
+                    'actions' => 'gestionAction',
+                    'messages' => 'gestionMessagerie',
+                    'gestion_attribution' => 'gestionAttribution',
+                    'gestion_menus' => 'gestionMenus'
                 ];
 
                 if (array_key_exists($currentAction, $actionsPédagogiques)) {
@@ -284,11 +253,11 @@ if (!isset($_SESSION['id_utilisateur'])) {
                 require_once __DIR__ . '/../vendor/autoload.php';
                 $id_inscription = (int) $_GET['id_inscription'];
                 // Anti-IDOR: si étudiant, ne permettre que ses propres documents
-                if (isset($_SESSION['id_GU']) && (int)$_SESSION['id_GU'] === 13) {
+                if (isset($_SESSION['id_GU']) && (int) $_SESSION['id_GU'] === 13) {
                     require_once __DIR__ . '/../app/models/Scolarite.php';
                     $scolarite = new Scolarite(Database::getConnection());
                     $inscription = $scolarite->getInscriptionById($id_inscription);
-                    if (!$inscription || (int)$inscription['id_etudiant'] !== (int)($_SESSION['num_etu'] ?? 0)) {
+                    if (!$inscription || (int) $inscription['id_etudiant'] !== (int) ($_SESSION['num_etu'] ?? 0)) {
                         header('Location: layout.php?page=access_denied');
                         exit;
                     }
@@ -366,11 +335,11 @@ if (!isset($_SESSION['id_utilisateur'])) {
                 require_once __DIR__ . '/../vendor/autoload.php';
                 $id_versement = (int) $_GET['id'];
                 // Anti-IDOR: si étudiant, ne permettre que ses propres versements
-                if (isset($_SESSION['id_GU']) && (int)$_SESSION['id_GU'] === 13) {
+                if (isset($_SESSION['id_GU']) && (int) $_SESSION['id_GU'] === 13) {
                     require_once __DIR__ . '/../app/models/Scolarite.php';
                     $scolarite = new Scolarite(Database::getConnection());
                     $versement = $scolarite->getVersementById($id_versement);
-                    if (!$versement || (int)$versement['num_etu'] !== (int)($_SESSION['num_etu'] ?? 0)) {
+                    if (!$versement || (int) $versement['num_etu'] !== (int) ($_SESSION['num_etu'] ?? 0)) {
                         header('Location: layout.php?page=access_denied');
                         exit;
                     }
@@ -404,8 +373,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
                 $id_etudiant = (int) $_GET['student'];
                 $niveau = $_GET['niveau'];
                 // Anti-IDOR: étudiant ne peut imprimer que son relevé
-                if (isset($_SESSION['id_GU']) && (int)$_SESSION['id_GU'] === 13) {
-                    if ($id_etudiant !== (int)($_SESSION['num_etu'] ?? 0)) {
+                if (isset($_SESSION['id_GU']) && (int) $_SESSION['id_GU'] === 13) {
+                    if ($id_etudiant !== (int) ($_SESSION['num_etu'] ?? 0)) {
                         header('Location: layout.php?page=access_denied');
                         exit;
                     }
@@ -442,10 +411,6 @@ if (!isset($_SESSION['id_utilisateur'])) {
         case 'archive_comptes_rendus':
             $contentFile = $partialsBasePath . 'redaction_compte_rendu/archives_compte_rendu_content.php';
             $currentPageLabel = 'Archives des comptes rendus';
-            break;
-        case 'access_denied':
-            $contentFile = $partialsBasePath . 'access_denied_content.php';
-            $currentPageLabel = 'Accès refusé';
             break;
         case 'admin_historique':
             $action = $_GET['action'] ?? 'index';
@@ -697,7 +662,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
                     </div>
                     <div class="mt-auto px-4 py-3">
                         <form action="index.php?_path=/logout" method="POST" id="logoutForm" class="w-full">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(\CheckMaster\Core\Csrf::token()); ?>">
+                            <input type="hidden" name="csrf_token"
+                                value="<?php echo htmlspecialchars(\CheckMaster\Core\Csrf::token()); ?>">
                             <button type="submit" form="logoutForm"
                                 class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg transition-colors">
                                 <i class="fas fa-sign-out-alt text-white/80"></i>
@@ -736,28 +702,6 @@ if (!isset($_SESSION['id_utilisateur'])) {
             </div>
             <main class="flex-1 p-6 overflow-y-auto">
                 <?php
-                // Afficher les messages d'erreur de permissions (sauf sur la page access_denied)
-                if (isset($_SESSION['error_message']) && isset($_SESSION['error_type']) && $currentMenuSlug !== 'access_denied') {
-                    $errorMessage = $_SESSION['error_message'];
-                    $errorType = $_SESSION['error_type'];
-
-                    // Supprimer les messages de la session après affichage
-                    unset($_SESSION['error_message']);
-                    unset($_SESSION['error_type']);
-
-                    echo '<div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg animate__animated animate__fadeIn">';
-                    echo '  <div class="flex items-start">';
-                    echo '    <div class="flex-shrink-0">';
-                    echo '      <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>';
-                    echo '    </div>';
-                    echo '    <div class="ml-3">';
-                    echo '      <h3 class="text-sm font-medium text-red-800">Accès refusé</h3>';
-                    echo '      <p class="mt-1 text-sm text-red-700">' . htmlspecialchars($errorMessage) . '</p>';
-                    echo '    </div>';
-                    echo '  </div>';
-                    echo '</div>';
-                }
-
                 if (!empty($contentFile) && file_exists($contentFile)) {
                     include $contentFile;
                 } else {
