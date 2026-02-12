@@ -3,26 +3,193 @@
 class Etudiant
 {
     private $db;
+    private $columnExistsCache = [];
+    private $tableExistsCache = [];
 
     public function __construct($db)
     {
         $this->db = $db;
+        $this->ensureArchiveSupport();
+    }
+
+    private function tableExists($tableName)
+    {
+        if (array_key_exists($tableName, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$tableName];
+        }
+
+        $stmt = $this->db->prepare("SHOW TABLES LIKE ?");
+        $stmt->execute([$tableName]);
+        $exists = (bool) $stmt->fetchColumn();
+        $this->tableExistsCache[$tableName] = $exists;
+        return $exists;
+    }
+
+    private function columnExists($tableName, $columnName)
+    {
+        $cacheKey = $tableName . '.' . $columnName;
+        if (array_key_exists($cacheKey, $this->columnExistsCache)) {
+            return $this->columnExistsCache[$cacheKey];
+        }
+
+        if (!$this->tableExists($tableName)) {
+            $this->columnExistsCache[$cacheKey] = false;
+            return false;
+        }
+
+        $stmt = $this->db->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
+        $stmt->execute([$columnName]);
+        $exists = (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->columnExistsCache[$cacheKey] = $exists;
+        return $exists;
+    }
+
+    private function ensureArchiveSupport()
+    {
+        // Compatibilité schéma: ajoute la colonne actif si absente pour l'archivage logique.
+        if ($this->columnExists('etudiants', 'actif')) {
+            return;
+        }
+
+        try {
+            $this->db->exec("ALTER TABLE etudiants ADD COLUMN actif TINYINT(1) NOT NULL DEFAULT 1");
+            $this->columnExistsCache['etudiants.actif'] = true;
+        } catch (PDOException $e) {
+            error_log("Impossible d'ajouter la colonne actif sur etudiants: " . $e->getMessage());
+        }
+    }
+
+    private function buildEtudiantsWhereClause($search = '', $includeArchived = false, &$params = [])
+    {
+        $conditions = [];
+
+        if (!$includeArchived && $this->columnExists('etudiants', 'actif')) {
+            $conditions[] = "e.actif = 1";
+        }
+
+        $search = trim((string) $search);
+        if ($search !== '') {
+            $conditions[] = "(
+                e.num_carte_etud LIKE :search
+                OR e.nom_etu LIKE :search
+                OR e.prenom_etu LIKE :search
+                OR e.email_etu LIKE :search
+                " . ($this->columnExists('etudiants', 'telephone_etu') ? "OR e.telephone_etu LIKE :search" : "") . "
+            )";
+            $params[':search'] = '%' . $search . '%';
+        }
+
+        if (empty($conditions)) {
+            return '';
+        }
+
+        return ' WHERE ' . implode(' AND ', $conditions);
     }
 
     public function getAllEtudiants()
     {
         try {
-            $query = "SELECT e.*, n.lib_niv_etude, a.date_deb, a.date_fin, g.libelle_genre
+            $params = [];
+            $where = $this->buildEtudiantsWhereClause('', false, $params);
+            $query = "SELECT e.*, n.lib_niv_etude, a.date_deb, a.date_fin, g.libelle_genre,
+                             " . ($this->columnExists('etudiants', 'actif') ? "e.actif" : "1") . " AS actif,
+                             " . ($this->columnExists('etudiants', 'telephone_etu') ? "e.telephone_etu" : "NULL") . " AS telephone_etu
                      FROM etudiants e 
                      LEFT JOIN niveau_etude n ON e.id_niveau = n.id_niv_etude 
                      LEFT JOIN annee_academique a ON e.id_annee_acad = a.id_annee_acad
                      LEFT JOIN genre g ON e.genre_etu = g.id_genre
+                     $where
                      ORDER BY e.nom_etu, e.prenom_etu";
             $stmt = $this->db->prepare($query);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération des étudiants : " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getEtudiantsPagines($page = 1, $perPage = 25, $search = '', $includeArchived = false)
+    {
+        try {
+            $page = max(1, (int) $page);
+            $perPage = max(1, min(200, (int) $perPage));
+            $offset = ($page - 1) * $perPage;
+
+            $params = [];
+            $where = $this->buildEtudiantsWhereClause($search, $includeArchived, $params);
+
+            $countSql = "SELECT COUNT(*) FROM etudiants e $where";
+            $countStmt = $this->db->prepare($countSql);
+            foreach ($params as $key => $value) {
+                $countStmt->bindValue($key, $value);
+            }
+            $countStmt->execute();
+            $totalItems = (int) $countStmt->fetchColumn();
+
+            $sql = "SELECT e.*, n.lib_niv_etude, a.date_deb, a.date_fin, g.libelle_genre,
+                           " . ($this->columnExists('etudiants', 'actif') ? "e.actif" : "1") . " AS actif,
+                           " . ($this->columnExists('etudiants', 'telephone_etu') ? "e.telephone_etu" : "NULL") . " AS telephone_etu
+                    FROM etudiants e
+                    LEFT JOIN niveau_etude n ON e.id_niveau = n.id_niv_etude
+                    LEFT JOIN annee_academique a ON e.id_annee_acad = a.id_annee_acad
+                    LEFT JOIN genre g ON e.genre_etu = g.id_genre
+                    $where
+                    ORDER BY e.nom_etu ASC, e.prenom_etu ASC
+                    LIMIT :limit OFFSET :offset";
+
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return [
+                'items' => $stmt->fetchAll(PDO::FETCH_OBJ),
+                'totalItems' => $totalItems,
+                'currentPage' => $page,
+                'perPage' => $perPage,
+                'totalPages' => max(1, (int) ceil($totalItems / $perPage))
+            ];
+        } catch (PDOException $e) {
+            error_log("Erreur getEtudiantsPagines: " . $e->getMessage());
+            return [
+                'items' => [],
+                'totalItems' => 0,
+                'currentPage' => 1,
+                'perPage' => $perPage,
+                'totalPages' => 1
+            ];
+        }
+    }
+
+    public function getEtudiantsForExport($search = '', $includeArchived = false)
+    {
+        try {
+            $params = [];
+            $where = $this->buildEtudiantsWhereClause($search, $includeArchived, $params);
+            $sql = "SELECT e.*, n.lib_niv_etude, a.date_deb, a.date_fin, g.libelle_genre,
+                           " . ($this->columnExists('etudiants', 'actif') ? "e.actif" : "1") . " AS actif,
+                           " . ($this->columnExists('etudiants', 'telephone_etu') ? "e.telephone_etu" : "NULL") . " AS telephone_etu
+                    FROM etudiants e
+                    LEFT JOIN niveau_etude n ON e.id_niveau = n.id_niv_etude
+                    LEFT JOIN annee_academique a ON e.id_annee_acad = a.id_annee_acad
+                    LEFT JOIN genre g ON e.genre_etu = g.id_genre
+                    $where
+                    ORDER BY e.nom_etu ASC, e.prenom_etu ASC";
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (PDOException $e) {
+            error_log("Erreur getEtudiantsForExport: " . $e->getMessage());
             return [];
         }
     }
@@ -51,10 +218,13 @@ class Etudiant
         }
     }
 
-    public function getEtudiantById($num_etu)
+    public function getEtudiantById($num_etu, $includeArchived = true)
     {
         try {
             $query = "SELECT * FROM etudiants WHERE num_carte_etud = :num_etu";
+            if (!$includeArchived && $this->columnExists('etudiants', 'actif')) {
+                $query .= " AND actif = 1";
+            }
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':num_etu', $num_etu);
             $stmt->execute();
@@ -141,6 +311,24 @@ class Etudiant
             return $stmt->execute();
         } catch (PDOException $e) {
             error_log("Erreur lors de la suppression de l'étudiant : " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function archiverEtudiant($num_etu)
+    {
+        try {
+            if ($this->columnExists('etudiants', 'actif')) {
+                $query = "UPDATE etudiants SET actif = 0 WHERE num_carte_etud = :num_etu";
+                $stmt = $this->db->prepare($query);
+                $stmt->bindParam(':num_etu', $num_etu);
+                return $stmt->execute();
+            }
+
+            // Fallback ultime si la colonne n'a pas pu être ajoutée.
+            return $this->supprimerEtudiant($num_etu);
+        } catch (PDOException $e) {
+            error_log("Erreur lors de l'archivage de l'étudiant : " . $e->getMessage());
             return false;
         }
     }

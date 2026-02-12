@@ -29,9 +29,10 @@ include __DIR__ . '/../ressources/routes/gestionCandidaturesRoutes.php';
 include __DIR__ . '/../ressources/routes/listeEtudiantsRoutes.php';
 include __DIR__ . '/../ressources/routes/dossierAcademiqueRoutes.php';
 include __DIR__ . '/../ressources/routes/verificationRapportsRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionReclamationsScolariteRoutes.php';
+// Note: Ces routes sont remplacées par adminCandidatureRoutes et adminReclamationRoutes
+// include __DIR__ . '/../ressources/routes/gestionReclamationsScolariteRoutes.php';
 include __DIR__ . '/../ressources/routes/evaluationDossiersRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionDossiersCandidaturesRoutes.php';
+// include __DIR__ . '/../ressources/routes/gestionDossiersCandidaturesRoutes.php';
 include __DIR__ . '/../ressources/routes/sauvegardeRestaurationRoutes.php';
 include __DIR__ . '/../ressources/routes/notesResultatsRoutes.php';
 include __DIR__ . '/../ressources/routes/archivesDossiersSoutenanceRoutes.php';
@@ -39,6 +40,8 @@ include __DIR__ . '/../ressources/routes/auditRoutes.php';
 include __DIR__ . '/../ressources/routes/redactionCompteRenduRoutes.php';
 include __DIR__ . '/../ressources/routes/archivesCompteRenduRoutes.php';
 include __DIR__ . '/../ressources/routes/archiveHistoryRoutes.php';
+include __DIR__ . '/../ressources/routes/adminCandidatureRoutes.php';
+include __DIR__ . '/../ressources/routes/adminReclamationRoutes.php';
 if (!isset($_SESSION['id_utilisateur'])) {
     header('Location: page_connexion.php');
     exit;
@@ -394,8 +397,14 @@ if (!isset($_SESSION['id_utilisateur'])) {
             $currentPageLabel = 'Gestion des notes et évaluations';
             break;
         case 'gestion_dossiers_candidatures':
-            $contentFile = $partialsBasePath . 'gestion_dossiers_candidatures_content.php';
-            $currentPageLabel = 'Gestion des dossiers de candidatures vérifiés';
+            // Écran 1.3.1: Candidature (Validation Administrative et Technique)
+            $contentFile = $partialsBasePath . 'admin_candidatures_content.php';
+            $currentPageLabel = 'Validation des Candidatures';
+            break;
+        case 'gestion_reclamations_scolarite':
+            // Écran 1.3.2: Réclamation (Suivi et Traitement)
+            $contentFile = $partialsBasePath . 'admin_reclamations_content.php';
+            $currentPageLabel = 'Traitement des Réclamations';
             break;
         case 'evaluations_dossiers_soutenance':
             $contentFile = $partialsBasePath . 'evaluations_dossiers_soutenance_content.php';
@@ -428,6 +437,14 @@ if (!isset($_SESSION['id_utilisateur'])) {
             } else {
                 $contentFile = $partialsBasePath . 'admin_historique.php';
             }
+            break;
+        case 'admin_candidatures':
+            $contentFile = $partialsBasePath . 'admin_candidatures_content.php';
+            $currentPageLabel = 'Validation des Candidatures';
+            break;
+        case 'admin_reclamations':
+            $contentFile = $partialsBasePath . 'admin_reclamations_content.php';
+            $currentPageLabel = 'Traitement des Réclamations';
             break;
         default:
             $groupeUtilisateur = $_SESSION['lib_GU'];
