@@ -82,6 +82,9 @@ class CandidatureSoutenanceController
             $GLOBALS['candidatures_etudiant'] = [];
         }
 
+        // Récupérer toutes les entreprises pour l'autocomplétion
+        $GLOBALS['entreprises'] = $this->entreprise->getAllEntreprises();
+
     }
 
 
@@ -145,6 +148,12 @@ class CandidatureSoutenanceController
     public function infoStage()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Si l'utilisateur n'est pas un étudiant (admin par exemple), rediriger directement
+            if (!isset($_SESSION['num_etu']) || empty($_SESSION['num_etu'])) {
+                header('Location: ?page=gestion_rapports&action=creer_rapport');
+                exit();
+            }
+
             $etudiant_id = $_SESSION['num_etu'];
 
             $nom_entreprise = $_POST['entreprise'];
@@ -168,11 +177,52 @@ class CandidatureSoutenanceController
                 'date_debut_stage' => $_POST['date_debut'],
                 'date_fin_stage' => $_POST['date_fin'],
                 'sujet_stage' => $_POST['sujet'],
-                'description_stage' => $_POST['description'],
                 'encadrant_entreprise' => $_POST['encadrant'],
                 'email_encadrant' => $_POST['email_encadrant'],
                 'telephone_encadrant' => $_POST['telephone_encadrant']
             ];
+
+            // Validation : la période de stage doit être d'au moins 6 mois
+            $date_debut = new DateTime($_POST['date_debut']);
+            $date_fin = new DateTime($_POST['date_fin']);
+            $aujourdhui = new DateTime();
+            $aujourdhui->setTime(0, 0, 0);
+
+            // Vérifier que les dates ne sont pas dans le futur
+            if ($date_debut > $aujourdhui) {
+                $_SESSION['error'] = "La date de début ne peut pas être dans le futur.";
+                $this->auditLog->logCreation($_SESSION['id_utilisateur'], "candidature_soutenance", "Erreur - date début future");
+                header('Location: ?page=candidature_soutenance');
+                exit();
+            }
+
+            if ($date_fin > $aujourdhui) {
+                $_SESSION['error'] = "La date de fin ne peut pas être dans le futur.";
+                $this->auditLog->logCreation($_SESSION['id_utilisateur'], "candidature_soutenance", "Erreur - date fin future");
+                header('Location: ?page=candidature_soutenance');
+                exit();
+            }
+
+            $interval = $date_debut->diff($date_fin);
+
+            // Calculer le nombre total de mois
+            $total_months = ($interval->y * 12) + $interval->m + ($interval->d / 30.44);
+
+            if ($date_fin <= $date_debut) {
+                $_SESSION['error'] = "La date de fin doit être après la date de début du stage.";
+                $this->auditLog->logCreation($_SESSION['id_utilisateur'], "candidature_soutenance", "Erreur - dates invalides");
+                header('Location: ?page=candidature_soutenance');
+                exit();
+            }
+
+            if ($total_months < 6) {
+                $months = floor($total_months);
+                $weeks = floor(($total_months - $months) * 4.33);
+                $_SESSION['error'] = "La période de stage doit être d'au minimum 6 mois. Durée actuelle: {$months} mois et {$weeks} semaines.";
+                $this->auditLog->logCreation($_SESSION['id_utilisateur'], "candidature_soutenance", "Erreur - durée insuffisante");
+                header('Location: ?page=candidature_soutenance');
+                exit();
+            }
 
             if ($existing_info) {
                 // Mettre à jour les informations existantes
@@ -183,8 +233,11 @@ class CandidatureSoutenanceController
             }
 
             if ($result) {
-                $_SESSION['success'] = "Les informations du stage ont été enregistrées avec succès.";
+                $_SESSION['success'] = "Les informations du stage ont été enregistrées avec succès. Vous pouvez maintenant rédiger votre rapport.";
                 $this->auditLog->logCreation($_SESSION['id_utilisateur'], "candidature_soutenance", "Succès");
+                // Rediriger vers la page de rédaction de rapport
+                header('Location: ?page=gestion_rapports&action=creer_rapport');
+                exit();
             } else {
                 $_SESSION['error'] = "Une erreur est survenue lors de l'enregistrement des informations.";
                 $this->auditLog->logCreation($_SESSION['id_utilisateur'], "candidature_soutenance", "Erreur");

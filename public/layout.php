@@ -408,6 +408,10 @@ if (!isset($_SESSION['id_utilisateur'])) {
             $contentFile = $partialsBasePath . 'evaluation_soutenance_content.php';
             $currentPageLabel = 'Évaluation des Soutenances';
             break;
+        case 'consultation_cr_etud':
+            $contentFile = $partialsBasePath . 'consultation_cr_etud_content.php';
+            $currentPageLabel = 'Mon Compte Rendu';
+            break;
         case 'archive_comptes_rendus':
             $contentFile = $partialsBasePath . 'redaction_compte_rendu/archives_compte_rendu_content.php';
             $currentPageLabel = 'Archives des comptes rendus';
@@ -569,8 +573,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
             'link' => '?page=gestion_reclamations&action=soumettre_reclamation',
             'icon' => 'fa-solid fa-circle-exclamation ',
             'title_link' => 'Soumettre',
-            'bg_color' => 'bg-accent-lighter',
-            'text_color' => 'text-accent'
+            'bg_color' => 'bg-primary',
+            'text_color' => 'text-white'
         ],
         [
             'title' => 'Suivi et historique des réclamations',
@@ -578,8 +582,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
             'link' => '?page=gestion_reclamations&action=suivi_historique_reclamation',
             'icon' => 'fa-solid fa-eye ',
             'title_link' => 'Suivi et historique',
-            'bg_color' => 'bg-warning/20',
-            'text_color' => 'text-warning'
+            'bg_color' => 'bg-primary-light',
+            'text_color' => 'text-white'
         ]
     ];
 }

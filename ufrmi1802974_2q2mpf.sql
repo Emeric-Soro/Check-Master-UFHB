@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : mer. 11 fév. 2026 à 15:14
+-- Généré le : jeu. 12 fév. 2026 à 04:45
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.3.6
 
@@ -470,7 +470,69 @@ CREATE TABLE IF NOT EXISTS `entreprises` (
     `lib_entreprise` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
     `lien_logo_entreprise` varchar(256) NOT NULL,
     PRIMARY KEY (`id_entreprise`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 13 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `entreprises`
+--
+
+INSERT INTO
+    `entreprises` (
+        `id_entreprise`,
+        `lib_entreprise`,
+        `lien_logo_entreprise`
+    )
+VALUES (
+        1,
+        'Orange Côte d\'Ivoire',
+        'logos/orange_ci.png'
+    ),
+    (
+        2,
+        'MTN Côte d\'Ivoire',
+        'logos/mtn_ci.png'
+    ),
+    (
+        3,
+        'Moov Africa Côte d\'Ivoire',
+        'logos/moov_ci.png'
+    ),
+    (
+        4,
+        'Société Générale Côte d\'Ivoire',
+        'logos/sgci.png'
+    ),
+    (
+        5,
+        'NSIA Banque Côte d\'Ivoire',
+        'logos/nsia.png'
+    ),
+    (
+        6,
+        'SODECI',
+        'logos/sodeci.png'
+    ),
+    (
+        7,
+        'CIE (Compagnie Ivoirienne d\'Électricité)',
+        'logos/cie.png'
+    ),
+    (
+        8,
+        'Société Ivoirienne de Raffinage (SIR)',
+        'logos/sir.png'
+    ),
+    (
+        9,
+        'Nestlé Côte d\'Ivoire',
+        'logos/nestle_ci.png'
+    ),
+    (
+        10,
+        'Unilever Côte d\'Ivoire',
+        'logos/unilever_ci.png'
+    ),
+    (12, 'MasterSolut', '');
 
 -- --------------------------------------------------------
 
@@ -1619,7 +1681,6 @@ CREATE TABLE IF NOT EXISTS `informations_stage` (
     `date_debut_stage` date NOT NULL,
     `date_fin_stage` date NOT NULL,
     `sujet_stage` text NOT NULL,
-    `description_stage` text NOT NULL,
     `encadrant_entreprise` varchar(100) NOT NULL,
     `email_encadrant` varchar(100) NOT NULL,
     `telephone_encadrant` varchar(20) NOT NULL,
@@ -2280,7 +2341,7 @@ CREATE TABLE IF NOT EXISTS `pister` (
     KEY `idx_utilisateur_action` (`id_utilisateur`, `action`),
     KEY `id_action` (`action`),
     KEY `id_action_2` (`action`)
-) ENGINE = InnoDB AUTO_INCREMENT = 21 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 22 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `pister`
@@ -2454,6 +2515,14 @@ VALUES (
         'Succès',
         'permissions',
         '2026-02-11 15:07:14'
+    ),
+    (
+        21,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-02-12 02:31:56'
     );
 
 -- --------------------------------------------------------

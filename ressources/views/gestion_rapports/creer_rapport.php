@@ -16,22 +16,14 @@ $baseUrl = (isset($_SERVER["REQUEST_SCHEME"]) ? $_SERVER["REQUEST_SCHEME"] . ":/
 $logoUfhb = $baseUrl . 'logo_ufhb.png';
 $logoCiv = $baseUrl . 'logo_civ.png';
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Éditeur de Rapport de Stage - Approche Hybride</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Jodit Editor -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.js"></script>
-    <style>
-        :root {
-            --primary-green: #1B5E20;
-            --light-bg: #DFF2FF;
-        }
+<!-- Ressources nécessaires pour l'éditeur -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.js"></script>
+<style>
+    :root {
+        --primary-green: #1B5E20;
+        --light-bg: #DFF2FF;
+    }
 
         body {
             background-color: var(--light-bg);
@@ -189,9 +181,8 @@ $logoCiv = $baseUrl . 'logo_civ.png';
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .pdf-loading p { color: white; margin-top: 20px; font-size: 1.2rem; }
     </style>
-</head>
 
-<body class="min-h-screen">
+<div class="min-h-screen">
     <div class="container mx-auto px-4 py-6">
         <!-- Header -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-6">
@@ -358,6 +349,7 @@ $logoCiv = $baseUrl . 'logo_civ.png';
                                 <label class="form-label">Entreprise d'accueil *</label>
                                 <input type="text" id="nom_entreprise" class="form-input" 
                                     placeholder="Ex: KYRIA CONSULTANCY SERVICES"
+                                    value="<?= isset($GLOBALS['stage_info']['nom_entreprise']) ? htmlspecialchars($GLOBALS['stage_info']['nom_entreprise']) : '' ?>"
                                     <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'readonly' : '' ?> required>
                             </div>
 
@@ -373,6 +365,7 @@ $logoCiv = $baseUrl . 'logo_civ.png';
                                     <label class="form-label">Maître de stage</label>
                                     <input type="text" id="maitre_stage" class="form-input" 
                                         placeholder="Nom du maître de stage"
+                                        value="<?= isset($GLOBALS['stage_info']['encadrant_entreprise']) ? htmlspecialchars($GLOBALS['stage_info']['encadrant_entreprise']) : '' ?>"
                                         <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'readonly' : '' ?>>
                                 </div>
                             </div>
@@ -914,5 +907,4 @@ $logoCiv = $baseUrl . 'logo_civ.png';
             }
         });
     </script>
-</body>
-</html>
+</div>

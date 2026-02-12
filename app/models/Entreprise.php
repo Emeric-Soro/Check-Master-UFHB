@@ -13,7 +13,7 @@ class Entreprise
 
     public function ajouterEntreprise($lib_entreprise)
     {
-        $stmt = $this->db->prepare("INSERT INTO entreprises (lib_entreprise) VALUES (?)");
+        $stmt = $this->db->prepare("INSERT INTO entreprises (lib_entreprise, lien_logo_entreprise) VALUES (?, '')");
         return $stmt->execute([$lib_entreprise]);
     }
 
@@ -29,14 +29,16 @@ class Entreprise
         return $stmt->execute([$id_entreprise]);
     }
 
-    public function getEntrepriseById($id) {
+    public function getEntrepriseById($id)
+    {
         $sql = "SELECT * FROM entreprises WHERE id_entreprise = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
-    public function getEntrepriseByLibelle($lib_entreprise){
+    public function getEntrepriseByLibelle($lib_entreprise)
+    {
         $stmt = $this->db->prepare("SELECT id_entreprise FROM entreprises WHERE lib_entreprise = ?");
         $stmt->execute([$lib_entreprise]);
         return $stmt->fetch(PDO::FETCH_OBJ);
@@ -50,7 +52,8 @@ class Entreprise
     }
 
 
-    public function getLastInsertedId() {
+    public function getLastInsertedId()
+    {
         $sql = "SELECT id_entreprise FROM entreprises ORDER BY id_entreprise DESC LIMIT 1";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();

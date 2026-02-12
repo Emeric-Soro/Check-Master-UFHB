@@ -4,15 +4,20 @@ require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../models/InfoStage.php';
+require_once __DIR__ . '/../models/Entreprise.php';
 
 
-class GestionRapportController {
+class GestionRapportController
+{
 
     private $baseViewPath;
     private $rapportModel;
 
     private $etudiant;
     private $auditLog;
+    private $infoStageModel;
+    private $entrepriseModel;
 
     public function __construct()
     {
@@ -20,6 +25,8 @@ class GestionRapportController {
         $this->rapportModel = new RapportEtudiant(Database::getConnection());
         $this->etudiant = new Etudiant(Database::getConnection());
         $this->auditLog = new AuditLog(Database::getConnection());
+        $this->infoStageModel = new InfoStage(Database::getConnection());
+        $this->entrepriseModel = new Entreprise(Database::getConnection());
 
 
         // Vérifier que l'utilisateur est connecté
@@ -65,7 +72,7 @@ class GestionRapportController {
                 $statistiquesRapports = $this->rapportModel->getStatsEtudiant($_SESSION['num_etu']);
                 $rapportsRecents = $this->rapportModel->getRapportsByEtudiant($_SESSION['num_etu']);
                 $rapportsRecents = array_slice($rapportsRecents, 0, 5); // Limiter à 5 pour le dashboard
-                
+
                 // Récupérer les informations de dépôt pour chaque rapport
                 $infosDepot = $this->getInfosDepotRapports($_SESSION['num_etu']);
             } else {
@@ -84,21 +91,21 @@ class GestionRapportController {
     private function getInfosDepotRapports($num_etu)
     {
         $infos = [];
-        
+
         // Récupérer tous les rapports de l'étudiant
         $rapports = $this->rapportModel->getRapportsByEtudiant($num_etu);
-        
+
         foreach ($rapports as $rapport) {
             $rapportId = $rapport->id_rapport;
-            
+
             // Vérifier si ce rapport est déjà déposé
             $stmt = $this->rapportModel->pdo->prepare("SELECT COUNT(*) FROM deposer WHERE num_etu = ? AND id_rapport = ?");
             $stmt->execute([$num_etu, $rapportId]);
             $dejaDepose = $stmt->fetchColumn() > 0;
-            
+
             $peutDeposer = true;
             $messageDepot = '';
-            
+
             if ($dejaDepose) {
                 $peutDeposer = false;
                 $messageDepot = 'Déjà déposé';
@@ -113,7 +120,7 @@ class GestionRapportController {
                 ");
                 $stmt->execute([$num_etu]);
                 $dernierDepot = $stmt->fetch(PDO::FETCH_ASSOC);
-                
+
                 if ($dernierDepot && $dernierDepot['id_rapport'] != $rapportId) {
                     // Vérifier le statut d'approbation du dernier rapport déposé
                     $stmt = $this->rapportModel->pdo->prepare("
@@ -126,21 +133,21 @@ class GestionRapportController {
                     ");
                     $stmt->execute([$dernierDepot['id_rapport']]);
                     $derniereApprobation = $stmt->fetch(PDO::FETCH_ASSOC);
-                    
+
                     if (!$derniereApprobation || strtolower($derniereApprobation['lib_approb']) !== 'rejeté') {
                         $peutDeposer = false;
                         $messageDepot = 'Vous avez déjà un rapport en cours d\'évaluation';
                     }
                 }
             }
-            
+
             $infos[$rapportId] = [
                 'peutDeposer' => $peutDeposer,
                 'messageDepot' => $messageDepot,
                 'dejaDepose' => $dejaDepose
             ];
         }
-        
+
         return $infos;
     }
 
@@ -150,12 +157,30 @@ class GestionRapportController {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->traiterCreationRapport();
         } else {
-            global $rapport, $erreurs, $isEditMode, $contenuRapport;
+            global $rapport, $erreurs, $isEditMode, $contenuRapport, $stage_info;
 
             $edit_id = $_GET['edit'] ?? null;
             $rapport = null;
             $isEditMode = false;
             $contenuRapport = '';
+
+            // Récupérer les informations de stage de l'étudiant
+            $stage_info_raw = $this->infoStageModel->getStageInfo($_SESSION['num_etu']);
+            $stage_info = null;
+
+            if ($stage_info_raw) {
+                // Récupérer le nom de l'entreprise
+                $entreprise = $this->entrepriseModel->getEntrepriseById($stage_info_raw->nom_entreprise);
+                $stage_info = [
+                    'nom_entreprise' => $entreprise ? $entreprise->lib_entreprise : '',
+                    'date_debut_stage' => $stage_info_raw->date_debut_stage,
+                    'date_fin_stage' => $stage_info_raw->date_fin_stage,
+                    'sujet_stage' => $stage_info_raw->sujet_stage,
+                    'encadrant_entreprise' => $stage_info_raw->encadrant_entreprise,
+                    'email_encadrant' => $stage_info_raw->email_encadrant,
+                    'telephone_encadrant' => $stage_info_raw->telephone_encadrant
+                ];
+            }
 
             if ($edit_id) {
                 // Vérifier que l'utilisateur est un étudiant
@@ -245,7 +270,7 @@ class GestionRapportController {
             } else {
                 $this->auditLog->logDepot($_SESSION['id_utilisateur'], "rapport", "Erreur");
                 throw new Exception("Action non reconnue.");
-                
+
             }
 
         } catch (Exception $e) {
@@ -399,22 +424,22 @@ class GestionRapportController {
             ob_end_clean();
         }
         ob_start();
-        
+
         try {
             // Vérifier que l'utilisateur est connecté et est un étudiant
             if (!$this->isEtudiant()) {
                 throw new Exception('Accès non autorisé. Seuls les étudiants peuvent exporter leurs rapports.');
             }
-            
+
             // Vérifier que DOMPDF est disponible
             if (!class_exists('\Dompdf\Dompdf')) {
                 require_once __DIR__ . '/../../vendor/autoload.php';
             }
-            
+
             if (!class_exists('\Dompdf\Dompdf')) {
                 throw new Exception('DOMPDF n\'est pas installé ou accessible.');
             }
-            
+
             $contenu_rapport = $_POST['contenu_rapport'] ?? '';
             $nom_rapport = $_POST['nom_rapport'] ?? 'rapport';
             $edit_id = $_POST['edit_id'] ?? null;
@@ -425,12 +450,12 @@ class GestionRapportController {
                 if (!$rapport) {
                     throw new Exception('Rapport non trouvé.');
                 }
-                
+
                 // Vérifier que le rapport appartient à l'étudiant connecté
                 if ($rapport['num_etu'] != $_SESSION['num_etu']) {
                     throw new Exception('Accès non autorisé à ce rapport.');
                 }
-                
+
                 // Si le contenu est vide, essayer de le récupérer depuis le fichier
                 if (empty($contenu_rapport)) {
                     $fichierContenu = __DIR__ . "/../../ressources/uploads/rapports/rapport_{$edit_id}.html";
@@ -550,45 +575,45 @@ class GestionRapportController {
             $options->set('chroot', __DIR__ . '/../../public/');
 
             $dompdf = new \Dompdf\Dompdf($options);
-            
+
             // Debug: vérifier que DOMPDF est bien instancié
             if (!$dompdf) {
                 throw new Exception('Impossible d\'instancier DOMPDF.');
             }
-            
+
             $dompdf->loadHtml($htmlContent);
             $dompdf->setPaper('A4', 'portrait');
-            
+
             // Debug: logger avant le rendu
             error_log("Starting PDF rendering...");
-            
+
             $dompdf->render();
-            
+
             // Debug: logger après le rendu
             error_log("PDF rendering completed.");
 
             // Nettoyer le nom du fichier
             $pdfName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nom_rapport) . '.pdf';
-            
+
             // Définir les headers pour le téléchargement
             header('Content-Type: application/pdf');
             header('Content-Disposition: attachment; filename="' . $pdfName . '"');
             header('Cache-Control: private, max-age=0, must-revalidate');
             header('Pragma: public');
             header('Content-Length: ' . strlen($dompdf->output()));
-            
+
             echo $dompdf->output();
             exit;
 
         } catch (Exception $e) {
             error_log("Erreur lors de l'export PDF: " . $e->getMessage());
             error_log("Stack trace: " . $e->getTraceAsString());
-            
+
             // Nettoyer tout output précédent
             if (ob_get_level()) {
                 ob_end_clean();
             }
-            
+
             // Retourner une réponse JSON en cas d'erreur
             header('Content-Type: application/json');
             echo json_encode([
@@ -678,24 +703,24 @@ class GestionRapportController {
             $search = $_GET['search'] ?? '';
 
             if ($this->isEtudiant()) {
-                $rapports = array_map(function($rapport) {
+                $rapports = array_map(function ($rapport) {
                     return (array) $rapport;
                 }, $this->rapportModel->getRapportsByEtudiant($_SESSION['num_etu']));
             } else {
-                $rapports = array_map(function($rapport) {
+                $rapports = array_map(function ($rapport) {
                     return (array) $rapport;
                 }, $this->rapportModel->getAllRapports());
             }
 
             // Appliquer les filtres
             if (!empty($statut) || !empty($search)) {
-                $rapports = array_filter($rapports, function($rapport) use ($statut, $search) {
+                $rapports = array_filter($rapports, function ($rapport) use ($statut, $search) {
                     $matchStatut = empty($statut) || $rapport['statut_rapport'] === $statut;
-                    $matchSearch = empty($search) || 
+                    $matchSearch = empty($search) ||
                         stripos($rapport['nom_rapport'], $search) !== false ||
                         stripos($rapport['theme_rapport'], $search) !== false ||
                         stripos($rapport['nom_etu'] . ' ' . $rapport['prenom_etu'], $search) !== false;
-                    
+
                     return $matchStatut && $matchSearch;
                 });
             }
@@ -749,7 +774,7 @@ class GestionRapportController {
     private function getCommentairesEvaluateurs($rapportId)
     {
         $commentaires = [];
-        
+
         try {
             // Récupérer les commentaires depuis la table evaluations_rapports
             $stmt = $this->rapportModel->pdo->prepare("
@@ -777,11 +802,11 @@ class GestionRapportController {
             ");
             $stmt->execute([$rapportId]);
             $commentaires = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération des commentaires: " . $e->getMessage());
         }
-        
+
         return $commentaires;
     }
 
@@ -874,7 +899,7 @@ class GestionRapportController {
     private function afficherErreur($message)
     {
         $this->afficherMessage($message, 'error');
-      
+
     }
 
     private function verifierDroitsAdmin()
@@ -884,7 +909,8 @@ class GestionRapportController {
         return in_array($_SESSION['id_GU'] ?? 0, $groupesAdmin);
     }
 
-    private function sendJsonResponse($data) {
+    private function sendJsonResponse($data)
+    {
         header('Content-Type: application/json');
         echo json_encode($data);
         exit;
@@ -907,8 +933,12 @@ class GestionRapportController {
 
             // En-têtes CSV
             fputcsv($output, [
-                'ID', 'Nom du rapport', 'Thème', 'Date création',
-                'Étudiant', 'Email étudiant'
+                'ID',
+                'Nom du rapport',
+                'Thème',
+                'Date création',
+                'Étudiant',
+                'Email étudiant'
             ]);
 
             // Données
@@ -951,12 +981,12 @@ class GestionRapportController {
         // Insérer le dépôt
         $stmt = $this->rapportModel->pdo->prepare("INSERT INTO deposer (num_etu, id_rapport, date_depot) VALUES (?, ?, ?)");
         $depotSuccess = $stmt->execute([$num_etu, $id_rapport, $date_depot]);
-        
+
         // Si le dépôt est réussi, mettre à jour le statut du rapport en 'en_cours'
         if ($depotSuccess) {
             $this->rapportModel->setRapportEnCours($id_rapport);
         }
-        
+
         return $depotSuccess;
     }
 
@@ -1024,7 +1054,7 @@ class GestionRapportController {
                 return;
             }
 
-            $rapportId = (int)$_POST['rapport_id'];
+            $rapportId = (int) $_POST['rapport_id'];
             $numEtu = $_SESSION['num_etu'];
 
             // Vérifier que le rapport appartient à l'étudiant
@@ -1069,10 +1099,10 @@ class GestionRapportController {
         }
 
         $rapportId = $_GET['id'];
-        
+
         // Récupérer les commentaires
         $commentaires = $this->getCommentairesEvaluateurs($rapportId);
-        
+
         // Afficher le HTML des commentaires
         if (!empty($commentaires)) {
             echo '<div class="space-y-6">';

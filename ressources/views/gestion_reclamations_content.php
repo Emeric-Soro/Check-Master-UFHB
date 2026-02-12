@@ -19,7 +19,7 @@
             </div>
             <?php unset($_SESSION['message']); ?>
         <?php endif; ?>
-        <h1 class="text-3xl font-bold text-center text-green-800 mb-10">Gestion des Réclamations</h1>
+        <h1 class="text-3xl font-bold text-center text-primary mb-10">Gestion des Réclamations</h1>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <?php foreach ($cardReclamation as $card): ?>
                 <div
