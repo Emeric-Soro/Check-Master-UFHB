@@ -185,7 +185,7 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                         </h2>
                     </div>
                     <div class="px-6 py-4">
-                        <form id="versementsForm" method="POST"
+                        <form id="paymentForm" method="POST"
                             action="?page=gestion_scolarite<?php echo isset($GLOBALS['versementAModifier']) ? '&action=mettre_a_jour_versement' : '&action=enregistrer_versement'; ?>">
                             <?php if (isset($GLOBALS['versementAModifier'])): ?>
                             <input type="hidden" name="id_versement"
@@ -283,7 +283,7 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                             </div>
                         </div>
                     </div>
-                    <form id="versementsForm" method="POST" action="?page=gestion_scolarite">
+                    <form id="versementsListForm" method="POST" action="?page=gestion_scolarite">
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
@@ -497,7 +497,9 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
         });
 
         // Validation du formulaire
-        document.getElementById('paymentForm').addEventListener('submit', function(e) {
+        const paymentForm = document.getElementById('paymentForm');
+        if (paymentForm) {
+            paymentForm.addEventListener('submit', function(e) {
             const amount = parseFloat(paymentAmount.value);
             const selectedOption = studentSelect.options[studentSelect.selectedIndex];
             const resteAPayer = parseFloat(selectedOption.dataset.resteAPayer);
@@ -507,7 +509,8 @@ $pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / co
                 alert('Le montant ne peut pas dépasser le reste à payer.');
             }
 
-        });
+            });
+        }
 
     });
 

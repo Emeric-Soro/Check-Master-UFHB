@@ -20,7 +20,8 @@ class GestionReclamationsScolariteController {
         $reclamationsEnCours = [];
         $reclamationsTraitees = [];
         foreach ($allReclamations as $rec) {
-            if ($rec->statut_reclamation === 'En attente' || $rec->statut_reclamation === 'En cours') {
+            $statut = strtolower(trim((string) ($rec->statut_reclamation ?? '')));
+            if ($statut === 'en attente' || $statut === 'en cours') {
                 $reclamationsEnCours[] = $rec;
             } else {
                 $reclamationsTraitees[] = $rec;
@@ -40,9 +41,9 @@ class GestionReclamationsScolariteController {
             if ($this->reclamationModel->updateStatut($id, $nouveauStatut)) {
                 
                 // Log de l'audit
-                $this->auditLog->logModification($_SESSION['id_utilisateur'], 'reclamations', 'Succès');
+                $this->auditLog->logModification($_SESSION['id_utilisateur'] ?? 0, 'reclamations', 'Succès');
             } else {
-                $this->auditLog->logModification($_SESSION['id_utilisateur'], 'reclamations', 'Erreur');
+                $this->auditLog->logModification($_SESSION['id_utilisateur'] ?? 0, 'reclamations', 'Erreur');
             }
         }
         header('Location: ?page=gestion_reclamations_scolarite');

@@ -4,10 +4,97 @@ require_once __DIR__ . '/../config/database.php';
 class Reclamation
 {
     private $db;
+    private $columnExistsCache = [];
+    private $tableExistsCache = [];
 
     public function __construct()
     {
         $this->db = Database::getConnection();
+    }
+
+    private function tableExists($tableName)
+    {
+        if (array_key_exists($tableName, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$tableName];
+        }
+
+        $stmt = $this->db->prepare("SHOW TABLES LIKE ?");
+        $stmt->execute([$tableName]);
+        $exists = (bool) $stmt->fetchColumn();
+        $this->tableExistsCache[$tableName] = $exists;
+        return $exists;
+    }
+
+    private function hasColumn($tableName, $columnName)
+    {
+        $cacheKey = $tableName . '.' . $columnName;
+        if (array_key_exists($cacheKey, $this->columnExistsCache)) {
+            return $this->columnExistsCache[$cacheKey];
+        }
+
+        $stmt = $this->db->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
+        $stmt->execute([$columnName]);
+        $exists = (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->columnExistsCache[$cacheKey] = $exists;
+        return $exists;
+    }
+
+    private function normalizeStatutLabel($statut)
+    {
+        $value = trim((string) $statut);
+        $map = [
+            'en attente' => 'En attente',
+            'en cours' => 'En cours',
+            'resolue' => 'Résolue',
+            'rejetee' => 'Rejetée',
+            'rejete' => 'Rejetée'
+        ];
+        $normalized = strtr($value, [
+            'É' => 'E',
+            'È' => 'E',
+            'Ê' => 'E',
+            'é' => 'e',
+            'è' => 'e',
+            'ê' => 'e',
+            'À' => 'A',
+            'à' => 'a'
+        ]);
+        $key = strtolower($normalized);
+        return $map[$key] ?? $value;
+    }
+
+    private function getOrCreateStatutId($libelle)
+    {
+        $normalized = $this->normalizeStatutLabel($libelle);
+
+        if (!$this->tableExists('statut_reclamation')) {
+            $fallback = [
+                'En attente' => 1,
+                'En cours' => 2,
+                'Résolue' => 3,
+                'Rejetée' => 4
+            ];
+            return $fallback[$normalized] ?? 1;
+        }
+
+        $stmt = $this->db->prepare("
+            SELECT id_statut_reclamation
+            FROM statut_reclamation
+            WHERE LOWER(libelle_statut_reclamation) = LOWER(?)
+            LIMIT 1
+        ");
+        $stmt->execute([$normalized]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($existing) {
+            return (int) $existing['id_statut_reclamation'];
+        }
+
+        $stmt = $this->db->prepare("
+            INSERT INTO statut_reclamation (libelle_statut_reclamation)
+            VALUES (?)
+        ");
+        $stmt->execute([$normalized]);
+        return (int) $this->db->lastInsertId();
     }
 
     public function creer($donnees)
@@ -172,10 +259,39 @@ class Reclamation
 
     public function getAllReclamationsWithEtudiant()
     {
-        $sql = "SELECT r.*, e.nom_etu, e.prenom_etu
-                FROM reclamations r
-                JOIN etudiants e ON r.num_etu = e.num_carte_etud
-                ORDER BY r.date_creation DESC";
+        $usesNewSchema = $this->hasColumn('reclamations', 'num_carte_etud');
+
+        if ($usesNewSchema) {
+            $sql = "SELECT
+                        r.id_reclamation,
+                        r.num_carte_etud as num_etu,
+                        e.nom_etu,
+                        e.prenom_etu,
+                        r.objet_reclamation as titre_reclamation,
+                        r.description_reclamation,
+                        COALESCE(
+                            sr.libelle_statut_reclamation,
+                            CASE r.statut_reclamation
+                                WHEN 1 THEN 'En attente'
+                                WHEN 2 THEN 'En cours'
+                                WHEN 3 THEN 'Résolue'
+                                WHEN 4 THEN 'Rejetée'
+                                ELSE CAST(r.statut_reclamation AS CHAR)
+                            END
+                        ) as statut_reclamation,
+                        r.date_creation,
+                        r.date_mise_a_jour
+                    FROM reclamations r
+                    JOIN etudiants e ON r.num_carte_etud = e.num_carte_etud
+                    LEFT JOIN statut_reclamation sr ON sr.id_statut_reclamation = r.statut_reclamation
+                    ORDER BY r.date_creation DESC";
+        } else {
+            $sql = "SELECT r.*, e.nom_etu, e.prenom_etu
+                    FROM reclamations r
+                    JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    ORDER BY r.date_creation DESC";
+        }
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -183,8 +299,18 @@ class Reclamation
 
     public function updateStatut($id, $statut)
     {
+        $usesNewSchema = $this->hasColumn('reclamations', 'num_carte_etud');
+        $newStatut = $this->normalizeStatutLabel($statut);
+
+        if ($usesNewSchema) {
+            $statusId = $this->getOrCreateStatutId($newStatut);
+            $sql = "UPDATE reclamations SET statut_reclamation = ? WHERE id_reclamation = ?";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([$statusId, $id]);
+        }
+
         $sql = "UPDATE reclamations SET statut_reclamation = ? WHERE id_reclamation = ?";
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([$statut, $id]);
+        return $stmt->execute([$newStatut, $id]);
     }
 }

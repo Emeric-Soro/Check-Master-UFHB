@@ -48,7 +48,13 @@ class Scolarite
     // Récupérer les étudiants non inscrits
     public function getEtudiantsNonInscrits()
     {
-        $query = "SELECT num_carte_etud as num_etu, nom_etu, prenom_etu FROM etudiants WHERE num_carte_etud NOT IN (SELECT id_etudiant FROM inscriptions)";
+        $query = "SELECT e.num_carte_etud AS num_etu, e.nom_etu, e.prenom_etu
+                  FROM etudiants e
+                  WHERE NOT EXISTS (
+                      SELECT 1
+                      FROM inscriptions i
+                      WHERE i.id_etudiant = e.num_carte_etud
+                  )";
         $stmt = $this->db->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -86,7 +92,7 @@ class Scolarite
         $query = "SELECT
             i.id_inscription,
             i.id_etudiant,
-            e.num_etu as num_etu,
+            e.num_carte_etud AS num_etu,
             e.nom_etu AS nom,
             e.prenom_etu AS prenom,
 
@@ -110,7 +116,7 @@ class Scolarite
             GREATEST(n.montant_scolarite - COALESCE((SELECT SUM(v6.montant) FROM versements v6 WHERE v6.id_inscription = i.id_inscription AND v6.date_versement <= NOW()), 0), 0) AS reste_a_payer
 
         FROM inscriptions i
-        JOIN etudiants e ON i.id_etudiant = e.num_etu
+        JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
         JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
         JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
         ORDER BY i.date_inscription DESC";
@@ -280,12 +286,13 @@ class Scolarite
                 $sql = "UPDATE inscriptions i 
                         JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
                         SET i.montant_paye = i.montant_paye + :montant,
-                            i.reste_a_payer = n.montant_scolarite - i.montant_paye
+                            i.reste_a_payer = GREATEST(n.montant_scolarite - (i.montant_paye + :montant_reste), 0)
                         WHERE i.id_inscription = :id_inscription";
                 $stmt = $this->db->prepare($sql);
 
                 $result = $stmt->execute([
                     'montant' => $data['montant'],
+                    'montant_reste' => $data['montant'],
                     'id_inscription' => $data['id_inscription']
                 ]);
 
@@ -331,12 +338,13 @@ class Scolarite
             $sql = "UPDATE inscriptions i 
                         JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
                         SET i.montant_paye = i.montant_paye - :difference,
-                            i.reste_a_payer = n.montant_scolarite - i.montant_paye
+                            i.reste_a_payer = GREATEST(n.montant_scolarite - (i.montant_paye - :difference_reste), 0)
                         WHERE i.id_inscription = :id_inscription";
             $stmt = $this->db->prepare($sql);
 
             $stmt->execute([
                 'difference' => $data['difference'],
+                'difference_reste' => $data['difference'],
                 'id_inscription' => $versement['id_inscription']
             ]);
 

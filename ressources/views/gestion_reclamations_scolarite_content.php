@@ -119,6 +119,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($reclamationsEnCours)): ?>
                                 <?php foreach ($reclamationsEnCours as $i => $rec): ?>
+                                <?php $statutLower = strtolower((string) ($rec->statut_reclamation ?? '')); ?>
                                 <tr class="hover:bg-gray-50 transition duration-150">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         <?= $i+1 ?></td>
@@ -143,8 +144,8 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                                            <?php if($rec->statut_reclamation === 'en attente') echo 'bg-yellow-100 text-yellow-800';
-                                                  elseif($rec->statut_reclamation === 'en cours') echo 'bg-blue-100 text-blue-800';
+                                            <?php if($statutLower === 'en attente') echo 'bg-yellow-100 text-yellow-800';
+                                                  elseif($statutLower === 'en cours') echo 'bg-blue-100 text-blue-800';
                                                   ?>">
                                             <?= htmlspecialchars($rec->statut_reclamation) ?>
                                         </span>
@@ -158,13 +159,13 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                                                 <select name="nouveau_statut"
                                                     class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-green-500 focus:border-green-500">
                                                     <option value="En attente"
-                                                        <?= strtolower($rec->statut_reclamation) === 'En attente' ? 'selected' : '' ?>>
+                                                        <?= $statutLower === 'en attente' ? 'selected' : '' ?>>
                                                         En attente</option>
                                                     <option value="Résolue"
-                                                        <?= strtolower($rec->statut_reclamation) === 'Résolue' ? 'selected' : '' ?>>
+                                                        <?= $statutLower === 'résolue' || $statutLower === 'resolue' ? 'selected' : '' ?>>
                                                         Résolue</option>
                                                     <option value="Rejetée"
-                                                        <?= strtolower($rec->statut_reclamation) === 'Rejetée' ? 'selected' : '' ?>>
+                                                        <?= $statutLower === 'rejetée' || $statutLower === 'rejetee' || $statutLower === 'rejeté' || $statutLower === 'rejete' ? 'selected' : '' ?>>
                                                         Rejeté</option>
                                                 </select>
                                                 <button type="submit"
@@ -248,6 +249,7 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($reclamationsTraitees)): ?>
                                 <?php foreach ($reclamationsTraitees as $i => $rec): ?>
+                                <?php $statutLower = strtolower((string) ($rec->statut_reclamation ?? '')); ?>
                                 <tr class="hover:bg-gray-50 transition duration-150">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         <?= $i+1 ?></td>
@@ -272,8 +274,8 @@ $reclamationsTraitees = $GLOBALS['reclamationsTraitees'] ?? [];
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                                            <?php if(strtolower($rec->statut_reclamation) === 'résolue' || strtolower($rec->statut_reclamation) === 'traitée') echo 'bg-green-100 text-green-800';
-                                                  elseif(strtolower($rec->statut_reclamation) === 'rejeté' || strtolower($rec->statut_reclamation) === 'rejetée') echo 'bg-red-100 text-red-800';
+                                            <?php if($statutLower === 'résolue' || $statutLower === 'resolue' || $statutLower === 'traitée' || $statutLower === 'traitee') echo 'bg-green-100 text-green-800';
+                                                  elseif($statutLower === 'rejeté' || $statutLower === 'rejetée' || $statutLower === 'rejetee' || $statutLower === 'rejete') echo 'bg-red-100 text-red-800';
                                                   else echo 'bg-gray-100 text-gray-800'; ?>">
                                             <?= htmlspecialchars($rec->statut_reclamation) ?>
                                         </span>
@@ -782,5 +784,3 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('searchInput').addEventListener('input', filterReclamations);
 });
 </script>
-
-</rewritten_file>

@@ -14,6 +14,7 @@ class GestionDossiersCandidaturesController
     private $approuver;
     private $persAdmin;
     private $auditLog;
+    private $tableExistsCache = [];
 
     public function __construct()
     {
@@ -36,31 +37,76 @@ class GestionDossiersCandidaturesController
         $GLOBALS['statistiques'] = $statistiques;
     }
 
+    private function tableExists($tableName)
+    {
+        if (array_key_exists($tableName, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$tableName];
+        }
+
+        $stmt = $this->db->prepare("SHOW TABLES LIKE ?");
+        $stmt->execute([$tableName]);
+        $exists = (bool) $stmt->fetchColumn();
+        $this->tableExistsCache[$tableName] = $exists;
+        return $exists;
+    }
+
     private function getRapportsVerifies()
     {
-        $sql = "
-            SELECT 
-                r.id_rapport,
-                r.nom_rapport as titre_rapport,
-                r.theme_rapport,
-                r.date_rapport as date_depot,
-                r.statut_rapport,
-                e.num_etu,
-                e.nom_etu,
-                e.prenom_etu,
-                e.email_etu,
-                a.date_approv as date_approbation,
-                a.commentaire_approv as commentaire,
-                a.decision as statut_approbation,
-                pa.nom_pers_admin,
-                pa.prenom_pers_admin
-            FROM rapport_etudiants r
-            INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
-            INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-            LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
-            WHERE a.decision IN ('approuve', 'desapprouve')
-            ORDER BY a.date_approv DESC
-        ";
+        if ($this->tableExists('approuver')) {
+            $sql = "
+                SELECT 
+                    r.id_rapport,
+                    r.nom_rapport as titre_rapport,
+                    r.theme_rapport,
+                    r.date_rapport as date_depot,
+                    r.statut_rapport,
+                    e.num_carte_etud as num_etu,
+                    e.nom_etu,
+                    e.prenom_etu,
+                    e.email_etu,
+                    a.date_approv as date_approbation,
+                    a.commentaire_approv as commentaire,
+                    a.decision as statut_approbation,
+                    pa.nom_pers_admin,
+                    pa.prenom_pers_admin
+                FROM rapport_etudiants r
+                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
+                LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
+                WHERE a.decision IN ('approuve', 'desapprouve')
+                ORDER BY a.date_approv DESC
+            ";
+        } elseif ($this->tableExists('valider')) {
+            $sql = "
+                SELECT 
+                    r.id_rapport,
+                    r.nom_rapport as titre_rapport,
+                    r.theme_rapport,
+                    r.date_rapport as date_depot,
+                    r.statut_rapport,
+                    e.num_carte_etud as num_etu,
+                    e.nom_etu,
+                    e.prenom_etu,
+                    e.email_etu,
+                    v.date_validation as date_approbation,
+                    v.commentaire_validation as commentaire,
+                    CASE 
+                        WHEN v.decision_validation = 'valider' THEN 'approuve'
+                        WHEN v.decision_validation = 'rejeter' THEN 'desapprouve'
+                        ELSE 'desapprouve'
+                    END as statut_approbation,
+                    en.nom_enseignant as nom_pers_admin,
+                    en.prenom_enseignant as prenom_pers_admin
+                FROM rapport_etudiants r
+                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN valider v ON r.id_rapport = v.id_rapport
+                LEFT JOIN enseignants en ON v.id_enseignant = en.id_enseignant
+                WHERE v.decision_validation IN ('valider', 'rejeter')
+                ORDER BY v.date_validation DESC
+            ";
+        } else {
+            return [];
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
@@ -69,38 +115,74 @@ class GestionDossiersCandidaturesController
 
     private function getStatistiques()
     {
-        // Total des rapports vérifiés
-        $sql = "
-            SELECT COUNT(*) as total
-            FROM rapport_etudiants r
-            INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-            WHERE a.decision IN ('approuve', 'desapprouve')
-        ";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
-        $total = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+        if ($this->tableExists('approuver')) {
+            // Total des rapports vérifiés
+            $sql = "
+                SELECT COUNT(*) as total
+                FROM rapport_etudiants r
+                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
+                WHERE a.decision IN ('approuve', 'desapprouve')
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $total = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
 
-        // Rapports approuvés
-        $sql = "
-            SELECT COUNT(*) as approuves
-            FROM rapport_etudiants r
-            INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-            WHERE a.decision = 'approuve'
-        ";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
-        $approuves = $stmt->fetch(PDO::FETCH_ASSOC)['approuves'];
+            // Rapports approuvés
+            $sql = "
+                SELECT COUNT(*) as approuves
+                FROM rapport_etudiants r
+                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
+                WHERE a.decision = 'approuve'
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $approuves = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['approuves'] ?? 0);
 
-        // Rapports désapprouvés
-        $sql = "
-            SELECT COUNT(*) as desapprouves
-            FROM rapport_etudiants r
-            INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-            WHERE a.decision = 'desapprouve'
-        ";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
-        $desapprouves = $stmt->fetch(PDO::FETCH_ASSOC)['desapprouves'];
+            // Rapports désapprouvés
+            $sql = "
+                SELECT COUNT(*) as desapprouves
+                FROM rapport_etudiants r
+                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
+                WHERE a.decision = 'desapprouve'
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $desapprouves = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['desapprouves'] ?? 0);
+        } elseif ($this->tableExists('valider')) {
+            $sql = "
+                SELECT COUNT(*) as total
+                FROM rapport_etudiants r
+                INNER JOIN valider v ON r.id_rapport = v.id_rapport
+                WHERE v.decision_validation IN ('valider', 'rejeter')
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $total = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+            $sql = "
+                SELECT COUNT(*) as approuves
+                FROM rapport_etudiants r
+                INNER JOIN valider v ON r.id_rapport = v.id_rapport
+                WHERE v.decision_validation = 'valider'
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $approuves = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['approuves'] ?? 0);
+
+            $sql = "
+                SELECT COUNT(*) as desapprouves
+                FROM rapport_etudiants r
+                INNER JOIN valider v ON r.id_rapport = v.id_rapport
+                WHERE v.decision_validation = 'rejeter'
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $desapprouves = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['desapprouves'] ?? 0);
+        } else {
+            $total = 0;
+            $approuves = 0;
+            $desapprouves = 0;
+        }
 
         return [
             'total' => $total,
@@ -111,23 +193,49 @@ class GestionDossiersCandidaturesController
 
     public function getDetailsRapport($id_rapport)
     {
-        $sql = "
-            SELECT 
-                r.*,
-                e.nom_etu,
-                e.prenom_etu,
-                e.email_etu,
-                a.date_approv as date_approbation,
-                a.commentaire_approv as commentaire,
-                a.decision as statut_approbation,
-                pa.nom_pers_admin,
-                pa.prenom_pers_admin
-            FROM rapport_etudiants r
-            INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
-            INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-            LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
-            WHERE r.id_rapport = ?
-        ";
+        if ($this->tableExists('approuver')) {
+            $sql = "
+                SELECT 
+                    r.*,
+                    e.nom_etu,
+                    e.prenom_etu,
+                    e.email_etu,
+                    a.date_approv as date_approbation,
+                    a.commentaire_approv as commentaire,
+                    a.decision as statut_approbation,
+                    pa.nom_pers_admin,
+                    pa.prenom_pers_admin
+                FROM rapport_etudiants r
+                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
+                LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
+                WHERE r.id_rapport = ?
+            ";
+        } elseif ($this->tableExists('valider')) {
+            $sql = "
+                SELECT 
+                    r.*,
+                    e.nom_etu,
+                    e.prenom_etu,
+                    e.email_etu,
+                    v.date_validation as date_approbation,
+                    v.commentaire_validation as commentaire,
+                    CASE 
+                        WHEN v.decision_validation = 'valider' THEN 'approuve'
+                        WHEN v.decision_validation = 'rejeter' THEN 'desapprouve'
+                        ELSE 'desapprouve'
+                    END as statut_approbation,
+                    en.nom_enseignant as nom_pers_admin,
+                    en.prenom_enseignant as prenom_pers_admin
+                FROM rapport_etudiants r
+                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN valider v ON r.id_rapport = v.id_rapport
+                LEFT JOIN enseignants en ON v.id_enseignant = en.id_enseignant
+                WHERE r.id_rapport = ?
+            ";
+        } else {
+            return null;
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$id_rapport]);

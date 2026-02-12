@@ -20,7 +20,7 @@ if ($_GET['page'] === 'parametres_generaux') {
             case 'niveaux_etude':
                 $controller->gestionNiveauEtude();
                 break;
-            case 'ue';
+            case 'ue':
                 $controller->gestionUe();
                 break;
             case 'ecue':
