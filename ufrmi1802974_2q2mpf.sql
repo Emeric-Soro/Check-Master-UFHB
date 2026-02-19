@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : jeu. 12 fév. 2026 à 04:45
+-- Généré le : mer. 18 fév. 2026 à 21:09
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.3.6
 
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS `annee_academique` (
     `date_deb` date NOT NULL,
     `date_fin` date NOT NULL,
     PRIMARY KEY (`id_annee_acad`)
-) ENGINE = InnoDB AUTO_INCREMENT = 20202 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 22525 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `annee_academique`
@@ -93,6 +93,11 @@ VALUES (
         20201,
         '2001-09-01',
         '2002-07-31'
+    ),
+    (
+        22524,
+        '2024-09-01',
+        '2025-07-31'
     );
 
 -- --------------------------------------------------------
@@ -110,6 +115,24 @@ CREATE TABLE IF NOT EXISTS `app_settings` (
     `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`setting_key`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `app_settings`
+--
+
+INSERT INTO
+    `app_settings` (
+        `setting_key`,
+        `setting_value`,
+        `is_sensitive`,
+        `updated_at`
+    )
+VALUES (
+        'smtp_password',
+        'loprluktxassyeqp',
+        0,
+        '2026-02-12 16:53:51'
+    );
 
 -- --------------------------------------------------------
 
@@ -143,12 +166,28 @@ CREATE TABLE IF NOT EXISTS `auth_rate_limits` (
 DROP TABLE IF EXISTS `avoir`;
 
 CREATE TABLE IF NOT EXISTS `avoir` (
-    `id_grade` int NOT NULL,
+    `id_grade` varchar(2) NOT NULL,
     `id_enseignant` int NOT NULL,
     `date_grade` date NOT NULL,
     PRIMARY KEY (`id_grade`, `id_enseignant`),
     KEY `Key_avoir_grade` (`id_grade`),
     KEY `Key_avoir_enseignant` (`id_enseignant`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `bareme_critere`
+--
+
+DROP TABLE IF EXISTS `bareme_critere`;
+
+CREATE TABLE IF NOT EXISTS `bareme_critere` (
+    `id_annee_acad` int NOT NULL,
+    `id_critere` int NOT NULL,
+    `bareme` int NOT NULL,
+    PRIMARY KEY (`id_annee_acad`, `id_critere`),
+    KEY `id_critere` (`id_critere`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
 
 -- --------------------------------------------------------
@@ -276,28 +315,6 @@ VALUES (
 -- --------------------------------------------------------
 
 --
--- Structure de la table `composer_jury`
---
-
-DROP TABLE IF EXISTS `composer_jury`;
-
-CREATE TABLE IF NOT EXISTS `composer_jury` (
-    `num_jury` int NOT NULL,
-    `id_enseignant` int NOT NULL,
-    `id_qualite_jury` int NOT NULL,
-    `date_composer_jury` int NOT NULL,
-    PRIMARY KEY (
-        `num_jury`,
-        `id_enseignant`,
-        `id_qualite_jury`
-    ),
-    KEY `fk_composer_enseignant` (`id_enseignant`),
-    KEY `fk_composer_role` (`id_qualite_jury`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
-
--- --------------------------------------------------------
-
---
 -- Structure de la table `compte_rendu`
 --
 
@@ -332,22 +349,6 @@ CREATE TABLE IF NOT EXISTS `compte_rendu_rapport` (
 -- --------------------------------------------------------
 
 --
--- Structure de la table `correspondre`
---
-
-DROP TABLE IF EXISTS `correspondre`;
-
-CREATE TABLE IF NOT EXISTS `correspondre` (
-    `id_annee_acad` int NOT NULL,
-    `id_critere` int NOT NULL,
-    `bareme` int NOT NULL,
-    PRIMARY KEY (`id_annee_acad`, `id_critere`),
-    KEY `id_critere` (`id_critere`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
-
--- --------------------------------------------------------
-
---
 -- Structure de la table `critere_evaluation`
 --
 
@@ -355,9 +356,38 @@ DROP TABLE IF EXISTS `critere_evaluation`;
 
 CREATE TABLE IF NOT EXISTS `critere_evaluation` (
     `id_critere` int NOT NULL AUTO_INCREMENT,
+    `code_critere` varchar(2) NOT NULL,
     `lib_critere` varchar(100) NOT NULL,
     PRIMARY KEY (`id_critere`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 6 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `critere_evaluation`
+--
+
+INSERT INTO
+    `critere_evaluation` (
+        `id_critere`,
+        `code_critere`,
+        `lib_critere`
+    )
+VALUES (1, 'EX', 'Exposé'),
+    (
+        2,
+        'RQ',
+        'Réponses aux questions posées'
+    ),
+    (
+        3,
+        'PM',
+        'Présentation du mémoire'
+    ),
+    (4, 'CM', 'Contenu du mémoire'),
+    (
+        5,
+        'RP',
+        'Résolution du problème'
+    );
 
 -- --------------------------------------------------------
 
@@ -396,6 +426,51 @@ CREATE TABLE IF NOT EXISTS `deposer` (
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `domaine`
+--
+
+DROP TABLE IF EXISTS `domaine`;
+
+CREATE TABLE IF NOT EXISTS `domaine` (
+    `id_domaine` int NOT NULL AUTO_INCREMENT,
+    `lib_domaine` varchar(150) NOT NULL,
+    PRIMARY KEY (`id_domaine`)
+) ENGINE = InnoDB AUTO_INCREMENT = 7 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `domaine`
+--
+
+INSERT INTO
+    `domaine` (`id_domaine`, `lib_domaine`)
+VALUES (
+        1,
+        'Système d\'information, Bases de données, Développement'
+    ),
+    (
+        2,
+        'Système d\'information, Bases de données, Développement ERP'
+    ),
+    (
+        3,
+        'Système d\'information, Bases de données, Développement WEB'
+    ),
+    (
+        4,
+        'Base de données, Génie Logiciel'
+    ),
+    (
+        5,
+        'Audit, Management des systèmes d\'information'
+    ),
+    (
+        6,
+        'Analyse de données, business intelligence'
+    );
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `echeances`
 --
 
@@ -424,16 +499,19 @@ CREATE TABLE IF NOT EXISTS `echeances` (
 DROP TABLE IF EXISTS `enseignants`;
 
 CREATE TABLE IF NOT EXISTS `enseignants` (
-    `id_enseignant` int NOT NULL AUTO_INCREMENT,
+    `id_enseignant` varchar(20) NOT NULL,
     `nom_enseignant` varchar(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
     `prenom_enseignant` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
-    `mail_enseignant` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
-    `id_specialite` int NOT NULL,
-    `type_enseignant` int NOT NULL,
+    `tel_enseignant` varchar(15) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+    `mail_enseignant` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+    `id_specialite` int DEFAULT NULL,
+    `type_enseignant` int DEFAULT NULL,
+    `id_etablissement_origin` int DEFAULT NULL,
     PRIMARY KEY (`id_enseignant`),
     KEY `Key_enseign_specialite` (`id_specialite`),
-    KEY `type_enseignant` (`type_enseignant`)
-) ENGINE = InnoDB AUTO_INCREMENT = 53 DEFAULT CHARSET = utf8mb3;
+    KEY `type_enseignant` (`type_enseignant`),
+    KEY `id_etablissement_origin` (`id_etablissement_origin`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `enseignants`
@@ -444,18 +522,979 @@ INSERT INTO
         `id_enseignant`,
         `nom_enseignant`,
         `prenom_enseignant`,
+        `tel_enseignant`,
         `mail_enseignant`,
         `id_specialite`,
-        `type_enseignant`
+        `type_enseignant`,
+        `id_etablissement_origin`
     )
 VALUES (
-        7,
+        '123 253 S',
+        'FOFANA',
+        'IBRAHIM',
+        '05 05 69 39 41',
+        'fofana_ib_math_ab@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '123 978 Z',
+        'DIALLO',
+        'BOUBACAR',
+        '07 07 52 19 50',
+        'diallobacar@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '131 438 L',
+        'ADJE',
+        'ASSOHOUN',
+        '01 01 23 85 22',
+        'assohounadje@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '137 612 Q',
+        'TOURE',
+        'MOUSTAPHA ALMAMY',
+        '01 01 00 71 10',
+        'tam@arc-ingenierie.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '149 070 L',
+        'KOUA',
+        'KONIN',
+        '01 01 99 72 35',
+        'ehiamba53@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '150 976 E',
+        'N\'ZOUKOUDI',
+        'BERNARD',
+        '05 05 82 10 52',
+        'nzoukoudi@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '158 851 D',
+        'DEMBELE',
+        'MARIAM',
+        '07 07 80 42 90',
+        'cdemble@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '163 737 X',
+        'ABALO',
+        'KOFFI ENYONAM',
+        '07 07 73 08 86',
+        'demavi14@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '164 300 P',
+        'KANGNI',
+        'KINVI',
+        '07 07 83 93 99',
+        'kangnikinvi@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '200 202 NR',
+        'YEO',
+        'TENAN',
+        '07 09 68 74 66',
+        'yeo.tenan21@ufhb.edu.ci',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '2022 001M',
+        'KONATE',
+        'N\'GOLO',
+        '07 57 69 97 69',
+        'ingngolo@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '2022 513 NR',
+        'TREY',
+        'ZACRADA FRANCOISE ODILE',
+        '07 08 28 34 47',
+        'mariefranceodiletrey@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '2022 538 VE',
+        'BAYOMOCK LINWA',
+        'ANDRE CLAUDE',
+        '05 56 71 88 27',
+        'bayomock@hotmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '2022 610 VE',
+        'DJE',
+        'TANOH JEAN MARCEL',
+        '07 09 74 88 27',
+        'djetano2017@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '210 001 NR',
+        'ASSIE',
+        'BROU IDA',
+        '07 58 68 63 69',
+        'ida_as09@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '214 704 M',
+        'ASSOHOUN',
+        'EGOMLI STANISLAS',
+        '07 07 60 02 12',
+        'stanlasso@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '233 324 X',
+        'MAMADOU',
+        'DIARRA',
+        '07 58 88 95 88',
+        'patoudiarra@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '233 497 N',
+        'SOHOU',
+        'TOUSSAINT',
+        '01 02 44 67 46',
+        'sohoutous@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '234 514 P',
+        'NINDJIN',
+        'AKA FULGENCE',
+        '05 05 17 89 15',
+        'nindjinaka_fulgence@hotmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '239 314 B',
+        'KAMANO',
+        'DAMASE',
+        '01 40 30 97 31',
+        'kamanodamase@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '239 382 G',
+        'BROU',
+        'PATRICE MAGLOIRE',
+        '07 55 70 16 00',
+        'bpatricem@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '239 514 U',
+        'DANHO',
+        'EMILE',
+        '07 07 50 82 63',
+        'danhoemile@yahoo.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '241 053 B',
+        'MOBIO',
+        'AKICHI JOSEPH',
+        '01 01 00 45 73',
+        'mobiojosephakichi@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '241 625 D',
+        'TANOE',
+        'FRANCOIS EMMANUEL',
+        '07 07 09 80 04',
+        'aziz_marie@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '242 840 J',
+        'ADOU',
+        'KABLAN JEROME',
+        '07 07 07 91 91',
+        'jkadou@hotmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '244 478 M',
+        'N\'ZI',
+        'YAO KOFFI MODESTE',
+        '01 42 13 95 95',
+        'modestenzi@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '249 395 P',
+        'SYLLA',
+        'MOUSSA',
+        '07 08 49 74 75',
+        'ba_mouss@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '252 975 F',
+        'KOUA',
+        'BROU JEAN CLAUDE',
+        '01 03 28 52 41',
+        'k_brou@hotmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '253 043 D',
+        'BERETE',
+        'SIAKA',
+        '07 55 70 16 00',
+        'beretesiaka@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '253 561 H',
+        'COULIBALY',
+        'ADAMA',
+        '07 07 61 73 14',
+        'couliba@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '253 567 F',
+        'KAMARA',
+        'ALIMA',
+        '07 08 35 18 50',
+        'Kamaradpse@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '255 664 J',
+        'KOUAKOU',
+        'KONAN MATHIAS',
+        '07 08 99 12 79',
+        'makonankouakou@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '255 685 G',
+        'GOLI',
+        'KONAN CHARLES ETIENNE',
+        '',
+        'golietienne@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '255 997 Z',
+        'KOUROUMA',
+        'MOUSSA',
+        '05 05 70 09 19',
+        'mkouroumafr@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '255 998 A',
+        'MONSAN',
+        'VINCENT',
+        '07 07 89 94 26',
+        'vmonsan@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '265 055 D',
+        'BAILLY',
+        'BALE',
+        '07 07 09 85 84',
+        'baillybale@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '265 638 J',
+        'SORO',
+        'ETIENNE TENA',
+        '07 07 42 59 76',
+        'soroet21@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '265 877 A',
+        'WODIE',
+        'AOBA JEAN-CHRISTOPHE',
+        '07 07 40 75 51',
+        'wodie_jc@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '283 496 Q',
+        'CODJIA',
+        'ADOLPHE',
+        '05 05 98 23 20',
+        'ad_wolf2000@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '285 394 T',
+        'AMAN',
+        'AUGUSTE',
+        '07 57 01 29 59',
+        'aman.auguste@ufhb.edu.ci',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '285 396 V',
+        'N\'GUESSAN',
+        'TETCHI ALBIN',
+        '07 59 56 45 55',
+        'albintetchi@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '296 262 H',
+        'TRAORE',
+        'SIAKA',
+        '01 04 95 95 44',
+        'akaistraore@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '301 095 T',
+        'SIAKA',
+        'KONE',
+        '05 05 01 69 75',
+        'siakakone21@yahoo.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '301 106 B',
+        'GONDO',
+        'YAKE',
+        '07 07 78 39 71',
+        'gondo.yake@ufhb.edu.ci',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '307 815 X',
+        'ELOUAFLIN',
+        'ABOUO',
+        '07 07 35 79 95',
+        'elabouo@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '309 103 Q',
+        'YODE',
+        'FABRICE ARMEL EVRARD',
+        '07 08 33 16 43',
+        'yafevrard@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '312 434 M',
+        'DJUE',
+        'N\'DRI ROGER',
+        '01 02 23 04 13',
+        'djuendri@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '320 596 U',
+        'AKEKE',
+        'ERIC DAGO',
+        '07 08 17 57 80',
+        'ericdago@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '324 747 A',
+        'BAHI',
+        'LOUIS CLEMENT YOHOU',
+        '07 07 74 42 68',
+        'baclemsy@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '332 005 X',
+        'DOSSO',
+        'MOUHAMADOU',
+        '01 01 13 06 47',
+        'mouhamadoudoss@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '332 009 B',
+        'SAMASSI',
+        'LASSANA',
+        '07 09 12 09 47',
+        'samassilassana@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '335 522 S',
+        'TUO',
+        'PAUL DAVID',
+        '07 07 54 98 35',
+        'tuodavidpaul@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '344 437 Y',
+        'DIARRASSOUBA',
+        'SIRIKY',
+        '07 49 35 90 32',
+        'dsiriky@yahoo.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '344 438 H',
+        'TOURE',
+        'IBRAHIMA',
+        '07 07 51 15 87',
+        'toureibt@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '344 439 A',
+        'YANGA',
+        'KOUASSI KOUASSI SERGE',
+        '07 08 28 12 44',
+        'yanga.k.k.serge@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '344 444 F',
+        'OKOU',
+        'A KPETIHI SAHOUA HYPOLITHE',
+        '01 05 82 58 12',
+        'okouakpetihi@hotmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '345 005 C',
+        'COULIBALY',
+        'NAMORY',
+        '07 07 67 56 95',
+        'namory.coulibaly@univ-fhb.edu.ci',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '346 123 X',
+        'AYIBE',
+        'ARISTIDE',
+        '07 47 68 72 27',
+        'aristideayibe@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '346 124 Y',
+        'COULIBALY',
+        'PIE',
+        '01 40 35 12 90',
+        'foussenico14@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '346 309 S',
+        'KAYE BI',
+        'KOUAI BERTIN',
+        '07 09 31 41 72',
+        'kayebi314@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '364 868 L',
+        'COULIBALY',
+        'BAKARY',
+        '01 02 69 69 58',
+        'coulibaly_bakaryfr@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '364 870 J',
+        'OWO',
+        'KOUASSI JEAN MARC',
+        '05 04 28 22 38',
+        'marc.owo@univ-fhb.edu.ci',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '366 733 E',
+        'DIARRA',
+        'NOUFFOU',
+        '05 56 34 34 00',
+        'nouffoud@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '389 845 F',
+        'SEKA',
+        'LOUIS-PAUL',
+        '01 01 13 34 05',
+        'lpseka@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '389 891 W',
+        'ZOKAGOA',
+        'JEAN-MARIE',
+        '07 07 36 59 20',
+        'zokagoa@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '395 614 V',
+        'SILUE',
+        'MARIAME',
+        '',
+        'mamsilk@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '398 026 W',
+        'ABDOU',
+        'MAÏGA',
+        '07 48 39 20 20',
+        'maiga.abdou@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '417 722 P',
+        'AHIPO',
+        'KWALHA YVES MARCEL',
+        '07 79 39 32 12',
+        'yahipo@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '426 090 P',
+        'KOUA',
+        'KPAAGNI ALEX JEREMIE',
+        '07 07 26 70 83',
+        'jeremiekoua@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '426 918 M',
+        'BAROU',
+        'ROPLO ANGE-PAULIN',
+        '07 08 08 00 73',
+        'barouange@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '440 254 S',
+        'TCHOUDI',
+        'OLIVIER',
+        '07 57 57 21 59',
+        'olivier.tchoudi53@ufhb.edu.ci',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '444 617 Z',
+        'AYIKPA',
+        'KACOUTCHY JEAN',
+        '07 08 79 19 90',
+        'ayikpajean@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '456 909 B',
+        'DIABAGATE',
+        'AMADOU',
+        '05 67 95 42 16',
+        'ahmadou.diabagate@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '473 396 Z',
+        'KONE',
+        'BAKARY',
+        '',
+        'dohirimin@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '474 804 U',
+        'AMOUZOU',
+        'GILDAS YAOVI',
+        '',
+        'gildasamouzou2@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '474 827 J',
+        'N\'DRIN',
+        'APALA JULIEN',
+        '',
+        'lecorrige@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '497 246 T',
+        'ABLE',
+        'ZOBO VINCENT DE PAUL',
+        '',
+        'vincentdepaulzobo@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '500 076 B',
+        'FEDIDA',
+        'EDMOND',
+        NULL,
+        'fedida_edmond@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '500 337 D',
+        'FEUTO',
+        'JUSTIN',
+        '05 05 61 29 47',
+        'justfeuto@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '501 081 N',
+        'SAWADOGO',
+        'AMADOU',
+        '07 48 78 98 56',
+        'amadou.sawadogo@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '502 460 B',
+        'DIALLO',
+        'MOHAMED BOBO',
+        '07 77 01 45 22',
+        'diallo.med@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '7',
         'Koua',
         'Brou',
+        '',
         'kouabrou@gmail.com',
         2,
+        1,
+        NULL
+    ),
+    (
+        '819 665 H',
+        'SITIONON',
+        'GOSSOUHON',
+        '01 03 30 04 86',
+        'gossouhon.sitionon@gmail.com',
+        NULL,
+        NULL,
         1
+    ),
+    (
+        '826 227 R',
+        'KOUAKOU',
+        'KOUAME FLORENT',
+        '07 78 73 87 80',
+        'kouameflorentk@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '826 240 A',
+        'KRAIDI',
+        'ANOH YANNICK',
+        '',
+        'kayanoh2000@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '828 190 T',
+        'OUATTARA',
+        'MARIAM',
+        '01 53 36 69 11',
+        'lajourne21@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '857 962 Z',
+        'IBRAHIMA',
+        'BAKAYOKO',
+        '01 20 20 20 14',
+        'bakayoko.ibrahima1@ufhb.edu.ci',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '872 943 V',
+        'YAO',
+        'EKOUN NARCISSE',
+        '07 09 43 44 36',
+        'narcisseyek@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '900 021 AUF',
+        'OUATTARA',
+        'CHRISTELLE',
+        '',
+        'nanihioouattara@yahoo.fr',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '910 800 A',
+        'KOUASSI',
+        'BROU MEDARD',
+        '01 42 47 95 49',
+        'medardkoisy@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '952 300 A3',
+        'MONSAN',
+        'VINCENT',
+        '',
+        'monsanv@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        '953 001 A',
+        'SAMAGASSI',
+        'SOULEYMANE',
+        '',
+        'samagassisouley@gmail.com',
+        NULL,
+        NULL,
+        1
+    ),
+    (
+        'VE000001',
+        'TEMBELY',
+        'SALIFOU',
+        '',
+        '',
+        NULL,
+        NULL,
+        4
+    ),
+    (
+        'VE000002',
+        'WAH',
+        'MEDARD',
+        '07 07 09 26 19',
+        'medardwah@gmail.com',
+        NULL,
+        NULL,
+        4
+    ),
+    (
+        'VE000003',
+        'KOTEI',
+        'SAMUEL',
+        '07 07 35 47 28',
+        'nikkosa@yahoo.fr',
+        NULL,
+        NULL,
+        4
     );
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `enseignant_jury`
+--
+
+DROP TABLE IF EXISTS `enseignant_jury`;
+
+CREATE TABLE IF NOT EXISTS `enseignant_jury` (
+    `num_soutenance` varchar(20) NOT NULL,
+    `id_enseignant` int NOT NULL,
+    `id_qualite_jury` int NOT NULL,
+    `date_composer_jury` int NOT NULL,
+    KEY `fk_composer_enseignant` (`id_enseignant`),
+    KEY `fk_composer_role` (`id_qualite_jury`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
 
 -- --------------------------------------------------------
 
@@ -537,6 +1576,48 @@ VALUES (
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `etablissement_origine`
+--
+
+DROP TABLE IF EXISTS `etablissement_origine`;
+
+CREATE TABLE IF NOT EXISTS `etablissement_origine` (
+    `id_etablissement` int NOT NULL AUTO_INCREMENT,
+    `libelle_long` varchar(125) NOT NULL,
+    `libelle_court` varchar(20) NOT NULL,
+    PRIMARY KEY (`id_etablissement`)
+) ENGINE = InnoDB AUTO_INCREMENT = 5 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `etablissement_origine`
+--
+
+INSERT INTO
+    `etablissement_origine` (
+        `id_etablissement`,
+        `libelle_long`,
+        `libelle_court`
+    )
+VALUES (
+        1,
+        'Université Félix Houphouët-Boigny',
+        'UFHB'
+    ),
+    (
+        2,
+        'Institut National Polytechnique Houphouët-Boigny',
+        'INPHB'
+    ),
+    (
+        3,
+        'Université Nangui Abrogoua',
+        'UNA'
+    ),
+    (4, 'Entreprise', 'Entreprise');
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `etudiants`
 --
 
@@ -558,6 +1639,612 @@ CREATE TABLE IF NOT EXISTS `etudiants` (
     KEY `fk_etudiant_annee_acad` (`id_annee_acad`),
     KEY `genre_etu` (`genre_etu`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `etudiants`
+--
+
+INSERT INTO
+    `etudiants` (
+        `num_ident_etud`,
+        `num_carte_etud`,
+        `nom_etu`,
+        `prenom_etu`,
+        `email_etu`,
+        `date_naiss_etu`,
+        `genre_etu`,
+        `promotion_etu`,
+        `id_niveau`,
+        `id_annee_acad`
+    )
+VALUES (
+        'CI0106187064',
+        'CI0106187064',
+        'Karamoko',
+        'Ibrahim  ',
+        '',
+        '0000-00-00',
+        1,
+        '2016-2017',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0108207902',
+        'CI0108207902',
+        'Doumun',
+        'Mékapeu solange ',
+        '',
+        '0000-00-00',
+        2,
+        '2004-2005',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0108207903',
+        'CI0108207903',
+        'Ebe',
+        'Gbebi Alex Auguste',
+        '',
+        '0000-00-00',
+        1,
+        '2014-2015',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0108211061',
+        'CI0108211061',
+        'Guindo',
+        'Abdoulaye  ',
+        '',
+        '0000-00-00',
+        1,
+        '2018-2019',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0108212628',
+        'CI0108212628',
+        'Koulaté',
+        'Douai Yves-Alain ',
+        '',
+        '0000-00-00',
+        1,
+        '2014-2015',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0109224375',
+        'CI0109224375',
+        'Atsé',
+        'Nina Larissa ',
+        '',
+        '0000-00-00',
+        2,
+        '2013-2014',
+        NULL,
+        NULL
+    ),
+    (
+        'BOBJ2203880001',
+        'CI0109224377',
+        'Bobou',
+        'Eliézer Josué ',
+        '',
+        '0000-00-00',
+        1,
+        '2013-2014',
+        NULL,
+        NULL
+    ),
+    (
+        'KOUA0204890001',
+        'CI0109243169',
+        'Kouassi',
+        'Aka Marius ',
+        '',
+        '0000-00-00',
+        1,
+        '2013-2014',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0110242904',
+        'CI0110242904',
+        'Konan',
+        'Yao Franck ',
+        '',
+        '0000-00-00',
+        1,
+        '2014-2015',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0110243163',
+        'CI0110243163',
+        'Coulou',
+        'Kouadio Léandre ',
+        '',
+        '0000-00-00',
+        1,
+        '2013-2014',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0110243311',
+        'CI0110243311',
+        'Koffi',
+        'Mekhan Girault ',
+        '',
+        '0000-00-00',
+        1,
+        '2013-2014',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0111272399',
+        'CI0111272399',
+        'Agnaramon',
+        'Boris Carnot ',
+        '',
+        '0000-00-00',
+        1,
+        '2014-2015',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0111272409',
+        'CI0111272409',
+        'Mohamed',
+        'Ibrahim Charles ',
+        '',
+        '0000-00-00',
+        1,
+        '2015-2016',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0111272412',
+        'CI0111272412',
+        'Karidioula',
+        'Homar  ',
+        '',
+        '0000-00-00',
+        1,
+        '2015-2016',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0111272417',
+        'CI0111272417',
+        'Ahouana',
+        'Akichi Roche Wilfried',
+        '',
+        '0000-00-00',
+        1,
+        '2010-2011',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0112272423',
+        'CI0112272423',
+        'Atta',
+        'Amoan Aurélie Nadia',
+        '',
+        '0000-00-00',
+        2,
+        '2015-2016',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0112272430',
+        'CI0112272430',
+        'Koissi',
+        'Elysée Morel James',
+        '',
+        '0000-00-00',
+        1,
+        '2016-2017',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0112272431',
+        'CI0112272431',
+        'Komana',
+        'Parfait  ',
+        '',
+        '0000-00-00',
+        1,
+        '2016-2017',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0112272435',
+        'CI0112272435',
+        'Kra',
+        'Yao Ghislain ',
+        '',
+        '0000-00-00',
+        1,
+        '2015-2016',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0112272443',
+        'CI0112272443',
+        'N\'zi',
+        'Yao Sidney Maurel',
+        '',
+        '0000-00-00',
+        1,
+        '2015-2016',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0113272684',
+        'CI0113272684',
+        'Amoa',
+        'Ablan Stéphanie ',
+        '',
+        '0000-00-00',
+        2,
+        '2016-2017',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0113272986',
+        'CI0113272986',
+        'Konaté',
+        'Dotégué Léon-Cédric ',
+        '',
+        '0000-00-00',
+        1,
+        '2016-2017',
+        NULL,
+        NULL
+    ),
+    (
+        'KEUF2403950001',
+        'CI0113273194',
+        'Keulegbe',
+        'Franck-Cyril  ',
+        '',
+        '0000-00-00',
+        1,
+        '2016-2017',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0113273196',
+        'CI0113273196',
+        'Kondou',
+        'Terrence Yves Fallon',
+        '',
+        '0000-00-00',
+        1,
+        '2016-2017',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0113273198',
+        'CI0113273198',
+        'N\'guessan',
+        'Léandre Yvon ',
+        '',
+        '0000-00-00',
+        1,
+        '2016-2017',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0113273793',
+        'CI0113273793',
+        'Ouattara',
+        'kobenan Landry ',
+        '',
+        '0000-00-00',
+        1,
+        '2015-2016',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0114277408',
+        'CI0114277408',
+        'Balié',
+        'Gnahoua Marc-Michel ',
+        '',
+        '0000-00-00',
+        1,
+        '2017-2018',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0114278909',
+        'CI0114278909',
+        'Diao',
+        'Moussa  ',
+        '',
+        '0000-00-00',
+        1,
+        '2018-2019',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0114279119',
+        'CI0114279119',
+        'N\'guessan',
+        'Kadjo Léon ',
+        '',
+        '0000-00-00',
+        1,
+        '2017-2018',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0114283286',
+        'CI0114283286',
+        'Doumbia',
+        'Anliou Badrah Kévin',
+        '',
+        '0000-00-00',
+        1,
+        '2018-2019',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0114283821',
+        'CI0114283821',
+        'N\'cho',
+        'Chippaux Pierrette Naomie',
+        '',
+        '0000-00-00',
+        2,
+        '2017-2018',
+        NULL,
+        NULL
+    ),
+    (
+        'OUAD2508910002',
+        'CI0114284424',
+        'Ouattara',
+        'Dramane Fanhyogo ',
+        '',
+        '0000-00-00',
+        1,
+        '2016-2017',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0114284425',
+        'CI0114284425',
+        'Mondah',
+        'Aristide Arnaud ',
+        '',
+        '0000-00-00',
+        1,
+        '2017-2018',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0114284687',
+        'CI0114284687',
+        'Diarrassouba',
+        'Nagnon Mamadou ',
+        '',
+        '0000-00-00',
+        1,
+        '2016-2017',
+        NULL,
+        NULL
+    ),
+    (
+        'EHIA2912960001',
+        'CI0115290088',
+        'Ehinon',
+        'Arriko Désiré Ebenezer',
+        '',
+        '0000-00-00',
+        1,
+        '2018-2019',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0115290089',
+        'CI0115290089',
+        'Atokoli',
+        'Kra Affoue Larissa Estelle',
+        '',
+        '0000-00-00',
+        2,
+        '2018-2019',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0115290094',
+        'CI0115290094',
+        'Dosso',
+        'Abdoul-Rhamane  ',
+        '',
+        '0000-00-00',
+        1,
+        '2018-2019',
+        NULL,
+        NULL
+    ),
+    (
+        'DIAM2310950002',
+        'CI0115290103',
+        'Diarrassouba',
+        'Mohamed  ',
+        '',
+        '0000-00-00',
+        1,
+        '2019-2020',
+        NULL,
+        NULL
+    ),
+    (
+        '14-24-LMI',
+        'CI0115290108',
+        'Kacou',
+        'Ehouman Narcisse Innocent',
+        '',
+        '0000-00-00',
+        1,
+        '2018-2019',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0115291194',
+        'CI0115291194',
+        'Badolo',
+        'Koffi Marius ',
+        '',
+        '0000-00-00',
+        1,
+        '2018-2019',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0115291243',
+        'CI0115291243',
+        'Amand',
+        'Kouakou Yann-Axel ',
+        '',
+        '0000-00-00',
+        1,
+        '2018-2019',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0115301569',
+        'CI0115301569',
+        'Koki',
+        'Israël  ',
+        '',
+        '0000-00-00',
+        1,
+        '2016-2017',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0115301657',
+        'CI0115301657',
+        'Koffi',
+        'Kousso Claverie De Camille',
+        '',
+        '0000-00-00',
+        2,
+        '2017-2018',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0115301658',
+        'CI0115301658',
+        'Bamba',
+        'Aboubakar Siriki ',
+        '',
+        '0000-00-00',
+        1,
+        '2016-2017',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0115302301',
+        'CI0115302301',
+        'Akpagnon',
+        'Koffi  ',
+        '',
+        '0000-00-00',
+        1,
+        '2018-2019',
+        NULL,
+        NULL
+    ),
+    (
+        'CI0115303004',
+        'CI0115303004',
+        'Traoré',
+        'Fatime  ',
+        '',
+        '0000-00-00',
+        2,
+        '2017-2018',
+        NULL,
+        NULL
+    ),
+    (
+        'DEML1504910001',
+        'CI0116311231',
+        'Dembélé',
+        'Loseni  ',
+        '',
+        '0000-00-00',
+        1,
+        '2019-2020',
+        NULL,
+        NULL
+    ),
+    (
+        'COUA2104970001',
+        'CI0116311551',
+        'Coulibaly',
+        'Awa  ',
+        '',
+        '0000-00-00',
+        2,
+        '2019-2020',
+        NULL,
+        NULL
+    ),
+    (
+        '134108790/DIAR',
+        'CI0117331488',
+        'Diarrassouba',
+        'Gniriwa Aminata ',
+        '',
+        '0000-00-00',
+        2,
+        '2019-2020',
+        NULL,
+        NULL
+    );
 
 -- --------------------------------------------------------
 
@@ -626,10 +2313,71 @@ CREATE TABLE IF NOT EXISTS `filiere` (
 DROP TABLE IF EXISTS `fonction`;
 
 CREATE TABLE IF NOT EXISTS `fonction` (
-    `id_fonction` int NOT NULL AUTO_INCREMENT,
+    `id_fonction` varchar(2) NOT NULL,
     `lib_fonction` varchar(70) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+    `origine_entreprise` tinyint(1) NOT NULL,
     PRIMARY KEY (`id_fonction`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `fonction`
+--
+
+INSERT INTO
+    `fonction` (
+        `id_fonction`,
+        `lib_fonction`,
+        `origine_entreprise`
+    )
+VALUES (
+        'CC',
+        'Chargé de communication',
+        0
+    ),
+    (
+        'CD',
+        'Chef de département',
+        0
+    ),
+    ('CP', 'Chef de projet', 1),
+    ('DG', 'Directeur général', 1),
+    (
+        'DL',
+        'Directeur de laboratoire',
+        0
+    ),
+    (
+        'DP',
+        'Directeur pédagogique',
+        0
+    ),
+    (
+        'DR',
+        'Directeur de recherche',
+        0
+    ),
+    (
+        'DT',
+        'Directeur technique',
+        1
+    ),
+    ('DU', 'Directeur Ufr', 0),
+    (
+        'RF',
+        'Responsable de filière',
+        0
+    ),
+    (
+        'RN',
+        'Responsable de niveau',
+        0
+    ),
+    (
+        'SP',
+        'Secrétaire principal',
+        0
+    ),
+    ('VP', 'Vice Président', 0);
 
 -- --------------------------------------------------------
 
@@ -1612,11 +3360,22 @@ VALUES (1, 'Masculin'),
 DROP TABLE IF EXISTS `grade`;
 
 CREATE TABLE IF NOT EXISTS `grade` (
-    `id_grade` int NOT NULL AUTO_INCREMENT,
+    `id_grade` varchar(2) NOT NULL,
     `lib_grade` varchar(150) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
     PRIMARY KEY (`id_grade`),
     UNIQUE KEY `lib_grade` (`lib_grade`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `grade`
+--
+
+INSERT INTO
+    `grade` (`id_grade`, `lib_grade`)
+VALUES ('AS', 'Assistant'),
+    ('MA', 'Maître assistant'),
+    ('MC', 'Maître de conférence'),
+    ('PT', 'Professeur titulaire');
 
 -- --------------------------------------------------------
 
@@ -1699,21 +3458,16 @@ DROP TABLE IF EXISTS `inscriptions`;
 
 CREATE TABLE IF NOT EXISTS `inscriptions` (
     `id_inscription` int NOT NULL AUTO_INCREMENT,
-    `id_etudiant` varchar(25) DEFAULT NULL,
-    `id_niveau` int DEFAULT NULL,
     `id_annee_acad` int NOT NULL,
-    `date_inscription` datetime DEFAULT NULL,
-    `statut_inscription` enum(
-        'En cours',
-        'Validée',
-        'Annulée'
-    ) DEFAULT NULL,
-    `nombre_tranche` int NOT NULL,
-    `reste_a_payer` decimal(10, 2) NOT NULL,
-    `montant_paye` decimal(10, 2) NOT NULL,
+    `id_etudiant` varchar(25) DEFAULT NULL,
+    `num_versement` int NOT NULL,
+    `date_versement` datetime DEFAULT NULL,
+    `montant_verser` int NOT NULL,
+    `id_mode_paiement` int NOT NULL,
+    `num_piece_mp` int NOT NULL,
+    `solde` decimal(10, 2) NOT NULL,
     PRIMARY KEY (`id_inscription`),
     KEY `id_etudiant` (`id_etudiant`),
-    KEY `id_niveau` (`id_niveau`),
     KEY `id_annee_acad` (`id_annee_acad`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
 
@@ -1748,6 +3502,39 @@ CREATE TABLE IF NOT EXISTS `messages` (
     `type_message` varchar(60) NOT NULL,
     PRIMARY KEY (`id_message`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `mode_paiement`
+--
+
+DROP TABLE IF EXISTS `mode_paiement`;
+
+CREATE TABLE IF NOT EXISTS `mode_paiement` (
+    `id_mode_paiement` int NOT NULL AUTO_INCREMENT,
+    `code_mode_paiement` varchar(2) NOT NULL,
+    `libelle_mode_paement` varchar(25) NOT NULL,
+    PRIMARY KEY (`id_mode_paiement`)
+) ENGINE = InnoDB AUTO_INCREMENT = 8 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `mode_paiement`
+--
+
+INSERT INTO
+    `mode_paiement` (
+        `id_mode_paiement`,
+        `code_mode_paiement`,
+        `libelle_mode_paement`
+    )
+VALUES (1, 'ES', 'Espèce'),
+    (2, 'VR', 'Virement'),
+    (3, 'CH', 'Chèque'),
+    (4, 'OM', 'Orange money'),
+    (5, 'WV', 'Wave'),
+    (6, 'MN', 'Mtn money'),
+    (7, 'MV', 'Moov money');
 
 -- --------------------------------------------------------
 
@@ -1805,7 +3592,34 @@ CREATE TABLE IF NOT EXISTS `niveau_etude` (
     `montant_inscription` decimal(10, 2) NOT NULL,
     PRIMARY KEY (`id_niv_etude`),
     KEY `id_enseignant` (`id_enseignant`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `niveau_etude`
+--
+
+INSERT INTO
+    `niveau_etude` (
+        `id_niv_etude`,
+        `lib_niv_etude`,
+        `id_enseignant`,
+        `montant_scolarite`,
+        `montant_inscription`
+    )
+VALUES (
+        1,
+        'Master 1',
+        7,
+        975000.00,
+        450000.00
+    ),
+    (
+        2,
+        'Master 2',
+        7,
+        1025000.00,
+        450000.00
+    );
 
 -- --------------------------------------------------------
 
@@ -1818,12 +3632,14 @@ DROP TABLE IF EXISTS `notes`;
 CREATE TABLE IF NOT EXISTS `notes` (
     `id` int NOT NULL AUTO_INCREMENT,
     `num_etu` varchar(25) NOT NULL,
+    `id_annee_acad` int DEFAULT NULL,
     `moyenne_M1` decimal(4, 2) NOT NULL,
     `moyenne_M2` decimal(4, 2) NOT NULL,
     `date_creation` datetime DEFAULT CURRENT_TIMESTAMP,
     `date_modification` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    KEY `notes_ibfk_1` (`num_etu`)
+    KEY `notes_ibfk_1` (`num_etu`),
+    KEY `fk_notes_annee_acad` (`id_annee_acad`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
 
 -- --------------------------------------------------------
@@ -1865,7 +3681,85 @@ CREATE TABLE IF NOT EXISTS `password_resets` (
     UNIQUE KEY `token` (`token`),
     KEY `email` (`email`),
     KEY `expires_at` (`expires_at`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 9 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `password_resets`
+--
+
+INSERT INTO
+    `password_resets` (
+        `id`,
+        `email`,
+        `token`,
+        `expires_at`,
+        `used`,
+        `created_at`
+    )
+VALUES (
+        1,
+        'iadjoannejemima',
+        'd9dc8e30fbfb86ab8766274b1a5018c735586988b065eaaf8c07fce129e00917',
+        '2026-02-12 16:33:13',
+        0,
+        '2026-02-12 15:33:13'
+    ),
+    (
+        2,
+        'iadjoannejemima',
+        '71b1968cc384b6a86f4563fd1e91d33a915266742f0e9db17ed5906bacbde11e',
+        '2026-02-12 17:18:43',
+        0,
+        '2026-02-12 16:18:43'
+    ),
+    (
+        3,
+        'iannejemima@gmail.com',
+        'b46ed2ed4be30d81006cc0ae4186a49694cee68957cf45ea6ffd8bc443ce7f68',
+        '2026-02-12 17:28:22',
+        0,
+        '2026-02-12 16:28:22'
+    ),
+    (
+        4,
+        'iannejemima@gmail.com',
+        '1e8503fe4f00ef50c81bb97448625903324e410d59ae2d152d40365a8ab3c030',
+        '2026-02-12 17:32:12',
+        0,
+        '2026-02-12 16:32:12'
+    ),
+    (
+        5,
+        'iannejemima@gmail.com',
+        'a76d7eda50bb1a6893479b06f642327be9d8c688ac30e32ae0a59135de6cd96a',
+        '2026-02-12 17:32:25',
+        0,
+        '2026-02-12 16:32:25'
+    ),
+    (
+        6,
+        'iannejemima@gmail.com',
+        'd15b908b533e9168228584b98a38e5eeffd80316e6c948c0e8c182a1b1d8ac91',
+        '2026-02-12 17:32:37',
+        0,
+        '2026-02-12 16:32:37'
+    ),
+    (
+        7,
+        'iannejemima@gmail.com',
+        'cc91aeee5c00f65cd9228d3f2847b2abf8adf80ebdf9779e4f957ef8f4cbf7e7',
+        '2026-02-12 17:44:28',
+        0,
+        '2026-02-12 16:44:28'
+    ),
+    (
+        8,
+        'iannejemima@gmail.com',
+        'dae5a0cbb8859d407e852938c2e6dcedbbc2f011c7e40849af2834c338de90cc',
+        '2026-02-12 17:54:17',
+        1,
+        '2026-02-12 16:54:17'
+    );
 
 -- --------------------------------------------------------
 
@@ -1901,7 +3795,7 @@ CREATE TABLE IF NOT EXISTS `permissions` (
     PRIMARY KEY (`id_permission`),
     UNIQUE KEY `unique_permission` (`id_GU`, `id_fonctionnalite`),
     KEY `id_fonctionnalite` (`id_fonctionnalite`)
-) ENGINE = InnoDB AUTO_INCREMENT = 1756 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 1765 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `permissions`
@@ -2297,6 +4191,56 @@ VALUES (
         1,
         0,
         '2026-02-11 15:07:14'
+    ),
+    (
+        1760,
+        13,
+        101,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-12 17:11:49'
+    ),
+    (
+        1761,
+        13,
+        91,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-12 17:11:49'
+    ),
+    (
+        1762,
+        13,
+        102,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-12 17:11:49'
+    ),
+    (
+        1763,
+        13,
+        103,
+        1,
+        0,
+        0,
+        0,
+        '2026-02-12 17:11:49'
+    ),
+    (
+        1764,
+        13,
+        79,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-12 17:11:49'
     );
 
 -- --------------------------------------------------------
@@ -2341,7 +4285,7 @@ CREATE TABLE IF NOT EXISTS `pister` (
     KEY `idx_utilisateur_action` (`id_utilisateur`, `action`),
     KEY `id_action` (`action`),
     KEY `id_action_2` (`action`)
-) ENGINE = InnoDB AUTO_INCREMENT = 22 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 59 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `pister`
@@ -2523,28 +4467,358 @@ VALUES (
         'Succès',
         'utilisateur',
         '2026-02-12 02:31:56'
+    ),
+    (
+        22,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-02-12 12:37:02'
+    ),
+    (
+        23,
+        5,
+        'Création',
+        'Succès',
+        'annee_academique',
+        '2026-02-12 12:50:04'
+    ),
+    (
+        24,
+        5,
+        'Création',
+        'Erreur',
+        'annee_academique',
+        '2026-02-12 12:50:04'
+    ),
+    (
+        25,
+        5,
+        'Création',
+        'Succès',
+        'niveau_etude',
+        '2026-02-12 12:50:55'
+    ),
+    (
+        26,
+        5,
+        'Création',
+        'Succès',
+        'niveau_etude',
+        '2026-02-12 12:51:13'
+    ),
+    (
+        27,
+        5,
+        'Création',
+        'Succès',
+        'semestre',
+        '2026-02-12 12:51:28'
+    ),
+    (
+        28,
+        5,
+        'Création',
+        'Succès',
+        'semestre',
+        '2026-02-12 12:51:33'
+    ),
+    (
+        29,
+        5,
+        'Création',
+        'Succès',
+        'semestre',
+        '2026-02-12 12:51:41'
+    ),
+    (
+        30,
+        5,
+        'Création',
+        'Succès',
+        'etudiants',
+        '2026-02-12 12:53:39'
+    ),
+    (
+        31,
+        5,
+        'Création',
+        'Erreur',
+        'utilisateur',
+        '2026-02-12 15:33:13'
+    ),
+    (
+        32,
+        5,
+        'Création',
+        'Erreur',
+        'envoi_acces',
+        '2026-02-12 16:18:43'
+    ),
+    (
+        33,
+        5,
+        'Création',
+        'Erreur',
+        'envoi_acces',
+        '2026-02-12 16:28:24'
+    ),
+    (
+        34,
+        5,
+        'Création',
+        'Erreur',
+        'envoi_acces',
+        '2026-02-12 16:32:13'
+    ),
+    (
+        35,
+        5,
+        'Création',
+        'Erreur',
+        'envoi_acces',
+        '2026-02-12 16:32:26'
+    ),
+    (
+        36,
+        5,
+        'Création',
+        'Erreur',
+        'envoi_acces',
+        '2026-02-12 16:32:39'
+    ),
+    (
+        37,
+        5,
+        'Création',
+        'Erreur',
+        'envoi_acces',
+        '2026-02-12 16:44:29'
+    ),
+    (
+        38,
+        5,
+        'Création',
+        'Succès',
+        'envoi_acces',
+        '2026-02-12 16:54:20'
+    ),
+    (
+        39,
+        110,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-02-12 17:08:22'
+    ),
+    (
+        40,
+        5,
+        'Modification',
+        'Succès',
+        'permissions',
+        '2026-02-12 17:11:32'
+    ),
+    (
+        41,
+        110,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-12 17:11:38'
+    ),
+    (
+        42,
+        5,
+        'Modification',
+        'Succès',
+        'permissions',
+        '2026-02-12 17:11:49'
+    ),
+    (
+        43,
+        110,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-12 17:11:53'
+    ),
+    (
+        44,
+        110,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-12 17:11:56'
+    ),
+    (
+        45,
+        110,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-12 17:12:07'
+    ),
+    (
+        46,
+        110,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-12 17:12:24'
+    ),
+    (
+        47,
+        110,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-12 17:15:18'
+    ),
+    (
+        48,
+        110,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-12 17:33:23'
+    ),
+    (
+        49,
+        110,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-12 17:33:53'
+    ),
+    (
+        50,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-12 17:45:45'
+    ),
+    (
+        51,
+        5,
+        'Modification',
+        'Succès',
+        'etudiants',
+        '2026-02-12 18:10:11'
+    ),
+    (
+        52,
+        110,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-12 18:12:25'
+    ),
+    (
+        53,
+        110,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-12 18:12:25'
+    ),
+    (
+        54,
+        110,
+        'Déconnexion',
+        'Succès',
+        'utilisateur',
+        '2026-02-12 18:12:27'
+    ),
+    (
+        55,
+        110,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-02-12 18:13:17'
+    ),
+    (
+        56,
+        110,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-02-12 18:13:17'
+    ),
+    (
+        57,
+        5,
+        'Modification',
+        'Succès',
+        'etudiants',
+        '2026-02-13 13:43:21'
+    ),
+    (
+        58,
+        5,
+        'Modification',
+        'Succès',
+        'etudiants',
+        '2026-02-13 14:14:38'
     );
 
 -- --------------------------------------------------------
 
 --
--- Structure de la table `programmer`
+-- Structure de la table `programmer_soutenance`
 --
 
-DROP TABLE IF EXISTS `programmer`;
+DROP TABLE IF EXISTS `programmer_soutenance`;
 
-CREATE TABLE IF NOT EXISTS `programmer` (
-    `id_programmation` int NOT NULL AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS `programmer_soutenance` (
+    `num_soutenance` varchar(20) NOT NULL,
     `num_etud` varchar(25) NOT NULL,
-    `num_jury` int NOT NULL,
+    `theme_soutenance` varchar(200) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+    `id_domaine` int NOT NULL,
+    `id_session` int NOT NULL,
     `id_salle` int DEFAULT NULL,
     `date_soutenance` date DEFAULT NULL,
     `heure_soutenance` time DEFAULT NULL,
-    `theme_soutenance` varchar(200) NOT NULL,
-    PRIMARY KEY (`id_programmation`),
+    PRIMARY KEY (`num_soutenance`),
     KEY `num_etud` (`num_etud`),
-    KEY `id_salle` (`id_salle`)
+    KEY `id_salle` (`id_salle`),
+    KEY `id_domaine` (`id_domaine`),
+    KEY `id_session` (`id_session`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `qualite_jury`
+--
+
+DROP TABLE IF EXISTS `qualite_jury`;
+
+CREATE TABLE IF NOT EXISTS `qualite_jury` (
+    `id_role_jury` int NOT NULL AUTO_INCREMENT,
+    `code_qltjury` varchar(2) NOT NULL,
+    `lib_role` varchar(50) NOT NULL,
+    PRIMARY KEY (`id_role_jury`)
+) ENGINE = InnoDB AUTO_INCREMENT = 6 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `qualite_jury`
+--
+
+INSERT INTO
+    `qualite_jury` (
+        `id_role_jury`,
+        `code_qltjury`,
+        `lib_role`
+    )
+VALUES (1, 'PJ', 'Président'),
+    (2, 'DM', 'Directeur mémoire'),
+    (3, 'EX', 'Examinateur'),
+    (4, 'EN', 'Encadrant'),
+    (5, 'MS', 'Maître de stage');
 
 -- --------------------------------------------------------
 
@@ -2557,8 +4831,7 @@ DROP TABLE IF EXISTS `rapport_etudiants`;
 CREATE TABLE IF NOT EXISTS `rapport_etudiants` (
     `id_rapport` int NOT NULL AUTO_INCREMENT,
     `num_etu` varchar(25) NOT NULL,
-    `nom_rapport` varchar(150) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
-    `date_rapport` datetime NOT NULL,
+    `date_redaction_rapport` datetime NOT NULL,
     `theme_rapport` varchar(150) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
     `chemin_fichier` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL COMMENT 'Chemin vers le fichier de contenu',
     `statut_rapport` enum(
@@ -2570,17 +4843,6 @@ CREATE TABLE IF NOT EXISTS `rapport_etudiants` (
     `date_modification` datetime DEFAULT NULL,
     `taille_fichier` int DEFAULT NULL COMMENT 'Taille du fichier en octets',
     `version` int NOT NULL DEFAULT '1' COMMENT 'Version du rapport',
-    `etape_validation` enum(
-        'en_cours',
-        'en_attente_communication',
-        'desapprouve_communication',
-        'approuve_communication',
-        'en_attente_commission',
-        'desapprouve_commission',
-        'approuve_commission',
-        'valide',
-        'rejete'
-    ) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT 'en_cours',
     PRIMARY KEY (`id_rapport`),
     KEY `num_etu` (`num_etu`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
@@ -2706,23 +4968,6 @@ CREATE TABLE IF NOT EXISTS `resume_candidature` (
 -- --------------------------------------------------------
 
 --
--- Structure de la table `roles_jury`
---
-
-DROP TABLE IF EXISTS `roles_jury`;
-
-CREATE TABLE IF NOT EXISTS `roles_jury` (
-    `id_role_jury` int NOT NULL AUTO_INCREMENT,
-    `lib_role` varchar(50) NOT NULL,
-    `description` text,
-    `actif` tinyint(1) DEFAULT '1',
-    PRIMARY KEY (`id_role_jury`),
-    UNIQUE KEY `lib_role` (`lib_role`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
-
--- --------------------------------------------------------
-
---
 -- Structure de la table `route_actions`
 --
 
@@ -2825,7 +5070,23 @@ CREATE TABLE IF NOT EXISTS `salles` (
     `id_salle` int NOT NULL AUTO_INCREMENT,
     `lib_salle` varchar(100) NOT NULL,
     PRIMARY KEY (`id_salle`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 7 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `salles`
+--
+
+INSERT INTO
+    `salles` (`id_salle`, `lib_salle`)
+VALUES (
+        1,
+        'Salle de conférence UFRMI'
+    ),
+    (2, 'Salle de conférence IRMA'),
+    (3, 'Amphithéâtre IRMA'),
+    (4, 'Salle TD 207 UFRMI'),
+    (5, 'Salle TD VALLON'),
+    (6, 'Salle TD CESTIA');
 
 -- --------------------------------------------------------
 
@@ -2841,7 +5102,45 @@ CREATE TABLE IF NOT EXISTS `semestre` (
     `id_niv_etude` int NOT NULL,
     PRIMARY KEY (`id_semestre`),
     KEY `id_niv_etude` (`id_niv_etude`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 4 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `semestre`
+--
+
+INSERT INTO
+    `semestre` (
+        `id_semestre`,
+        `lib_semestre`,
+        `id_niv_etude`
+    )
+VALUES (1, 'semestre 7', 1),
+    (2, 'Semestre 8', 1),
+    (3, 'Semestre 9', 2);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `session`
+--
+
+DROP TABLE IF EXISTS `session`;
+
+CREATE TABLE IF NOT EXISTS `session` (
+    `id_session` int NOT NULL AUTO_INCREMENT,
+    `lib_session` varchar(20) NOT NULL,
+    PRIMARY KEY (`id_session`)
+) ENGINE = InnoDB AUTO_INCREMENT = 4 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `session`
+--
+
+INSERT INTO
+    `session` (`id_session`, `lib_session`)
+VALUES (1, 'Mai'),
+    (2, 'Octobre'),
+    (3, 'Décembre');
 
 -- --------------------------------------------------------
 
@@ -3284,7 +5583,7 @@ CREATE TABLE IF NOT EXISTS `utilisateur` (
     KEY `id_groupe_utilisateur` (`id_GU`),
     KEY `id_niv_acces_donnee` (`id_niv_acces_donnee`),
     KEY `id_type_utilisateur` (`id_type_utilisateur`)
-) ENGINE = InnoDB AUTO_INCREMENT = 110 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 111 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `utilisateur`
@@ -3310,6 +5609,16 @@ VALUES (
         'Actif',
         'kouabrou@gmail.com',
         '$2y$10$IM9LuGERPnqbR.DoqkQnMu.WBSXZJ5T5YtqBSFGO2X5nQF/xCnaFW'
+    ),
+    (
+        110,
+        'Irie Adjo Anne Jemima',
+        7,
+        13,
+        5,
+        'Actif',
+        'iadjoannejemima',
+        '$2y$10$sMUplz7tHt5H9gdz92Qjluy3IKTGbnCheSpETELcxLD3PB2thRGxO'
     );
 
 -- --------------------------------------------------------
@@ -3366,7 +5675,6 @@ CREATE TABLE IF NOT EXISTS `versements` (
 -- Contraintes pour la table `affecter`
 --
 ALTER TABLE `affecter`
-ADD CONSTRAINT `fk_affecter_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
 ADD CONSTRAINT `fk_affecter_jury` FOREIGN KEY (`id_jury`) REFERENCES `statut_jury` (`id_jury`) ON DELETE CASCADE ON UPDATE CASCADE,
 ADD CONSTRAINT `fk_affecter_rapport` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -3374,8 +5682,14 @@ ADD CONSTRAINT `fk_affecter_rapport` FOREIGN KEY (`id_rapport`) REFERENCES `rapp
 -- Contraintes pour la table `avoir`
 --
 ALTER TABLE `avoir`
-ADD CONSTRAINT `fk_avoir_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
-ADD CONSTRAINT `fk_avoir_grade` FOREIGN KEY (`id_grade`) REFERENCES `grade` (`id_grade`) ON DELETE CASCADE ON UPDATE CASCADE;
+ADD CONSTRAINT `avoir_ibfk_1` FOREIGN KEY (`id_grade`) REFERENCES `grade` (`id_grade`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `bareme_critere`
+--
+ALTER TABLE `bareme_critere`
+ADD CONSTRAINT `bareme_critere_ibfk_1` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE CASCADE ON UPDATE CASCADE,
+ADD CONSTRAINT `bareme_critere_ibfk_2` FOREIGN KEY (`id_critere`) REFERENCES `critere_evaluation` (`id_critere`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `candidature_soutenance`
@@ -3383,13 +5697,6 @@ ADD CONSTRAINT `fk_avoir_grade` FOREIGN KEY (`id_grade`) REFERENCES `grade` (`id
 ALTER TABLE `candidature_soutenance`
 ADD CONSTRAINT `candidature_soutenance_ibfk_2` FOREIGN KEY (`id_pers_admin`) REFERENCES `personnel_admin` (`id_pers_admin`) ON DELETE CASCADE ON UPDATE CASCADE,
 ADD CONSTRAINT `candidature_soutenance_ibfk_3` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE;
-
---
--- Contraintes pour la table `composer_jury`
---
-ALTER TABLE `composer_jury`
-ADD CONSTRAINT `fk_composer_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
-ADD CONSTRAINT `fk_composer_role` FOREIGN KEY (`id_qualite_jury`) REFERENCES `roles_jury` (`id_role_jury`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `compte_rendu`
@@ -3403,13 +5710,6 @@ ADD CONSTRAINT `compte_rendu_ibfk_1` FOREIGN KEY (`num_etu`) REFERENCES `etudian
 ALTER TABLE `compte_rendu_rapport`
 ADD CONSTRAINT `compte_rendu_rapport_ibfk_1` FOREIGN KEY (`id_CR`) REFERENCES `compte_rendu` (`id_CR`) ON DELETE CASCADE,
 ADD CONSTRAINT `compte_rendu_rapport_ibfk_2` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE;
-
---
--- Contraintes pour la table `correspondre`
---
-ALTER TABLE `correspondre`
-ADD CONSTRAINT `correspondre_ibfk_1` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE CASCADE ON UPDATE CASCADE,
-ADD CONSTRAINT `correspondre_ibfk_2` FOREIGN KEY (`id_critere`) REFERENCES `critere_evaluation` (`id_critere`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `deposer`
@@ -3428,7 +5728,14 @@ ADD CONSTRAINT `echeances_ibfk_1` FOREIGN KEY (`id_inscription`) REFERENCES `ins
 --
 ALTER TABLE `enseignants`
 ADD CONSTRAINT `enseignants_ibfk_1` FOREIGN KEY (`type_enseignant`) REFERENCES `type_enseignant` (`id_type_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
+ADD CONSTRAINT `enseignants_ibfk_2` FOREIGN KEY (`id_etablissement_origin`) REFERENCES `etablissement_origine` (`id_etablissement`) ON DELETE CASCADE ON UPDATE CASCADE,
 ADD CONSTRAINT `fk_enseignants_specialite` FOREIGN KEY (`id_specialite`) REFERENCES `specialite` (`id_specialite`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `enseignant_jury`
+--
+ALTER TABLE `enseignant_jury`
+ADD CONSTRAINT `fk_composer_role` FOREIGN KEY (`id_qualite_jury`) REFERENCES `qualite_jury` (`id_role_jury`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `etudiants`
@@ -3442,7 +5749,6 @@ ADD CONSTRAINT `fk_etudiant_niveau` FOREIGN KEY (`id_niveau`) REFERENCES `niveau
 -- Contraintes pour la table `evaluations_rapports`
 --
 ALTER TABLE `evaluations_rapports`
-ADD CONSTRAINT `evaluations_rapports_ibfk_1` FOREIGN KEY (`id_evaluateur`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
 ADD CONSTRAINT `evaluations_rapports_ibfk_2` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
@@ -3469,28 +5775,15 @@ ADD CONSTRAINT `informations_stage_ibfk_3` FOREIGN KEY (`num_etu`) REFERENCES `e
 -- Contraintes pour la table `inscriptions`
 --
 ALTER TABLE `inscriptions`
-ADD CONSTRAINT `inscriptions_ibfk_2` FOREIGN KEY (`id_niveau`) REFERENCES `niveau_etude` (`id_niv_etude`) ON DELETE CASCADE ON UPDATE CASCADE,
 ADD CONSTRAINT `inscriptions_ibfk_3` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE CASCADE ON UPDATE CASCADE,
 ADD CONSTRAINT `inscriptions_ibfk_4` FOREIGN KEY (`id_etudiant`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE;
-
---
--- Contraintes pour la table `niveau_etude`
---
-ALTER TABLE `niveau_etude`
-ADD CONSTRAINT `fk_niveau_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `notes`
 --
 ALTER TABLE `notes`
+ADD CONSTRAINT `fk_notes_annee_acad` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE SET NULL ON UPDATE CASCADE,
 ADD CONSTRAINT `notes_ibfk_1` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE;
-
---
--- Contraintes pour la table `occuper`
---
-ALTER TABLE `occuper`
-ADD CONSTRAINT `fk_occuper_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
-ADD CONSTRAINT `fk_occuper_fonction` FOREIGN KEY (`id_fonction`) REFERENCES `fonction` (`id_fonction`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `permissions`
@@ -3506,10 +5799,13 @@ ALTER TABLE `pister`
 ADD CONSTRAINT `fk_pister_utilisateur` FOREIGN KEY (`id_utilisateur`) REFERENCES `utilisateur` (`id_utilisateur`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
--- Contraintes pour la table `programmer`
+-- Contraintes pour la table `programmer_soutenance`
 --
-ALTER TABLE `programmer`
-ADD CONSTRAINT `programmer_ibfk_1` FOREIGN KEY (`num_etud`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `programmer_soutenance`
+ADD CONSTRAINT `programmer_soutenance_ibfk_1` FOREIGN KEY (`num_etud`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
+ADD CONSTRAINT `programmer_soutenance_ibfk_2` FOREIGN KEY (`id_domaine`) REFERENCES `domaine` (`id_domaine`) ON DELETE CASCADE ON UPDATE CASCADE,
+ADD CONSTRAINT `programmer_soutenance_ibfk_3` FOREIGN KEY (`id_session`) REFERENCES `session` (`id_session`) ON DELETE CASCADE ON UPDATE CASCADE,
+ADD CONSTRAINT `programmer_soutenance_ibfk_4` FOREIGN KEY (`id_salle`) REFERENCES `salles` (`id_salle`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `rapport_etudiants`
@@ -3535,8 +5831,7 @@ ADD CONSTRAINT `reclamations_ibfk_2` FOREIGN KEY (`statut_reclamation`) REFERENC
 -- Contraintes pour la table `rendre`
 --
 ALTER TABLE `rendre`
-ADD CONSTRAINT `fk_rendre_cr` FOREIGN KEY (`id_CR`) REFERENCES `compte_rendu` (`id_CR`) ON DELETE CASCADE ON UPDATE CASCADE,
-ADD CONSTRAINT `fk_rendre_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE;
+ADD CONSTRAINT `fk_rendre_cr` FOREIGN KEY (`id_CR`) REFERENCES `compte_rendu` (`id_CR`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `resume_candidature`
@@ -3562,7 +5857,6 @@ ADD CONSTRAINT `utilisateur_ibfk_4` FOREIGN KEY (`id_type_utilisateur`) REFERENC
 -- Contraintes pour la table `valider`
 --
 ALTER TABLE `valider`
-ADD CONSTRAINT `fk_valider_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
 ADD CONSTRAINT `fk_valider_rapport` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --

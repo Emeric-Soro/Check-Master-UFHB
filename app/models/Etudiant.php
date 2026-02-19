@@ -12,7 +12,7 @@ class Etudiant
     public function getAllEtudiants()
     {
         try {
-            $query = "SELECT e.*, n.lib_niv_etude, a.date_deb, a.date_fin, g.libelle_genre
+            $query = "SELECT e.*, e.num_ident_etud as identifiant_mesrs, n.lib_niv_etude, a.date_deb, a.date_fin, g.libelle_genre
                      FROM etudiants e 
                      LEFT JOIN niveau_etude n ON e.id_niveau = n.id_niv_etude 
                      LEFT JOIN annee_academique a ON e.id_annee_acad = a.id_annee_acad
@@ -30,7 +30,7 @@ class Etudiant
     public function getAllListeEtudiants()
     {
         try {
-            $query = "SELECT e.*, n.lib_niv_etude, n.id_niv_etude, a.id_annee_acad, a.date_deb, a.date_fin, g.libelle_genre
+            $query = "SELECT e.*, e.num_ident_etud as identifiant_mesrs, n.lib_niv_etude, n.id_niv_etude, a.id_annee_acad, a.date_deb, a.date_fin, g.libelle_genre
                       FROM etudiants e
                       LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
                       LEFT JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
@@ -54,7 +54,7 @@ class Etudiant
     public function getEtudiantById($num_etu)
     {
         try {
-            $query = "SELECT * FROM etudiants WHERE num_carte_etud = :num_etu";
+            $query = "SELECT *, num_ident_etud as identifiant_mesrs FROM etudiants WHERE num_carte_etud = :num_etu";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':num_etu', $num_etu);
             $stmt->execute();
@@ -65,13 +65,28 @@ class Etudiant
         }
     }
 
-    public function getEtudiantByLogin($login)
+    public function getEtudiantByLogin($nomUtilisateur)
     {
         try {
-            $query = "SELECT * FROM etudiants WHERE email_etu = :login";
+            // Séparer le nom en parties (nom et prénom)
+            $parts = explode(' ', trim($nomUtilisateur), 2);
+
+            if (count($parts) < 2) {
+                return null;
+            }
+
+            $part1 = $parts[0];
+            $part2 = $parts[1];
+
+            // Chercher dans etudiants en essayant les deux ordres possibles
+            // (NOM Prénom) OU (Prénom NOM)
+            $query = "SELECT *, num_ident_etud as identifiant_mesrs FROM etudiants 
+                      WHERE (UPPER(nom_etu) = UPPER(:part1) AND UPPER(prenom_etu) = UPPER(:part2))
+                         OR (UPPER(prenom_etu) = UPPER(:part1) AND UPPER(nom_etu) = UPPER(:part2))
+                      LIMIT 1";
+
             $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':login', $login);
-            $stmt->execute();
+            $stmt->execute(['part1' => $part1, 'part2' => $part2]);
             return $stmt->fetch(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération de l'étudiant : " . $e->getMessage());
@@ -83,10 +98,11 @@ class Etudiant
     public function ajouterEtudiant($num_etu, $nom_etu, $prenom_etu, $date_naiss_etu, $genre_etu, $email_etu, $promotion_etu, $id_niveau = null, $id_annee_acad = null, $identifiant_mesrs = null)
     {
         try {
-            $sql = "INSERT INTO etudiants (num_carte_etud, nom_etu, prenom_etu, date_naiss_etu, genre_etu, email_etu, promotion_etu, id_niveau, id_annee_acad) 
-                    VALUES (:num_etu, :nom_etu, :prenom_etu, :date_naiss_etu, :genre_etu, :email_etu, :promotion_etu, :id_niveau, :id_annee_acad)";
+            $sql = "INSERT INTO etudiants (num_carte_etud, num_ident_etud, nom_etu, prenom_etu, date_naiss_etu, genre_etu, email_etu, promotion_etu, id_niveau, id_annee_acad) 
+                    VALUES (:num_etu, :num_ident_etud, :nom_etu, :prenom_etu, :date_naiss_etu, :genre_etu, :email_etu, :promotion_etu, :id_niveau, :id_annee_acad)";
             $stmt = $this->db->prepare($sql);
             $stmt->bindParam(':num_etu', $num_etu);
+            $stmt->bindParam(':num_ident_etud', $identifiant_mesrs);
             $stmt->bindParam(':nom_etu', $nom_etu);
             $stmt->bindParam(':prenom_etu', $prenom_etu);
             $stmt->bindParam(':date_naiss_etu', $date_naiss_etu);
@@ -102,21 +118,24 @@ class Etudiant
         }
     }
 
-    public function modifierEtudiant($num_etu, $nom_etu, $prenom_etu, $date_naiss_etu, $genre_etu, $email_etu, $promotion_etu, $id_niveau = null, $id_annee_acad = null, $identifiant_mesrs = null)
+    public function modifierEtudiant($old_num_etu, $new_num_etu, $nom_etu, $prenom_etu, $date_naiss_etu, $genre_etu, $email_etu, $promotion_etu, $id_niveau = null, $id_annee_acad = null, $identifiant_mesrs = null)
     {
         try {
             $sql = "UPDATE etudiants 
-                    SET nom_etu = :nom_etu, 
+                    SET num_carte_etud = :new_num_etu,
+                        nom_etu = :nom_etu, 
                         prenom_etu = :prenom_etu, 
                         date_naiss_etu = :date_naiss_etu, 
                         genre_etu = :genre_etu, 
                         email_etu = :email_etu,
                         promotion_etu = :promotion_etu,
                         id_niveau = :id_niveau,
-                        id_annee_acad = :id_annee_acad
-                    WHERE num_carte_etud = :num_etu";
+                        id_annee_acad = :id_annee_acad,
+                        num_ident_etud = :num_ident_etud
+                    WHERE num_carte_etud = :old_num_etu";
             $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':num_etu', $num_etu);
+            $stmt->bindParam(':old_num_etu', $old_num_etu);
+            $stmt->bindParam(':new_num_etu', $new_num_etu);
             $stmt->bindParam(':nom_etu', $nom_etu);
             $stmt->bindParam(':prenom_etu', $prenom_etu);
             $stmt->bindParam(':date_naiss_etu', $date_naiss_etu);
@@ -125,6 +144,7 @@ class Etudiant
             $stmt->bindParam(':promotion_etu', $promotion_etu);
             $stmt->bindParam(':id_niveau', $id_niveau, PDO::PARAM_INT);
             $stmt->bindParam(':id_annee_acad', $id_annee_acad, PDO::PARAM_INT);
+            $stmt->bindParam(':num_ident_etud', $identifiant_mesrs);
             return $stmt->execute();
         } catch (PDOException $e) {
             error_log("Erreur lors de la modification de l'étudiant : " . $e->getMessage());
@@ -365,7 +385,7 @@ class Etudiant
 
     public function getEtudiantByNumEtu($numEtu)
     {
-        $sql = "SELECT * FROM etudiants WHERE num_carte_etud = :num_etu";
+        $sql = "SELECT *, num_ident_etud as identifiant_mesrs FROM etudiants WHERE num_carte_etud = :num_etu";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':num_etu' => $numEtu]);
         return $stmt->fetch(PDO::FETCH_ASSOC);

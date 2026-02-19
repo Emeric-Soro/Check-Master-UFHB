@@ -1,5 +1,11 @@
 <?php
-// Traitement des formulaires et récupération des données
+// Inclusion du contrôleur de gestion des salles
+require_once __DIR__ . '/../../../app/controllers/GestionSallesController.php';
+
+// Instanciation du contrôleur
+$gestionSallesController = new GestionSallesController();
+
+// Variables pour l'affichage
 $salle_a_modifier = null;
 $messageErreur = '';
 $messageSuccess = '';
@@ -7,107 +13,43 @@ $messageSuccess = '';
 // Dynamic page slug
 $pageSlug = $_GET['page'] ?? 'parametres_generaux';
 
-try {
-    $pdo = Database::getConnection();
-
-    // Ajout ou modification
-    if (isset($_POST['btn_add_salle']) || isset($_POST['btn_modifier_salle'])) {
-        $lib_salle = $_POST['lib_salle'];
-
-        if (!empty($_POST['id_salle'])) {
-            // MODIFICATION
-            $stmt = $pdo->prepare("UPDATE salles SET lib_salle = ? WHERE id_salle = ?");
-            if ($stmt->execute([trim($lib_salle), $_POST['id_salle']])) {
-                $messageSuccess = "Salle modifiée avec succès.";
-            } else {
-                $messageErreur = "Erreur lors de la modification de la salle.";
-            }
-        } else {
-            // AJOUT - Vérifier si la salle existe déjà
-            $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM salles WHERE lib_salle = ?");
-            $checkStmt->execute([trim($lib_salle)]);
-            if ($checkStmt->fetchColumn() > 0) {
-                $messageErreur = "Une salle avec ce nom existe déjà.";
-            } else {
-                $stmt = $pdo->prepare("INSERT INTO salles (lib_salle) VALUES (?)");
-                if ($stmt->execute([trim($lib_salle)])) {
-                    $messageSuccess = "Salle ajoutée avec succès.";
-                } else {
-                    $messageErreur = "Erreur lors de l'ajout de la salle.";
-                }
-            }
-        }
-    }
-
-    // Suppression multiple
-    if (isset($_POST['submit_delete_multiple']) && $_POST['submit_delete_multiple'] == '1') {
-        $selected_ids = $_POST['selected_ids'] ?? [];
-
-        if (!empty($selected_ids)) {
-            $success = true;
-            foreach ($selected_ids as $id) {
-                // Vérifier si la salle est utilisée
-                $usageStmt = $pdo->prepare("SELECT COUNT(*) FROM programmer WHERE id_salle = ?");
-                $usageStmt->execute([$id]);
-                if ($usageStmt->fetchColumn() > 0) {
-                    $messageErreur = "Une ou plusieurs salles sont utilisées dans des programmations et ne peuvent pas être supprimées.";
-                    $success = false;
-                    break;
-                }
-
-                $stmt = $pdo->prepare("DELETE FROM salles WHERE id_salle = ?");
-                if (!$stmt->execute([$id])) {
-                    $success = false;
-                    break;
-                }
-            }
-
-            if ($success && empty($messageErreur)) {
-                $messageSuccess = "Salles supprimées avec succès.";
-            } elseif (empty($messageErreur)) {
-                $messageErreur = "Erreur lors de la suppression des salles.";
-            }
-        }
-    }
-
-    // Récupération de la salle à modifier pour affichage dans le formulaire
-    if (isset($_GET['id_salle'])) {
-        $stmt = $pdo->prepare("SELECT * FROM salles WHERE id_salle = ?");
-        $stmt->execute([$_GET['id_salle']]);
-        $salle_a_modifier = $stmt->fetch(PDO::FETCH_OBJ);
-    }
-
-    // Pagination
-    $page = isset($_GET['p']) ? (int) $_GET['p'] : 1;
-    $limit = 10;
-    $offset = ($page - 1) * $limit;
-
-    // Search functionality
-    $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
-
-    // Récupération des salles avec recherche
-    if (!empty($search)) {
-        $stmt = $pdo->prepare("SELECT * FROM salles WHERE lib_salle LIKE ? ORDER BY lib_salle ASC");
-        $stmt->execute(['%' . $search . '%']);
-        $listeSalles = $stmt->fetchAll(PDO::FETCH_OBJ);
+// Ajout ou modification
+if (isset($_POST['btn_add_salle']) || isset($_POST['btn_modifier_salle'])) {
+    $result = $gestionSallesController->ajouterOuModifierSalle($_POST);
+    if ($result['success']) {
+        $messageSuccess = $result['message'];
     } else {
-        $stmt = $pdo->query("SELECT * FROM salles ORDER BY lib_salle ASC");
-        $listeSalles = $stmt->fetchAll(PDO::FETCH_OBJ);
+        $messageErreur = $result['message'];
     }
-
-    // Total pages calculation
-    $total_items = count($listeSalles);
-    $total_pages = ceil($total_items / $limit);
-
-    // Slice the array for pagination
-    $listeSalles = array_slice($listeSalles, $offset, $limit);
-
-} catch (Exception $e) {
-    error_log('Erreur gestionSalles: ' . $e->getMessage());
-    $messageErreur = "Erreur de connexion à la base de données.";
-    $listeSalles = [];
-    $total_pages = 0;
 }
+
+// Suppression multiple
+if (isset($_POST['submit_delete_multiple']) && $_POST['submit_delete_multiple'] == '1') {
+    $selected_ids = $_POST['selected_ids'] ?? [];
+    $result = $gestionSallesController->supprimerSallesMultiples($selected_ids);
+    if ($result['success']) {
+        $messageSuccess = $result['message'];
+    } else {
+        $messageErreur = $result['message'];
+    }
+}
+
+// Récupération de la salle à modifier pour affichage dans le formulaire
+if (isset($_GET['id_salle'])) {
+    $salle_a_modifier = $gestionSallesController->getSallePourModification($_GET['id_salle']);
+}
+
+// Pagination et recherche
+$page = isset($_GET['p']) ? (int) $_GET['p'] : 1;
+$limit = 10;
+$search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
+
+// Récupération des salles avec pagination
+$resultats = $gestionSallesController->getSallesAvecPagination($search, $page, $limit);
+$listeSalles = $resultats['data'];
+$total_pages = $resultats['totalPages'];
+$total_items = $resultats['totalItems'];
+$offset = ($page - 1) * $limit;
 ?>
 
 <!DOCTYPE html>
@@ -265,19 +207,19 @@ try {
                                 <i class="fas fa-times mr-2"></i>Annuler
                             </button>
                             <?php if (canEdit()): ?>
-                            <button type="submit" name="btn_modifier_salle"
-                                class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                                <i class="fas fa-save mr-2"></i>Modifier
-                            </button>
+                                <button type="submit" name="btn_modifier_salle"
+                                    class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                                    <i class="fas fa-save mr-2"></i>Modifier
+                                </button>
                             <?php endif; ?>
 
                         <?php else: ?>
                             <div></div>
                             <?php if (canCreate()): ?>
-                            <button type="submit" name="btn_add_salle"
-                                class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                                <i class="fas fa-plus mr-2"></i>Ajouter une salle
-                            </button>
+                                <button type="submit" name="btn_add_salle"
+                                    class="btn-hover px-4 py-2 btn-gradient-primary text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                                    <i class="fas fa-plus mr-2"></i>Ajouter une salle
+                                </button>
                             <?php endif; ?>
                         <?php endif; ?>
                     </div>
@@ -312,10 +254,10 @@ try {
                     <!-- Boutons d'action -->
                     <div class="flex gap-3">
                         <?php if (canDelete()): ?>
-                        <button type="button" id="deleteSelectedBtn" disabled
-                            class="btn-hover px-4 py-2 btn-gradient-danger text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <i class="fas fa-trash-alt mr-2"></i>Supprimer
-                        </button>
+                            <button type="button" id="deleteSelectedBtn" disabled
+                                class="btn-hover px-4 py-2 btn-gradient-danger text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fas fa-trash-alt mr-2"></i>Supprimer
+                            </button>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -340,10 +282,10 @@ try {
                                         <i class="fas fa-building mr-1"></i>Nom de la salle
                                     </th>
                                     <?php if (canEdit() || canDelete()): ?>
-                                    <th
-                                        class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        <i class="fas fa-cog mr-1"></i>Action
-                                    </th>
+                                        <th
+                                            class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <i class="fas fa-cog mr-1"></i>Action
+                                        </th>
                                     <?php endif; ?>
                                 </tr>
                             </thead>
@@ -363,20 +305,21 @@ try {
                                                 <?= htmlspecialchars($salle->lib_salle) ?>
                                             </td>
                                             <?php if (canEdit() || canDelete()): ?>
-                                            <td class="px-3 py-4 text-sm text-center">
-                                                <?php if (canEdit()): ?>
-                                                <a href="?page=<?= $pageSlug ?>&action=salles&id_salle=<?= $salle->id_salle ?>"
-                                                    class="text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-200">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <?php endif; ?>
-                                            </td>
+                                                <td class="px-3 py-4 text-sm text-center">
+                                                    <?php if (canEdit()): ?>
+                                                        <a href="?page=<?= $pageSlug ?>&action=salles&id_salle=<?= $salle->id_salle ?>"
+                                                            class="text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-200">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </td>
                                             <?php endif; ?>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="<?= (canEdit() || canDelete()) ? 4 : 3 ?>" class="px-3 py-4 text-sm text-gray-500 text-center">
+                                        <td colspan="<?= (canEdit() || canDelete()) ? 4 : 3 ?>"
+                                            class="px-3 py-4 text-sm text-gray-500 text-center">
                                             <i class="fas fa-info-circle mr-2"></i>Aucune salle enregistrée.
                                         </td>
                                     </tr>

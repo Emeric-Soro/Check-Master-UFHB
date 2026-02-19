@@ -122,11 +122,12 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars((string) $_SESSION[
                         <form action="index.php?_path=/login" method="POST" class="space-y-5" autocomplete="off">
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                             <div class="space-y-2">
-                                <label for="login" class="text-sm font-semibold text-slate-800">Adresse e-mail</label>
+                                <label for="login" class="text-sm font-semibold text-slate-800">Nom d'utilisateur
+                                    (Login)</label>
                                 <div class="relative">
-                                    <input id="login" name="login" type="email" required
+                                    <input id="login" name="login" type="text" required
                                         class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-                                        placeholder="login@exemple.com">
+                                        placeholder="Votre login (ex: jdupont)">
                                     <div
                                         class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
                                         <i class="fas fa-user"></i>

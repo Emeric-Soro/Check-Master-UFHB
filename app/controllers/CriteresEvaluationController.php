@@ -1,12 +1,15 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../models/CritereEvaluation.php';
 
 class CriteresEvaluationController
 {
+    private $critereModel;
 
     public function __construct()
     {
-        // La classe Database utilise des méthodes statiques
+        // Initialiser le modèle
+        $this->critereModel = new CritereEvaluation(Database::getConnection());
     }
 
     /**
@@ -135,9 +138,12 @@ class CriteresEvaluationController
 
             $pdo->beginTransaction();
 
-            // Insérer le critère
-            $stmt = $pdo->prepare("INSERT INTO critere_evaluation (lib_critere) VALUES (?)");
-            $stmt->execute([trim($input['libelle'])]);
+            // Insérer le critère via le modèle
+            // Note: Le modèle CritereEvaluation nécessite un code_critere, on génère un code automatique
+            $code_critere = strtoupper(substr($input['libelle'], 0, 2));
+            if (!$this->critereModel->creerCritere($code_critere, trim($input['libelle']))) {
+                throw new Exception('Erreur lors de la création du critère');
+            }
             $critereId = $pdo->lastInsertId();
 
             // Insérer les barèmes
@@ -207,9 +213,11 @@ class CriteresEvaluationController
 
             $pdo->beginTransaction();
 
-            // Mettre à jour le critère
-            $stmt = $pdo->prepare("UPDATE critere_evaluation SET lib_critere = ? WHERE id_critere = ?");
-            $stmt->execute([trim($input['libelle']), $input['id']]);
+            // Mettre à jour le critère via le modèle
+            $code_critere = strtoupper(substr($input['libelle'], 0, 2));
+            if (!$this->critereModel->modifierCritere($input['id'], $code_critere, trim($input['libelle']))) {
+                throw new Exception('Erreur lors de la modification du critère');
+            }
 
             // Supprimer les anciens barèmes
             $stmtDelete = $pdo->prepare("DELETE FROM correspondre WHERE id_critere = ?");
@@ -270,9 +278,8 @@ class CriteresEvaluationController
             $pdo->beginTransaction();
 
             // Vérifier si le critère existe
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM critere_evaluation WHERE id_critere = ?");
-            $stmt->execute([$input['id']]);
-            if ($stmt->fetchColumn() == 0) {
+            $critere = $this->critereModel->getCritereById($input['id']);
+            if (!$critere) {
                 throw new Exception('Critère non trouvé');
             }
 
@@ -280,9 +287,10 @@ class CriteresEvaluationController
             $stmtBaremes = $pdo->prepare("DELETE FROM correspondre WHERE id_critere = ?");
             $stmtBaremes->execute([$input['id']]);
 
-            // Supprimer le critère
-            $stmtCritere = $pdo->prepare("DELETE FROM critere_evaluation WHERE id_critere = ?");
-            $stmtCritere->execute([$input['id']]);
+            // Supprimer le critère via le modèle
+            if (!$this->critereModel->supprimerCritere($input['id'])) {
+                throw new Exception('Erreur lors de la suppression du critère');
+            }
 
             $pdo->commit();
 

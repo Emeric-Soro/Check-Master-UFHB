@@ -126,17 +126,25 @@ class GestionEtudiantController
                 if (isset($_POST['submit_add_etudiant'])) {
                     // Validation des champs
                     if (
-                        empty($_POST['nom_etu']) || empty($_POST['prenom_etu']) ||
-                        empty($_POST['date_naiss_etu']) || empty($_POST['genre_etu']) ||
-                        empty($_POST['email_etu'])
+                        empty($_POST['num_etu']) || empty($_POST['nom_etu']) ||
+                        empty($_POST['prenom_etu']) || empty($_POST['date_naiss_etu']) ||
+                        empty($_POST['genre_etu']) || empty($_POST['email_etu'])
                     ) {
-                        $GLOBALS['messageErreur'] = "Les champs Nom, Prénom, Date de naissance, Genre et Email sont obligatoires.";
+                        $GLOBALS['messageErreur'] = "Les champs N° Étudiant, Nom, Prénom, Date de naissance, Genre et Email sont obligatoires.";
+                        return;
+                    }
 
+                    // Récupérer le numéro étudiant saisi
+                    $num_etu = trim($_POST['num_etu']);
+
+                    // Vérifier si le numéro étudiant existe déjà
+                    $existingStudent = $this->etudiant->getEtudiantById($num_etu);
+                    if ($existingStudent) {
+                        $GLOBALS['messageErreur'] = "Ce numéro étudiant existe déjà. Veuillez en choisir un autre.";
                         return;
                     }
 
                     $promotion_etu = !empty($_POST['promotion_etu']) ? $_POST['promotion_etu'] : date('Y') . '-' . (date('Y') + 1);
-                    $num_etu = $this->genererNumeroEtudiant($promotion_etu);
                     $nom_etu = trim($_POST['nom_etu']);
                     $prenom_etu = trim($_POST['prenom_etu']);
                     $date_naiss_etu = $_POST['date_naiss_etu'];
@@ -145,10 +153,10 @@ class GestionEtudiantController
                     $id_niveau = !empty($_POST['id_niveau']) ? (int) $_POST['id_niveau'] : null;
                     $id_annee_acad = !empty($_POST['id_annee_acad']) ? (int) $_POST['id_annee_acad'] : null;
                     $identifiant_mesrs = !empty($_POST['identifiant_mesrs']) ? trim($_POST['identifiant_mesrs']) : null;
+
                     // Validation de l'email
                     if (!filter_var($email_etu, FILTER_VALIDATE_EMAIL)) {
                         $GLOBALS['messageErreur'] = "L'adresse email n'est pas valide.";
-
                         return;
                     }
 
@@ -169,7 +177,7 @@ class GestionEtudiantController
                 // Modification d'un étudiant
                 if (isset($_POST['submit_modifier_etudiant'])) {
                     if (
-                        empty($_POST['num_etu']) || empty($_POST['nom_etu']) ||
+                        empty($_POST['old_num_etu']) || empty($_POST['num_etu']) || empty($_POST['nom_etu']) ||
                         empty($_POST['prenom_etu']) || empty($_POST['date_naiss_etu']) ||
                         empty($_POST['genre_etu']) || empty($_POST['email_etu'])
                     ) {
@@ -177,7 +185,18 @@ class GestionEtudiantController
                         return;
                     }
 
-                    $num_etu = $_POST['num_etu'];
+                    $old_num_etu = trim($_POST['old_num_etu']);
+                    $num_etu = trim($_POST['num_etu']);
+
+                    // Si le numéro a changé, vérifier qu'il n'existe pas déjà
+                    if ($old_num_etu !== $num_etu) {
+                        $existingStudent = $this->etudiant->getEtudiantById($num_etu);
+                        if ($existingStudent) {
+                            $GLOBALS['messageErreur'] = "Ce numéro étudiant existe déjà. Veuillez en choisir un autre.";
+                            return;
+                        }
+                    }
+
                     $nom_etu = trim($_POST['nom_etu']);
                     $prenom_etu = trim($_POST['prenom_etu']);
                     $date_naiss_etu = $_POST['date_naiss_etu'];
@@ -196,7 +215,7 @@ class GestionEtudiantController
                     }
 
                     // Récupérer les anciennes données pour l'audit
-                    $ancienEtudiant = $this->etudiant->getEtudiantById($num_etu);
+                    $ancienEtudiant = $this->etudiant->getEtudiantById($old_num_etu);
                     $anciennesDonnees = $ancienEtudiant ? [
                         'nom_etu' => $ancienEtudiant->nom_etu,
                         'prenom_etu' => $ancienEtudiant->prenom_etu,
@@ -221,7 +240,7 @@ class GestionEtudiantController
                         'identifiant_mesrs' => $identifiant_mesrs
                     ];
 
-                    if ($this->etudiant->modifierEtudiant($num_etu, $nom_etu, $prenom_etu, $date_naiss_etu, $genre_etu, $email_etu, $promotion_etu, $id_niveau, $id_annee_acad, $identifiant_mesrs)) {
+                    if ($this->etudiant->modifierEtudiant($old_num_etu, $num_etu, $nom_etu, $prenom_etu, $date_naiss_etu, $genre_etu, $email_etu, $promotion_etu, $id_niveau, $id_annee_acad, $identifiant_mesrs)) {
                         $GLOBALS['messageSuccess'] = "Étudiant modifié avec succès.";
                         $this->auditLog->logModification($_SESSION['id_utilisateur'], 'etudiants', 'Succès');
                     } else {

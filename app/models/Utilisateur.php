@@ -594,6 +594,65 @@ class Utilisateur
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
+    /**
+     * Récupérer l'email d'un utilisateur à partir de son nom et type
+     * @param string $nomUtilisateur Nom complet de l'utilisateur
+     * @param int $idTypeUtilisateur ID du type d'utilisateur
+     * @return string|null Email de l'utilisateur ou null si non trouvé
+     */
+    public function getEmailByNomAndType($nomUtilisateur, $idTypeUtilisateur)
+    {
+        $email = null;
+
+        // Séparer le nom en parties
+        $parts = explode(' ', trim($nomUtilisateur), 2);
+
+        if (count($parts) < 2) {
+            return null;
+        }
+
+        $part1 = $parts[0];
+        $part2 = $parts[1];
+
+        // Chercher selon le type d'utilisateur
+        // Type 4 = Personnel administratif
+        // Type 5 = Enseignant administratif
+        // Type 6 = Enseignant simple
+        // Type 7 = Étudiant
+
+        if ($idTypeUtilisateur == 5 || $idTypeUtilisateur == 6) {
+            // Chercher dans enseignants (types 5 et 6)
+            // Essayer d'abord "NOM Prénom"
+            $sql = "SELECT mail_enseignant as email 
+                    FROM enseignants 
+                    WHERE (UPPER(nom_enseignant) = UPPER(:part1) AND UPPER(prenom_enseignant) = UPPER(:part2))
+                       OR (UPPER(prenom_enseignant) = UPPER(:part1) AND UPPER(nom_enseignant) = UPPER(:part2))
+                    LIMIT 1";
+        } elseif ($idTypeUtilisateur == 4) {
+            // Chercher dans personnel_admin (type 4)
+            $sql = "SELECT email_pers_admin as email 
+                    FROM personnel_admin 
+                    WHERE (UPPER(nom_pers_admin) = UPPER(:part1) AND UPPER(prenom_pers_admin) = UPPER(:part2))
+                       OR (UPPER(prenom_pers_admin) = UPPER(:part1) AND UPPER(nom_pers_admin) = UPPER(:part2))
+                    LIMIT 1";
+        } elseif ($idTypeUtilisateur == 7) {
+            // Chercher dans etudiants (type 7)
+            $sql = "SELECT email_etu as email 
+                    FROM etudiants 
+                    WHERE (UPPER(nom_etu) = UPPER(:part1) AND UPPER(prenom_etu) = UPPER(:part2))
+                       OR (UPPER(prenom_etu) = UPPER(:part1) AND UPPER(nom_etu) = UPPER(:part2))
+                    LIMIT 1";
+        } else {
+            return null;
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['part1' => $part1, 'part2' => $part2]);
+        $result = $stmt->fetch(PDO::FETCH_OBJ);
+
+        return $result ? $result->email : null;
+    }
+
 
 
 

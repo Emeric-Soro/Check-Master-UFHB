@@ -4,6 +4,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . "/../models/Utilisateur.php";
 require_once __DIR__ . "/../models/Etudiant.php";
 require_once __DIR__ . "/../models/Scolarite.php";
+require_once __DIR__ . "/../models/Inscription.php";
 
 /**
  * Contrôleur du tableau de bord de la scolarité
@@ -23,6 +24,9 @@ class DashboardScolariteController
     /** @var Scolarite */
     private $scolarite;
 
+    /** @var Inscription */
+    private $inscription;
+
     /** @var string */
     private $baseViewPath;
 
@@ -35,6 +39,7 @@ class DashboardScolariteController
         $this->baseViewPath = __DIR__ . '/../../ressources/views/';
         $this->etudiant = new Etudiant(Database::getConnection());
         $this->scolarite = new Scolarite(Database::getConnection());
+        $this->inscription = new Inscription(Database::getConnection());
     }
 
     /**
@@ -61,14 +66,10 @@ class DashboardScolariteController
 
         try {
             // Nombre total d'inscriptions actives (étudiants inscrits)
-            $query = "SELECT COUNT(*) as total FROM inscriptions";
-            $stmt = Database::getConnection()->query($query);
-            $stats['etudiants'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+            $stats['etudiants'] = $this->inscription->countInscriptions();
 
             // Nouvelles inscriptions (dernière semaine)
-            $query = "SELECT COUNT(*) as total FROM inscriptions WHERE date_inscription >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-            $stmt = Database::getConnection()->query($query);
-            $stats['nouvelles_inscriptions'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+            $stats['nouvelles_inscriptions'] = $this->inscription->countNouvellesInscriptions(7);
 
             // Statistiques des réclamations
             $query = "SELECT 
@@ -112,45 +113,14 @@ class DashboardScolariteController
             $stats['montant_total_paiements'] = $montantTotalPerçu + $montantEnAttente;
 
             // Données pour le graphique des inscriptions par niveau d'étude
-            $query = "SELECT 
-                        CASE 
-                            WHEN n.lib_niv_etude LIKE '%Licence 1%' THEN 'Licence 1'
-                            WHEN n.lib_niv_etude LIKE '%Licence 2%' THEN 'Licence 2'
-                            WHEN n.lib_niv_etude LIKE '%Licence 3%' THEN 'Licence 3'
-                            WHEN n.lib_niv_etude LIKE '%Master 1%' THEN 'Master 1'
-                            WHEN n.lib_niv_etude LIKE '%Master 2%' THEN 'Master 2'
-                            ELSE n.lib_niv_etude
-                        END as niveau,
-                        COUNT(i.id_inscription) as total
-                      FROM inscriptions i
-                      JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
-                      GROUP BY 
-                        CASE 
-                            WHEN n.lib_niv_etude LIKE '%Licence 1%' THEN 'Licence 1'
-                            WHEN n.lib_niv_etude LIKE '%Licence 2%' THEN 'Licence 2'
-                            WHEN n.lib_niv_etude LIKE '%Licence 3%' THEN 'Licence 3'
-                            WHEN n.lib_niv_etude LIKE '%Master 1%' THEN 'Master 1'
-                            WHEN n.lib_niv_etude LIKE '%Master 2%' THEN 'Master 2'
-                            ELSE n.lib_niv_etude
-                        END
-                      ORDER BY 
-                        CASE niveau
-                            WHEN 'Licence 1' THEN 1
-                            WHEN 'Licence 2' THEN 2
-                            WHEN 'Licence 3' THEN 3
-                            WHEN 'Master 1' THEN 4
-                            WHEN 'Master 2' THEN 5
-                            ELSE 6
-                        END";
-            $stmt = Database::getConnection()->query($query);
-            $inscriptionsParNiveau = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $inscriptionsParNiveau = $this->inscription->getInscriptionsParNiveau();
 
             return [
                 'stats' => $stats,
                 'inscriptionsParNiveau' => $inscriptionsParNiveau
             ];
 
-        } catch(PDOException $e) {
+        } catch (PDOException $e) {
             error_log("Erreur de base de données : " . $e->getMessage());
             return [
                 'stats' => $stats,

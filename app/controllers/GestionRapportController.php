@@ -180,6 +180,9 @@ class GestionRapportController
                     'email_encadrant' => $stage_info_raw->email_encadrant,
                     'telephone_encadrant' => $stage_info_raw->telephone_encadrant
                 ];
+
+                // Rendre disponible pour la vue
+                $GLOBALS['stage_info'] = $stage_info;
             }
 
             if ($edit_id) {

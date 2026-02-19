@@ -1,7 +1,15 @@
 <?php
 
+require_once __DIR__ . '/../models/Salle.php';
+
 class PlanificationSoutenanceController
 {
+    private $salleModel;
+
+    public function __construct()
+    {
+        $this->salleModel = new Salle(Database::getConnection());
+    }
     /**
      * Vérifier si un étudiant a déjà une planification complète
      */
@@ -126,24 +134,7 @@ class PlanificationSoutenanceController
      */
     public function getSallesForView()
     {
-        try {
-            $pdo = Database::getConnection();
-
-            $sql = "
-                SELECT 
-                    id_salle,
-                    lib_salle
-                FROM salles
-                ORDER BY lib_salle
-            ";
-
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
-            error_log('Erreur getSallesForView: ' . $e->getMessage());
-            return [];
-        }
+        return $this->salleModel->getAllSalles();
     }
 
     /**

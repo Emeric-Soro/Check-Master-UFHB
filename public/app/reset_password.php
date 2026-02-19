@@ -45,8 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
         $error = "Session expirée. Veuillez réessayer.";
     } else {
         // Rate limiting reset password (DB only): 5 demandes / 15 min, blocage 15 min
-        $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
-        $identifier = strtolower(trim((string)($_POST['email'] ?? '')));
+        $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+        $identifier = strtolower(trim((string) ($_POST['email'] ?? '')));
         if ($identifier === '') {
             $identifier = '-';
         }
@@ -104,10 +104,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['token'], $_POST['newP
         } elseif (!preg_match('/[!@#$%^&*()_+\\-=[\\]{};\\\':\"\\\\|,.<>\\/?]+/', $newPassword)) {
             $error = "Le mot de passe doit contenir au moins un caractère spécial.";
         } else {
-            $stmt = $db->prepare('SELECT * FROM utilisateur WHERE login_utilisateur = :email');
-            $stmt->bindParam(':email', $reset['email']);
-            $stmt->execute();
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            // Trouver l'utilisateur via son email dans les tables source
+            $user = null;
+            $email = $reset['email'];
+
+            // Chercher dans enseignants
+            $stmt = $db->prepare('SELECT nom_enseignant, prenom_enseignant FROM enseignants WHERE mail_enseignant = :email LIMIT 1');
+            $stmt->execute(['email' => $email]);
+            $enseignant = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($enseignant) {
+                $nomComplet = $enseignant['nom_enseignant'] . ' ' . $enseignant['prenom_enseignant'];
+                $stmt = $db->prepare('SELECT * FROM utilisateur WHERE nom_utilisateur = :nom');
+                $stmt->execute(['nom' => $nomComplet]);
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+
+            // Si pas trouvé, chercher dans personnel_admin
+            if (!$user) {
+                $stmt = $db->prepare('SELECT nom_pers_admin, prenom_pers_admin FROM personnel_admin WHERE email_pers_admin = :email LIMIT 1');
+                $stmt->execute(['email' => $email]);
+                $personnel = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($personnel) {
+                    $nomComplet = $personnel['nom_pers_admin'] . ' ' . $personnel['prenom_pers_admin'];
+                    $stmt = $db->prepare('SELECT * FROM utilisateur WHERE nom_utilisateur = :nom');
+                    $stmt->execute(['nom' => $nomComplet]);
+                    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+                }
+            }
+
+            // Si pas trouvé, chercher dans etudiants
+            if (!$user) {
+                $stmt = $db->prepare('SELECT nom_etu, prenom_etu FROM etudiants WHERE email_etu = :email LIMIT 1');
+                $stmt->execute(['email' => $email]);
+                $etudiant = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($etudiant) {
+                    $nomComplet = $etudiant['nom_etu'] . ' ' . $etudiant['prenom_etu'];
+                    $stmt = $db->prepare('SELECT * FROM utilisateur WHERE nom_utilisateur = :nom');
+                    $stmt->execute(['nom' => $nomComplet]);
+                    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+                }
+            }
+
             if ($user) {
                 $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
                 $utilisateurModel->updatePassword($user['id_utilisateur'], $hashed);
@@ -178,7 +218,8 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
                             class="inline-flex items-center space-x-3 rounded-full border border-primary/20 bg-white/60 px-5 py-2 text-sm font-semibold text-primary shadow-sm backdrop-blur">
                             <span
                                 class="inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-2 ring-primary/20">
-                                <img src="../image/logo_cm_sbg.png" alt="CheckMaster" class="h-full w-full object-contain">
+                                <img src="../image/logo_cm_sbg.png" alt="CheckMaster"
+                                    class="h-full w-full object-contain">
                             </span>
                             <span>Retourner sur CheckMaster</span>
                         </a>
@@ -240,7 +281,8 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
                             <?php endif; ?>
                             <?php if ($showResetForm): ?>
                                 <form method="POST" class="space-y-5">
-                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(\CheckMaster\Core\Csrf::token()) ?>">
+                                    <input type="hidden" name="csrf_token"
+                                        value="<?= htmlspecialchars(\CheckMaster\Core\Csrf::token()) ?>">
                                     <input type="hidden" name="token" value="<?= htmlspecialchars($_GET['token']) ?>">
                                     <div class="space-y-2">
                                         <label for="newPassword" class="text-sm font-semibold text-slate-800">Nouveau mot de
@@ -275,7 +317,8 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
                                 </form>
                             <?php elseif (!$success): ?>
                                 <form method="POST" class="space-y-5">
-                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(\CheckMaster\Core\Csrf::token()) ?>">
+                                    <input type="hidden" name="csrf_token"
+                                        value="<?= htmlspecialchars(\CheckMaster\Core\Csrf::token()) ?>">
                                     <div class="space-y-2">
                                         <label for="email" class="text-sm font-semibold text-slate-800">Adresse
                                             e-mail</label>
@@ -317,4 +360,3 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
 </body>
 
 </html>
-

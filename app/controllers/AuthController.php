@@ -93,7 +93,7 @@ class AuthController
                 }
             }
             if ($type_utilisateur == 'Etudiant') {
-                $etudiant = $this->etudiantModel->getEtudiantByLogin($infoUtilisateur['login_utilisateur']);
+                $etudiant = $this->etudiantModel->getEtudiantByLogin($infoUtilisateur['nom_utilisateur']);
                 if ($etudiant) {
                     $_SESSION['num_etu'] = $etudiant->num_carte_etud;
                 }

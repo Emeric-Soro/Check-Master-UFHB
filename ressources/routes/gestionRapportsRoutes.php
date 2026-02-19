@@ -1,17 +1,32 @@
 <?php
 
-require_once __DIR__ . '/../../app/models/CandidatureSoutenance.php';
-if (isset($_SESSION['num_etu'])) {
-    $statut = CandidatureSoutenance::getStatutByEtudiant($_SESSION['num_etu']);
-    if ($statut !== 'Validée') {
-        echo '<div style="margin:2em;text-align:center;color:#b91c1c;font-size:1.2em;"><i class="fa fa-lock fa-2x"></i><br>Accès à la gestion des rapports bloqué tant que votre candidature à la soutenance n\'est pas validée.</div>';
-        exit;
-    }
-}
+// L'étudiant doit d'abord remplir ses informations de stage avant de créer un rapport
+// Le workflow est : 1. Infos de stage → 2. Rédaction du rapport → 3. Dépôt
 
 if ($_GET['page'] === 'gestion_rapports') {
     require_once __DIR__ . '/../../app/controllers/GestionRapportController.php';
+    require_once __DIR__ . '/../../app/models/InfoStage.php';
+    require_once __DIR__ . '/../../app/config/database.php';
+
     $controller = new GestionRapportController();
+
+    // Vérifier si l'étudiant tente de créer ou modifier un rapport
+    $needsStageInfo = isset($_GET['action']) && in_array($_GET['action'], ['creer_rapport', 'suivi_rapport', 'commentaire_rapport']);
+
+    // Si l'action nécessite les infos de stage, vérifier qu'elles existent
+    if ($needsStageInfo && isset($_SESSION['num_etu'])) {
+        $db = Database::getConnection();
+        $infoStageModel = new InfoStage($db);
+        $stage_info = $infoStageModel->getStageInfo($_SESSION['num_etu']);
+
+        // Si pas d'infos de stage, rediriger vers la page de candidature
+        if (!$stage_info) {
+            $_SESSION['error'] = "Vous devez d'abord remplir vos informations de stage avant de créer votre rapport.";
+            $_SESSION['error_type'] = 'info_required';
+            header('Location: layout.php?page=candidature_soutenance');
+            exit;
+        }
+    }
 
     // Gestion du POST pour le dépôt de rapport
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'deposer_rapport') {
@@ -25,8 +40,8 @@ if ($_GET['page'] === 'gestion_rapports') {
         exit;
     }
 
-    if(isset($_GET['action'])){
-        switch ($_GET['action']){
+    if (isset($_GET['action'])) {
+        switch ($_GET['action']) {
             case 'creer_rapport':
                 $controller->creerRapport();
                 break;

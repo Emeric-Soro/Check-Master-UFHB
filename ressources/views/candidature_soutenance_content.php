@@ -213,7 +213,7 @@ $entreprises = isset($GLOBALS['entreprises']) ? $GLOBALS['entreprises'] : [];
         <?php endif; ?>
 
         <?php if (isset($_SESSION['error'])): ?>
-            <div class="mb-3 p-3 bg-red-100 border border-red-400 text-blue-700 rounded text-sm">
+            <div class="mb-3 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
                 <?php
                 echo htmlspecialchars($_SESSION['error']);
                 unset($_SESSION['error']);
@@ -348,8 +348,8 @@ $entreprises = isset($GLOBALS['entreprises']) ? $GLOBALS['entreprises'] : [];
                     </div>
 
                     <div class="col-span-1">
-                        <label for="encadrant" class="block text-sm font-medium text-gray-700 mb-1">Nom de
-                            l'encadrant</label>
+                        <label for="encadrant" class="block text-sm font-medium text-gray-700 mb-1">Nom du maîte de
+                            stage</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"

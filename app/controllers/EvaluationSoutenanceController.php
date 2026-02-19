@@ -1,8 +1,15 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../models/CritereEvaluation.php';
 
 class EvaluationSoutenanceController
 {
+    private $critereModel;
+
+    public function __construct()
+    {
+        $this->critereModel = new CritereEvaluation(Database::getConnection());
+    }
     /**
      * Récupérer toutes les soutenances programmées pour évaluation
      */
@@ -126,27 +133,13 @@ class EvaluationSoutenanceController
     public function getCriteresEvaluation()
     {
         try {
-            $pdo = Database::getConnection();
             $anneeAcademique = $this->getAnneeAcademiqueCourante();
 
             if (!$anneeAcademique) {
                 throw new Exception('Aucune année académique trouvée');
             }
 
-            $sql = "
-                SELECT DISTINCT
-                    c.id_critere,
-                    c.lib_critere,
-                    cor.bareme as bareme_max
-                FROM critere_evaluation c
-                INNER JOIN correspondre cor ON c.id_critere = cor.id_critere 
-                    AND cor.id_annee_acad = ?
-                ORDER BY c.id_critere
-            ";
-
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$anneeAcademique['id_annee_acad']]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $this->critereModel->getCriteresAvecBareme($anneeAcademique['id_annee_acad']);
         } catch (Exception $e) {
             error_log('Erreur getCriteresEvaluation: ' . $e->getMessage());
             return [];

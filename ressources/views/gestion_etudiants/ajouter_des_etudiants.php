@@ -116,8 +116,20 @@ $listeAnneesAcad = $GLOBALS['listeAnneesAcad'] ?? [];
                     </div>
                 </div>
 
-                <!-- Deuxième ligne: Identifiant MESRS, Nom, Prénom -->
+                <!-- Deuxième ligne: N° Étudiant, Identifiant MESRS, Nom -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <?php if ($etudiant_a_modifier): ?>
+                        <input type="hidden" name="old_num_etu" value="<?php echo htmlspecialchars($etudiant_a_modifier->num_carte_etud); ?>">
+                    <?php endif; ?>
+                    <div>
+                        <label for="num_etu" class="block text-sm font-medium text-gray-700 mb-1">
+                            N° Étudiant <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="num_etu" id="num_etu" required maxlength="25"
+                            value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->num_carte_etud) : ''; ?>"
+                            placeholder="Ex: 20230001"
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
                     <div>
                         <label for="identifiant_mesrs" class="block text-sm font-medium text-gray-700 mb-1">Identifiant MESRS</label>
                         <input type="text" name="identifiant_mesrs" id="identifiant_mesrs" maxlength="15"
@@ -132,6 +144,10 @@ $listeAnneesAcad = $GLOBALS['listeAnneesAcad'] ?? [];
                             placeholder="Nom de l'étudiant"
                             class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
                     </div>
+                </div>
+
+                <!-- Troisième ligne: Prénom, Genre, Date de naissance -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                         <label for="prenom_etu" class="block text-sm font-medium text-gray-700 mb-1">Prénom <span class="text-red-500">*</span></label>
                         <input type="text" name="prenom_etu" id="prenom_etu" required maxlength="30"
@@ -139,17 +155,7 @@ $listeAnneesAcad = $GLOBALS['listeAnneesAcad'] ?? [];
                             placeholder="Prénom de l'étudiant"
                             class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
                     </div>
-                </div>
-
-                <!-- Troisième ligne: Date Naissance, Genre, Email -->
-                <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-4">
-                    <div class="md:col-span-2">
-                        <label for="date_naiss_etu" class="block text-sm font-medium text-gray-700 mb-1">Date de Naissance <span class="text-red-500">*</span></label>
-                        <input type="date" name="date_naiss_etu" id="date_naiss_etu" required
-                            value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->date_naiss_etu) : ''; ?>"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
-                    </div>
-                    <div class="md:col-span-1">
+                    <div>
                         <label for="genre_etu" class="block text-sm font-medium text-gray-700 mb-1">Genre <span class="text-red-500">*</span></label>
                         <select name="genre_etu" id="genre_etu" required
                             class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white">
@@ -159,7 +165,17 @@ $listeAnneesAcad = $GLOBALS['listeAnneesAcad'] ?? [];
                             <option value="3" <?php echo ($etudiant_a_modifier && $etudiant_a_modifier->genre_etu == 3) ? 'selected' : ''; ?>>Neutre</option>
                         </select>
                     </div>
-                    <div class="md:col-span-3">
+                    <div>
+                        <label for="date_naiss_etu" class="block text-sm font-medium text-gray-700 mb-1">Date de Naissance <span class="text-red-500">*</span></label>
+                        <input type="date" name="date_naiss_etu" id="date_naiss_etu" required
+                            value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->date_naiss_etu) : ''; ?>"
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <!-- Quatrième ligne: Email -->
+                <div class="grid grid-cols-1 gap-4 mb-4">
+                    <div>
                         <label for="email_etu" class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
                         <input type="email" name="email_etu" id="email_etu" required maxlength="50"
                             value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->email_etu) : ''; ?>"
