@@ -51,13 +51,6 @@
                         <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
                         <span>Déconnexion</span>
                     </a>
-                    <a href="/parametres" class="dropdown-item">
-                        <i class="fas fa-cog"></i> Paramètres
-                    </a>
-                    <hr class="dropdown-divider">
-                    <a href="/logout" class="dropdown-item has-text-danger">
-                        <i class="fas fa-sign-out-alt"></i> Déconnexion
-                    </a>
                 </div>
             </div>
         </div>
