@@ -42,8 +42,6 @@ class GestionRapportController
 
     private function verifierVariablesSession()
     {
-
-        $GLOBALS['candidatures_etudiant'] = $this->etudiant->getCandidatures($_SESSION['num_etu']);
         // Vérifier que les variables nécessaires sont présentes
         if (!isset($_SESSION['type_utilisateur'])) {
             throw new Exception("Variables de session manquantes. Veuillez vous reconnecter.");
@@ -52,6 +50,13 @@ class GestionRapportController
         // Pour les étudiants, s'assurer que num_etu est défini
         if ($_SESSION['type_utilisateur'] === 'Etudiant' && !isset($_SESSION['num_etu'])) {
             throw new Exception("Numéro étudiant manquant. Veuillez vous reconnecter.");
+        }
+
+        // Charger les candidatures uniquement pour les étudiants ayant un num_etu en session
+        if (isset($_SESSION['num_etu'])) {
+            $GLOBALS['candidatures_etudiant'] = $this->etudiant->getCandidatures($_SESSION['num_etu']);
+        } else {
+            $GLOBALS['candidatures_etudiant'] = [];
         }
     }
 

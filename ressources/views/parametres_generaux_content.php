@@ -1,3 +1,19 @@
+<?php
+if (!isset($cardPGeneraux)) {
+    $cardPGeneraux = [
+        ['title' => 'Années Académiques',    'description' => 'Gestion des périodes.',       'link' => '?page=parametres_generaux&action=annees_academiques',               'icon' => './images/date-du-calendrier.png'],
+        ['title' => 'Niveaux d\'Étude',      'description' => 'L1, L2, M1, M2...',           'link' => '?page=parametres_generaux&action=niveaux_etude',                    'icon' => './images/livre.png'],
+        ['title' => 'Semestres',             'description' => 'S1, S2...',                   'link' => '?page=parametres_generaux&action=semestres',                        'icon' => './images/diplome.png'],
+        ['title' => 'Spécialités',           'description' => 'Filières.',                   'link' => '?page=parametres_generaux&action=specialites',                      'icon' => './images/marche-de-niche.png'],
+        ['title' => 'Grades',                'description' => 'Grades enseignants.',          'link' => '?page=parametres_generaux&action=grades',                           'icon' => './images/diplome.png'],
+        ['title' => 'Fonctions Personnel',   'description' => 'Rôles administratifs.',        'link' => '?page=parametres_generaux&action=fonctions',                        'icon' => './images/valise.png'],
+        ['title' => 'Fonctions Utilisateurs','description' => 'Groupes et types.',            'link' => '?page=parametres_generaux&action=fonction_utilisateur&tab=groupes',  'icon' => './images/equipe.png'],
+        ['title' => 'Niveaux d\'Accès',      'description' => 'Lecture/Écriture.',            'link' => '?page=parametres_generaux&action=niveaux_acces',                    'icon' => './images/check.png'],
+        ['title' => 'Niveaux d\'Approbation','description' => 'Workflow.',                   'link' => '?page=parametres_generaux&action=niveaux_approbation',              'icon' => './images/check.png'],
+        ['title' => 'Statuts du Jury',       'description' => 'Rôles jury.',                 'link' => '?page=parametres_generaux&action=statut_jury',                      'icon' => './images/droit.png'],
+    ];
+}
+?>
 <div class="container mx-auto px-4 py-8">
     <style>
         :root{--ufhb-blue:#0F4C75;--ufhb-blue-light:#3282B8;--ufhb-green:#10b981;--muted:#64748B}

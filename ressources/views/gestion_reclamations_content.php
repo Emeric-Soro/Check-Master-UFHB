@@ -21,7 +21,7 @@
         <?php endif; ?>
         <h1 class="text-3xl font-bold text-center text-primary mb-10">Gestion des Réclamations</h1>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <?php foreach ($cardReclamation as $card): ?>
+            <?php foreach (($cardReclamation ?? []) as $card): ?>
                 <div
                     class="bg-white p-6 rounded-lg shadow-lg hover:shadow-2xl transition-shadow duration-75 transform hover:-translate-y-2 card">
                     <div

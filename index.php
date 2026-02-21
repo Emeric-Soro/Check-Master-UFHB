@@ -275,7 +275,7 @@
 
         <!-- Indicateurs de slides -->
         <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-3">
-            <button class="w-3 h-3 rounded-full bg-white/50 hover:bg-white transition-colors slide-indicator active"
+            <button class="w-3 h-3 rounded-full bg-white hover:bg-white transition-colors slide-indicator active"
                 data-slide="0"></button>
             <button class="w-3 h-3 rounded-full bg-white/50 hover:bg-white transition-colors slide-indicator"
                 data-slide="1"></button>
@@ -725,8 +725,10 @@
                 slide.classList.toggle('active', i === index);
             });
             indicators.forEach((indicator, i) => {
-                indicator.classList.toggle('bg-white', i === index);
-                indicator.classList.toggle('bg-white/50', i !== index);
+                const isActive = i === index;
+                indicator.classList.toggle('active', isActive);
+                indicator.classList.toggle('bg-white', isActive);
+                indicator.classList.toggle('bg-white/50', !isActive);
             });
         }
 

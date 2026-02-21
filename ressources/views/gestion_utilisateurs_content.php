@@ -239,7 +239,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                             <label for="nom_utilisateur" class="block text-sm font-medium text-gray-700">
                                 <i class="fas fa-user text-green-500 mr-2"></i>Nom d'utilisateur
                             </label>
-                            <?php if ($_GET['action'] === 'add'): ?>
+                            <?php if (isset($_GET['action']) && $_GET['action'] === 'add'): ?>
                             <select name="nom_utilisateur" id="nom_utilisateur" required
                                 class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
                                 <option value="">Sélectionner une personne</option>

@@ -1,9 +1,9 @@
-<?php
+﻿<?php
 
 class ProgrammationSoutenanceController
 {
     /**
-     * Récupérer tous les étudiants avec rapport validé (pour affichage et modification)
+     * RÃ©cupÃ©rer tous les Ã©tudiants avec rapport validÃ© (pour affichage et modification)
      */
     public function getEtudiantsForView()
     {
@@ -12,17 +12,17 @@ class ProgrammationSoutenanceController
 
             $sql = "
                 SELECT DISTINCT
-                    e.num_etu as id_etudiant,
+                    e.num_carte_etud as id_etudiant,
                     e.nom_etu as nom_etudiant,
                     e.prenom_etu as prenom_etudiant,
                     CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_complet,
-                    e.num_etu as matricule_etudiant,
+                    e.num_carte_etud as matricule_etudiant,
                     e.email_etu as email_etudiant,
                     e.promotion_etu as lib_specialite,
-                    -- Récupérer le maître de stage depuis informations_stage
+                    -- RÃ©cupÃ©rer le maÃ®tre de stage depuis informations_stage
                     ist.encadrant_entreprise as maitre_stage_nom,
                     ist.email_encadrant as maitre_stage_email,
-                    -- Récupérer le directeur de mémoire depuis affecter
+                    -- RÃ©cupÃ©rer le directeur de mÃ©moire depuis affecter
                     (SELECT CONCAT(ens_dir.prenom_enseignant, ' ', ens_dir.nom_enseignant)
                      FROM affecter af_dir
                      JOIN enseignants ens_dir ON af_dir.id_enseignant = ens_dir.id_enseignant
@@ -33,7 +33,7 @@ class ProgrammationSoutenanceController
                      JOIN enseignants ens_dir ON af_dir.id_enseignant = ens_dir.id_enseignant
                      WHERE af_dir.id_rapport = r.id_rapport AND af_dir.role = 'directeur'
                      LIMIT 1) as directeur_id,
-                    -- Récupérer l'encadreur depuis affecter
+                    -- RÃ©cupÃ©rer l'encadreur depuis affecter
                     (SELECT CONCAT(ens_enc.prenom_enseignant, ' ', ens_enc.nom_enseignant)
                      FROM affecter af_enc
                      JOIN enseignants ens_enc ON af_enc.id_enseignant = ens_enc.id_enseignant
@@ -50,10 +50,10 @@ class ProgrammationSoutenanceController
                         ELSE 'available'
                     END as statut_programmation
                 FROM etudiants e
-                INNER JOIN rapport_etudiants r ON e.num_etu = r.num_etu
+                INNER JOIN rapport_etudiants r ON e.num_carte_etud = r.num_etu
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
-                LEFT JOIN informations_stage ist ON e.num_etu = ist.num_etu
-                LEFT JOIN programmer p ON e.num_etu = p.num_etud
+                LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
+                LEFT JOIN programmer p ON e.num_carte_etud = p.num_etud
                 WHERE r.etape_validation = 'valide' 
                 AND v.decision_validation = 'valider'
                 ORDER BY e.nom_etu, e.prenom_etu
@@ -69,7 +69,7 @@ class ProgrammationSoutenanceController
     }
 
     /**
-     * Récupérer les étudiants disponibles pour nouvelle programmation (non encore programmés)
+     * RÃ©cupÃ©rer les Ã©tudiants disponibles pour nouvelle programmation (non encore programmÃ©s)
      */
     public function getEtudiantsDisponiblesForView()
     {
@@ -78,17 +78,17 @@ class ProgrammationSoutenanceController
 
             $sql = "
                 SELECT DISTINCT
-                    e.num_etu as id_etudiant,
+                    e.num_carte_etud as id_etudiant,
                     e.nom_etu as nom_etudiant,
                     e.prenom_etu as prenom_etudiant,
                     CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_complet,
-                    e.num_etu as matricule_etudiant,
+                    e.num_carte_etud as matricule_etudiant,
                     e.email_etu as email_etudiant,
                     e.promotion_etu as lib_specialite,
-                    -- Récupérer le maître de stage depuis informations_stage
+                    -- RÃ©cupÃ©rer le maÃ®tre de stage depuis informations_stage
                     ist.encadrant_entreprise as maitre_stage_nom,
                     ist.email_encadrant as maitre_stage_email,
-                    -- Récupérer le directeur de mémoire depuis affecter
+                    -- RÃ©cupÃ©rer le directeur de mÃ©moire depuis affecter
                     (SELECT CONCAT(ens_dir.prenom_enseignant, ' ', ens_dir.nom_enseignant)
                      FROM affecter af_dir
                      JOIN enseignants ens_dir ON af_dir.id_enseignant = ens_dir.id_enseignant
@@ -99,7 +99,7 @@ class ProgrammationSoutenanceController
                      JOIN enseignants ens_dir ON af_dir.id_enseignant = ens_dir.id_enseignant
                      WHERE af_dir.id_rapport = r.id_rapport AND af_dir.role = 'directeur'
                      LIMIT 1) as directeur_id,
-                    -- Récupérer l'encadreur depuis affecter
+                    -- RÃ©cupÃ©rer l'encadreur depuis affecter
                     (SELECT CONCAT(ens_enc.prenom_enseignant, ' ', ens_enc.nom_enseignant)
                      FROM affecter af_enc
                      JOIN enseignants ens_enc ON af_enc.id_enseignant = ens_enc.id_enseignant
@@ -111,10 +111,10 @@ class ProgrammationSoutenanceController
                      WHERE af_enc.id_rapport = r.id_rapport AND af_enc.role = 'encadrant'
                      LIMIT 1) as encadreur_id
                 FROM etudiants e
-                INNER JOIN rapport_etudiants r ON e.num_etu = r.num_etu
+                INNER JOIN rapport_etudiants r ON e.num_carte_etud = r.num_etu
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
-                LEFT JOIN informations_stage ist ON e.num_etu = ist.num_etu
-                LEFT JOIN programmer p ON e.num_etu = p.num_etud
+                LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
+                LEFT JOIN programmer p ON e.num_carte_etud = p.num_etud
                 WHERE r.etape_validation = 'valide' 
                 AND v.decision_validation = 'valider'
                 AND p.num_etud IS NULL
@@ -131,7 +131,7 @@ class ProgrammationSoutenanceController
     }
 
     /**
-     * Récupérer tous les enseignants pour PHP (sans header JSON)
+     * RÃ©cupÃ©rer tous les enseignants pour PHP (sans header JSON)
      */
     public function getEnseignantsForView()
     {
@@ -163,7 +163,7 @@ class ProgrammationSoutenanceController
     }
 
     /**
-     * Récupérer les professeurs titulaires pour PHP (sans header JSON)
+     * RÃ©cupÃ©rer les professeurs titulaires pour PHP (sans header JSON)
      */
     public function getProfesseursTitulairesForView()
     {
@@ -195,7 +195,7 @@ class ProgrammationSoutenanceController
     }
 
     /**
-     * Récupérer toutes les attributions pour PHP (sans header JSON)
+     * RÃ©cupÃ©rer toutes les attributions pour PHP (sans header JSON)
      */
     public function getAttributionsForView()
     {
@@ -207,24 +207,24 @@ class ProgrammationSoutenanceController
                     p.id_programmation as id_attribution,
                     p.theme_soutenance,
                     p.date_soutenance as date_creation,
-                    -- Étudiant
-                    e.num_etu as id_etudiant,
+                    -- Ã‰tudiant
+                    e.num_carte_etud as id_etudiant,
                     CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_etudiant,
-                    e.num_etu as matricule_etudiant,
+                    e.num_carte_etud as matricule_etudiant,
                     -- Informations du jury
                     p.num_jury,
-                    -- Récupérer les membres du jury avec leurs rôles
+                    -- RÃ©cupÃ©rer les membres du jury avec leurs rÃ´les
                     (SELECT ens1.id_enseignant 
                      FROM composer_jury cj1 
                      JOIN enseignants ens1 ON cj1.id_enseignant = ens1.id_enseignant 
                      JOIN roles_jury r1 ON cj1.id_qualite_jury = r1.id_role_jury 
-                     WHERE cj1.num_jury = p.num_jury AND r1.lib_role = 'Président du jury' 
+                     WHERE cj1.num_jury = p.num_jury AND r1.lib_role = 'PrÃ©sident du jury' 
                      LIMIT 1) as president_id,
                     (SELECT CONCAT(ens1.prenom_enseignant, ' ', ens1.nom_enseignant) 
                      FROM composer_jury cj1 
                      JOIN enseignants ens1 ON cj1.id_enseignant = ens1.id_enseignant 
                      JOIN roles_jury r1 ON cj1.id_qualite_jury = r1.id_role_jury 
-                     WHERE cj1.num_jury = p.num_jury AND r1.lib_role = 'Président du jury' 
+                     WHERE cj1.num_jury = p.num_jury AND r1.lib_role = 'PrÃ©sident du jury' 
                      LIMIT 1) as president_nom,
                     (SELECT ens2.id_enseignant 
                      FROM composer_jury cj2 
@@ -242,13 +242,13 @@ class ProgrammationSoutenanceController
                      FROM composer_jury cj3 
                      JOIN enseignants ens3 ON cj3.id_enseignant = ens3.id_enseignant 
                      JOIN roles_jury r3 ON cj3.id_qualite_jury = r3.id_role_jury 
-                     WHERE cj3.num_jury = p.num_jury AND r3.lib_role = 'Directeur de mémoire' 
+                     WHERE cj3.num_jury = p.num_jury AND r3.lib_role = 'Directeur de mÃ©moire' 
                      LIMIT 1) as directeur_id,
                     (SELECT CONCAT(ens3.prenom_enseignant, ' ', ens3.nom_enseignant) 
                      FROM composer_jury cj3 
                      JOIN enseignants ens3 ON cj3.id_enseignant = ens3.id_enseignant 
                      JOIN roles_jury r3 ON cj3.id_qualite_jury = r3.id_role_jury 
-                     WHERE cj3.num_jury = p.num_jury AND r3.lib_role = 'Directeur de mémoire' 
+                     WHERE cj3.num_jury = p.num_jury AND r3.lib_role = 'Directeur de mÃ©moire' 
                      LIMIT 1) as directeur_nom,
                     (SELECT ens4.id_enseignant 
                      FROM composer_jury cj4 
@@ -262,7 +262,7 @@ class ProgrammationSoutenanceController
                      JOIN roles_jury r4 ON cj4.id_qualite_jury = r4.id_role_jury 
                      WHERE cj4.num_jury = p.num_jury AND r4.lib_role = 'Encadrant' 
                      LIMIT 1) as encadreur_nom,
-                    -- Maître de stage récupéré depuis informations_stage
+                    -- MaÃ®tre de stage rÃ©cupÃ©rÃ© depuis informations_stage
                     NULL as maitre_stage_id,
                     ist.encadrant_entreprise as maitre_stage_nom
                 FROM programmer p
@@ -281,7 +281,7 @@ class ProgrammationSoutenanceController
     }
 
     /**
-     * Récupérer tous les étudiants disponibles (avec rapports validés par la commission)
+     * RÃ©cupÃ©rer tous les Ã©tudiants disponibles (avec rapports validÃ©s par la commission)
      */
     public function getEtudiants()
     {
@@ -290,20 +290,20 @@ class ProgrammationSoutenanceController
 
             $sql = "
                 SELECT DISTINCT
-                    e.num_etu as id_etudiant,
+                    e.num_carte_etud as id_etudiant,
                     e.nom_etu as nom_etudiant,
                     e.prenom_etu as prenom_etudiant,
                     CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_complet,
-                    e.num_etu as matricule_etudiant,
+                    e.num_carte_etud as matricule_etudiant,
                     e.email_etu as email_etudiant,
                     e.promotion_etu as lib_specialite,
-                    -- Récupérer le maître de stage depuis informations_stage
+                    -- RÃ©cupÃ©rer le maÃ®tre de stage depuis informations_stage
                     ist.encadrant_entreprise as maitre_stage_nom,
                     ist.email_encadrant as maitre_stage_email
                 FROM etudiants e
-                INNER JOIN rapport_etudiants r ON e.num_etu = r.num_etu
+                INNER JOIN rapport_etudiants r ON e.num_carte_etud = r.num_etu
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
-                LEFT JOIN informations_stage ist ON e.num_etu = ist.num_etu
+                LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
                 WHERE r.etape_validation = 'valide' 
                 AND v.decision_validation = 'valider'
                 ORDER BY e.nom_etu, e.prenom_etu
@@ -323,13 +323,13 @@ class ProgrammationSoutenanceController
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Erreur lors du chargement des étudiants : ' . $e->getMessage()
+                'message' => 'Erreur lors du chargement des Ã©tudiants : ' . $e->getMessage()
             ]);
         }
     }
 
     /**
-     * Récupérer tous les enseignants disponibles
+     * RÃ©cupÃ©rer tous les enseignants disponibles
      */
     public function getEnseignants()
     {
@@ -371,7 +371,7 @@ class ProgrammationSoutenanceController
     }
 
     /**
-     * Récupérer seulement les professeurs titulaires pour le poste de président
+     * RÃ©cupÃ©rer seulement les professeurs titulaires pour le poste de prÃ©sident
      */
     public function getProfesseursTitulaires()
     {
@@ -413,7 +413,7 @@ class ProgrammationSoutenanceController
     }
 
     /**
-     * Récupérer toutes les attributions de jury (utilise composer_jury)
+     * RÃ©cupÃ©rer toutes les attributions de jury (utilise composer_jury)
      */
     public function getAttributions()
     {
@@ -425,24 +425,24 @@ class ProgrammationSoutenanceController
                     p.id_programmation as id_attribution,
                     p.theme_soutenance,
                     p.date_soutenance as date_creation,
-                    -- Étudiant
-                    e.num_etu as id_etudiant,
+                    -- Ã‰tudiant
+                    e.num_carte_etud as id_etudiant,
                     CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_etudiant,
-                    e.num_etu as matricule_etudiant,
+                    e.num_carte_etud as matricule_etudiant,
                     -- Informations du jury
                     p.num_jury,
-                    -- Récupérer les membres du jury avec leurs rôles
+                    -- RÃ©cupÃ©rer les membres du jury avec leurs rÃ´les
                     (SELECT ens1.id_enseignant 
                      FROM composer_jury cj1 
                      JOIN enseignants ens1 ON cj1.id_enseignant = ens1.id_enseignant 
                      JOIN roles_jury r1 ON cj1.id_qualite_jury = r1.id_role_jury 
-                     WHERE cj1.num_jury = p.num_jury AND r1.lib_role = 'Président du jury' 
+                     WHERE cj1.num_jury = p.num_jury AND r1.lib_role = 'PrÃ©sident du jury' 
                      LIMIT 1) as president_id,
                     (SELECT CONCAT(ens1.prenom_enseignant, ' ', ens1.nom_enseignant) 
                      FROM composer_jury cj1 
                      JOIN enseignants ens1 ON cj1.id_enseignant = ens1.id_enseignant 
                      JOIN roles_jury r1 ON cj1.id_qualite_jury = r1.id_role_jury 
-                     WHERE cj1.num_jury = p.num_jury AND r1.lib_role = 'Président du jury' 
+                     WHERE cj1.num_jury = p.num_jury AND r1.lib_role = 'PrÃ©sident du jury' 
                      LIMIT 1) as president_nom,
                     (SELECT ens2.id_enseignant 
                      FROM composer_jury cj2 
@@ -460,13 +460,13 @@ class ProgrammationSoutenanceController
                      FROM composer_jury cj3 
                      JOIN enseignants ens3 ON cj3.id_enseignant = ens3.id_enseignant 
                      JOIN roles_jury r3 ON cj3.id_qualite_jury = r3.id_role_jury 
-                     WHERE cj3.num_jury = p.num_jury AND r3.lib_role = 'Directeur de mémoire' 
+                     WHERE cj3.num_jury = p.num_jury AND r3.lib_role = 'Directeur de mÃ©moire' 
                      LIMIT 1) as directeur_id,
                     (SELECT CONCAT(ens3.prenom_enseignant, ' ', ens3.nom_enseignant) 
                      FROM composer_jury cj3 
                      JOIN enseignants ens3 ON cj3.id_enseignant = ens3.id_enseignant 
                      JOIN roles_jury r3 ON cj3.id_qualite_jury = r3.id_role_jury 
-                     WHERE cj3.num_jury = p.num_jury AND r3.lib_role = 'Directeur de mémoire' 
+                     WHERE cj3.num_jury = p.num_jury AND r3.lib_role = 'Directeur de mÃ©moire' 
                      LIMIT 1) as directeur_nom,
                     (SELECT ens4.id_enseignant 
                      FROM composer_jury cj4 
@@ -480,7 +480,7 @@ class ProgrammationSoutenanceController
                      JOIN roles_jury r4 ON cj4.id_qualite_jury = r4.id_role_jury 
                      WHERE cj4.num_jury = p.num_jury AND r4.lib_role = 'Encadrant' 
                      LIMIT 1) as encadreur_nom,
-                    -- Maître de stage récupéré depuis informations_stage (pas besoin de composer_jury)
+                    -- MaÃ®tre de stage rÃ©cupÃ©rÃ© depuis informations_stage (pas besoin de composer_jury)
                     NULL as maitre_stage_id,
                     ist.encadrant_entreprise as maitre_stage_nom
                 FROM programmer p
@@ -509,38 +509,38 @@ class ProgrammationSoutenanceController
     }
 
     /**
-     * Créer une nouvelle attribution de jury
+     * CrÃ©er une nouvelle attribution de jury
      */
     public function createAttribution()
     {
         try {
             $input = json_decode(file_get_contents('php://input'), true);
 
-            // Validation des données requises
+            // Validation des donnÃ©es requises
             if (!isset($input['id_etudiant']) || empty($input['id_etudiant'])) {
-                throw new Exception('L\'étudiant est requis');
+                throw new Exception('L\'Ã©tudiant est requis');
             }
 
             if (!isset($input['theme_soutenance']) || empty(trim($input['theme_soutenance']))) {
-                throw new Exception('Le thème de soutenance est requis');
+                throw new Exception('Le thÃ¨me de soutenance est requis');
             }
 
             $pdo = Database::getConnection();
             $pdo->beginTransaction();
 
-            // Vérifier si l'étudiant a déjà une programmation
+            // VÃ©rifier si l'Ã©tudiant a dÃ©jÃ  une programmation
             $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM programmer WHERE num_etud = ?");
             $checkStmt->execute([$input['id_etudiant']]);
             if ($checkStmt->fetchColumn() > 0) {
-                throw new Exception('Cet étudiant a déjà une programmation de soutenance');
+                throw new Exception('Cet Ã©tudiant a dÃ©jÃ  une programmation de soutenance');
             }
 
-            // Générer un nouveau numéro de jury
+            // GÃ©nÃ©rer un nouveau numÃ©ro de jury
             $juryStmt = $pdo->prepare("SELECT COALESCE(MAX(num_jury), 0) + 1 as next_jury FROM programmer");
             $juryStmt->execute();
             $numJury = $juryStmt->fetch(PDO::FETCH_ASSOC)['next_jury'];
 
-            // Insérer la programmation (sans salle pour l'instant)
+            // InsÃ©rer la programmation (sans salle pour l'instant)
             $sql = "
                 INSERT INTO programmer (
                     num_etud, num_jury, theme_soutenance, 
@@ -555,16 +555,16 @@ class ProgrammationSoutenanceController
                 trim($input['theme_soutenance'])
             ]);
 
-            // Insérer les membres du jury avec leurs rôles
+            // InsÃ©rer les membres du jury avec leurs rÃ´les
             $jurySql = "INSERT INTO composer_jury (num_jury, id_enseignant, id_qualite_jury, date_composer_jury) VALUES (?, ?, ?, UNIX_TIMESTAMP())";
             $juryInsertStmt = $pdo->prepare($jurySql);
 
-            // Récupérer les IDs des rôles et insérer les membres du jury
+            // RÃ©cupÃ©rer les IDs des rÃ´les et insÃ©rer les membres du jury
             $roleStmt = $pdo->prepare("SELECT id_role_jury FROM roles_jury WHERE lib_role = ?");
 
-            // Président
+            // PrÃ©sident
             if (!empty($input['president_id'])) {
-                $roleStmt->execute(['Président du jury']);
+                $roleStmt->execute(['PrÃ©sident du jury']);
                 $roleResult = $roleStmt->fetch(PDO::FETCH_ASSOC);
                 if ($roleResult) {
                     $juryInsertStmt->execute([$numJury, $input['president_id'], $roleResult['id_role_jury']]);
@@ -580,9 +580,9 @@ class ProgrammationSoutenanceController
                 }
             }
 
-            // Directeur de mémoire
+            // Directeur de mÃ©moire
             if (!empty($input['directeur_id'])) {
-                $roleStmt->execute(['Directeur de mémoire']);
+                $roleStmt->execute(['Directeur de mÃ©moire']);
                 $roleResult = $roleStmt->fetch(PDO::FETCH_ASSOC);
                 if ($roleResult) {
                     $juryInsertStmt->execute([$numJury, $input['directeur_id'], $roleResult['id_role_jury']]);
@@ -598,7 +598,7 @@ class ProgrammationSoutenanceController
                 }
             }
 
-            // Maître de stage : automatiquement récupéré depuis informations_stage
+            // MaÃ®tre de stage : automatiquement rÃ©cupÃ©rÃ© depuis informations_stage
             // Pas besoin de l'ajouter au jury manuellement car il n'est pas enseignant
 
             $attributionId = $pdo->lastInsertId();
@@ -607,7 +607,7 @@ class ProgrammationSoutenanceController
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
-                'message' => 'Attribution créée avec succès',
+                'message' => 'Attribution crÃ©Ã©e avec succÃ¨s',
                 'data' => ['id' => $attributionId]
             ]);
         } catch (Exception $e) {
@@ -618,13 +618,13 @@ class ProgrammationSoutenanceController
             http_response_code(400);
             echo json_encode([
                 'success' => false,
-                'message' => 'Erreur lors de la création : ' . $e->getMessage()
+                'message' => 'Erreur lors de la crÃ©ation : ' . $e->getMessage()
             ]);
         }
     }
 
     /**
-     * Mettre à jour une attribution de jury
+     * Mettre Ã  jour une attribution de jury
      */
     public function updateAttribution()
     {
@@ -636,24 +636,24 @@ class ProgrammationSoutenanceController
             }
 
             if (!isset($input['theme_soutenance']) || empty(trim($input['theme_soutenance']))) {
-                throw new Exception('Le thème de soutenance est requis');
+                throw new Exception('Le thÃ¨me de soutenance est requis');
             }
 
             $pdo = Database::getConnection();
             $pdo->beginTransaction();
 
-            // Récupérer le numéro de jury associé à cette programmation
+            // RÃ©cupÃ©rer le numÃ©ro de jury associÃ© Ã  cette programmation
             $juryStmt = $pdo->prepare("SELECT num_jury FROM programmer WHERE id_programmation = ?");
             $juryStmt->execute([$input['id']]);
             $result = $juryStmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$result) {
-                throw new Exception('Programmation non trouvée');
+                throw new Exception('Programmation non trouvÃ©e');
             }
 
             $numJury = $result['num_jury'];
 
-            // Mettre à jour le thème de soutenance
+            // Mettre Ã  jour le thÃ¨me de soutenance
             $sql = "UPDATE programmer SET theme_soutenance = ? WHERE id_programmation = ?";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([trim($input['theme_soutenance']), $input['id']]);
@@ -662,16 +662,16 @@ class ProgrammationSoutenanceController
             $deleteJuryStmt = $pdo->prepare("DELETE FROM composer_jury WHERE num_jury = ?");
             $deleteJuryStmt->execute([$numJury]);
 
-            // Réinsérer les nouveaux membres du jury
+            // RÃ©insÃ©rer les nouveaux membres du jury
             $jurySql = "INSERT INTO composer_jury (num_jury, id_enseignant, id_qualite_jury, date_composer_jury) VALUES (?, ?, ?, UNIX_TIMESTAMP())";
             $juryInsertStmt = $pdo->prepare($jurySql);
 
-            // Récupérer les IDs des rôles et insérer les membres du jury
+            // RÃ©cupÃ©rer les IDs des rÃ´les et insÃ©rer les membres du jury
             $roleStmt = $pdo->prepare("SELECT id_role_jury FROM roles_jury WHERE lib_role = ?");
 
-            // Président
+            // PrÃ©sident
             if (!empty($input['president_id'])) {
-                $roleStmt->execute(['Président du jury']);
+                $roleStmt->execute(['PrÃ©sident du jury']);
                 $roleResult = $roleStmt->fetch(PDO::FETCH_ASSOC);
                 if ($roleResult) {
                     $juryInsertStmt->execute([$numJury, $input['president_id'], $roleResult['id_role_jury']]);
@@ -687,9 +687,9 @@ class ProgrammationSoutenanceController
                 }
             }
 
-            // Directeur de mémoire
+            // Directeur de mÃ©moire
             if (!empty($input['directeur_id'])) {
-                $roleStmt->execute(['Directeur de mémoire']);
+                $roleStmt->execute(['Directeur de mÃ©moire']);
                 $roleResult = $roleStmt->fetch(PDO::FETCH_ASSOC);
                 if ($roleResult) {
                     $juryInsertStmt->execute([$numJury, $input['directeur_id'], $roleResult['id_role_jury']]);
@@ -705,7 +705,7 @@ class ProgrammationSoutenanceController
                 }
             }
 
-            // Maître de stage : automatiquement récupéré depuis informations_stage
+            // MaÃ®tre de stage : automatiquement rÃ©cupÃ©rÃ© depuis informations_stage
             // Pas besoin de l'ajouter au jury manuellement car il n'est pas enseignant
 
             $pdo->commit();
@@ -713,7 +713,7 @@ class ProgrammationSoutenanceController
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
-                'message' => 'Attribution mise à jour avec succès'
+                'message' => 'Attribution mise Ã  jour avec succÃ¨s'
             ]);
         } catch (Exception $e) {
             if (isset($pdo)) {
@@ -723,7 +723,7 @@ class ProgrammationSoutenanceController
             http_response_code(400);
             echo json_encode([
                 'success' => false,
-                'message' => 'Erreur lors de la mise à jour : ' . $e->getMessage()
+                'message' => 'Erreur lors de la mise Ã  jour : ' . $e->getMessage()
             ]);
         }
     }
@@ -743,7 +743,7 @@ class ProgrammationSoutenanceController
             $pdo = Database::getConnection();
             $pdo->beginTransaction();
 
-            // Récupérer le numéro de jury associé à cette programmation
+            // RÃ©cupÃ©rer le numÃ©ro de jury associÃ© Ã  cette programmation
             $juryStmt = $pdo->prepare("SELECT num_jury FROM programmer WHERE id_programmation = ?");
             $juryStmt->execute([$input['id']]);
             $result = $juryStmt->fetch(PDO::FETCH_ASSOC);
@@ -764,7 +764,7 @@ class ProgrammationSoutenanceController
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
-                'message' => 'Attribution supprimée avec succès'
+                'message' => 'Attribution supprimÃ©e avec succÃ¨s'
             ]);
         } catch (Exception $e) {
             if (isset($pdo)) {

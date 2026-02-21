@@ -1,0 +1,50 @@
+MENU: SCOLARITE
+    SOUS-MENU: Tableau de bord
+    SOUS-MENU: Gestion des étudiants
+        ECRAN: Mise à jour étudiant
+        ECRAN: Inscription étudiant (Paiements)
+        ECRAN: Saisie des moyennes
+    SOUS-MENU: Gestion des candidatures
+        ECRAN: Dossiers de candidatures
+        ECRAN: Reclamations
+
+MENU: ETUDIANT_ENV
+    ECRAN: Candidature
+    ECRAN: Mes rapports
+    ECRAN: Reclamations
+    ECRAN: Consultation du compte rendu
+
+MENU: COMMISSION
+        ECRAN: Tableau de bord commission
+    SOUS-MENU: Gestion des rapports de stage
+        ECRAN: Reception des rapports de stage
+        ECRAN: analyse et approbation des rapports
+        ECRAN: Suivi d'avancement
+    SOUS-MENU: Rédaction du CR
+
+MENU: Espace Enseignant
+    SOUS-MENU: Tableau de Bord enseignant
+    SOUS-MENU: Mes Etudiants
+
+MENU: SOUTENANCE
+    ECRAN: Composition de jury
+    ECRAN: Evaluation Soutenance
+    ECRAN: Edition des bulletins
+
+MENU: ADMIN_PLATEFORME
+    ECRAN: Dashboard
+    ECRAN: Ouverture/Fermeture AC
+    SOUS-MENU: Paramétrage
+	ECRAN: Paramètres Généraux
+        ECRAN: Paramètres Spécifiques
+    SOUS-MENU: Sécurité
+        ECRAN: Gestion Utilisateurs
+        ECRAN: Piste Audit
+        ECRAN: Sauvegarde/Restauration
+        ECRAN: Historique et Archivage
+    SOUS-MENU: Référentiel
+        ECRAN: Mise à jour enseignant
+        ECRAN: Mise à jour personnel administratif
+
+MENU: PROFIL
+    ECRAN: Mon Profil

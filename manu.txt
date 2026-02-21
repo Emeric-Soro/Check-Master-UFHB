@@ -1,0 +1,46 @@
+# PROMPT DE REFACTORISATION DES VUES CHECKMASTER
+
+## OBJECTIF
+Refactoriser toutes les vues PHP dans `ressources/views/` pour utiliser le nouveau système de composants CheckMaster (Bulma CSS + composants réutilisables) sans modifier les fichiers dans `app/` (contrôleurs) ni les routes.
+
+## CONTRAINTTES ABSOLUES
+- ❌ NE PAS modifier les contrôleurs dans `app/controllers/`
+- ❌ NE PAS modifier les routes dans `config/routes.php`
+- ❌ NE PAS modifier les modèles dans `app/models/`
+- ✅ UNIQUEMENT modifier les fichiers dans `ressources/views/`
+- ✅ Conserver la logique PHP existante (boucles, conditions, variables)
+
+## ARCHITECTURE ACTUELLE vs NOUVELLE
+
+### Architecture Actuelle (à remplacer)
+- CSS: Tailwind-like classes (bg-white, rounded-lg, shadow-md, etc.)
+- Structure: HTML personnalisé dans chaque vue
+- Pas de composants réutilisables
+- Styles inline ou dans des balises `<style>`
+
+### Nouvelle Architecture (à implémenter)
+- CSS: Bulma CSS + classes custom `cm-*`
+- Composants: Utiliser les helpers et composants créés
+- Layouts: `ressources/views/layouts/app.php` ou `auth.php`
+- Helpers: ComponentHelper (`$c`), FormHelper, TableHelper, NavigationHelper
+
+## STRUCTURE DES FICHIERS
+
+```
+ressources/views/
+├── layouts/
+│   ├── app.php          # Layout principal avec sidebar
+│   └── auth.php         # Layout authentification (login, etc.)
+├── components/          # NE PAS MODIFIER - composants déjà créés
+│   ├── layout/
+│   ├── form/
+│   ├── table/
+│   ├── panel/
+│   ├── nav/
+│   ├── widget/
+│   ├── feedback/
+│   └── special/
+└── [fichiers à refactoriser].php
+```
+
+## GUIDE DE REFACTORISATION

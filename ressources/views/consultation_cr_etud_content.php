@@ -1,13 +1,12 @@
 <?php
 // Vérifier que l'utilisateur est un étudiant
-/*if (!isset($_SESSION['num_etu'])) {
+if (!isset($_SESSION['num_etu'])) {
     echo '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">';
     echo '<strong class="font-bold">Accès refusé!</strong>';
     echo '<span class="block sm:inline"> Cette page est réservée aux étudiants.</span>';
     echo '</div>';
     return;
 }
-*/
 // Récupérer le compte rendu de l'étudiant
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/models/Etudiant.php';

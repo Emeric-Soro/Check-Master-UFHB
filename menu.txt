@@ -1,0 +1,173 @@
+================================================================================
+RÈGLES TRANSVERSES OBLIGATOIRES (INSTRUCTION.MD)
+================================================================================
+- Philosophie Backend Only: Toutes les interfaces sont décrites ici pour la logique de comportement backend, mais aucun fichier .php dans /views n'est maintenu.
+- Segmentation polarisée: pôle supérieur statique (saisie/validation) + pôle inférieur défilant (liste/historique).
+- Triangulation de la donnée: panneau latéral caché par défaut pour le détail, suppression, modification via réinjection.
+- Densité sémantique calibrée: champs dimensionnés selon la nature des données, sans surcharge visuelle.
+- Philosophie zéro rupture: pas de modal bloquante sauf action destructrice; la modification se fait par retour au pôle supérieur.
+- Morphologie adaptative (Backend logic): mobile = navigation en tiroirs (liste/détail); desktop = vue panoramique.
+- Année académique active visible en haut à droite sur toutes les pages. (en lecture seule en dehors de l'admin)
+- Pour chaque CRUD: formulaire statique en haut, puis barre pagination/recherche/export/import/imprimer, puis tableau avec actions modifier/supprimer/archiver.
+- Auto-remplissage obligatoire quand une référence est sélectionnée (étudiant, enseignant, entreprise, inscription, type utilisateur, groupe utilisateur).
+- Palette UI obligatoire:
+  * `primary: #1a5276` pour la sidebar.
+  * `primary-lighter: #3498db` pour le fond global de l'application.
+- Boutons/actions: uniquement nuances de bleu ou vert; ne pas utiliser orange/rouge pour des actions.
+- Couleurs d'alerte (orange, rouge, vert alerte): réservées aux notifications, statuts et messages.
+- Responsive prioritaire: chaque comportement doit être décrit pour desktop/tablette/mobile (Navigation tiroir sur mobile).
+- Création utilisateur centralisée: les comptes sont créés dans l'écran Gestion Utilisateurs.
+- Pratiquement toutes les pages vont adopter le système Segmentation polarisée (Zone de saisie/validation statique en haut + zone de liste/historique défilante en bas) pour
+une expérience utilisateur cohérente et optimisée) sauf les écrans de type "Tableau de bord" qui peuvent adopter une structure plus libre (widgets + graphiques), editeur de texte, ou formulaire de configuration avancée.
+
+[Menu] Gestion scolarité
+    [Sous-Menu]  Tableau de bord scolarité : Vue d'ensemble des effectifs par filière, taux de paiement et état d'avancement des inscriptions.
+    [Sous-Menu]  Gestion Étudiant
+        [Ecran]   Mise à jour Étudiant : CRUD Etudiant. Écran de gestion des fiches signalétiques (état civil, contact) et historique académique.
+        [Ecran]   Inscription étudiant (paiement/versement) : Enregistrement des inscriptions annuelles et gestion des versements de scolarité. (autres pages dans le meme écran); Journal des Versements : Registre chronologique de tous les paiements
+        [Ecran]   Saisie des moyennes : Interface de saisie des notes générales et calcul automatique des résultats semestriels.
+    [Sous-Menu]  Gestion Candidature :
+        [Ecran]   Candidature : Validation administrative et technique des demandes de stage soumises par les étudiants.
+        [Ecran]   Réclamation : Suivi et traitement des réclamations liées aux notes ou aux dossiers administratifs.
+
+
+[Menu] Environnement étudiant
+    [Sous-Menu]  Rédaction du rapport : Module LOT (workflow intégré) avec candidature et rédaction du mémoire en ligne avec sauvegarde automatique.
+    [Sous-Menu]  Historique des versions du rapport : Consultation des sauvegardes successives et restauration d'une version antérieure.
+    [Sous-Menu]  Demande Réclamation : Formulaire de dépôt de contestation (RCL) ou de demande de changement de thème (DMT).
+    [Sous-Menu]  Suivi du dossier : Timeline interactive montrant l'état actuel (Dossier, Scolarité, Commission, Soutenance).
+    [Sous-Menu]  Consultation du CR de la commission validé : Accès aux remarques, Cr en consultation, pdf et à la décision finale de la commission d'évaluation.
+    [Sous-Menu]  Mes Documents : Espace de téléchargement des PDF générés (Reçus, Pv commission, PV finaux).
+
+
+[Menu] Commission Validation
+    [Sous-Menu]  Tableau de bord : Statistiques sur le nombre de rapports évalués, en attente, et état du quorum par session.
+    [Sous-Menu]  Reception, Analyse et approbation des rapports : Système de vote électronique et assignation du directeur de mémoire et encadreur pédagogique
+    [Sous-Menu]  Rédaction du Compte Rendu : rédaction collaborative du CR de commission avec export PDF.
+    [Sous-Menu]  Historique des commissions : Archive consultable des sessions passées avec leurs CR et décisions.
+
+[Menu] Soutenance
+    [Sous-Menu]  Tableau de bord : Planning global des sessions de soutenance et taux de réussite par mention.
+    [Sous-Menu]  Composition Jury et Planification Salles & Créneaux : Interface d'affectation du jury et Affectation des salles, dates et horaires de passage.
+    [Sous-Menu]  Évaluation de la soutenance : Grille de Saisie en temps réel des notes du jury.
+    [Sous-Menu]  Délibération Finale : Moteur de calcul automatique des mentions finales et validation de l'admission.
+    [Sous-Menu]  Édition des PV : Génération du PV de soutenance.
+
+[Menu] Espace Encadreur
+    [Sous-Menu]  Suivi des Étudiants Encadrés : Liste des étudiants assignés à un enseignant pour le suivi technique.
+    [Sous-Menu]  Validation de l'Aptitude : Évaluation formelle de la capacité de l'étudiant à soutenir son mémoire, il rentre ainsi dans le workflow pour la soutenance, c'est fait ainsi pour inclure uniquement les étudiants près à soutenir dans la parti de la Composition Jury et Planification.
+
+[Menu] Admin plateforme
+    [Sous-Menu]  Tableau de bord : Supervision technique (état de la base, utilisation disque) et statistiques d'utilisation globale.
+    [Sous-Menu]  Année Académique (Ouverture / fermeture) : Paramétrage du cycle de vie (ouverture des inscriptions, fermeture de l'année).
+    [Sous-Menu]  Archivage & Données
+        [Ecran]    Historique annuel : Consultation des données archivées de l'année académique active
+        [Ecran]    Historique Global : Consultation immuable des données des années académiques précédentes.
+        [Ecran]    Import de données : Module de reprise de données historiques (Legacy) via fichiers CSV.
+        [Ecran]    Export de données : Outil d'extraction des listes (étudiants, audit) sous format Excel/CSV.
+        [Ecran]    Sauvegarde et Restauration : Gestion des backups SQL de la base de données avec listing chronologique.
+        [Ecran]	   MAPPING_ANNEES_LEGACY : Pour la reprise des données historiques (faire correspondre les codes des anciens systèmes avec le nouveau)
+        [Ecran]    Archivage des sessions commission : Conservation des délibérations et PV des commissions passées.
+    [Sous-Menu]   Paramétrage :
+        [Ecran]    Paramètres Généraux : Voir liste en bas (Majorité CRUD)
+        [Ecran]    Paramètres Spécifiques : Voir liste en bas (Majorité CRUD)
+        [Ecran]    Paramètres Applications : Voir liste en bas (Majorité CRUD)
+    [Sous-Menu]   Ressources humaines :
+        [Ecran]	   Mise à jour Enseignant : CRUD
+        [Ecran]	   Mise à jour Personnel Admin : CRUD
+    [Sous-Menu]   Sécurité :
+        [Ecran]    Gestion Utilisateurs : CRUD, blocage, déblocage, archivage et réinitialisation sécurisée des comptes.
+        [Ecran]    Sécurité API & Tokens : Gestion des jetons JWT et des clés de signature/reset.
+        [Ecran]    Gestion des Messages : CRUD, Personnalisation des libellés système et des modèles d'emails (Templates) + Journal des Notifications
+        [Ecran]    Gestion Attributions : CRUD groupe utilisateur, type utilisateur. Définition des rôles RBAC, gestion des groupes d'utilisateurs.
+        [Ecran]    Gestions Permissions : CRUD, Matrice fine autorisant ou non les actions (Voir, Créer, Modifier, Supprimer).
+        [Ecran]    Gestions Menus : CRUD et Configuration dynamique de l'arborescence du menu.
+        [Ecran]    Maintenance & Cache : Activation du mode maintenance et vidage des caches système. (app_maintenance_mode : Activation globale du mode "Travaux"
+app_maintenance_message : Message personnalisé affiché aux utilisateurs, maintenance_allowed_ips : Liste blanche des IPs (Admin) pouvant bypasser, maintenance_schedule_start/end : Planification de la fenêtre de maintenance)
+    [Sous-Menu]    Configuration des Notifications : Au-delà du "Journal", il manque la Matrice des Règles de Notification : définir quel événement (ex: "Aptitude validée") déclenche quel template d'email à quel destinataire.
+    [Sous-Menu]    Piste d'Audit : Journal détaillé de toutes les actions (Qui a modifié quoi, quand, et les valeurs avant/après).
+    [Sous-Menu]    Supervision : Statistiques système et santé de la base de données.
+
+
+2. LISTE EXHAUSTIVE DES PARAMETRAGE
+A. Paramètres Applications
+
+[Onglets]Application
+app_name : Nom de l'instance (CheckMaster UFRMI)
+app_timezone : Fuseau horaire (ex: Africa/Abidjan)
+app_locale : Langue du système (fr_FR)
+pagination_default : Nombre de lignes par tableau (défaut 25)
+
+[Onglets]Branding
+app_logo : Logo principal de l'application
+app_favicon : Favicon de l'onglet navigateur
+logo_filiere : Logo de l'UFR-MI pour les en-têtes PDF
+logo_universite : Logo de l'UFHB pour les documents officiels
+logo_mairie : Logo tutelle pour les documents spécifiques
+
+[Onglets]Sécurité
+session_timeout : Délai d'inactivité avant déconnexion (minutes)
+session_concurrent : Autoriser ou non plusieurs connexions simultanées
+password_min_length : Longueur minimale du mot de passe
+password_require_uppercase : Exiger au moins une majuscule
+password_require_number : Exiger au moins un chiffre
+password_require_special : Exiger au moins un caractère spécial
+login_max_attempts : Nombre d'échecs avant blocage temporaire
+login_lockout_duration : Durée du blocage après échecs (minutes)
+csrf_token_lifetime : Durée de vie des jetons de formulaire (secondes)
+auth_remember_me_ttl : Sécurité : Durée de validité du cookie "Se souvenir de moi".
+auth_password_reset_ttl : Sécurité : Validité du lien de reset (secondes, Défaut 3600).
+app.name, `app.base_url`.
+mail.enabled, `mail.smtp.host`, `mail.smtp.port`, `mail.smtp.encryption`, `mail.smtp.auth`.
+mail.from.email, `mail.from.name`, `mail.reply_to.email`, `mail.bcc_admin.email`.
+database.dsn, `database.username`, `database.password`
+
+B. Paramètres Généraux
+
+[Onglets]Commission
+COMMISSION_QUORUM : Nb de votes requis pour valider une décision (défaut 4)
+DELAI_VOTE_JOURS : Délai limite pour le dépôt d'un avis en commission
+
+[Onglets]Jury
+JURY_MEMBRES_REQUIS : Nombre standard de membres pour un jury (défaut 5)
+JURY_MEMBRES
+
+[Onglets]Rapport
+RAPPORT_MIN_MOTS : Seuil minimal de mots pour autoriser la soumission
+STAGE_DUREE_MIN_JOURS : Durée minimale de stage pour validation (ex: 180j)
+
+[Onglets]Notation
+NOTE_MAXIMUM : Barème de référence (généralement 20)
+Table mention : Libellés des mentions (Passable, Bien, Très Bien...)
+DATE_LIMITE_INSCRIPTION : Bloque les nouvelles inscriptions au-delà d'une date par année.
+DATE_LIMITE_SOUMISSION_RAPPORT : Paramètre par année académique.
+
+[Onglets]Workflow
+VERIF_SCOLARITE_AUTO : Auto-vérification du solde avant soumission rapport
+VERIF_SCOLARITE_BLOQUANTE : Si actif, bloque le dépôt si la scolarité n'est pas soldée
+DETTE_TOLERANCE_MAX : Scolarité : Montant résiduel autorisé pour être considéré "à jour" (FCFA).
+PROMOTION : Masque de saisie des années de promotion.
+
+[Onglets]Délibération
+SEUIL_ADMISSION : Note minimale pour être admis (défaut 10.0)
+ARRONDI_DECIMALES : Nombre de décimales pour les moyennes finales
+Table formule_calcul : Formules (Annexe 2, Annexe 3) pour calcul final
+
+[Onglets]Frais de Scolarité : Tarifs par défaut par niveau (M1/M2).
+[Onglets]Niveaux (M1-M2) : Codes, libellés et frais par défaut associés.
+[Onglets]Semestres : Organisation temporelle des parcours.
+
+C. Paramètres Spécifiques
+
+[Onglets]Critère d'évaluation : Barème global avec la liste des critères (souvent 20, mais configurable)
+[Onglets]Salles : Inventaire logistique (Bâtiment, étage, capacité, équipements).
+[Onglets]Motifs de Rejet : Liste standardisée pour candidatures et rapports.
+[Onglets]Types Enseignants : Classification (Informaticien / Non-informaticien).
+[Onglets]Grades
+[Onglets]Fonctions
+[Onglets]Entreprises : Annuaire des partenaires de stage, module de fusion de doublons et suivi des conventions.
+[Onglets]Gestion des rôles de jury : Paramétrage des rôles (Président, Rapporteur, Examinateur, Maître de stage) et des contraintes associées.
+[Onglets]Paramètres PDF & Documents : Marges, polices, tailles, logos, mentions légales et formats de date.
+[Onglets]Provisioning Comptes : Activation/Desactivation génération automatique des comptes Utilisateur (étudiant/enseignant/personnel), redirections post-connexion par groupe.
+---
+

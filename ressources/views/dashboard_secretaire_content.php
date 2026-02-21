@@ -33,9 +33,9 @@ $stmtActivites->execute();
 $activitesRecentes = $stmtActivites->fetchAll(PDO::FETCH_ASSOC);
 
 // Récupérer les réclamations récentes
-$queryReclamations = "SELECT r.date_creation, e.nom_etu, e.prenom_etu, r.type_reclamation, r.statut_reclamation 
+$queryReclamations = "SELECT r.date_creation, e.nom_etu, e.prenom_etu, r.objet_reclamation AS type_reclamation, r.statut_reclamation 
                       FROM reclamations r 
-                      JOIN etudiants e ON r.num_carte_etud = e.num_carte_etud 
+                      LEFT JOIN etudiants e ON r.num_carte_etud = e.num_carte_etud 
                       ORDER BY r.date_creation DESC 
                       LIMIT 5";
 $stmtReclamations = $db->prepare($queryReclamations);

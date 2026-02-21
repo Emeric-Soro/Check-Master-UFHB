@@ -1,0 +1,163 @@
+# PLAN DE REFACTORISATION COMPLET - CHECKMASTER
+
+Ce document détaille le plan de refactorisation des 76 fichiers de vues identifiés dans `ressources/views/`. L'objectif est de supprimer Tailwind CSS et les styles inline au profit de Bulma CSS et du système de composants CheckMaster.
+
+## 1. RÈGLES D'OR
+- **Logique PHP intacte** : Conserver toutes les boucles, conditions et variables.
+- **Zéro modification externe** : Ne pas toucher aux contrôleurs, modèles ou routes.
+- **Suppression Tailwind** : Toutes les classes comme `bg-white`, `p-6`, `flex`, `grid` doivent disparaître.
+- **Composants CheckMaster** : Utiliser l'objet `$c` (ComponentHelper) pour générer le HTML structurel.
+- **Layouts CM** : Utiliser les layouts `app.php` pour le back-office et `auth.php` pour les pages publiques.
+
+## 2. GUIDE DE CONVERSION VISUELLE (TAILWIND -> BULMA/CM)
+
+| Élément | Tailwind (Ancien) | Bulma / CM (Nouveau) |
+| :--- | :--- | :--- |
+| Conteneur | `container mx-auto` | `container` ou `section` |
+| Grille | `grid grid-cols-N` | `columns is-multiline` |
+| Colonne | `col-span-1` | `column is-N` |
+| Carte | `bg-white rounded-lg shadow` | `$c->panel('detail-card', [...])` ou `.box` |
+| Bouton | `bg-blue-500 text-white` | `button is-primary` |
+| Formulaire | `input border-gray-300` | `$c->form('field', [...])` |
+| Table | `table-auto w-full` | `$c->table('data-table', [...])` |
+| Espacement | `p-4, m-4, mb-6` | Classes Bulma `p-4, m-4, mb-6` (identiques) |
+
+## 3. UTILISATION DU COMPONENT HELPER ($c)
+Chaque fichier doit commencer par l'initialisation du helper si nécessaire :
+```php
+<?php if (!isset($c)) { $c = new ComponentHelper(); } ?>
+```
+
+---
+
+## 4. PLAN DÉTAILLÉ PAR FICHIER
+
+### GROUPE A : DASHBOARD & STATISTIQUES
+*Fichiers : dashboard_content.php, dashboard_commission_content.php, dashboard_enseignant_content.php, dashboard_scolarite_content.php, dashboard_secretaire_content.php*
+
+- **Action** : Utiliser le layout `$c->layout('dashboard-page')`.
+- **Transformation** : Remplacer les cartes de statistiques par `$c->widget('stat-card', [...])`.
+- **Tableaux récents** : Utiliser `$c->table('data-table')` avec l'option `is-striped`.
+
+### GROUPE B : GESTION DES PARAMÈTRES (CRUD)
+*Fichiers dans `parametres_generaux/` (19 fichiers) et `parametres_generaux_content.php`*
+
+- **Action** : Refactoriser vers `$c->layout('crud-page')`.
+- **Composants clés** :
+  - Barre d'outils (Recherche/Ajout) : `$c->table('toolbar', [...])`.
+  - Liste : `$c->table('data-table', [...])` avec pagination `$c->table('pagination')`.
+  - Formulaires : `$c->form('form-group')` pour chaque champ.
+
+### GROUPE C : GESTION DES ÉTUDIANTS & RH
+*Fichiers : gestion_etudiants_content.php, liste_etudiants_content.php, gestion_rh_content.php, dossiers_academiques_content.php*
+
+- **Action** : Supprimer les grilles de liens personnalisées.
+- **Transformation** : Utiliser `$c->panel('detail-card')` pour les menus de navigation internes ou Bulma `columns`.
+- **Formulaires RH** : Utiliser les composants spécialisés `$c->special('rh-enseignant-form')` ou `$c->special('rh-pers-admin-form')`.
+
+### GROUPE D : SOUTENANCES & CANDIDATURES
+*Fichiers : candidature_soutenance_content.php, gestion_candidatures_soutenance_content.php, plannificaiton_soutenance_content.php, Programation_soutenance_content.php*
+
+- **Action** : Utiliser `$c->nav('steps')` pour guider l'utilisateur.
+- **Formulaires complexes** : Utiliser `$c->form('select-search')` pour la sélection d'étudiants/projets (autocomplete).
+- **Affichage PDF** : Intégrer `$c->special('pdf-viewer')` pour les rapports.
+
+### GROUPE E : RÉCLAMATIONS & FEEDBACK
+*Fichiers : gestion_reclamations_content.php, admin_reclamations_content.php, soumettre_reclamation.php*
+
+- **Action** : Utiliser `$c->feedback('alert')` pour les messages de succès/erreur.
+- **Suivi** : Timeline Bulma pour l'historique des réclamations.
+
+### GROUPE F : COMPTES RENDUS & PV
+*Fichiers : redaction_compte_rendu_content.php, pv_soutenance/annexeX.php, archives_compte_rendu_content.php*
+
+- **Action** : Utiliser `$c->special('rich-editor')` pour la saisie des textes.
+- **Aperçu** : Utiliser Bulma `.content` pour l'affichage propre des textes formatés.
+
+---
+
+## 5. LISTE EXHAUSTIVE DES 76 FICHIERS À TRAITER
+
+1. ressources/views/Programation_soutenance_content.php
+2. ressources/views/access_denied_content.php
+3. ressources/views/admin_candidatures_content.php
+4. ressources/views/admin_historique.php
+5. ressources/views/admin_reclamations_content.php
+6. ressources/views/archives_dossiers_soutenance_content.php
+7. ressources/views/candidature_soutenance_content.php
+8. ressources/views/consultation_cr_etud_content.php
+9. ressources/views/dashboard_commission_content.php
+10. ressources/views/dashboard_content.php
+11. ressources/views/dashboard_enseignant_content.php
+12. ressources/views/dashboard_scolarite_content.php
+13. ressources/views/dashboard_secretaire_content.php
+14. ressources/views/dossiers_academiques_content.php
+15. ressources/views/evaluation_soutenance_content.php
+16. ressources/views/evaluations_dossiers_soutenance_content.php
+17. ressources/views/fiche_etudiant_archive.php
+18. ressources/views/gestion_candidatures_soutenance_content.php
+19. ressources/views/gestion_dossiers_candidatures_content.php
+20. ressources/views/gestion_etudiants_content.php
+21. ressources/views/gestion_notes_evaluations_content.php
+22. ressources/views/gestion_rapports_content.php
+23. ressources/views/gestion_reclamations_content.php
+24. ressources/views/gestion_reclamations_scolarite_content.php
+25. ressources/views/gestion_rh_content.php
+26. ressources/views/gestion_scolarite_content.php
+27. ressources/views/gestion_utilisateurs_content.php
+28. ressources/views/import_result.php
+29. ressources/views/liste_etudiants_content.php
+30. ressources/views/notes_resultats_content.php
+31. ressources/views/parametres_generaux_content.php
+32. ressources/views/parametres_specifiques_content.php
+33. ressources/views/piste_audit_content.php
+34. ressources/views/plannificaiton_soutenance_content.php
+35. ressources/views/processus_validation_content.php
+36. ressources/views/profil_content.php
+37. ressources/views/rapport_a_valider_content.php
+38. ressources/views/recu_versement.php
+39. ressources/views/redaction_compte_rendu_content.php
+40. ressources/views/releve_notes.php
+41. ressources/views/sauvegarde_restauration_content.php
+42. ressources/views/verification_candidatures_soutenance_content.php
+43. ressources/views/candidature_soutenance/compte_rendu_etudiant.php
+44. ressources/views/gestion_etudiants/ajouter_des_etudiants.php
+45. ressources/views/gestion_etudiants/inscrire_des_etudiants.php
+46. ressources/views/gestion_etudiants/recu_inscription.php
+47. ressources/views/gestion_rapports/commentaire_rapport.php
+48. ressources/views/gestion_rapports/creer_rapport.php
+49. ressources/views/gestion_rapports/suivi_rapport.php
+50. ressources/views/gestion_reclamations/soumettre_reclamation.php
+51. ressources/views/gestion_reclamations/suivi_historique_reclamation.php
+52. ressources/views/parametres_generaux/actions.php
+53. ressources/views/parametres_generaux/annees_academiques.php
+54. ressources/views/parametres_generaux/criteres_evaluation.php
+55. ressources/views/parametres_generaux/ecue.php
+56. ressources/views/parametres_generaux/entreprises.php
+57. ressources/views/parametres_generaux/fonction_utilisateur.php
+58. ressources/views/parametres_generaux/fonctions.php
+59. ressources/views/parametres_generaux/gestion_attribution.php
+60. ressources/views/parametres_generaux/gestion_menus.php
+61. ressources/views/parametres_generaux/grades.php
+62. ressources/views/parametres_generaux/messages.php
+63. ressources/views/parametres_generaux/niveaux_acces.php
+64. ressources/views/parametres_generaux/niveaux_approbation.php
+65. ressources/views/parametres_generaux/niveaux_etude.php
+66. ressources/views/parametres_generaux/salles.php
+67. ressources/views/parametres_generaux/semestres.php
+68. ressources/views/parametres_generaux/specialites.php
+69. ressources/views/parametres_generaux/statut_jury.php
+70. ressources/views/parametres_generaux/traitements.php
+71. ressources/views/parametres_generaux/ue.php
+72. ressources/views/pv_soutenance/annexe1.php
+73. ressources/views/pv_soutenance/annexe2.php
+74. ressources/views/pv_soutenance/annexe3.php
+75. ressources/views/redaction_compte_rendu/archives_compte_rendu_content.php
+76. ressources/views/redaction_compte_rendu/brouillons_compte_rendu_content.php
+
+## 6. PROCÉDURE DE VALIDATION
+Après chaque modification de fichier :
+1. Vérifier qu'aucune classe Tailwind ne subsiste (recherche globale `class=".*-[0-9]"`).
+2. Vérifier que la structure est cohérente avec Bulma (utilisation de `.columns`, `.column`, `.box`).
+3. Vérifier que les helpers `$c` sont correctement appelés avec les bons paramètres.
+4. S'assurer que les boutons d'action conservent leurs liens PHP originaux.

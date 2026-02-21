@@ -1,3 +1,18 @@
+<?php
+if (!isset($cardPSpecifiques)) {
+    $cardPSpecifiques = [
+        ['title' => 'Unités d\'Enseignement (UE)', 'description' => 'Gestion des matières.',        'link' => '?page=parametres_specifiques&action=ue',                   'icon' => './images/livre-ouvert.png'],
+        ['title' => 'Éléments Constitutifs (ECUE)', 'description' => 'Détail des cours.',           'link' => '?page=parametres_specifiques&action=ecue',                 'icon' => './images/piece-de-puzzle.png'],
+        ['title' => 'Critères Évaluation',           'description' => 'Barèmes de soutenance.',     'link' => '?page=parametres_specifiques&action=criteres_evaluation',  'icon' => './images/check.png'],
+        ['title' => 'Salles',                        'description' => 'Lieux de soutenance.',        'link' => '?page=parametres_specifiques&action=salles',               'icon' => './images/door-open.png'],
+        ['title' => 'Entreprises',                   'description' => 'Partenaires de stage.',       'link' => '?page=parametres_specifiques&action=entreprises',          'icon' => './images/valise.png'],
+        ['title' => 'Gestion des Menus',             'description' => 'Structure de navigation.',    'link' => '?page=parametres_specifiques&action=gestion_menus',        'icon' => './images/bd.png'],
+        ['title' => 'Habilitations (Attributions)',  'description' => 'Droits par groupe.',          'link' => '?page=parametres_specifiques&action=gestion_attribution',  'icon' => './images/attribution.png'],
+        ['title' => 'Traitements',                   'description' => 'Actions techniques.',         'link' => '?page=parametres_specifiques&action=traitements',          'icon' => './images/bd.png'],
+        ['title' => 'Messages Système',              'description' => 'Libellés d\'erreurs.',        'link' => '?page=parametres_specifiques&action=messages',             'icon' => './images/enveloppe.png'],
+    ];
+}
+?>
 <div class="container mx-auto px-4 py-8">
     <style>
         :root{--ufhb-blue:#0F4C75;--ufhb-blue-light:#3282B8;--ufhb-green:#10b981;--muted:#64748B}

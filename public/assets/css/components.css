@@ -1,0 +1,1401 @@
+/**
+ * CheckMaster UFRMI - Components CSS
+ * Styles specifiques aux composants PHP reutilisables.
+ * Complete checkmaster-theme.css avec des styles de composants granulaires.
+ */
+
+
+/* ==========================================================================
+   1. FORM FIELD COMPONENT
+   ========================================================================== */
+
+.cm-field {
+    margin-bottom: var(--cm-spacing-md);
+    position: relative;
+}
+
+.cm-field.cm-field-compresse,
+.cm-field.cm-field-compress,
+.cm-field.cm-field-xs {
+    max-width: 140px;
+}
+
+.cm-field.cm-field-standard {
+    max-width: 320px;
+}
+
+.cm-field.cm-field-etendue,
+.cm-field.cm-field-extended {
+    max-width: 520px;
+}
+
+.cm-field .label {
+    font-size: var(--cm-font-size-sm);
+    font-weight: 600;
+    color: var(--cm-text-main);
+    margin-bottom: var(--cm-spacing-xs);
+    transition: color var(--cm-transition-fast);
+}
+
+.cm-field .input,
+.cm-field .textarea,
+.cm-field .select select {
+    font-size: var(--cm-font-size-sm);
+    border-color: var(--cm-border-color);
+    background-color: var(--cm-box-bg);
+    color: var(--cm-text-main);
+    transition: border-color var(--cm-transition-fast), box-shadow var(--cm-transition-fast);
+}
+
+.cm-field .input:hover,
+.cm-field .textarea:hover,
+.cm-field .select select:hover {
+    border-color: var(--cm-primary-lighter);
+}
+
+.cm-field .input:focus,
+.cm-field .textarea:focus,
+.cm-field .select select:focus {
+    border-color: var(--cm-primary-light);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.12);
+}
+
+.cm-field .input.is-danger,
+.cm-field .textarea.is-danger,
+.cm-field .select select.is-danger {
+    border-color: var(--cm-feedback-danger);
+}
+
+.cm-field .input.is-danger:focus,
+.cm-field .textarea.is-danger:focus {
+    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.12);
+}
+
+.cm-field .help.is-danger {
+    font-size: var(--cm-font-size-xs);
+    margin-top: 4px;
+    animation: cm-shake 300ms ease;
+}
+
+.cm-field .input[readonly],
+.cm-field .textarea[readonly] {
+    background-color: #f7f9fb;
+    color: var(--cm-text-main);
+    cursor: not-allowed;
+    opacity: 0.85;
+    border-style: dashed;
+}
+
+.cm-field .input,
+.cm-field .textarea,
+.cm-field select {
+    background-color: var(--cm-box-bg);
+    color: var(--cm-text-main);
+}
+
+/* Focus label highlight */
+.cm-field:focus-within .label {
+    color: var(--cm-primary-light);
+}
+
+
+/* ==========================================================================
+   2. SELECT SEARCH COMPONENT
+   ========================================================================== */
+
+.cm-select-search {
+    position: relative;
+}
+
+.cm-select-search-input {
+    position: relative;
+}
+
+.cm-select-search-input .input {
+    padding-right: 2.5rem;
+}
+
+.cm-select-search-input .cm-search-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #bbb;
+    pointer-events: none;
+    transition: color var(--cm-transition-fast);
+}
+
+.cm-select-search:focus-within .cm-search-icon {
+    color: var(--cm-primary-light);
+}
+
+.cm-select-search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--cm-box-bg);
+    border: 1px solid var(--cm-border-color);
+    border-top: none;
+    border-radius: 0 0 var(--cm-border-radius) var(--cm-border-radius);
+    max-height: 240px;
+    overflow-y: auto;
+    z-index: 50;
+    display: none;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    animation: cm-dropdown-open 200ms ease;
+}
+
+.cm-select-search-dropdown.is-active {
+    display: block;
+}
+
+.cm-select-search-option {
+    padding: var(--cm-spacing-sm) var(--cm-spacing-md);
+    font-size: var(--cm-font-size-sm);
+    cursor: pointer;
+    transition: background-color var(--cm-transition-fast), padding-left var(--cm-transition-fast);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.cm-select-search-option:last-child {
+    border-bottom: none;
+}
+
+.cm-select-search-option:hover,
+.cm-select-search-option.is-highlighted {
+    background-color: rgba(52, 152, 219, 0.08);
+    padding-left: calc(var(--cm-spacing-md) + 4px);
+}
+
+.cm-select-search-option.is-selected {
+    background-color: rgba(52, 152, 219, 0.12);
+    font-weight: 600;
+    color: var(--cm-primary);
+    border-left: 3px solid var(--cm-primary-light);
+}
+
+.cm-select-search-no-results {
+    padding: var(--cm-spacing-md);
+    text-align: center;
+    color: #999;
+    font-size: var(--cm-font-size-sm);
+    font-style: italic;
+}
+
+.cm-select-search-loading {
+    padding: var(--cm-spacing-md);
+    text-align: center;
+    color: var(--cm-primary-light);
+    font-size: var(--cm-font-size-sm);
+}
+
+.cm-select-search-loading::after {
+    content: '';
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--cm-primary-lightest);
+    border-top-color: var(--cm-primary-light);
+    border-radius: 50%;
+    animation: cm-spin 600ms linear infinite;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+
+/* ==========================================================================
+   3. FILE UPLOAD COMPONENT
+   ========================================================================== */
+
+.cm-file-upload {
+    margin-bottom: var(--cm-spacing-md);
+}
+
+.cm-file-upload .file-cta {
+    background-color: var(--cm-btn-light);
+    border-color: var(--cm-border-color);
+    transition: background-color var(--cm-transition-fast), border-color var(--cm-transition-fast), transform var(--cm-transition-fast);
+}
+
+.cm-file-upload .file-cta:hover {
+    background-color: var(--cm-btn-light-hover);
+    border-color: var(--cm-primary-lighter);
+    transform: translateY(-1px);
+}
+
+.cm-file-upload .file-name {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--cm-font-size-sm);
+    transition: color var(--cm-transition-fast);
+}
+
+.cm-file-upload-preview {
+    margin-top: var(--cm-spacing-sm);
+    padding: var(--cm-spacing-sm) var(--cm-spacing-md);
+    background: var(--cm-barre-bg);
+    border-radius: var(--cm-border-radius);
+    font-size: var(--cm-font-size-xs);
+    color: var(--cm-text-main);
+    opacity: 0.8;
+    border-left: 3px solid var(--cm-primary-lighter);
+    animation: cm-fade-in 300ms ease;
+}
+
+/* Drag & drop zone */
+.cm-file-upload-dropzone {
+    border: 2px dashed var(--cm-border-color);
+    border-radius: var(--cm-border-radius-lg);
+    padding: var(--cm-spacing-xl);
+    text-align: center;
+    color: #999;
+    transition: border-color var(--cm-transition-fast), background-color var(--cm-transition-fast);
+    cursor: pointer;
+}
+
+.cm-file-upload-dropzone:hover,
+.cm-file-upload-dropzone.is-dragover {
+    border-color: var(--cm-primary-light);
+    background-color: rgba(52, 152, 219, 0.04);
+    color: var(--cm-primary-light);
+}
+
+.cm-file-upload-dropzone .cm-dropzone-icon {
+    font-size: 2.5rem;
+    margin-bottom: var(--cm-spacing-sm);
+    opacity: 0.5;
+}
+
+
+/* ==========================================================================
+   4. CHECKBOX & RADIO GROUP
+   ========================================================================== */
+
+.cm-checkbox-field {
+    margin-bottom: var(--cm-spacing-md);
+}
+
+.cm-checkbox-field .checkbox {
+    font-size: var(--cm-font-size-sm);
+    color: var(--cm-text-main);
+    cursor: pointer;
+    padding: var(--cm-spacing-xs) 0;
+    transition: color var(--cm-transition-fast);
+}
+
+.cm-checkbox-field .checkbox:hover {
+    color: var(--cm-primary-light);
+}
+
+.cm-checkbox-field .checkbox input[type="checkbox"] {
+    margin-right: var(--cm-spacing-sm);
+    accent-color: var(--cm-primary);
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+.cm-radio-group {
+    margin-bottom: var(--cm-spacing-md);
+}
+
+.cm-radio-group .cm-radio-option {
+    display: flex;
+    align-items: center;
+    gap: var(--cm-spacing-sm);
+    margin-bottom: var(--cm-spacing-xs);
+    font-size: var(--cm-font-size-sm);
+    color: var(--cm-text-main);
+    cursor: pointer;
+    padding: var(--cm-spacing-xs) 0;
+    transition: color var(--cm-transition-fast);
+}
+
+.cm-radio-group .cm-radio-option:hover {
+    color: var(--cm-primary-light);
+}
+
+.cm-radio-group .cm-radio-option input[type="radio"] {
+    accent-color: var(--cm-primary);
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+
+/* ==========================================================================
+   5. FORM GROUP (Horizontal fields)
+   ========================================================================== */
+
+.cm-form-group {
+    margin-bottom: var(--cm-spacing-md);
+}
+
+.cm-form-group>.columns {
+    margin-bottom: 0;
+}
+
+.cm-form-group>.columns>.column {
+    padding-bottom: 0;
+}
+
+
+/* ==========================================================================
+   6. DATE PICKER
+   ========================================================================== */
+
+.cm-date-picker .input[type="date"] {
+    font-size: var(--cm-font-size-sm);
+}
+
+.cm-date-picker .input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity var(--cm-transition-fast);
+    padding: 2px;
+    border-radius: 2px;
+}
+
+.cm-date-picker .input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    background-color: rgba(52, 152, 219, 0.08);
+}
+
+
+/* ==========================================================================
+   7. PAGINATION COMPONENT
+   ========================================================================== */
+
+.cm-pagination {
+    padding: var(--cm-spacing-md);
+}
+
+.cm-pagination .pagination-link {
+    font-size: var(--cm-font-size-sm);
+    color: var(--cm-primary);
+    border-color: var(--cm-border-color);
+    transition: all var(--cm-transition-fast);
+    min-width: 36px;
+    height: 36px;
+}
+
+.cm-pagination .pagination-link:hover {
+    border-color: var(--cm-primary-light);
+    color: var(--cm-primary);
+    background-color: rgba(52, 152, 219, 0.06);
+    transform: translateY(-1px);
+}
+
+.cm-pagination .pagination-link.is-current {
+    background-color: var(--cm-primary);
+    border-color: var(--cm-primary);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(26, 82, 118, 0.25);
+}
+
+.cm-pagination .pagination-previous,
+.cm-pagination .pagination-next {
+    font-size: var(--cm-font-size-sm);
+    color: var(--cm-primary);
+    border-color: var(--cm-border-color);
+    transition: all var(--cm-transition-fast);
+}
+
+.cm-pagination .pagination-previous:hover:not([disabled]),
+.cm-pagination .pagination-next:hover:not([disabled]) {
+    border-color: var(--cm-primary-light);
+    background-color: rgba(52, 152, 219, 0.06);
+}
+
+.cm-pagination-info {
+    font-size: var(--cm-font-size-sm);
+    color: #7f8c8d;
+    margin-bottom: var(--cm-spacing-sm);
+}
+
+.cm-pagination-per-page {
+    display: flex;
+    align-items: center;
+    gap: var(--cm-spacing-sm);
+    font-size: var(--cm-font-size-sm);
+    color: #7f8c8d;
+}
+
+.cm-pagination-per-page .select {
+    min-width: 70px;
+}
+
+
+/* ==========================================================================
+   8. COLUMN HEADER (Sortable)
+   ========================================================================== */
+
+.cm-column-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: color var(--cm-transition-fast);
+}
+
+.cm-column-header:hover {
+    color: var(--cm-primary-light);
+}
+
+.cm-column-header .cm-sort-arrows {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0;
+    font-size: 0.5rem;
+    line-height: 1;
+    opacity: 0.3;
+    transition: opacity var(--cm-transition-fast);
+}
+
+.cm-column-header:hover .cm-sort-arrows {
+    opacity: 0.6;
+}
+
+.cm-column-header.is-sorted-asc .cm-sort-up,
+.cm-column-header.is-sorted-desc .cm-sort-down {
+    opacity: 1;
+    color: var(--cm-primary);
+}
+
+
+/* ==========================================================================
+   9. RICH EDITOR COMPONENT
+   ========================================================================== */
+
+.cm-rich-editor {
+    border: 1px solid var(--cm-border-color);
+    border-radius: var(--cm-border-radius-lg);
+    overflow: hidden;
+    transition: border-color var(--cm-transition-fast), box-shadow var(--cm-transition-fast);
+}
+
+.cm-rich-editor:focus-within {
+    border-color: var(--cm-primary-light);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.08);
+}
+
+.cm-rich-editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: var(--cm-spacing-sm);
+    background: var(--cm-barre-bg);
+    border-bottom: 1px solid var(--cm-border-color);
+}
+
+.cm-rich-editor-toolbar button {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: var(--cm-font-size-sm);
+    color: var(--cm-text-main);
+    transition: all var(--cm-transition-fast);
+    min-width: 32px;
+    text-align: center;
+}
+
+.cm-rich-editor-toolbar button:hover {
+    background: var(--cm-box-bg);
+    border-color: var(--cm-border-color);
+}
+
+.cm-rich-editor-toolbar button.is-active {
+    background: var(--cm-primary-lightest);
+    color: var(--cm-primary);
+    border-color: var(--cm-primary-light);
+}
+
+.cm-rich-editor-toolbar .cm-toolbar-separator {
+    width: 1px;
+    background: var(--cm-border-color);
+    margin: 4px 6px;
+}
+
+.cm-rich-editor-content {
+    min-height: 400px;
+    padding: var(--cm-spacing-lg);
+    outline: none;
+    font-size: var(--cm-font-size-base);
+    line-height: 1.8;
+    color: var(--cm-text-main);
+    background-color: var(--cm-box-bg);
+}
+
+.cm-rich-editor-content:focus {
+    box-shadow: inset 0 0 0 2px rgba(52, 152, 219, 0.08);
+}
+
+.cm-rich-editor-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--cm-spacing-sm) var(--cm-spacing-md);
+    border-top: 1px solid var(--cm-border-color);
+    background: var(--cm-barre-bg);
+    font-size: var(--cm-font-size-xs);
+    color: #888;
+}
+
+
+/* ==========================================================================
+   10. CHART CONTAINER
+   ========================================================================== */
+
+.cm-chart-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    background: var(--cm-barre-bg);
+    border-radius: var(--cm-border-radius);
+    color: #999;
+    font-size: var(--cm-font-size-sm);
+}
+
+
+/* ==========================================================================
+   11. ACADEMIC YEAR COMPONENT
+   ========================================================================== */
+
+.cm-academic-year-header {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cm-spacing-xs);
+    padding: var(--cm-spacing-xs) var(--cm-spacing-sm);
+    background: var(--cm-primary-lightest);
+    border-radius: var(--cm-border-radius);
+    color: var(--cm-primary);
+    font-weight: 600;
+    font-size: var(--cm-font-size-sm);
+    transition: background-color var(--cm-transition-fast);
+}
+
+.cm-academic-year-header:hover {
+    background: rgba(52, 152, 219, 0.18);
+}
+
+
+/* ==========================================================================
+   12. FORM VALIDATION STATES
+   ========================================================================== */
+
+.cm-field.has-error .input,
+.cm-field.has-error .textarea,
+.cm-field.has-error .select select {
+    border-color: var(--cm-feedback-danger);
+    animation: cm-shake 300ms ease;
+}
+
+.cm-field.has-error .label {
+    color: var(--cm-feedback-danger);
+}
+
+.cm-field.has-success .input,
+.cm-field.has-success .textarea {
+    border-color: var(--cm-feedback-success);
+}
+
+.cm-field.has-success .label {
+    color: var(--cm-feedback-success);
+}
+
+@keyframes cm-shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    20% {
+        transform: translateX(-4px);
+    }
+
+    40% {
+        transform: translateX(4px);
+    }
+
+    60% {
+        transform: translateX(-2px);
+    }
+
+    80% {
+        transform: translateX(2px);
+    }
+}
+
+
+/* ==========================================================================
+   13. SKELETON LOADING (for AJAX loads)
+   ========================================================================== */
+
+.cm-skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: cm-skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: var(--cm-border-radius);
+}
+
+.cm-skeleton-text {
+    height: 14px;
+    margin-bottom: var(--cm-spacing-xs);
+    width: 80%;
+}
+
+.cm-skeleton-text:last-child {
+    width: 60%;
+}
+
+.cm-skeleton-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.cm-skeleton-rect {
+    height: 100px;
+}
+
+@keyframes cm-skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+
+/* ==========================================================================
+   14. PRINT STYLES
+   ========================================================================== */
+
+@media print {
+
+    .cm-sidebar,
+    .cm-header,
+    .cm-burger,
+    .cm-toolbar-right,
+    .cm-row-actions,
+    .cm-side-panel,
+    .cm-side-panel-overlay,
+    .cm-modal-overlay,
+    .cm-toast-container,
+    .cm-form-buttons,
+    .cm-drawer-overlay {
+        display: none !important;
+    }
+
+    .cm-main {
+        margin-left: 0 !important;
+    }
+
+    .cm-pole-superieur {
+        position: relative !important;
+        box-shadow: none !important;
+    }
+
+    body {
+        background: #fff !important;
+        font-size: 12pt !important;
+    }
+
+    .table {
+        font-size: 10pt !important;
+    }
+
+    .cm-badge {
+        border: 1px solid #ccc;
+    }
+}
+
+
+/* ==========================================================================
+   15. MICRO-ANIMATION UTILITIES
+   ========================================================================== */
+
+.cm-animate-fade-in {
+    animation: cm-fade-in 400ms ease forwards;
+}
+
+.cm-animate-scale-in {
+    animation: cm-scale-in 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.cm-animate-pulse {
+    animation: cm-pulse 2s ease-in-out infinite;
+}
+
+.cm-animate-slide-up {
+    animation: cm-slide-up 400ms ease forwards;
+}
+
+.cm-animate-count-up {
+    animation: cm-count-up 600ms ease-out forwards;
+}
+
+@keyframes cm-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes cm-scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes cm-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+@keyframes cm-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes cm-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes cm-dropdown-open {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes cm-count-up {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* ==========================================================================
+   16. BUTTON ENHANCEMENTS
+   ========================================================================== */
+
+.button {
+    transition: background-color var(--cm-transition-fast), box-shadow var(--cm-transition-fast), transform var(--cm-transition-fast) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.button:hover:not(.is-loading):not([disabled]) {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+}
+
+.button:active:not(.is-loading):not([disabled]) {
+    transform: translateY(0) !important;
+    box-shadow: none !important;
+}
+
+/* Outlined button improvements */
+.button.is-info.is-outlined {
+    transition: background-color var(--cm-transition-fast), color var(--cm-transition-fast), transform var(--cm-transition-fast) !important;
+}
+
+.button.is-info.is-outlined:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2) !important;
+}
+
+
+/* ==========================================================================
+   17. DASHBOARD UTILITIES
+   ========================================================================== */
+
+.cm-stat-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+.cm-stat-card-link:hover {
+    text-decoration: none;
+}
+
+.cm-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--cm-border-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.cm-gradient-card {
+    border-radius: var(--cm-border-radius-lg);
+    padding: var(--cm-spacing-lg);
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(15, 20, 30, 0.1);
+    transition: transform var(--cm-transition-fast), box-shadow var(--cm-transition-fast);
+}
+
+.cm-gradient-card * {
+    color: #ffffff !important;
+}
+
+.cm-gradient-blue {
+    background: linear-gradient(135deg, var(--cm-primary), var(--cm-primary-light));
+}
+
+.cm-gradient-green {
+    background: linear-gradient(135deg, var(--cm-btn-success), #1d7f48);
+}
+
+.cm-gradient-card.is-info {
+    background: linear-gradient(135deg, var(--cm-btn-info), var(--cm-primary-light));
+}
+
+.cm-gradient-card.is-success {
+    background: linear-gradient(135deg, var(--cm-btn-success), #1f9b55);
+}
+
+.cm-gradient-card.is-warning {
+    background: linear-gradient(135deg, var(--cm-primary), var(--cm-btn-info));
+}
+
+.cm-gradient-card.is-danger {
+    background: linear-gradient(135deg, var(--cm-primary-dark), var(--cm-primary));
+}
+
+.cm-hover-lift {
+    transition: transform var(--cm-transition-fast), box-shadow var(--cm-transition-fast) !important;
+}
+
+.cm-hover-lift:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 14px 24px rgba(15, 20, 30, 0.15) !important;
+}
+
+.cm-dashboard-headline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--cm-spacing-md);
+    margin-bottom: var(--cm-spacing-lg);
+}
+
+.cm-date-pill {
+    background: #ffffff;
+    border: 1px solid var(--cm-border-color);
+    border-radius: var(--cm-border-radius-lg);
+    padding: 0.75rem 1rem;
+    min-width: 180px;
+}
+
+.cm-date-pill strong {
+    display: block;
+    font-size: var(--cm-font-size-sm);
+    color: var(--cm-text-main);
+}
+
+.cm-date-pill span {
+    display: block;
+    font-size: var(--cm-font-size-xs);
+    color: #6b7280;
+}
+
+.cm-activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--cm-spacing-sm);
+    padding: var(--cm-spacing-sm) 0;
+    border-bottom: 1px solid #f1f3f5;
+    transition: background-color var(--cm-transition-fast);
+}
+
+.cm-activity-item:last-child {
+    border-bottom: none;
+}
+
+.cm-activity-item:hover {
+    background-color: rgba(52, 152, 219, 0.03);
+}
+
+.cm-activity-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 6px;
+}
+
+.cm-activity-dot.is-success {
+    background: var(--cm-feedback-success);
+}
+
+.cm-activity-dot.is-danger {
+    background: var(--cm-feedback-danger);
+}
+
+.cm-activity-dot.is-warning {
+    background: var(--cm-feedback-warning);
+}
+
+.cm-activity-dot.is-info {
+    background: var(--cm-feedback-info);
+}
+
+
+/* ==========================================================================
+   18. KANBAN / PIPELINE (Suivi d'avancement)
+   ========================================================================== */
+
+.cm-kanban-wrapper {
+    display: flex;
+    gap: var(--cm-spacing-md);
+    overflow-x: auto;
+    padding-bottom: var(--cm-spacing-md);
+    min-height: 400px;
+}
+
+.cm-kanban-column {
+    flex: 1;
+    min-width: 260px;
+    max-width: 340px;
+    background: var(--cm-barre-bg);
+    border-radius: var(--cm-border-radius-lg);
+    display: flex;
+    flex-direction: column;
+}
+
+.cm-kanban-column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--cm-spacing-md);
+    border-bottom: 2px solid var(--cm-primary-lightest);
+    font-weight: 600;
+    font-size: var(--cm-font-size-sm);
+}
+
+.cm-kanban-column-header .cm-kanban-count {
+    background: var(--cm-primary-lightest);
+    color: var(--cm-primary);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: var(--cm-font-size-xs);
+}
+
+.cm-kanban-cards {
+    flex: 1;
+    padding: var(--cm-spacing-sm);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--cm-spacing-sm);
+}
+
+.cm-kanban-card {
+    background: #ffffff;
+    border-radius: var(--cm-border-radius);
+    padding: var(--cm-spacing-md);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    cursor: pointer;
+    transition: box-shadow var(--cm-transition-fast), transform var(--cm-transition-fast);
+    border-left: 3px solid transparent;
+}
+
+.cm-kanban-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.cm-kanban-card.is-urgent {
+    border-left-color: var(--cm-feedback-danger);
+}
+
+.cm-kanban-card.is-normal {
+    border-left-color: var(--cm-feedback-info);
+}
+
+.cm-kanban-card.is-overdue {
+    border-left-color: var(--cm-feedback-warning);
+}
+
+.cm-kanban-card-title {
+    font-weight: 600;
+    font-size: var(--cm-font-size-sm);
+    margin-bottom: var(--cm-spacing-xs);
+}
+
+.cm-kanban-card-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--cm-spacing-sm);
+    font-size: var(--cm-font-size-xs);
+    color: #7f8c8d;
+}
+
+
+/* ==========================================================================
+   19. MOBILE DRAWER ENHANCEMENTS
+   ========================================================================== */
+
+.cm-drawer-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    background: var(--cm-sidebar-bg);
+    z-index: calc(var(--cm-z-sidebar) + 1);
+    transform: translateX(-100%);
+    transition: transform var(--cm-transition-normal);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.cm-mobile-drawer.is-active .cm-drawer-panel {
+    transform: translateX(0);
+}
+
+.cm-mobile-drawer.is-active .cm-drawer-overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
+.cm-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--cm-spacing-lg) var(--cm-spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cm-drawer-logo-text {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.cm-drawer-close {
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.cm-drawer-user {
+    display: flex;
+    align-items: center;
+    gap: var(--cm-spacing-sm);
+    padding: var(--cm-spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cm-drawer-avatar {
+    font-size: 2rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.cm-drawer-user-name {
+    display: block;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: var(--cm-font-size-sm);
+}
+
+.cm-drawer-user-role {
+    display: block;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: var(--cm-font-size-xs);
+}
+
+.cm-drawer-nav {
+    flex: 1;
+    padding: var(--cm-spacing-sm) 0;
+}
+
+.cm-drawer-item {
+    display: flex;
+    align-items: center;
+    gap: var(--cm-spacing-sm);
+    padding: var(--cm-spacing-sm) var(--cm-spacing-md);
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    font-size: var(--cm-font-size-sm);
+    transition: background-color var(--cm-transition-fast);
+}
+
+.cm-drawer-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.cm-drawer-item.is-active {
+    background-color: var(--cm-sidebar-active-bg);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.cm-drawer-section-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--cm-spacing-sm);
+    padding: var(--cm-spacing-sm) var(--cm-spacing-md);
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    font-size: var(--cm-font-size-sm);
+    cursor: pointer;
+    transition: background-color var(--cm-transition-fast);
+}
+
+.cm-drawer-section-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.cm-drawer-submenu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.cm-drawer-submenu .cm-drawer-item {
+    padding-left: calc(var(--cm-spacing-md) + var(--cm-spacing-lg));
+    font-size: var(--cm-font-size-xs);
+}
+
+.cm-drawer-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: var(--cm-spacing-sm) 0;
+}
+
+
+/* ==========================================================================
+   20. BLOCKED PAGE / ACCESS DENIED
+   ========================================================================== */
+
+.cm-blocked-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--cm-spacing-xl) var(--cm-spacing-lg);
+    text-align: center;
+    min-height: 300px;
+}
+
+.cm-blocked-icon {
+    font-size: 4rem;
+    color: var(--cm-feedback-warning);
+    margin-bottom: var(--cm-spacing-lg);
+    animation: cm-pulse 2s ease-in-out infinite;
+}
+
+.cm-blocked-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--cm-text-main);
+    margin-bottom: var(--cm-spacing-sm);
+}
+
+.cm-blocked-message {
+    font-size: var(--cm-font-size-base);
+    color: #7f8c8d;
+    max-width: 400px;
+}
+
+
+/* ==========================================================================
+   21. EVALUATION CRITERIA FORM
+   ========================================================================== */
+
+.cm-eval-grid {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: var(--cm-spacing-sm);
+    align-items: center;
+}
+
+.cm-eval-grid-header {
+    font-weight: 600;
+    font-size: var(--cm-font-size-sm);
+    color: var(--cm-text-main);
+    padding-bottom: var(--cm-spacing-sm);
+    border-bottom: 2px solid var(--cm-primary-lightest);
+}
+
+.cm-eval-criteria-label {
+    font-size: var(--cm-font-size-sm);
+    font-weight: 500;
+}
+
+.cm-eval-bareme {
+    font-size: var(--cm-font-size-xs);
+    color: #7f8c8d;
+    text-align: center;
+}
+
+.cm-eval-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--cm-spacing-md);
+    background: var(--cm-primary-lightest);
+    border-radius: var(--cm-border-radius);
+    margin-top: var(--cm-spacing-md);
+}
+
+.cm-eval-total-label {
+    font-weight: 700;
+    color: var(--cm-primary);
+}
+
+.cm-eval-total-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--cm-primary);
+}
+
+
+/* ==========================================================================
+   22. CONSULTATION SECTIONS
+   ========================================================================== */
+
+.cm-consultation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--cm-spacing-lg);
+    padding-bottom: var(--cm-spacing-md);
+    border-bottom: 2px solid var(--cm-primary-lightest);
+}
+
+.cm-consultation-section {
+    margin-bottom: var(--cm-spacing-lg);
+}
+
+.cm-section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--cm-spacing-sm);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--cm-primary);
+    margin-bottom: var(--cm-spacing-md);
+    padding-bottom: var(--cm-spacing-sm);
+    border-bottom: 1px solid var(--cm-border-color);
+}
+
+.cm-section-content {
+    padding-left: var(--cm-spacing-md);
+}
+
+
+/* ==========================================================================
+   23. STAGGERED ANIMATION FOR LISTS
+   ========================================================================== */
+
+.cm-stagger-item {
+    opacity: 0;
+    animation: cm-slide-up 400ms ease forwards;
+}
+
+.cm-stagger-item:nth-child(1) {
+    animation-delay: 0ms;
+}
+
+.cm-stagger-item:nth-child(2) {
+    animation-delay: 50ms;
+}
+
+.cm-stagger-item:nth-child(3) {
+    animation-delay: 100ms;
+}
+
+.cm-stagger-item:nth-child(4) {
+    animation-delay: 150ms;
+}
+
+.cm-stagger-item:nth-child(5) {
+    animation-delay: 200ms;
+}
+
+.cm-stagger-item:nth-child(6) {
+    animation-delay: 250ms;
+}
+
+.cm-stagger-item:nth-child(7) {
+    animation-delay: 300ms;
+}
+
+.cm-stagger-item:nth-child(8) {
+    animation-delay: 350ms;
+}
+
+
+/* ==========================================================================
+   24. PER-PAGE SIZE SELECTOR (Toolbar)
+   ========================================================================== */
+
+.cm-per-page-selector {
+    display: flex;
+    align-items: center;
+    gap: var(--cm-spacing-xs);
+    font-size: var(--cm-font-size-sm);
+    color: #7f8c8d;
+}
+
+.cm-per-page-selector .select.is-small select {
+    min-width: 60px;
+}
