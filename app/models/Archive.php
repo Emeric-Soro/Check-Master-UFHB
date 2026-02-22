@@ -6,10 +6,139 @@
 class Archive
 {
     private $db;
+    private $tableExistsCache = [];
+    private $columnExistsCache = [];
 
     public function __construct($db)
     {
         $this->db = $db;
+    }
+
+    private function tableExists($tableName)
+    {
+        if (array_key_exists($tableName, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$tableName];
+        }
+
+        try {
+            $stmt = $this->db->prepare("SHOW TABLES LIKE ?");
+            $stmt->execute([$tableName]);
+            $exists = (bool) $stmt->fetchColumn();
+            $this->tableExistsCache[$tableName] = $exists;
+            return $exists;
+        } catch (Throwable $e) {
+            $this->tableExistsCache[$tableName] = false;
+            return false;
+        }
+    }
+
+    private function columnExists($tableName, $columnName)
+    {
+        $cacheKey = strtolower((string) $tableName . '.' . (string) $columnName);
+        if (array_key_exists($cacheKey, $this->columnExistsCache)) {
+            return $this->columnExistsCache[$cacheKey];
+        }
+
+        if (!$this->tableExists($tableName)) {
+            $this->columnExistsCache[$cacheKey] = false;
+            return false;
+        }
+
+        try {
+            $stmt = $this->db->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
+            $stmt->execute([$columnName]);
+            $exists = (bool) $stmt->fetchColumn();
+            $this->columnExistsCache[$cacheKey] = $exists;
+            return $exists;
+        } catch (Throwable $e) {
+            $this->columnExistsCache[$cacheKey] = false;
+            return false;
+        }
+    }
+
+    private function getRapportDateColumn()
+    {
+        if ($this->columnExists('rapport_etudiants', 'date_rapport')) {
+            return 'date_rapport';
+        }
+        if ($this->columnExists('rapport_etudiants', 'date_redaction_rapport')) {
+            return 'date_redaction_rapport';
+        }
+        if ($this->columnExists('rapport_etudiants', 'date_modification')) {
+            return 'date_modification';
+        }
+        return null;
+    }
+
+    private function getRapportDateSelect($alias = 'r')
+    {
+        $dateColumn = $this->getRapportDateColumn();
+        if ($dateColumn === null) {
+            return 'NULL AS date_rapport';
+        }
+        return $alias . '.' . $dateColumn . ' AS date_rapport';
+    }
+
+    private function getRapportOrderBy($alias = null)
+    {
+        $prefix = $alias ? $alias . '.' : '';
+        $dateColumn = $this->getRapportDateColumn();
+        if ($dateColumn !== null) {
+            return 'ORDER BY ' . $prefix . $dateColumn . ' DESC, ' . $prefix . 'id_rapport DESC';
+        }
+        return 'ORDER BY ' . $prefix . 'id_rapport DESC';
+    }
+
+    private function getProgrammationTable()
+    {
+        return $this->tableExists('programmer_soutenance') ? 'programmer_soutenance' : 'programmer';
+    }
+
+    private function getJuryTable()
+    {
+        return $this->tableExists('enseignant_jury') ? 'enseignant_jury' : 'composer_jury';
+    }
+
+    private function getJuryRoleTable()
+    {
+        return $this->tableExists('qualite_jury') ? 'qualite_jury' : 'roles_jury';
+    }
+
+    private function getProgrammationIdColumn()
+    {
+        return $this->getProgrammationTable() === 'programmer_soutenance' ? 'num_soutenance' : 'id_programmation';
+    }
+
+    private function getProgrammationJuryColumn()
+    {
+        return $this->getProgrammationTable() === 'programmer_soutenance' ? 'num_soutenance' : 'num_jury';
+    }
+
+    private function getJuryReferenceColumn()
+    {
+        return $this->getJuryTable() === 'enseignant_jury' ? 'num_soutenance' : 'num_jury';
+    }
+
+    private function getJuryRoleIdColumn()
+    {
+        return $this->getJuryRoleTable() === 'qualite_jury' ? 'id_role_jury' : 'id_role_jury';
+    }
+
+    private function getJuryRoleLabelColumn()
+    {
+        return $this->getJuryRoleTable() === 'qualite_jury' ? 'lib_role' : 'lib_role';
+    }
+
+    private function getAcademicYearExpression($studentAlias = 'e', $academicYearAlias = 'aa')
+    {
+        return "COALESCE(
+            CONCAT(YEAR({$academicYearAlias}.date_deb), '-', YEAR({$academicYearAlias}.date_fin)),
+            CASE
+                WHEN {$studentAlias}.promotion_etu REGEXP '^[0-9]{4}-[0-9]{4}$' THEN {$studentAlias}.promotion_etu
+                WHEN {$studentAlias}.promotion_etu REGEXP '^[0-9]{4}$' THEN CONCAT({$studentAlias}.promotion_etu, '-', CAST({$studentAlias}.promotion_etu AS UNSIGNED) + 1)
+                ELSE NULL
+            END
+        )";
     }
 
     /**
@@ -17,7 +146,7 @@ class Archive
      */
     public function getStudentHistory($anneeAcad = null, $statut = null, $search = null, $limit = 50, $offset = 0)
     {
-        $anneeExpr = "COALESCE(CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)), CASE WHEN e.promotion_etu IS NOT NULL AND e.promotion_etu != '' THEN CONCAT(e.promotion_etu, '-', CAST(e.promotion_etu AS UNSIGNED) + 1) END)";
+        $anneeExpr = $this->getAcademicYearExpression('e', 'aa');
         $sql = "
             SELECT DISTINCT
                 e.num_carte_etud as matricule,
@@ -80,7 +209,7 @@ class Archive
      */
     public function countStudents($anneeAcad = null, $statut = null, $search = null)
     {
-        $anneeExpr = "COALESCE(CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)), CASE WHEN e.promotion_etu IS NOT NULL AND e.promotion_etu != '' THEN CONCAT(e.promotion_etu, '-', CAST(e.promotion_etu AS UNSIGNED) + 1) END)";
+        $anneeExpr = $this->getAcademicYearExpression('e', 'aa');
         $sql = "
             SELECT COUNT(DISTINCT e.num_carte_etud) as total
             FROM etudiants e
@@ -158,39 +287,22 @@ class Archive
 
     /**
      * Get M1 Average
+     * NOTE: La table 'ue' n'existe plus
      */
     private function getMoyenneM1($numEtu)
     {
-        $sql = "
-            SELECT SUM(n.moyenne * u.credit) / SUM(u.credit) as moyenne
-            FROM notes n
-            INNER JOIN ue u ON n.id_ue = u.id_ue
-            WHERE n.num_etu = :num_etu AND u.id_niveau_etude = 10 AND n.moyenne IS NOT NULL
-        ";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute(['num_etu' => $numEtu]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['moyenne'] ?? null;
+        error_log("INFO - La table 'ue' n'existe plus. Calcul de moyenne M1 désactivé.");
+        return null;
     }
 
     /**
      * Get M2 S1 Average
+     * NOTE: La table 'ue' n'existe plus
      */
     private function getMoyenneM2S1($numEtu)
     {
-        $sql = "
-            SELECT SUM(n.moyenne * u.credit) / SUM(u.credit) as moyenne
-            FROM notes n
-            INNER JOIN ue u ON n.id_ue = u.id_ue
-            WHERE n.num_etu = :num_etu AND u.id_semestre > 21 AND n.moyenne IS NOT NULL
-            GROUP BY u.id_semestre
-            ORDER BY u.id_semestre ASC
-            LIMIT 1
-        ";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute(['num_etu' => $numEtu]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['moyenne'] ?? null;
+        error_log("INFO - La table 'ue' n'existe plus. Calcul de moyenne M2S1 désactivé.");
+        return null;
     }
 
     /**
@@ -198,7 +310,7 @@ class Archive
      */
     private function getStudentInfo($numEtu)
     {
-        $anneeExpr = "COALESCE(CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)), CASE WHEN e.promotion_etu IS NOT NULL AND e.promotion_etu != '' THEN CONCAT(e.promotion_etu, '-', CAST(e.promotion_etu AS UNSIGNED) + 1) END)";
+        $anneeExpr = $this->getAcademicYearExpression('e', 'aa');
         $sql = "
             SELECT 
                 e.*,
@@ -240,11 +352,11 @@ class Archive
     private function getRapportInfo($numEtu)
     {
         $sql = "
-            SELECT r.*, v.date_validation, v.commentaire_validation, v.decision_validation
+            SELECT r.*, " . $this->getRapportDateSelect('r') . ", v.date_validation, v.commentaire_validation, v.decision_validation
             FROM rapport_etudiants r
             LEFT JOIN valider v ON r.id_rapport = v.id_rapport
             WHERE r.num_etu = :num_etu
-            ORDER BY r.date_rapport DESC
+            " . $this->getRapportOrderBy('r') . "
             LIMIT 1
         ";
         $stmt = $this->db->prepare($sql);
@@ -293,21 +405,29 @@ class Archive
      */
     private function getSoutenanceInfo($numEtu)
     {
+        $programmationTable = $this->getProgrammationTable();
+        $juryTable = $this->getJuryTable();
+        $juryRoleTable = $this->getJuryRoleTable();
+        $programmationIdColumn = $this->getProgrammationIdColumn();
+        $programmationJuryColumn = $this->getProgrammationJuryColumn();
+        $juryReferenceColumn = $this->getJuryReferenceColumn();
+        $juryRoleIdColumn = $this->getJuryRoleIdColumn();
+        $juryRoleLabelColumn = $this->getJuryRoleLabelColumn();
         $sql = "
             SELECT 
                 p.*,
                 s.lib_salle,
                 GROUP_CONCAT(
-                    CONCAT(e.nom_enseignant, ' ', e.prenom_enseignant, ':', rj.lib_role) 
+                    CONCAT(e.nom_enseignant, ' ', e.prenom_enseignant, ':', rj.{$juryRoleLabelColumn}) 
                     SEPARATOR '|'
                 ) as jury_members
-            FROM programmer p
+            FROM {$programmationTable} p
             LEFT JOIN salles s ON p.id_salle = s.id_salle
-            LEFT JOIN composer_jury cj ON p.num_jury = cj.num_jury
+            LEFT JOIN {$juryTable} cj ON CAST(p.{$programmationJuryColumn} AS CHAR) = CAST(cj.{$juryReferenceColumn} AS CHAR)
             LEFT JOIN enseignants e ON cj.id_enseignant = e.id_enseignant
-            LEFT JOIN roles_jury rj ON cj.id_qualite_jury = rj.id_role_jury
+            LEFT JOIN {$juryRoleTable} rj ON cj.id_qualite_jury = rj.{$juryRoleIdColumn}
             WHERE p.num_etud = :num_etu
-            GROUP BY p.id_programmation
+            GROUP BY p.{$programmationIdColumn}
             ORDER BY p.date_soutenance DESC
             LIMIT 1
         ";
@@ -317,8 +437,12 @@ class Archive
         $soutenance = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($soutenance) {
-            // Get notes
-            $soutenance['notes'] = $this->getNotesEtudiant($numEtu, $soutenance['num_jury']);
+            $numJury = $soutenance['num_jury'] ?? ($soutenance['num_soutenance'] ?? null);
+            if ($numJury !== null && is_numeric($numJury)) {
+                $soutenance['notes'] = $this->getNotesEtudiant($numEtu, (int) $numJury);
+            } else {
+                $soutenance['notes'] = [];
+            }
         }
 
         return $soutenance;
@@ -349,7 +473,14 @@ class Archive
      */
     public function getJuryHistory($anneeAcad = null, $session = null, $limit = 50, $offset = 0)
     {
-        $anneeExpr = "COALESCE(CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)), CASE WHEN e.promotion_etu IS NOT NULL AND e.promotion_etu != '' THEN CONCAT(e.promotion_etu, '-', CAST(e.promotion_etu AS UNSIGNED) + 1) END)";
+        $anneeExpr = $this->getAcademicYearExpression('e', 'aa');
+        $programmationTable = $this->getProgrammationTable();
+        $juryTable = $this->getJuryTable();
+        $juryRoleTable = $this->getJuryRoleTable();
+        $programmationIdColumn = $this->getProgrammationIdColumn();
+        $programmationJuryColumn = $this->getProgrammationJuryColumn();
+        $juryReferenceColumn = $this->getJuryReferenceColumn();
+        $juryRoleIdColumn = $this->getJuryRoleIdColumn();
         $sql = "
             SELECT 
                 p.date_soutenance,
@@ -363,11 +494,11 @@ class Archive
                 aa.date_deb,
                 aa.date_fin,
                 " . $anneeExpr . " as annee_academique
-            FROM programmer p
+            FROM {$programmationTable} p
             INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
-            LEFT JOIN composer_jury cj ON p.num_jury = cj.num_jury
+            LEFT JOIN {$juryTable} cj ON CAST(p.{$programmationJuryColumn} AS CHAR) = CAST(cj.{$juryReferenceColumn} AS CHAR)
             LEFT JOIN enseignants ens ON cj.id_enseignant = ens.id_enseignant
-            LEFT JOIN roles_jury rj ON cj.id_qualite_jury = rj.id_role_jury
+            LEFT JOIN {$juryRoleTable} rj ON cj.id_qualite_jury = rj.{$juryRoleIdColumn}
             LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
             LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
             WHERE 1=1
@@ -380,7 +511,12 @@ class Archive
             $params['annee_acad'] = $anneeAcad;
         }
 
-        $sql .= " GROUP BY p.id_programmation, e.num_carte_etud, aa.date_deb, aa.date_fin, e.promotion_etu";
+        if ($session) {
+            $sql .= " AND p.id_session = :id_session";
+            $params['id_session'] = $session;
+        }
+
+        $sql .= " GROUP BY p.{$programmationIdColumn}, e.num_carte_etud, aa.date_deb, aa.date_fin, e.promotion_etu";
         $sql .= " ORDER BY p.date_soutenance DESC LIMIT :limit OFFSET :offset";
 
         try {
@@ -414,7 +550,7 @@ class Archive
 
         try {
             $stats['total_students'] = (int) $this->db->query("SELECT COUNT(*) FROM etudiants")->fetchColumn();
-            $stats['total_soutenances'] = (int) $this->db->query("SELECT COUNT(*) FROM programmer WHERE date_soutenance IS NOT NULL AND date_soutenance <> '0000-00-00'")->fetchColumn();
+            $stats['total_soutenances'] = (int) $this->db->query("SELECT COUNT(*) FROM " . $this->getProgrammationTable() . " WHERE date_soutenance IS NOT NULL")->fetchColumn();
             $stats['total_entreprises'] = (int) $this->db->query("SELECT COUNT(DISTINCT id_entreprise) FROM entreprises")->fetchColumn();
             $stats['total_encadreurs'] = (int) $this->db->query("SELECT COUNT(DISTINCT id_enseignant) FROM affecter WHERE role = 'encadrant'")->fetchColumn();
         } catch (PDOException $e) {
@@ -622,7 +758,7 @@ class Archive
     private function updateRapportInfo($numEtu, $rapportData)
     {
         // Get the rapport ID
-        $stmt = $this->db->prepare("SELECT id_rapport FROM rapport_etudiants WHERE num_etu = :num_etu ORDER BY date_rapport DESC LIMIT 1");
+        $stmt = $this->db->prepare("SELECT id_rapport FROM rapport_etudiants WHERE num_etu = :num_etu " . $this->getRapportOrderBy() . " LIMIT 1");
         $stmt->execute(['num_etu' => $numEtu]);
         $rapport = $stmt->fetch(PDO::FETCH_ASSOC);
 

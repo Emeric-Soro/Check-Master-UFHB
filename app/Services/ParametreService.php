@@ -111,41 +111,52 @@ class ParametreService
 
         // Ajout ou modification
         if (isset($post['btn_add_annees_academiques']) || isset($post['btn_modifier_annees_academiques'])) {
-            $dateDebut = $post['date_debut'];
-            $dateFin = $post['date_fin'];
-            $annee1 = date("Y", strtotime($dateDebut));
-            $annee2 = date("Y", strtotime($dateFin));
+            $dateDebut = trim((string) ($post['date_debut'] ?? ''));
+            $dateFin = trim((string) ($post['date_fin'] ?? ''));
+            $idAnneeCourante = isset($post['id_annee_acad']) && trim((string) $post['id_annee_acad']) !== ''
+                ? (int) $post['id_annee_acad']
+                : null;
 
-            if (($annee1 == $annee2) || ($dateDebut >= $dateFin)) {
-                $messageErreur = "Les dates de début et de fin ne sont pas valides.";
+            if ($dateDebut === '' || $dateFin === '') {
+                $messageErreur = "Les dates de début et de fin sont obligatoires.";
             } else {
-                $nouvel_id = substr($annee2, 0, 1) . substr($annee2, 2, 2) . substr($annee1, 2, 2);
+                $annee1 = date("Y", strtotime($dateDebut));
+                $annee2 = date("Y", strtotime($dateFin));
 
-                if ($this->anneeAcademique->isAnneeAcademiqueExist($nouvel_id, $dateDebut, $dateFin)) {
-                    $messageErreur = "Cette année académique existe déjà.";
-                    $this->auditLog->logCreation($userId, 'annee_academique', 'Erreur');
-                }
-                if ($this->anneeAcademique->isAnneeAcademiqueInUse($nouvel_id)) {
-                    $messageErreur = "Cette année académique est déjà utilisée.";
-                    $this->auditLog->logCreation($userId, 'annee_academique', 'Erreur');
-                }
+                if (($annee1 == $annee2) || ($dateDebut >= $dateFin)) {
+                    $messageErreur = "Les dates de début et de fin ne sont pas valides.";
+                } else {
+                    $nouvel_id = (int) (substr($annee2, 0, 1) . substr($annee2, 2, 2) . substr($annee1, 2, 2));
+                    $anneeExistante = $this->anneeAcademique->getAnneeAcademiqueById($nouvel_id);
 
-                if (empty($messageErreur)) {
-                    if (!empty($post['id_annee_acad'])) {
-                        if ($this->anneeAcademique->updateAnneeAcademique($nouvel_id, $dateDebut, $dateFin)) {
-                            $messageSuccess = "Année académique modifiée avec succès.";
-                            $this->auditLog->logModification($userId, 'annee_academique', 'Succès');
+                    if ($anneeExistante !== false && $anneeExistante !== null && (int) ($anneeExistante->id_annee_acad ?? 0) !== $idAnneeCourante) {
+                        $messageErreur = "Cette année académique existe déjà.";
+                        $this->auditLog->logCreation($userId, 'annee_academique', 'Erreur');
+                    } elseif ($this->anneeAcademique->isAnneeAcademiqueExist($idAnneeCourante, $dateDebut, $dateFin)) {
+                        $messageErreur = "Cette année académique existe déjà.";
+                        $this->auditLog->logCreation($userId, 'annee_academique', 'Erreur');
+                    } elseif ($idAnneeCourante === null && $this->anneeAcademique->isAnneeAcademiqueInUse($nouvel_id)) {
+                        $messageErreur = "Cette année académique est déjà utilisée.";
+                        $this->auditLog->logCreation($userId, 'annee_academique', 'Erreur');
+                    }
+
+                    if (empty($messageErreur)) {
+                        if ($idAnneeCourante !== null) {
+                            if ($this->anneeAcademique->updateAnneeAcademique($idAnneeCourante, $dateDebut, $dateFin)) {
+                                $messageSuccess = "Année académique modifiée avec succès.";
+                                $this->auditLog->logModification($userId, 'annee_academique', 'Succès');
+                            } else {
+                                $messageErreur = "Erreur lors de la mise à jour de l'année académique.";
+                                $this->auditLog->logModification($userId, 'annee_academique', 'Erreur');
+                            }
                         } else {
-                            $messageErreur = "Erreur lors de la mise à jour de l'année académique.";
-                            $this->auditLog->logModification($userId, 'annee_academique', 'Erreur');
-                        }
-                    } else {
-                        if ($this->anneeAcademique->ajouterAnneeAcademique($dateDebut, $dateFin)) {
-                            $messageSuccess = "Année académique ajoutée avec succès.";
-                            $this->auditLog->logCreation($userId, 'annee_academique', 'Succès');
-                        } else {
-                            $messageErreur = "Erreur lors de l'ajout de l'année académique.";
-                            $this->auditLog->logCreation($userId, 'annee_academique', 'Erreur');
+                            if ($this->anneeAcademique->ajouterAnneeAcademique($dateDebut, $dateFin)) {
+                                $messageSuccess = "Année académique ajoutée avec succès.";
+                                $this->auditLog->logCreation($userId, 'annee_academique', 'Succès');
+                            } else {
+                                $messageErreur = "Erreur lors de l'ajout de l'année académique.";
+                                $this->auditLog->logCreation($userId, 'annee_academique', 'Erreur');
+                            }
                         }
                     }
                 }

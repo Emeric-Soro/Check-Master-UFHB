@@ -10,14 +10,16 @@ $actions = is_array($actions ?? null) ? $actions : [];
         $icon = (string) ($action['icon'] ?? '');
         $type = (string) ($action['type'] ?? 'button');
         $href = (string) ($action['href'] ?? '#');
+        $attrs = is_array($action['attrs'] ?? null) ? $action['attrs'] : [];
+        $attrsString = function_exists('cm_form_attr_string') ? cm_form_attr_string($attrs) : '';
         ?>
         <?php if ($tag === 'a'): ?>
-        <a class="<?= htmlspecialchars($class, ENT_QUOTES, 'UTF-8') ?>" href="<?= htmlspecialchars($href, ENT_QUOTES, 'UTF-8') ?>">
+        <a class="<?= htmlspecialchars($class, ENT_QUOTES, 'UTF-8') ?>" href="<?= htmlspecialchars($href, ENT_QUOTES, 'UTF-8') ?>"<?= $attrsString ?>>
             <?php if ($icon !== ''): ?><i class="fas <?= htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i><?php endif; ?>
             <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
         </a>
         <?php else: ?>
-        <button class="<?= htmlspecialchars($class, ENT_QUOTES, 'UTF-8') ?>" type="<?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?>">
+        <button class="<?= htmlspecialchars($class, ENT_QUOTES, 'UTF-8') ?>" type="<?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?>"<?= $attrsString ?>>
             <?php if ($icon !== ''): ?><i class="fas <?= htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i><?php endif; ?>
             <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
         </button>

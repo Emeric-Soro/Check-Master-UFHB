@@ -1,35 +1,40 @@
 <?php
-require_once __DIR__ . '/../../app/utils/permissions_helper.php';
 require_once __DIR__ . '/../../app/models/Scolarite.php';
 require_once __DIR__ . '/../../app/models/Note.php';
-
 $rapportsVerifies = is_array($GLOBALS['rapports_verifies'] ?? null) ? $GLOBALS['rapports_verifies'] : [];
 $statistiques = is_array($GLOBALS['statistiques'] ?? null) ? $GLOBALS['statistiques'] : ['total' => 0, 'approuves' => 0, 'desapprouves' => 0];
-
 $scolariteModel = new Scolarite(Database::getConnection());
 $noteModel = new Note(Database::getConnection());
-
+$allYearsSelected = \AcademicYear::isAllSelectedFromSession();
+$writableYearLabel = \AcademicYear::getWritableLabelFromSession();
+$academicYearLabels = [];
+foreach (\AcademicYear::fetchAll(Database::getConnection()) as $academicYear) {
+    $academicYearLabels[(int) ($academicYear['id'] ?? 0)] = (string) ($academicYear['label'] ?? '');
+}
 $niveauxMap = [];
 foreach ($scolariteModel->getNiveauxEtudes() as $niveau) {
     $niveauxMap[(int) ($niveau['id_niv_etude'] ?? 0)] = (string) ($niveau['lib_niv_etude'] ?? '');
 }
-
 $rows = [];
 foreach ($rapportsVerifies as $rapport) {
     $numEtu = (string) ($rapport['num_etu'] ?? '');
-    $inscription = $numEtu !== '' ? $scolariteModel->getDerniereInscription($numEtu) : null;
+    $rowYearId = !empty($rapport['id_annee_acad']) ? (int) $rapport['id_annee_acad'] : null;
+    $promotionLabel = trim((string) ($rapport['promotion_etu'] ?? ''));
+    if ($promotionLabel === '' && $rowYearId !== null) {
+        $promotionLabel = $academicYearLabels[$rowYearId] ?? '';
+    }
     $paiement = null;
     $niveauLabel = '-';
     $montantVerse = 0.0;
     $resteAPayer = 0.0;
     $paymentStatus = 'Impayé';
     $paymentBadge = 'danger';
-
-    if (is_array($inscription) && !empty($inscription['id_annee_acad'])) {
-        $paiement = $scolariteModel->getInfosPaiementEtudiant($numEtu, (int) $inscription['id_annee_acad']);
-        $niveauLabel = $niveauxMap[(int) ($inscription['id_niveau'] ?? 0)] ?? '-';
+    if ($numEtu !== '' && $rowYearId !== null) {
+        $paiement = $scolariteModel->getInfosPaiementEtudiant($numEtu, $rowYearId);
+        if (is_array($paiement)) {
+            $niveauLabel = $niveauxMap[(int) ($paiement['id_niveau'] ?? 0)] ?? '-';
+        }
     }
-
     if (is_array($paiement)) {
         $montantVerse = (float) ($paiement['montant_paye'] ?? 0);
         $resteAPayer = (float) ($paiement['reste_a_payer'] ?? 0);
@@ -41,11 +46,15 @@ foreach ($rapportsVerifies as $rapport) {
             $paymentBadge = 'warning';
         }
     }
-
-    $latestNote = $numEtu !== '' ? $noteModel->getLatestNote($numEtu) : null;
+    $latestNote = null;
+    if ($numEtu !== '' && $rowYearId !== null) {
+        $latestNote = $noteModel->getByStudentAndYear($numEtu, $rowYearId);
+    }
+    if ($latestNote === null && $numEtu !== '') {
+        $latestNote = $noteModel->getLatestNote($numEtu);
+    }
     $m1 = $latestNote ? (float) ($latestNote->moyenne_M1 ?? 0) : null;
     $m2 = $latestNote ? (float) ($latestNote->moyenne_M2 ?? 0) : null;
-
     $decisionRaw = strtolower((string) ($rapport['statut_approbation'] ?? ''));
     $candStatus = 'En attente';
     $candBadge = 'warning';
@@ -56,11 +65,11 @@ foreach ($rapportsVerifies as $rapport) {
         $candStatus = 'Rejetée';
         $candBadge = 'danger';
     }
-
     $rows[] = [
         'id_rapport' => (int) ($rapport['id_rapport'] ?? 0),
         'num_etu' => $numEtu,
         'nom_complet' => trim((string) ($rapport['nom_etu'] ?? '') . ' ' . (string) ($rapport['prenom_etu'] ?? '')),
+        'promotion' => $promotionLabel !== '' ? $promotionLabel : '-',
         'niveau' => $niveauLabel,
         'm1' => $m1,
         'm2' => $m2,
@@ -77,7 +86,6 @@ foreach ($rapportsVerifies as $rapport) {
         'title' => (string) ($rapport['titre_rapport'] ?? ''),
     ];
 }
-
 $allowedLimits = [2, 5, 10, 25, 50, 100];
 $perPage = max(2, (int) ($_GET['limit_candidatures'] ?? 10));
 if (!in_array($perPage, $allowedLimits, true)) {
@@ -99,17 +107,21 @@ $pagination = function_exists('cm_paginate')
 $rowsPage = array_slice($rows, (int) ($pagination['offset'] ?? 0), $perPage);
 $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' . $perPage;
 ?>
-
 <div class="cm-prd3-screen cm-prd3-crud-screen">
     <?php
     cm_component('layout/page-header', [
-        'title' => 'Dossiers de candidatures',
+        'title' => '',
         'subtitle' => 'Traitement inline des dossiers (sans modal).',
-        'annee' => date('Y') . '-' . (date('Y') + 1),
+        'annee' => trim((string) ($_SESSION['global_annee_selected'] ?? '')),
         'icon' => 'fa-folder-open',
     ]);
+    if ($allYearsSelected) {
+        cm_component('ui/alert-box', [
+            'type' => 'info',
+            'message' => "Affichage global sur toutes les années. Les traitements restent limités à l'année active {$writableYearLabel}.",
+        ]);
+    }
     ?>
-
     <div class="cm-grid-3 cm-mb-md">
         <?php
         cm_component('dashboard/stat-widget', [
@@ -120,32 +132,25 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
         ]);
         cm_component('dashboard/stat-widget', [
             'value' => (string) ((int) ($statistiques['approuves'] ?? 0)),
-            'label' => 'Validees',
+            'label' => 'Validées',
             'icon' => 'fa-circle-check',
             'color' => 'success',
         ]);
         cm_component('dashboard/stat-widget', [
             'value' => (string) ((int) ($statistiques['desapprouves'] ?? 0)),
-            'label' => 'Rejetees',
+            'label' => 'Rejetées',
             'icon' => 'fa-circle-xmark',
             'color' => 'warning',
         ]);
         ?>
     </div>
-
     <div class="cm-crud-wrapper">
     <div class="cm-pole-superieur">
-        <div class="cm-pole-superieur-title">
-            <h2>
-                <i class="fas fa-user-gear" aria-hidden="true"></i>
-                Traitement du dossier
-            </h2>
+        <div class="">
         </div>
-
         <form id="cmTraitementForm" onsubmit="return false;">
             <input type="hidden" id="cmSelectedRapportId" value="">
             <input type="hidden" id="cmSelectedRapportUrl" value="">
-
             <div class="cm-grid-4">
                 <?php
                 cm_component('form/input-text', [
@@ -187,7 +192,6 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                 'maxlength' => 500,
             ]);
             ?>
-
             <div class="cm-form-buttons">
                 <button type="button" class="cm-btn is-success" id="cmApplyTraitement">
                     <i class="fas fa-check" aria-hidden="true"></i>
@@ -199,12 +203,11 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                 </a>
                 <button type="button" class="cm-btn is-light" id="cmResetTraitement">
                     <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                    Reinitialiser
+                    Réinitialiser
                 </button>
             </div>
         </form>
     </div>
-
     <div class="cm-barre-intermediaire">
         <div class="cm-toolbar">
             <div class="cm-toolbar-left">
@@ -216,10 +219,6 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <span class="cm-badge is-info cm-toolbar-year">
-                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-                    <?php echo date('Y') . '-' . (date('Y') + 1); ?>
-                </span>
                 <label for="cmFilterCandStatus"><strong>Statut:</strong></label>
                 <select id="cmFilterCandStatus" class="cm-form-control cm-form-select is-sm cm-toolbar-field-sm">
                     <option value="">Tous</option>
@@ -231,12 +230,12 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                 <input type="date" id="cmFilterCandDate" class="cm-form-control is-sm cm-toolbar-field-lg">
             </div>
             <div class="cm-toolbar-center">
-                <input type="text" id="cmSearchCandidature" class="cm-form-control" placeholder="Rechercher (etudiant, numero, titre)...">
+                <input type="text" id="cmSearchCandidature" class="cm-form-control" placeholder="Rechercher (étudiant, numéro, titre)...">
             </div>
             <div class="cm-toolbar-right">
                 <button type="button" class="cm-btn is-info is-sm" id="cmSelectAllCandidatures">
                     <i class="fas fa-check-square" aria-hidden="true"></i>
-                    Tout selectionner
+                    Tout sélectionner
                 </button>
                 <button type="button" class="cm-btn is-light is-sm" id="cmDeselectAllCandidatures">
                     <i class="fas fa-square" aria-hidden="true"></i>
@@ -257,18 +256,18 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
             </div>
         </div>
     </div>
-
     <div class="cm-pole-inferieur">
         <div class="cm-table-wrapper">
             <table class="cm-data-table" id="cmCandidaturesTable">
                 <thead>
                 <tr>
                     <th class="cm-data-table__th is-checkbox">
-                        <input type="checkbox" id="cmCheckAllCandidatures" class="cm-checkbox" aria-label="Selectionner toutes les lignes">
+                        <input type="checkbox" id="cmCheckAllCandidatures" class="cm-checkbox" aria-label="Sélectionner toutes les lignes">
                     </th>
                     <th class="cm-data-table__th">N°C</th>
                     <th class="cm-data-table__th">N° Etud.</th>
                     <th class="cm-data-table__th">Nom & Prenom</th>
+                    <th class="cm-data-table__th">Promotion</th>
                     <th class="cm-data-table__th">Niveau</th>
                     <th class="cm-data-table__th">M1</th>
                     <th class="cm-data-table__th">M2</th>
@@ -282,8 +281,8 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                 <?php if (empty($rowsPage)): ?>
                     <?php cm_component('ui/empty-state', [
                         'in_table' => true,
-                        'colspan' => 11,
-                        'title' => 'Aucun dossier',
+                        'colspan' => 12,
+                        'title' => '',
                         'message' => 'Aucune candidature verifiee disponible.',
                     ]); ?>
                 <?php else: ?>
@@ -306,6 +305,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                             <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['id_rapport'], ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['num_etu'], ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['nom_complet'], ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['promotion'], ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['niveau'], ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo $row['m1'] !== null ? htmlspecialchars(number_format((float) $row['m1'], 2), ENT_QUOTES, 'UTF-8') : '-'; ?></td>
                             <td class="cm-data-table__td"><?php echo $row['m2'] !== null ? htmlspecialchars(number_format((float) $row['m2'], 2), ENT_QUOTES, 'UTF-8') : '-'; ?></td>
@@ -321,9 +321,10 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                             </td>
                         </tr>
                         <tr id="cmCandDetail_<?php echo (int) $row['id_rapport']; ?>" class="cm-cand-detail-row cm-hidden">
-                            <td class="cm-data-table__td" colspan="11">
+                            <td class="cm-data-table__td" colspan="12">
                                 <div class="cm-grid-4">
                                     <div><strong>Date Cand.</strong><br><?php echo !empty($row['date_candidature']) ? htmlspecialchars(date('d/m/Y', strtotime((string) $row['date_candidature'])), ENT_QUOTES, 'UTF-8') : '-'; ?></div>
+                                    <div><strong>Promotion</strong><br><?php echo htmlspecialchars((string) $row['promotion'], ENT_QUOTES, 'UTF-8'); ?></div>
                                     <div><strong>Statut Candidature</strong><br><?php cm_component('ui/badge', ['text' => (string) $row['cand_status'], 'type' => (string) $row['cand_badge']]); ?></div>
                                     <div><strong>Admin traitant</strong><br><?php echo htmlspecialchars((string) ($row['admin'] !== '' ? $row['admin'] : '-'), ENT_QUOTES, 'UTF-8'); ?></div>
                                     <div><strong>Date traitement</strong><br><?php echo !empty($row['date_traitement']) ? htmlspecialchars(date('d/m/Y', strtotime((string) $row['date_traitement'])), ENT_QUOTES, 'UTF-8') : '-'; ?></div>
@@ -358,7 +359,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                                             data-status="<?php echo htmlspecialchars((string) $row['cand_status'], ENT_QUOTES, 'UTF-8'); ?>"
                                             data-commentaire="<?php echo htmlspecialchars((string) $row['commentaire'], ENT_QUOTES, 'UTF-8'); ?>"
                                             data-url="<?php echo htmlspecialchars('?page=gestion_dossiers_candidatures&action=consulter_rapport&id_rapport=' . urlencode((string) $row['id_rapport']), ENT_QUOTES, 'UTF-8'); ?>"
-                                            data-info="<?php echo htmlspecialchars('Niveau: ' . $row['niveau'] . ' | Verse: ' . number_format((float) $row['montant_verse'], 0, ',', ' ') . ' FCFA | Reste: ' . number_format((float) $row['reste_a_payer'], 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?>">
+                                            data-info="<?php echo htmlspecialchars('Promotion: ' . $row['promotion'] . ' | Niveau: ' . $row['niveau'] . ' | Verse: ' . number_format((float) $row['montant_verse'], 0, ',', ' ') . ' FCFA | Reste: ' . number_format((float) $row['reste_a_payer'], 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?>">
                                         <i class="fas fa-pen" aria-hidden="true"></i>
                                         Traiter
                                     </button>
@@ -370,7 +371,6 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                 </tbody>
             </table>
         </div>
-
         <?php cm_component('crud/pagination', [
             'pagination' => $pagination,
             'base_url' => $paginationBaseUrl,
@@ -379,7 +379,6 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
     </div>
 </div>
 </div>
-
 <script>
 (function () {
     const navigate = function (url) {
@@ -389,7 +388,6 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
         }
         window.location.href = url;
     };
-
     const toggleButtons = document.querySelectorAll('.cm-toggle-detail');
     for (let i = 0; i < toggleButtons.length; i++) {
         toggleButtons[i].addEventListener('click', function () {
@@ -404,7 +402,6 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
             target.classList.toggle('cm-hidden');
         });
     }
-
     const selectedId = document.getElementById('cmSelectedRapportId');
     const selectedUrl = document.getElementById('cmSelectedRapportUrl');
     const fieldEtudiant = document.getElementById('cmTraitementEtudiant');
@@ -413,7 +410,6 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
     const fieldInfo = document.getElementById('cmTraitementInfo');
     const fieldCommentaire = document.getElementById('cmTraitementCommentaire');
     const openLink = document.getElementById('cmOpenRapportFromForm');
-
     const pickButtons = document.querySelectorAll('.cm-pick-traitement');
     for (let i = 0; i < pickButtons.length; i++) {
         pickButtons[i].addEventListener('click', function () {
@@ -425,32 +421,29 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
             fieldStatut.value = btn.getAttribute('data-status') || '';
             fieldInfo.value = btn.getAttribute('data-info') || '';
             fieldCommentaire.value = btn.getAttribute('data-commentaire') || '';
-
             if (openLink && selectedUrl.value !== '') {
                 openLink.href = selectedUrl.value;
                 openLink.classList.remove('cm-hidden');
             }
         });
     }
-
     const applyBtn = document.getElementById('cmApplyTraitement');
     if (applyBtn) {
         applyBtn.addEventListener('click', function () {
             if (!selectedId.value) {
-                window.alert('Selectionnez d\'abord un dossier via le bouton Traiter.');
+                window.alert('Sélectionnez d\'abord un dossier via le bouton Traiter.');
                 return;
             }
             const statut = fieldStatut.value || '';
             const commentaire = (fieldCommentaire.value || '').trim();
             const normalized = statut.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             if (normalized === 'rejetee' && commentaire === '') {
-                window.alert('Le commentaire est obligatoire pour un dossier rejete.');
+                window.alert('Le commentaire est obligatoire pour un dossier rejeté.');
                 return;
             }
             window.alert('Traitement pre-rempli. Le flux de validation final est gere par le module de commission.');
         });
     }
-
     const resetBtn = document.getElementById('cmResetTraitement');
     if (resetBtn) {
         resetBtn.addEventListener('click', function () {
@@ -467,7 +460,6 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
             }
         });
     }
-
     const searchInput = document.getElementById('cmSearchCandidature');
     const limitSelect = document.getElementById('cmCandidaturesLimit');
     const statusFilter = document.getElementById('cmFilterCandStatus');
@@ -492,25 +484,21 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
             checkAll.checked = all.length > 0 && all.every(function (cb) { return cb.checked; });
         }
     };
-
     const applyFilters = function () {
         const term = (searchInput ? searchInput.value : '').trim().toLowerCase();
         const status = (statusFilter ? statusFilter.value : '').trim().toLowerCase();
         const date = (dateFilter ? dateFilter.value : '').trim();
         const rows = document.querySelectorAll('.cm-cand-main-row');
-
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             const detailRow = document.getElementById('cmCandDetail_' + row.getAttribute('data-row-id'));
             const search = row.getAttribute('data-search') || '';
             const rowStatus = row.getAttribute('data-status') || '';
             const rowDate = row.getAttribute('data-date') || '';
-
             const matchSearch = term === '' || search.indexOf(term) !== -1;
             const matchStatus = status === '' || rowStatus === status;
             const matchDate = date === '' || rowDate === date;
             const visible = matchSearch && matchStatus && matchDate;
-
             row.style.display = visible ? '' : 'none';
             if (detailRow) {
                 detailRow.style.display = visible ? '' : 'none';
@@ -520,7 +508,6 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
             }
         }
     };
-
     if (searchInput) {
         searchInput.addEventListener('input', applyFilters);
     }
@@ -538,7 +525,6 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
             navigate(url.toString());
         });
     }
-
     const checkAll = document.getElementById('cmCheckAllCandidatures');
     if (checkAll) {
         checkAll.addEventListener('change', function () {
@@ -573,13 +559,11 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
             window.alert('Suppression multiple indisponible sur cet ecran.');
         });
     }
-
     const exportBtn = document.getElementById('cmExportCandidatures');
     if (exportBtn) {
         exportBtn.addEventListener('click', function () {
             const headers = ['N°C', 'N° Etud.', 'Nom & Prenom', 'Niveau', 'M1', 'M2', 'Verse', 'Reste', 'Statut paiement'];
             const lines = [headers.join(';')];
-
             document.querySelectorAll('.cm-cand-main-row').forEach(function (row) {
                 if (row.style.display === 'none') {
                     return;
@@ -590,7 +574,6 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                 });
                 lines.push(values.join(';'));
             });
-
             const blob = new Blob(["\uFEFF" + lines.join('\n')], {type: 'text/csv;charset=utf-8;'});
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -600,14 +583,12 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
             document.body.removeChild(link);
         });
     }
-
     const printBtn = document.getElementById('cmPrintCandidatures');
     if (printBtn) {
         printBtn.addEventListener('click', function () {
             window.print();
         });
     }
-
     updateSelectionState();
 })();
 </script>

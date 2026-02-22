@@ -4,10 +4,10 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_generaux');
 cm_render_param_crud_view([
     'page_slug' => $pageSlug,
     'action' => 'niveaux_acces',
-    'title' => 'Gestion des niveaux d acces',
+    'title' => '',
     'icon' => 'fa-lock',
-    'form_title_add' => 'Ajout niveau d acces',
-    'form_title_edit' => 'Modification niveau d acces',
+    'form_title_add' => '',
+    'form_title_edit' => '',
     'id_key' => 'id_niveau_acces_donnees',
     'id_param' => 'id_niveau',
     'id_field_name' => 'id_niveau_acces_donnees',

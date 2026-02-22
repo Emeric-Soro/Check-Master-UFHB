@@ -66,6 +66,12 @@ class GestionCandidaturesController {
 
         // Nouvelle action pour envoyer les résultats
         if ($action === 'envoyer_resultats' && $examiner) {
+            $writeGuard = $this->service->ensureWritableCandidature($examiner);
+            if (!$writeGuard['success']) {
+                $_SESSION['error'] = $writeGuard['message'];
+                header("Location: ?page=gestion_candidatures_soutenance&examiner=$examiner&etape=4");
+                exit;
+            }
             $etapesValidation = $_SESSION['etapes_validation'][$examiner] ?? [];
             $this->service->envoyerResultatsFinaux($examiner, $_SESSION['login_utilisateur'], $etapesValidation);
             $this->service->logAction($_SESSION['id_utilisateur'], 'Envoi résultats');

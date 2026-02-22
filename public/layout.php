@@ -11,7 +11,67 @@ Session::start();
 // Bufferiser la sortie pour injecter CSRF sur les formulaires legacy (migration progressive).
 ob_start();
 
+// [INJECTED_LOGGER]
+register_shutdown_function(function() {
+    $files = get_included_files();
+    $logFile = __DIR__ . '/../../views_used.log';
+    if (!file_exists($logFile)) {
+        touch($logFile);
+        chmod($logFile, 0777);
+    }
+    $usedViews = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if ($usedViews === false) $usedViews = [];
+    
+    $updated = false;
+    foreach ($files as $f) {
+        $f = str_replace(DIRECTORY_SEPARATOR, '/', $f);
+        if (strpos($f, 'ressources/views') !== false) {
+            if (!in_array($f, $usedViews)) {
+                $usedViews[] = $f;
+                $updated = true;
+            }
+        }
+    }
+    
+    if ($updated) {
+        file_put_contents($logFile, implode("\n", $usedViews) . "\n");
+    }
+});
+// [/INJECTED_LOGGER]
+
+
+
 include __DIR__ . '/../app/config/database.php';
+require_once __DIR__ . '/../app/utils/AcademicYear.php';
+
+// ── Année académique globale ── résolution AVANT chargement des routes/contrôleurs
+// afin que $_SESSION['global_annee_id'] soit disponible dans toutes les vues.
+$globalAcademicYears = [];
+$currentGlobalYear = '';
+$currentGlobalYearId = null;
+$currentGlobalYearIsAll = false;
+$activeGlobalYear = '';
+$activeGlobalYearId = null;
+$writableGlobalYear = '';
+$writableGlobalYearId = null;
+try {
+    $__context = AcademicYear::bootstrapSession(Database::getConnection(), $_GET, $_SESSION);
+
+    foreach (($__context['years'] ?? []) as $__year) {
+        $globalAcademicYears[(int) ($__year['id'] ?? 0)] = (string) ($__year['label'] ?? '');
+    }
+
+    $currentGlobalYear = (string) ($__context['selected']['label'] ?? '');
+    $currentGlobalYearId = isset($__context['selected']['id']) ? (int) $__context['selected']['id'] : null;
+    $currentGlobalYearIsAll = !empty($__context['all_selected']);
+    $activeGlobalYear = (string) ($__context['active']['label'] ?? '');
+    $activeGlobalYearId = isset($__context['active']['id']) ? (int) $__context['active']['id'] : null;
+    $writableGlobalYear = (string) ($__context['writable']['label'] ?? '');
+    $writableGlobalYearId = isset($__context['writable']['id']) ? (int) $__context['writable']['id'] : null;
+} catch (\Throwable $e) {
+    error_log('Layout: erreur chargement années académiques: ' . $e->getMessage());
+}
+
 include __DIR__ . '/../app/controllers/AuthController.php';
 include __DIR__ . '/../app/controllers/MenuController.php';
 include __DIR__ . '/../app/middlewares/PermissionMiddleware.php';
@@ -71,6 +131,33 @@ if (!isset($_SESSION['id_utilisateur'])) {
 
     // NOUVEAU : Initialiser le middleware de permissions
     $permissionMiddleware = new PermissionMiddleware();
+
+    // NOUVEAU : Gate centralisé (Couche 1) - Sécurité backend globale pour les routes legacy
+    $corePages = ['dashboard', 'dashboard_admin', 'profil', 'access_denied'];
+    $currentMenuSlugForGate = isset($_GET['page']) ? $_GET['page'] : '';
+    
+    if (!empty($currentMenuSlugForGate) && !in_array($currentMenuSlugForGate, $corePages) && !isAdmin()) {
+        $routePermissionService = new RoutePermissionService(Database::getConnection());
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        
+        if (!$routePermissionService->canAccessLegacy((int) $_SESSION['id_GU'], $_GET, $_POST, $method)) {
+            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+            
+            if ($isAjax) {
+                http_response_code(403);
+                header('Content-Type: application/json; charset=UTF-8');
+                echo json_encode(['success' => false, 'message' => 'Accès refusé. Permissions insuffisantes.']);
+                exit;
+            }
+            
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            
+            $redirect = 'layout.php?page=access_denied';
+            header('Location: ' . $redirect);
+            exit;
+        }
+    }
 
     $menuController = new MenuController();
 
@@ -244,7 +331,6 @@ if (!isset($_SESSION['id_utilisateur'])) {
         case 'gestion_etudiants':
             include __DIR__ . '/../ressources/routes/gestionEtudiantRoutes.php';
             if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'imprimer_recu' && isset($_GET['id_inscription'])) {
-                require_once __DIR__ . '/../vendor/autoload.php';
                 $id_inscription = (int) $_GET['id_inscription'];
                 // Anti-IDOR: si étudiant, ne permettre que ses propres documents
                 if (isset($_SESSION['id_GU']) && (int) $_SESSION['id_GU'] === 13) {
@@ -256,25 +342,31 @@ if (!isset($_SESSION['id_utilisateur'])) {
                         exit;
                     }
                 }
-                ob_start();
-                include __DIR__ . '../../ressources/views/gestion_etudiants/recu_inscription.php';
-                $html = ob_get_clean();
-                if (class_exists('\Dompdf\Options')) {
-                    $options = new \Dompdf\Options();
-                    $options->set('isRemoteEnabled', true);
-                    $dompdf = new Dompdf\Dompdf($options);
-                } else {
-                    $dompdf = new Dompdf\Dompdf();
+                // RecuGeneratorService, PdfGeneratorService, Database, RecuDataUtils : autoloadés par Composer (PSR-4)
+                $dbWrapper = new \App\Support\Database();
+                $recuDataUtils = new \App\Utils\RecuDataUtils($dbWrapper);
+                $pdfGen = new \App\Services\Document\PdfGeneratorService(
+                    __DIR__ . '/../storage',
+                    __DIR__ . '/../public/assets/img/logo.png'
+                );
+                $recuService = new \App\Services\Document\RecuGeneratorService($pdfGen, $recuDataUtils, $dbWrapper);
+                // Chercher le versement lié à l'inscription
+                $pdo = $dbWrapper->pdo();
+                $stmtV = $pdo->prepare('SELECT id_versement FROM versement WHERE id_inscription = :id ORDER BY date_versement DESC LIMIT 1');
+                $stmtV->execute([':id' => $id_inscription]);
+                $versementRow = $stmtV->fetch(\PDO::FETCH_ASSOC);
+                if ($versementRow) {
+                    $result = $recuService->generate((int) $versementRow['id_versement'], (int) ($_SESSION['id_utilisateur'] ?? 0));
+                    if ($result['success'] && !empty($result['path']) && file_exists($result['path'])) {
+                        header('Content-Type: application/pdf');
+                        header('Content-Disposition: inline; filename="recu_paiement_' . $id_inscription . '.pdf"');
+                        header('Content-Length: ' . filesize($result['path']));
+                        readfile($result['path']);
+                        exit;
+                    }
                 }
-                $publicPath = realpath(__DIR__ . '/../');
-                if ($publicPath) {
-                    $dompdf->setBasePath($publicPath);
-                }
-                $dompdf->loadHtml($html);
-                $dompdf->setPaper('A4', 'landscape');
-                $dompdf->render();
-                $dompdf->stream("recu_paiement_" . $id_inscription . ".pdf", array("Attachment" => false));
-                exit;
+                // Fallback : erreur silencieuse, on continue vers la page normale
+                error_log('Erreur génération reçu inscription #' . $id_inscription . ': versement non trouvé ou échec PDF');
             }
             $allowedActions = ['ajouter_des_etudiants', 'inscrire_des_etudiants'];
             $actionLabels = [
@@ -342,63 +434,58 @@ if (!isset($_SESSION['id_utilisateur'])) {
             break;
         case 'gestion_scolarite':
             if (isset($_GET['action']) && $_GET['action'] === 'imprimer_recu' && isset($_GET['id'])) {
-                require_once __DIR__ . '/../vendor/autoload.php';
                 $id_versement = (int) $_GET['id'];
                 // Anti-IDOR: si étudiant, ne permettre que ses propres versements
                 if (isset($_SESSION['id_GU']) && (int) $_SESSION['id_GU'] === 13) {
                     require_once __DIR__ . '/../app/models/Scolarite.php';
                     $scolarite = new Scolarite(Database::getConnection());
                     $versement = $scolarite->getVersementById($id_versement);
-                    if (!$versement || (int) $versement['num_etu'] !== (int) ($_SESSION['num_etu'] ?? 0)) {
+                    if (!$versement || $versement['id_etudiant'] !== ($_SESSION['num_etu'] ?? '')) {
                         header('Location: layout.php?page=access_denied');
                         exit;
                     }
                 }
-                ob_start();
-                include __DIR__ . '../../ressources/views/recu_versement.php';
-                $html = ob_get_clean();
-                if (class_exists('\Dompdf\Options')) {
-                    $options = new \Dompdf\Options();
-                    $options->set('isRemoteEnabled', true);
-                    $dompdf = new Dompdf\Dompdf($options);
-                } else {
-                    $dompdf = new Dompdf\Dompdf();
+                // RecuGeneratorService, PdfGeneratorService, Database, RecuDataUtils : autoloadés par Composer (PSR-4)
+                $dbWrapper = new \App\Support\Database();
+                $recuDataUtils = new \App\Utils\RecuDataUtils($dbWrapper);
+                $pdfGen = new \App\Services\Document\PdfGeneratorService(
+                    __DIR__ . '/../storage',
+                    __DIR__ . '/../public/assets/img/logo.png'
+                );
+                $recuService = new \App\Services\Document\RecuGeneratorService($pdfGen, $recuDataUtils, $dbWrapper);
+                $result = $recuService->generate($id_versement, (int) ($_SESSION['id_utilisateur'] ?? 0));
+                if ($result['success'] && !empty($result['path']) && file_exists($result['path'])) {
+                    header('Content-Type: application/pdf');
+                    header('Content-Disposition: inline; filename="recu_paiement_' . $id_versement . '.pdf"');
+                    header('Content-Length: ' . filesize($result['path']));
+                    readfile($result['path']);
+                    exit;
                 }
-                $publicPath = realpath(__DIR__ . '/../');
-                if ($publicPath) {
-                    $dompdf->setBasePath($publicPath);
-                }
-                $dompdf->loadHtml($html);
-                $dompdf->setPaper('A4', 'landscape');
-                $dompdf->render();
-                $dompdf->stream("recu_paiement_" . $id_versement . ".pdf", array("Attachment" => false));
-                exit;
+                // Fallback : erreur silencieuse, on continue vers la page normale
+                error_log('Erreur génération reçu versement #' . $id_versement . ': ' . ($result['error'] ?? 'inconnue'));
             }
             $contentFile = $partialsBasePath . 'gestion_scolarite_content.php';
             $currentPageLabel = 'Gestion de la scolarité';
             break;
         case 'gestion_notes_evaluations':
             if (isset($_GET['action']) && $_GET['action'] === 'imprimer_releve' && isset($_GET['student']) && isset($_GET['niveau'])) {
-                require_once __DIR__ . '/../vendor/autoload.php';
-                $id_etudiant = (int) $_GET['student'];
+                $id_etudiant = $_GET['student'];
                 $niveau = $_GET['niveau'];
                 // Anti-IDOR: étudiant ne peut imprimer que son relevé
                 if (isset($_SESSION['id_GU']) && (int) $_SESSION['id_GU'] === 13) {
-                    if ($id_etudiant !== (int) ($_SESSION['num_etu'] ?? 0)) {
+                    if ($id_etudiant !== ($_SESSION['num_etu'] ?? '')) {
                         header('Location: layout.php?page=access_denied');
                         exit;
                     }
                 }
-                ob_start();
-                include __DIR__ . '../../ressources/views/releve_notes.php';
-                $html = ob_get_clean();
-                $dompdf = new Dompdf\Dompdf();
-                $dompdf->setBasePath(__DIR__ . '../public/images/');
-                $dompdf->loadHtml($html);
-                $dompdf->setPaper('A4', 'portrait');
-                $dompdf->render();
-                $dompdf->stream("releve_notes_" . $id_etudiant . "_" . $niveau . ".pdf", array("Attachment" => false));
-                exit;
+                // NotesResultatsController et NotesResultatsService : autoloadés
+                $notesService = new \CheckMaster\Services\NotesResultatsService(Database::getConnection());
+                // Positionner num_etu pour le service
+                $originalNumEtu = $_SESSION['num_etu'] ?? null;
+                $_SESSION['num_etu'] = $id_etudiant;
+                $notesService->generatePdf((string) $id_etudiant);
+                // generatePdf() fait exit, mais au cas où:
+                $_SESSION['num_etu'] = $originalNumEtu;
             }
             $contentFile = $partialsBasePath . 'gestion_notes_evaluations_content.php';
             $currentPageLabel = 'Gestion des notes et évaluations';
@@ -450,6 +537,13 @@ if (!isset($_SESSION['id_utilisateur'])) {
             } else {
                 $contentFile = $partialsBasePath . 'admin_historique.php';
             }
+            break;
+        case 'repertoire_enseignant':
+            // RepertoireEnseignantService : autoloadé par CheckMaster\ SPL
+            $service = new \CheckMaster\Services\RepertoireEnseignantService(\Database::getConnection());
+            $service->index();
+            $contentFile = $partialsBasePath . 'repertoire_enseignant_content.php';
+            $currentPageLabel = 'Repertoire documents';
             break;
         case 'maj_enseignant':
             $_GET['tab'] = 'enseignant';
@@ -733,18 +827,66 @@ if (!isset($_SESSION['id_utilisateur'])) {
           data-page="<?php echo htmlspecialchars((string) $currentMenuSlug, ENT_QUOTES, 'UTF-8'); ?>"
           data-action="<?php echo htmlspecialchars((string) ($currentAction ?? ($_GET['action'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
         <?php cm_component('ui/toast'); ?>
+
+        <?php // Les variables $globalAcademicYears, $currentGlobalYear, $currentGlobalYearId
+              // sont calculées en haut du fichier (après database.php) et $_SESSION['global_annee_id'] est déjà défini. ?>
+
+        
+        <div class="cm-global-topbar cm-flex cm-flex-between cm-flex-center cm-px-lg cm-py-sm cm-bg-white" style="border-bottom: 1px solid var(--cm-border-color); margin-bottom: var(--cm-spacing-md);">
+            <button type="button" class="cm-btn cm-btn--outline cm-btn--sm" onclick="history.back()">
+                <i class="fas fa-arrow-left"></i> Retour
+            </button>
+            <div class="cm-flex cm-flex-center cm-flex-gap-sm">
+                <label for="globalAnneeAcademique" class="cm-text-sm cm-text-semibold cm-m-0" style="margin-bottom:0;">Année Académique :</label>
+                <?php
+                $yearQueryBase = $_GET;
+                unset(
+                    $yearQueryBase['global_annee'],
+                    $yearQueryBase['global_annee_id'],
+                    $yearQueryBase['annee'],
+                    $yearQueryBase['id_annee_acad'],
+                    $yearQueryBase['bulletin_annee']
+                );
+                ?>
+                <select id="globalAnneeAcademique" class="cm-form-control cm-select--sm" onchange="window.location.href=this.value" style="width: auto; padding: 2px 8px; font-size: 0.8rem; height: 30px;">
+                    <?php $allYearsQuery = $yearQueryBase; $allYearsQuery['global_annee_id'] = AcademicYear::getAllQueryValue(); ?>
+                    <option value="?<?= htmlspecialchars(http_build_query($allYearsQuery), ENT_QUOTES, 'UTF-8') ?>" <?= $currentGlobalYearIsAll ? 'selected' : '' ?>>
+                        <?= htmlspecialchars(AcademicYear::getAllLabel(), ENT_QUOTES, 'UTF-8') ?>
+                    </option>
+                    <?php foreach ($globalAcademicYears as $id => $label): ?>
+                        <?php $yearQuery = $yearQueryBase; $yearQuery['global_annee_id'] = $id; ?>
+                        <option value="?<?= htmlspecialchars(http_build_query($yearQuery), ENT_QUOTES, 'UTF-8') ?>" <?= (!$currentGlobalYearIsAll && (int) $currentGlobalYearId === (int) $id) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($label) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <?php if ($currentGlobalYearIsAll && $writableGlobalYear !== ''): ?>
+                    <span class="cm-text-xs cm-text-muted" title="Affichage global sur toutes les années">
+                        Affichage global. Écritures: <?= htmlspecialchars($writableGlobalYear, ENT_QUOTES, 'UTF-8') ?>
+                    </span>
+                <?php elseif ($currentGlobalYearId !== null && $activeGlobalYearId !== null && (int) $currentGlobalYearId !== (int) $activeGlobalYearId): ?>
+                    <span class="cm-text-xs cm-text-muted" title="Consultation historique uniquement">
+                        Consultation: <?= htmlspecialchars($currentGlobalYear, ENT_QUOTES, 'UTF-8') ?>
+                    </span>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <?php
-        if (!empty($contentFile) && file_exists($contentFile)) {
-            include $contentFile;
-        } else {
-            echo "<div class='cm-card cm-p-lg'>";
-            echo "<div class='cm-text-danger cm-text-semibold cm-mb-sm'>Erreur de chargement</div>";
-            if (empty($contentFile)) {
-                echo "<div>Aucun fichier de contenu n'a été spécifié pour cette vue.</div>";
+        // Si $contentFile est explicitement null, le contenu a déjà été géré par un service
+        if ($contentFile !== null) {
+            if (!empty($contentFile) && file_exists($contentFile)) {
+                include $contentFile;
             } else {
-                echo "<div>Le fichier de contenu pour '" . htmlspecialchars($currentPageLabel) . "' est introuvable.</div>";
+                echo "<div class='cm-card cm-p-lg'>";
+                echo "<div class='cm-text-danger cm-text-semibold cm-mb-sm'>Erreur de chargement</div>";
+                if (empty($contentFile)) {
+                    echo "<div>Aucun fichier de contenu n'a été spécifié pour cette vue.</div>";
+                } else {
+                    echo "<div>Le fichier de contenu pour '" . htmlspecialchars($currentPageLabel) . "' est introuvable.</div>";
+                }
+                echo "</div>";
             }
-            echo "</div>";
         }
         ?>
     </main>

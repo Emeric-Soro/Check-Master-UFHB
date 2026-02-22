@@ -4,6 +4,7 @@ namespace CheckMaster\Services;
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use Etudiant;
 use AuditLog;
@@ -190,7 +191,22 @@ class GestionEtudiantService
      */
     public function getAllEtudiants(): array
     {
-        return $this->etudiant->getAllEtudiants();
+        return $this->etudiant->getAllEtudiants($this->getSelectedAcademicYearId());
+    }
+
+    private function getSelectedAcademicYearId(): ?int
+    {
+        return \AcademicYear::getSelectedIdFromSession();
+    }
+
+    private function getStudentAcademicYearId(string $numEtu): ?int
+    {
+        $etudiant = $this->etudiant->getEtudiantById($numEtu);
+        if ($etudiant && isset($etudiant->id_annee_acad) && is_numeric($etudiant->id_annee_acad)) {
+            return (int) $etudiant->id_annee_acad;
+        }
+
+        return null;
     }
 
     /**
@@ -242,6 +258,14 @@ class GestionEtudiantService
             return ['success' => false, 'message' => $anneeResolved['message']];
         }
         $id_annee_acad = $anneeResolved['value'];
+        $selectedYearId = $this->getSelectedAcademicYearId();
+        if ($selectedYearId !== null && $id_annee_acad !== null && $selectedYearId !== $id_annee_acad) {
+            return ['success' => false, 'message' => "L'année académique de l'étudiant doit correspondre à l'année actuellement sélectionnée."];
+        }
+        $writeGuard = \AcademicYear::ensureWritableYear($this->db, $id_annee_acad, "un etudiant");
+        if (!$writeGuard['success']) {
+            return ['success' => false, 'message' => $writeGuard['message']];
+        }
         $identifiant_mesrs = !empty($data['identifiant_mesrs']) ? trim($data['identifiant_mesrs']) : null;
 
         // Validation de l'email
@@ -319,6 +343,22 @@ class GestionEtudiantService
             return ['success' => false, 'message' => $anneeResolved['message']];
         }
         $id_annee_acad = $anneeResolved['value'];
+        $selectedYearId = $this->getSelectedAcademicYearId();
+        $currentStudentYearId = $this->getStudentAcademicYearId($old_num_etu);
+        if ($selectedYearId !== null && $currentStudentYearId !== null && $selectedYearId !== $currentStudentYearId) {
+            return ['success' => false, 'message' => "L'étudiant modifié ne correspond pas à l'année académique actuellement sélectionnée."];
+        }
+        if ($selectedYearId !== null && $id_annee_acad !== null && $selectedYearId !== $id_annee_acad) {
+            return ['success' => false, 'message' => "L'année académique de l'étudiant doit correspondre à l'année actuellement sélectionnée."];
+        }
+        $currentYearGuard = \AcademicYear::ensureWritableYear($this->db, $currentStudentYearId, "un etudiant");
+        if (!$currentYearGuard['success']) {
+            return ['success' => false, 'message' => $currentYearGuard['message']];
+        }
+        $writeGuard = \AcademicYear::ensureWritableYear($this->db, $id_annee_acad, "un etudiant");
+        if (!$writeGuard['success']) {
+            return ['success' => false, 'message' => $writeGuard['message']];
+        }
         $identifiant_mesrs = !empty($data['num_ident_etud']) ? trim($data['num_ident_etud']) : null;
 
         // Validation de l'email
@@ -381,11 +421,25 @@ class GestionEtudiantService
     {
         $success = true;
         $etudiantsSupprimes = [];
+        $selectedYearId = $this->getSelectedAcademicYearId();
 
         foreach ($selectedIds as $num_etu) {
             $etudiant = $this->etudiant->getEtudiantById($num_etu);
             if ($etudiant) {
                 $etudiantsSupprimes[] = "{$etudiant->nom_etu} {$etudiant->prenom_etu} ($num_etu)";
+            }
+
+            $studentYearId = $this->getStudentAcademicYearId((string) $num_etu);
+            if ($selectedYearId !== null && $studentYearId !== null && $selectedYearId !== $studentYearId) {
+                return [
+                    'success' => false,
+                    'message' => "Suppression interdite: un étudiant sélectionné n'appartient pas à l'année académique courante affichée."
+                ];
+            }
+
+            $writeGuard = \AcademicYear::ensureWritableYear($this->db, $studentYearId, "un etudiant");
+            if (!$writeGuard['success']) {
+                return ['success' => false, 'message' => $writeGuard['message']];
             }
 
             if (!$this->etudiant->supprimerEtudiant($num_etu)) {

@@ -13,7 +13,6 @@ use TypeUtilisateur;
 use GroupeUtilisateur;
 use NiveauAccesDonnees;
 use AuditLog;
-use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
 // Composer autoload (optionnel). Si vendor/ n'est pas installé, certaines fonctions (email) seront indisponibles.
@@ -150,6 +149,74 @@ class GestionUtilisateurService
         return $scheme . $host . $base . '/reset_password.php?token=' . urlencode($token);
     }
 
+    private function normalizeEmailValue($email): ?string
+    {
+        $email = trim((string) $email);
+        if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return null;
+        }
+
+        return $email;
+    }
+
+    private function recordExists(string $table, string $column, int $id): bool
+    {
+        $stmt = $this->db->prepare("SELECT 1 FROM {$table} WHERE {$column} = ? LIMIT 1");
+        $stmt->execute([$id]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    private function groupBelongsToType(int $groupId, int $typeId): bool
+    {
+        $stmt = $this->db->prepare("
+            SELECT 1
+            FROM groupe_utilisateur
+            WHERE id_GU = ? AND id_type_utilisateur = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$groupId, $typeId]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    private function resolveInvitationEmail(array $data, string $nomUtilisateur, int $idTypeUtilisateur, string $loginUtilisateur): ?string
+    {
+        $sourceEmail = $this->normalizeEmailValue($data['source_reference_email'] ?? null);
+        if ($sourceEmail !== null) {
+            return $sourceEmail;
+        }
+
+        $resolvedEmail = $this->normalizeEmailValue($this->utilisateur->getEmailByNomAndType($nomUtilisateur, $idTypeUtilisateur));
+        if ($resolvedEmail !== null) {
+            return $resolvedEmail;
+        }
+
+        return $this->normalizeEmailValue($loginUtilisateur);
+    }
+
+    private function safeAudit(callable $callback): void
+    {
+        try {
+            $callback();
+        } catch (\Throwable $e) {
+            error_log('Audit utilisateur: ' . $e->getMessage());
+        }
+    }
+
+    private function buildCreateUserFailureMessage(\Throwable $e): string
+    {
+        $message = $e->getMessage();
+
+        if (stripos($message, 'Integrity constraint violation') !== false) {
+            return "Les informations de type, groupe ou niveau d'accès sont incohérentes.";
+        }
+
+        if (stripos($message, 'Duplicate entry') !== false) {
+            return 'Ce login est déjà utilisé.';
+        }
+
+        return "Erreur lors de l'ajout de l'utilisateur.";
+    }
+
     /**
      * Ajoute un nouvel utilisateur
      *
@@ -159,12 +226,12 @@ class GestionUtilisateurService
      */
     public function addUtilisateur(array $data, int $userId): array
     {
-        $nom_utilisateur = $data['nom_utilisateur'] ?? '';
-        $id_type_utilisateur = $data['id_type_utilisateur'] ?? '';
-        $id_GU = $data['id_GU'] ?? '';
-        $login_utilisateur = $data['login_utilisateur'] ?? '';
-        $statut_utilisateur = $data['statut_utilisateur'] ?? '';
-        $id_niveau_acces = $data['id_niveau_acces'] ?? '';
+        $nom_utilisateur = trim((string) ($data['nom_utilisateur'] ?? ''));
+        $id_type_utilisateur = (int) ($data['id_type_utilisateur'] ?? 0);
+        $id_GU = (int) ($data['id_GU'] ?? 0);
+        $login_utilisateur = trim((string) ($data['login_utilisateur'] ?? ''));
+        $statut_utilisateur = trim((string) ($data['statut_utilisateur'] ?? ''));
+        $id_niveau_acces = (int) ($data['id_niveau_acces'] ?? 0);
 
         if (
             empty($nom_utilisateur) || empty($id_type_utilisateur) || empty($id_GU) ||
@@ -173,23 +240,37 @@ class GestionUtilisateurService
             return ['success' => false, 'message' => 'Tous les champs sont obligatoires.'];
         }
 
-        // Vérifier si le login est déjà utilisé
+        if (!$this->recordExists('type_utilisateur', 'id_type_utilisateur', $id_type_utilisateur)) {
+            return ['success' => false, 'message' => "Type d'utilisateur invalide."];
+        }
+
+        if (!$this->groupBelongsToType($id_GU, $id_type_utilisateur)) {
+            return ['success' => false, 'message' => "Le groupe utilisateur sélectionné ne correspond pas au type choisi."];
+        }
+
+        if (!$this->recordExists('niveau_acces_donnees', 'id_niveau_acces_donnees', $id_niveau_acces)) {
+            return ['success' => false, 'message' => "Niveau d'accès invalide."];
+        }
+
+        if (strlen($login_utilisateur) > 60) {
+            return ['success' => false, 'message' => 'Le login ne doit pas dépasser 60 caractères.'];
+        }
+
         if ($this->utilisateur->isLoginUsed($login_utilisateur)) {
             return ['success' => false, 'message' => 'Ce login (email) est déjà utilisé par un autre utilisateur.'];
         }
 
-        // Récupérer l'email réel de l'utilisateur à partir de son nom et type
-        $email = $this->utilisateur->getEmailByNomAndType($nom_utilisateur, $id_type_utilisateur);
-
-        if (!$email) {
-            return ['success' => false, 'message' => "Impossible de trouver l'email de cet utilisateur dans la base de données."];
-        }
-
-        // Mot de passe technique aléatoire (l'utilisateur doit définir le sien via lien)
+        $invitationEmail = $this->resolveInvitationEmail($data, $nom_utilisateur, $id_type_utilisateur, $login_utilisateur);
         $mdp_hash = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
+        $resetLink = null;
+        $manageTransaction = !$this->db->inTransaction();
 
-        if (
-            $this->utilisateur->ajouterUtilisateur(
+        try {
+            if ($manageTransaction) {
+                $this->db->beginTransaction();
+            }
+
+            $created = $this->utilisateur->ajouterUtilisateur(
                 $nom_utilisateur,
                 $id_type_utilisateur,
                 $id_GU,
@@ -197,22 +278,62 @@ class GestionUtilisateurService
                 $statut_utilisateur,
                 $login_utilisateur,
                 $mdp_hash
-            )
-        ) {
-            $token = $this->createPasswordResetToken($email);
-            $resetLink = $this->buildResetLink($token);
-            $emailResult = $this->envoyerEmailInscriptionPHPMailer($email, $nom_utilisateur, $login_utilisateur, null, $resetLink);
-            if ($emailResult['success']) {
-                $this->auditLog->logCreation($userId, 'utilisateur', 'Succès');
-                return ['success' => true, 'message' => "Utilisateur ajouté avec succès. Un lien de définition du mot de passe a été envoyé."];
-            } else {
-                $this->auditLog->logCreation($userId, 'utilisateur', 'Erreur');
-                return ['success' => true, 'message' => "Utilisateur ajouté avec succès mais erreur lors de l'envoi de l'email: " . $emailResult['message']];
+            );
+
+            if (!$created) {
+                throw new \RuntimeException("Insertion utilisateur impossible.");
             }
+
+            if ($invitationEmail !== null) {
+                $token = $this->createPasswordResetToken($invitationEmail);
+                $resetLink = $this->buildResetLink($token);
+            }
+
+            if ($manageTransaction && $this->db->inTransaction()) {
+                $this->db->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($manageTransaction && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            $this->safeAudit(function () use ($userId) {
+                $this->auditLog->logCreation($userId, 'utilisateur', 'Erreur');
+            });
+            error_log('GestionUtilisateurService::addUtilisateur - ' . $e->getMessage());
+            return ['success' => false, 'message' => $this->buildCreateUserFailureMessage($e)];
         }
 
-        $this->auditLog->logCreation($userId, 'utilisateur', 'Erreur');
-        return ['success' => false, 'message' => "Erreur lors de l'ajout de l'utilisateur."];
+        if ($invitationEmail === null) {
+            $this->safeAudit(function () use ($userId) {
+                $this->auditLog->logCreation($userId, 'utilisateur', 'Succès');
+            });
+            return [
+                'success' => true,
+                'feedback_type' => 'warning',
+                'message' => "Utilisateur ajouté avec succès. Aucun email n'est renseigné pour ce profil, les accès n'ont pas été envoyés.",
+            ];
+        }
+
+        $emailResult = $this->envoyerEmailInscriptionPHPMailer($invitationEmail, $nom_utilisateur, $login_utilisateur, null, $resetLink);
+        if ($emailResult['success']) {
+            $this->safeAudit(function () use ($userId) {
+                $this->auditLog->logCreation($userId, 'utilisateur', 'Succès');
+            });
+            return [
+                'success' => true,
+                'feedback_type' => 'success',
+                'message' => "Utilisateur ajouté avec succès. Un lien de définition du mot de passe a été envoyé.",
+            ];
+        }
+
+        $this->safeAudit(function () use ($userId) {
+            $this->auditLog->logCreation($userId, 'utilisateur', 'Erreur');
+        });
+        return [
+            'success' => true,
+            'feedback_type' => 'warning',
+            'message' => "Utilisateur ajouté avec succès mais erreur lors de l'envoi de l'email: " . $emailResult['message'],
+        ];
     }
 
     /**
@@ -300,7 +421,7 @@ class GestionUtilisateurService
                 $this->auditLog->logCreation($userId, 'utilisateur', 'Erreur');
                 return ['success' => false, 'message' => "Utilisateurs ajoutés mais erreurs d'envoi: " . implode('; ', $emailErrors)];
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             $this->auditLog->logCreation($userId, 'utilisateur', 'Erreur');
             return ['success' => false, 'message' => "Erreur lors de l'ajout en masse : " . $e->getMessage()];
         }
@@ -436,7 +557,7 @@ class GestionUtilisateurService
                         $errorCount++;
                         $errors[] = $user->nom_utilisateur . ' - ' . $emailResult['message'];
                     }
-                } catch (Exception $e) {
+                } catch (\Throwable $e) {
                     $errorCount++;
                     $errors[] = $user->nom_utilisateur . ' (erreur: ' . $e->getMessage() . ')';
                 }
@@ -642,7 +763,7 @@ class GestionUtilisateurService
             );
 
             return ['success' => true, 'message' => 'Email envoyé'];
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             $errorMessage = $e->getMessage() . ' | ErrorInfo: ' . $mail->ErrorInfo;
             error_log("Erreur PHPMailer détaillée: " . $errorMessage);
 

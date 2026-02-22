@@ -20,7 +20,7 @@ $flash = $messageMap[$messageKey] ?? null;
     <section class="cm-etu-panel">
         <header class="cm-etu-panel__header">
             <div>
-                <h2 class="cm-etu-panel__title"><i class="fas fa-file-alt" aria-hidden="true"></i> Gestion des Rapports</h2>
+                
                 <p class="cm-etu-panel__subtitle">Créez, suivez et déposez vos rapports de stage.</p>
             </div>
             <span class="cm-etu-count-badge"><?= (int) $totalRapports ?> rapport<?= (int) $totalRapports > 1 ? 's' : '' ?></span>
@@ -33,7 +33,7 @@ $flash = $messageMap[$messageKey] ?? null;
         <div class="cm-etu-hub-grid">
             <article class="cm-etu-hub-card">
                 <div class="cm-etu-hub-card__icon"><i class="fas fa-plus" aria-hidden="true"></i></div>
-                <h3 class="cm-etu-hub-card__title">Créer un Rapport</h3>
+
                 <p class="cm-etu-hub-card__desc">Démarrez une nouvelle rédaction avec le modèle institutionnel.</p>
                 <?php if (canCreate()): ?>
                     <a class="cm-btn is-primary is-sm" href="?page=gestion_rapports&action=creer_rapport">Commencer</a>
@@ -42,21 +42,21 @@ $flash = $messageMap[$messageKey] ?? null;
 
             <article class="cm-etu-hub-card">
                 <div class="cm-etu-hub-card__icon"><i class="fas fa-chart-line" aria-hidden="true"></i></div>
-                <h3 class="cm-etu-hub-card__title">Suivre l'Avancée</h3>
+
                 <p class="cm-etu-hub-card__desc">Consultez le statut détaillé de chaque rapport.</p>
                 <a class="cm-btn is-info is-sm" href="?page=gestion_rapports&action=suivi_rapport">Consulter</a>
             </article>
 
             <article class="cm-etu-hub-card">
                 <div class="cm-etu-hub-card__icon"><i class="fas fa-comments" aria-hidden="true"></i></div>
-                <h3 class="cm-etu-hub-card__title">Consulter les retours</h3>
+
                 <p class="cm-etu-hub-card__desc">Accédez aux commentaires publiés par les évaluateurs.</p>
                 <a class="cm-btn is-light is-sm" href="?page=gestion_rapports&action=commentaire_rapport">Voir</a>
             </article>
         </div>
 
         <div class="cm-etu-list-header">
-            <h3 class="cm-etu-list-title"><i class="fas fa-folder-open" aria-hidden="true"></i> Mes Rapports</h3>
+
             <?php cm_component('ui/badge', ['type' => 'info', 'text' => $totalRapports . ' rapport' . ($totalRapports > 1 ? 's' : '')]); ?>
         </div>
 
@@ -90,7 +90,7 @@ $flash = $messageMap[$messageKey] ?? null;
                     <article class="cm-etu-report-item" data-report-title="<?= htmlspecialchars((string) ($rapport->nom_rapport ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                         <div class="cm-etu-report-item__main">
                             <div class="cm-etu-report-item__head">
-                                <h4 class="cm-etu-report-item__title"><?= htmlspecialchars((string) ($rapport->nom_rapport ?? ''), ENT_QUOTES, 'UTF-8') ?></h4>
+                                <span class="cm-etu-report-item__title"><?= htmlspecialchars((string) ($rapport->nom_rapport ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
                                 <?php cm_component('ui/badge', ['type' => $badgeType, 'text' => $badgeText]); ?>
                             </div>
                             <p class="cm-etu-report-item__meta"><strong>Thème:</strong> <?= htmlspecialchars((string) ($rapport->theme_rapport ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
@@ -147,7 +147,7 @@ $flash = $messageMap[$messageKey] ?? null;
 
 <div id="deleteReportModal" class="cm-etu-modal" hidden>
     <div class="cm-etu-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="deleteReportTitle">
-        <h3 id="deleteReportTitle">Confirmer la suppression</h3>
+
         <p>Le rapport <strong id="deleteReportName"></strong> sera supprimé définitivement.</p>
         <form method="POST" action="?page=gestion_rapports" id="deleteReportForm" class="cm-etu-modal__actions">
             <input type="hidden" name="action" value="supprimer_rapport">

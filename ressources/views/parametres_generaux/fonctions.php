@@ -4,10 +4,10 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_generaux');
 cm_render_param_crud_view([
     'page_slug' => $pageSlug,
     'action' => 'fonctions',
-    'title' => 'Gestion des fonctions',
+    'title' => '',
     'icon' => 'fa-briefcase',
-    'form_title_add' => 'Ajout fonction',
-    'form_title_edit' => 'Modification fonction',
+    'form_title_add' => '',
+    'form_title_edit' => '',
     'id_key' => 'id_fonction',
     'id_param' => 'id_fonction',
     'list' => is_array($GLOBALS['listeFonctions'] ?? null) ? $GLOBALS['listeFonctions'] : [],

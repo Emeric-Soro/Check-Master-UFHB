@@ -9,17 +9,60 @@ class Etudiant
         $this->db = $db;
     }
 
-    public function getAllEtudiants()
+    private function getAcademicYearLabelById($id_annee_acad)
+    {
+        if ($id_annee_acad === null || (int) $id_annee_acad <= 0) {
+            return '';
+        }
+
+        try {
+            $stmt = $this->db->prepare("
+                SELECT CONCAT(YEAR(date_deb), '-', YEAR(date_fin)) AS libelle
+                FROM annee_academique
+                WHERE id_annee_acad = ?
+                LIMIT 1
+            ");
+            $stmt->execute([(int) $id_annee_acad]);
+            return (string) ($stmt->fetchColumn() ?: '');
+        } catch (PDOException $e) {
+            error_log("Erreur lors de la récupération du libellé d'année académique : " . $e->getMessage());
+            return '';
+        }
+    }
+
+    public function getAllEtudiants($id_annee_acad = null)
     {
         try {
             $query = "SELECT e.*, e.num_ident_etud as identifiant_mesrs, n.lib_niv_etude, a.date_deb, a.date_fin, g.libelle_genre
                      FROM etudiants e 
                      LEFT JOIN niveau_etude n ON e.id_niveau = n.id_niv_etude 
                      LEFT JOIN annee_academique a ON e.id_annee_acad = a.id_annee_acad
-                     LEFT JOIN genre g ON e.genre_etu = g.id_genre
-                     ORDER BY e.nom_etu, e.prenom_etu";
+                     LEFT JOIN genre g ON e.genre_etu = g.id_genre";
+
+            $params = [];
+            if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
+                $query .= " WHERE (e.id_annee_acad = ? 
+                            OR EXISTS (
+                                SELECT 1
+                                FROM inscriptions i
+                                WHERE i.id_etudiant = e.num_carte_etud
+                                  AND i.id_annee_acad = ?
+                            )";
+                $params[] = (int) $id_annee_acad;
+                $params[] = (int) $id_annee_acad;
+
+                $yearLabel = $this->getAcademicYearLabelById($id_annee_acad);
+                if ($yearLabel !== '') {
+                    $query .= " OR e.promotion_etu = ?";
+                    $params[] = $yearLabel;
+                }
+
+                $query .= ")";
+            }
+
+            $query .= " ORDER BY e.nom_etu, e.prenom_etu";
             $stmt = $this->db->prepare($query);
-            $stmt->execute();
+            $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération des étudiants : " . $e->getMessage());
@@ -27,22 +70,60 @@ class Etudiant
         }
     }
 
-    public function getAllListeEtudiants()
+    public function getAllListeEtudiants($id_annee_acad = null)
     {
         try {
-            $query = "SELECT e.*, e.num_ident_etud as identifiant_mesrs, n.lib_niv_etude, n.id_niv_etude, a.id_annee_acad, a.date_deb, a.date_fin, g.libelle_genre
+            $query = "SELECT
+                        e.*,
+                        e.num_ident_etud as identifiant_mesrs,
+                        COALESCE(n.lib_niv_etude, n_student.lib_niv_etude) AS lib_niv_etude,
+                        COALESCE(n.id_niv_etude, n_student.id_niv_etude) AS id_niv_etude,
+                        a.id_annee_acad,
+                        a.date_deb,
+                        a.date_fin,
+                        g.libelle_genre
                       FROM etudiants e
-                      LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
-                      LEFT JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
-                      LEFT JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
-                      LEFT JOIN genre g ON e.genre_etu = g.id_genre
-                      WHERE i.id_inscription = (
-                          SELECT i2.id_inscription FROM inscriptions i2
+                      LEFT JOIN inscriptions i ON i.id_inscription = (
+                          SELECT i2.id_inscription
+                          FROM inscriptions i2
                           WHERE i2.id_etudiant = e.num_carte_etud
-                          ORDER BY i2.date_inscription DESC LIMIT 1
+                          " . (($id_annee_acad !== null && (int) $id_annee_acad > 0) ? "AND i2.id_annee_acad = :annee_lookup " : "") . "
+                          ORDER BY i2.date_inscription DESC, i2.id_inscription DESC
+                          LIMIT 1
                       )
-                      ORDER BY e.nom_etu, e.prenom_etu";
+                      LEFT JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                      LEFT JOIN niveau_etude n_student ON e.id_niveau = n_student.id_niv_etude
+                      LEFT JOIN annee_academique a ON a.id_annee_acad = COALESCE(i.id_annee_acad, e.id_annee_acad)
+                      LEFT JOIN genre g ON e.genre_etu = g.id_genre
+                      WHERE 1 = 1";
+
+            $yearLabel = '';
+            if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
+                $yearLabel = $this->getAcademicYearLabelById($id_annee_acad);
+                $query .= " AND (
+                                e.id_annee_acad = :annee_filter
+                                OR EXISTS (
+                                    SELECT 1
+                                    FROM inscriptions i3
+                                    WHERE i3.id_etudiant = e.num_carte_etud
+                                      AND i3.id_annee_acad = :annee_exists
+                                )";
+                if ($yearLabel !== '') {
+                    $query .= " OR e.promotion_etu = :annee_label";
+                }
+                $query .= ")";
+            }
+
+            $query .= " ORDER BY e.nom_etu, e.prenom_etu";
             $stmt = $this->db->prepare($query);
+            if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
+                $stmt->bindValue(':annee_lookup', (int) $id_annee_acad, PDO::PARAM_INT);
+                $stmt->bindValue(':annee_filter', (int) $id_annee_acad, PDO::PARAM_INT);
+                $stmt->bindValue(':annee_exists', (int) $id_annee_acad, PDO::PARAM_INT);
+                if ($yearLabel !== '') {
+                    $stmt->bindValue(':annee_label', $yearLabel, PDO::PARAM_STR);
+                }
+            }
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -181,18 +262,27 @@ class Etudiant
         }
     }
 
-    public function getEtudiantsByNiveau($niveauId)
+    public function getEtudiantsByNiveau($niveauId, $anneeAcadId = null)
     {
         $query = "SELECT e.*, n.lib_niv_etude as niveau_nom, g.libelle_genre 
                  FROM etudiants e 
                  INNER JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
                  INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
                  LEFT JOIN genre g ON e.genre_etu = g.id_genre 
-                 WHERE i.id_niveau = :niveau_id 
+                 WHERE i.id_niveau = :niveau_id";
+
+        if ($anneeAcadId !== null && (int) $anneeAcadId > 0) {
+            $query .= " AND i.id_annee_acad = :annee_id";
+        }
+
+        $query .= "
                  ORDER BY e.nom_etu, e.prenom_etu";
 
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':niveau_id', $niveauId, PDO::PARAM_INT);
+        if ($anneeAcadId !== null && (int) $anneeAcadId > 0) {
+            $stmt->bindValue(':annee_id', (int) $anneeAcadId, PDO::PARAM_INT);
+        }
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -208,9 +298,10 @@ class Etudiant
 
     public function getAllCandidature()
     {
-        $sql = "SELECT cs.*, e.nom_etu, e.prenom_etu 
+        $sql = "SELECT cs.*, e.nom_etu, e.prenom_etu, e.id_annee_acad, e.promotion_etu, a.date_deb, a.date_fin
                 FROM candidature_soutenance cs 
                 INNER JOIN etudiants e ON e.num_carte_etud = cs.num_etu 
+                LEFT JOIN annee_academique a ON a.id_annee_acad = e.id_annee_acad
                 ORDER BY cs.date_candidature DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();

@@ -12,8 +12,8 @@ $replacements = [
     "src='public/" => "src='../",
 
     // navigation
-    'href="public/indexCM.php"' => 'href="indexCM.php"',
-    "href='public/indexCM.php'" => "href='indexCM.php'",
+    'href="public/index.php"' => 'href="index.php"',
+    "href='public/index.php'" => "href='index.php'",
     'href="public/index.php?_path=/login"' => 'href="../app/index.php?_path=/login"',
     "href='public/index.php?_path=/login'" => "href='../app/index.php?_path=/login'",
 ];

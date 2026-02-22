@@ -41,10 +41,10 @@ $listeSalles = is_array($resultats['data'] ?? null) ? $resultats['data'] : [];
 cm_render_param_crud_view([
     'page_slug' => $pageSlug,
     'action' => 'salles',
-    'title' => 'Gestion des salles',
+    'title' => '',
     'icon' => 'fa-door-open',
-    'form_title_add' => 'Ajout salle',
-    'form_title_edit' => 'Modification salle',
+    'form_title_add' => '',
+    'form_title_edit' => '',
     'id_key' => 'id_salle',
     'id_param' => 'id_salle',
     'list' => $listeSalles,

@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/../../../app/utils/permissions_helper.php';
 
 $typesReclamation = is_array($typesReclamation ?? null) ? $typesReclamation : [];
 $erreurs = is_array($erreurs ?? null) ? $erreurs : [];
@@ -19,7 +18,7 @@ $oldContent = (string) ($_POST['content'] ?? '');
     <section class="cm-etu-panel">
         <header class="cm-etu-panel__header">
             <div>
-                <h2 class="cm-etu-panel__title"><i class="fas fa-circle-exclamation" aria-hidden="true"></i> Nouvelle Réclamation</h2>
+                
                 <p class="cm-etu-panel__subtitle">Soumettez une demande détaillée. Minimum 60 caractères.</p>
             </div>
         </header>

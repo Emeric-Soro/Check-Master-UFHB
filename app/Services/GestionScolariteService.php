@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Scolarite.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use Scolarite;
 use AnneeAcademique;
@@ -22,6 +23,9 @@ use AuditLog;
  */
 class GestionScolariteService
 {
+    /** @var \PDO */
+    private $db;
+
     /** @var Scolarite */
     private $scolariteModel;
 
@@ -36,6 +40,7 @@ class GestionScolariteService
      */
     public function __construct($db)
     {
+        $this->db = $db;
         $this->scolariteModel = new Scolarite($db);
         $this->anneeAcademique = new AnneeAcademique($db);
         $this->auditLog = new AuditLog($db);
@@ -48,13 +53,45 @@ class GestionScolariteService
      */
     public function getReferenceLists(): array
     {
+        $selectedYearId = \AcademicYear::getSelectedIdFromSession();
+        $etudiantsInscrits = $this->scolariteModel->getEtudiantsInscrits();
+        $listeAllEtudiant = $this->scolariteModel->getAllEtudiants();
+        $listeVersement = $this->scolariteModel->getAllVersements();
+
+        if ($selectedYearId !== null && $selectedYearId > 0) {
+            $etudiantsInscrits = array_values(array_filter($etudiantsInscrits, static function (array $row) use ($selectedYearId): bool {
+                return (int) ($row['id_annee_acad'] ?? 0) === $selectedYearId;
+            }));
+
+            $listeVersement = array_values(array_filter($listeVersement, static function (array $row) use ($selectedYearId): bool {
+                $label = trim((string) ($row['date_deb'] ?? '')) !== '' && trim((string) ($row['date_fin'] ?? '')) !== ''
+                    ? date('Y', strtotime((string) $row['date_deb'])) . '-' . date('Y', strtotime((string) $row['date_fin']))
+                    : '';
+
+                return $label !== '' && $label === \AcademicYear::getSelectedLabelFromSession();
+            }));
+        }
+
+        $inscritsByStudent = [];
+        foreach ($etudiantsInscrits as $row) {
+            $studentId = (string) ($row['id_etudiant'] ?? '');
+            if ($studentId !== '') {
+                $inscritsByStudent[$studentId] = true;
+            }
+        }
+
+        $etudiantsNonInscrits = array_values(array_filter($listeAllEtudiant, static function (array $row) use ($inscritsByStudent): bool {
+            $studentId = (string) ($row['num_carte_etud'] ?? '');
+            return $studentId !== '' && !isset($inscritsByStudent[$studentId]);
+        }));
+
         return [
-            'etudiantsNonInscrits' => $this->scolariteModel->getEtudiantsNonInscrits(),
+            'etudiantsNonInscrits' => $etudiantsNonInscrits,
             'niveaux' => $this->scolariteModel->getNiveauxEtudes(),
-            'etudiantsInscrits' => $this->scolariteModel->getEtudiantsInscrits(),
-            'listeAllEtudiant' => $this->scolariteModel->getAllEtudiants(),
+            'etudiantsInscrits' => $etudiantsInscrits,
+            'listeAllEtudiant' => $listeAllEtudiant,
             'listeAnnees' => $this->anneeAcademique->getAllAnneeAcademiques(),
-            'listeVersement' => $this->scolariteModel->getAllVersements(),
+            'listeVersement' => $listeVersement,
         ];
     }
 
@@ -103,6 +140,11 @@ class GestionScolariteService
             $inscription = $this->scolariteModel->getInscriptionByEtudiantId($data['id_etudiant']);
             if (!$inscription) {
                 return ['success' => false, 'message' => 'Aucune inscription trouvée pour cet étudiant.', 'data' => null];
+            }
+
+            $writeGuard = \AcademicYear::ensureWritableYear($this->db, $inscription['id_annee_acad'] ?? null, 'un versement');
+            if (!$writeGuard['success']) {
+                return ['success' => false, 'message' => $writeGuard['message'], 'data' => null];
             }
 
             // Vérifier si l'étudiant a déjà soldé sa scolarité
@@ -182,6 +224,11 @@ class GestionScolariteService
             $inscription = $this->scolariteModel->getInscriptionById($versement['id_inscription']);
             if (!$inscription) {
                 return ['success' => false, 'message' => 'Inscription introuvable.', 'data' => null];
+            }
+
+            $writeGuard = \AcademicYear::ensureWritableYear($this->db, $inscription['id_annee_acad'] ?? null, 'un versement');
+            if (!$writeGuard['success']) {
+                return ['success' => false, 'message' => $writeGuard['message'], 'data' => null];
             }
 
             $ancienMontant = floatval($versement['montant']);
@@ -296,6 +343,11 @@ class GestionScolariteService
         $methode_paiement = $data['methode_paiement'];
         $num_piece = isset($data['num_piece']) ? $data['num_piece'] : null;
 
+        $writeGuard = \AcademicYear::ensureWritableYear($this->db, $id_annee_acad, "une inscription");
+        if (!$writeGuard['success']) {
+            return ['success' => false, 'message' => $writeGuard['message'], 'refreshLists' => false];
+        }
+
         $inscriptionExistante = $this->scolariteModel->getDerniereInscription($id_etudiant);
         if ($inscriptionExistante && $inscriptionExistante['id_annee_acad'] == $id_annee_acad) {
             return ['success' => false, 'message' => 'Cet étudiant est déjà inscrit pour cette année académique.', 'refreshLists' => false];
@@ -363,6 +415,11 @@ class GestionScolariteService
 
         $id_niveau = $derniere_inscription['id_niveau'];
         $id_annee_acad = $derniere_inscription['id_annee_acad'];
+
+        $writeGuard = \AcademicYear::ensureWritableYear($this->db, $id_annee_acad, "un versement");
+        if (!$writeGuard['success']) {
+            return ['success' => false, 'message' => $writeGuard['message'], 'refreshLists' => false];
+        }
 
         $infos_paiement = $this->scolariteModel->getInfosPaiementEtudiant($id_etudiant, $id_annee_acad);
 

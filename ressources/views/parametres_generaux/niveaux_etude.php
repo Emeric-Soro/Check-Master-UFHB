@@ -13,10 +13,10 @@ foreach (($GLOBALS['listeEnseignants'] ?? []) as $enseignant) {
 cm_render_param_crud_view([
     'page_slug' => $pageSlug,
     'action' => 'niveaux_etude',
-    'title' => 'Gestion des niveaux d etude',
+    'title' => '',
     'icon' => 'fa-graduation-cap',
-    'form_title_add' => 'Ajout niveau etude',
-    'form_title_edit' => 'Modification niveau etude',
+    'form_title_add' => '',
+    'form_title_edit' => '',
     'id_key' => 'id_niv_etude',
     'id_param' => 'id_niv_etude',
     'list' => is_array($GLOBALS['listeNiveaux'] ?? null) ? $GLOBALS['listeNiveaux'] : [],

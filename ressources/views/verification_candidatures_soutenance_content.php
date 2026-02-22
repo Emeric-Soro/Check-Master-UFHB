@@ -3,6 +3,12 @@
 $rapports = $GLOBALS['rapports'] ?? [];
 $nbRapports = $GLOBALS['nbRapports'] ?? 0;
 $statsRapports = $GLOBALS['statsRapports'] ?? [];
+$allYearsSelected = \AcademicYear::isAllSelectedFromSession();
+$writableYearLabel = \AcademicYear::getWritableLabelFromSession();
+$academicYearLabels = [];
+foreach (\AcademicYear::fetchAll(Database::getConnection()) as $academicYear) {
+    $academicYearLabels[(int) ($academicYear['id'] ?? 0)] = (string) ($academicYear['label'] ?? '');
+}
 
 // Charger le modèle Approuver si disponible
 require_once __DIR__ . '/../../app/models/Approuver.php';
@@ -102,18 +108,20 @@ function traduireStatut($statut)
         .search-container {
             position: relative;
             background: rgba(255, 255, 255, 0.9);
-            border-radius: 20px;
-            padding: 0.5rem;
+            border-radius: 16px;
+            padding: 0.35rem 0.45rem;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 520px;
         }
 
         .search-input {
             width: 100%;
-            padding: 1rem 1rem 1rem 3rem;
+            min-height: 40px;
+            padding: 0.7rem 0.85rem 0.7rem 2.5rem;
             border: none;
-            border-radius: 15px;
+            border-radius: 12px;
             background: transparent;
-            font-size: 1rem;
+            font-size: 0.92rem;
             color: #374151;
             outline: none;
         }
@@ -124,11 +132,21 @@ function traduireStatut($statut)
 
         .search-icon {
             position: absolute;
-            left: 1.5rem;
+            left: 1rem;
             top: 50%;
             transform: translateY(-50%);
             color: #667eea;
-            font-size: 1.2rem;
+            font-size: 1rem;
+        }
+
+        .verification-comment {
+            width: 100%;
+            min-height: 88px;
+            padding: 0.55rem 0.7rem;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            font-size: 0.88rem;
+            resize: vertical;
         }
 
         .table-container {
@@ -356,9 +374,7 @@ function traduireStatut($statut)
                         <i class="fas fa-clipboard-check text-2xl text-white"></i>
                     </div>
                     <div>
-                        <h1 class="text-3xl md:text-4xl font-bold text-green-600">
-                            Vérification des Rapports
-                        </h1>
+
                         <p class="text-gray-600 mt-2 text-lg">
                             Gérez et validez les rapports soumis par les étudiants
                         </p>
@@ -371,6 +387,12 @@ function traduireStatut($statut)
         </div>
 
         <!-- Search Section -->
+        <?php if ($allYearsSelected): ?>
+            <div class="mb-6 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                Affichage global sur toutes les années. Les décisions restent limitées à l'année active
+                <strong><?= htmlspecialchars($writableYearLabel, ENT_QUOTES, 'UTF-8') ?></strong>.
+            </div>
+        <?php endif; ?>
 
         <div class="search-container mb-6">
             <i class="fas fa-search search-icon"></i>
@@ -382,17 +404,18 @@ function traduireStatut($statut)
         <!-- Table Section -->
         <div class="table-container fade-in">
             <div class="table-header bg-green-600">
-                <h2><i class="fas fa-list-ul mr-3"></i>Liste des Rapports</h2>
+                
                 <p>Vérifiez, validez ou rejetez les rapports soumis par les étudiants</p>
             </div>
 
-            <div class="overflow-x-auto">
+            <div class="cm-table-wrapper">
                 <table id="rapportsTable" class="table">
                     <thead>
                         <tr>
                             <th><i class="fas fa-user-graduate mr-2"></i>Étudiant</th>
                             <th><i class="fas fa-file-lines mr-2"></i>Rapport</th>
                             <th><i class="fas fa-lightbulb mr-2"></i>Thème</th>
+                            <th><i class="fas fa-calendar-alt mr-2"></i>Promotion</th>
                             <th><i class="fas fa-calendar-day mr-2"></i>Date de dépôt</th>
                             <th><i class="fas fa-check-circle mr-2"></i>Approbation</th>
                             <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
@@ -401,16 +424,22 @@ function traduireStatut($statut)
                     <tbody>
                         <?php if (empty($rapports)): ?>
                             <tr>
-                                <td colspan="6">
+                                <td colspan="7">
                                     <div class="empty-state">
                                         <i class="fas fa-file-circle-xmark"></i>
-                                        <h3 class="text-xl font-semibold mb-2">Aucun rapport trouvé</h3>
+
                                         <p class="text-gray-500">Les rapports soumis par les étudiants apparaîtront ici</p>
                                     </div>
                                 </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($rapports as $i => $rapport): ?>
+                                <?php
+                                $promotionLabel = trim((string) ($rapport->promotion_etu ?? ''));
+                                if ($promotionLabel === '' && !empty($rapport->id_annee_acad)) {
+                                    $promotionLabel = $academicYearLabels[(int) $rapport->id_annee_acad] ?? '-';
+                                }
+                                ?>
                                 <tr
                                     class="hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-300">
                                     <td class="font-semibold text-gray-800">
@@ -431,6 +460,11 @@ function traduireStatut($statut)
                                     <td>
                                         <div class="italic text-blue-700 max-w-xs truncate">
                                             <?= htmlspecialchars($rapport->theme_rapport) ?>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="font-semibold text-gray-700">
+                                            <?= htmlspecialchars($promotionLabel !== '' ? $promotionLabel : '-', ENT_QUOTES, 'UTF-8') ?>
                                         </div>
                                     </td>
                                     <td>
@@ -492,10 +526,7 @@ function traduireStatut($statut)
     <div id="detailModal" class="fixed inset-0 z-50 hidden items-center justify-center">
         <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-semibold text-gray-800">
-                    <i class="fas fa-file-alt mr-2 text-blue-500"></i>
-                    Détails du rapport
-                </h2>
+                
                 <button onclick="fermerModal()" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times text-xl"></i>
                 </button>
@@ -511,7 +542,7 @@ function traduireStatut($statut)
     <div id="confirmModal" class="fixed inset-0 hidden z-50 items-center justify-center p-4">
         <div class="modal-content bg-white max-w-md w-full rounded-xl shadow-2xl p-6 transform transition-all duration-300 scale-95 opacity-0"
             id="confirmModalContent">
-            <h3 id="confirmModalTitle" class="text-xl font-bold mb-4 text-center text-gray-800"></h3>
+
 
             <?php if (canEdit()): ?>
             <!-- Formulaire PHP pour valider -->
@@ -523,7 +554,7 @@ function traduireStatut($statut)
                     <label for="validerComment" class="block text-sm font-medium text-gray-700 mb-2">Commentaire
                         (obligatoire)</label>
                     <textarea id="validerComment" name="commentaire" rows="3"
-                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                        class="verification-comment focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         placeholder="Entrez votre commentaire..." required></textarea>
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
@@ -547,7 +578,7 @@ function traduireStatut($statut)
                     <label for="rejeterComment" class="block text-sm font-medium text-gray-700 mb-2">Commentaire
                         (obligatoire)</label>
                     <textarea id="rejeterComment" name="commentaire" rows="3"
-                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                        class="verification-comment focus:ring-2 focus:ring-red-500 focus:border-red-500"
                         placeholder="Entrez votre commentaire..." required></textarea>
                 </div>
                 <div class="flex justify-end gap-3 mt-6">

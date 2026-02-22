@@ -57,7 +57,7 @@
         const btnNew = wrapper.querySelector('[data-action="new"]');
         const btnSubmit = wrapper.querySelector('[data-action="submit"]');
         const btnCancel = wrapper.querySelector('[data-action="cancel"]');
-        const titleEl = wrapper.querySelector('.cm-pole-superieur-title h2');
+        const titleEl = wrapper.querySelector('. h2');
         const tbody = wrapper.querySelector('tbody');
         const countEl = wrapper.querySelector('.sc-count');
         const searchInput = wrapper.querySelector('.sc-search');

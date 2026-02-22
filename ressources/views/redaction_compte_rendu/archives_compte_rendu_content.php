@@ -6,12 +6,10 @@ $totalArchives = max(0, (int) ($GLOBALS['totalArchives'] ?? count($archives)));
 $search = trim((string) ($GLOBALS['search'] ?? ''));
 $year = trim((string) ($GLOBALS['year'] ?? ''));
 $perPage = max(5, (int) ($GLOBALS['limit_archive_cr'] ?? 10));
-
 $allowedLimits = [5, 10, 25, 50];
 if (!in_array($perPage, $allowedLimits, true)) {
     $perPage = 10;
 }
-
 $pagination = function_exists('cm_paginate')
     ? cm_paginate($totalArchives, $perPage, $currentPage)
     : [
@@ -24,29 +22,21 @@ $pagination = function_exists('cm_paginate')
         'has_next' => $currentPage < $totalPages,
         'pages' => [$currentPage],
     ];
-
 $baseUrl = '?page=archive_comptes_rendus'
     . '&search=' . urlencode($search)
     . '&year=' . urlencode($year)
     . '&limit_archive_cr=' . $perPage;
 ?>
-
 <div class="cm-prd3-screen cm-prd3-crud-screen">
     <div id="cmArchiveAlert"></div>
     <form id="cmArchiveCsrfForm" style="display:none;">
         <?php cm_component('form/csrf-token'); ?>
     </form>
-
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur">
-            <div class="cm-pole-superieur-title">
-                <h2>
-                    <i class="fas fa-box-archive" aria-hidden="true"></i>
-                    Brouillons / archives CR
-                </h2>
+            <div class="">
             </div>
         </div>
-
         <div class="cm-barre-intermediaire">
             <div class="cm-toolbar">
                 <div class="cm-toolbar-left">
@@ -62,10 +52,8 @@ $baseUrl = '?page=archive_comptes_rendus'
                             </option>
                         <?php endforeach; ?>
                     </select>
-
                     <input type="text" id="cmArchiveSearch" class="cm-form-control cm-toolbar-field-lg" placeholder="Rechercher archive..." value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
-
                 <div class="cm-toolbar-right">
                     <button type="button" class="cm-btn is-info is-sm" id="cmArchiveSelectAllBtn">
                         <i class="fas fa-square-check" aria-hidden="true"></i>
@@ -82,14 +70,13 @@ $baseUrl = '?page=archive_comptes_rendus'
                 </div>
             </div>
         </div>
-
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
                 <table class="cm-data-table" id="cmArchiveTable">
                     <thead>
                     <tr>
                         <th class="cm-data-table__th cm-data-table__th--check">
-                            <input type="checkbox" id="cmArchiveCheckAll" aria-label="Tout selectionner">
+                            <input type="checkbox" id="cmArchiveCheckAll" aria-label="Tout sélectionner">
                         </th>
                         <th class="cm-data-table__th">N CR</th>
                         <th class="cm-data-table__th">Nom CR</th>
@@ -104,7 +91,7 @@ $baseUrl = '?page=archive_comptes_rendus'
                         <?php cm_component('ui/empty-state', [
                             'in_table' => true,
                             'colspan' => 7,
-                            'title' => 'Aucune archive',
+                            'title' => '',
                             'message' => 'Aucun compte rendu archive.',
                         ]); ?>
                     <?php else: ?>
@@ -120,7 +107,7 @@ $baseUrl = '?page=archive_comptes_rendus'
                                 data-id="<?php echo $idCr; ?>"
                                 data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
                                 <td class="cm-data-table__td cm-data-table__td--check">
-                                    <input type="checkbox" class="cm-archive-check-row" value="<?php echo $idCr; ?>" aria-label="Selectionner archive <?php echo $idCr; ?>">
+                                    <input type="checkbox" class="cm-archive-check-row" value="<?php echo $idCr; ?>" aria-label="Sélectionner archive <?php echo $idCr; ?>">
                                 </td>
                                 <td class="cm-data-table__td">#<?php echo $idCr; ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($nomCr, ENT_QUOTES, 'UTF-8'); ?></td>
@@ -161,7 +148,6 @@ $baseUrl = '?page=archive_comptes_rendus'
                     </tbody>
                 </table>
             </div>
-
             <?php
             cm_component('crud/pagination', [
                 'pagination' => $pagination,
@@ -172,7 +158,6 @@ $baseUrl = '?page=archive_comptes_rendus'
         </div>
     </div>
 </div>
-
 <script>
 (function () {
     const alertBox = document.getElementById('cmArchiveAlert');
@@ -181,7 +166,6 @@ $baseUrl = '?page=archive_comptes_rendus'
     const selectAllBtn = document.getElementById('cmArchiveSelectAllBtn');
     const deselectBtn = document.getElementById('cmArchiveDeselectBtn');
     const deleteBtn = document.getElementById('cmArchiveDeleteBtn');
-
     function setAlert(type, message) {
         if (!alertBox) {
             return;
@@ -190,22 +174,18 @@ $baseUrl = '?page=archive_comptes_rendus'
         alertBox.innerHTML = '<div class=\"cm-alert is-' + cssType + '\"><div class=\"cm-alert__content\"><span class=\"cm-alert__message\">' +
             String(message || '').replace(/[<>&]/g, '') + '</span></div></div>';
     }
-
     function getRows() {
         return Array.from(document.querySelectorAll('#cmArchiveTableBody .cm-data-table__row'));
     }
-
     function getVisibleRows() {
         return getRows().filter(function (row) { return row.style.display !== 'none'; });
     }
-
     function getCheckedRows() {
         return getRows().filter(function (row) {
             const cb = row.querySelector('.cm-archive-check-row');
             return cb && cb.checked;
         });
     }
-
     function updateDeleteState() {
         const count = getCheckedRows().length;
         if (deleteBtn) {
@@ -221,7 +201,6 @@ $baseUrl = '?page=archive_comptes_rendus'
             checkAll.checked = visible.length > 0 && checkedVisible.length === visible.length;
         }
     }
-
     function deleteArchive(id) {
         const formData = new FormData();
         formData.append('id_CR', id);
@@ -236,7 +215,6 @@ $baseUrl = '?page=archive_comptes_rendus'
             headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
         }).then(function (response) { return response.json(); });
     }
-
     document.querySelectorAll('.cm-archive-delete-one').forEach(function (button) {
         button.addEventListener('click', function () {
             const id = button.getAttribute('data-id') || '';
@@ -257,7 +235,6 @@ $baseUrl = '?page=archive_comptes_rendus'
             });
         });
     });
-
     if (deleteBtn) {
         deleteBtn.addEventListener('click', function () {
             const checked = getCheckedRows();
@@ -276,7 +253,6 @@ $baseUrl = '?page=archive_comptes_rendus'
             });
         });
     }
-
     if (searchInput) {
         searchInput.addEventListener('input', function () {
             const term = (searchInput.value || '').trim().toLowerCase();
@@ -287,13 +263,11 @@ $baseUrl = '?page=archive_comptes_rendus'
             updateDeleteState();
         });
     }
-
     document.addEventListener('change', function (event) {
         if (event.target && event.target.classList.contains('cm-archive-check-row')) {
             updateDeleteState();
         }
     });
-
     if (checkAll) {
         checkAll.addEventListener('change', function () {
             getVisibleRows().forEach(function (row) {
@@ -303,7 +277,6 @@ $baseUrl = '?page=archive_comptes_rendus'
             updateDeleteState();
         });
     }
-
     if (selectAllBtn) {
         selectAllBtn.addEventListener('click', function () {
             getVisibleRows().forEach(function (row) {
@@ -313,7 +286,6 @@ $baseUrl = '?page=archive_comptes_rendus'
             updateDeleteState();
         });
     }
-
     if (deselectBtn) {
         deselectBtn.addEventListener('click', function () {
             getRows().forEach(function (row) {
@@ -323,7 +295,6 @@ $baseUrl = '?page=archive_comptes_rendus'
             updateDeleteState();
         });
     }
-
     updateDeleteState();
 })();
 </script>

@@ -90,7 +90,7 @@ class RapportEtudiant
     {
         try {
             $sql = "
-                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, e.id_annee_acad AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 " . $this->getReportOrderBy('r') . "
@@ -113,6 +113,7 @@ class RapportEtudiant
                 e.prenom_etu, 
                 e.email_etu,
                 e.promotion_etu,
+                e.id_annee_acad AS id_annee_acad,
                 d.date_depot
             FROM rapport_etudiants r
             JOIN etudiants e ON r.num_etu = e.num_carte_etud
@@ -126,7 +127,7 @@ class RapportEtudiant
     public function getRapportDetail($id_rapport)
     {
         $stmt = $this->pdo->prepare("
-            SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, d.date_depot
+            SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, e.id_annee_acad AS id_annee_acad, d.date_depot
             FROM rapport_etudiants r
             JOIN etudiants e ON r.num_etu = e.num_carte_etud
             LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
@@ -139,7 +140,7 @@ class RapportEtudiant
     public function getRapportByIdAndEtudiant($id_rapport, $num_etu)
     {
         $stmt = $this->pdo->prepare("
-            SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu
+            SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, e.id_annee_acad AS id_annee_acad
             FROM rapport_etudiants r
             JOIN etudiants e ON r.num_etu = e.num_carte_etud
             WHERE r.id_rapport = ? AND r.num_etu = ?
@@ -152,7 +153,7 @@ class RapportEtudiant
     {
         try {
             $sql = "
-                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, e.id_annee_acad AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 WHERE r.num_etu = ?
@@ -362,7 +363,7 @@ class RapportEtudiant
         try {
             $hasNomRapport = $this->columnExists('rapport_etudiants', 'nom_rapport');
             $sql = "
-                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, e.id_annee_acad AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 WHERE " . ($hasNomRapport ? "(r.nom_rapport LIKE ? OR r.theme_rapport LIKE ?)" : "(r.theme_rapport LIKE ?)") . "
@@ -395,7 +396,7 @@ class RapportEtudiant
             }
 
             $sql = "
-                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu 
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, e.id_annee_acad AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 " . $this->getReportOrderBy('r') . "
@@ -477,7 +478,7 @@ class RapportEtudiant
     {
         try {
             $sql = "
-                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu 
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, e.id_annee_acad AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 WHERE r.statut_rapport = ?
@@ -537,7 +538,7 @@ class RapportEtudiant
     {
         try {
             $stmt = $this->pdo->query("
-                SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu, d.date_depot
+                SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu, e.promotion_etu, e.id_annee_acad AS id_annee_acad, d.date_depot
                 FROM deposer d
                 JOIN rapport_etudiants r ON d.id_rapport = r.id_rapport
                 JOIN etudiants e ON d.num_etu = e.num_carte_etud

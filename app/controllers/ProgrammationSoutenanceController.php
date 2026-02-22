@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../Services/ProgrammationSoutenanceService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\ProgrammationSoutenanceService;
 
@@ -182,6 +183,17 @@ class ProgrammationSoutenanceController
     public function createAttribution()
     {
         try {
+            if (!canCreate()) {
+                if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                    exit;
+                }
+                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error_type'] = 'permission_denied';
+                header('Location: layout.php?page=access_denied');
+                exit;
+            }
             $input = json_decode(file_get_contents('php://input'), true);
             if (!is_array($input) || empty($input)) {
                 $input = $_POST;
@@ -206,6 +218,17 @@ class ProgrammationSoutenanceController
     public function updateAttribution()
     {
         try {
+            if (!canEdit()) {
+                if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                    exit;
+                }
+                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error_type'] = 'permission_denied';
+                header('Location: layout.php?page=access_denied');
+                exit;
+            }
             $input = json_decode(file_get_contents('php://input'), true);
             if (!is_array($input) || empty($input)) {
                 $input = $_POST;
@@ -230,6 +253,17 @@ class ProgrammationSoutenanceController
     public function deleteAttribution()
     {
         try {
+            if (!canDelete()) {
+                if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                    exit;
+                }
+                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error_type'] = 'permission_denied';
+                header('Location: layout.php?page=access_denied');
+                exit;
+            }
             $input = json_decode(file_get_contents('php://input'), true);
             if (!is_array($input) || empty($input)) {
                 $input = $_POST;

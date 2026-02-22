@@ -1,10 +1,8 @@
 <?php
 require_once __DIR__ . '/../../app/controllers/ProgrammationSoutenanceController.php';
-
 $controller = new ProgrammationSoutenanceController();
 $currentPageSlug = (string) ($_GET['page'] ?? 'programmation_soutenance');
 $action = (string) ($_GET['action'] ?? '');
-
 if ($action !== '') {
     switch ($action) {
         case 'getEtudiants':
@@ -33,13 +31,11 @@ if ($action !== '') {
             exit;
     }
 }
-
 $etudiants = $controller->getEtudiantsForView();
 $enseignants = $controller->getEnseignantsForView();
 $professeursTitulaires = $controller->getProfesseursTitulairesForView();
 $salles = $controller->getSallesForView();
 $attributions = $controller->getAttributionsForView();
-
 $studentMap = [];
 $studentOptions = [];
 foreach ($etudiants as $etu) {
@@ -47,15 +43,14 @@ foreach ($etudiants as $etu) {
     if ($id === '') {
         continue;
     }
-
     $label = trim((string) ($etu['nom_complet'] ?? 'Etudiant'));
     $matricule = trim((string) ($etu['matricule_etudiant'] ?? $id));
     $themeRapport = trim((string) ($etu['theme_rapport'] ?? ''));
-
     $studentMap[$id] = [
         'id_etudiant' => $id,
         'nom_complet' => $label,
         'matricule_etudiant' => $matricule,
+        'promotion_etu' => (string) ($etu['promotion_etu'] ?? ''),
         'theme_rapport' => $themeRapport,
         'directeur_nom' => trim((string) ($etu['directeur_nom'] ?? '')),
         'directeur_id' => (string) ($etu['directeur_id'] ?? ''),
@@ -63,10 +58,9 @@ foreach ($etudiants as $etu) {
         'encadreur_id' => (string) ($etu['encadreur_id'] ?? ''),
         'maitre_stage_nom' => trim((string) ($etu['maitre_stage_nom'] ?? '')),
     ];
-
-    $studentOptions[$id] = $label . ' (' . $matricule . ')';
+    $studentOptions[$id] = $label . ' (' . $matricule . ')'
+        . (\AcademicYear::isAllSelectedFromSession() && !empty($etu['promotion_etu']) ? ' - ' . (string) $etu['promotion_etu'] : '');
 }
-
 $enseignantOptions = [];
 foreach ($enseignants as $ens) {
     $id = (string) ($ens['id_enseignant'] ?? '');
@@ -75,7 +69,6 @@ foreach ($enseignants as $ens) {
     }
     $enseignantOptions[$id] = trim((string) ($ens['nom_complet'] ?? ('Enseignant #' . $id)));
 }
-
 $presidentOptions = [];
 foreach ($professeursTitulaires as $ens) {
     $id = (string) ($ens['id_enseignant'] ?? '');
@@ -87,7 +80,6 @@ foreach ($professeursTitulaires as $ens) {
 if (empty($presidentOptions)) {
     $presidentOptions = $enseignantOptions;
 }
-
 $salleOptions = [];
 foreach ($salles as $salle) {
     $id = (string) ($salle['id_salle'] ?? '');
@@ -96,7 +88,6 @@ foreach ($salles as $salle) {
     }
     $salleOptions[$id] = trim((string) ($salle['lib_salle'] ?? ('Salle #' . $id)));
 }
-
 $allowedLimits = [5, 10, 25, 50];
 $perPage = max(5, (int) ($_GET['limit_prog'] ?? 10));
 if (!in_array($perPage, $allowedLimits, true)) {
@@ -117,35 +108,34 @@ $pagination = function_exists('cm_paginate')
     ];
 $rowsToShow = array_slice($attributions, (int) ($pagination['offset'] ?? 0), $perPage);
 $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
+$selectedYearLabel = \AcademicYear::getSelectedLabelFromSession();
+$activeYearLabel = \AcademicYear::getActiveLabelFromSession();
+$writeYearLabel = \AcademicYear::getWritableLabelFromSession();
+$allYearsSelected = \AcademicYear::isAllSelectedFromSession();
+$writeAllowed = \AcademicYear::isWriteAllowedFromSession();
 ?>
-
 <div class="cm-prd3-screen cm-prd3-crud-screen">
     <div id="cmProgAlert"></div>
-
+    <?php if ($selectedYearLabel !== ''): ?>
+        <?php cm_component('ui/alert-box', [
+            'type' => $allYearsSelected || $writeAllowed ? 'info' : 'warning',
+            'message' => $allYearsSelected
+                ? "Affichage multi-années actif. Les nouvelles programmations restent réservées à l'année académique active {$writeYearLabel}."
+                : ($writeAllowed
+                    ? "Année académique affichée: {$selectedYearLabel}."
+                    : "Consultation historique: {$selectedYearLabel}. Les programmations sont réservées à l'année académique active {$activeYearLabel}."),
+        ]); ?>
+    <?php endif; ?>
     <div class="cm-crud-wrapper">
-        <div class="cm-pole-superieur">
-            <div class="cm-pole-superieur-title">
-                <h2 class="flex justify-between items-center w-full">
-                    <span>
-                        <i class="fas fa-users-cog" aria-hidden="true"></i>
-                        Programmation de soutenance
-                    </span>
-                    <span class="text-sm font-normal flex items-center gap-2">
-                        <label for="cmProgAnnee" class="mb-0">Année Académique</label>
-                        <select name="cm_prog_annee" id="cmProgAnnee" class="form-control" required>
-                            <option value="">Sélectionner...</option>
-                        </select>
-                    </span>
-                </h2>
+        <div class="">
+            <div class="">
             </div>
-
             <form id="cmProgForm" autocomplete="off">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" id="cmProgEditId" value="">
                 <input type="hidden" id="cmProgDirecteurId" value="">
                 <input type="hidden" id="cmProgEncadreurId" value="">
                 <input type="hidden" id="cmProgMaitreId" value="">
-
                 <div class="cm-grid-4">
                     <?php
                     cm_component('form/select', [
@@ -179,7 +169,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                     ]);
                     ?>
                 </div>
-
                 <div class="cm-grid-2">
                     <?php
                     cm_component('form/input-text', [
@@ -191,14 +180,8 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                     ]);
                     ?>
                 </div>
-
-                <div class="cm-pole-superieur-title">
-                    <h2>
-                        <i class="fas fa-balance-scale" aria-hidden="true"></i>
-                        Composition du jury
-                    </h2>
+                <div class="">
                 </div>
-
                 <div class="cm-grid-3">
                     <?php
                     cm_component('form/select', [
@@ -235,11 +218,10 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                     ]);
                     ?>
                 </div>
-
                 <div class="cm-form-buttons">
                     <button class="cm-btn is-light" type="button" id="cmProgResetBtn">
                         <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                        Reinitialiser
+                        Réinitialiser
                     </button>
                     <?php if ((function_exists('canCreate') && canCreate()) || (function_exists('canEdit') && canEdit())): ?>
                         <button class="cm-btn is-success" type="submit" id="cmProgSubmitBtn">
@@ -250,12 +232,10 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                 </div>
             </form>
         </div>
-
         <div class="cm-barre-intermediaire">
             <div class="cm-toolbar">
                 <div class="cm-toolbar-left">
                     <input type="text" id="cmProgSearch" class="cm-form-control cm-toolbar-field-lg" placeholder="Rechercher...">
-
                     <button type="button" class="cm-btn is-info is-sm" id="cmProgExport">
                         <i class="fas fa-file-export" aria-hidden="true"></i>
                         Export
@@ -264,7 +244,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                         <i class="fas fa-print" aria-hidden="true"></i>
                         Impr.
                     </button>
-
                     <label for="cmProgLimit"><strong>Afficher:</strong></label>
                     <select id="cmProgLimit"
                             class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
@@ -278,7 +257,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                         <?php endforeach; ?>
                     </select>
                 </div>
-
                 <div class="cm-toolbar-right">
                     <button type="button" class="cm-btn is-info is-sm" id="cmProgSelectAllBtn">
                         <i class="fas fa-square-check" aria-hidden="true"></i>
@@ -295,21 +273,26 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                 </div>
             </div>
         </div>
-
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
                 <table class="cm-data-table" id="cmProgTable">
                     <thead>
                     <tr>
                         <th class="cm-data-table__th cm-data-table__th--check">
-                            <input type="checkbox" id="cmProgCheckAll" aria-label="Tout selectionner">
+                            <input type="checkbox" id="cmProgCheckAll" aria-label="Tout sélectionner">
                         </th>
+                        <th class="cm-data-table__th">N</th>
+                        <th class="cm-data-table__th">Etudiant</th>
+                        <th class="cm-data-table__th">Promotion</th>
                         <th class="cm-data-table__th">Date S.</th>
                         <th class="cm-data-table__th">Heure</th>
                         <th class="cm-data-table__th">Salle</th>
-                        <th class="cm-data-table__th">Etudiant</th>
-                        <th class="cm-data-table__th">Theme</th>
-                        <th class="cm-data-table__th">Jury</th>
+                        <th class="cm-data-table__th">Thème</th>
+                        <th class="cm-data-table__th">Président</th>
+                        <th class="cm-data-table__th">Directeur</th>
+                        <th class="cm-data-table__th">Examinateur</th>
+                        <th class="cm-data-table__th">Encadreur</th>
+                        <th class="cm-data-table__th">Maître stage</th>
                         <th class="cm-data-table__th is-center">Actions</th>
                     </tr>
                     </thead>
@@ -317,8 +300,8 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                     <?php if (empty($rowsToShow)): ?>
                         <?php cm_component('ui/empty-state', [
                             'in_table' => true,
-                            'colspan' => 12,
-                            'title' => 'Aucune programmation',
+                            'colspan' => 14,
+                            'title' => '',
                             'message' => 'Aucune soutenance programmee pour le moment.',
                         ]); ?>
                     <?php else: ?>
@@ -335,9 +318,9 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                             $heureDisplay = $heureRaw !== '' ? date('H:i', strtotime($heureRaw)) : '-';
                             $salleId = (string) ($row['id_salle'] ?? '');
                             $salleNom = trim((string) ($row['nom_salle'] ?? ''));
-
+                            $promotion = trim((string) ($row['promotion_etu'] ?? ''));
                             $searchText = strtolower(
-                                $nomEtudiant . ' ' . $matricule . ' ' . $theme . ' ' . $dateDisplay . ' ' . $heureDisplay . ' ' . $salleNom
+                                $nomEtudiant . ' ' . $matricule . ' ' . $promotion . ' ' . $theme . ' ' . $dateDisplay . ' ' . $heureDisplay . ' ' . $salleNom
                             );
                             ?>
                             <tr class="cm-data-table__row"
@@ -351,16 +334,18 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                                 data-examinateur-id="<?php echo htmlspecialchars((string) ($row['examinateur_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                 data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
                                 <td class="cm-data-table__td cm-data-table__td--check">
-                                    <input type="checkbox" class="cm-prog-check-row" value="<?php echo $idAttribution; ?>" aria-label="Selectionner ligne <?php echo $idAttribution; ?>">
+                                    <input type="checkbox" class="cm-prog-check-row" value="<?php echo $idAttribution; ?>" aria-label="Sélectionner ligne <?php echo $idAttribution; ?>">
                                 </td>
                                 <td class="cm-data-table__td"><?php echo (int) ($pagination['offset'] ?? 0) + $index + 1; ?></td>
                                 <td class="cm-data-table__td">
                                     <?php echo htmlspecialchars($nomEtudiant, ENT_QUOTES, 'UTF-8'); ?><br>
                                     <small><?php echo htmlspecialchars($matricule, ENT_QUOTES, 'UTF-8'); ?></small>
                                 </td>
+                                <td class="cm-data-table__td"><?php echo htmlspecialchars($promotion !== '' ? $promotion : '-', ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($dateDisplay, ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($heureDisplay, ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($salleNom !== '' ? $salleNom : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="cm-data-table__td"><?php echo htmlspecialchars($theme !== '' ? $theme : '-', ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($row['president_nom'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($row['directeur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($row['examinateur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -392,7 +377,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                     </tbody>
                 </table>
             </div>
-
             <?php
             cm_component('crud/pagination', [
                 'pagination' => $pagination,
@@ -403,18 +387,15 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
         </div>
     </div>
 </div>
-
 <script>
 (function () {
     const currentPage = <?php echo json_encode($currentPageSlug); ?>;
     const studentsById = <?php echo json_encode($studentMap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-
     const form = document.getElementById('cmProgForm');
     const editIdInput = document.getElementById('cmProgEditId');
     const submitBtn = document.getElementById('cmProgSubmitBtn');
     const resetBtn = document.getElementById('cmProgResetBtn');
     const alertBox = document.getElementById('cmProgAlert');
-
     const etudiantSelect = document.getElementById('cmProgEtudiant');
     const dateInput = document.getElementById('cmProgDate');
     const heureInput = document.getElementById('cmProgHeure');
@@ -422,14 +403,12 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
     const themeInput = document.getElementById('cmProgTheme');
     const presidentSelect = document.getElementById('cmProgPresident');
     const examinateurSelect = document.getElementById('cmProgExaminateur');
-
     const directeurInput = document.getElementById('cmProgDirecteur');
     const encadreurInput = document.getElementById('cmProgEncadreur');
     const maitreInput = document.getElementById('cmProgMaitreStage');
     const directeurIdInput = document.getElementById('cmProgDirecteurId');
     const encadreurIdInput = document.getElementById('cmProgEncadreurId');
     const maitreIdInput = document.getElementById('cmProgMaitreId');
-
     const searchInput = document.getElementById('cmProgSearch');
     const exportBtn = document.getElementById('cmProgExport');
     const printBtn = document.getElementById('cmProgPrint');
@@ -437,7 +416,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
     const selectAllBtn = document.getElementById('cmProgSelectAllBtn');
     const deselectBtn = document.getElementById('cmProgDeselectBtn');
     const deleteBtn = document.getElementById('cmProgDeleteBtn');
-
     function setAlert(type, message) {
         if (!alertBox) {
             return;
@@ -447,24 +425,20 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
             String(message || '').replace(/[<>&]/g, '') +
             '</span></div></div>';
     }
-
     function getRows() {
         return Array.from(document.querySelectorAll('#cmProgTableBody .cm-data-table__row'));
     }
-
     function getVisibleRows() {
         return getRows().filter(function (row) {
             return row.style.display !== 'none';
         });
     }
-
     function getCheckedRows() {
         return getRows().filter(function (row) {
             const cb = row.querySelector('.cm-prog-check-row');
             return cb && cb.checked;
         });
     }
-
     function updateBulkState() {
         const checked = getCheckedRows();
         if (deleteBtn) {
@@ -480,7 +454,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
             checkAll.checked = visible.length > 0 && checkedVisible.length === visible.length;
         }
     }
-
     function applySearch() {
         const term = searchInput ? (searchInput.value || '').trim().toLowerCase() : '';
         getRows().forEach(function (row) {
@@ -489,7 +462,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
         });
         updateBulkState();
     }
-
     function setDefaultDateTime() {
         const now = new Date();
         const yyyy = now.getFullYear();
@@ -497,7 +469,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
         const dd = String(now.getDate()).padStart(2, '0');
         const hh = String(now.getHours()).padStart(2, '0');
         const mi = String(now.getMinutes()).padStart(2, '0');
-
         if (dateInput && !dateInput.value) {
             dateInput.value = yyyy + '-' + mm + '-' + dd;
         }
@@ -505,17 +476,14 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
             heureInput.value = hh + ':' + mi;
         }
     }
-
     function getStudentById(id) {
         if (!id) {
             return null;
         }
         return studentsById[String(id)] || null;
     }
-
     function updateStudentDerivedFields() {
         const student = getStudentById(etudiantSelect ? etudiantSelect.value : '');
-
         if (!student) {
             if (themeInput && !editIdInput.value) themeInput.value = '';
             if (directeurInput) directeurInput.value = '';
@@ -526,7 +494,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
             if (maitreIdInput) maitreIdInput.value = '';
             return;
         }
-
         if (themeInput && !editIdInput.value && !themeInput.value) {
             themeInput.value = student.theme_rapport || '';
         }
@@ -537,14 +504,12 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
         if (encadreurIdInput) encadreurIdInput.value = student.encadreur_id || '';
         if (maitreIdInput) maitreIdInput.value = student.maitre_stage_id || '';
     }
-
     function updateJuryConstraints() {
         if (!presidentSelect || !examinateurSelect) {
             return;
         }
         const president = presidentSelect.value;
         const examinateur = examinateurSelect.value;
-
         Array.from(presidentSelect.options).forEach(function (opt) {
             if (!opt.value) {
                 return;
@@ -558,7 +523,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
             opt.disabled = president !== '' && opt.value === president;
         });
     }
-
     function resetForm() {
         if (editIdInput) editIdInput.value = '';
         if (etudiantSelect) etudiantSelect.value = '';
@@ -566,18 +530,15 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
         if (presidentSelect) presidentSelect.value = '';
         if (examinateurSelect) examinateurSelect.value = '';
         if (salleSelect) salleSelect.value = '';
-
         if (dateInput) dateInput.value = '';
         if (heureInput) heureInput.value = '';
         setDefaultDateTime();
-
         if (submitBtn) {
             submitBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Programmer';
         }
         updateStudentDerivedFields();
         updateJuryConstraints();
     }
-
     function apiCall(action, payload) {
         const formData = new FormData();
         Object.keys(payload || {}).forEach(function (key) {
@@ -587,7 +548,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
         if (tokenInput && tokenInput.value) {
             formData.append('csrf_token', tokenInput.value);
         }
-
         return fetch('?page=' + encodeURIComponent(currentPage) + '&action=' + action, {
             method: 'POST',
             headers: {
@@ -599,7 +559,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
             return response.json();
         });
     }
-
     function refreshPage() {
         if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
             window.CM.ajax.load(window.location.href, { replaceHistory: true, skipHistory: true });
@@ -607,11 +566,10 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
         }
         window.location.reload();
     }
-
     function validatePayload(payload) {
         if (!payload.id_etudiant || !payload.date_soutenance || !payload.heure_soutenance ||
             !payload.id_salle || !payload.theme_soutenance || !payload.president_id || !payload.examinateur_id) {
-            setAlert('error', 'Renseignez etudiant, date, heure, salle, theme, president et examinateur.');
+            setAlert('error', 'Renseignez étudiant, date, heure, salle, theme, president et examinateur.');
             return false;
         }
         if (payload.president_id === payload.examinateur_id) {
@@ -620,7 +578,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
         }
         return true;
     }
-
     function buildPayload() {
         return {
             id_etudiant: etudiantSelect ? etudiantSelect.value : '',
@@ -635,19 +592,16 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
             maitre_stage_id: maitreIdInput ? maitreIdInput.value : ''
         };
     }
-
     function submitForm() {
         const payload = buildPayload();
         if (!validatePayload(payload)) {
             return;
         }
-
         const editId = editIdInput ? editIdInput.value : '';
         const action = editId ? 'updateAttribution' : 'createAttribution';
         if (editId) {
             payload.id = editId;
         }
-
         apiCall(action, payload)
             .then(function (result) {
                 if (!result || !result.success) {
@@ -661,21 +615,18 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                 setAlert('error', 'Erreur reseau.');
             });
     }
-
     function deleteAttribution(id) {
         if (!id) {
             return Promise.resolve();
         }
         return apiCall('deleteAttribution', { id: id });
     }
-
     function exportVisibleRows() {
-        const headers = ['N', 'Etudiant', 'Date soutenance', 'Heure', 'Salle', 'President', 'Dir.M', 'Exam.', 'Enc.', 'MS'];
+        const headers = ['N', 'Etudiant', 'Promotion', 'Date soutenance', 'Heure', 'Salle', 'Thème', 'President', 'Dir.M', 'Exam.', 'Enc.', 'MS'];
         const rows = [headers.join(';')];
-
         getVisibleRows().forEach(function (row) {
             const cells = row.querySelectorAll('.cm-data-table__td');
-            if (cells.length < 11) {
+            if (cells.length < 13) {
                 return;
             }
             const line = [
@@ -688,13 +639,14 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                 cells[7].innerText.trim(),
                 cells[8].innerText.trim(),
                 cells[9].innerText.trim(),
-                cells[10].innerText.trim()
+                cells[10].innerText.trim(),
+                cells[11].innerText.trim(),
+                cells[12].innerText.trim()
             ].map(function (value) {
                 return '\"' + value.replace(/\"/g, '\"\"') + '\"';
             });
             rows.push(line.join(';'));
         });
-
         const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -705,7 +657,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
         link.remove();
         URL.revokeObjectURL(url);
     }
-
     if (etudiantSelect) {
         etudiantSelect.addEventListener('change', updateStudentDerivedFields);
     }
@@ -718,21 +669,18 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
     if (resetBtn) {
         resetBtn.addEventListener('click', resetForm);
     }
-
     if (form) {
         form.addEventListener('submit', function (event) {
             event.preventDefault();
             submitForm();
         });
     }
-
     document.querySelectorAll('.cm-prog-edit').forEach(function (button) {
         button.addEventListener('click', function () {
             const row = button.closest('.cm-data-table__row');
             if (!row) {
                 return;
             }
-
             if (editIdInput) editIdInput.value = row.getAttribute('data-id') || '';
             if (etudiantSelect) etudiantSelect.value = row.getAttribute('data-id-etudiant') || '';
             if (themeInput) themeInput.value = row.getAttribute('data-theme') || '';
@@ -741,17 +689,14 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
             if (salleSelect) salleSelect.value = row.getAttribute('data-salle-id') || '';
             if (presidentSelect) presidentSelect.value = row.getAttribute('data-president-id') || '';
             if (examinateurSelect) examinateurSelect.value = row.getAttribute('data-examinateur-id') || '';
-
             if (submitBtn) {
                 submitBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Modifier';
             }
-
             updateStudentDerivedFields();
             updateJuryConstraints();
             setAlert('success', 'Mode modification active.');
         });
     });
-
     document.querySelectorAll('.cm-prog-delete').forEach(function (button) {
         button.addEventListener('click', function () {
             const id = button.getAttribute('data-id') || '';
@@ -775,27 +720,22 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                 });
         });
     });
-
     if (searchInput) {
         searchInput.addEventListener('input', applySearch);
     }
-
     if (exportBtn) {
         exportBtn.addEventListener('click', exportVisibleRows);
     }
-
     if (printBtn) {
         printBtn.addEventListener('click', function () {
             window.print();
         });
     }
-
     document.addEventListener('change', function (event) {
         if (event.target && event.target.classList.contains('cm-prog-check-row')) {
             updateBulkState();
         }
     });
-
     if (checkAll) {
         checkAll.addEventListener('change', function () {
             getVisibleRows().forEach(function (row) {
@@ -807,7 +747,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
             updateBulkState();
         });
     }
-
     if (selectAllBtn) {
         selectAllBtn.addEventListener('click', function () {
             getVisibleRows().forEach(function (row) {
@@ -819,7 +758,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
             updateBulkState();
         });
     }
-
     if (deselectBtn) {
         deselectBtn.addEventListener('click', function () {
             getRows().forEach(function (row) {
@@ -831,21 +769,18 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
             updateBulkState();
         });
     }
-
     if (deleteBtn) {
         deleteBtn.addEventListener('click', function () {
             const ids = getCheckedRows().map(function (row) {
                 const cb = row.querySelector('.cm-prog-check-row');
                 return cb ? cb.value : '';
             }).filter(Boolean);
-
             if (ids.length === 0) {
                 return;
             }
             if (!window.confirm('Supprimer ' + ids.length + ' programmation(s) ?')) {
                 return;
             }
-
             Promise.all(ids.map(deleteAttribution))
                 .then(function (results) {
                     const failed = results.filter(function (item) {
@@ -863,7 +798,6 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                 });
         });
     }
-
     setDefaultDateTime();
     updateStudentDerivedFields();
     updateJuryConstraints();

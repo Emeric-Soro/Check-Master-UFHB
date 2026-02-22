@@ -4,6 +4,7 @@ namespace CheckMaster\Services;
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/EvaluationRapport.php';
 require_once __DIR__ . '/../models/Approuver.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use PDO;
 use Exception;
@@ -90,6 +91,43 @@ class ProcessusValidationService
         return 'NULL';
     }
 
+    private function getSelectedYearId(): ?int
+    {
+        return \AcademicYear::getSelectedIdFromSession();
+    }
+
+    private function yearCondition(string $alias = 'e'): array
+    {
+        $selectedYearId = $this->getSelectedYearId();
+        if ($selectedYearId === null || $selectedYearId <= 0) {
+            return ['sql' => '', 'params' => []];
+        }
+
+        return [
+            'sql' => " AND {$alias}.id_annee_acad = :id_annee_acad",
+            'params' => [':id_annee_acad' => $selectedYearId],
+        ];
+    }
+
+    private function getRapportYearId(int $idRapport): ?int
+    {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT e.id_annee_acad
+                FROM rapport_etudiants r
+                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                WHERE r.id_rapport = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$idRapport]);
+            $value = $stmt->fetchColumn();
+            return is_numeric($value) ? (int) $value : null;
+        } catch (Exception $e) {
+            error_log('Erreur getRapportYearId: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     /**
      * Récupère les statistiques pour le tableau de bord
      *
@@ -98,24 +136,29 @@ class ProcessusValidationService
     public function getStatistiques()
     {
         try {
+            $yearFilter = $this->yearCondition('e');
             if ($this->tableExists('approuver')) {
                 // Total des rapports approuvés par la chargée de communication
                 $stmt = $this->pdo->prepare("
                     SELECT COUNT(DISTINCT a.id_rapport) as total_rapports
                     FROM approuver a
-                    WHERE a.decision = 'approuve'
+                    JOIN rapport_etudiants r ON a.id_rapport = r.id_rapport
+                    JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    WHERE a.decision = 'approuve'" . $yearFilter['sql'] . "
                 ");
-                $stmt->execute();
+                $stmt->execute($yearFilter['params']);
                 $totalRapports = $stmt->fetch(PDO::FETCH_ASSOC)['total_rapports'];
 
                 // Rapports en cours d'évaluation (approuvés mais pas encore finalisés)
                 $stmt = $this->pdo->prepare("
                     SELECT COUNT(DISTINCT a.id_rapport) as en_cours
                     FROM approuver a
+                    JOIN rapport_etudiants r ON a.id_rapport = r.id_rapport
+                    JOIN etudiants e ON r.num_etu = e.num_carte_etud
                     LEFT JOIN valider v ON a.id_rapport = v.id_rapport
-                    WHERE a.decision = 'approuve' AND v.id_rapport IS NULL
+                    WHERE a.decision = 'approuve' AND v.id_rapport IS NULL" . $yearFilter['sql'] . "
                 ");
-                $stmt->execute();
+                $stmt->execute($yearFilter['params']);
                 $enCours = $stmt->fetch(PDO::FETCH_ASSOC)['en_cours'];
             } else {
                 $stmt = $this->pdo->prepare("SELECT COUNT(*) as total_rapports FROM rapport_etudiants");
@@ -136,18 +179,22 @@ class ProcessusValidationService
             $stmt = $this->pdo->prepare("
                 SELECT COUNT(DISTINCT v.id_rapport) as valides
                 FROM valider v
-                WHERE v.decision_validation = 'valider'
+                JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
+                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                WHERE v.decision_validation = 'valider'" . $yearFilter['sql'] . "
             ");
-            $stmt->execute();
+            $stmt->execute($yearFilter['params']);
             $valides = $stmt->fetch(PDO::FETCH_ASSOC)['valides'];
 
             // Rapports rejetés par la commission
             $stmt = $this->pdo->prepare("
                 SELECT COUNT(DISTINCT v.id_rapport) as rejetes
                 FROM valider v
-                WHERE v.decision_validation = 'rejeter'
+                JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
+                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                WHERE v.decision_validation = 'rejeter'" . $yearFilter['sql'] . "
             ");
-            $stmt->execute();
+            $stmt->execute($yearFilter['params']);
             $rejetes = $stmt->fetch(PDO::FETCH_ASSOC)['rejetes'];
 
             return [
@@ -179,6 +226,7 @@ class ProcessusValidationService
             $titleExpr = $this->rapportTitleExpr('r');
             $dateExpr = $this->rapportDateExpr('r');
             $hasEtape = $this->columnExists('rapport_etudiants', 'etape_validation');
+            $yearFilter = $this->yearCondition('e');
 
             if ($this->tableExists('approuver')) {
                 $sql = "
@@ -201,6 +249,7 @@ class ProcessusValidationService
                     JOIN etudiants e ON r.num_etu = e.num_carte_etud
                     LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
                     WHERE a.decision = 'approuve'
+                    " . $yearFilter['sql'] . "
                     ORDER BY a.date_approv DESC
                 ";
             } else {
@@ -228,11 +277,12 @@ class ProcessusValidationService
                     ) lv ON lv.id_rapport = r.id_rapport
                     LEFT JOIN valider v ON v.id_rapport = lv.id_rapport AND v.date_validation = lv.max_date
                     LEFT JOIN enseignants ens ON v.id_enseignant = ens.id_enseignant
+                    WHERE 1=1" . $yearFilter['sql'] . "
                     ORDER BY COALESCE(v.date_validation, $dateExpr) DESC
                 ";
             }
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute();
+            $stmt->execute($yearFilter['params']);
             $rapports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Pour chaque rapport, récupérer les évaluations
@@ -443,6 +493,14 @@ class ProcessusValidationService
     public function finaliserRapport($id_rapport, $id_enseignant, $commentaire = null)
     {
         try {
+            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId((int) $id_rapport), 'une finalisation de rapport');
+            if (!$writeGuard['success']) {
+                return [
+                    'success' => false,
+                    'message' => $writeGuard['message']
+                ];
+            }
+
             // Compter le nombre de validations 'valider'
             $stmt = $this->pdo->prepare("SELECT COUNT(*) as total FROM evaluations_rapports WHERE id_rapport = ? AND decision_evaluation = 'valider'");
             $stmt->execute([$id_rapport]);

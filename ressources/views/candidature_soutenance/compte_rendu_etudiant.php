@@ -30,14 +30,14 @@ $contenuCr = (string) ($compte_rendu['contenu_CR'] ?? '');
     <section class="cm-etu-panel">
         <header class="cm-etu-panel__header">
             <div>
-                <h2 class="cm-etu-panel__title"><i class="fas fa-file-signature" aria-hidden="true"></i> Compte Rendu de Soutenance</h2>
+                
                 <p class="cm-etu-panel__subtitle">Document officiel publié par la commission après évaluation de votre dossier.</p>
             </div>
-            <a href="?page=candidature_soutenance" class="cm-btn is-light is-sm">
+                    <?php if (function_exists('canView') ? canView() : true): ?>
                 <i class="fas fa-arrow-left" aria-hidden="true"></i>
                 <span>Retour</span>
             </a>
-        </header>
+                    <?php endif; ?>
 
         <?php if (!$compte_rendu): ?>
             <div class="cm-etu-empty">
@@ -49,12 +49,12 @@ $contenuCr = (string) ($compte_rendu['contenu_CR'] ?? '');
             <article class="cm-etu-doc-card">
                 <header class="cm-etu-doc-card__header">
                     <div>
-                        <h3><?= htmlspecialchars($nomCr, ENT_QUOTES, 'UTF-8') ?></h3>
+
                         <?php if ($dateCr !== ''): ?>
                             <p>Publié le <?= date('d/m/Y à H:i', strtotime($dateCr)) ?></p>
                         <?php endif; ?>
                     </div>
-                    <?php if ($pdfPath !== ''): ?>
+                    <?php if ($pdfPath !== '' && (function_exists('canView') ? canView() : true)): ?>
                         <a href="<?= htmlspecialchars($pdfPath, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="cm-btn is-info is-sm">
                             <i class="fas fa-download" aria-hidden="true"></i>
                             <span>Télécharger</span>
@@ -65,19 +65,19 @@ $contenuCr = (string) ($compte_rendu['contenu_CR'] ?? '');
                 <div class="cm-etu-doc-card__body">
                     <!-- Statut de la candidature -->
                     <div class="cm-etu-cr-section">
-                        <h4 class="cm-etu-cr-section__title">Statut de la candidature</h4>
+
                         <?php cm_component('ui/badge', ['type' => $badgeType, 'text' => $badgeText]); ?>
                     </div>
 
                     <!-- Date de soutenance -->
                     <div class="cm-etu-cr-section">
-                        <h4 class="cm-etu-cr-section__title">Date de la soutenance</h4>
+
                         <p><?= $dateSoutenance ? date('d/m/Y', strtotime($dateSoutenance)) : 'Non définie' ?></p>
                     </div>
 
                     <!-- Évaluation technique -->
                     <div class="cm-etu-cr-section">
-                        <h4 class="cm-etu-cr-section__title">Évaluation technique</h4>
+
                         <div class="cm-etu-cr-score">
                             <span>Qualité du travail</span>
                             <strong><?= $noteTechnique ?>/20</strong>
@@ -89,7 +89,7 @@ $contenuCr = (string) ($compte_rendu['contenu_CR'] ?? '');
 
                     <!-- Évaluation de la présentation -->
                     <div class="cm-etu-cr-section">
-                        <h4 class="cm-etu-cr-section__title">Évaluation de la présentation</h4>
+
                         <div class="cm-etu-cr-score">
                             <span>Qualité de la présentation</span>
                             <strong><?= $notePresentation ?>/20</strong>
@@ -102,14 +102,14 @@ $contenuCr = (string) ($compte_rendu['contenu_CR'] ?? '');
                     <!-- Contenu texte du CR -->
                     <?php if ($contenuCr !== ''): ?>
                         <div class="cm-etu-cr-section">
-                            <h4 class="cm-etu-cr-section__title">Contenu du compte rendu</h4>
+
                             <p><?= nl2br(htmlspecialchars($contenuCr, ENT_QUOTES, 'UTF-8')) ?></p>
                         </div>
                     <?php endif; ?>
 
                     <!-- Commentaires -->
                     <div class="cm-etu-cr-section">
-                        <h4 class="cm-etu-cr-section__title">Commentaires</h4>
+
                         <div class="cm-etu-cr-comments">
                             <p><?= nl2br(htmlspecialchars($commentaires, ENT_QUOTES, 'UTF-8')) ?></p>
                         </div>

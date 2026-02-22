@@ -475,6 +475,16 @@ if (!function_exists('cm_render_param_crud_view')) {
             <span>Supprimer (<span id="<?= htmlspecialchars($selectedCountId, ENT_QUOTES, 'UTF-8') ?>">0</span>)</span>
         </button>
         <?php endif; ?>
+        <?php if (function_exists('canView') ? canView() : true): ?>
+        <button type="button" id="<?= htmlspecialchars($printBtnId, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn is-info is-sm">
+            <i class="fas fa-print" aria-hidden="true"></i>
+            <span>Imprimer</span>
+        </button>
+        <button type="button" id="<?= htmlspecialchars($exportBtnId, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn is-info is-sm">
+            <i class="fas fa-file-export" aria-hidden="true"></i>
+            <span>Exporter</span>
+        </button>
+        <?php endif; ?>
         <button type="button" id="<?= htmlspecialchars($printBtnId, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn is-info is-sm">
             <i class="fas fa-print" aria-hidden="true"></i>
             <span>Imprimer</span>

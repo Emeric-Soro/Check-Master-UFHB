@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/../../../app/utils/permissions_helper.php';
 
 $reclamations = is_array($reclamations ?? null) ? $reclamations : [];
 $statistiques = is_array($statistiques ?? null) ? $statistiques : [];
@@ -22,7 +21,7 @@ $totalPages = (int) ($totalPages ?? 1);
     <section class="cm-etu-panel">
         <header class="cm-etu-panel__header">
             <div>
-                <h2 class="cm-etu-panel__title"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i> Suivi & Historique des Réclamations</h2>
+                
                 <p class="cm-etu-panel__subtitle">Consultez le statut et l'historique de toutes vos réclamations.</p>
             </div>
             <span class="cm-etu-count-badge"><?= $totalReclamations ?> réclamation<?= $totalReclamations > 1 ? 's' : '' ?></span>
@@ -77,29 +76,29 @@ $totalPages = (int) ($totalPages ?? 1);
         <div class="cm-etu-hub-grid cm-etu-hub-grid--4">
             <article class="cm-etu-hub-card cm-etu-hub-card--stat">
                 <div class="cm-etu-hub-card__icon"><i class="fas fa-file-alt" aria-hidden="true"></i></div>
-                <h3 class="cm-etu-hub-card__title">Total</h3>
+
                 <p class="cm-etu-stat-value"><?= $totalReclamations ?></p>
             </article>
             <article class="cm-etu-hub-card cm-etu-hub-card--stat">
                 <div class="cm-etu-hub-card__icon" style="background: rgba(243, 156, 18, 0.14); color: #e67e22;"><i class="fas fa-clock" aria-hidden="true"></i></div>
-                <h3 class="cm-etu-hub-card__title">En attente</h3>
+
                 <p class="cm-etu-stat-value"><?= $enAttente ?></p>
             </article>
             <article class="cm-etu-hub-card cm-etu-hub-card--stat">
                 <div class="cm-etu-hub-card__icon" style="background: rgba(39, 174, 96, 0.14); color: #27ae60;"><i class="fas fa-check-circle" aria-hidden="true"></i></div>
-                <h3 class="cm-etu-hub-card__title">Résolues</h3>
+
                 <p class="cm-etu-stat-value"><?= $resolues ?></p>
             </article>
             <article class="cm-etu-hub-card cm-etu-hub-card--stat">
                 <div class="cm-etu-hub-card__icon" style="background: rgba(231, 76, 60, 0.14); color: #e74c3c;"><i class="fas fa-times-circle" aria-hidden="true"></i></div>
-                <h3 class="cm-etu-hub-card__title">Rejetées</h3>
+
                 <p class="cm-etu-stat-value"><?= $rejetees ?></p>
             </article>
         </div>
 
         <!-- Liste des réclamations -->
         <div class="cm-etu-list-header">
-            <h3 class="cm-etu-list-title"><i class="fas fa-list" aria-hidden="true"></i> Vos réclamations</h3>
+
             <?php if (!empty($reclamations)): ?>
                 <?php cm_component('ui/badge', ['type' => 'info', 'text' => count($reclamations) . ' résultat' . (count($reclamations) > 1 ? 's' : '')]); ?>
             <?php endif; ?>
@@ -150,7 +149,7 @@ $totalPages = (int) ($totalPages ?? 1);
                     <article class="cm-etu-report-item" data-rec-id="<?= $recId ?>">
                         <div class="cm-etu-report-item__main">
                             <div class="cm-etu-report-item__head">
-                                <h4 class="cm-etu-report-item__title">REC-<?= $recId ?> — <?= htmlspecialchars($sujet, ENT_QUOTES, 'UTF-8') ?></h4>
+                                <span class="cm-etu-report-item__title">REC-<?= $recId ?> — <?= htmlspecialchars($sujet, ENT_QUOTES, 'UTF-8') ?></span>
                                 <?php cm_component('ui/badge', ['type' => $badgeType, 'text' => $badgeText]); ?>
                             </div>
                             <?php if ($typeRec !== ''): ?>
@@ -200,7 +199,7 @@ $totalPages = (int) ($totalPages ?? 1);
 <div id="recDetailModal" class="cm-etu-modal" hidden>
     <div class="cm-etu-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="recDetailTitle" style="width: min(680px, 100%); max-height: 90vh; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3 id="recDetailTitle"><i class="fas fa-file-alt" aria-hidden="true"></i> Détails de la réclamation</h3>
+
             <button type="button" class="cm-btn is-light is-sm" id="closeRecDetail">
                 <i class="fas fa-xmark" aria-hidden="true"></i>
             </button>

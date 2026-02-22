@@ -3,14 +3,15 @@ require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/models/Etudiant.php';
 
 $etudiantModel = new Etudiant(Database::getConnection());
-$compte_rendu = $etudiantModel->getCompteRendu($_SESSION['num_etu']);
+$numEtu = isset($_SESSION['num_etu']) && $_SESSION['num_etu'] !== '' ? (string) $_SESSION['num_etu'] : null;
+$compte_rendu = $numEtu !== null ? $etudiantModel->getCompteRendu($numEtu) : null;
 ?>
 
 <div class="cm-etu-screen">
     <section class="cm-etu-panel">
         <header class="cm-etu-panel__header">
             <div>
-                <h2 class="cm-etu-panel__title"><i class="fas fa-file-signature" aria-hidden="true"></i> Mon Compte Rendu d'Évaluation</h2>
+                
                 <p class="cm-etu-panel__subtitle">Document officiel publié par la commission après évaluation de votre dossier.</p>
             </div>
         </header>
@@ -32,10 +33,10 @@ $compte_rendu = $etudiantModel->getCompteRendu($_SESSION['num_etu']);
             <article class="cm-etu-doc-card">
                 <header class="cm-etu-doc-card__header">
                     <div>
-                        <h3><?= htmlspecialchars($nomCr, ENT_QUOTES, 'UTF-8') ?></h3>
+
                         <p>Publié le <?= $dateCr !== '' ? date('d/m/Y à H:i', strtotime($dateCr)) : 'Date indisponible' ?></p>
                     </div>
-                    <?php if ($pdfPath !== ''): ?>
+                    <?php if (function_exists('canView') ? canView() : true): ?>
                         <a href="<?= htmlspecialchars($pdfPath, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="cm-btn is-info is-sm">
                             <i class="fas fa-download" aria-hidden="true"></i>
                             <span>Télécharger</span>
@@ -52,7 +53,7 @@ $compte_rendu = $etudiantModel->getCompteRendu($_SESSION['num_etu']);
                 </div>
 
                 <footer class="cm-etu-doc-card__footer">
-                    <span>Numéro étudiant : <strong><?= htmlspecialchars((string) ($compte_rendu['num_etu'] ?? $_SESSION['num_etu']), ENT_QUOTES, 'UTF-8') ?></strong></span>
+                    <span>Numéro étudiant : <strong><?= htmlspecialchars((string) ($compte_rendu['num_etu'] ?? $numEtu ?? 'N/A'), ENT_QUOTES, 'UTF-8') ?></strong></span>
                     <a href="?page=candidature_soutenance" class="cm-btn is-light is-sm">Retour à ma candidature</a>
                 </footer>
             </article>

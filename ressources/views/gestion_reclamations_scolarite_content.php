@@ -1,23 +1,18 @@
 <?php
-require_once __DIR__ . '/../../app/utils/permissions_helper.php';
-
 $reclamationsEnCours = is_array($GLOBALS['reclamationsEnCours'] ?? null) ? $GLOBALS['reclamationsEnCours'] : [];
 $reclamationsTraitees = is_array($GLOBALS['reclamationsTraitees'] ?? null) ? $GLOBALS['reclamationsTraitees'] : [];
-
 $allReclamations = array_merge($reclamationsEnCours, $reclamationsTraitees);
 usort($allReclamations, static function ($a, $b) {
     $dateA = strtotime((string) ($a->date_creation ?? '1970-01-01'));
     $dateB = strtotime((string) ($b->date_creation ?? '1970-01-01'));
     return $dateB <=> $dateA;
 });
-
 $stats = [
     'en_attente' => 0,
     'en_cours' => 0,
     'resolue' => 0,
     'rejetee' => 0,
 ];
-
 foreach ($allReclamations as $rec) {
     $status = strtolower(trim((string) ($rec->statut_reclamation ?? '')));
     if ($status === 'en attente') {
@@ -31,7 +26,6 @@ foreach ($allReclamations as $rec) {
     }
 }
 ?>
-
 <?php
 $allowedLimits = [2, 5, 10, 25, 50, 100];
 $reclamationsPerPage = max(2, (int) ($_GET['limit_reclamations'] ?? 10));
@@ -54,17 +48,15 @@ $reclamationPagination = function_exists('cm_paginate')
 $reclamationsPageRows = array_slice($allReclamations, (int) ($reclamationPagination['offset'] ?? 0), $reclamationsPerPage);
 $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' . $reclamationsPerPage;
 ?>
-
 <div class="cm-prd3-screen cm-prd3-crud-screen">
     <?php
     cm_component('layout/page-header', [
-        'title' => 'Reclamations - Scolarite',
-        'subtitle' => 'Traitement unifie des reclamations et historique filtre.',
-        'annee' => date('Y') . '-' . (date('Y') + 1),
+        'title' => '',
+        'subtitle' => 'Traitement unifie des réclamations et historique filtré.',
+        'annee' => trim((string) ($_SESSION['global_annee_selected'] ?? '')),
         'icon' => 'fa-circle-exclamation',
     ]);
     ?>
-
     <div class="cm-dashboard-grid cm-mb-md">
         <?php
         cm_component('dashboard/stat-widget', [
@@ -87,26 +79,19 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
         ]);
         cm_component('dashboard/stat-widget', [
             'value' => (string) $stats['rejetee'],
-            'label' => 'Rejetees',
+            'label' => 'Rejetées',
             'icon' => 'fa-circle-xmark',
             'color' => 'danger',
         ]);
         ?>
     </div>
-
     <div class="cm-crud-wrapper">
     <div class="cm-pole-superieur">
-        <div class="cm-pole-superieur-title">
-            <h2>
-                <i class="fas fa-reply" aria-hidden="true"></i>
-                Traitement de la reclamation
-            </h2>
+        <div class="">
         </div>
-
         <form id="cmReclamationForm" method="POST">
             <?php cm_component('form/csrf-token'); ?>
             <input type="hidden" id="cmReclamationId" value="">
-
             <div class="cm-grid-4">
                 <?php
                 cm_component('form/input-text', [
@@ -136,12 +121,11 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
                 cm_component('form/input-text', [
                     'name' => 'reclamation_date',
                     'id' => 'cmReclamationDate',
-                    'label' => 'Date reclamation',
+                    'label' => 'Date réclamation',
                     'readonly' => true,
                 ]);
                 ?>
             </div>
-
             <?php
             cm_component('form/textarea', [
                 'name' => 'reponse_admin',
@@ -151,7 +135,6 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
                 'rows' => 4,
             ]);
             ?>
-
             <div class="cm-form-buttons">
                 <?php if (canEdit()): ?>
                     <button type="submit" class="cm-btn is-success">
@@ -161,12 +144,11 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
                 <?php endif; ?>
                 <button type="button" id="cmResetReclamation" class="cm-btn is-light">
                     <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                    Reinitialiser
+                    Réinitialiser
                 </button>
             </div>
         </form>
     </div>
-
     <div class="cm-barre-intermediaire">
         <div class="cm-toolbar">
             <div class="cm-toolbar-left">
@@ -178,10 +160,6 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <span class="cm-badge is-info cm-toolbar-year">
-                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-                    <?php echo date('Y') . '-' . (date('Y') + 1); ?>
-                </span>
                 <label for="cmFilterStatutRec"><strong>Statut:</strong></label>
                 <select id="cmFilterStatutRec" class="cm-form-control cm-form-select is-sm cm-toolbar-field-md">
                     <option value="">Tous</option>
@@ -194,21 +172,24 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
                 <input type="date" id="cmFilterDateRec" class="cm-form-control is-sm cm-toolbar-field-lg">
             </div>
             <div class="cm-toolbar-center">
-                <input type="text" id="cmSearchReclamation" class="cm-form-control" placeholder="Rechercher (etudiant, objet, numero)...">
+                <input type="text" id="cmSearchReclamation" class="cm-form-control" placeholder="Rechercher (étudiant, objet, numéro)...">
             </div>
             <div class="cm-toolbar-right">
                 <button type="button" class="cm-btn is-info is-sm" id="cmSelectAllReclamationsBtn">
                     <i class="fas fa-check-square" aria-hidden="true"></i>
-                    Tout selectionner
+                    Tout sélectionner
                 </button>
                 <button type="button" class="cm-btn is-light is-sm" id="cmDeselectAllReclamationsBtn">
                     <i class="fas fa-square" aria-hidden="true"></i>
                     Deselectionner
                 </button>
+                <?php if (canDelete()): ?>
                 <button type="button" class="cm-btn is-info is-sm" id="cmDeleteReclamationsBtn" disabled>
                     <i class="fas fa-trash" aria-hidden="true"></i>
                     Supprimer (<span id="cmSelectedReclamationsCount">0</span>)
                 </button>
+                <?php endif; ?>
+                <?php if (canView()): ?>
                 <button type="button" class="cm-btn is-info is-sm" id="cmExportReclamation">
                     <i class="fas fa-file-export" aria-hidden="true"></i>
                     Exporter
@@ -217,17 +198,17 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
                     <i class="fas fa-print" aria-hidden="true"></i>
                     Imprimer
                 </button>
+                <?php endif; ?>
             </div>
         </div>
     </div>
-
     <div class="cm-pole-inferieur">
         <div class="cm-table-wrapper">
             <table class="cm-data-table" id="cmReclamationsTable">
                 <thead>
                 <tr>
                     <th class="cm-data-table__th is-checkbox">
-                        <input type="checkbox" id="cmCheckAllReclamations" class="cm-checkbox" aria-label="Selectionner toutes les lignes">
+                        <input type="checkbox" id="cmCheckAllReclamations" class="cm-checkbox" aria-label="Sélectionner toutes les lignes">
                     </th>
                     <th class="cm-data-table__th">N° Recl.</th>
                     <th class="cm-data-table__th">Etudiant</th>
@@ -242,8 +223,8 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
                     <?php cm_component('ui/empty-state', [
                         'in_table' => true,
                         'colspan' => 7,
-                        'title' => 'Aucune reclamation',
-                        'message' => 'Aucune reclamation a traiter.',
+                        'title' => '',
+                        'message' => 'Aucune réclamation à traiter.',
                     ]); ?>
                 <?php else: ?>
                     <?php foreach ($reclamationsPageRows as $rec): ?>
@@ -328,7 +309,6 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
                 </tbody>
             </table>
         </div>
-
         <?php cm_component('crud/pagination', [
             'pagination' => $reclamationPagination,
             'base_url' => $paginationBaseUrl,
@@ -337,7 +317,6 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
     </div>
 </div>
 </div>
-
 <script>
 (function () {
     const form = document.getElementById('cmReclamationForm');
@@ -354,7 +333,6 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
         }
         window.location.href = url;
     };
-
     const toggleButtons = document.querySelectorAll('.cmToggleRecDetail');
     for (let i = 0; i < toggleButtons.length; i++) {
         toggleButtons[i].addEventListener('click', function () {
@@ -368,7 +346,6 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             }
         });
     }
-
     const pickButtons = document.querySelectorAll('.cmPickReclamation');
     for (let i = 0; i < pickButtons.length; i++) {
         pickButtons[i].addEventListener('click', function () {
@@ -381,17 +358,16 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             reponseField.value = btn.getAttribute('data-description') || '';
         });
     }
-
     if (form) {
         form.addEventListener('submit', function (event) {
             if (!idField.value) {
                 event.preventDefault();
-                window.alert('Selectionnez une reclamation a traiter.');
+                window.alert('Selectionnez une réclamation à traiter.');
                 return;
             }
             if (!statutField.value) {
                 event.preventDefault();
-                window.alert('Selectionnez un statut.');
+                window.alert('Sélectionnez un statut.');
                 return;
             }
             if (!reponseField.value.trim()) {
@@ -402,7 +378,6 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             form.action = '?page=gestion_reclamations_scolarite&action=changer_statut&id=' + encodeURIComponent(idField.value);
         });
     }
-
     const resetBtn = document.getElementById('cmResetReclamation');
     if (resetBtn) {
         resetBtn.addEventListener('click', function () {
@@ -414,7 +389,6 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             reponseField.value = '';
         });
     }
-
     const searchInput = document.getElementById('cmSearchReclamation');
     const limitSelect = document.getElementById('cmReclamationsLimit');
     const statutFilter = document.getElementById('cmFilterStatutRec');
@@ -439,25 +413,21 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             checkAll.checked = all.length > 0 && all.every(function (cb) { return cb.checked; });
         }
     };
-
     const applyFilters = function () {
         const term = (searchInput ? searchInput.value : '').trim().toLowerCase();
         const statut = (statutFilter ? statutFilter.value : '').trim().toLowerCase();
         const date = (dateFilter ? dateFilter.value : '').trim();
         const rows = document.querySelectorAll('.cm-rec-main-row');
-
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             const detail = document.getElementById('cmRecDetail_' + row.getAttribute('data-id'));
             const search = row.getAttribute('data-search') || '';
             const rowStatut = row.getAttribute('data-statut') || '';
             const rowDate = row.getAttribute('data-date') || '';
-
             const matchSearch = term === '' || search.indexOf(term) !== -1;
             const matchStatut = statut === '' || rowStatut === statut;
             const matchDate = date === '' || rowDate === date;
             const visible = matchSearch && matchStatut && matchDate;
-
             row.style.display = visible ? '' : 'none';
             if (detail) {
                 detail.style.display = visible ? '' : 'none';
@@ -467,7 +437,6 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             }
         }
     };
-
     if (searchInput) {
         searchInput.addEventListener('input', applyFilters);
     }
@@ -485,7 +454,6 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             navigate(url.toString());
         });
     }
-
     const checkAll = document.getElementById('cmCheckAllReclamations');
     if (checkAll) {
         checkAll.addEventListener('change', function () {
@@ -520,7 +488,6 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             window.alert('Suppression multiple indisponible sur cet ecran.');
         });
     }
-
     const exportBtn = document.getElementById('cmExportReclamation');
     if (exportBtn) {
         exportBtn.addEventListener('click', function () {
@@ -536,7 +503,6 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
                 });
                 lines.push(values.join(';'));
             });
-
             const blob = new Blob(["\uFEFF" + lines.join('\n')], {type: 'text/csv;charset=utf-8;'});
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -546,14 +512,12 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             document.body.removeChild(link);
         });
     }
-
     const printBtn = document.getElementById('cmPrintReclamation');
     if (printBtn) {
         printBtn.addEventListener('click', function () {
             window.print();
         });
     }
-
     updateSelectionState();
 })();
 </script>

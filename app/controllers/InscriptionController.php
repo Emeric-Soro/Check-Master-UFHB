@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/InscriptionService.php';
+require_once __DIR__ . '/../Support/Database.php';
+require_once __DIR__ . '/../Services/Document/RecuGeneratorService.php';
+require_once __DIR__ . '/../Utils/RecuDataUtils.php';
 
 use CheckMaster\Services\InscriptionService;
 
@@ -33,54 +36,43 @@ class InscriptionController
         if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'imprimer_recu' && isset($_GET['id_inscription'])) {
             $inscription = $this->service->getInscriptionForReceipt($_GET['id_inscription']);
             if ($inscription) {
-                $GLOBALS['inscriptionAModifier'] = $inscription;
-
-                // Inclure l'autoloader de Composer pour Dompdf
-                require_once __DIR__ . '/../../vendor/autoload.php';
-
-                // Démarrer la mise en mémoire tampon de sortie
-                ob_start();
-
-                // Inclure le fichier du modèle de reçu
-                include __DIR__ . '/../../ressources/views/gestion_etudiants/recu_inscription.php';
-
-                // Capturer le contenu de la mémoire tampon
-                $html = ob_get_clean();
-
-                // Instancier Dompdf avec options utiles
-                if (class_exists('\Dompdf\Options')) {
-                    $options = new \Dompdf\Options();
-                    $options->set('isRemoteEnabled', true);
-                    $dompdf = new \Dompdf\Dompdf($options);
-                } else {
-                    $dompdf = new \Dompdf\Dompdf();
-                }
-
-                // Définir le répertoire de base pour les ressources (chemin absolu)
-                $basePathress = realpath(__DIR__ . '/../../public');
-                if ($basePathress) {
-                    $dompdf->setBasePath($basePathress);
-                }
-
-                // Charger le HTML
-                $dompdf->loadHtml($html);
-
-                // Définir la taille et l'orientation du papier
-                $dompdf->setPaper('A4', 'landscape');
-
-                // Rendre le PDF avec gestion d'erreur
+                // Générer un recu simple en utilisant les services de documents
                 try {
-                    $dompdf->render();
-                    $dompdf->stream("recu_paiement_" . $inscription['id_inscription'] . ".pdf", array("Attachment" => false));
+                    $db = new \App\Support\Database();
+                    $recuDataUtils = new \App\Utils\RecuDataUtils($db);
+                    $pdfGenerator = new \App\Services\Document\PdfGeneratorService(
+                        __DIR__ . '/../../storage',
+                        __DIR__ . '/../../public/assets/img/logo.png'
+                    );
+                    $recuService = new \App\Services\Document\RecuGeneratorService($pdfGenerator, $recuDataUtils, $db);
+                    
+                    // Chercher les versements associés à cette inscription
+                    $pdo = $db->pdo();
+                    $stmtV = $pdo->prepare('SELECT id_versement FROM versements WHERE id_inscription = :id_inscription ORDER BY date_versement DESC LIMIT 1');
+                    $stmtV->execute([':id_inscription' => (int) $_GET['id_inscription']]);
+                    $versementRow = $stmtV->fetch(\PDO::FETCH_ASSOC);
+                    
+                    if ($versementRow) {
+                        $versementId = (int) $versementRow['id_versement'];
+                        $result = $recuService->generate($versementId, $_SESSION['id_utilisateur']);
+                        if ($result['success'] && !empty($result['path']) && file_exists($result['path'])) {
+                            header('Content-Type: application/pdf');
+                            header('Content-Disposition: inline; filename="recu_' . $inscription['id_inscription'] . '.pdf"');
+                            header('Content-Length: ' . filesize($result['path']));
+                            readfile($result['path']);
+                            $this->service->logPrint($_SESSION['id_utilisateur'], 'Succès');
+                            exit;
+                        }
+                    }
+                    
+                    // Si pas de versement ou erreur, logger l'erreur
+                    throw new Exception('Impossible de générer le recu PDF: versement non trouvé ou erreur');
+                    
                 } catch (Exception $e) {
-                    error_log("Dompdf render error: " . $e->getMessage());
-                    $GLOBALS['messageErreur'] = "Erreur lors de la génération du PDF : " . $e->getMessage();
+                    error_log('Erreur lors de la génération du recu: ' . $e->getMessage());
+                    $GLOBALS['messageErreur'] = 'Erreur lors de la génération du recu: ' . $e->getMessage();
                     $this->service->logPrint($_SESSION['id_utilisateur'], 'Erreur');
                 }
-
-                $this->service->logPrint($_SESSION['id_utilisateur'], 'Succès');
-
-                exit;
             } else {
                 $GLOBALS['messageErreur'] = "Inscription non trouvée.";
                 $this->service->logPrint($_SESSION['id_utilisateur'], 'Erreur');

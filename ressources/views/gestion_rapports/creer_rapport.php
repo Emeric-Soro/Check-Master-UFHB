@@ -1,12 +1,11 @@
 <?php
-// Inclure le helper de permissions
-require_once __DIR__ . '/../../../app/utils/permissions_helper.php';
+// permissions_helper déjà inclus par layout.php
 
 // Determiner si c'est une edition ou creation
 $isEditingExisting = isset($isEditMode) && $isEditMode && isset($rapport);
 $isReadOnly = !empty($GLOBALS['rapportDejaDepose']);
 
-// Recuperer les informations de l'etudiant depuis la session
+// Recuperer les informations de l'étudiant depuis la session
 $numEtu = $_SESSION['num_etu'] ?? '';
 $nomEtu = $_SESSION['nom_etu'] ?? '';
 $prenomEtu = $_SESSION['prenom_etu'] ?? '';
@@ -28,7 +27,7 @@ if ($themeRapportInitial === '' && isset($stageInfo['sujet_stage'])) {
 $nomEntreprise       = (string) ($stageInfo['nom_entreprise'] ?? '');
 $encadrantEntreprise = (string) ($stageInfo['encadrant_entreprise'] ?? '');
 
-// Annee academique
+// Année académique
 $anneeAcademique = '';
 $sessionYearCandidates = [
         $_SESSION['annee_academique'] ?? null,
@@ -208,9 +207,7 @@ if (!function_exists('cm_etu_escape')) {
         <!-- Header -->
         <header class="cm-etu-editor-header">
             <div>
-                <h2 class="cm-etu-panel__title">
-                    <i class="fas fa-file-alt" aria-hidden="true"></i> Editeur de Rapport de Stage
-                </h2>
+                
                 <p class="cm-etu-panel__subtitle">
                     <?php if ($isEditingExisting): ?>
                         Mode edition : <?= cm_etu_escape(isset($rapport['nom_rapport']) ? $rapport['nom_rapport'] : 'Rapport') ?>
@@ -219,7 +216,7 @@ if (!function_exists('cm_etu_escape')) {
                     <?php endif; ?>
                 </p>
             </div>
-            <span class="cm-etu-count-badge">Annee A.: <?= cm_etu_escape($anneeAcademique) ?></span>
+            <span class="cm-etu-count-badge">Année A.: <?= cm_etu_escape($anneeAcademique) ?></span>
         </header>
 
         <!-- Top Actions -->
@@ -304,7 +301,7 @@ if (!function_exists('cm_etu_escape')) {
             <div class="cm-etu-cover-layout">
                 <!-- Left: Form -->
                 <div>
-                    <h3 class="cm-etu-section-title"><i class="fas fa-pen-to-square" aria-hidden="true"></i> Informations de la Page de Couverture</h3>
+
 
                     <div id="coverPageFormContainer" class="cm-etu-form">
                         <!-- Nom du rapport -->
@@ -353,7 +350,7 @@ if (!function_exists('cm_etu_escape')) {
                         </div>
 
                         <div class="cm-etu-field">
-                            <label class="cm-etu-label" for="nom_etudiant">Nom complet de l'etudiant <span class="cm-required-star">*</span></label>
+                            <label class="cm-etu-label" for="nom_etudiant">Nom complet de l'étudiant <span class="cm-required-star">*</span></label>
                             <input type="text" id="nom_etudiant" class="cm-etu-input" value="<?= cm_etu_escape($nomCompletEtu) ?>"
                                     <?= $isReadOnly ? 'readonly' : '' ?> required>
                         </div>
@@ -386,7 +383,7 @@ if (!function_exists('cm_etu_escape')) {
                         <!-- Encadrement -->
                         <div class="cm-etu-grid cm-etu-grid--2">
                             <div class="cm-etu-field">
-                                <label class="cm-etu-label" for="encadreur">Encadreur academique</label>
+                                <label class="cm-etu-label" for="encadreur">Encadreur académique</label>
                                 <input type="text" id="encadreur" class="cm-etu-input"
                                        placeholder="Nom de l'encadreur"
                                         <?= $isReadOnly ? 'readonly' : '' ?>>
@@ -418,7 +415,7 @@ if (!function_exists('cm_etu_escape')) {
 
                 <!-- Right: Preview -->
                 <div>
-                    <h3 class="cm-etu-section-title"><i class="fas fa-eye" aria-hidden="true"></i> Apercu de la Page de Couverture</h3>
+
                     <div class="cm-etu-cover-preview-wrap" id="coverPreviewWrap">
                         <div id="coverPreviewScaler" class="cm-etu-cover-preview-scaler">
                             <div id="coverPreview" class="cm-etu-cover-preview">
@@ -432,7 +429,7 @@ if (!function_exists('cm_etu_escape')) {
 
         <!-- Tab 2: Report Body -->
         <div id="tab-body" class="cm-etu-tab-pane">
-            <h3 class="cm-etu-section-title"><i class="fas fa-pen" aria-hidden="true"></i> Corps du Rapport (Editeur Jodit)</h3>
+
             <div class="cm-etu-editor-shell">
                 <textarea id="jodit-editor"></textarea>
             </div>
@@ -450,7 +447,7 @@ if (!function_exists('cm_etu_escape')) {
 <div id="previewModal" class="cm-etu-preview-modal">
     <div class="cm-etu-preview-modal__dialog">
         <div class="cm-etu-preview-modal__header">
-            <h2><i class="fas fa-eye" aria-hidden="true"></i> Apercu du Rapport Complet</h2>
+            
             <button id="closePreviewModal" class="cm-etu-preview-modal__close">
                 <i class="fas fa-xmark"></i>
             </button>
@@ -644,7 +641,7 @@ if (!function_exists('cm_etu_escape')) {
                 '<span style="font-weight: bold;">I.</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-weight: bold;">PRESENTATION DU CADRE DE REFERENCE</span>' +
                 '</p>' +
                 '<p style="text-align: justify; margin: 0 0 15px 0; text-indent: 50px;">' +
-                'Decrivez ici la structure d\'accueil, son historique, ses activites principales et son organisation.' +
+                'Décrivez ici la structure d\'accueil, son historique, ses activités principales et son organisation.' +
                 '</p>' +
                 '<p style="font-size: 12pt; font-weight: bold; margin: 25px 0 20px 0;">' +
                 '<span style="font-weight: bold;">II.</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-weight: bold;">INTRODUCTION : GENERALITE &amp; PROBLEMATIQUE</span>' +

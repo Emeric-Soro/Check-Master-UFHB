@@ -8,7 +8,7 @@ $rapports = is_array($rapports ?? null) ? $rapports : [];
     <section class="cm-etu-panel">
         <header class="cm-etu-panel__header">
             <div>
-                <h2 class="cm-etu-panel__title"><i class="fas fa-list-check" aria-hidden="true"></i> Suivi du Rapport</h2>
+                
                 <p class="cm-etu-panel__subtitle">Visualisez l\'avancement de vos dépôts via une timeline détaillée.</p>
             </div>
         </header>
@@ -134,7 +134,7 @@ $rapports = is_array($rapports ?? null) ? $rapports : [];
                         data-search="<?= htmlspecialchars($searchTokens, ENT_QUOTES, 'UTF-8') ?>">
                         <div class="cm-etu-timeline-card__head">
                             <div>
-                                <h3><?= htmlspecialchars($nomRapport, ENT_QUOTES, 'UTF-8') ?></h3>
+                                <span><?= htmlspecialchars($nomRapport, ENT_QUOTES, 'UTF-8') ?></span>
                                 <p><?= htmlspecialchars($themeRapport, ENT_QUOTES, 'UTF-8') ?></p>
                             </div>
                             <?php cm_component('ui/badge', ['type' => $statusType, 'text' => $statusLabel]); ?>

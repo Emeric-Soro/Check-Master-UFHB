@@ -8,6 +8,7 @@ require_once __DIR__ . '/../models/InfoStage.php';
 require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use Etudiant;
 use Scolarite;
@@ -55,7 +56,34 @@ class GestionCandidaturesService
      */
     public function getAllCandidatures(): array
     {
-        return $this->etudiant->getAllCandidature();
+        return \AcademicYear::filterRowsBySelectedYear($this->etudiant->getAllCandidature(), 'id_annee_acad');
+    }
+
+    public function ensureWritableCandidature(string $numEtu): array
+    {
+        $etudiant = $this->etudiant->getEtudiantByNumEtu($numEtu);
+        $studentYearId = null;
+        if (is_array($etudiant) && isset($etudiant['id_annee_acad']) && is_numeric($etudiant['id_annee_acad'])) {
+            $studentYearId = (int) $etudiant['id_annee_acad'];
+        }
+
+        $selectedYearId = \AcademicYear::getSelectedIdFromSession();
+        if ($selectedYearId !== null && $studentYearId !== null && $selectedYearId !== $studentYearId) {
+            return [
+                'success' => false,
+                'message' => "La candidature ne correspond pas à l'année académique actuellement sélectionnée.",
+            ];
+        }
+
+        $writeGuard = \AcademicYear::ensureWritableYear($this->db, $studentYearId, 'une candidature de soutenance');
+        if (!$writeGuard['success']) {
+            return [
+                'success' => false,
+                'message' => (string) $writeGuard['message'],
+            ];
+        }
+
+        return ['success' => true, 'message' => ''];
     }
 
     /**

@@ -7,10 +7,9 @@ require_once __DIR__ . '/../models/CompteRendu.php';
 require_once __DIR__ . '/../models/Enseignant.php';
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../utils/EmailService.php';
-require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
-use Dompdf\Dompdf;
-use Dompdf\Options;
 
 class RedactionCompteRenduService
 {
@@ -21,6 +20,42 @@ class RedactionCompteRenduService
         $this->pdo = $pdo ?: \Database::getConnection();
     }
 
+    private function getSelectedYearId(): ?int
+    {
+        return \AcademicYear::getSelectedIdFromSession();
+    }
+
+    private function getRapportsValidesForSelectedYear(): array
+    {
+        $selectedYearId = $this->getSelectedYearId();
+
+        $sql = "
+            SELECT r.id_rapport, r.num_etu, r.theme_rapport, e.prenom_etu, e.nom_etu, v2.decision_validation, e.id_annee_acad
+            FROM rapport_etudiants r
+            JOIN etudiants e ON r.num_etu = e.num_carte_etud
+            JOIN (
+                SELECT id_rapport, MAX(date_validation) AS last_validation
+                FROM valider
+                GROUP BY id_rapport
+            ) v1 ON r.id_rapport = v1.id_rapport
+            JOIN valider v2 ON v2.id_rapport = v1.id_rapport AND v2.date_validation = v1.last_validation
+            LEFT JOIN compte_rendu_rapport crr ON r.id_rapport = crr.id_rapport
+            WHERE v2.decision_validation IN ('valider', 'rejeter')
+              AND crr.id_rapport IS NULL
+        ";
+
+        $params = [];
+        if ($selectedYearId !== null && $selectedYearId > 0) {
+            $sql .= " AND e.id_annee_acad = :id_annee_acad";
+            $params[':id_annee_acad'] = $selectedYearId;
+        }
+
+        $sql .= " ORDER BY v2.decision_validation DESC, r.theme_rapport";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+    }
+
     /**
      * Récupérer les données nécessaires à la vue index.
      *
@@ -28,7 +63,7 @@ class RedactionCompteRenduService
      */
     public function getIndexData(): array
     {
-        $rapportsValides = \Valider::getRapportsValides();
+        $rapportsValides = $this->getRapportsValidesForSelectedYear();
         $enseignantModel = new \Enseignant($this->pdo);
         $enseignants = $enseignantModel->getAllEnseignants();
 
@@ -59,13 +94,21 @@ class RedactionCompteRenduService
             return ['success' => false, 'message' => "Aucun étudiant sélectionné."];
         }
 
-        // Génération du PDF
+        $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getSelectedYearId(), 'un compte rendu');
+        if (!$writeGuard['success']) {
+            return ['success' => false, 'message' => $writeGuard['message']];
+        }
+
+        // Génération du PDF avec PdfGeneratorService (TCPDF)
         $html = '<html><head><meta charset="UTF-8"></head><body>' . $contenu_CR . '</body></html>';
-        $dompdf = new Dompdf();
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-        $output = $dompdf->output();
+        $pdfGen = new \App\Services\Document\PdfGeneratorService(
+            __DIR__ . '/../../storage',
+            __DIR__ . '/../../public/assets/img/logo.png'
+        );
+        $pdf = $pdfGen->createDocument('P', 'A4', 'Compte Rendu');
+        $pdf->AddPage();
+        $pdfGen->writeHtml($pdf, $html);
+        $output = $pdf->Output('compte_rendu.pdf', 'S');
 
         // Sauvegarde du PDF sur disque
         $pdf_dir = __DIR__ . '/../../ressources/uploads/comptes_rendus/';
@@ -101,12 +144,8 @@ class RedactionCompteRenduService
      * @return array ['pdf' => string, 'filename' => string]
      * @throws \Exception Si le contenu est vide ou si Dompdf est indisponible
      */
-    public function exporterPDF(string $contenu_CR, string $nom_CR): array
+    public function exporterPdf(string $contenu_CR, string $nom_CR): array
     {
-        if (!class_exists('Dompdf\\Dompdf')) {
-            throw new \Exception("Dompdf n'est pas installé.");
-        }
-
         if (empty($contenu_CR)) {
             throw new \Exception('Le contenu du compte rendu est vide.');
         }
@@ -118,23 +157,20 @@ class RedactionCompteRenduService
             $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:"Times New Roman",serif;line-height:1.6;margin:40px;}</style></head><body>' . $contenu_CR . '</body></html>';
         }
 
-        $options = new Options();
-        $options->set('isRemoteEnabled', true);
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('defaultFont', 'Times New Roman');
-        $options->set('chroot', __DIR__ . '/../../');
+        // Générer le PDF avec PdfGeneratorService (TCPDF)
+        $pdfGen = new \App\Services\Document\PdfGeneratorService(
+            __DIR__ . '/../../storage',
+            __DIR__ . '/../../public/assets/img/logo.png'
+        );
+        $pdf = $pdfGen->createDocument('P', 'A4', $nom_CR);
+        $pdf->AddPage();
+        $pdfGen->writeHtml($pdf, $html);
 
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-
-        $pdf     = $dompdf->output();
+        $pdfOutput = $pdf->Output($nom_CR . '.pdf', 'S');
         $pdfName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nom_CR) . '.pdf';
 
-        return ['pdf' => $pdf, 'filename' => $pdfName];
+        return ['pdf' => $pdfOutput, 'filename' => $pdfName];
     }
-
     // -----------------------------------------------------------------------
     //  Private helpers
     // -----------------------------------------------------------------------

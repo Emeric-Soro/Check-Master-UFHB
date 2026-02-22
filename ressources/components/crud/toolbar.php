@@ -1,7 +1,5 @@
 <?php
-if (!function_exists('cm_form_attr_string')) {
-    require_once __DIR__ . '/../../../app/utils/FormHelper.php';
-}
+// FormHelper déjà inclus par layout.php
 
 $left_html = (string) ($left_html ?? '');
 $center_html = (string) ($center_html ?? '');

@@ -9,7 +9,7 @@ Session::start();
 
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/models/Utilisateur.php';
-require_once __DIR__ . '/../../app/utils/EmailService.php';
+// EmailService : autoloadé par Composer classmap
 
 use CheckMaster\Core\Csrf;
 use CheckMaster\Security\DbRateLimiter;
@@ -44,7 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
     if (!Csrf::validate($_POST['csrf_token'] ?? null)) {
         $error = "Session expirée. Veuillez réessayer.";
     } else {
-        // Rate limiting reset password (DB only): 5 demandes / 15 min, blocage 15 min
         $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
         $identifier = strtolower(trim((string) ($_POST['email'] ?? '')));
         if ($identifier === '') {
@@ -54,7 +53,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
         if (!$limiter->isAllowed('reset', $ip, $identifier)) {
             $error = "Trop de demandes de réinitialisation. Veuillez patienter avant de réessayer.";
         } else {
-            // On incrémente même si l'email n'existe pas (anti-énumération)
             $limiter->hit('reset', $ip, $identifier, 5, 15 * 60, 15 * 60);
 
             $email = trim((string) $_POST['email']);
@@ -101,14 +99,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['token'], $_POST['newP
             $error = "Le mot de passe doit contenir au moins une majuscule.";
         } elseif (!preg_match('/[0-9]/', $newPassword)) {
             $error = "Le mot de passe doit contenir au moins un chiffre.";
-        } elseif (!preg_match('/[!@#$%^&*()_+\\-=[\\]{};\\\':\"\\\\|,.<>\\/?]+/', $newPassword)) {
+        } elseif (!preg_match('/[!@#$%^&*()_+\-=[\]{};\':"\\|,.<>\/?]+/', $newPassword)) {
             $error = "Le mot de passe doit contenir au moins un caractère spécial.";
         } else {
-            // Trouver l'utilisateur via son email dans les tables source
             $user = null;
             $email = $reset['email'];
 
-            // Chercher dans enseignants
             $stmt = $db->prepare('SELECT nom_enseignant, prenom_enseignant FROM enseignants WHERE mail_enseignant = :email LIMIT 1');
             $stmt->execute(['email' => $email]);
             $enseignant = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -120,7 +116,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['token'], $_POST['newP
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
             }
 
-            // Si pas trouvé, chercher dans personnel_admin
             if (!$user) {
                 $stmt = $db->prepare('SELECT nom_pers_admin, prenom_pers_admin FROM personnel_admin WHERE email_pers_admin = :email LIMIT 1');
                 $stmt->execute(['email' => $email]);
@@ -134,7 +129,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['token'], $_POST['newP
                 }
             }
 
-            // Si pas trouvé, chercher dans etudiants
             if (!$user) {
                 $stmt = $db->prepare('SELECT nom_etu, prenom_etu FROM etudiants WHERE email_etu = :email LIMIT 1');
                 $stmt->execute(['email' => $email]);
@@ -169,191 +163,100 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Réinitialisation | CheckMaster</title>
-    <link rel="stylesheet" href="../css/output.css">
+    <link rel="stylesheet" href="../assets/css/checkmaster-theme.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
     <link rel="shortcut icon" href="../image/logo_cm_sbg.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap"
-        rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#1a5276',
-                        'primary-light': '#2980b9',
-                        'primary-lighter': '#3498db',
-                        secondary: '#ff8c00',
-                        success: '#4caf50',
-                        danger: '#e74c3c'
-                    },
-                    fontFamily: {
-                        poppins: ['Poppins', 'sans-serif'],
-                        montserrat: ['Montserrat', 'sans-serif']
-                    },
-                    boxShadow: {
-                        elevate: '0 25px 60px -15px rgba(26,82,118,0.25)'
-                    }
-                }
-            }
-        }
-    </script>
 </head>
 
-<body class="min-h-screen font-poppins text-slate-900" style="background-color: #DFF2FF;">
-    <div class="relative min-h-screen overflow-hidden">
-        <div class="absolute inset-0">
-            <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-white to-primary-light/10"></div>
-            <div class="absolute -top-24 -left-16 h-72 w-72 rounded-full bg-primary/10 blur-3xl"></div>
-            <div class="absolute -bottom-20 -right-10 h-80 w-80 rounded-full bg-primary-light/10 blur-3xl"></div>
-        </div>
-        <div class="relative flex min-h-screen items-center justify-center px-6 py-16">
-            <div class="w-full max-w-5xl">
-                <div class="grid gap-12 lg:grid-cols-2">
-                    <div class="space-y-8">
-                        <a href="../site/indexCM.php"
-                            class="inline-flex items-center space-x-3 rounded-full border border-primary/20 bg-white/60 px-5 py-2 text-sm font-semibold text-primary shadow-sm backdrop-blur">
-                            <span
-                                class="inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-2 ring-primary/20">
-                                <img src="../image/logo_cm_sbg.png" alt="CheckMaster"
-                                    class="h-full w-full object-contain">
-                            </span>
-                            <span>Retourner sur CheckMaster</span>
-                        </a>
-                        <div class="space-y-5">
-                            <h1 class="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">Réinitialisez votre
-                                mot de passe</h1>
-                            <p class="max-w-lg text-lg text-slate-600">Restaurez l'accès à votre espace en suivant les
-                                étapes de vérification sécurisée. Le lien reçu est valable une heure.</p>
-                        </div>
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <div class="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur">
-                                <div
-                                    class="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                    <i class="fas fa-envelope-open-text text-xl"></i>
-                                </div>
-                                <h2 class="text-lg font-semibold text-slate-900">Instructions instantanées</h2>
-                                <p class="mt-2 text-sm text-slate-600">Recevez un lien crypté dans votre boîte mail pour
-                                    sécuriser l'opération.</p>
-                            </div>
-                            <div class="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur">
-                                <div
-                                    class="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-success/10 text-success">
-                                    <i class="fas fa-user-shield text-xl"></i>
-                                </div>
-                                <h2 class="text-lg font-semibold text-slate-900">Validation renforcée</h2>
-                                <p class="mt-2 text-sm text-slate-600">Chaque requête est vérifiée pour protéger vos
-                                    informations personnelles.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="relative">
-                        <div class="absolute -top-10 -right-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl"></div>
-                        <div
-                            class="relative rounded-3xl border border-white/40 bg-white/90 p-10 shadow-elevate backdrop-blur-lg">
-                            <div class="mb-8 text-center">
-                                <div class="mb-5 flex items-center justify-center">
-                                    <div
-                                        class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-lg ring-2 ring-primary/10">
-                                        <img src="../image/logo_cm_sbg.png" alt="Logo CheckMaster"
-                                            class="h-full w-full object-contain p-2">
-                                    </div>
-                                </div>
-                                <h2 class="text-2xl font-semibold text-slate-900">Réinitialisation</h2>
-                                <p class="mt-2 text-sm text-slate-600">Suivez les instructions pour définir un mot de
-                                    passe robuste.</p>
-                            </div>
-                            <?php if ($success): ?>
-                                <div id="feedback"
-                                    class="mb-6 rounded-2xl border border-success/20 bg-success/10 px-4 py-3 text-sm font-medium text-success"
-                                    role="alert">
-                                    <?= htmlspecialchars($success) ?>
-                                </div>
-                            <?php elseif ($error): ?>
-                                <div id="feedback"
-                                    class="mb-6 rounded-2xl border border-danger/20 bg-danger/10 px-4 py-3 text-sm font-medium text-danger"
-                                    role="alert">
-                                    <?= htmlspecialchars($error) ?>
-                                </div>
-                            <?php endif; ?>
-                            <?php if ($showResetForm): ?>
-                                <form method="POST" class="space-y-5">
-                                    <input type="hidden" name="csrf_token"
-                                        value="<?= htmlspecialchars(\CheckMaster\Core\Csrf::token()) ?>">
-                                    <input type="hidden" name="token" value="<?= htmlspecialchars($_GET['token']) ?>">
-                                    <div class="space-y-2">
-                                        <label for="newPassword" class="text-sm font-semibold text-slate-800">Nouveau mot de
-                                            passe</label>
-                                        <div class="relative">
-                                            <input id="newPassword" name="newPassword" type="password" required
-                                                class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-                                                placeholder="Votre nouveau mot de passe">
-                                            <div
-                                                class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
-                                                <i class="fas fa-lock"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <label for="confirmPassword" class="text-sm font-semibold text-slate-800">Confirmez
-                                            le mot de passe</label>
-                                        <div class="relative">
-                                            <input id="confirmPassword" name="confirmPassword" type="password" required
-                                                class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-                                                placeholder="Confirmez le mot de passe">
-                                            <div
-                                                class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
-                                                <i class="fas fa-check"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button type="submit"
-                                        class="inline-flex w-full items-center justify-center rounded-2xl bg-primary px-6 py-3 text-sm font-semibold tracking-wide text-white transition hover:bg-primary-light focus:outline-none focus:ring-4 focus:ring-primary/20">
-                                        Réinitialiser
-                                    </button>
-                                </form>
-                            <?php elseif (!$success): ?>
-                                <form method="POST" class="space-y-5">
-                                    <input type="hidden" name="csrf_token"
-                                        value="<?= htmlspecialchars(\CheckMaster\Core\Csrf::token()) ?>">
-                                    <div class="space-y-2">
-                                        <label for="email" class="text-sm font-semibold text-slate-800">Adresse
-                                            e-mail</label>
-                                        <div class="relative">
-                                            <input id="email" name="email" type="email" required
-                                                class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-                                                placeholder="login@exemple.com">
-                                            <div
-                                                class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-primary">
-                                                <i class="fas fa-paper-plane"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button type="submit"
-                                        class="inline-flex w-full items-center justify-center rounded-2xl bg-primary px-6 py-3 text-sm font-semibold tracking-wide text-white transition hover:bg-primary-light focus:outline-none focus:ring-4 focus:ring-primary/20">
-                                        Envoyer le lien
-                                    </button>
-                                </form>
-                            <?php endif; ?>
-                            <p class="mt-8 text-center text-sm text-slate-500"><a href="index.php?_path=/login"
-                                    class="font-semibold text-primary hover:text-primary-light">Retour à la
-                                    connexion</a></p>
-                        </div>
+<body class="cm-login-page">
+    <main class="cm-login-shell">
+        <section class="cm-login-brand">
+            <a href="../site/index.php" class="cm-login-back-link">
+                <img src="../image/logo_cm_sbg.png" alt="UFHB">
+                <span>Retourner sur l'accueil UFHB</span>
+            </a>
+
+            <h1>Réinitialisez votre mot de passe</h1>
+            <p>Entrez votre adresse e-mail pour recevoir un lien de réinitialisation sécurisé.</p>
+        </section>
+
+        <section class="cm-login-card">
+            <div class="cm-login-card__header">
+                <img src="../image/logo_cm_sbg.png" alt="Logo CheckMaster">
+                <h2>Réinitialisation</h2>
+                <p><?php echo $showResetForm ? 'Définissez votre nouveau mot de passe' : 'Entrez votre email pour recevoir le lien'; ?></p>
+            </div>
+
+            <?php if ($success !== ''): ?>
+                <div class="cm-alert is-success" id="feedback" role="alert">
+                    <span class="cm-alert__icon"><i class="fas fa-circle-check" aria-hidden="true"></i></span>
+                    <div class="cm-alert__content">
+                        <span class="cm-alert__message"><?php echo htmlspecialchars($success); ?></span>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
+            <?php elseif ($error !== ''): ?>
+                <div class="cm-alert is-danger" id="feedback" role="alert">
+                    <span class="cm-alert__icon"><i class="fas fa-circle-exclamation" aria-hidden="true"></i></span>
+                    <div class="cm-alert__content">
+                        <span class="cm-alert__message"><?php echo htmlspecialchars($error); ?></span>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($showResetForm): ?>
+                <form method="POST" class="cm-login-form" autocomplete="off">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="token" value="<?php echo htmlspecialchars($_GET['token'], ENT_QUOTES, 'UTF-8'); ?>">
+
+                    <div class="cm-form-group is-required">
+                        <label for="newPassword" class="cm-form-label">Nouveau mot de passe <span class="cm-required-star">*</span></label>
+                        <div class="cm-login-input-icon">
+                            <input id="newPassword" name="newPassword" type="password" required class="cm-form-control" placeholder="Votre nouveau mot de passe">
+                            <i class="fas fa-lock" aria-hidden="true"></i>
+                        </div>
+                    </div>
+
+                    <div class="cm-form-group is-required">
+                        <label for="confirmPassword" class="cm-form-label">Confirmer le mot de passe <span class="cm-required-star">*</span></label>
+                        <div class="cm-login-input-icon">
+                            <input id="confirmPassword" name="confirmPassword" type="password" required class="cm-form-control" placeholder="Confirmez le mot de passe">
+                            <i class="fas fa-check" aria-hidden="true"></i>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="cm-btn is-primary is-lg cm-login-submit">Réinitialiser</button>
+                </form>
+            <?php elseif ($success === ''): ?>
+                <form method="POST" class="cm-login-form" autocomplete="off">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8'); ?>">
+
+                    <div class="cm-form-group is-required">
+                        <label for="email" class="cm-form-label">Adresse e-mail <span class="cm-required-star">*</span></label>
+                        <div class="cm-login-input-icon">
+                            <input id="email" name="email" type="email" required class="cm-form-control" placeholder="login@exemple.com">
+                            <i class="fas fa-envelope" aria-hidden="true"></i>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="cm-btn is-primary is-lg cm-login-submit">Envoyer le lien</button>
+                </form>
+            <?php endif; ?>
+
+            <p class="cm-login-card__footer">
+                <a href="index.php?_path=/login" class="cm-link">Retour à la connexion</a>
+            </p>
+        </section>
+    </main>
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var feedback = document.getElementById('feedback');
             if (feedback) {
                 setTimeout(function () {
                     feedback.style.display = 'none';
-                }, 2600);
+                }, 5000);
             }
         });
     </script>

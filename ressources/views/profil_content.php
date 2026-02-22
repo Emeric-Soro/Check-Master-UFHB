@@ -38,7 +38,7 @@ ob_start();
 ?>
 <section class="cm-profile-card">
     <header class="cm-profile-card__header">
-        <h2><i class="fas fa-id-card"></i> Informations du compte</h2>
+        
     </header>
     <div class="cm-profile-grid">
         <?= $renderField('Nom utilisateur', $nomUser) ?>
@@ -57,7 +57,7 @@ ob_start();
 
 <section class="cm-profile-card">
     <header class="cm-profile-card__header">
-        <h2><i class="fas fa-user-check"></i> Informations complémentaires</h2>
+        
     </header>
     <div class="cm-profile-grid">
         <?php if ($isEnseignant): ?>
@@ -83,7 +83,7 @@ ob_start();
 ?>
 <section class="cm-profile-card">
     <header class="cm-profile-card__header">
-        <h2><i class="fas fa-key"></i> Changement de mot de passe</h2>
+        
     </header>
 
     <?php if ($passwordSuccess !== ''): ?>

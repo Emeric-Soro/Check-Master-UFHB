@@ -4,10 +4,10 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_generaux');
 cm_render_param_crud_view([
     'page_slug' => $pageSlug,
     'action' => 'grades',
-    'title' => 'Gestion des grades',
+    'title' => '',
     'icon' => 'fa-medal',
-    'form_title_add' => 'Ajout grade',
-    'form_title_edit' => 'Modification grade',
+    'form_title_add' => '',
+    'form_title_edit' => '',
     'id_key' => 'id_grade',
     'id_param' => 'id_grade',
     'list' => is_array($GLOBALS['listeGrade'] ?? null) ? $GLOBALS['listeGrade'] : [],

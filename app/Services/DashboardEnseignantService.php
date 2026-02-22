@@ -7,6 +7,7 @@ require_once __DIR__ . "/../models/Etudiant.php";
 require_once __DIR__ . "/../models/Ue.php";
 require_once __DIR__ . "/../models/Ecue.php";
 require_once __DIR__ . "/../models/NiveauEtude.php";
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use Enseignant;
 use Etudiant;
@@ -120,11 +121,16 @@ class DashboardEnseignantService
      */
     private function getEtudiantsByNiveaux(array $niveauIds)
     {
-        $etudiants = $this->etudiant->getAllListeEtudiants();
+        $selectedYearId = \AcademicYear::getSelectedIdFromSession();
+        $etudiants = $this->etudiant->getAllListeEtudiants($selectedYearId);
         $etudiantsSuivantCours = [];
         foreach ($etudiants as $etudiant) {
             if (in_array($etudiant->id_niv_etude, $niveauIds)) {
-                $etudiantsSuivantCours[$etudiant->num_etu] = $etudiant;
+                $studentKey = (string) ($etudiant->num_carte_etud ?? $etudiant->num_etu ?? '');
+                if ($studentKey === '') {
+                    continue;
+                }
+                $etudiantsSuivantCours[$studentKey] = $etudiant;
             }
         }
         return $etudiantsSuivantCours;

@@ -225,6 +225,7 @@
                 $totalCoef = 0;
                 ?>
                 <div class="section-title">Semestre <?= $semIndex ?> — <?= htmlspecialchars($sem) ?></div>
+                <div class="cm-table-wrapper">
                 <table class="table-notes">
                     <tr>
                         <th>Code</th>
@@ -271,7 +272,9 @@
                         <td></td>
                     </tr>
                 </table>
+                </div>
 
+                <div class="cm-table-wrapper">
                 <table class="table-notes">
                     <tr>
                         <th>Code</th>
@@ -318,6 +321,7 @@
                         <td></td>
                     </tr>
                 </table>
+                </div>
                 <div class="recap">
                     <strong>Total crédits :</strong> <?= $credMaj + $credMin ?><br>
                     <strong>Résultat Semestre <?= $semIndex ?> :</strong> Admis<br>

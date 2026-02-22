@@ -11,10 +11,10 @@ $typeOptions = [
 cm_render_param_crud_view([
     'page_slug' => $pageSlug,
     'action' => 'messages',
-    'title' => 'Gestion des messages',
+    'title' => '',
     'icon' => 'fa-envelope',
-    'form_title_add' => 'Ajout message',
-    'form_title_edit' => 'Modification message',
+    'form_title_add' => '',
+    'form_title_edit' => '',
     'id_key' => 'id_message',
     'id_param' => 'id_message',
     'list' => is_array($GLOBALS['listeMessages'] ?? null) ? $GLOBALS['listeMessages'] : [],

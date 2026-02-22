@@ -13,10 +13,10 @@ foreach (($GLOBALS['listeNiveauxEtude'] ?? []) as $niveau) {
 cm_render_param_crud_view([
     'page_slug' => $pageSlug,
     'action' => 'semestres',
-    'title' => 'Gestion des semestres',
+    'title' => '',
     'icon' => 'fa-calendar-check',
-    'form_title_add' => 'Ajout semestre',
-    'form_title_edit' => 'Modification semestre',
+    'form_title_add' => '',
+    'form_title_edit' => '',
     'id_key' => 'id_semestre',
     'id_param' => 'id_semestre',
     'list' => is_array($GLOBALS['listeSemestres'] ?? null) ? $GLOBALS['listeSemestres'] : [],

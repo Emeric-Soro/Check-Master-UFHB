@@ -225,11 +225,19 @@ class Inscription
     /**
      * Compter le nombre total d'inscriptions
      */
-    public function countInscriptions()
+    public function countInscriptions($id_annee_acad = null)
     {
         try {
             $query = "SELECT COUNT(*) as total FROM inscriptions";
-            $stmt = $this->db->query($query);
+            $params = [];
+
+            if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
+                $query .= " WHERE id_annee_acad = ?";
+                $params[] = (int) $id_annee_acad;
+            }
+
+            $stmt = $this->db->prepare($query);
+            $stmt->execute($params);
             return $stmt->fetch(PDO::FETCH_ASSOC)['total'];
         } catch (PDOException $e) {
             error_log("Erreur lors du comptage des inscriptions : " . $e->getMessage());
@@ -240,12 +248,19 @@ class Inscription
     /**
      * Compter les nouvelles inscriptions (dernière semaine)
      */
-    public function countNouvellesInscriptions($jours = 7)
+    public function countNouvellesInscriptions($jours = 7, $id_annee_acad = null)
     {
         try {
             $query = "SELECT COUNT(*) as total FROM inscriptions WHERE date_inscription >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+            $params = [(int) $jours];
+
+            if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
+                $query .= " AND id_annee_acad = ?";
+                $params[] = (int) $id_annee_acad;
+            }
+
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$jours]);
+            $stmt->execute($params);
             return $stmt->fetch(PDO::FETCH_ASSOC)['total'];
         } catch (PDOException $e) {
             error_log("Erreur lors du comptage des nouvelles inscriptions : " . $e->getMessage());
@@ -256,7 +271,7 @@ class Inscription
     /**
      * Récupérer les inscriptions groupées par niveau d'étude
      */
-    public function getInscriptionsParNiveau()
+    public function getInscriptionsParNiveau($id_annee_acad = null)
     {
         try {
             $query = "SELECT 
@@ -270,7 +285,15 @@ class Inscription
                         END as niveau,
                         COUNT(i.id_inscription) as total
                       FROM inscriptions i
-                      JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                      JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude";
+
+            $params = [];
+            if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
+                $query .= " WHERE i.id_annee_acad = ?";
+                $params[] = (int) $id_annee_acad;
+            }
+
+            $query .= "
                       GROUP BY 
                         CASE 
                             WHEN n.lib_niv_etude LIKE '%Licence 1%' THEN 'Licence 1'
@@ -289,7 +312,8 @@ class Inscription
                             WHEN 'Master 2' THEN 5
                             ELSE 6
                         END";
-            $stmt = $this->db->query($query);
+            $stmt = $this->db->prepare($query);
+            $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération des inscriptions par niveau : " . $e->getMessage());
@@ -297,4 +321,3 @@ class Inscription
         }
     }
 }
-

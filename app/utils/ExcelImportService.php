@@ -37,6 +37,41 @@ class ExcelImportService
         $this->db = $db;
     }
 
+    private function tableExists($tableName)
+    {
+        $stmt = $this->db->prepare("SHOW TABLES LIKE ?");
+        $stmt->execute([$tableName]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    private function getProgrammationTable()
+    {
+        return $this->tableExists('programmer_soutenance') ? 'programmer_soutenance' : 'programmer';
+    }
+
+    private function getJuryTable()
+    {
+        return $this->tableExists('enseignant_jury') ? 'enseignant_jury' : 'composer_jury';
+    }
+
+    private function getFirstAvailableId($table, $idColumn)
+    {
+        $stmt = $this->db->query("SELECT {$idColumn} FROM {$table} ORDER BY {$idColumn} ASC LIMIT 1");
+        $value = $stmt ? $stmt->fetchColumn() : null;
+        return is_numeric($value) ? (int) $value : null;
+    }
+
+    private function getNextProgrammationIdentifier()
+    {
+        $table = $this->getProgrammationTable();
+        if ($table === 'programmer_soutenance') {
+            $stmt = $this->db->query("SELECT COALESCE(MAX(CAST(num_soutenance AS UNSIGNED)), 0) + 1 FROM programmer_soutenance");
+            return (string) ((int) ($stmt ? $stmt->fetchColumn() : 1));
+        }
+
+        return (int) random_int(1000, 9999);
+    }
+
     /**
      * Import data from uploaded file
      */
@@ -255,7 +290,7 @@ class ExcelImportService
             'email' => $email,
             'date_naiss' => '2000-01-01',
             'genre' => 3,
-            'promotion' => $startYear
+            'promotion' => $row[self::COL_ANNEE_ACAD]
         ]);
         return $matricule;
     }
@@ -426,24 +461,50 @@ class ExcelImportService
             }
         }
 
-        $numJury = random_int(1000, 9999);
+        $programmationTable = $this->getProgrammationTable();
+        if ($programmationTable === 'programmer_soutenance') {
+            $stmt = $this->db->prepare("SELECT num_soutenance FROM programmer_soutenance WHERE num_etud = ?");
+            $stmt->execute([$numEtu]);
+            $existingProgrammation = $stmt->fetch(PDO::FETCH_ASSOC);
+            $programmationId = (string) ($existingProgrammation['num_soutenance'] ?? $this->getNextProgrammationIdentifier());
+            if (!$existingProgrammation) {
+                $heure = !empty($row[self::COL_HEURE]) ? $row[self::COL_HEURE] : '08:00';
+                $idDomaine = $this->getFirstAvailableId('domaine', 'id_domaine');
+                $idSession = $this->getFirstAvailableId('session', 'id_session');
+
+                if ($idDomaine === null || $idSession === null) {
+                    throw new Exception("Impossible d'importer la soutenance: domaine ou session indisponible.");
+                }
+
+                $stmt = $this->db->prepare("
+                    INSERT INTO programmer_soutenance (
+                        num_soutenance, num_etud, theme_soutenance, id_domaine, id_session, id_salle, date_soutenance, heure_soutenance
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                $stmt->execute([$programmationId, $numEtu, $row[self::COL_THEME], $idDomaine, $idSession, $idSalle, $dateSoutenance, $heure]);
+            }
+        } else {
+            $stmt = $this->db->prepare("SELECT num_jury FROM programmer WHERE num_etud = ?");
+            $stmt->execute([$numEtu]);
+            $existingProgrammation = $stmt->fetch(PDO::FETCH_ASSOC);
+            $programmationId = (int) ($existingProgrammation['num_jury'] ?? $this->getNextProgrammationIdentifier());
+            if (!$existingProgrammation) {
+                $stmt = $this->db->prepare("INSERT INTO programmer (num_etud, num_jury, id_salle, date_soutenance, heure_soutenance, theme_soutenance) VALUES (?, ?, ?, ?, ?, ?)");
+                $heure = !empty($row[self::COL_HEURE]) ? $row[self::COL_HEURE] : '08:00';
+                $stmt->execute([$numEtu, $programmationId, $idSalle, $dateSoutenance, $heure, $row[self::COL_THEME]]);
+            }
+        }
+
+        $numJury = is_numeric($programmationId) ? (int) $programmationId : random_int(1000, 9999);
         if (!empty($row[self::COL_PRESIDENT_JURY])) {
             $idPres = $this->getOrCreateEnseignant($row[self::COL_PRESIDENT_JURY]);
             if ($idPres)
-                $this->addJuryMember($numJury, $idPres, 1);
+                $this->addJuryMember($programmationId, $idPres, 1);
         }
         if (!empty($row[self::COL_EXAMINATEUR])) {
             $idExam = $this->getOrCreateEnseignant($row[self::COL_EXAMINATEUR]);
             if ($idExam)
-                $this->addJuryMember($numJury, $idExam, 2);
-        }
-
-        $stmt = $this->db->prepare("SELECT id_programmation FROM programmer WHERE num_etud = ?");
-        $stmt->execute([$numEtu]);
-        if (!$stmt->fetch()) {
-            $stmt = $this->db->prepare("INSERT INTO programmer (num_etud, num_jury, id_salle, date_soutenance, heure_soutenance, theme_soutenance) VALUES (?, ?, ?, ?, ?, ?)");
-            $heure = !empty($row[self::COL_HEURE]) ? $row[self::COL_HEURE] : '08:00';
-            $stmt->execute([$numEtu, $numJury, $idSalle, $dateSoutenance, $heure, $row[self::COL_THEME]]);
+                $this->addJuryMember($programmationId, $idExam, 2);
         }
 
         if (!empty($row[self::COL_NOTE_MEMOIRE]) && is_numeric($row[self::COL_NOTE_MEMOIRE])) {
@@ -453,10 +514,28 @@ class ExcelImportService
         }
     }
 
-    private function addJuryMember($numJury, $idEnseignant, $idQualite)
+    private function addJuryMember($programmationId, $idEnseignant, $idQualite)
     {
+        if ($this->getJuryTable() === 'enseignant_jury') {
+            $stmt = $this->db->prepare("SELECT 1 FROM enseignant_jury WHERE num_soutenance = ? AND id_enseignant = ? AND id_qualite_jury = ? LIMIT 1");
+            $stmt->execute([(string) $programmationId, $idEnseignant, $idQualite]);
+            if ($stmt->fetch()) {
+                return;
+            }
+
+            $stmt = $this->db->prepare("INSERT INTO enseignant_jury (num_soutenance, id_enseignant, id_qualite_jury, date_composer_jury) VALUES (?, ?, ?, ?)");
+            $stmt->execute([(string) $programmationId, $idEnseignant, $idQualite, time()]);
+            return;
+        }
+
+        $stmt = $this->db->prepare("SELECT 1 FROM composer_jury WHERE num_jury = ? AND id_enseignant = ? AND id_qualite_jury = ? LIMIT 1");
+        $stmt->execute([(int) $programmationId, $idEnseignant, $idQualite]);
+        if ($stmt->fetch()) {
+            return;
+        }
+
         $stmt = $this->db->prepare("INSERT INTO composer_jury (num_jury, id_enseignant, id_qualite_jury, date_composer_jury) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$numJury, $idEnseignant, $idQualite, time()]);
+        $stmt->execute([(int) $programmationId, $idEnseignant, $idQualite, time()]);
     }
 
     public function getSummary()

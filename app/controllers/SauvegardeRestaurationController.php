@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../Core/Autoload.php';
 require_once __DIR__ . '/../Services/SauvegardeRestaurationService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Core\Csrf;
 use CheckMaster\Services\SauvegardeRestaurationService;
@@ -42,6 +43,17 @@ class SauvegardeRestaurationController {
     public function createBackup() {
         $this->requireAdmin();
         $this->requireCsrf();
+if (!canCreate()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         if (headers_sent()) {
             return false;
         }
@@ -59,6 +71,17 @@ class SauvegardeRestaurationController {
     public function restoreBackup() {
         $this->requireAdmin();
         $this->requireCsrf();
+if (!canEdit()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         if (headers_sent()) {
             error_log("Erreur: Les en-têtes ont déjà été envoyés, redirection impossible.");
             return false;
@@ -98,6 +121,17 @@ class SauvegardeRestaurationController {
     public function deleteBackup() {
         $this->requireAdmin();
         $this->requireCsrf();
+if (!canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         if (headers_sent()) {
             return false;
         }

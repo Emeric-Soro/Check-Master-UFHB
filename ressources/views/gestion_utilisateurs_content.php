@@ -9,7 +9,12 @@ $personnelNonUtilisateurs = is_array($GLOBALS['personnelNonUtilisateurs'] ?? nul
 $etudiantsNonUtilisateurs = is_array($GLOBALS['etudiantsNonUtilisateurs'] ?? null) ? $GLOBALS['etudiantsNonUtilisateurs'] : [];
 $messageSuccess = (string) ($GLOBALS['messageSuccess'] ?? '');
 $messageErreur = (string) ($GLOBALS['messageErreur'] ?? '');
+$messageSuccessType = (string) ($GLOBALS['messageSuccessType'] ?? 'success');
 $isMassMode = (string) ($_GET['action'] ?? '') === 'addMasse';
+
+if (!in_array($messageSuccessType, ['success', 'info', 'warning', 'danger'], true)) {
+    $messageSuccessType = 'success';
+}
 
 $filters = [
     'search' => trim((string) ($_GET['search'] ?? '')),
@@ -52,14 +57,14 @@ $total = count($utilisateursFiltres);
 $pagination = cm_paginate($total, $limit, $page);
 $rowsPage = array_slice($utilisateursFiltres, (int) $pagination['offset'], $limit);
 
-$typeOptions = ['' => '-- Selectionner --'];
+$typeOptions = ['' => '-- Sélectionner --'];
 foreach ($typesUtilisateur as $type) {
     $id = (string) ($type->id_type_utilisateur ?? '');
     if ($id !== '') {
         $typeOptions[$id] = (string) ($type->lib_type_utilisateur ?? ('Type ' . $id));
     }
 }
-$groupOptions = ['' => '-- Selectionner --'];
+$groupOptions = ['' => '-- Sélectionner --'];
 foreach ($groupesUtilisateur as $groupe) {
     $id = (string) ($groupe->id_GU ?? '');
     if ($id !== '') {
@@ -106,7 +111,7 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
 ?>
 <section class="cm-prd3-crud-screen cm-prd6-admin-screen">
     <?php if ($messageSuccess !== ''): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => $messageSuccess]); ?>
+        <?php cm_component('ui/alert-box', ['type' => $messageSuccessType, 'message' => $messageSuccess]); ?>
     <?php endif; ?>
     <?php if ($messageErreur !== ''): ?>
         <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $messageErreur]); ?>
@@ -115,7 +120,7 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
     <div class="cm-crud-wrapper">
         <?php if ($isMassMode): ?>
             <?php ob_start(); ?>
-            <form method="POST" action="?page=gestion_utilisateurs" data-cm-ajax-form="true">
+            <form method="POST" action="?page=gestion_utilisateurs" id="cmUsersMassForm" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <div class="cm-grid-4">
                     <?php cm_component('form/select', ['name' => 'id_type_utilisateur', 'label' => 'Type utilisateur', 'required' => true, 'options' => $typeOptions]); ?>
@@ -142,20 +147,21 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
                         </table>
                     </div>
                 </div>
-                <?php cm_component('crud/form-actions', ['actions' => [
+                <?php cm_component('crud/form-actions', ['actions' => array_filter([
                     ['tag' => 'a', 'href' => '?page=gestion_utilisateurs', 'label' => 'Retour', 'icon' => 'fa-arrow-left', 'class' => 'cm-btn is-light'],
-                    ['tag' => 'button', 'type' => 'submit', 'label' => 'Ajouter la selection', 'icon' => 'fa-users', 'class' => 'cm-btn is-success', 'attrs' => ['name' => 'btn_add_multiple']],
-                ]]); ?>
+                    canCreate() ? ['tag' => 'button', 'type' => 'submit', 'label' => 'Ajouter la selection', 'icon' => 'fa-users', 'class' => 'cm-btn is-success', 'attrs' => ['name' => 'btn_add_multiple']] : null,
+                ])]); ?>
+                <div id="cmUsersMassFormState" class="cm-text-muted" aria-live="polite"></div>
             </form>
-            <?php cm_component('crud/form-pole', ['title' => 'Ajout en masse des utilisateurs', 'icon' => 'fa-users', 'content' => (string) ob_get_clean()]); ?>
+            <?php cm_component('crud/form-pole', ['title' => '', 'icon' => 'fa-users', 'content' => (string) ob_get_clean()]); ?>
         <?php else: ?>
             <?php ob_start(); ?>
             <form method="POST" action="?page=gestion_utilisateurs" id="cmUserForm" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <?php if ($utilisateurEdit): ?><input type="hidden" name="id_utilisateur" value="<?= htmlspecialchars((string) ($utilisateurEdit->id_utilisateur ?? ''), ENT_QUOTES, 'UTF-8') ?>"><?php endif; ?>
+                <input type="hidden" name="source_reference_id" id="cmSourceReferenceId" value="">
+                <input type="hidden" name="source_reference_email" id="cmSourceReferenceEmail" value="">
                 <div class="cm-grid-4">
-                    <div class="cm-form-group" id="cmUserNameTextWrap"><?php cm_component('form/input-text', ['name' => 'nom_utilisateur', 'id' => 'cmNomUtilisateurText', 'label' => 'Nom utilisateur', 'required' => true, 'value' => $editNomValue, 'placeholder' => 'Nom complet']); ?></div>
-                    <div class="cm-form-group cm-hidden" id="cmUserNameSelectWrap"><label for="cmNomUtilisateurSelect" class="cm-form-label">Nom utilisateur</label><select id="cmNomUtilisateurSelect" class="cm-form-control"></select></div>
                     <?php cm_component('form/select', ['name' => 'id_type_utilisateur', 'id' => 'cmTypeUtilisateur', 'label' => 'Type utilisateur', 'required' => true, 'options' => $typeOptions, 'selected' => $editTypeValue]); ?>
                     <div class="cm-form-group">
                         <label for="cmGroupeUtilisateur" class="cm-form-label">Groupe utilisateur</label>
@@ -165,18 +171,21 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <div class="cm-form-group" id="cmUserNameTextWrap"><?php cm_component('form/input-text', ['name' => 'nom_utilisateur', 'id' => 'cmNomUtilisateurText', 'label' => 'Nom utilisateur', 'required' => true, 'value' => $editNomValue, 'placeholder' => 'Nom complet']); ?></div>
+                    <div class="cm-form-group cm-hidden" id="cmUserNameSelectWrap"><label for="cmNomUtilisateurSelect" class="cm-form-label">Nom utilisateur</label><select id="cmNomUtilisateurSelect" class="cm-form-control"></select></div>
                     <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'id' => 'cmNiveauAcces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'selected' => $editNiveauValue !== '' ? $editNiveauValue : (string) array_key_first($niveauOptions)]); ?>
                     <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'id' => 'cmStatutUtilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif'], 'selected' => $editStatutValue]); ?>
                     <?php cm_component('form/input-text', ['name' => 'login_utilisateur', 'id' => 'cmLoginUtilisateur', 'label' => 'Login', 'required' => true, 'value' => $editLoginValue, 'placeholder' => 'login']); ?>
                 </div>
                 <div class="cm-form-group"><small id="cmLoginHint" class="cm-text-muted"></small></div>
-                <?php cm_component('crud/form-actions', ['actions' => [
-                    ['tag' => 'a', 'href' => '?page=gestion_utilisateurs', 'label' => 'Reinitialiser', 'icon' => 'fa-rotate-left', 'class' => 'cm-btn is-light'],
-                    ['tag' => 'a', 'href' => '?page=gestion_utilisateurs&action=addMasse', 'label' => 'Ajout en masse', 'icon' => 'fa-users', 'class' => 'cm-btn is-info'],
-                    ['tag' => 'button', 'type' => 'submit', 'label' => $utilisateurEdit ? 'Modifier' : 'Enregistrer', 'icon' => 'fa-save', 'class' => 'cm-btn is-success', 'attrs' => ['name' => $utilisateurEdit ? 'btn_modifier_utilisateur' : 'btn_add_utilisateur']],
-                ]]); ?>
+                <?php cm_component('crud/form-actions', ['actions' => array_filter([
+                    ['tag' => 'a', 'href' => '?page=gestion_utilisateurs', 'label' => 'Réinitialiser', 'icon' => 'fa-rotate-left', 'class' => 'cm-btn is-light'],
+                    canCreate() ? ['tag' => 'a', 'href' => '?page=gestion_utilisateurs&action=addMasse', 'label' => 'Ajout en masse', 'icon' => 'fa-users', 'class' => 'cm-btn is-info'] : null,
+                    ($utilisateurEdit ? canEdit() : canCreate()) ? ['tag' => 'button', 'type' => 'submit', 'label' => $utilisateurEdit ? 'Modifier' : 'Enregistrer', 'icon' => 'fa-save', 'class' => 'cm-btn is-success', 'attrs' => ['name' => $utilisateurEdit ? 'btn_modifier_utilisateur' : 'btn_add_utilisateur']] : null,
+                ])]); ?>
+                <div id="cmUserFormState" class="cm-text-muted" aria-live="polite"></div>
             </form>
-            <?php cm_component('crud/form-pole', ['title' => $utilisateurEdit ? 'Modification utilisateur' : 'Ajout utilisateur', 'icon' => 'fa-user-plus', 'content' => (string) ob_get_clean()]); ?>
+            <?php cm_component('crud/form-pole', ['title' => '', 'icon' => 'fa-user-plus', 'content' => (string) ob_get_clean()]); ?>
         <?php endif; ?>
 
         <?php if (!$isMassMode): ?>
@@ -191,19 +200,23 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
                 <div class="cm-toolbar__search-wrap"><input type="search" class="cm-form-control" name="search" value="<?= htmlspecialchars($filters['search'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Nom, login..."><button type="submit" class="cm-btn is-info is-sm"><i class="fas fa-search"></i><span>Filtrer</span></button></div>
                 <?php $centerHtml = (string) ob_get_clean(); ob_start(); ?>
                 <div class="cm-toolbar__actions">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmUsersSelectAll"><i class="fas fa-check-square"></i><span>Tout selectionner</span></button>
+                    <button type="button" class="cm-btn is-info is-sm" id="cmUsersSelectAll"><i class="fas fa-check-square"></i><span>Tout sélectionner</span></button>
                     <button type="button" class="cm-btn is-light is-sm" id="cmUsersDeselectAll"><i class="fas fa-square"></i><span>Deselectionner</span></button>
+                    <?php if (canEdit()): ?>
                     <button type="button" class="cm-btn is-danger is-sm" id="cmUsersDisable"><i class="fas fa-user-slash"></i><span>Desactiver</span></button>
                     <button type="button" class="cm-btn is-success is-sm" id="cmUsersEnable"><i class="fas fa-user-check"></i><span>Activer</span></button>
                     <button type="button" class="cm-btn is-info is-sm" id="cmUsersSendAccess"><i class="fas fa-paper-plane"></i><span>Envoyer acces</span></button>
+                    <?php endif; ?>
+                    <?php if (canView()): ?>
                     <button type="button" class="cm-btn is-info is-sm" id="cmUsersPrint"><i class="fas fa-print"></i><span>Imprimer</span></button>
                     <button type="button" class="cm-btn is-info is-sm" id="cmUsersExport"><i class="fas fa-file-export"></i><span>Exporter</span></button>
+                    <?php endif; ?>
                 </div>
                 <?php cm_component('crud/toolbar', ['left_html' => $leftHtml, 'center_html' => $centerHtml, 'right_html' => (string) ob_get_clean()]); ?>
             </form>
 
             <div class="cm-pole-inferieur">
-                <form id="cmUsersBulkForm" method="POST" action="?page=gestion_utilisateurs" class="cm-table-form" data-cm-ajax-form="true">
+                <form id="cmUsersBulkForm" method="POST" action="?page=gestion_utilisateurs" class="cm-table-form">
                     <?php cm_component('form/csrf-token'); ?>
                     <input type="hidden" name="submit_disable_multiple" id="cmSubmitDisable" value="0">
                     <input type="hidden" name="submit_enable_multiple" id="cmSubmitEnable" value="0">
@@ -218,7 +231,7 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
                         'rows' => $userRows,
                         'row_key' => 'id_utilisateur',
                         'selectable' => true,
-                        'actions' => [[ 'tag' => 'button', 'type' => 'button', 'label' => 'Modifier', 'icon' => 'fa-pen', 'class' => 'cm-btn-action is-edit js-user-edit' ]],
+                        'actions' => array_filter([ canEdit() ? [ 'tag' => 'button', 'type' => 'button', 'label' => 'Modifier', 'icon' => 'fa-pen', 'class' => 'cm-btn-action is-edit js-user-edit' ] : null ]),
                         'empty_title' => 'Aucun utilisateur',
                         'empty_message' => 'Aucun enregistrement trouve.',
                     ]); ?>
@@ -238,24 +251,71 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
     const nomSelect = document.getElementById('cmNomUtilisateurSelect');
     const loginInput = document.getElementById('cmLoginUtilisateur');
     const loginHint = document.getElementById('cmLoginHint');
+    const sourceIdInput = document.getElementById('cmSourceReferenceId');
+    const sourceEmailInput = document.getElementById('cmSourceReferenceEmail');
+    const userForm = document.getElementById('cmUserForm');
+    const userFormState = document.getElementById('cmUserFormState');
+    const massForm = document.getElementById('cmUsersMassForm');
+    const massFormState = document.getElementById('cmUsersMassFormState');
     const existingName = <?= json_encode($editNomValue) ?>;
+    const existingLogin = <?= json_encode($editLoginValue) ?>;
+    const flashSuccess = <?= json_encode($messageSuccess) ?>;
+    const flashError = <?= json_encode($messageErreur) ?>;
+    const flashSuccessType = <?= json_encode($messageSuccessType) ?>;
+    let initialLoginSynced = false;
     const dataSets = {
-        enseignant: <?= json_encode(array_map(static fn($r) => trim((string) (($r->nom_enseignant ?? '') . ' ' . ($r->prenom_enseignant ?? ''))), $enseignantsNonUtilisateurs)) ?>,
-        personnel: <?= json_encode(array_map(static fn($r) => trim((string) (($r->nom_pers_admin ?? '') . ' ' . ($r->prenom_pers_admin ?? ''))), $personnelNonUtilisateurs)) ?>,
-        etudiant: <?= json_encode(array_map(static fn($r) => trim((string) (($r->nom_etu ?? '') . ' ' . ($r->prenom_etu ?? ''))), $etudiantsNonUtilisateurs)) ?>,
+        enseignant: <?= json_encode(array_map(static fn($r) => [
+            'id' => (string) ($r->id_enseignant ?? ''),
+            'label' => trim((string) (($r->nom_enseignant ?? '') . ' ' . ($r->prenom_enseignant ?? ''))),
+            'email' => trim((string) ($r->mail_enseignant ?? '')),
+        ], $enseignantsNonUtilisateurs), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
+        personnel: <?= json_encode(array_map(static fn($r) => [
+            'id' => (string) ($r->id_pers_admin ?? ''),
+            'label' => trim((string) (($r->nom_pers_admin ?? '') . ' ' . ($r->prenom_pers_admin ?? ''))),
+            'email' => trim((string) ($r->email_pers_admin ?? '')),
+        ], $personnelNonUtilisateurs), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
+        etudiant: <?= json_encode(array_map(static fn($r) => [
+            'id' => (string) ($r->num_etu ?? ''),
+            'label' => trim((string) (($r->nom_etu ?? '') . ' ' . ($r->prenom_etu ?? ''))),
+            'email' => trim((string) ($r->email_etu ?? '')),
+        ], $etudiantsNonUtilisateurs), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
     };
 
     function n(v) { return String(v || '').toLowerCase(); }
     function populateNameSelect(list) {
         nomSelect.innerHTML = '';
         const values = [];
-        if (existingName && list.indexOf(existingName) === -1) values.push(existingName);
-        list.forEach(function (item) { if (item && values.indexOf(item) === -1) values.push(item); });
-        values.forEach(function (value) {
-            const opt = document.createElement('option'); opt.value = value; opt.textContent = value;
-            if (value === existingName || value === nomText.value) opt.selected = true;
+        list.forEach(function (item) {
+            if (!item || !item.label) {
+                return;
+            }
+            values.push(item);
+        });
+        values.forEach(function (item, index) {
+            const opt = document.createElement('option');
+            opt.value = item.label;
+            opt.textContent = item.email ? item.label : (item.label + ' (sans email)');
+            opt.setAttribute('data-source-id', item.id || '');
+            opt.setAttribute('data-source-email', item.email || '');
+            if (item.label === existingName || item.label === nomText.value || index === 0) opt.selected = true;
             nomSelect.appendChild(opt);
         });
+    }
+    function getSelectedSourceEmail() {
+        if (!nomSelect || nomSelectWrap.classList.contains('cm-hidden') || !nomSelect.selectedOptions.length) {
+            return '';
+        }
+        return nomSelect.selectedOptions[0].getAttribute('data-source-email') || '';
+    }
+    function syncSourceMetadata() {
+        if (nomSelect && !nomSelectWrap.classList.contains('cm-hidden') && nomSelect.selectedOptions.length) {
+            const selectedOption = nomSelect.selectedOptions[0];
+            if (sourceIdInput) sourceIdInput.value = selectedOption.getAttribute('data-source-id') || '';
+            if (sourceEmailInput) sourceEmailInput.value = selectedOption.getAttribute('data-source-email') || '';
+            return;
+        }
+        if (sourceIdInput) sourceIdInput.value = '';
+        if (sourceEmailInput) sourceEmailInput.value = '';
     }
     function bindGroupByType() {
         if (!typeSelect || !groupSelect) return;
@@ -279,11 +339,16 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
             nomText.removeAttribute('name'); nomSelect.setAttribute('name', 'nom_utilisateur');
             nomTextWrap.classList.add('cm-hidden');
             nomSelectWrap.classList.remove('cm-hidden');
+            nomText.value = nomSelect.value || nomText.value || '';
+            syncSourceMetadata();
+            applySuggestedLogin();
         } else {
             if (nomSelect.value) nomText.value = nomSelect.value;
             nomSelect.removeAttribute('name'); nomText.setAttribute('name', 'nom_utilisateur');
             nomTextWrap.classList.remove('cm-hidden');
             nomSelectWrap.classList.add('cm-hidden');
+            syncSourceMetadata();
+            applySuggestedLogin();
         }
         bindGroupByType();
     }
@@ -292,22 +357,79 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
         if (!p.length) return '';
         return (p[0].charAt(0) + p.slice(1).join('')).toLowerCase().replace(/[^a-z0-9._-]/g, '');
     }
+    function applySuggestedLogin() {
+        if (!loginInput) return;
+        if (!initialLoginSynced && existingLogin) {
+            initialLoginSynced = true;
+            if (loginHint && existingLogin.trim() !== '') {
+                checkLoginAvailability(existingLogin.trim());
+            }
+            return;
+        }
+        const sourceEmail = String(getSelectedSourceEmail() || '').trim();
+        const currentName = !nomSelectWrap.classList.contains('cm-hidden') ? nomSelect.value : nomText.value;
+        const suggestedLogin = sourceEmail || generateLoginFromName(currentName);
+        initialLoginSynced = true;
+        loginInput.value = suggestedLogin;
+        if (loginHint) {
+            loginHint.textContent = sourceEmail
+                ? "Login prérempli avec l'email du profil sélectionné."
+                : "Aucun email source trouvé pour ce profil. Le compte sera créé sans envoi d'accès tant qu'un email n'est pas renseigné.";
+        }
+        if (suggestedLogin) {
+            checkLoginAvailability(suggestedLogin.trim());
+        }
+    }
     function checkLoginAvailability(login) {
         if (!login || !loginHint) return;
         fetch('?page=gestion_utilisateurs&ajax=checkLogin&login=' + encodeURIComponent(login))
             .then(r => r.json())
             .then(function (data) {
-                if (!data || !data.success) { loginHint.textContent = 'Verification login impossible.'; return; }
-                if (data.available) { loginHint.textContent = 'Login disponible.'; return; }
+                const prefix = String(getSelectedSourceEmail() || '').trim()
+                    ? "Login prérempli avec l'email du profil sélectionné. "
+                    : "Aucun email source trouvé pour ce profil. ";
+                if (!data || !data.success) { loginHint.textContent = prefix + 'Verification login impossible.'; return; }
+                if (data.available) { loginHint.textContent = prefix + 'Login disponible.'; return; }
                 loginHint.textContent = data.suggestedLogin ? ('Login deja pris. Suggestion: ' + data.suggestedLogin) : (data.message || 'Login indisponible.');
             })
             .catch(function () { loginHint.textContent = ''; });
     }
 
     if (typeSelect) { typeSelect.addEventListener('change', syncNameFieldByType); syncNameFieldByType(); }
-    if (nomText) nomText.addEventListener('blur', function () { if (loginInput && loginInput.value.trim() === '') { loginInput.value = generateLoginFromName(nomText.value); checkLoginAvailability(loginInput.value.trim()); } });
-    if (nomSelect) nomSelect.addEventListener('change', function () { if (loginInput && loginInput.value.trim() === '') { loginInput.value = generateLoginFromName(nomSelect.value); checkLoginAvailability(loginInput.value.trim()); } });
+    if (nomText) nomText.addEventListener('blur', function () { if (loginInput && loginInput.value.trim() === '') { applySuggestedLogin(); } });
+    if (nomSelect) nomSelect.addEventListener('change', function () { syncSourceMetadata(); applySuggestedLogin(); });
     if (loginInput) loginInput.addEventListener('blur', function () { checkLoginAvailability(loginInput.value.trim()); });
+    if (userForm) {
+        userForm.addEventListener('submit', function (event) {
+            const submitter = event.submitter || userForm.querySelector('button[type="submit"]');
+            if (userFormState) {
+                userFormState.textContent = <?= json_encode($utilisateurEdit ? 'Modification de l’utilisateur en cours...' : 'Création de l’utilisateur en cours...') ?>;
+            }
+            if (submitter) {
+                submitter.disabled = true;
+                submitter.classList.add('is-disabled');
+                submitter.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> ' + <?= json_encode($utilisateurEdit ? 'Modification...' : 'Création...') ?>;
+            }
+        });
+    }
+    if (massForm) {
+        massForm.addEventListener('submit', function (event) {
+            const submitter = event.submitter || massForm.querySelector('button[type="submit"]');
+            if (massFormState) {
+                massFormState.textContent = 'Création des utilisateurs en masse en cours...';
+            }
+            if (submitter) {
+                submitter.disabled = true;
+                submitter.classList.add('is-disabled');
+            }
+        });
+    }
+    if (flashSuccess && window.CM && window.CM.toast && typeof window.CM.toast.show === 'function') {
+        window.CM.toast.show(flashSuccess, flashSuccessType, 4500);
+    }
+    if (flashError && window.CM && window.CM.toast && typeof window.CM.toast.show === 'function') {
+        window.CM.toast.show(flashError, 'danger', 5000);
+    }
 
     const table = document.getElementById('cmUsersTable');
     const bulkForm = document.getElementById('cmUsersBulkForm');
@@ -331,7 +453,7 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
     function submitBulk(mode) {
         if (!bulkForm) return;
         const ids = selectedIds();
-        if (!ids.length) { window.alert('Selectionnez au moins un utilisateur.'); return; }
+        if (!ids.length) { window.alert('Sélectionnez au moins un utilisateur.'); return; }
         setSelectedIds(ids);
         if (submitDisable) submitDisable.value = '0'; if (submitEnable) submitEnable.value = '0'; if (submitSend) submitSend.value = '0';
         if (mode === 'disable' && submitDisable) submitDisable.value = '2';

@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . "/../models/Etudiant.php";
 require_once __DIR__ . "/../models/Scolarite.php";
 require_once __DIR__ . "/../models/Inscription.php";
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use Etudiant;
 use Scolarite;
@@ -49,6 +50,11 @@ class DashboardScolariteService
         $this->inscription = new Inscription($db);
     }
 
+    private function getSelectedYearId(): ?int
+    {
+        return \AcademicYear::getSelectedIdFromSession();
+    }
+
     /**
      * Récupère les données pour le tableau de bord de la scolarité
      *
@@ -73,20 +79,22 @@ class DashboardScolariteService
         ];
 
         try {
+            $selectedYearId = $this->getSelectedYearId();
+
             // Nombre total d'inscriptions actives (étudiants inscrits)
-            $stats['etudiants'] = $this->inscription->countInscriptions();
+            $stats['etudiants'] = $this->inscription->countInscriptions($selectedYearId);
 
             // Nouvelles inscriptions (dernière semaine)
-            $stats['nouvelles_inscriptions'] = $this->inscription->countNouvellesInscriptions(7);
+            $stats['nouvelles_inscriptions'] = $this->inscription->countNouvellesInscriptions(7, $selectedYearId);
 
             // Statistiques des réclamations
             $stats = $this->loadReclamationStats($stats);
 
             // Statistiques des paiements
-            $stats = $this->loadPaiementStats($stats);
+            $stats = $this->loadPaiementStats($stats, $selectedYearId);
 
             // Données pour le graphique des inscriptions par niveau d'étude
-            $inscriptionsParNiveau = $this->inscription->getInscriptionsParNiveau();
+            $inscriptionsParNiveau = $this->inscription->getInscriptionsParNiveau($selectedYearId);
 
             return [
                 'stats' => $stats,
@@ -133,9 +141,9 @@ class DashboardScolariteService
      * @param array $stats Tableau de statistiques à compléter
      * @return array Tableau de statistiques mis à jour
      */
-    private function loadPaiementStats(array $stats)
+    private function loadPaiementStats(array $stats, ?int $selectedYearId = null)
     {
-        $etudiantsInscrits = $this->scolarite->getEtudiantsInscrits();
+        $etudiantsInscrits = $this->scolarite->getEtudiantsInscrits($selectedYearId);
         $complete = 0;
         $partial = 0;
         $montantTotalPerçu = 0;
