@@ -1,0 +1,72 @@
+/**
+ * CheckMaster - Responsive rules
+ */
+
+@media screen and (max-width: 1024px) {
+    :root {
+        --cm-sidebar-width: var(--cm-sidebar-width-tablet);
+    }
+
+    .cm-content-area {
+        margin-left: var(--cm-sidebar-width-tablet);
+    }
+
+    .cm-navbar {
+        left: var(--cm-sidebar-width-tablet);
+    }
+
+    .cm-grid-3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cm-grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .cm-sidebar {
+        transform: translateX(-100%);
+        transition: transform 200ms ease;
+    }
+
+    .cm-sidebar.is-open {
+        transform: translateX(0);
+    }
+
+    .cm-content-area {
+        margin-left: 0;
+        padding: calc(var(--cm-header-height) + var(--cm-spacing-sm)) var(--cm-spacing-md) var(--cm-spacing-md);
+    }
+
+    .cm-navbar {
+        left: 0;
+        padding: 0 var(--cm-spacing-md);
+    }
+
+    .cm-navbar__center {
+        display: none;
+    }
+
+    .cm-grid-2,
+    .cm-grid-3,
+    .cm-grid-4 {
+        grid-template-columns: 1fr;
+    }
+
+    .cm-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cm-toolbar-left,
+    .cm-toolbar-center,
+    .cm-toolbar-right {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .cm-form-buttons {
+        flex-direction: column;
+    }
+}

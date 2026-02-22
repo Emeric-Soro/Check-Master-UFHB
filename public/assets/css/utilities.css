@@ -1,0 +1,46 @@
+/**
+ * CheckMaster - Utilities
+ */
+
+.cm-hidden {
+    display: none !important;
+}
+
+.cm-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+.cm-flex {
+    display: flex;
+}
+
+.cm-flex-wrap {
+    flex-wrap: wrap;
+}
+
+.cm-flex-gap-sm {
+    gap: var(--cm-spacing-sm);
+}
+
+.cm-mt-sm { margin-top: var(--cm-spacing-sm); }
+.cm-mt-md { margin-top: var(--cm-spacing-md); }
+.cm-mt-lg { margin-top: var(--cm-spacing-lg); }
+.cm-mb-sm { margin-bottom: var(--cm-spacing-sm); }
+.cm-mb-md { margin-bottom: var(--cm-spacing-md); }
+.cm-mb-lg { margin-bottom: var(--cm-spacing-lg); }
+
+.h-full { height: 100%; }
+.min-h-0 { min-height: 0; }
+.flex-1 { flex: 1 1 auto; }
+.shrink-0 { flex-shrink: 0; }
+.sticky { position: sticky; }
+.top-0 { top: 0; }
+.bg-white { background: #ffffff; }
+.z-10 { z-index: 10; }
