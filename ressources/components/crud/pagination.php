@@ -19,7 +19,7 @@ $build_url = static function (int $page) use ($base_url, $param_name): string {
     return $base_url . $separator . rawurlencode($param_name) . '=' . $page;
 };
 ?>
-<nav class="cm-pagination" role="navigation" aria-label="Pagination" data-cm-ajax-pagination="true">
+<nav class="cm-pagination" role="navigation" aria-label="Pagination">
     <div class="cm-pagination__info">
         Affichage de <?= (int) ($pagination['offset'] ?? 0) + 1 ?> a
         <?= min(((int) ($pagination['offset'] ?? 0) + (int) ($pagination['per_page'] ?? 0)), (int) ($pagination['total'] ?? 0)) ?> sur
@@ -28,10 +28,7 @@ $build_url = static function (int $page) use ($base_url, $param_name): string {
 
     <ul class="cm-pagination__list">
         <li class="cm-pagination__item <?= !empty($pagination['has_prev']) ? '' : 'is-disabled' ?>">
-            <a href="<?= htmlspecialchars($build_url(max(1, $current - 1)), ENT_QUOTES, 'UTF-8') ?>"
-               class="cm-pagination__link"
-               aria-label="Page precedente"
-               data-cm-ajax-link="true">
+            <a href="<?= htmlspecialchars($build_url(max(1, $current - 1)), ENT_QUOTES, 'UTF-8') ?>" class="cm-pagination__link" aria-label="Page precedente">
                 <i class="fas fa-chevron-left" aria-hidden="true"></i>
             </a>
         </li>
@@ -47,7 +44,6 @@ $build_url = static function (int $page) use ($base_url, $param_name): string {
             <a href="<?= htmlspecialchars($build_url($page), ENT_QUOTES, 'UTF-8') ?>"
                class="cm-pagination__link"
                aria-label="Page <?= $page ?>"
-               data-cm-ajax-link="true"
                <?= $page === $current ? 'aria-current="page"' : '' ?>>
                 <?= $page ?>
             </a>
@@ -56,10 +52,7 @@ $build_url = static function (int $page) use ($base_url, $param_name): string {
         <?php endforeach; ?>
 
         <li class="cm-pagination__item <?= !empty($pagination['has_next']) ? '' : 'is-disabled' ?>">
-            <a href="<?= htmlspecialchars($build_url(min($last, $current + 1)), ENT_QUOTES, 'UTF-8') ?>"
-               class="cm-pagination__link"
-               aria-label="Page suivante"
-               data-cm-ajax-link="true">
+            <a href="<?= htmlspecialchars($build_url(min($last, $current + 1)), ENT_QUOTES, 'UTF-8') ?>" class="cm-pagination__link" aria-label="Page suivante">
                 <i class="fas fa-chevron-right" aria-hidden="true"></i>
             </a>
         </li>

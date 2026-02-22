@@ -48,10 +48,6 @@ if (!function_exists('cm_form_normalize_options')) {
      */
     function cm_form_normalize_options(array $options): array
     {
-        $isList = function_exists('array_is_list')
-            ? array_is_list($options)
-            : (array_keys($options) === range(0, count($options) - 1));
-
         $normalized = [];
         foreach ($options as $key => $value) {
             if (is_array($value)) {
@@ -62,7 +58,7 @@ if (!function_exists('cm_form_normalize_options')) {
                 ];
             } else {
                 $normalized[] = [
-                    'value' => $isList ? (string) $value : (string) $key,
+                    'value' => is_string($key) ? $key : (string) $value,
                     'label' => (string) $value,
                     'disabled' => false,
                 ];
