@@ -30,16 +30,6 @@ foreach ($listeAnneesAcad as $annee) {
     }
 }
 
-// Find Master 2 ID for auto-selection (before formValues)
-$master2Id = '';
-foreach ($listeNiveaux as $niveau) {
-    $libelle = strtolower(trim((string) ($niveau->lib_niv_etude ?? '')));
-    if (strpos($libelle, 'master 2') !== false || strpos($libelle, 'master2') !== false) {
-        $master2Id = (string) ($niveau->id_niv_etude ?? '');
-        break;
-    }
-}
-
 $formValues = [
     'id_annee_acad' => $anneeActiveId,
     'identifiant_mesrs' => '',
@@ -48,8 +38,8 @@ $formValues = [
     'prenom_etu' => '',
     'date_naiss_etu' => '',
     'genre_etu' => '',
-    'id_niveau' => $master2Id, // Auto-select Master 2
-    'promotion_etu' => $anneeActiveLabel, // Auto-select current year
+    'id_niveau' => '',
+    'promotion_etu' => $anneeActiveLabel,
     'email_etu' => '',
 ];
 
@@ -82,7 +72,7 @@ $pagination = function_exists('cm_paginate')
 $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit=' . $itemsPerPage;
 ?>
 
-<div class="cm-prd3-screen cm-prd3-crud-screen">
+<div class="cm-prd3-screen cm-prd3-crud-screen h-full flex flex-col min-h-0">
     <?php
     cm_component('layout/page-header', [
         'title' => 'Gestion des etudiants',
@@ -99,8 +89,8 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
         <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $GLOBALS['messageErreur']]); ?>
     <?php endif; ?>
 
-    <div class="cm-crud-wrapper">
-    <div class="cm-pole-superieur">
+    <div class="cm-crud-wrapper flex-1 flex flex-col min-h-0">
+    <div class="cm-pole-superieur shrink-0">
         <div class="cm-pole-superieur-title">
             <h2>
                 <i class="fas fa-pen-to-square" aria-hidden="true"></i>
@@ -115,9 +105,81 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
             <?php endif; ?>
             <input type="hidden" id="num_ident_etud" name="num_ident_etud" value="<?php echo htmlspecialchars((string) $formValues['identifiant_mesrs'], ENT_QUOTES, 'UTF-8'); ?>">
 
-            <!-- Ligne 1: Niveau, Promotion, Année A. (grid-3) -->
-            <div class="cm-grid-3">
+            <div class="cm-grid-4">
                 <?php
+                $anneeOptions = [];
+                foreach ($listeAnneesAcad as $annee) {
+                    $anneeId = (int) ($annee->id_annee_acad ?? 0);
+                    $debut = !empty($annee->date_deb) ? date('Y', strtotime((string) $annee->date_deb)) : '';
+                    $fin = !empty($annee->date_fin) ? date('Y', strtotime((string) $annee->date_fin)) : '';
+                    $anneeOptions[$anneeId] = trim($debut . '-' . $fin, '-');
+                }
+
+                cm_component('form/select', [
+                    'name' => 'id_annee_acad',
+                    'id' => 'id_annee_acad',
+                    'label' => 'Annee Academique',
+                    'required' => false,
+                    'options' => $anneeOptions,
+                    'selected' => (string) ($formValues['id_annee_acad'] ?? ''),
+                ]);
+
+                cm_component('form/input-text', [
+                    'name' => 'identifiant_mesrs',
+                    'id' => 'identifiant_mesrs',
+                    'label' => 'Identifiant MESRS',
+                    'maxlength' => 25,
+                    'value' => (string) $formValues['identifiant_mesrs'],
+                ]);
+
+                cm_component('form/input-text', [
+                    'name' => 'num_etu',
+                    'id' => 'num_etu',
+                    'label' => 'N° Etudiant',
+                    'maxlength' => 25,
+                    'required' => true,
+                    'value' => (string) $formValues['num_etu'],
+                ]);
+
+                cm_component('form/input-text', [
+                    'name' => 'nom_etu',
+                    'id' => 'nom_etu',
+                    'label' => 'Nom',
+                    'maxlength' => 50,
+                    'required' => true,
+                    'value' => (string) $formValues['nom_etu'],
+                ]);
+
+                cm_component('form/input-text', [
+                    'name' => 'prenom_etu',
+                    'id' => 'prenom_etu',
+                    'label' => 'Prenom',
+                    'maxlength' => 100,
+                    'required' => true,
+                    'value' => (string) $formValues['prenom_etu'],
+                ]);
+
+                cm_component('form/input-date', [
+                    'name' => 'date_naiss_etu',
+                    'id' => 'date_naiss_etu',
+                    'label' => 'Date de naissance',
+                    'required' => true,
+                    'value' => (string) $formValues['date_naiss_etu'],
+                ]);
+
+                cm_component('form/select', [
+                    'name' => 'genre_etu',
+                    'id' => 'genre_etu',
+                    'label' => 'Genre',
+                    'required' => true,
+                    'options' => [
+                        '1' => 'Masculin',
+                        '2' => 'Feminin',
+                        '3' => 'Neutre',
+                    ],
+                    'selected' => (string) $formValues['genre_etu'],
+                ]);
+
                 $niveauOptions = [];
                 foreach ($listeNiveaux as $niveau) {
                     $niveauOptions[(int) ($niveau->id_niv_etude ?? 0)] = (string) ($niveau->lib_niv_etude ?? 'Niveau');
@@ -149,92 +211,10 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
                     'selected' => (string) $formValues['promotion_etu'],
                 ]);
 
-                $anneeOptions = [];
-                foreach ($listeAnneesAcad as $annee) {
-                    $anneeId = (int) ($annee->id_annee_acad ?? 0);
-                    $debut = !empty($annee->date_deb) ? date('Y', strtotime((string) $annee->date_deb)) : '';
-                    $fin = !empty($annee->date_fin) ? date('Y', strtotime((string) $annee->date_fin)) : '';
-                    $anneeOptions[$anneeId] = trim($debut . '-' . $fin, '-');
-                }
-                cm_component('form/select', [
-                    'name' => 'id_annee_acad',
-                    'id' => 'id_annee_acad',
-                    'label' => 'Annee A.',
-                    'required' => false,
-                    'options' => $anneeOptions,
-                    'selected' => (string) ($formValues['id_annee_acad'] ?? ''),
-                ]);
-                ?>
-            </div>
-
-            <!-- Ligne 2: Identifiant (MESRS), N° Carte Étudiant, Nom, Prénom (grid-4) -->
-            <div class="cm-grid-4">
-                <?php
-                cm_component('form/input-text', [
-                    'name' => 'identifiant_mesrs',
-                    'id' => 'identifiant_mesrs',
-                    'label' => 'Identifiant (MESRS)',
-                    'maxlength' => 25,
-                    'value' => (string) $formValues['identifiant_mesrs'],
-                ]);
-
-                cm_component('form/input-text', [
-                    'name' => 'num_etu',
-                    'id' => 'num_etu',
-                    'label' => 'N° Carte Etudiant',
-                    'maxlength' => 25,
-                    'required' => true,
-                    'value' => (string) $formValues['num_etu'],
-                ]);
-
-                cm_component('form/input-text', [
-                    'name' => 'nom_etu',
-                    'id' => 'nom_etu',
-                    'label' => 'Nom',
-                    'maxlength' => 50,
-                    'required' => true,
-                    'value' => (string) $formValues['nom_etu'],
-                ]);
-
-                cm_component('form/input-text', [
-                    'name' => 'prenom_etu',
-                    'id' => 'prenom_etu',
-                    'label' => 'Prenom',
-                    'maxlength' => 100,
-                    'required' => true,
-                    'value' => (string) $formValues['prenom_etu'],
-                ]);
-                ?>
-            </div>
-
-            <!-- Ligne 3: Date Naissance, Genre, E-mail (grid-3) -->
-            <div class="cm-grid-3">
-                <?php
-                cm_component('form/input-date', [
-                    'name' => 'date_naiss_etu',
-                    'id' => 'date_naiss_etu',
-                    'label' => 'Date Naissance',
-                    'required' => true,
-                    'value' => (string) $formValues['date_naiss_etu'],
-                ]);
-
-                cm_component('form/select', [
-                    'name' => 'genre_etu',
-                    'id' => 'genre_etu',
-                    'label' => 'Genre',
-                    'required' => true,
-                    'options' => [
-                        '1' => 'Masculin',
-                        '2' => 'Feminin',
-                        '3' => 'Neutre',
-                    ],
-                    'selected' => (string) $formValues['genre_etu'],
-                ]);
-
                 cm_component('form/input-email', [
                     'name' => 'email_etu',
                     'id' => 'email_etu',
-                    'label' => 'E-mail',
+                    'label' => 'Email',
                     'required' => true,
                     'maxlength' => 60,
                     'value' => (string) $formValues['email_etu'],
@@ -270,11 +250,11 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
         </form>
     </div>
 
-    <div class="cm-barre-intermediaire">
+    <div class="cm-barre-intermediaire shrink-0">
         <div class="cm-toolbar">
             <div class="cm-toolbar-left">
                 <label for="cmStudentLimit"><strong>Afficher:</strong></label>
-                <select id="cmStudentLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
+                <select id="cmStudentLimit" class="cm-form-control cm-form-select is-sm" style="max-width: 90px;">
                     <?php foreach ($allowedLimits as $limit): ?>
                         <option value="<?php echo $limit; ?>" <?php echo $limit === $itemsPerPage ? 'selected' : ''; ?>>
                             <?php echo $limit; ?>
@@ -318,12 +298,12 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
         </div>
     </div>
 
-    <div class="cm-pole-inferieur">
-        <form id="studentsBulkForm" method="POST" action="?page=gestion_etudiants&action=ajouter_des_etudiants" class="cm-table-form">
+    <div class="cm-pole-inferieur flex-1 flex flex-col min-h-0">
+        <form id="studentsBulkForm" method="POST" action="?page=gestion_etudiants&action=ajouter_des_etudiants" class="flex-1 flex flex-col min-h-0">
             <?php cm_component('form/csrf-token'); ?>
-            <div class="cm-table-wrapper">
+            <div class="cm-table-wrapper flex-1 overflow-y-auto">
                 <table class="cm-data-table" id="cmStudentsTable">
-                    <thead>
+                    <thead class="sticky top-0 bg-white z-10">
                     <tr>
                         <?php if (canEdit() || canDelete()): ?>
                             <th class="cm-data-table__th is-checkbox">
@@ -426,13 +406,6 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
     const limitSelect = document.getElementById('cmStudentLimit');
     const selectedCount = document.getElementById('cmSelectedCount');
     const deleteBtn = document.getElementById('cmDeleteSelectedBtn');
-    const navigate = function (url) {
-        if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
-            window.CM.ajax.load(url);
-            return;
-        }
-        window.location.href = url;
-    };
 
     const rowCheckboxes = function () {
         return Array.from(document.querySelectorAll('#cmStudentsTableBody .cm-row-checkbox'));
@@ -533,7 +506,7 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
             const url = new URL(window.location.href);
             url.searchParams.set('limit', String(limitSelect.value));
             url.searchParams.set('p', '1');
-            navigate(url.toString());
+            window.location.href = url.toString();
         });
     }
 

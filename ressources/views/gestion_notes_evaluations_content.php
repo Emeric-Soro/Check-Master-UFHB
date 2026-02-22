@@ -35,21 +35,14 @@ if ($selectedAnneeAcad) {
 }
 
 $notesList = [];
-if ($effectiveAnneeId) {
+if ($selectedNiveau && $effectiveAnneeId) {
     try {
         $noteModel = new Note(Database::getConnection());
-        if ($selectedNiveau) {
-            $notesList = $noteModel->getNotesByNiveauAndYear($selectedNiveau, $effectiveAnneeId);
-        } else {
-            $notesList = $noteModel->getNotesByYear($effectiveAnneeId);
-        }
+        $notesList = $noteModel->getNotesByNiveauAndYear($selectedNiveau, $effectiveAnneeId);
     } catch (Throwable $e) {
         $notesList = [];
     }
 }
-$notesEmptyMessage = $effectiveAnneeId
-    ? 'Aucune note enregistree pour cette annee academique.'
-    : 'Selectionnez une annee pour afficher les notes.';
 
 $studentOptions = [];
 $studentCatalog = [];
@@ -257,17 +250,13 @@ $paginationBaseUrl = '?page=gestion_notes_evaluations&niveau=' . urlencode((stri
         <div class="cm-toolbar">
             <div class="cm-toolbar-left">
                 <label for="cmNotesLimit"><strong>Afficher:</strong></label>
-                <select id="cmNotesLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
+                <select id="cmNotesLimit" class="cm-form-control cm-form-select is-sm" style="max-width: 90px;">
                     <?php foreach ($allowedLimits as $limit): ?>
                         <option value="<?php echo $limit; ?>" <?php echo $limit === $notesPerPage ? 'selected' : ''; ?>>
                             <?php echo $limit; ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <span class="cm-badge is-info cm-toolbar-year">
-                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-                    <?php echo htmlspecialchars($activeAnneeLabel, ENT_QUOTES, 'UTF-8'); ?>
-                </span>
             </div>
             <div class="cm-toolbar-center">
                 <input type="text" id="cmSearchNotes" class="cm-form-control" placeholder="Rechercher un etudiant...">
@@ -320,7 +309,7 @@ $paginationBaseUrl = '?page=gestion_notes_evaluations&niveau=' . urlencode((stri
                         'in_table' => true,
                         'colspan' => 8,
                         'title' => 'Aucune note',
-                        'message' => $notesEmptyMessage,
+                        'message' => 'Selectionnez un niveau et une annee pour afficher les notes.',
                     ]); ?>
                 <?php else: ?>
                     <?php foreach ($notesToShow as $note): ?>
@@ -397,16 +386,6 @@ $paginationBaseUrl = '?page=gestion_notes_evaluations&niveau=' . urlencode((stri
     const m1Field = document.getElementById('cmMoyenneM1');
     const m2Field = document.getElementById('cmMoyenneM2');
     const notesForm = document.getElementById('cmNotesForm');
-    const navigate = function (url) {
-        if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
-            window.CM.ajax.load(url);
-            return;
-        }
-        window.location.href = url;
-    };
-    const navigateWithParams = function (params) {
-        navigate('?' + params.toString());
-    };
 
     const syncStudentFields = function () {
         const id = studentHidden ? studentHidden.value : '';
@@ -440,7 +419,7 @@ $paginationBaseUrl = '?page=gestion_notes_evaluations&niveau=' . urlencode((stri
         }
         params.delete('student');
         params.delete('action');
-        navigateWithParams(params);
+        window.location.href = '?' + params.toString();
     };
 
     niveauFilter && niveauFilter.addEventListener('change', reloadByFilters);
@@ -451,7 +430,7 @@ $paginationBaseUrl = '?page=gestion_notes_evaluations&niveau=' . urlencode((stri
             params.set('page', 'gestion_notes_evaluations');
             params.set('limit_notes', String(notesLimit.value));
             params.set('page_notes', '1');
-            navigateWithParams(params);
+            window.location.href = '?' + params.toString();
         });
     }
 
@@ -467,7 +446,7 @@ $paginationBaseUrl = '?page=gestion_notes_evaluations&niveau=' . urlencode((stri
             params.set('annee', anneeFilter.value);
             params.set('student', studentHidden.value);
             params.delete('action');
-            navigateWithParams(params);
+            window.location.href = '?' + params.toString();
         });
 
         document.querySelectorAll('#cmStudentPicker_wrapper .cm-select-search__option').forEach(function (option) {

@@ -171,19 +171,15 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
         <div class="cm-toolbar">
             <div class="cm-toolbar-left">
                 <label for="cmReclamationsLimit"><strong>Afficher:</strong></label>
-                <select id="cmReclamationsLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
+                <select id="cmReclamationsLimit" class="cm-form-control cm-form-select is-sm" style="max-width: 90px;">
                     <?php foreach ($allowedLimits as $limit): ?>
                         <option value="<?php echo $limit; ?>" <?php echo $limit === $reclamationsPerPage ? 'selected' : ''; ?>>
                             <?php echo $limit; ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <span class="cm-badge is-info cm-toolbar-year">
-                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-                    <?php echo date('Y') . '-' . (date('Y') + 1); ?>
-                </span>
                 <label for="cmFilterStatutRec"><strong>Statut:</strong></label>
-                <select id="cmFilterStatutRec" class="cm-form-control cm-form-select is-sm cm-toolbar-field-md">
+                <select id="cmFilterStatutRec" class="cm-form-control cm-form-select is-sm" style="max-width: 160px;">
                     <option value="">Tous</option>
                     <option value="en attente">En attente</option>
                     <option value="en cours">En cours</option>
@@ -191,7 +187,7 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
                     <option value="rejetée">Rejetée</option>
                 </select>
                 <label for="cmFilterDateRec"><strong>Date:</strong></label>
-                <input type="date" id="cmFilterDateRec" class="cm-form-control is-sm cm-toolbar-field-lg">
+                <input type="date" id="cmFilterDateRec" class="cm-form-control is-sm" style="max-width: 180px;">
             </div>
             <div class="cm-toolbar-center">
                 <input type="text" id="cmSearchReclamation" class="cm-form-control" placeholder="Rechercher (etudiant, objet, numero)...">
@@ -347,13 +343,6 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
     const dateField = document.getElementById('cmReclamationDate');
     const statutField = document.getElementById('cmNouveauStatut');
     const reponseField = document.getElementById('cmReponseAdmin');
-    const navigate = function (url) {
-        if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
-            window.CM.ajax.load(url);
-            return;
-        }
-        window.location.href = url;
-    };
 
     const toggleButtons = document.querySelectorAll('.cmToggleRecDetail');
     for (let i = 0; i < toggleButtons.length; i++) {
@@ -482,7 +471,7 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             const url = new URL(window.location.href);
             url.searchParams.set('limit_reclamations', String(limitSelect.value));
             url.searchParams.set('page_reclamations', '1');
-            navigate(url.toString());
+            window.location.href = url.toString();
         });
     }
 
