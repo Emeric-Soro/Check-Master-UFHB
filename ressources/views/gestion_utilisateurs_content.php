@@ -354,7 +354,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                     <i class="fas fa-user-plus text-green-500 text-base"></i>
                 </div>
                 <h2 class="text-lg font-semibold text-gray-700">
-                    <?php echo (isset($_GET['action']) && $_GET['action'] == 'edit') ? 'Modifier un utilisateur' : 'Ajouter un Utilisateur' ?>
+                    <?php echo (isset($_GET['action']) && $_GET['action'] == 'edit') ? 'Modifier un utilisateur' : '' ?>
                 </h2>
             </div>
             <form id="userForm" class="space-y-3" method="POST" action="?page=gestion_utilisateurs">
@@ -381,7 +381,23 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                             <?php endforeach; ?>
                         </select>
                     </div>
-
+                    <!-- Étape 4: Groupe utilisateur -->
+                    <div class="space-y-1">
+                        <label for="id_GU" class="block text-xs font-semibold text-gray-700">
+                            <span
+                                class="bg-green-500 text-white rounded-full w-5 h-5 inline-flex items-center justify-center text-xs mr-1">4</span>
+                            <i class="fas fa-users text-green-500 mr-1"></i>Groupe utilisateur
+                        </label>
+                        <select name="id_GU" id="id_GU" required
+                            class="focus:outline-none w-full px-3 py-2 border-2 border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
+                            <option value="">Sélectionner un groupe utilisateur</option>
+                            <?php foreach ($groupes_utilisateur as $groupe): ?>
+                                <option value="<?php echo htmlspecialchars($groupe->id_GU); ?>" <?php echo ($utilisateur_a_modifier && $groupe->id_GU == $utilisateur_a_modifier->id_GU) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($groupe->lib_GU); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <!-- Étape 2: Sélection de la personne -->
                     <div class="space-y-1">
                         <label for="nom_utilisateur" class="block text-xs font-semibold text-gray-700">
@@ -447,23 +463,7 @@ $utilisateurs = array_slice($allUtilisateurs, $offset, $limit);
                         </p>
                     </div>
 
-                    <!-- Étape 4: Groupe utilisateur -->
-                    <div class="space-y-1">
-                        <label for="id_GU" class="block text-xs font-semibold text-gray-700">
-                            <span
-                                class="bg-green-500 text-white rounded-full w-5 h-5 inline-flex items-center justify-center text-xs mr-1">4</span>
-                            <i class="fas fa-users text-green-500 mr-1"></i>Groupe utilisateur
-                        </label>
-                        <select name="id_GU" id="id_GU" required
-                            class="focus:outline-none w-full px-3 py-2 border-2 border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
-                            <option value="">Sélectionner un groupe utilisateur</option>
-                            <?php foreach ($groupes_utilisateur as $groupe): ?>
-                                <option value="<?php echo htmlspecialchars($groupe->id_GU); ?>" <?php echo ($utilisateur_a_modifier && $groupe->id_GU == $utilisateur_a_modifier->id_GU) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($groupe->lib_GU); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+
                 </div>
 
                 <!-- Champs cachés avec valeurs par défaut -->

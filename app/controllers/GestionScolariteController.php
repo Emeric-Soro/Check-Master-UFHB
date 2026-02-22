@@ -4,31 +4,34 @@ require_once __DIR__ . '/../models/Scolarite.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 
-class GestionScolariteController {
+class GestionScolariteController
+{
     private $scolariteModel;
     private $anneeAcademique;
     private $auditLog;
-    
 
-    public function __construct() {
+
+    public function __construct()
+    {
         $this->scolariteModel = new Scolarite(Database::getConnection());
         $this->anneeAcademique = new AnneeAcademique(Database::getConnection());
         $this->auditLog = new AuditLog(Database::getConnection());
     }
 
-    public function index() {
+    public function index()
+    {
         // Récupérer les étudiants non inscrits
         $GLOBALS['etudiantsNonInscrits'] = $this->scolariteModel->getEtudiantsNonInscrits();
-        
+
         // Récupérer les niveaux d'études
         $GLOBALS['niveaux'] = $this->scolariteModel->getNiveauxEtudes();
-        
+
         // Récupérer les étudiants déjà inscrits
         $GLOBALS['etudiantsInscrits'] = $this->scolariteModel->getEtudiantsInscrits();
-        
+
         // Récupérer la liste complète des étudiants
         $GLOBALS['listeAllEtudiant'] = $this->scolariteModel->getAllEtudiants();
-        
+
         // Récupérer les années académiques
         $GLOBALS['listeAnnees'] = $this->anneeAcademique->getAllAnneeAcademiques();
 
@@ -54,10 +57,13 @@ class GestionScolariteController {
                     case 'enregistrer_versement':
                         $this->enregistrerVersement();
                         break;
+                    case 'enregistrer_paiement':
+                        $this->enregistrerPaiement();
+                        break;
                     case 'mettre_a_jour_versement':
                         $this->mettreAJourVersement();
                         break;
-                    
+
                 }
             }
         }
@@ -66,7 +72,8 @@ class GestionScolariteController {
         $GLOBALS['listeVersement'] = $this->scolariteModel->getAllVersements();
     }
 
-    public function enregistrerVersement() {
+    public function enregistrerVersement()
+    {
         try {
             // Validation des données
             if (empty($_POST['id_etudiant']) || empty($_POST['montant']) || empty($_POST['methode_paiement'])) {
@@ -105,7 +112,7 @@ class GestionScolariteController {
             if ($this->scolariteModel->addVersement($data)) {
                 // Audit logging
                 $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'versements', 'Succès');
-                
+
                 // Récupérer les informations mises à jour
                 $inscriptionMiseAJour = $this->scolariteModel->getInscriptionByEtudiantId($_POST['id_etudiant']);
                 if ($inscriptionMiseAJour) {
@@ -123,9 +130,10 @@ class GestionScolariteController {
             $GLOBALS['messageErreur'] = "Une erreur est survenue lors de l'enregistrement du versement.";
         }
     }
-    
 
-    public function mettreAJourVersement() {
+
+    public function mettreAJourVersement()
+    {
         try {
             // Validation des données
             if (empty($_POST['id_versement']) || empty($_POST['montant']) || empty($_POST['methode_paiement'])) {
@@ -156,14 +164,14 @@ class GestionScolariteController {
             $ancienMontant = floatval($versement['montant']);
             $nouveauMontant = floatval($_POST['montant']);
             $difference = $ancienMontant - $nouveauMontant;
-        
+
 
             if ($ancienMontant != $nouveauMontant) {
 
                 // Vérifier si le nouveau montant total ne dépasse pas le montant de scolarité
                 $montantTotalPaye = floatval($inscription['montant_paye']) - $difference;
                 $montantScolarite = floatval($inscription['montant_total']);
-                
+
                 if ($montantTotalPaye > $montantScolarite) {
                     $GLOBALS['messageErreur'] = "Le montant total des versements ne peut pas dépasser le montant de scolarité (" . number_format($montantScolarite, 2) . " FCFA).";
                     return;
@@ -180,7 +188,7 @@ class GestionScolariteController {
                 if ($this->scolariteModel->updateVersement($_POST['id_versement'], $data)) {
                     // Audit logging
                     $this->auditLog->logModification($_SESSION['id_utilisateur'], 'versement', 'Succès');
-                    
+
                     // Récupérer les informations mises à jour
                     $inscriptionMiseAJour = $this->scolariteModel->getInscriptionById($inscription['id_inscription']);
                     if ($inscriptionMiseAJour) {
@@ -188,7 +196,7 @@ class GestionScolariteController {
                         $GLOBALS['montantPaye'] = floatval($inscriptionMiseAJour['montant_paye'] ?? 0);
                         $GLOBALS['resteAPayer'] = floatval($inscriptionMiseAJour['reste_a_payer'] ?? 0);
                     }
-                    
+
                     $GLOBALS['messageSuccess'] = "Versement mis à jour avec succès.";
                 } else {
                     $this->auditLog->logModification($_SESSION['id_utilisateur'], 'versements', 'Erreur');
@@ -213,6 +221,134 @@ class GestionScolariteController {
         } catch (Exception $e) {
             error_log("Erreur dans mettreAJourVersement : " . $e->getMessage());
             $GLOBALS['messageErreur'] = "Une erreur est survenue lors de la mise à jour du versement.";
+        }
+    }
+
+    public function enregistrerPaiement()
+    {
+        try {
+            $isNewInscription = isset($_POST['is_new_inscription']) && $_POST['is_new_inscription'] === 'true';
+
+            if ($isNewInscription) {
+                if (
+                    empty($_POST['etudiant']) || empty($_POST['niveau']) ||
+                    empty($_POST['annee_academique']) || empty($_POST['montant_versement']) ||
+                    empty($_POST['methode_paiement'])
+                ) {
+                    $GLOBALS['messageErreur'] = "Tous les champs obligatoires doivent être remplis.";
+                    return;
+                }
+
+                $id_etudiant = $_POST['etudiant'];
+                $id_niveau = $_POST['niveau'];
+                $id_annee_acad = $_POST['annee_academique'];
+                $montant_premier_versement = floatval($_POST['montant_versement']);
+                $methode_paiement = $_POST['methode_paiement'];
+                $num_piece = isset($_POST['num_piece']) ? $_POST['num_piece'] : null;
+
+                $inscriptionExistante = $this->scolariteModel->getDerniereInscription($id_etudiant);
+                if ($inscriptionExistante && $inscriptionExistante['id_annee_acad'] == $id_annee_acad) {
+                    $GLOBALS['messageErreur'] = "Cet étudiant est déjà inscrit pour cette année académique.";
+                    return;
+                }
+
+                $montant_total = $this->scolariteModel->getMontantScolarite($id_niveau);
+
+                if ($montant_premier_versement > $montant_total) {
+                    $GLOBALS['messageErreur'] = "Le montant ne peut pas dépasser le montant total (" . number_format($montant_total, 0, ',', ' ') . " FCFA).";
+                    return;
+                }
+
+                $id_inscription = $this->scolariteModel->creerInscription(
+                    $id_etudiant,
+                    $id_niveau,
+                    $id_annee_acad,
+                    $montant_premier_versement,
+                    $methode_paiement,
+                    $num_piece
+                );
+
+                if ($id_inscription) {
+                    $reste_a_payer = $montant_total - $montant_premier_versement;
+                    $GLOBALS['messageSuccess'] = "✅ Inscription créée avec succès ! Versement de " . number_format($montant_premier_versement, 0, ',', ' ') . " FCFA. Reste : " . number_format($reste_a_payer, 0, ',', ' ') . " FCFA.";
+                    $this->auditLog->logCreation($_SESSION['id_utilisateur'], "inscriptions", 'Succès');
+
+                    $GLOBALS['etudiantsInscrits'] = $this->scolariteModel->getEtudiantsInscrits();
+                    $GLOBALS['etudiantsNonInscrits'] = $this->scolariteModel->getEtudiantsNonInscrits();
+                    $GLOBALS['listeAllEtudiant'] = $this->scolariteModel->getAllEtudiants();
+                } else {
+                    $GLOBALS['messageErreur'] = "❌ Erreur lors de la création de l'inscription.";
+                    $this->auditLog->logCreation($_SESSION['id_utilisateur'], "inscriptions", 'Erreur');
+                }
+
+            } else {
+                if (
+                    empty($_POST['etudiant']) || empty($_POST['montant_versement']) ||
+                    empty($_POST['methode_paiement'])
+                ) {
+                    $GLOBALS['messageErreur'] = "Tous les champs obligatoires doivent être remplis.";
+                    return;
+                }
+
+                $id_etudiant = $_POST['etudiant'];
+                $montant = floatval($_POST['montant_versement']);
+                $methode_paiement = $_POST['methode_paiement'];
+                $num_piece = isset($_POST['num_piece']) ? $_POST['num_piece'] : null;
+
+                $derniere_inscription = $this->scolariteModel->getDerniereInscription($id_etudiant);
+
+                if (!$derniere_inscription) {
+                    $GLOBALS['messageErreur'] = "⚠️ Aucune inscription trouvée.";
+                    return;
+                }
+
+                $id_niveau = $derniere_inscription['id_niveau'];
+                $id_annee_acad = $derniere_inscription['id_annee_acad'];
+
+                $infos_paiement = $this->scolariteModel->getInfosPaiementEtudiant($id_etudiant, $id_annee_acad);
+
+                if (!$infos_paiement) {
+                    $GLOBALS['messageErreur'] = "⚠️ Impossible de récupérer les informations.";
+                    return;
+                }
+
+                if ($infos_paiement['reste_a_payer'] <= 0) {
+                    $GLOBALS['messageErreur'] = "⚠️ Scolarité déjà soldée.";
+                    return;
+                }
+
+                if ($montant > $infos_paiement['reste_a_payer']) {
+                    $GLOBALS['messageErreur'] = "❌ Montant supérieur au reste à payer (" . number_format($infos_paiement['reste_a_payer'], 0, ',', ' ') . " FCFA).";
+                    return;
+                }
+
+                $id_inscription = $this->scolariteModel->creerInscription(
+                    $id_etudiant,
+                    $id_niveau,
+                    $id_annee_acad,
+                    $montant,
+                    $methode_paiement,
+                    $num_piece
+                );
+
+                if ($id_inscription) {
+                    $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'inscriptions', 'Succès - Versement');
+
+                    $nouveau_reste = $infos_paiement['reste_a_payer'] - $montant;
+
+                    $GLOBALS['messageSuccess'] = "✅ Versement de " . number_format($montant, 0, ',', ' ') . " FCFA enregistré ! Reste : " . number_format($nouveau_reste, 0, ',', ' ') . " FCFA.";
+
+                    $GLOBALS['etudiantsInscrits'] = $this->scolariteModel->getEtudiantsInscrits();
+                    $GLOBALS['listeAllEtudiant'] = $this->scolariteModel->getAllEtudiants();
+                } else {
+                    $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'inscriptions', 'Erreur');
+                    $GLOBALS['messageErreur'] = "❌ Erreur lors de l'enregistrement.";
+                }
+            }
+
+        } catch (Exception $e) {
+            error_log("Erreur dans enregistrerPaiement : " . $e->getMessage());
+            $GLOBALS['messageErreur'] = "❌ Erreur : " . $e->getMessage();
         }
     }
 

@@ -17,7 +17,7 @@ class Scolarite
         $query = "SELECT montant_scolarite FROM niveau_etude WHERE id_niv_etude = ?";
         $stmt = $this->db->prepare($query);
         $stmt->execute([$id_niveau]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $this->db->fetch(PDO::FETCH_ASSOC);
         return $result['montant_scolarite'];
     }
 
@@ -298,17 +298,5 @@ class Scolarite
         $stmt = $this->db->prepare($query);
         $stmt->execute([$id_etudiant, $id_annee_acad]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    /**
-     * Récupérer la dernière inscription d'un étudiant (pour obtenir id_niveau et id_annee_acad)
-     */
-    public function getDerniereInscription($id_etudiant)
-    {
-        $query = "SELECT id_niveau, id_annee_acad FROM inscriptions 
-                 WHERE id_etudiant = ? ORDER BY id_inscription DESC LIMIT 1";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute([$id_etudiant]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }

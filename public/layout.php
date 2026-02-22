@@ -283,10 +283,14 @@ if (!isset($_SESSION['id_utilisateur'])) {
                 exit;
             }
             $allowedActions = ['ajouter_des_etudiants', 'inscrire_des_etudiants'];
+            $actionLabels = [
+                'ajouter_des_etudiants' => 'Mise a jour etudiant',
+                'inscrire_des_etudiants' => 'Inscrire des etudiants'
+            ];
             if (isset($_GET['action']) && in_array($_GET['action'], $allowedActions)) {
                 $currentAction = $_GET['action'];
                 $contentFile = $partialsBasePath . 'gestion_etudiants/' . $currentAction . '.php';
-                $currentPageLabel = ucfirst(str_replace('_', ' ', $currentAction));
+                $currentPageLabel = isset($actionLabels[$currentAction]) ? $actionLabels[$currentAction] : ucfirst(str_replace('_', ' ', $currentAction));
             } else {
                 $contentFile = $partialsBasePath . 'gestion_etudiants_content.php';
                 $currentPageLabel = 'Gestion des étudiants';
@@ -411,6 +415,10 @@ if (!isset($_SESSION['id_utilisateur'])) {
         case 'consultation_cr_etud':
             $contentFile = $partialsBasePath . 'consultation_cr_etud_content.php';
             $currentPageLabel = 'Mon Compte Rendu';
+            break;
+        case 'redaction_compte_rendu':
+            $contentFile = $partialsBasePath . 'redaction_compte_rendu_content.php';
+            $currentPageLabel = 'Rédaction de compte rendu';
             break;
         case 'archive_comptes_rendus':
             $contentFile = $partialsBasePath . 'redaction_compte_rendu/archives_compte_rendu_content.php';

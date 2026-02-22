@@ -5,7 +5,7 @@ $annee_a_modifier = $GLOBALS['annee_a_modifier'] ?? null;
 
 // Pagination
 $page = isset($_GET['p']) ? (int) $_GET['p'] : 1;
-$limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
+$limit = 10;
 $offset = ($page - 1) * $limit;
 
 // Search functionality
@@ -59,7 +59,6 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
                 transform: translateX(100%);
                 opacity: 0;
             }
-
             to {
                 transform: translateX(0);
                 opacity: 1;
@@ -86,25 +85,25 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
     <div class="relative container mx-auto px-3 py-3">
         <!-- Système de notification -->
         <?php if (!empty($GLOBALS['messageSuccess'])): ?>
-            <div id="successNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
-                <div class="notification success">
-                    <div class="flex items-center">
-                        <i class="fas fa-check-circle mr-2"></i>
-                        <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+                <div id="successNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
+                    <div class="notification success">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            <p><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
+                        </div>
                     </div>
                 </div>
-            </div>
         <?php endif; ?>
 
         <?php if (!empty($GLOBALS['messageErreur'])): ?>
-            <div id="errorNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
-                <div class="notification error">
-                    <div class="flex items-center">
-                        <i class="fas fa-exclamation-circle mr-2"></i>
-                        <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+                <div id="errorNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
+                    <div class="notification error">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle mr-2"></i>
+                            <p><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
+                        </div>
                     </div>
                 </div>
-            </div>
         <?php endif; ?>
 
         <!-- Formulaire compact d'ajout/mise à jour année académique -->
@@ -117,22 +116,18 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
                     <?php echo $annee_a_modifier ? 'Modifier une année académique' : 'Ajouter une Année Académique' ?>
                 </h2>
             </div>
-
-            <form id="anneeForm" class="space-y-3" method="POST"
-                action="?page=parametres_generaux&action=annees_academiques">
-                <input type="hidden" name="csrf_token"
-                    value="<?php echo htmlspecialchars(\CheckMaster\Core\Csrf::token()); ?>">
+            
+            <form id="anneeForm" class="space-y-3" method="POST" action="?page=parametres_generaux&action=annees_academiques">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(\CheckMaster\Core\Csrf::token()); ?>">
                 <?php if ($annee_a_modifier): ?>
-                    <input type="hidden" name="id_annee_acad"
-                        value="<?= htmlspecialchars($annee_a_modifier->id_annee_acad) ?>">
+                    <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars($annee_a_modifier->id_annee_acad) ?>">
                 <?php endif; ?>
-
+                
                 <!-- Ligne: Date début et Date fin -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div class="space-y-1">
                         <label for="date_debut" class="block text-xs font-semibold text-gray-700">
-                            <i class="fas fa-play text-green-500 mr-1"></i>Date de début <span
-                                class="text-red-500">*</span>
+                            <i class="fas fa-play text-green-500 mr-1"></i>Date de début <span class="text-red-500">*</span>
                         </label>
                         <input type="date" id="date_debut" name="date_debut" required
                             value="<?= $annee_a_modifier ? date('Y-m-d', strtotime($annee_a_modifier->date_deb)) : '' ?>"
@@ -140,8 +135,7 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
                     </div>
                     <div class="space-y-1">
                         <label for="date_fin" class="block text-xs font-semibold text-gray-700">
-                            <i class="fas fa-stop text-green-500 mr-1"></i>Date de fin <span
-                                class="text-red-500">*</span>
+                            <i class="fas fa-stop text-green-500 mr-1"></i>Date de fin <span class="text-red-500">*</span>
                         </label>
                         <input type="date" id="date_fin" name="date_fin" required
                             value="<?= $annee_a_modifier ? date('Y-m-d', strtotime($annee_a_modifier->date_fin)) : '' ?>"
@@ -152,64 +146,50 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
                 <!-- Boutons d'action -->
                 <div class="flex justify-end gap-2 pt-3 border-t border-gray-200 mt-3">
                     <?php if ($annee_a_modifier): ?>
-                        <a href="?page=parametres_generaux&action=annees_academiques"
-                            class="px-4 py-1.5 border border-gray-300 text-xs font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">
-                            <i class="fas fa-times mr-1"></i>Annuler
-                        </a>
-                        <?php if (canEdit()): ?>
+                            <a href="?page=parametres_generaux&action=annees_academiques"
+                                class="px-4 py-1.5 border border-gray-300 text-xs font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">
+                                <i class="fas fa-times mr-1"></i>Annuler
+                            </a>
+                            <?php if (canEdit()): ?>
                             <button type="button" id="btnModifier" name="btn_modifier_annees_academiques"
                                 class="px-4 py-1.5 border border-transparent text-xs font-medium rounded-lg shadow-sm text-white bg-gradient hover:shadow-lg transition-all duration-200">
                                 <i class="fas fa-save mr-1"></i>Modifier
                                 <input type="hidden" name="btn_modifier_annees_academiques"
                                     id="btn_modifier_annees_academiques_hidden" value="0">
                             </button>
-                        <?php endif; ?>
+                            <?php endif; ?>
                     <?php else: ?>
-                        <button type="reset"
-                            class="px-4 py-1.5 border border-gray-300 text-xs font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">
-                            <i class="fas fa-redo mr-1"></i>Réinitialiser
-                        </button>
-                        <?php if (canCreate()): ?>
+                            <button type="reset"
+                                class="px-4 py-1.5 border border-gray-300 text-xs font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">
+                                <i class="fas fa-redo mr-1"></i>Réinitialiser
+                            </button>
+                            <?php if (canCreate()): ?>
                             <button type="submit" name="btn_add_annees_academiques"
                                 class="px-4 py-1.5 border border-transparent text-xs font-medium rounded-lg shadow-sm text-white bg-gradient hover:shadow-lg transition-all duration-200">
                                 <i class="fas fa-save mr-1"></i>Enregistrer
                             </button>
-                        <?php endif; ?>
+                            <?php endif; ?>
                     <?php endif; ?>
                 </div>
             </form>
         </div>
 
+
         <!-- Main Content -->
         <div class="bg-white shadow-card rounded-lg overflow-hidden border border-gray-200">
             <!-- Dashboard Header -->
             <div class="bg-gradient-to-r from-green-600 to-green-800 px-4 py-3">
-                <h2 class="text-lg font-bold text-gray-700">Liste des années académiques</h2>
+                <h2 class="text-lg font-bold text-white">Liste des années académiques</h2>
             </div>
 
             <!-- Action Bar for Table -->
-            <div
-                class="px-4 py-2 flex flex-col sm:flex-row justify-between items-center border-b border-gray-200 gap-2">
+            <div class="px-4 py-2 flex flex-col sm:flex-row justify-between items-center border-b border-gray-200 gap-2">
                 <div class="flex gap-2 w-full sm:w-auto">
-                    <div class="flex items-center gap-1">
-                        <label for="limitSelect" class="text-xs text-gray-600 whitespace-nowrap">
-                            <i class="fas fa-list-ol mr-1"></i>Afficher:
-                        </label>
-                        <select id="limitSelect" onchange="changeLimit(this.value)"
-                            class="px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white">
-                            <option value="5" <?php echo $limit == 5 ? 'selected' : ''; ?>>5</option>
-                            <option value="10" <?php echo $limit == 10 ? 'selected' : ''; ?>>10</option>
-                            <option value="25" <?php echo $limit == 25 ? 'selected' : ''; ?>>25</option>
-                            <option value="50" <?php echo $limit == 50 ? 'selected' : ''; ?>>50</option>
-                            <option value="100" <?php echo $limit == 100 ? 'selected' : ''; ?>>100</option>
-                        </select>
-                    </div>
                     <div class="relative flex-1 sm:flex-initial sm:w-64">
                         <form action="" method="GET" class="flex gap-2">
                             <input type="hidden" name="page" value="parametres_generaux">
                             <input type="hidden" name="action" value="annees_academiques">
-                            <input type="text" name="search" value="<?= $search ?>"
-                                placeholder="Rechercher une année..."
+                            <input type="text" name="search" value="<?= $search ?>" placeholder="Rechercher une année..."
                                 class="w-full px-3 py-1.5 pl-8 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
                             <span class="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none">
                                 <i class="fas fa-search text-gray-400 text-xs"></i>
@@ -228,50 +208,44 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
                         <i class="fas fa-file-export mr-1"></i>Exporter
                     </button>
                     <?php if (canDelete() && count($totalAnnees) > 0): ?>
-                        <button type="button" id="deleteSelectedBtn" disabled
-                            class="bg-red-500 hover:bg-red-600 text-white font-medium py-1 px-2.5 text-xs rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <i class="fas fa-trash-alt mr-1"></i>Supprimer
-                        </button>
+                    <button type="button" id="deleteSelectedBtn" disabled
+                        class="bg-red-500 hover:bg-red-600 text-white font-medium py-1 px-2.5 text-xs rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-trash-alt mr-1"></i>Supprimer
+                    </button>
                     <?php endif; ?>
                 </div>
             </div>
 
             <!-- Table with Scroll -->
-            <div class="overflow-y-auto" style="max-height: 250px;">
+            <div class="overflow-y-auto" style="max-height: 130px;">
                 <div class="overflow-x-auto">
-                    <form method="POST" action="?page=parametres_generaux&action=annees_academiques"
-                        id="formListeAnnees">
+                    <form method="POST" action="?page=parametres_generaux&action=annees_academiques" id="formListeAnnees">
                         <input type="hidden" name="submit_delete_multiple" id="submitDeleteHidden" value="0">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50 sticky top-0 z-10">
                                 <tr>
                                     <?php if (canDelete()): ?>
-                                        <th class="w-12 px-3 py-2">
-                                            <input type="checkbox" id="selectAllCheckbox"
-                                                class="rounded border-gray-300 text-green-600 focus:ring-green-500 transition-all duration-200">
-                                        </th>
+                                    <th class="w-12 px-3 py-2">
+                                        <input type="checkbox" id="selectAllCheckbox"
+                                            class="rounded border-gray-300 text-green-600 focus:ring-green-500 transition-all duration-200">
+                                    </th>
                                     <?php endif; ?>
-                                    <th
-                                        class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         <i class="fas fa-hashtag mr-1"></i>ID
                                     </th>
-                                    <th
-                                        class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         <i class="fas fa-calendar mr-1"></i>Année académique
                                     </th>
-                                    <th
-                                        class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         <i class="fas fa-play mr-1"></i>Date de début
                                     </th>
-                                    <th
-                                        class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         <i class="fas fa-stop mr-1"></i>Date de fin
                                     </th>
                                     <?php if (canEdit()): ?>
-                                        <th
-                                            class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            <i class="fas fa-cog mr-1"></i>Actions
-                                        </th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <i class="fas fa-cog mr-1"></i>Actions
+                                    </th>
                                     <?php endif; ?>
                                 </tr>
                             </thead>
@@ -280,11 +254,11 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
                                     <?php foreach ($listeAnnees as $annee): ?>
                                         <tr class="hover:bg-gray-50 transition-colors duration-200">
                                             <?php if (canDelete()): ?>
-                                                <td class="px-3 py-2">
-                                                    <input type="checkbox" name="selected_ids[]"
-                                                        value="<?= htmlspecialchars($annee->id_annee_acad) ?>"
-                                                        class="row-checkbox text-center rounded border-gray-300 text-green-600 focus:ring-green-500 transition-all duration-200">
-                                                </td>
+                                            <td class="px-3 py-2">
+                                                <input type="checkbox" name="selected_ids[]"
+                                                    value="<?= htmlspecialchars($annee->id_annee_acad) ?>"
+                                                    class="row-checkbox text-center rounded border-gray-300 text-green-600 focus:ring-green-500 transition-all duration-200">
+                                            </td>
                                             <?php endif; ?>
                                             <td class="px-4 py-2 whitespace-nowrap text-center text-sm">
                                                 <?= htmlspecialchars($annee->id_annee_acad) ?>
@@ -299,19 +273,18 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
                                                 <?= date('d/m/Y', strtotime($annee->date_fin)) ?>
                                             </td>
                                             <?php if (canEdit()): ?>
-                                                <td class="px-4 py-2 whitespace-nowrap text-center">
-                                                    <a href="?page=parametres_generaux&action=annees_academiques&id_annee_acad=<?= $annee->id_annee_acad ?>"
-                                                        class="text-blue-600 hover:text-blue-900 mr-2" title="Modifier">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                </td>
+                                            <td class="px-4 py-2 whitespace-nowrap text-center">
+                                                <a href="?page=parametres_generaux&action=annees_academiques&id_annee_acad=<?= $annee->id_annee_acad ?>"
+                                                    class="text-blue-600 hover:text-blue-900 mr-2" title="Modifier">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </td>
                                             <?php endif; ?>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="<?php echo canEdit() ? (canDelete() ? '6' : '5') : (canDelete() ? '5' : '4'); ?>"
-                                            class="px-4 py-8 text-center text-gray-500">
+                                        <td colspan="<?php echo canEdit() ? (canDelete() ? '6' : '5') : (canDelete() ? '5' : '4'); ?>" class="px-4 py-8 text-center text-gray-500">
                                             <div class="flex flex-col items-center">
                                                 <i class="fas fa-calendar-times text-gray-300 text-3xl mb-3"></i>
                                                 <p class="text-sm">Aucune année académique trouvée.</p>
@@ -325,83 +298,105 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
                 </div>
             </div>
 
-            <!-- Info text en bas avec pagination simple si nécessaire -->
+            <!-- Pagination en bas du tableau -->
             <?php if ($total_pages > 1): ?>
-                <div class="px-4 py-2 border-t border-gray-200 flex justify-between items-center text-xs text-gray-600">
-                    <div>
-                        Affichage de <?= $offset + 1 ?> à <?= min($offset + $limit, $total_items) ?> sur <?= $total_items ?>
-                        entrées
-                    </div>
-                    <div class="flex gap-1">
-                        <?php if ($page > 1): ?>
-                            <a href="?page=parametres_generaux&action=annees_academiques&p=<?= $page - 1 ?>&limit=<?= $limit ?>&search=<?= urlencode($search) ?>"
-                                class="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 text-xs">
-                                <i class="fas fa-chevron-left"></i>
-                            </a>
-                        <?php endif; ?>
-                        <span class="px-2 py-1">Page <?= $page ?> sur <?= $total_pages ?></span>
-                        <?php if ($page < $total_pages): ?>
-                            <a href="?page=parametres_generaux&action=annees_academiques&p=<?= $page + 1 ?>&limit=<?= $limit ?>&search=<?= urlencode($search) ?>"
-                                class="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 text-xs">
-                                <i class="fas fa-chevron-right"></i>
-                            </a>
-                        <?php endif; ?>
+                <div class="bg-white rounded-lg shadow-sm p-4 mt-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div class="text-sm text-gray-500">
+                            Affichage de <?= $offset + 1 ?> à <?= min($offset + $limit, $total_items) ?> sur
+                            <?= $total_items ?> entrées
+                        </div>
+                        <div class="flex flex-wrap justify-center gap-2">
+                            <?php if ($page > 1): ?>
+                                <a href="?page=parametres_generaux&action=annees_academiques&p=<?= $page - 1 ?>&search=<?= urlencode($search) ?>"
+                                    class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    <i class="fas fa-chevron-left mr-1"></i>Précédent
+                                </a>
+                            <?php endif; ?>
+
+                            <?php
+                            $start = max(1, $page - 2);
+                            $end = min($total_pages, $page + 2);
+
+                            if ($start > 1) {
+                                echo '<span class="px-3 py-2 text-gray-500">...</span>';
+                            }
+
+                            for ($i = $start; $i <= $end; $i++):
+                                ?>
+                                <a href="?page=parametres_generaux&action=annees_academiques&p=<?= $i ?>&search=<?= urlencode($search) ?>"
+                                    class="btn-hover px-3 py-2 <?= $i === $page ? 'btn-gradient-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50' ?> border border-gray-300 rounded-lg text-sm font-medium">
+                                    <?= $i ?>
+                                </a>
+                            <?php endfor;
+
+                            if ($end < $total_pages) {
+                                echo '<span class="px-3 py-2 text-gray-500">...</span>';
+                            }
+                            ?>
+
+                            <?php if ($page < $total_pages): ?>
+                                <a href="?page=parametres_generaux&action=annees_academiques&p=<?= $page + 1 ?>&search=<?= urlencode($search) ?>"
+                                    class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    Suivant<i class="fas fa-chevron-right ml-1"></i>
+                                </a>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             <?php endif; ?>
-        </div>
+        </main>
+    </div>
 
-        <!-- Modal de confirmation suppression -->
-        <div id="deleteModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                <div class="mt-3 text-center">
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                        <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Confirmer la suppression</h3>
-                    <div class="mt-2 px-7 py-3">
-                        <p class="text-sm text-gray-500">
-                            Êtes-vous sûr de vouloir supprimer les années académiques sélectionnées ? Cette action est
-                            irréversible.
-                        </p>
-                    </div>
-                    <div class="flex gap-2 px-4 py-3">
-                        <button type="button" id="cancelDelete"
-                            class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-md hover:bg-gray-300">
-                            Annuler
-                        </button>
-                        <button type="button" id="confirmDelete"
-                            class="flex-1 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700">
-                            Supprimer
-                        </button>
-                    </div>
+    <!-- Modale de confirmation de suppression -->
+    <div id="deleteModal"
+        class="fixed inset-0 flex items-center justify-center z-50 hidden animate__animated animate__fadeIn">
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4 animate__animated animate__zoomIn">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Confirmation de suppression</h3>
+                <p class="text-sm text-gray-500 mb-6">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Êtes-vous sûr de vouloir supprimer les années académiques sélectionnées ?
+                </p>
+                <div class="flex justify-center gap-4">
+                    <button type="button" id="confirmDelete"
+                        class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200">
+                        <i class="fas fa-check mr-2"></i>Confirmer
+                    </button>
+                    <button type="button" id="cancelDelete"
+                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200">
+                        <i class="fas fa-times mr-2"></i>Annuler
+                    </button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Modal de confirmation modification -->
-        <div id="modifyModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                <div class="mt-3 text-center">
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
-                        <i class="fas fa-question-circle text-blue-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Confirmer la modification</h3>
-                    <div class="mt-2 px-7 py-3">
-                        <p class="text-sm text-gray-500">
-                            Êtes-vous sûr de vouloir modifier cette année académique ?
-                        </p>
-                    </div>
-                    <div class="flex gap-2 px-4 py-3">
-                        <button type="button" id="cancelModify"
-                            class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-md hover:bg-gray-300">
-                            Annuler
-                        </button>
-                        <button type="button" id="confirmModify"
-                            class="flex-1 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
-                            Confirmer
-                        </button>
-                    </div>
+    <!-- Modale de confirmation de modification -->
+    <div id="modifyModal"
+        class="fixed inset-0 flex items-center justify-center z-50 hidden animate__animated animate__fadeIn">
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4 animate__animated animate__zoomIn">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                    <i class="fas fa-edit text-blue-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Confirmation de modification</h3>
+                <p class="text-sm text-gray-500 mb-6">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Êtes-vous sûr de vouloir modifier cette année académique ?
+                </p>
+                <div class="flex justify-center gap-4">
+                    <button type="button" id="confirmModify"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                        <i class="fas fa-check mr-2"></i>Confirmer
+                    </button>
+                    <button type="button" id="cancelModify"
+                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200">
+                        <i class="fas fa-times mr-2"></i>Annuler
+                    </button>
                 </div>
             </div>
         </div>
@@ -424,46 +419,47 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
         const submitModifierHidden = document.getElementById('btn_modifier_annees_academiques_hidden');
 
         // Initialisation
-        if (selectAllCheckbox && deleteButton) {
+        updateDeleteButtonState();
+
+        // Select all checkboxes
+        selectAllCheckbox.addEventListener('change', function () {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = this.checked);
             updateDeleteButtonState();
+        });
 
-            // Select all checkboxes
-            selectAllCheckbox.addEventListener('change', function () {
-                const checkboxes = document.querySelectorAll('.row-checkbox');
-                checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+        // Update delete button state
+        function updateDeleteButtonState() {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            deleteButton.disabled = checkedBoxes.length === 0;
+        }
+
+        // Checkbox change events
+        document.addEventListener('change', function (e) {
+            if (e.target.classList.contains('row-checkbox')) {
                 updateDeleteButtonState();
-            });
+                const allCheckboxes = document.querySelectorAll('.row-checkbox');
+                const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+                selectAllCheckbox.checked = checkedBoxes.length === allCheckboxes.length && allCheckboxes.length >
+                    0;
+            }
+        });
 
-            // Checkbox change events
-            document.addEventListener('change', function (e) {
-                if (e.target.classList.contains('row-checkbox')) {
-                    updateDeleteButtonState();
-                    const allCheckboxes = document.querySelectorAll('.row-checkbox');
-                    const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-                    selectAllCheckbox.checked = checkedBoxes.length === allCheckboxes.length && allCheckboxes.length > 0;
-                }
-            });
+        // Delete modal
+        deleteButton.addEventListener('click', function () {
+            if (!this.disabled) {
+                deleteModal.classList.remove('hidden');
+            }
+        });
 
-            // Delete modal
-            deleteButton.addEventListener('click', function () {
-                if (!this.disabled) {
-                    deleteModal.classList.remove('hidden');
-                }
-            });
-        }
+        confirmDelete.addEventListener('click', function () {
+            submitDeleteHidden.value = '1';
+            formListeAnnees.submit();
+        });
 
-        if (confirmDelete) {
-            confirmDelete.addEventListener('click', function () {
-                submitDeleteHidden.value = '1';
-                formListeAnnees.submit();
-            });
-        }
-
-        if (cancelDelete) {
-            cancelDelete.addEventListener('click', function () {
-                deleteModal.classList.add('hidden');
-            });
-        }
+        cancelDelete.addEventListener('click', function () {
+            deleteModal.classList.add('hidden');
+        });
 
         // Modify modal
         if (btnModifier) {
@@ -472,26 +468,14 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
             });
         }
 
-        if (confirmModify) {
-            confirmModify.addEventListener('click', function () {
-                submitModifierHidden.value = '1';
-                anneeForm.submit();
-            });
-        }
+        confirmModify.addEventListener('click', function () {
+            submitModifierHidden.value = '1';
+            anneeForm.submit();
+        });
 
-        if (cancelModify) {
-            cancelModify.addEventListener('click', function () {
-                modifyModal.classList.add('hidden');
-            });
-        }
-
-        // Update delete button state
-        function updateDeleteButtonState() {
-            if (deleteButton) {
-                const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-                deleteButton.disabled = checkedBoxes.length === 0;
-            }
-        }
+        cancelModify.addEventListener('click', function () {
+            modifyModal.classList.add('hidden');
+        });
 
         // Fonction pour exporter en Excel
         function exportToExcel() {
@@ -504,17 +488,15 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
             // Ajouter les en-têtes
             const headers = Array.from(rows[0].querySelectorAll('th'))
                 .map(header => header.textContent.trim())
-                .filter(header => header !== '');
+                .filter(header => header !== ''); // Exclure la colonne des checkboxes
             csvContent += headers.join(',') + '\n';
 
             // Ajouter les données
             rows.slice(1).forEach(row => {
                 const cells = Array.from(row.querySelectorAll('td'))
-                    .slice(1, -1)
+                    .slice(1, -1) // Exclure la colonne des checkboxes et des actions
                     .map(cell => `"${cell.textContent.trim()}"`);
-                if (cells.length > 0) {
-                    csvContent += cells.join(',') + '\n';
-                }
+                csvContent += cells.join(',') + '\n';
             });
 
             // Créer le lien de téléchargement
@@ -527,20 +509,29 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
             document.body.removeChild(link);
         }
 
+
         // Fonction pour imprimer
         function printTable() {
             const table = document.querySelector('table');
             const printWindow = window.open('', '_blank');
+
+            // Créer une copie de la table pour la modification
             const tableClone = table.cloneNode(true);
 
             // Supprimer les colonnes ID, Actions et Checkboxes
             const rows = tableClone.querySelectorAll('tr');
             rows.forEach(row => {
+                // Supprimer la colonne des checkboxes (première colonne)
                 const checkboxCell = row.querySelector('th:first-child, td:first-child');
-                if (checkboxCell && checkboxCell.querySelector('input[type="checkbox"]')) checkboxCell.remove();
+                if (checkboxCell) checkboxCell.remove();
 
+                // Supprimer la colonne ID (maintenant première colonne)
+                const idCell = row.querySelector('th:first-child, td:first-child');
+                if (idCell) idCell.remove();
+
+                // Supprimer la colonne Actions (dernière colonne)
                 const actionCell = row.querySelector('th:last-child, td:last-child');
-                if (actionCell && actionCell.textContent.includes('Actions')) actionCell.remove();
+                if (actionCell) actionCell.remove();
             });
 
             printWindow.document.write(`
@@ -549,15 +540,15 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
                     <title>Liste des années académiques</title>
                     <style>
                         table { width: 100%; border-collapse: collapse; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-                        th { background-color: #22c55e; color: white; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f5f5f5; }
                         @media print {
                             body { margin: 0; padding: 15px; }
                         }
                     </style>
                 </head>
                 <body>
-                    <h2 style="text-align: center;">Liste des années académiques</h2>
+                    <h2>Liste des années académiques</h2>
                     ${tableClone.outerHTML}
                 </body>
             </html>
@@ -569,13 +560,6 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
             printWindow.close();
         }
 
-        // Fonction pour changer le nombre d'entrées affichées
-        function changeLimit(newLimit) {
-            const urlParams = new URLSearchParams(window.location.search);
-            urlParams.set('limit', newLimit);
-            urlParams.set('p', '1'); // Retour à la première page
-            window.location.search = urlParams.toString();
-        }
 
         // Gestion des notifications
         document.addEventListener('DOMContentLoaded', function () {
@@ -584,7 +568,8 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
 
             if (successNotification) {
                 setTimeout(() => {
-                    successNotification.style.animation = 'slideIn 0.5s ease-out reverse';
+                    successNotification.classList.remove('animate__fadeIn');
+                    successNotification.classList.add('animate__fadeOut');
                     setTimeout(() => {
                         successNotification.remove();
                     }, 500);
@@ -593,7 +578,8 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
 
             if (errorNotification) {
                 setTimeout(() => {
-                    errorNotification.style.animation = 'slideIn 0.5s ease-out reverse';
+                    errorNotification.classList.remove('animate__fadeIn');
+                    errorNotification.classList.add('animate__fadeOut');
                     setTimeout(() => {
                         errorNotification.remove();
                     }, 500);

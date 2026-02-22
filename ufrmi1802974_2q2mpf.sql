@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : mer. 18 fév. 2026 à 21:09
+-- Généré le : dim. 22 fév. 2026 à 00:03
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.3.6
 
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS `annee_academique` (
     `date_deb` date NOT NULL,
     `date_fin` date NOT NULL,
     PRIMARY KEY (`id_annee_acad`)
-) ENGINE = InnoDB AUTO_INCREMENT = 22525 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 22626 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `annee_academique`
@@ -95,9 +95,119 @@ VALUES (
         '2002-07-31'
     ),
     (
+        20302,
+        '2002-09-01',
+        '2003-07-31'
+    ),
+    (
+        20403,
+        '2003-09-01',
+        '2004-07-31'
+    ),
+    (
+        20504,
+        '2004-09-01',
+        '2005-07-31'
+    ),
+    (
+        20605,
+        '2005-09-01',
+        '2006-07-31'
+    ),
+    (
+        20706,
+        '2006-09-01',
+        '2007-07-31'
+    ),
+    (
+        20807,
+        '2007-09-01',
+        '2008-07-31'
+    ),
+    (
+        20908,
+        '2008-09-01',
+        '2009-07-31'
+    ),
+    (
+        21009,
+        '2009-09-01',
+        '2010-07-31'
+    ),
+    (
+        21110,
+        '2010-09-01',
+        '2011-07-31'
+    ),
+    (
+        21211,
+        '2011-09-01',
+        '2012-07-31'
+    ),
+    (
+        21312,
+        '2012-09-01',
+        '2013-07-31'
+    ),
+    (
+        21413,
+        '2013-09-01',
+        '2014-07-31'
+    ),
+    (
+        21514,
+        '2014-09-01',
+        '2015-07-31'
+    ),
+    (
+        21615,
+        '2015-09-01',
+        '2016-07-31'
+    ),
+    (
+        21716,
+        '2016-09-01',
+        '2017-07-31'
+    ),
+    (
+        21817,
+        '2017-09-01',
+        '2018-07-31'
+    ),
+    (
+        21918,
+        '2018-09-01',
+        '2019-07-31'
+    ),
+    (
+        22019,
+        '2019-09-01',
+        '2020-07-31'
+    ),
+    (
+        22120,
+        '2020-09-01',
+        '2021-07-31'
+    ),
+    (
+        22322,
+        '2022-09-01',
+        '2023-07-31'
+    ),
+    (
+        22423,
+        '2023-09-01',
+        '2024-07-31'
+    ),
+    (
         22524,
         '2024-09-01',
         '2025-07-31'
+    ),
+    (
+        22625,
+        '2025-09-01',
+        '2026-07-31'
     );
 
 -- --------------------------------------------------------
@@ -234,7 +344,7 @@ CREATE TABLE IF NOT EXISTS `categories_fonctionnalites` (
     `date_creation` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id_categorie`),
     UNIQUE KEY `code_categorie` (`code_categorie`)
-) ENGINE = InnoDB AUTO_INCREMENT = 25 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 26 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `categories_fonctionnalites`
@@ -287,7 +397,7 @@ VALUES (
         'Administration plateforme',
         'Administration, paramètres, utilisateurs, audit, sauvegardes',
         'fas fa-tools',
-        5,
+        6,
         1,
         '2026-01-24 21:20:25'
     ),
@@ -310,6 +420,16 @@ VALUES (
         6,
         1,
         '2026-02-11 15:04:46'
+    ),
+    (
+        25,
+        'ENV_ENSEIGNANT',
+        'Espace Enseignant',
+        'Ce menu fait reference à l\'environnement enseignant',
+        'fa-solid fa-person-chalkboard',
+        5,
+        1,
+        '2026-02-20 22:42:53'
     );
 
 -- --------------------------------------------------------
@@ -2404,7 +2524,7 @@ CREATE TABLE IF NOT EXISTS `fonctionnalites` (
     PRIMARY KEY (`id_fonctionnalite`),
     UNIQUE KEY `code_fonctionnalite` (`code_fonctionnalite`),
     KEY `id_categorie` (`id_categorie`)
-) ENGINE = InnoDB AUTO_INCREMENT = 116 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 117 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `fonctionnalites`
@@ -2863,13 +2983,13 @@ VALUES (
     ),
     (
         73,
-        15,
+        25,
         'COM_ESPACES',
         'Espaces',
         'Espaces',
-        NULL,
+        '',
         '#',
-        'fas fa-chalkboard-teacher',
+        'fa-solid fa-chalkboard-user',
         50,
         0,
         NULL,
@@ -3228,7 +3348,7 @@ VALUES (
         'redaction du CR',
         'redaction du CR',
         '',
-        '?=redaction_compte_rendu',
+        '?page=redaction_compte_rendu',
         'fa-solid fa-file-pen',
         3,
         0,
@@ -3243,7 +3363,7 @@ VALUES (
         'Composition de jury',
         'Composition de jury',
         '',
-        '?=programmation_soutenance',
+        '?page=programmation_soutenance',
         'fa-solid fa-users-line',
         1,
         0,
@@ -3273,7 +3393,7 @@ VALUES (
         'Edition des bulletins',
         'Edition des bulletins',
         '',
-        '?=edition_bulletin',
+        '?page=edition_bulletin',
         'fa-solid fa-file-circle-check',
         3,
         0,
@@ -3325,6 +3445,21 @@ VALUES (
         'ADM_REFERENTIEL',
         1,
         '2026-02-11 15:02:57'
+    ),
+    (
+        116,
+        25,
+        'ENS_DASHBOARD',
+        'Tableau de bord enseignant',
+        'Tableau de bord enseignant',
+        '',
+        '?page=tableau_bord_enseignant',
+        'fa-solid fa-gauge-high',
+        1,
+        0,
+        NULL,
+        1,
+        '2026-02-20 22:44:42'
     );
 
 -- --------------------------------------------------------
@@ -3459,17 +3594,98 @@ DROP TABLE IF EXISTS `inscriptions`;
 CREATE TABLE IF NOT EXISTS `inscriptions` (
     `id_inscription` int NOT NULL AUTO_INCREMENT,
     `id_annee_acad` int NOT NULL,
+    `date_inscription` datetime DEFAULT NULL,
+    `statut_inscription` varchar(50) DEFAULT 'En cours',
+    `nombre_tranche` int DEFAULT '1',
+    `montant_paye` decimal(10, 2) DEFAULT '0.00',
+    `reste_a_payer` decimal(10, 2) DEFAULT '0.00',
     `id_etudiant` varchar(25) DEFAULT NULL,
-    `num_versement` int NOT NULL,
-    `date_versement` datetime DEFAULT NULL,
-    `montant_verser` int NOT NULL,
-    `id_mode_paiement` int NOT NULL,
-    `num_piece_mp` int NOT NULL,
-    `solde` decimal(10, 2) NOT NULL,
+    `id_niveau` int DEFAULT NULL,
+    `num_versement` int DEFAULT '1',
+    `date_versement` datetime DEFAULT CURRENT_TIMESTAMP,
+    `montant_verser` decimal(10, 2) DEFAULT '0.00',
+    `methode_paiement` varchar(50) DEFAULT NULL,
+    `num_piece_mp` varchar(100) DEFAULT NULL,
+    `solde` decimal(10, 2) DEFAULT '0.00',
     PRIMARY KEY (`id_inscription`),
     KEY `id_etudiant` (`id_etudiant`),
-    KEY `id_annee_acad` (`id_annee_acad`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+    KEY `id_annee_acad` (`id_annee_acad`),
+    KEY `inscriptions_ibfk_niveau` (`id_niveau`)
+) ENGINE = InnoDB AUTO_INCREMENT = 4 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `inscriptions`
+--
+
+INSERT INTO
+    `inscriptions` (
+        `id_inscription`,
+        `id_annee_acad`,
+        `date_inscription`,
+        `statut_inscription`,
+        `nombre_tranche`,
+        `montant_paye`,
+        `reste_a_payer`,
+        `id_etudiant`,
+        `id_niveau`,
+        `num_versement`,
+        `date_versement`,
+        `montant_verser`,
+        `methode_paiement`,
+        `num_piece_mp`,
+        `solde`
+    )
+VALUES (
+        1,
+        22524,
+        '2026-02-19 02:25:02',
+        'En cours',
+        1,
+        300000.00,
+        675000.00,
+        'CI0111272399',
+        2,
+        1,
+        '2026-02-19 02:25:02',
+        300000.00,
+        'Espèce',
+        'TEST-001',
+        675000.00
+    ),
+    (
+        2,
+        22524,
+        '2026-02-19 02:25:02',
+        'En cours',
+        1,
+        500000.00,
+        475000.00,
+        'CI0111272399',
+        2,
+        2,
+        '2026-02-19 02:25:02',
+        200000.00,
+        'Virement',
+        'VIREMENT-002',
+        475000.00
+    ),
+    (
+        3,
+        22625,
+        '2026-02-20 17:36:16',
+        'En cours',
+        1,
+        450000.00,
+        575000.00,
+        'CI0115303004',
+        2,
+        1,
+        '2026-02-20 17:36:16',
+        450000.00,
+        'Espèce',
+        '',
+        575000.00
+    );
 
 -- --------------------------------------------------------
 
@@ -3681,7 +3897,7 @@ CREATE TABLE IF NOT EXISTS `password_resets` (
     UNIQUE KEY `token` (`token`),
     KEY `email` (`email`),
     KEY `expires_at` (`expires_at`)
-) ENGINE = InnoDB AUTO_INCREMENT = 9 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 10 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `password_resets`
@@ -3759,6 +3975,14 @@ VALUES (
         '2026-02-12 17:54:17',
         1,
         '2026-02-12 16:54:17'
+    ),
+    (
+        9,
+        'medardwah@gmail.com',
+        '24c352b463d5f48544e22852cfe51be181dfb1a87300dcebb2e7ab37dd64719d',
+        '2026-02-20 23:11:52',
+        0,
+        '2026-02-20 22:11:52'
     );
 
 -- --------------------------------------------------------
@@ -3795,7 +4019,7 @@ CREATE TABLE IF NOT EXISTS `permissions` (
     PRIMARY KEY (`id_permission`),
     UNIQUE KEY `unique_permission` (`id_GU`, `id_fonctionnalite`),
     KEY `id_fonctionnalite` (`id_fonctionnalite`)
-) ENGINE = InnoDB AUTO_INCREMENT = 1765 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 1804 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `permissions`
@@ -3813,386 +4037,6 @@ INSERT INTO
         `date_attribution`
     )
 VALUES (
-        1718,
-        5,
-        93,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1719,
-        5,
-        94,
-        1,
-        0,
-        0,
-        0,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1720,
-        5,
-        95,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1721,
-        5,
-        96,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1722,
-        5,
-        97,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1723,
-        5,
-        98,
-        1,
-        0,
-        0,
-        0,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1724,
-        5,
-        99,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1725,
-        5,
-        100,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1726,
-        5,
-        101,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1727,
-        5,
-        91,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1728,
-        5,
-        102,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1729,
-        5,
-        103,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1730,
-        5,
-        104,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1731,
-        5,
-        105,
-        1,
-        0,
-        0,
-        0,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1732,
-        5,
-        106,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1733,
-        5,
-        107,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1734,
-        5,
-        108,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1735,
-        5,
-        109,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1736,
-        5,
-        73,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1737,
-        5,
-        2,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1738,
-        5,
-        110,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1739,
-        5,
-        111,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1740,
-        5,
-        112,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1741,
-        5,
-        74,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1742,
-        5,
-        113,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1743,
-        5,
-        75,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1744,
-        5,
-        30,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1745,
-        5,
-        81,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1746,
-        5,
-        76,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1747,
-        5,
-        50,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1748,
-        5,
-        51,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1749,
-        5,
-        52,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1750,
-        5,
-        55,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1751,
-        5,
-        78,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1752,
-        5,
-        114,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1753,
-        5,
-        115,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1754,
-        5,
-        79,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-11 15:07:14'
-    ),
-    (
-        1755,
-        5,
-        38,
-        1,
-        0,
-        1,
-        0,
-        '2026-02-11 15:07:14'
-    ),
-    (
         1760,
         13,
         101,
@@ -4241,6 +4085,396 @@ VALUES (
         1,
         1,
         '2026-02-12 17:11:49'
+    ),
+    (
+        1765,
+        5,
+        93,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1766,
+        5,
+        94,
+        1,
+        0,
+        0,
+        0,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1767,
+        5,
+        95,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1768,
+        5,
+        96,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1769,
+        5,
+        97,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1770,
+        5,
+        98,
+        1,
+        0,
+        0,
+        0,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1771,
+        5,
+        99,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1772,
+        5,
+        100,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1773,
+        5,
+        101,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1774,
+        5,
+        91,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1775,
+        5,
+        102,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1776,
+        5,
+        103,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1777,
+        5,
+        104,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1778,
+        5,
+        105,
+        1,
+        0,
+        0,
+        0,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1779,
+        5,
+        106,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1780,
+        5,
+        107,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1781,
+        5,
+        108,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1782,
+        5,
+        109,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1783,
+        5,
+        73,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1784,
+        5,
+        2,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1785,
+        5,
+        110,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1786,
+        5,
+        111,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1787,
+        5,
+        112,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1788,
+        5,
+        116,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1789,
+        5,
+        74,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1790,
+        5,
+        113,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1791,
+        5,
+        75,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1792,
+        5,
+        30,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1793,
+        5,
+        81,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1794,
+        5,
+        76,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1795,
+        5,
+        50,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1796,
+        5,
+        51,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1797,
+        5,
+        52,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1798,
+        5,
+        55,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1799,
+        5,
+        78,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1800,
+        5,
+        114,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1801,
+        5,
+        115,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1802,
+        5,
+        79,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-20 22:45:12'
+    ),
+    (
+        1803,
+        5,
+        38,
+        1,
+        0,
+        1,
+        0,
+        '2026-02-20 22:45:12'
     );
 
 -- --------------------------------------------------------
@@ -4285,7 +4519,7 @@ CREATE TABLE IF NOT EXISTS `pister` (
     KEY `idx_utilisateur_action` (`id_utilisateur`, `action`),
     KEY `id_action` (`action`),
     KEY `id_action_2` (`action`)
-) ENGINE = InnoDB AUTO_INCREMENT = 59 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 69 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `pister`
@@ -4763,6 +4997,86 @@ VALUES (
         'Succès',
         'etudiants',
         '2026-02-13 14:14:38'
+    ),
+    (
+        59,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-02-18 23:59:03'
+    ),
+    (
+        60,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-19 00:02:27'
+    ),
+    (
+        61,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-02-19 16:28:56'
+    ),
+    (
+        62,
+        5,
+        'Création',
+        'Succès',
+        'annee_academique',
+        '2026-02-20 16:48:15'
+    ),
+    (
+        63,
+        5,
+        'Création',
+        'Succès',
+        'annee_academique',
+        '2026-02-20 16:48:42'
+    ),
+    (
+        64,
+        5,
+        'Création',
+        'Succès',
+        'annee_academique',
+        '2026-02-20 16:49:10'
+    ),
+    (
+        65,
+        5,
+        'Création',
+        'Erreur',
+        'annee_academique',
+        '2026-02-20 16:54:42'
+    ),
+    (
+        66,
+        5,
+        'Création',
+        'Succès',
+        'inscriptions',
+        '2026-02-20 17:36:17'
+    ),
+    (
+        67,
+        5,
+        'Création',
+        'Succès',
+        'utilisateur',
+        '2026-02-20 22:11:57'
+    ),
+    (
+        68,
+        5,
+        'Modification',
+        'Succès',
+        'permissions',
+        '2026-02-20 22:45:12'
     );
 
 -- --------------------------------------------------------
@@ -5583,7 +5897,7 @@ CREATE TABLE IF NOT EXISTS `utilisateur` (
     KEY `id_groupe_utilisateur` (`id_GU`),
     KEY `id_niv_acces_donnee` (`id_niv_acces_donnee`),
     KEY `id_type_utilisateur` (`id_type_utilisateur`)
-) ENGINE = InnoDB AUTO_INCREMENT = 111 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 112 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `utilisateur`
@@ -5619,6 +5933,16 @@ VALUES (
         'Actif',
         'iadjoannejemima',
         '$2y$10$sMUplz7tHt5H9gdz92Qjluy3IKTGbnCheSpETELcxLD3PB2thRGxO'
+    ),
+    (
+        111,
+        'WAH MEDARD',
+        5,
+        5,
+        5,
+        'Actif',
+        'wmedard',
+        '$2y$10$CnRWG58zZNSJjjBgxxMcGeCpFuUpqaz89EGiQKaCWAJJ6amGzGGKK'
     );
 
 -- --------------------------------------------------------
@@ -5776,7 +6100,8 @@ ADD CONSTRAINT `informations_stage_ibfk_3` FOREIGN KEY (`num_etu`) REFERENCES `e
 --
 ALTER TABLE `inscriptions`
 ADD CONSTRAINT `inscriptions_ibfk_3` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE CASCADE ON UPDATE CASCADE,
-ADD CONSTRAINT `inscriptions_ibfk_4` FOREIGN KEY (`id_etudiant`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE;
+ADD CONSTRAINT `inscriptions_ibfk_4` FOREIGN KEY (`id_etudiant`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
+ADD CONSTRAINT `inscriptions_ibfk_niveau` FOREIGN KEY (`id_niveau`) REFERENCES `niveau_etude` (`id_niv_etude`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `notes`

@@ -963,8 +963,8 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                             <img src="${logoUfhbBase64}" alt="Logo UFHB" style="max-height:70px; height:auto;">
                         </td>
                         <td style="width:70%; text-align:center; vertical-align:middle;">
-                            <div style="font-size:11pt; font-weight:bold; letter-spacing:0.5px;">REPUBLIQUE DE COTE D'IVOIRE</div>
-                            <div style="font-size:10pt; font-style:italic;">Ministère de l'Enseignement Supérieur<br>et de la Recherche Scientifique</div>
+                            <div style="font-size:11pt; font-weight:bold; letter-spacing:0.5px;">Procès-Verbal de séance de validation de thèmes</div>
+                            <!--<div style="font-size:10pt; font-style:italic;">Ministère de l'Enseignement Supérieur et<br> de la Recherche Scientifique</div>-->
                         </td>
                         <td style="width:15%; text-align:right; vertical-align:middle;">
                             <img src="${logoMiBase64}" alt="Logo UFR MI" style="max-height:70px; height:auto;">
@@ -975,17 +975,17 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
                 <hr style="border: 1px solid #C4A000; margin: 10px 0;">
 
                 <!-- Titre encadré -->
-                <div style="text-align:center; margin:20px 0;">
+                <!--<div style="text-align:center; margin:20px 0;">
                     <div style="border:2px solid #C4A000; padding:8px 20px; display:inline-block;">
                         <p style="margin:0; text-indent:0; font-size:14pt; font-weight:bold; text-decoration:underline;">Procès-Verbal de séance de validation de thèmes</p>
                         <p style="margin:5px 0 0 0; text-indent:0; font-size:12pt; font-weight:bold; text-decoration:underline;">[DATE]</p>
                     </div>
-                </div>
+                </div>-->
 
                 <!-- Corps du document -->
-                <p>Dans le bureau du Prof KOUA Brou à l'UFR MI, le [DATE] s'est tenue de 11 h 00 à 12 h 30 une séance de validation de thèmes de soutenance des étudiants en fin de cycle de la filière MIAGE-GI.</p>
+                <p>Lieu de réunion : [], le [DATE] s'est tenue de 11 h 00 à 12 h 30 une séance de validation de thèmes de soutenance des étudiants en fin de cycle de la filière MIAGE-GI.</p>
                 
-                <p>La réunion était animée par Prof KOUA Brou le responsable de ladite filière. Etaient présents Prof. KOUA Brou, Dr MAMADOU Diarra, M. WAH Médard et M. BROU Patrice. Les membres de la commission de validation ont examiné [N] dossiers.</p>
+                <p>La réunion était animée par Prof KOUA Brou le responsable de ladite filière. Etaient présents Participans : []. Les membres de la commission de validation ont examiné [N] dossiers.</p>
                 
                 <p class="no-indent">L'ordre du jour débattu est le suivant :</p>
                 <ul>
@@ -1345,8 +1345,8 @@ if (file_exists($logoMiPath) && is_readable($logoMiPath)) {
         function showNotification(message, type) {
             const notification = document.createElement('div');
             notification.className = `fixed top-4 right-4 px-4 py-2 rounded-md text-white text-sm font-medium z-50 ${type === 'success' ? 'bg-green-600' :
-                    type === 'error' ? 'bg-red-600' :
-                        type === 'info' ? 'bg-blue-600' : 'bg-gray-600'
+                type === 'error' ? 'bg-red-600' :
+                    type === 'info' ? 'bg-blue-600' : 'bg-gray-600'
                 }`;
             notification.innerHTML = `
                 <div class="flex items-center">

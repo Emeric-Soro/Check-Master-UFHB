@@ -72,7 +72,10 @@ class GestionEtudiantController
     {
         try {
             $currentPage = isset($_GET['p']) ? (int) $_GET['p'] : 1;
-            $itemsPerPage = 10;
+            $itemsPerPage = isset($_GET['limit']) ? (int) $_GET['limit'] : 2;
+            if (!in_array($itemsPerPage, [2, 5, 10, 25, 50, 100])) {
+                $itemsPerPage = 2; // Valeur par défaut si invalide
+            }
             $etudiant_a_modifier = null;
             $modalAction = '';
             $searchTerm = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -205,7 +208,7 @@ class GestionEtudiantController
                     $promotion_etu = !empty($_POST['promotion_etu']) ? $_POST['promotion_etu'] : null;
                     $id_niveau = !empty($_POST['id_niveau']) ? (int) $_POST['id_niveau'] : null;
                     $id_annee_acad = !empty($_POST['id_annee_acad']) ? (int) $_POST['id_annee_acad'] : null;
-                    $identifiant_mesrs = !empty($_POST['identifiant_mesrs']) ? trim($_POST['identifiant_mesrs']) : null;
+                    $identifiant_mesrs = !empty($_POST['num_ident_etud']) ? trim($_POST['num_ident_etud']) : null;
 
                     // Validation de l'email
                     if (!filter_var($email_etu, FILTER_VALIDATE_EMAIL)) {
