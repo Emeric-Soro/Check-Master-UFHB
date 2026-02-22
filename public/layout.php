@@ -15,6 +15,10 @@ include __DIR__ . '/../app/controllers/AuthController.php';
 include __DIR__ . '/../app/controllers/MenuController.php';
 include __DIR__ . '/../app/middlewares/PermissionMiddleware.php';
 include __DIR__ . '/../app/utils/permissions_helper.php';
+include_once __DIR__ . '/../app/utils/ComponentHelper.php';
+include_once __DIR__ . '/../app/utils/FormHelper.php';
+include_once __DIR__ . '/../app/utils/TableHelper.php';
+include_once __DIR__ . '/../app/utils/PaginationHelper.php';
 
 use CheckMaster\Security\RoutePermissionService;
 
@@ -604,6 +608,14 @@ if (!isset($_SESSION['id_utilisateur'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CheckMaster | <?php echo htmlspecialchars($currentPageLabel); ?></title>
     <link rel="stylesheet" href="css/output.css">
+    <link rel="stylesheet"
+        href="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('css/checkmaster-theme.css') : 'assets/css/checkmaster-theme.css', ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="stylesheet"
+        href="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('css/components.css') : 'assets/css/components.css', ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="stylesheet"
+        href="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('css/utilities.css') : 'assets/css/utilities.css', ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="stylesheet"
+        href="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('css/responsive.css') : 'assets/css/responsive.css', ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="shortcut icon" href="image/logo_cm_sbg.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -712,7 +724,9 @@ if (!isset($_SESSION['id_utilisateur'])) {
                     </div>
                 </div>
             </div>
-            <main class="flex-1 p-6 overflow-y-auto">
+            <main id="cmLayoutMain"
+                  class="cm-layout-main flex-1 p-6 flex flex-col overflow-hidden min-h-0 bg-[#DFF2FF]"
+                  data-page="<?php echo htmlspecialchars((string) $currentMenuSlug, ENT_QUOTES, 'UTF-8'); ?>">
                 <?php
                 if (!empty($contentFile) && file_exists($contentFile)) {
                     include $contentFile;
@@ -744,6 +758,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
             }
         });
     </script>
+    <script defer
+        src="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('js/app.js') : 'assets/js/app.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="./js/suivi_reclamation.js"></script>
     <script src="./js/historique_reclamation.js"></script>
 </body>
