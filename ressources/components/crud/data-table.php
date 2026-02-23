@@ -35,8 +35,13 @@ if (empty($columns) && !empty($headers)) {
                 <?php
                 $label = (string) ($column['label'] ?? '');
                 $align = (string) ($column['align'] ?? 'left');
+                $colClass = (string) ($column['class'] ?? '');
+                $thClass = 'cm-data-table__th is-' . htmlspecialchars($align, ENT_QUOTES, 'UTF-8');
+                if ($colClass) {
+                    $thClass .= ' ' . htmlspecialchars($colClass, ENT_QUOTES, 'UTF-8');
+                }
                 ?>
-                <th class="cm-data-table__th is-<?= htmlspecialchars($align, ENT_QUOTES, 'UTF-8') ?>">
+                <th class="<?= $thClass ?>">
                     <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
                 </th>
                 <?php endforeach; ?>
@@ -72,6 +77,7 @@ if (empty($columns) && !empty($headers)) {
                     <?php
                     $key = (string) ($column['key'] ?? '');
                     $align = (string) ($column['align'] ?? 'left');
+                    $colClass = (string) ($column['class'] ?? '');
                     $type = (string) ($column['type'] ?? 'text');
                     $format = $column['format'] ?? null;
                     $value = $rowData[$key] ?? '';
@@ -84,8 +90,12 @@ if (empty($columns) && !empty($headers)) {
                     } else {
                         $rendered = (string) $value;
                     }
+                    $tdClass = 'cm-data-table__td is-' . htmlspecialchars($align, ENT_QUOTES, 'UTF-8');
+                    if ($colClass) {
+                        $tdClass .= ' ' . htmlspecialchars($colClass, ENT_QUOTES, 'UTF-8');
+                    }
                     ?>
-                    <td class="cm-data-table__td is-<?= htmlspecialchars($align, ENT_QUOTES, 'UTF-8') ?>">
+                    <td class="<?= $tdClass ?>">
                         <?php if ($type === 'badge'): ?>
                             <?php
                             $badgeType = is_array($value) ? (string) ($value['type'] ?? 'info') : 'info';

@@ -13,7 +13,6 @@ function h(string $s): string
 
 function js(string $s): string
 {
-    // JSON string literal safe for HTML attributes
     return htmlspecialchars(json_encode($s, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
 }
 
@@ -23,294 +22,335 @@ function isChecked($v): string
 }
 ?>
 
-<div class="container mx-auto px-4 py-8">
-    <div class="flex items-start justify-between gap-4 mb-6">
-        <div>
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
-                <i class="fas fa-sitemap mr-3 text-emerald-600"></i>
-                Gestion des menus
-            </h1>
-            <p class="text-gray-600 mt-2">Créer / modifier / désactiver les menus, sous-menus et écrans (tables
-                <code>categories_fonctionnalites</code> / <code>fonctionnalites</code>).</p>
-        </div>
-    </div>
-
+<section class="cm-prd3-crud-screen cm-prd6-admin-screen cm-screen-scrollable">
     <?php if ($messageSuccess): ?>
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800">
-            <i class="fas fa-check-circle mr-2"></i><?= h($messageSuccess) ?>
-        </div>
+        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => $messageSuccess]); ?>
     <?php endif; ?>
     <?php if ($messageErreur): ?>
-        <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800">
-            <i class="fas fa-exclamation-circle mr-2"></i><?= h($messageErreur) ?>
-        </div>
+        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $messageErreur]); ?>
     <?php endif; ?>
 
-    <!-- Layout vertical: formulaire puis liste en dessous -->
-    <div class="grid grid-cols-1 gap-6">
-        <!-- Création / Ajout -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-                <div class="font-semibold text-gray-800">
-                    <i class="fas fa-plus-circle text-emerald-600 mr-2"></i>
-                    Ajouter
-                </div>
-                <?php if (!$isEditable): ?>
-                    <span class="text-xs font-semibold text-gray-500">Lecture seule</span>
-                <?php endif; ?>
-            </div>
-
-            <div class="p-4 space-y-5">
-                <details class="rounded-lg border border-gray-200 p-4" open>
-                    <summary class="cursor-pointer font-semibold text-gray-800">
+    <div class="cm-crud-wrapper">
+        <!-- â”€â”€ Pôle supérieur : Formulaires de création â”€â”€ -->
+        <?php
+        ob_start();
+        ?>
+        <div class="cm-flex-col cm-flex-gap-sm">
+            <!-- Collapse : Menu (Catégorie) -->
+            <div class="cm-collapse is-open" id="collapseCategory">
+                <button type="button" class="cm-collapse__trigger" onclick="toggleCollapse('collapseCategory')">
+                    <span class="cm-collapse__trigger-label">
+                        <i class="fas fa-layer-group" aria-hidden="true"></i>
                         Menu (Catégorie)
-                        <span class="text-xs text-gray-500 font-normal ml-2">categories_fonctionnalites</span>
-                    </summary>
-                    <form method="POST" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                        <span class="cm-text-muted cm-text-xs">categories_fonctionnalites</span>
+                    </span>
+                    <i class="fas fa-chevron-down cm-collapse__trigger-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="cm-collapse__body">
+                    <form method="POST" class="cm-grid-2">
+                        <?php cm_component('form/csrf-token'); ?>
                         <input type="hidden" name="op" value="create_category">
 
-                        <div>
-                            <label class="text-sm font-semibold text-gray-700">Code (unique)</label>
-                            <input name="code_categorie"
-                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                                placeholder="SCOLARITE" required <?= $isEditable ? '' : 'disabled' ?>>
+                        <div class="cm-form-group">
+                            <label class="cm-form-label">Code (unique) <span class="cm-required-star">*</span></label>
+                            <input name="code_categorie" class="cm-form-control"
+                                   placeholder="SCOLARITE" required <?= $isEditable ? '' : 'disabled' ?>>
                         </div>
-                        <div>
-                            <label class="text-sm font-semibold text-gray-700">Libellé</label>
-                            <input name="lib_categorie"
-                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                                placeholder="Gestion de la scolarité" required <?= $isEditable ? '' : 'disabled' ?>>
+                        <div class="cm-form-group">
+                            <label class="cm-form-label">Libellé <span class="cm-required-star">*</span></label>
+                            <input name="lib_categorie" class="cm-form-control"
+                                   placeholder="Gestion de la scolarité" required <?= $isEditable ? '' : 'disabled' ?>>
                         </div>
-                        <div class="md:col-span-2">
-                            <label class="text-sm font-semibold text-gray-700">Description</label>
-                            <input name="description_categorie"
-                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                                placeholder="Description..." <?= $isEditable ? '' : 'disabled' ?>>
+                        <div class="cm-form-group" style="grid-column: 1 / -1">
+                            <label class="cm-form-label">Description</label>
+                            <textarea name="description_categorie" class="cm-form-control"
+                                      placeholder="Description de la catégorie..."
+                                      rows="2" style="min-height: 60px; resize: vertical;" <?= $isEditable ? '' : 'disabled' ?>></textarea>
                         </div>
-                        <div>
-                            <label class="text-sm font-semibold text-gray-700">Icône (FontAwesome)</label>
-                            <input name="icone_categorie"
-                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                                placeholder="fas fa-school" <?= $isEditable ? '' : 'disabled' ?>>
+                        <div class="cm-form-group">
+                            <label class="cm-form-label">Icône (FontAwesome)</label>
+                            <input name="icone_categorie" class="cm-form-control"
+                                   placeholder="fas fa-school" <?= $isEditable ? '' : 'disabled' ?>>
                         </div>
-                        <div>
-                            <label class="text-sm font-semibold text-gray-700">Ordre</label>
-                            <input name="ordre_categorie" type="number"
-                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" value="0"
-                                <?= $isEditable ? '' : 'disabled' ?>>
+                        <div class="cm-form-group">
+                            <label class="cm-form-label">Ordre</label>
+                            <input name="ordre_categorie" type="number" class="cm-form-control" value="0"
+                                    <?= $isEditable ? '' : 'disabled' ?>>
                         </div>
-                        <div class="md:col-span-2 flex items-center justify-between">
-                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                        <div class="cm-flex-between cm-align-center" style="grid-column: 1 / -1">
+                            <label class="cm-flex cm-flex-gap-sm cm-align-center cm-text-sm" style="cursor: pointer;">
                                 <input type="checkbox" name="actif" value="1" checked <?= $isEditable ? '' : 'disabled' ?>>
-                                Actif
+                                <span>Actif</span>
                             </label>
                             <button type="submit"
-                                class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 <?= $isEditable ? '' : 'opacity-50 cursor-not-allowed' ?>"
-                                <?= $isEditable ? '' : 'disabled' ?>>
-                                Créer
+                                    class="cm-btn is-success is-sm <?= $isEditable ? '' : 'is-disabled' ?>"
+                                    <?= $isEditable ? '' : 'disabled' ?>>
+                                <i class="fas fa-plus" aria-hidden="true"></i>
+                                <span>Créer</span>
                             </button>
                         </div>
                     </form>
-                </details>
+                </div>
+            </div>
 
-                <details class="rounded-lg border border-gray-200 p-4" open>
-                    <summary class="cursor-pointer font-semibold text-gray-800">
+            <!-- Collapse : Sous-menu / Écran -->
+            <div class="cm-collapse is-open" id="collapseItem">
+                <button type="button" class="cm-collapse__trigger" onclick="toggleCollapse('collapseItem')">
+                    <span class="cm-collapse__trigger-label">
+                        <i class="fas fa-file-alt" aria-hidden="true"></i>
                         Sous-menu / Écran (Fonctionnalité)
-                        <span class="text-xs text-gray-500 font-normal ml-2">fonctionnalites</span>
-                    </summary>
-
-                    <form method="POST" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3" id="createItemForm">
-                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                        <span class="cm-text-muted cm-text-xs">fonctionnalites</span>
+                    </span>
+                    <i class="fas fa-chevron-down cm-collapse__trigger-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="cm-collapse__body">
+                    <form method="POST" class="cm-grid-2" id="createItemForm">
+                        <?php cm_component('form/csrf-token'); ?>
                         <input type="hidden" name="op" value="create_fonctionnalite">
 
-                        <div>
-                            <label class="text-sm font-semibold text-gray-700">Catégorie</label>
-                            <select name="id_categorie"
-                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" required
-                                <?= $isEditable ? '' : 'disabled' ?>>
+                        <div class="cm-form-group">
+                            <label class="cm-form-label">Catégorie <span class="cm-required-star">*</span></label>
+                            <select name="id_categorie" class="cm-form-control" required <?= $isEditable ? '' : 'disabled' ?>>
                                 <option value="">-- Choisir --</option>
                                 <?php foreach ($categories as $c): ?>
-                                    <option value="<?= (int) $c->id_categorie ?>"><?= h((string) $c->lib_categorie) ?>
-                                    </option>
+                                    <option value="<?= (int) $c->id_categorie ?>"><?= h((string) $c->lib_categorie) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div>
-                            <label class="text-sm font-semibold text-gray-700">Type</label>
-                            <select name="type_item" id="typeItem"
-                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" <?= $isEditable ? '' : 'disabled' ?>>
+                        <div class="cm-form-group">
+                            <label class="cm-form-label">Type</label>
+                            <select name="type_item" id="typeItem" class="cm-form-control" <?= $isEditable ? '' : 'disabled' ?>>
                                 <option value="parent">Sous-menu</option>
                                 <option value="child">Écran</option>
                             </select>
                         </div>
 
-                        <div class="md:col-span-2" id="parentPicker" style="display:none;">
-                            <label class="text-sm font-semibold text-gray-700">Parent (code sous-menu)</label>
-                            <input name="page_parente"
-                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                                placeholder="SCOL_INSCRIPTIONS" <?= $isEditable ? '' : 'disabled' ?>>
-                            <p class="text-xs text-gray-500 mt-1">Astuce: le parent est le <b>code_fonctionnalite</b> du
-                                sous-menu.</p>
+                        <div class="cm-form-group" id="parentPicker" style="display:none; grid-column: 1 / -1">
+                            <label class="cm-form-label">Parent (code sous-menu)</label>
+                            <input name="page_parente" class="cm-form-control"
+                                   placeholder="SCOL_INSCRIPTIONS" <?= $isEditable ? '' : 'disabled' ?>>
+                            <span class="cm-form-hint">Astuce : le parent est le <strong>code_fonctionnalite</strong> du sous-menu.</span>
                         </div>
 
-                        <div>
-                            <label class="text-sm font-semibold text-gray-700">Code (unique)</label>
-                            <input name="code_fonctionnalite"
-                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                                placeholder="SCOL_INSCRIPTIONS" required <?= $isEditable ? '' : 'disabled' ?>>
+                        <div class="cm-form-group">
+                            <label class="cm-form-label">Code (unique) <span class="cm-required-star">*</span></label>
+                            <input name="code_fonctionnalite" class="cm-form-control"
+                                   placeholder="SCOL_INSCRIPTIONS" required <?= $isEditable ? '' : 'disabled' ?>>
                         </div>
-                        <div>
-                            <label class="text-sm font-semibold text-gray-700">Libellé (menu)</label>
-                            <input name="label_fonctionnalite"
-                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                                placeholder="Inscriptions" required <?= $isEditable ? '' : 'disabled' ?>>
+                        <div class="cm-form-group">
+                            <label class="cm-form-label">Libellé (menu) <span class="cm-required-star">*</span></label>
+                            <input name="label_fonctionnalite" class="cm-form-control"
+                                   placeholder="Inscriptions" required <?= $isEditable ? '' : 'disabled' ?>>
                         </div>
-                        <div class="md:col-span-2">
-                            <label class="text-sm font-semibold text-gray-700">URL</label>
-                            <input name="url_fonctionnalite"
-                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                                placeholder="?page=parametres_generaux&action=gestion_attribution" <?= $isEditable ? '' : 'disabled' ?>>
-                            <p class="text-xs text-gray-500 mt-1">Pour un sous-menu, tu peux laisser <code>#</code> (non
-                                cliquable).</p>
+                        <div class="cm-form-group" style="grid-column: 1 / -1">
+                            <label class="cm-form-label">URL</label>
+                            <input name="url_fonctionnalite" class="cm-form-control"
+                                   placeholder="?page=parametres_generaux&action=gestion_attribution" <?= $isEditable ? '' : 'disabled' ?>>
+                            <span class="cm-form-hint">Pour un sous-menu, tu peux laisser <code>#</code> (non cliquable).</span>
                         </div>
-                        <div>
-                            <label class="text-sm font-semibold text-gray-700">Icône</label>
-                            <input name="icone_fonctionnalite"
-                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                                placeholder="fas fa-folder-open" <?= $isEditable ? '' : 'disabled' ?>>
+                        <div class="cm-form-group">
+                            <label class="cm-form-label">Icône</label>
+                            <div class="cm-flex cm-flex-gap-xs">
+                                <input name="icone_fonctionnalite" class="cm-form-control"
+                                       placeholder="fas fa-folder-open"
+                                       oninput="var prev = this.nextElementSibling.querySelector('i'); if(prev) prev.className = this.value || 'fas fa-question';"
+                                        <?= $isEditable ? '' : 'disabled' ?>>
+                                <div class="cm-flex cm-align-center cm-justify-center" style="min-width: 40px; background: var(--cm-table-header-bg); border: 1px solid var(--cm-input-border); border-radius: var(--cm-border-radius);">
+                                    <i class="fas fa-question" aria-hidden="true" style="color: var(--cm-primary); font-size: 1rem;"></i>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="text-sm font-semibold text-gray-700">Ordre</label>
-                            <input name="ordre_fonctionnalite" type="number"
-                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" value="0"
-                                <?= $isEditable ? '' : 'disabled' ?>>
+                        <div class="cm-form-group">
+                            <label class="cm-form-label">Ordre</label>
+                            <input name="ordre_fonctionnalite" type="number" class="cm-form-control" value="0"
+                                    <?= $isEditable ? '' : 'disabled' ?>>
                         </div>
-                        <div class="md:col-span-2">
-                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                        <div class="cm-form-group" style="grid-column: 1 / -1">
+                            <label class="cm-flex cm-flex-gap-sm cm-align-center cm-text-sm">
                                 <input type="checkbox" name="actif" value="1" checked <?= $isEditable ? '' : 'disabled' ?>>
                                 Actif
                             </label>
                         </div>
-
-                        <div class="md:col-span-2 flex justify-end">
+                        <div class="cm-flex-end" style="grid-column: 1 / -1">
                             <button type="submit"
-                                class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 <?= $isEditable ? '' : 'opacity-50 cursor-not-allowed' ?>"
-                                <?= $isEditable ? '' : 'disabled' ?>>
-                                Créer
+                                    class="cm-btn is-success is-sm <?= $isEditable ? '' : 'is-disabled' ?>"
+                                    <?= $isEditable ? '' : 'disabled' ?>>
+                                <i class="fas fa-plus" aria-hidden="true"></i>
+                                <span>Créer</span>
                             </button>
                         </div>
                     </form>
-                </details>
+                </div>
             </div>
         </div>
+        <?php
+        cm_component('crud/form-pole', [
+                'title' => 'Ajouter',
+                'icon'  => 'fa-plus-circle',
+                'content' => (string) ob_get_clean(),
+        ]);
+        ?>
 
-        <!-- Consultation / Edition (en dessous) -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-                <div class="font-semibold text-gray-800">
-                    <i class="fas fa-list text-indigo-600 mr-2"></i>
-                    Liste & hiérarchie
-                </div>
-                <div class="text-xs text-gray-500">
-                    (Parent: <code>est_sous_page=0</code>, Enfant: <code>est_sous_page=1</code> +
-                    <code>page_parente</code>)
-                </div>
-            </div>
+        <!-- â”€â”€ Barre intermédiaire â”€â”€ -->
+        <?php
+        ob_start();
+        ?>
+        <?php if (!$isEditable): ?>
+            <span class="cm-badge is-light"><i class="fas fa-lock" aria-hidden="true"></i> Lecture seule</span>
+        <?php endif; ?>
+        <?php
+        cm_component('crud/toolbar', [
+                'left_html' => '<span class="cm-text-muted">(Parent: <code>est_sous_page=0</code>, Enfant: <code>est_sous_page=1</code> + <code>page_parente</code>)</span>',
+                'right_html' => (string) ob_get_clean(),
+        ]);
+        ?>
 
-            <div class="p-4 overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th
-                                class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Type</th>
-                            <th
-                                class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Code</th>
-                            <th
-                                class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Libellé</th>
-                            <th
-                                class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                URL</th>
-                            <th
-                                class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Ordre</th>
-                            <th
-                                class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Statut</th>
-                            <th
-                                class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Actions</th>
-                        </tr>
+        <!-- â”€â”€ Pôle inférieur : Table hiérarchique â”€â”€ -->
+        <div class="cm-pole-inferieur">
+            <div class="cm-table-wrapper">
+                <table class="cm-data-table" id="cmMenuTree">
+                    <thead>
+                    <tr>
+                        <th class="cm-data-table__th">Type</th>
+                        <th class="cm-data-table__th">Code</th>
+                        <th class="cm-data-table__th">Libellé</th>
+                        <th class="cm-data-table__th">URL</th>
+                        <th class="cm-data-table__th is-center">Ordre</th>
+                        <th class="cm-data-table__th is-center">Statut</th>
+                        <th class="cm-data-table__th is-right">Actions</th>
+                    </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-100">
-                        <?php foreach ($tree as $cid => $node): ?>
-                            <?php $c = $node['categorie']; ?>
-                            <tr class="bg-gray-100">
-                                <td colspan="7" class="px-4 py-2 text-sm font-semibold text-gray-700">
-                                    <i
-                                        class="<?= h((string) ($c->icone_categorie ?? 'fas fa-folder')) ?> text-gray-700 mr-2"></i>
-                                    <?= h((string) $c->lib_categorie) ?>
-                                    <span class="ml-2 text-xs text-gray-500">(<?= h((string) $c->code_categorie) ?>)</span>
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td class="px-4 py-3 text-sm text-gray-700">
-                                    <span
-                                        class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
-                                        <i class="fas fa-layer-group"></i>Menu
+                    <tbody>
+                    <?php foreach ($tree as $cid => $node): ?>
+                        <?php $c = $node['categorie']; ?>
+                        <!-- Category header -->
+                        <tr class="cm-tree-header">
+                            <td class="cm-data-table__td" colspan="7">
+                                    <span class="cm-flex cm-flex-gap-sm cm-align-center">
+                                        <i class="<?= h((string) ($c->icone_categorie ?? 'fas fa-folder')) ?>" aria-hidden="true"></i>
+                                        <?= h((string) $c->lib_categorie) ?>
+                                        <span class="cm-text-muted cm-text-xs">(<?= h((string) $c->code_categorie) ?>)</span>
                                     </span>
-                                </td>
-                                <td class="px-4 py-3 text-sm text-gray-700"><?= h((string) $c->code_categorie) ?></td>
-                                <td class="px-4 py-3 text-sm font-semibold text-gray-900">
-                                    <?= h((string) $c->lib_categorie) ?></td>
-                                <td class="px-4 py-3 text-sm text-gray-500">—</td>
-                                <td class="px-4 py-3 text-sm text-gray-700"><?= (int) ($c->ordre_categorie ?? 0) ?></td>
-                                <td class="px-4 py-3 text-sm">
-                                    <?php if (!empty($c->actif)): ?>
-                                        <span
-                                            class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">Actif</span>
-                                    <?php else: ?>
-                                        <span
-                                            class="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">Inactif</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="px-4 py-3 text-right text-sm">
-                                    <div class="inline-flex items-center gap-2">
-                                        <button type="button"
-                                            class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 hover:bg-gray-50"
+                            </td>
+                        </tr>
+
+                        <!-- Category row -->
+                        <tr class="cm-data-table__row">
+                            <td class="cm-data-table__td">
+                                <?php cm_component('ui/badge', ['text' => 'Menu', 'type' => 'primary']); ?>
+                            </td>
+                            <td class="cm-data-table__td"><?= h((string) $c->code_categorie) ?></td>
+                            <td class="cm-data-table__td cm-text-semibold"><?= h((string) $c->lib_categorie) ?></td>
+                            <td class="cm-data-table__td cm-text-muted">—</td>
+                            <td class="cm-data-table__td is-center"><?= (int) ($c->ordre_categorie ?? 0) ?></td>
+                            <td class="cm-data-table__td is-center">
+                                <?php cm_component('ui/badge', [
+                                        'text' => !empty($c->actif) ? 'Actif' : 'Inactif',
+                                        'type' => !empty($c->actif) ? 'success' : 'danger',
+                                ]); ?>
+                            </td>
+                            <td class="cm-data-table__td is-right">
+                                <div class="cm-table-actions">
+                                    <button type="button" class="cm-btn is-light is-sm"
                                             onclick="openEditCategory(<?= (int) $c->id_categorie ?>, <?= js((string) $c->lib_categorie) ?>, <?= js((string) ($c->description_categorie ?? '')) ?>, <?= js((string) ($c->icone_categorie ?? '')) ?>, <?= (int) ($c->ordre_categorie ?? 0) ?>, <?= (int) ($c->actif ?? 0) ?>)"
                                             <?= $isEditable ? '' : 'disabled' ?>>
-                                            Modifier
-                                        </button>
+                                        <i class="fas fa-pen" aria-hidden="true"></i>
+                                        <span>Modifier</span>
+                                    </button>
 
-                                        <?php if (!empty($c->actif)): ?>
-                                            <form method="POST"
-                                                onsubmit="return confirm('Désactiver cette catégorie et ses fonctionnalités ?');"
-                                                class="inline">
-                                                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                                                <input type="hidden" name="op" value="deactivate_category">
-                                                <input type="hidden" name="id_categorie" value="<?= (int) $c->id_categorie ?>">
-                                                <button
-                                                    class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-200 text-red-700 hover:bg-red-50 <?= $isEditable ? '' : 'opacity-50 cursor-not-allowed' ?>"
+                                    <?php if (!empty($c->actif)): ?>
+                                        <form method="POST" onsubmit="return confirm('Désactiver cette catégorie et ses fonctionnalités ?');" class="cm-flex">
+                                            <?php cm_component('form/csrf-token'); ?>
+                                            <input type="hidden" name="op" value="deactivate_category">
+                                            <input type="hidden" name="id_categorie" value="<?= (int) $c->id_categorie ?>">
+                                            <button class="cm-btn is-danger is-sm <?= $isEditable ? '' : 'is-disabled' ?>"
                                                     <?= $isEditable ? '' : 'disabled' ?>>
-                                                    Désactiver
+                                                <i class="fas fa-ban" aria-hidden="true"></i>
+                                                <span>Désactiver</span>
+                                            </button>
+                                        </form>
+                                    <?php else: ?>
+                                        <form method="POST" onsubmit="return confirm('Réactiver cette catégorie et ses fonctionnalités ?');" class="cm-flex">
+                                            <?php cm_component('form/csrf-token'); ?>
+                                            <input type="hidden" name="op" value="activate_category">
+                                            <input type="hidden" name="id_categorie" value="<?= (int) $c->id_categorie ?>">
+                                            <button class="cm-btn is-success is-sm <?= $isEditable ? '' : 'is-disabled' ?>"
+                                                    <?= $isEditable ? '' : 'disabled' ?>>
+                                                <i class="fas fa-check-circle" aria-hidden="true"></i>
+                                                <span>Réactiver</span>
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <?php $parents = $node['parents'] ?? []; ?>
+                        <?php foreach ($parents as $p): ?>
+                            <?php
+                            $pid = (int) ($p->id_fonctionnalite ?? 0);
+                            $pcode = (string) ($p->code_fonctionnalite ?? '');
+                            $plabel = (string) ($p->label_fonctionnalite ?? $p->lib_fonctionnalite ?? $pcode);
+                            $purl = (string) ($p->url_fonctionnalite ?? '#');
+                            $pordre = (int) ($p->ordre_fonctionnalite ?? 0);
+                            $children = (isset($p->children) && is_array($p->children)) ? $p->children : [];
+                            $hasChildren = !empty($children);
+                            $groupId = 'grp-' . md5((string) $cid . '|' . $pcode . '|' . (string) $pid);
+                            ?>
+                            <!-- Parent (sous-menu) row -->
+                            <tr class="cm-data-table__row">
+                                <td class="cm-data-table__td">
+                                        <span class="cm-flex cm-flex-gap-sm cm-align-center">
+                                            <?php if ($hasChildren): ?>
+                                                <button type="button"
+                                                        class="cm-tree-toggle toggleRow"
+                                                        data-target="<?= h($groupId) ?>" aria-label="Déplier/Replier">
+                                                    <span class="toggleIcon">+</span>
+                                                </button>
+                                            <?php else: ?>
+                                                <span class="cm-tree-toggle is-empty">-</span>
+                                            <?php endif; ?>
+                                            <?php cm_component('ui/badge', ['text' => 'Sous-menu', 'type' => 'light']); ?>
+                                        </span>
+                                </td>
+                                <td class="cm-data-table__td"><?= h($pcode) ?></td>
+                                <td class="cm-data-table__td cm-text-semibold"><?= h($plabel) ?></td>
+                                <td class="cm-data-table__td cm-text-muted"><?= h($purl) ?></td>
+                                <td class="cm-data-table__td is-center"><?= $pordre ?></td>
+                                <td class="cm-data-table__td is-center">
+                                    <?php cm_component('ui/badge', [
+                                            'text' => !empty($p->actif) ? 'Actif' : 'Inactif',
+                                            'type' => !empty($p->actif) ? 'success' : 'danger',
+                                    ]); ?>
+                                </td>
+                                <td class="cm-data-table__td is-right">
+                                    <div class="cm-table-actions">
+                                        <button type="button" class="cm-btn is-light is-sm"
+                                                onclick="openEditItem(<?= (int) $pid ?>, <?= (int) $cid ?>, 'parent', <?= js((string) ($p->lib_fonctionnalite ?? '')) ?>, <?= js((string) ($p->label_fonctionnalite ?? '')) ?>, <?= js((string) ($p->description_fonctionnalite ?? '')) ?>, <?= js((string) ($p->url_fonctionnalite ?? '#')) ?>, <?= js((string) ($p->icone_fonctionnalite ?? '')) ?>, <?= (int) ($p->ordre_fonctionnalite ?? 0) ?>, <?= js('') ?>, <?= (int) ($p->actif ?? 0) ?>)"
+                                                <?= $isEditable ? '' : 'disabled' ?>>
+                                            <i class="fas fa-pen" aria-hidden="true"></i>
+                                            <span>Modifier</span>
+                                        </button>
+                                        <?php if (!empty($p->actif)): ?>
+                                            <form method="POST" onsubmit="return confirm('Désactiver cet élément ?');" class="cm-flex">
+                                                <?php cm_component('form/csrf-token'); ?>
+                                                <input type="hidden" name="op" value="deactivate_fonctionnalite">
+                                                <input type="hidden" name="id_fonctionnalite" value="<?= (int) $pid ?>">
+                                                <button class="cm-btn is-danger is-sm <?= $isEditable ? '' : 'is-disabled' ?>"
+                                                        <?= $isEditable ? '' : 'disabled' ?>>
+                                                    <i class="fas fa-ban" aria-hidden="true"></i>
+                                                    <span>Désactiver</span>
                                                 </button>
                                             </form>
                                         <?php else: ?>
-                                            <form method="POST"
-                                                onsubmit="return confirm('Réactiver cette catégorie et ses fonctionnalités ?');"
-                                                class="inline">
-                                                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                                                <input type="hidden" name="op" value="activate_category">
-                                                <input type="hidden" name="id_categorie" value="<?= (int) $c->id_categorie ?>">
-                                                <button
-                                                    class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 <?= $isEditable ? '' : 'opacity-50 cursor-not-allowed' ?>"
-                                                    <?= $isEditable ? '' : 'disabled' ?>>
-                                                    Réactiver
+                                            <form method="POST" onsubmit="return confirm('Réactiver cet élément ?');" class="cm-flex">
+                                                <?php cm_component('form/csrf-token'); ?>
+                                                <input type="hidden" name="op" value="activate_fonctionnalite">
+                                                <input type="hidden" name="id_fonctionnalite" value="<?= (int) $pid ?>">
+                                                <button class="cm-btn is-success is-sm <?= $isEditable ? '' : 'is-disabled' ?>"
+                                                        <?= $isEditable ? '' : 'disabled' ?>>
+                                                    <i class="fas fa-check-circle" aria-hidden="true"></i>
+                                                    <span>Réactiver</span>
                                                 </button>
                                             </form>
                                         <?php endif; ?>
@@ -318,299 +358,253 @@ function isChecked($v): string
                                 </td>
                             </tr>
 
-                            <?php $parents = $node['parents'] ?? []; ?>
-                            <?php foreach ($parents as $p): ?>
+                            <?php foreach ($children as $ch): ?>
                                 <?php
-                                $pid = (int) ($p->id_fonctionnalite ?? 0);
-                                $pcode = (string) ($p->code_fonctionnalite ?? '');
-                                $plabel = (string) ($p->label_fonctionnalite ?? $p->lib_fonctionnalite ?? $pcode);
-                                $purl = (string) ($p->url_fonctionnalite ?? '#');
-                                $pordre = (int) ($p->ordre_fonctionnalite ?? 0);
-                                $children = (isset($p->children) && is_array($p->children)) ? $p->children : [];
-                                $hasChildren = !empty($children);
-                                $groupId = 'grp-' . md5((string) $cid . '|' . $pcode . '|' . (string) $pid);
+                                $chid = (int) ($ch->id_fonctionnalite ?? 0);
+                                $chcode = (string) ($ch->code_fonctionnalite ?? '');
+                                $chlabel = (string) ($ch->label_fonctionnalite ?? $ch->lib_fonctionnalite ?? $chcode);
+                                $churl = (string) ($ch->url_fonctionnalite ?? '#');
+                                $chordre = (int) ($ch->ordre_fonctionnalite ?? 0);
                                 ?>
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-4 py-3 text-sm text-gray-700">
-                                        <div class="flex items-center gap-2">
-                                            <?php if ($hasChildren): ?>
-                                                <button type="button"
-                                                    class="toggleRow inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-blue-700 border border-blue-200"
-                                                    data-target="<?= h($groupId) ?>" aria-label="Déplier/Replier">
-                                                    <span class="toggleIcon">+</span>
-                                                </button>
-                                            <?php else: ?>
-                                                <span
-                                                    class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gray-50 text-gray-300 border border-gray-200">-</span>
-                                            <?php endif; ?>
-                                            <span
-                                                class="inline-flex items-center gap-2 rounded-full bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                                                <i class="fas fa-folder"></i>Sous-menu
-                                            </span>
-                                        </div>
+                                <!-- Child (écran) row -->
+                                <tr class="cm-data-table__row childRow cm-hidden" data-parent="<?= h($groupId) ?>">
+                                    <td class="cm-data-table__td cm-tree-indent">
+                                        <?php cm_component('ui/badge', ['text' => 'Écran', 'type' => 'info']); ?>
                                     </td>
-                                    <td class="px-4 py-3 text-sm text-gray-700"><?= h($pcode) ?></td>
-                                    <td class="px-4 py-3 text-sm font-semibold text-gray-900"><?= h($plabel) ?></td>
-                                    <td class="px-4 py-3 text-sm text-gray-600"><?= h($purl) ?></td>
-                                    <td class="px-4 py-3 text-sm text-gray-700"><?= $pordre ?></td>
-                                    <td class="px-4 py-3 text-sm">
-                                        <?php if (!empty($p->actif)): ?>
-                                            <span
-                                                class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">Actif</span>
-                                        <?php else: ?>
-                                            <span
-                                                class="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">Inactif</span>
-                                        <?php endif; ?>
+                                    <td class="cm-data-table__td"><?= h($chcode) ?></td>
+                                    <td class="cm-data-table__td"><?= h($chlabel) ?></td>
+                                    <td class="cm-data-table__td cm-text-muted"><?= h($churl) ?></td>
+                                    <td class="cm-data-table__td is-center"><?= $chordre ?></td>
+                                    <td class="cm-data-table__td is-center">
+                                        <?php cm_component('ui/badge', [
+                                                'text' => !empty($ch->actif) ? 'Actif' : 'Inactif',
+                                                'type' => !empty($ch->actif) ? 'success' : 'danger',
+                                        ]); ?>
                                     </td>
-                                    <td class="px-4 py-3 text-right text-sm">
-                                        <div class="inline-flex items-center gap-2">
-                                            <button type="button"
-                                                class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 hover:bg-gray-50"
-                                                onclick="openEditItem(<?= (int) $pid ?>, <?= (int) $cid ?>, 'parent', <?= js((string) ($p->lib_fonctionnalite ?? '')) ?>, <?= js((string) ($p->label_fonctionnalite ?? '')) ?>, <?= js((string) ($p->description_fonctionnalite ?? '')) ?>, <?= js((string) ($p->url_fonctionnalite ?? '#')) ?>, <?= js((string) ($p->icone_fonctionnalite ?? '')) ?>, <?= (int) ($p->ordre_fonctionnalite ?? 0) ?>, <?= js('') ?>, <?= (int) ($p->actif ?? 0) ?>)"
-                                                <?= $isEditable ? '' : 'disabled' ?>>
-                                                Modifier
+                                    <td class="cm-data-table__td is-right">
+                                        <div class="cm-table-actions">
+                                            <button type="button" class="cm-btn is-light is-sm"
+                                                    onclick="openEditItem(<?= (int) $chid ?>, <?= (int) $cid ?>, 'child', <?= js((string) ($ch->lib_fonctionnalite ?? '')) ?>, <?= js((string) ($ch->label_fonctionnalite ?? '')) ?>, <?= js((string) ($ch->description_fonctionnalite ?? '')) ?>, <?= js((string) ($ch->url_fonctionnalite ?? '#')) ?>, <?= js((string) ($ch->icone_fonctionnalite ?? '')) ?>, <?= (int) ($ch->ordre_fonctionnalite ?? 0) ?>, <?= js((string) ($ch->page_parente ?? '')) ?>, <?= (int) ($ch->actif ?? 0) ?>)"
+                                                    <?= $isEditable ? '' : 'disabled' ?>>
+                                                <i class="fas fa-pen" aria-hidden="true"></i>
+                                                <span>Modifier</span>
                                             </button>
-
-                                            <?php if (!empty($p->actif)): ?>
-                                                <form method="POST" onsubmit="return confirm('Désactiver cet élément ?');"
-                                                    class="inline">
-                                                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                            <?php if (!empty($ch->actif)): ?>
+                                                <form method="POST" onsubmit="return confirm('Désactiver cet écran ?');" class="cm-flex">
+                                                    <?php cm_component('form/csrf-token'); ?>
                                                     <input type="hidden" name="op" value="deactivate_fonctionnalite">
-                                                    <input type="hidden" name="id_fonctionnalite" value="<?= (int) $pid ?>">
-                                                    <button
-                                                        class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-200 text-red-700 hover:bg-red-50 <?= $isEditable ? '' : 'opacity-50 cursor-not-allowed' ?>"
-                                                        <?= $isEditable ? '' : 'disabled' ?>>
-                                                        Désactiver
+                                                    <input type="hidden" name="id_fonctionnalite" value="<?= (int) $chid ?>">
+                                                    <button class="cm-btn is-danger is-sm <?= $isEditable ? '' : 'is-disabled' ?>"
+                                                            <?= $isEditable ? '' : 'disabled' ?>>
+                                                        <i class="fas fa-ban" aria-hidden="true"></i>
+                                                        <span>Désactiver</span>
                                                     </button>
                                                 </form>
                                             <?php else: ?>
-                                                <form method="POST" onsubmit="return confirm('Réactiver cet élément ?');"
-                                                    class="inline">
-                                                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                                <form method="POST" onsubmit="return confirm('Réactiver cet écran ?');" class="cm-flex">
+                                                    <?php cm_component('form/csrf-token'); ?>
                                                     <input type="hidden" name="op" value="activate_fonctionnalite">
-                                                    <input type="hidden" name="id_fonctionnalite" value="<?= (int) $pid ?>">
-                                                    <button
-                                                        class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 <?= $isEditable ? '' : 'opacity-50 cursor-not-allowed' ?>"
-                                                        <?= $isEditable ? '' : 'disabled' ?>>
-                                                        Réactiver
+                                                    <input type="hidden" name="id_fonctionnalite" value="<?= (int) $chid ?>">
+                                                    <button class="cm-btn is-success is-sm <?= $isEditable ? '' : 'is-disabled' ?>"
+                                                            <?= $isEditable ? '' : 'disabled' ?>>
+                                                        <i class="fas fa-check-circle" aria-hidden="true"></i>
+                                                        <span>Réactiver</span>
                                                     </button>
                                                 </form>
                                             <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>
-
-                                <?php foreach ($children as $ch): ?>
-                                    <?php
-                                    $chid = (int) ($ch->id_fonctionnalite ?? 0);
-                                    $chcode = (string) ($ch->code_fonctionnalite ?? '');
-                                    $chlabel = (string) ($ch->label_fonctionnalite ?? $ch->lib_fonctionnalite ?? $chcode);
-                                    $churl = (string) ($ch->url_fonctionnalite ?? '#');
-                                    $chordre = (int) ($ch->ordre_fonctionnalite ?? 0);
-                                    ?>
-                                    <tr class="childRow hidden hover:bg-gray-50" data-parent="<?= h($groupId) ?>">
-                                        <td class="px-4 py-3 text-sm text-gray-700">
-                                            <span
-                                                class="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-2 py-0.5 text-xs font-semibold text-cyan-800 ml-10">
-                                                <i class="fas fa-file-alt"></i>Écran
-                                            </span>
-                                        </td>
-                                        <td class="px-4 py-3 text-sm text-gray-700"><?= h($chcode) ?></td>
-                                        <td class="px-4 py-3 text-sm text-gray-900"><?= h($chlabel) ?></td>
-                                        <td class="px-4 py-3 text-sm text-gray-600"><?= h($churl) ?></td>
-                                        <td class="px-4 py-3 text-sm text-gray-700"><?= $chordre ?></td>
-                                        <td class="px-4 py-3 text-sm">
-                                            <?php if (!empty($ch->actif)): ?>
-                                                <span
-                                                    class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">Actif</span>
-                                            <?php else: ?>
-                                                <span
-                                                    class="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">Inactif</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="px-4 py-3 text-right text-sm">
-                                            <div class="inline-flex items-center gap-2">
-                                                <button type="button"
-                                                    class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 hover:bg-gray-50"
-                                                    onclick="openEditItem(<?= (int) $chid ?>, <?= (int) $cid ?>, 'child', <?= js((string) ($ch->lib_fonctionnalite ?? '')) ?>, <?= js((string) ($ch->label_fonctionnalite ?? '')) ?>, <?= js((string) ($ch->description_fonctionnalite ?? '')) ?>, <?= js((string) ($ch->url_fonctionnalite ?? '#')) ?>, <?= js((string) ($ch->icone_fonctionnalite ?? '')) ?>, <?= (int) ($ch->ordre_fonctionnalite ?? 0) ?>, <?= js((string) ($ch->page_parente ?? '')) ?>, <?= (int) ($ch->actif ?? 0) ?>)"
-                                                    <?= $isEditable ? '' : 'disabled' ?>>
-                                                    Modifier
-                                                </button>
-                                                <?php if (!empty($ch->actif)): ?>
-                                                    <form method="POST" onsubmit="return confirm('Désactiver cet écran ?');"
-                                                        class="inline">
-                                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                                                        <input type="hidden" name="op" value="deactivate_fonctionnalite">
-                                                        <input type="hidden" name="id_fonctionnalite" value="<?= (int) $chid ?>">
-                                                        <button
-                                                            class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-200 text-red-700 hover:bg-red-50 <?= $isEditable ? '' : 'opacity-50 cursor-not-allowed' ?>"
-                                                            <?= $isEditable ? '' : 'disabled' ?>>
-                                                            Désactiver
-                                                        </button>
-                                                    </form>
-                                                <?php else: ?>
-                                                    <form method="POST" onsubmit="return confirm('Réactiver cet écran ?');"
-                                                        class="inline">
-                                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                                                        <input type="hidden" name="op" value="activate_fonctionnalite">
-                                                        <input type="hidden" name="id_fonctionnalite" value="<?= (int) $chid ?>">
-                                                        <button
-                                                            class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 <?= $isEditable ? '' : 'opacity-50 cursor-not-allowed' ?>"
-                                                            <?= $isEditable ? '' : 'disabled' ?>>
-                                                            Réactiver
-                                                        </button>
-                                                    </form>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
                             <?php endforeach; ?>
                         <?php endforeach; ?>
+                    <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+</section>
 
-    <!-- Modale: edit category -->
-    <div id="editCategoryModal" class="fixed inset-0 hidden items-center justify-center z-50">
-        <div class="absolute inset-0 bg-black/40" onclick="closeModal('editCategoryModal')"></div>
-        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 overflow-hidden">
-            <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-                <div class="font-semibold text-gray-800">Modifier une catégorie</div>
-                <button class="text-gray-400 hover:text-gray-600" onclick="closeModal('editCategoryModal')"><i
-                        class="fas fa-times"></i></button>
-            </div>
-            <form method="POST" class="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                <input type="hidden" name="op" value="update_category">
-                <input type="hidden" name="id_categorie" id="editCatId">
-
-                <div class="md:col-span-2">
-                    <label class="text-sm font-semibold text-gray-700">Libellé</label>
-                    <input name="lib_categorie" id="editCatLib"
-                        class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" required <?= $isEditable ? '' : 'disabled' ?>>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="text-sm font-semibold text-gray-700">Description</label>
-                    <input name="description_categorie" id="editCatDesc"
-                        class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" <?= $isEditable ? '' : 'disabled' ?>>
-                </div>
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Icône</label>
-                    <input name="icone_categorie" id="editCatIcon"
-                        class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" <?= $isEditable ? '' : 'disabled' ?>>
-                </div>
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Ordre</label>
-                    <input name="ordre_categorie" id="editCatOrdre" type="number"
-                        class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" <?= $isEditable ? '' : 'disabled' ?>>
-                </div>
-                <div class="md:col-span-2 flex items-center justify-between">
-                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" name="actif" id="editCatActif" value="1" <?= $isEditable ? '' : 'disabled' ?>>
-                        Actif
-                    </label>
-                    <button type="submit"
-                        class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 <?= $isEditable ? '' : 'opacity-50 cursor-not-allowed' ?>"
-                        <?= $isEditable ? '' : 'disabled' ?>>
-                        Enregistrer
-                    </button>
-                </div>
-            </form>
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     MODALE : Modifier une catégorie
+     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="editCategoryModal" class="cm-modal-overlay">
+    <div class="cm-modal">
+        <div class="cm-modal__header">
+            <h3 class="cm-modal__title">
+                <i class="fas fa-layer-group" aria-hidden="true"></i>
+                Modifier une catégorie
+            </h3>
+            <button type="button" class="cm-modal__close" onclick="closeModal('editCategoryModal')">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
         </div>
+        <form method="POST">
+            <div class="cm-modal__body">
+                <div class="cm-grid-2">
+                    <?php cm_component('form/csrf-token'); ?>
+                    <input type="hidden" name="op" value="update_category">
+                    <input type="hidden" name="id_categorie" id="editCatId">
+
+                    <div class="cm-form-group" style="grid-column: 1 / -1">
+                        <label class="cm-form-label">Libellé <span class="cm-required-star">*</span></label>
+                        <input name="lib_categorie" id="editCatLib" class="cm-form-control"
+                               required <?= $isEditable ? '' : 'disabled' ?>>
+                    </div>
+                    <div class="cm-form-group" style="grid-column: 1 / -1">
+                        <label class="cm-form-label">Description</label>
+                        <input name="description_categorie" id="editCatDesc" class="cm-form-control"
+                                <?= $isEditable ? '' : 'disabled' ?>>
+                    </div>
+                    <div class="cm-form-group">
+                        <label class="cm-form-label">Icône</label>
+                        <input name="icone_categorie" id="editCatIcon" class="cm-form-control"
+                                <?= $isEditable ? '' : 'disabled' ?>>
+                    </div>
+                    <div class="cm-form-group">
+                        <label class="cm-form-label">Ordre</label>
+                        <input name="ordre_categorie" id="editCatOrdre" type="number" class="cm-form-control"
+                                <?= $isEditable ? '' : 'disabled' ?>>
+                    </div>
+                    <div class="cm-form-group" style="grid-column: 1 / -1">
+                        <label class="cm-flex cm-flex-gap-sm cm-align-center cm-text-sm">
+                            <input type="checkbox" name="actif" id="editCatActif" value="1" <?= $isEditable ? '' : 'disabled' ?>>
+                            Actif
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="cm-modal__footer">
+                <button type="button" class="cm-btn is-light is-sm" onclick="closeModal('editCategoryModal')">
+                    <span>Annuler</span>
+                </button>
+                <button type="submit"
+                        class="cm-btn is-success is-sm <?= $isEditable ? '' : 'is-disabled' ?>"
+                        <?= $isEditable ? '' : 'disabled' ?>>
+                    <i class="fas fa-save" aria-hidden="true"></i>
+                    <span>Enregistrer</span>
+                </button>
+            </div>
+        </form>
     </div>
+</div>
 
-    <!-- Modale: edit fonctionnalite -->
-    <div id="editItemModal" class="fixed inset-0 hidden items-center justify-center z-50">
-        <div class="absolute inset-0 bg-black/40" onclick="closeModal('editItemModal')"></div>
-        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 overflow-hidden">
-            <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-                <div class="font-semibold text-gray-800">Modifier un sous-menu / écran</div>
-                <button class="text-gray-400 hover:text-gray-600" onclick="closeModal('editItemModal')"><i
-                        class="fas fa-times"></i></button>
-            </div>
-            <form method="POST" class="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                <input type="hidden" name="op" value="update_fonctionnalite">
-                <input type="hidden" name="id_fonctionnalite" id="editItemId">
-
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Catégorie</label>
-                    <select name="id_categorie" id="editItemCat"
-                        class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" required <?= $isEditable ? '' : 'disabled' ?>>
-                        <?php foreach ($categories as $c): ?>
-                            <option value="<?= (int) $c->id_categorie ?>"><?= h((string) $c->lib_categorie) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Type</label>
-                    <select name="type_item" id="editItemType"
-                        class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" <?= $isEditable ? '' : 'disabled' ?>>
-                        <option value="parent">Sous-menu</option>
-                        <option value="child">Écran</option>
-                    </select>
-                </div>
-
-                <div class="md:col-span-2" id="editItemParentWrap" style="display:none;">
-                    <label class="text-sm font-semibold text-gray-700">Parent (code sous-menu)</label>
-                    <input name="page_parente" id="editItemParent"
-                        class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" <?= $isEditable ? '' : 'disabled' ?>>
-                </div>
-
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Libellé (menu)</label>
-                    <input name="label_fonctionnalite" id="editItemLabel"
-                        class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" required <?= $isEditable ? '' : 'disabled' ?>>
-                </div>
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Libellé interne</label>
-                    <input name="lib_fonctionnalite" id="editItemLib"
-                        class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" <?= $isEditable ? '' : 'disabled' ?>>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="text-sm font-semibold text-gray-700">Description</label>
-                    <input name="description_fonctionnalite" id="editItemDesc"
-                        class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" <?= $isEditable ? '' : 'disabled' ?>>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="text-sm font-semibold text-gray-700">URL</label>
-                    <input name="url_fonctionnalite" id="editItemUrl"
-                        class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" <?= $isEditable ? '' : 'disabled' ?>>
-                </div>
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Icône</label>
-                    <input name="icone_fonctionnalite" id="editItemIcon"
-                        class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" <?= $isEditable ? '' : 'disabled' ?>>
-                </div>
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Ordre</label>
-                    <input name="ordre_fonctionnalite" id="editItemOrdre" type="number"
-                        class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" <?= $isEditable ? '' : 'disabled' ?>>
-                </div>
-
-                <div class="md:col-span-2 flex items-center justify-between">
-                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" name="actif" id="editItemActif" value="1" <?= $isEditable ? '' : 'disabled' ?>>
-                        Actif
-                    </label>
-                    <button type="submit"
-                        class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 <?= $isEditable ? '' : 'opacity-50 cursor-not-allowed' ?>"
-                        <?= $isEditable ? '' : 'disabled' ?>>
-                        Enregistrer
-                    </button>
-                </div>
-            </form>
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     MODALE : Modifier un sous-menu / écran
+     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="editItemModal" class="cm-modal-overlay">
+    <div class="cm-modal">
+        <div class="cm-modal__header">
+            <h3 class="cm-modal__title">
+                <i class="fas fa-file-alt" aria-hidden="true"></i>
+                Modifier un sous-menu / écran
+            </h3>
+            <button type="button" class="cm-modal__close" onclick="closeModal('editItemModal')">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
         </div>
+        <form method="POST">
+            <div class="cm-modal__body">
+                <div class="cm-grid-2">
+                    <?php cm_component('form/csrf-token'); ?>
+                    <input type="hidden" name="op" value="update_fonctionnalite">
+                    <input type="hidden" name="id_fonctionnalite" id="editItemId">
+
+                    <div class="cm-form-group">
+                        <label class="cm-form-label">Catégorie <span class="cm-required-star">*</span></label>
+                        <select name="id_categorie" id="editItemCat" class="cm-form-control"
+                                required <?= $isEditable ? '' : 'disabled' ?>>
+                            <?php foreach ($categories as $c): ?>
+                                <option value="<?= (int) $c->id_categorie ?>"><?= h((string) $c->lib_categorie) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="cm-form-group">
+                        <label class="cm-form-label">Type</label>
+                        <select name="type_item" id="editItemType" class="cm-form-control"
+                                <?= $isEditable ? '' : 'disabled' ?>>
+                            <option value="parent">Sous-menu</option>
+                            <option value="child">Écran</option>
+                        </select>
+                    </div>
+
+                    <div class="cm-form-group" id="editItemParentWrap" style="display:none; grid-column: 1 / -1">
+                        <label class="cm-form-label">Parent (code sous-menu)</label>
+                        <input name="page_parente" id="editItemParent" class="cm-form-control"
+                                <?= $isEditable ? '' : 'disabled' ?>>
+                    </div>
+
+                    <div class="cm-form-group">
+                        <label class="cm-form-label">Libellé (menu) <span class="cm-required-star">*</span></label>
+                        <input name="label_fonctionnalite" id="editItemLabel" class="cm-form-control"
+                               required <?= $isEditable ? '' : 'disabled' ?>>
+                    </div>
+                    <div class="cm-form-group">
+                        <label class="cm-form-label">Libellé interne</label>
+                        <input name="lib_fonctionnalite" id="editItemLib" class="cm-form-control"
+                                <?= $isEditable ? '' : 'disabled' ?>>
+                    </div>
+                    <div class="cm-form-group" style="grid-column: 1 / -1">
+                        <label class="cm-form-label">Description</label>
+                        <input name="description_fonctionnalite" id="editItemDesc" class="cm-form-control"
+                                <?= $isEditable ? '' : 'disabled' ?>>
+                    </div>
+                    <div class="cm-form-group" style="grid-column: 1 / -1">
+                        <label class="cm-form-label">URL</label>
+                        <input name="url_fonctionnalite" id="editItemUrl" class="cm-form-control"
+                                <?= $isEditable ? '' : 'disabled' ?>>
+                    </div>
+                    <div class="cm-form-group">
+                        <label class="cm-form-label">Icône</label>
+                        <input name="icone_fonctionnalite" id="editItemIcon" class="cm-form-control"
+                                <?= $isEditable ? '' : 'disabled' ?>>
+                    </div>
+                    <div class="cm-form-group">
+                        <label class="cm-form-label">Ordre</label>
+                        <input name="ordre_fonctionnalite" id="editItemOrdre" type="number" class="cm-form-control"
+                                <?= $isEditable ? '' : 'disabled' ?>>
+                    </div>
+                    <div class="cm-form-group" style="grid-column: 1 / -1">
+                        <label class="cm-flex cm-flex-gap-sm cm-align-center cm-text-sm">
+                            <input type="checkbox" name="actif" id="editItemActif" value="1" <?= $isEditable ? '' : 'disabled' ?>>
+                            Actif
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="cm-modal__footer">
+                <button type="button" class="cm-btn is-light is-sm" onclick="closeModal('editItemModal')">
+                    <span>Annuler</span>
+                </button>
+                <button type="submit"
+                        class="cm-btn is-success is-sm <?= $isEditable ? '' : 'is-disabled' ?>"
+                        <?= $isEditable ? '' : 'disabled' ?>>
+                    <i class="fas fa-save" aria-hidden="true"></i>
+                    <span>Enregistrer</span>
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
 <script>
     (function () {
-        const typeItem = document.getElementById('typeItem');
-        const parentPicker = document.getElementById('parentPicker');
+        /* === Scroll lock for modal - prevents background scroll === */
+        function setScrollLock(lock) {
+            document.body.style.overflow = lock ? 'hidden' : '';
+            document.body.style.paddingRight = lock ? (window.innerWidth - document.documentElement.clientWidth) + 'px' : '';
+        }
+
+        /* â”€â”€ Collapsible sections â”€â”€ */
+        window.toggleCollapse = function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.classList.toggle('is-open');
+        };
+
+        /* â”€â”€ Create form: type â†’ parent picker â”€â”€ */
+        var typeItem = document.getElementById('typeItem');
+        var parentPicker = document.getElementById('parentPicker');
         function syncCreate() {
             if (!typeItem || !parentPicker) return;
             parentPicker.style.display = (typeItem.value === 'child') ? '' : 'none';
@@ -618,22 +612,44 @@ function isChecked($v): string
         if (typeItem) typeItem.addEventListener('change', syncCreate);
         syncCreate();
 
+        /* â”€â”€ Modal helpers â”€â”€ */
         window.closeModal = function (id) {
-            const el = document.getElementById(id);
+            var el = document.getElementById(id);
             if (!el) return;
-            el.classList.add('hidden');
-            el.classList.remove('flex');
+            el.classList.remove('is-open');
+            setScrollLock(false);
         };
 
         function openModal(id) {
-            const el = document.getElementById(id);
+            var el = document.getElementById(id);
             if (!el) return;
-            el.classList.remove('hidden');
-            el.classList.add('flex');
+            el.classList.add('is-open');
+            setScrollLock(true);
         }
 
+        /* Close on overlay click */
+        document.querySelectorAll('.cm-modal-overlay').forEach(function (overlay) {
+            overlay.addEventListener('click', function (e) {
+                if (e.target === overlay) {
+                    overlay.classList.remove('is-open');
+                    setScrollLock(false);
+                }
+            });
+        });
+
+        /* Close on Escape key */
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.cm-modal-overlay.is-open').forEach(function (m) {
+                    m.classList.remove('is-open');
+                });
+                setScrollLock(false);
+            }
+        });
+
+        /* â”€â”€ Edit category â”€â”€ */
         window.openEditCategory = function (id, lib, desc, icon, ordre, actif) {
-            const byId = (x) => document.getElementById(x);
+            var byId = function (x) { return document.getElementById(x); };
             byId('editCatId').value = String(id);
             byId('editCatLib').value = lib || '';
             byId('editCatDesc').value = desc || '';
@@ -643,15 +659,16 @@ function isChecked($v): string
             openModal('editCategoryModal');
         };
 
+        /* â”€â”€ Edit fonctionnalité â”€â”€ */
         function syncEditParent() {
-            const type = document.getElementById('editItemType');
-            const wrap = document.getElementById('editItemParentWrap');
+            var type = document.getElementById('editItemType');
+            var wrap = document.getElementById('editItemParentWrap');
             if (!type || !wrap) return;
             wrap.style.display = (type.value === 'child') ? '' : 'none';
         }
 
         window.openEditItem = function (id, idCategorie, type, lib, label, desc, url, icon, ordre, parent, actif) {
-            const byId = (x) => document.getElementById(x);
+            var byId = function (x) { return document.getElementById(x); };
             byId('editItemId').value = String(id);
             byId('editItemCat').value = String(idCategorie);
             byId('editItemType').value = type || 'parent';
@@ -667,19 +684,19 @@ function isChecked($v): string
             openModal('editItemModal');
         };
 
-        const editType = document.getElementById('editItemType');
+        var editType = document.getElementById('editItemType');
         if (editType) editType.addEventListener('change', syncEditParent);
 
-        // Expand/collapse des écrans (table)
+        /* â”€â”€ Expand / collapse child rows â”€â”€ */
         document.addEventListener('click', function (e) {
-            const btn = e.target && e.target.closest ? e.target.closest('.toggleRow') : null;
+            var btn = e.target && e.target.closest ? e.target.closest('.toggleRow') : null;
             if (!btn) return;
-            const target = btn.getAttribute('data-target');
+            var target = btn.getAttribute('data-target');
             if (!target) return;
-            const rows = document.querySelectorAll(`tr.childRow[data-parent="${target}"]`);
-            const icon = btn.querySelector('.toggleIcon');
-            const isHidden = rows.length > 0 ? rows[0].classList.contains('hidden') : true;
-            rows.forEach(r => r.classList.toggle('hidden', !isHidden));
+            var rows = document.querySelectorAll('tr.childRow[data-parent="' + target + '"]');
+            var icon = btn.querySelector('.toggleIcon');
+            var isHidden = rows.length > 0 ? rows[0].classList.contains('cm-hidden') : true;
+            rows.forEach(function (r) { r.classList.toggle('cm-hidden', !isHidden); });
             if (icon) icon.textContent = isHidden ? '-' : '+';
         });
     })();

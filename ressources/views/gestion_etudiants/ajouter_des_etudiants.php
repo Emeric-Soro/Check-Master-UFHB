@@ -30,6 +30,16 @@ foreach ($listeAnneesAcad as $annee) {
     }
 }
 
+// Find Master 2 ID for auto-selection (before formValues)
+$master2Id = '';
+foreach ($listeNiveaux as $niveau) {
+    $libelle = strtolower(trim((string) ($niveau->lib_niv_etude ?? '')));
+    if (strpos($libelle, 'master 2') !== false || strpos($libelle, 'master2') !== false) {
+        $master2Id = (string) ($niveau->id_niv_etude ?? '');
+        break;
+    }
+}
+
 $formValues = [
     'id_annee_acad' => $anneeActiveId,
     'identifiant_mesrs' => '',
@@ -38,8 +48,8 @@ $formValues = [
     'prenom_etu' => '',
     'date_naiss_etu' => '',
     'genre_etu' => '',
-    'id_niveau' => '',
-    'promotion_etu' => $anneeActiveLabel,
+    'id_niveau' => $master2Id, // Auto-select Master 2
+    'promotion_etu' => $anneeActiveLabel, // Auto-select current year
     'email_etu' => '',
 ];
 
@@ -105,81 +115,9 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
             <?php endif; ?>
             <input type="hidden" id="num_ident_etud" name="num_ident_etud" value="<?php echo htmlspecialchars((string) $formValues['identifiant_mesrs'], ENT_QUOTES, 'UTF-8'); ?>">
 
-            <div class="cm-grid-4">
+            <!-- Ligne 1: Niveau, Promotion, Année A. (grid-3) -->
+            <div class="cm-grid-3">
                 <?php
-                $anneeOptions = [];
-                foreach ($listeAnneesAcad as $annee) {
-                    $anneeId = (int) ($annee->id_annee_acad ?? 0);
-                    $debut = !empty($annee->date_deb) ? date('Y', strtotime((string) $annee->date_deb)) : '';
-                    $fin = !empty($annee->date_fin) ? date('Y', strtotime((string) $annee->date_fin)) : '';
-                    $anneeOptions[$anneeId] = trim($debut . '-' . $fin, '-');
-                }
-
-                cm_component('form/select', [
-                    'name' => 'id_annee_acad',
-                    'id' => 'id_annee_acad',
-                    'label' => 'Annee Academique',
-                    'required' => false,
-                    'options' => $anneeOptions,
-                    'selected' => (string) ($formValues['id_annee_acad'] ?? ''),
-                ]);
-
-                cm_component('form/input-text', [
-                    'name' => 'identifiant_mesrs',
-                    'id' => 'identifiant_mesrs',
-                    'label' => 'Identifiant MESRS',
-                    'maxlength' => 25,
-                    'value' => (string) $formValues['identifiant_mesrs'],
-                ]);
-
-                cm_component('form/input-text', [
-                    'name' => 'num_etu',
-                    'id' => 'num_etu',
-                    'label' => 'N° Etudiant',
-                    'maxlength' => 25,
-                    'required' => true,
-                    'value' => (string) $formValues['num_etu'],
-                ]);
-
-                cm_component('form/input-text', [
-                    'name' => 'nom_etu',
-                    'id' => 'nom_etu',
-                    'label' => 'Nom',
-                    'maxlength' => 50,
-                    'required' => true,
-                    'value' => (string) $formValues['nom_etu'],
-                ]);
-
-                cm_component('form/input-text', [
-                    'name' => 'prenom_etu',
-                    'id' => 'prenom_etu',
-                    'label' => 'Prenom',
-                    'maxlength' => 100,
-                    'required' => true,
-                    'value' => (string) $formValues['prenom_etu'],
-                ]);
-
-                cm_component('form/input-date', [
-                    'name' => 'date_naiss_etu',
-                    'id' => 'date_naiss_etu',
-                    'label' => 'Date de naissance',
-                    'required' => true,
-                    'value' => (string) $formValues['date_naiss_etu'],
-                ]);
-
-                cm_component('form/select', [
-                    'name' => 'genre_etu',
-                    'id' => 'genre_etu',
-                    'label' => 'Genre',
-                    'required' => true,
-                    'options' => [
-                        '1' => 'Masculin',
-                        '2' => 'Feminin',
-                        '3' => 'Neutre',
-                    ],
-                    'selected' => (string) $formValues['genre_etu'],
-                ]);
-
                 $niveauOptions = [];
                 foreach ($listeNiveaux as $niveau) {
                     $niveauOptions[(int) ($niveau->id_niv_etude ?? 0)] = (string) ($niveau->lib_niv_etude ?? 'Niveau');
@@ -211,10 +149,92 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
                     'selected' => (string) $formValues['promotion_etu'],
                 ]);
 
+                $anneeOptions = [];
+                foreach ($listeAnneesAcad as $annee) {
+                    $anneeId = (int) ($annee->id_annee_acad ?? 0);
+                    $debut = !empty($annee->date_deb) ? date('Y', strtotime((string) $annee->date_deb)) : '';
+                    $fin = !empty($annee->date_fin) ? date('Y', strtotime((string) $annee->date_fin)) : '';
+                    $anneeOptions[$anneeId] = trim($debut . '-' . $fin, '-');
+                }
+                cm_component('form/select', [
+                    'name' => 'id_annee_acad',
+                    'id' => 'id_annee_acad',
+                    'label' => 'Annee A.',
+                    'required' => false,
+                    'options' => $anneeOptions,
+                    'selected' => (string) ($formValues['id_annee_acad'] ?? ''),
+                ]);
+                ?>
+            </div>
+
+            <!-- Ligne 2: Identifiant (MESRS), N° Carte Étudiant, Nom, Prénom (grid-4) -->
+            <div class="cm-grid-4">
+                <?php
+                cm_component('form/input-text', [
+                    'name' => 'identifiant_mesrs',
+                    'id' => 'identifiant_mesrs',
+                    'label' => 'Identifiant (MESRS)',
+                    'maxlength' => 25,
+                    'value' => (string) $formValues['identifiant_mesrs'],
+                ]);
+
+                cm_component('form/input-text', [
+                    'name' => 'num_etu',
+                    'id' => 'num_etu',
+                    'label' => 'N° Carte Etudiant',
+                    'maxlength' => 25,
+                    'required' => true,
+                    'value' => (string) $formValues['num_etu'],
+                ]);
+
+                cm_component('form/input-text', [
+                    'name' => 'nom_etu',
+                    'id' => 'nom_etu',
+                    'label' => 'Nom',
+                    'maxlength' => 50,
+                    'required' => true,
+                    'value' => (string) $formValues['nom_etu'],
+                ]);
+
+                cm_component('form/input-text', [
+                    'name' => 'prenom_etu',
+                    'id' => 'prenom_etu',
+                    'label' => 'Prenom',
+                    'maxlength' => 100,
+                    'required' => true,
+                    'value' => (string) $formValues['prenom_etu'],
+                ]);
+                ?>
+            </div>
+
+            <!-- Ligne 3: Date Naissance, Genre, E-mail (grid-3) -->
+            <div class="cm-grid-3">
+                <?php
+                cm_component('form/input-date', [
+                    'name' => 'date_naiss_etu',
+                    'id' => 'date_naiss_etu',
+                    'label' => 'Date Naissance',
+                    'required' => true,
+                    'value' => (string) $formValues['date_naiss_etu'],
+                ]);
+
+                cm_component('form/select', [
+                    'name' => 'genre_etu',
+                    'id' => 'genre_etu',
+                    'label' => 'Genre',
+                    'required' => true,
+                    'options' => [
+                        '1' => 'Masculin',
+                        '2' => 'Feminin',
+                        '3' => 'Neutre',
+                    ],
+                    'selected' => (string) $formValues['genre_etu'],
+                ]);
+
                 cm_component('form/input-email', [
                     'name' => 'email_etu',
                     'id' => 'email_etu',
-                    'label' => 'Email',
+                    'label' => 'E-mail',
                     'required' => true,
                     'maxlength' => 60,
                     'value' => (string) $formValues['email_etu'],

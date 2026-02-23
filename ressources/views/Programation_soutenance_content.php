@@ -125,9 +125,17 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur">
             <div class="cm-pole-superieur-title">
-                <h2>
-                    <i class="fas fa-users-cog" aria-hidden="true"></i>
-                    Programmation de soutenance
+                <h2 class="flex justify-between items-center w-full">
+                    <span>
+                        <i class="fas fa-users-cog" aria-hidden="true"></i>
+                        Programmation de soutenance
+                    </span>
+                    <span class="text-sm font-normal flex items-center gap-2">
+                        <label for="cmProgAnnee" class="mb-0">Année Académique</label>
+                        <select name="cm_prog_annee" id="cmProgAnnee" class="form-control" required>
+                            <option value="">Sélectionner...</option>
+                        </select>
+                    </span>
                 </h2>
             </div>
 
@@ -210,19 +218,19 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_directeur',
                         'id' => 'cmProgDirecteur',
-                        'label' => 'Dir. memoire',
+                        'label' => 'Dir. mémoire',
                         'readonly' => true,
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_encadreur',
                         'id' => 'cmProgEncadreur',
-                        'label' => 'Encadrant',
+                        'label' => 'Encadreur P.',
                         'readonly' => true,
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_maitre',
                         'id' => 'cmProgMaitreStage',
-                        'label' => 'Maitre stage',
+                        'label' => 'Maître stage',
                         'readonly' => true,
                     ]);
                     ?>
@@ -296,17 +304,13 @@ $baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
                         <th class="cm-data-table__th cm-data-table__th--check">
                             <input type="checkbox" id="cmProgCheckAll" aria-label="Tout selectionner">
                         </th>
-                        <th class="cm-data-table__th">N</th>
-                        <th class="cm-data-table__th">Etudiant</th>
-                        <th class="cm-data-table__th">Date sout.</th>
+                        <th class="cm-data-table__th">Date S.</th>
                         <th class="cm-data-table__th">Heure</th>
                         <th class="cm-data-table__th">Salle</th>
-                        <th class="cm-data-table__th">President</th>
-                        <th class="cm-data-table__th">Dir.M</th>
-                        <th class="cm-data-table__th">Exam.</th>
-                        <th class="cm-data-table__th">Enc.</th>
-                        <th class="cm-data-table__th">MS</th>
-                        <th class="cm-data-table__th is-center">Act</th>
+                        <th class="cm-data-table__th">Etudiant</th>
+                        <th class="cm-data-table__th">Theme</th>
+                        <th class="cm-data-table__th">Jury</th>
+                        <th class="cm-data-table__th is-center">Actions</th>
                     </tr>
                     </thead>
                     <tbody id="cmProgTableBody">
