@@ -28,3 +28,7 @@ public/assets/css/output_dashboard_admin.css
 .DS_Store
 /.idea/
 /.cursor/
+
+# Documentation non versionnée
+# Pour ignorer docs2, décommente la ligne suivante
+docs2/
