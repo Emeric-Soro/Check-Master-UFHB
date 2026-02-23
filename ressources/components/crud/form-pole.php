@@ -2,15 +2,27 @@
 $title = (string) ($title ?? '');
 $icon = (string) ($icon ?? 'fa-pen-to-square');
 $content = (string) ($content ?? '');
+$actions = (string) ($actions ?? '');
+$id = (string) ($id ?? '');
+$class = (string) ($class ?? '');
 ?>
-<div class="cm-pole-superieur">
+<section class="cm-pole-superieur <?= htmlspecialchars($class, ENT_QUOTES, 'UTF-8') ?>"<?= $id !== '' ? ' id="' . htmlspecialchars($id, ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
     <?php if ($title !== ''): ?>
-    <div class="cm-pole-superieur-title">
+    <header class="cm-pole-superieur-title">
         <h2>
             <i class="fas <?= htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i>
             <?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?>
         </h2>
-    </div>
+    </header>
     <?php endif; ?>
-    <?= $content ?>
-</div>
+
+    <div class="cm-pole-superieur__content">
+        <?= $content ?>
+    </div>
+
+    <?php if ($actions !== ''): ?>
+    <footer class="cm-pole-superieur__actions">
+        <?= $actions ?>
+    </footer>
+    <?php endif; ?>
+</section>

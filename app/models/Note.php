@@ -192,14 +192,48 @@ class Note
                      FROM notes n
                      INNER JOIN etudiants e ON n.num_etu = e.num_carte_etud
                      LEFT JOIN annee_academique a ON n.id_annee_acad = a.id_annee_acad
-                     WHERE e.id_niveau = ? AND n.id_annee_acad = ?
+                     LEFT JOIN (
+                        SELECT i1.id_etudiant, i1.id_niveau
+                        FROM inscriptions i1
+                        INNER JOIN (
+                            SELECT id_etudiant, MAX(id_inscription) AS max_id
+                            FROM inscriptions
+                            GROUP BY id_etudiant
+                        ) latest ON latest.id_etudiant = i1.id_etudiant
+                               AND latest.max_id = i1.id_inscription
+                     ) ins ON ins.id_etudiant = e.num_carte_etud
+                     WHERE n.id_annee_acad = ?
+                       AND COALESCE(ins.id_niveau, e.id_niveau) = ?
                      ORDER BY e.nom_etu, e.prenom_etu";
 
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$niveauId, $anneeAcadId]);
+            $stmt->execute([$anneeAcadId, $niveauId]);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération des notes par niveau: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Récupérer toutes les notes d'une année académique (sans filtre niveau)
+     */
+    public function getNotesByYear($anneeAcadId)
+    {
+        try {
+            $query = "SELECT n.*, e.nom_etu, e.prenom_etu, e.num_carte_etud,
+                            a.date_deb, a.date_fin
+                     FROM notes n
+                     INNER JOIN etudiants e ON n.num_etu = e.num_carte_etud
+                     LEFT JOIN annee_academique a ON n.id_annee_acad = a.id_annee_acad
+                     WHERE n.id_annee_acad = ?
+                     ORDER BY e.nom_etu, e.prenom_etu";
+
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$anneeAcadId]);
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (PDOException $e) {
+            error_log("Erreur lors de la récupération des notes par année: " . $e->getMessage());
             return [];
         }
     }

@@ -403,7 +403,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
                     <?php if(isset($GLOBALS['inscriptionAModifier'])) : ?>
                     <div class="flex justify-between">
                         <button type="button" name="btn_annuler_insciption" id="btnAnnuler"
-                            onclick="window.location.href='?page=gestion_etudiants&action=inscrire_des_etudiants'"
+                            onclick="navigateToInscriptionsList()"
                             class="inline-flex items-center px-6 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-500 hover:bg-red-500/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
                             <i class="fas fa-times mr-2"></i>Annuler
                         </button>
@@ -606,6 +606,16 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
     const deleteModal = document.getElementById('deleteModal');
     const cancelDelete = document.getElementById('cancelDelete');
     const confirmDelete = document.getElementById('confirmDelete');
+    const navigate = function(url) {
+        if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+            window.CM.ajax.load(url);
+            return;
+        }
+        window.location.href = url;
+    };
+    window.navigateToInscriptionsList = function() {
+        navigate('?page=gestion_etudiants&action=inscrire_des_etudiants');
+    };
 
     // Fonction d'export Excel
     window.exportToExcel = function() {
@@ -882,8 +892,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
 
         // Fonction pour modifier une inscription
         window.modifierInscription = function(idInscription) {
-            window.location.href =
-                `?page=gestion_etudiants&action=inscrire_des_etudiants&modalAction=modifier&id=${idInscription}`;
+            navigate(`?page=gestion_etudiants&action=inscrire_des_etudiants&modalAction=modifier&id=${idInscription}`);
         };
 
 
@@ -942,8 +951,7 @@ $listeAnnees = isset($GLOBALS['listeAnnees']) ? $GLOBALS['listeAnnees'] : [];
     // Confirmer la suppression
     confirmDelete.addEventListener('click', function() {
         if (inscriptionToDelete) {
-            window.location.href =
-                `?page=gestion_etudiants&action=inscrire_des_etudiants&modalAction=supprimer&id=${inscriptionToDelete}`;
+            navigate(`?page=gestion_etudiants&action=inscrire_des_etudiants&modalAction=supprimer&id=${inscriptionToDelete}`);
         }
     });
 

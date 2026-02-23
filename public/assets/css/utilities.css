@@ -1,34 +1,36 @@
 /**
- * CheckMaster - Utilities
+ * CheckMaster utility classes
  */
 
-.cm-hidden {
-    display: none !important;
-}
+/* Flex */
+.cm-flex { display: flex; }
+.cm-flex-col { display: flex; flex-direction: column; }
+.cm-flex-center { display: flex; align-items: center; justify-content: center; }
+.cm-flex-between { display: flex; align-items: center; justify-content: space-between; }
+.cm-flex-start { display: flex; align-items: center; justify-content: flex-start; }
+.cm-flex-end { display: flex; align-items: center; justify-content: flex-end; }
+.cm-flex-wrap { flex-wrap: wrap; }
+.cm-flex-gap-sm { gap: var(--cm-spacing-sm); }
+.cm-flex-gap-md { gap: var(--cm-spacing-md); }
+.cm-flex-gap-lg { gap: var(--cm-spacing-lg); }
+.cm-align-center { align-items: center; }
+.cm-flex-1 { flex: 1 1 auto; }
+.cm-flex-shrink-0 { flex-shrink: 0; }
 
-.cm-visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    border: 0;
-}
+/* Grid */
+.cm-grid { display: grid; }
+.cm-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cm-spacing-md); }
+.cm-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--cm-spacing-md); }
+.cm-grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--cm-spacing-md); }
+.cm-grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--cm-spacing-md); }
 
-.cm-flex {
-    display: flex;
-}
-
-.cm-flex-wrap {
-    flex-wrap: wrap;
-}
-
-.cm-flex-gap-sm {
-    gap: var(--cm-spacing-sm);
-}
-
+/* Spacing */
+.cm-p-sm { padding: var(--cm-spacing-sm); }
+.cm-p-md { padding: var(--cm-spacing-md); }
+.cm-p-lg { padding: var(--cm-spacing-lg); }
+.cm-px-md { padding-left: var(--cm-spacing-md); padding-right: var(--cm-spacing-md); }
+.cm-py-md { padding-top: var(--cm-spacing-md); padding-bottom: var(--cm-spacing-md); }
+.cm-m-0 { margin: 0; }
 .cm-mt-sm { margin-top: var(--cm-spacing-sm); }
 .cm-mt-md { margin-top: var(--cm-spacing-md); }
 .cm-mt-lg { margin-top: var(--cm-spacing-lg); }
@@ -36,11 +38,66 @@
 .cm-mb-md { margin-bottom: var(--cm-spacing-md); }
 .cm-mb-lg { margin-bottom: var(--cm-spacing-lg); }
 
-.h-full { height: 100%; }
-.min-h-0 { min-height: 0; }
-.flex-1 { flex: 1 1 auto; }
-.shrink-0 { flex-shrink: 0; }
-.sticky { position: sticky; }
-.top-0 { top: 0; }
-.bg-white { background: #ffffff; }
-.z-10 { z-index: 10; }
+/* Typography */
+.cm-text-xs { font-size: var(--cm-font-size-xs); }
+.cm-text-sm { font-size: var(--cm-font-size-sm); }
+.cm-text-lg { font-size: var(--cm-font-size-lg); }
+.cm-text-xl { font-size: var(--cm-font-size-xl); }
+.cm-text-bold { font-weight: var(--cm-font-weight-bold); }
+.cm-text-semibold { font-weight: var(--cm-font-weight-semibold); }
+.cm-text-muted { color: var(--cm-text-muted); }
+.cm-text-primary { color: var(--cm-primary); }
+.cm-text-success { color: var(--cm-feedback-success); }
+.cm-text-danger { color: var(--cm-feedback-danger); }
+.cm-text-center { text-align: center; }
+.cm-text-right { text-align: right; }
+.cm-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Display / visibility */
+.cm-hidden { display: none !important; }
+.cm-sr-only,
+.cm-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+.cm-w-full { width: 100%; }
+.cm-h-full { height: 100%; }
+.cm-overflow-hidden { overflow: hidden; }
+.cm-relative { position: relative; }
+.cm-absolute { position: absolute; }
+
+/* Theme helpers */
+.cm-card {
+    background: var(--cm-card-bg);
+    border: 1px solid var(--cm-card-border);
+    border-radius: var(--cm-card-radius);
+    box-shadow: var(--cm-card-shadow);
+}
+
+.cm-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--cm-skeleton-base);
+}
+
+.cm-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent 0%, var(--cm-skeleton-highlight) 50%, transparent 100%);
+    animation: cm-skeleton-shimmer 1.2s infinite;
+}
+
+@keyframes cm-skeleton-shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}

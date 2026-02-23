@@ -314,6 +314,14 @@ if (!isset($_SESSION['id_utilisateur'])) {
             $contentFile = $partialsBasePath . 'rapport_a_valider_content.php';
             $currentPageLabel = 'Approuver Rapports';
             break;
+        case 'reception_rapport_com':
+            $contentFile = $partialsBasePath . 'rapport_a_valider_content.php';
+            $currentPageLabel = 'Réception des rapports';
+            break;
+        case 'dashboard_commission':
+            $contentFile = $partialsBasePath . 'dashboard_commission_content.php';
+            $currentPageLabel = 'Tableau de bord commission';
+            break;
         case 'gestion_candidatures':
             $contentFile = $partialsBasePath . 'gestion_candidatures_soutenance_content.php';
             $currentPageLabel = 'Gestion des Candidatures';
@@ -327,6 +335,10 @@ if (!isset($_SESSION['id_utilisateur'])) {
             $currentPageLabel = 'Évaluation des Dossiers';
             break;
         case 'programmation_soutenance':
+            $contentFile = $partialsBasePath . 'Programation_soutenance_content.php';
+            $currentPageLabel = 'Programmation Soutenance';
+            break;
+        case 'programation_soutenance':
             $contentFile = $partialsBasePath . 'Programation_soutenance_content.php';
             $currentPageLabel = 'Programmation Soutenance';
             break;
@@ -423,6 +435,14 @@ if (!isset($_SESSION['id_utilisateur'])) {
         case 'redaction_compte_rendu':
             $contentFile = $partialsBasePath . 'redaction_compte_rendu_content.php';
             $currentPageLabel = 'Rédaction de compte rendu';
+            break;
+        case 'processus_validation':
+            $contentFile = $partialsBasePath . 'processus_validation_content.php';
+            $currentPageLabel = 'Suivi de validation';
+            break;
+        case 'edition_bulletin':
+            $contentFile = $partialsBasePath . 'edition_bulletin_content.php';
+            $currentPageLabel = 'Edition des bulletins';
             break;
         case 'archive_comptes_rendus':
             $contentFile = $partialsBasePath . 'redaction_compte_rendu/archives_compte_rendu_content.php';
@@ -598,6 +618,26 @@ if (!isset($_SESSION['id_utilisateur'])) {
             'text_color' => 'text-white'
         ]
     ];
+
+    $polarizedPages = [
+        'gestion_etudiants',
+        'gestion_scolarite',
+        'gestion_notes_evaluations',
+        'gestion_dossiers_candidatures',
+        'gestion_reclamations_scolarite',
+        'dashboard_commission',
+        'rapport_a_valider',
+        'reception_rapport_com',
+        'evaluation_dossiers',
+        'evaluations_dossiers_soutenance',
+        'processus_validation',
+        'redaction_compte_rendu',
+        'programmation_soutenance',
+        'programation_soutenance',
+        'evaluation_soutenance',
+        'edition_bulletin',
+    ];
+    $isPolarizedPage = in_array((string) $currentMenuSlug, $polarizedPages, true);
 }
 ?>
 <!DOCTYPE html>
@@ -725,7 +765,7 @@ if (!isset($_SESSION['id_utilisateur'])) {
                 </div>
             </div>
             <main id="cmLayoutMain"
-                  class="cm-layout-main flex-1 p-6 flex flex-col overflow-hidden min-h-0 bg-[#DFF2FF]"
+                  class="cm-layout-main flex-1 p-6 flex flex-col min-h-0 bg-[#DFF2FF] <?php echo $isPolarizedPage ? 'cm-layout-main--locked' : 'cm-layout-main--scroll'; ?>"
                   data-page="<?php echo htmlspecialchars((string) $currentMenuSlug, ENT_QUOTES, 'UTF-8'); ?>">
                 <?php
                 if (!empty($contentFile) && file_exists($contentFile)) {

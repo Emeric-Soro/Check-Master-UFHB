@@ -109,11 +109,19 @@ class Etudiant
             $stmt->bindParam(':genre_etu', $genre_etu);
             $stmt->bindParam(':email_etu', $email_etu);
             $stmt->bindParam(':promotion_etu', $promotion_etu);
-            $stmt->bindParam(':id_niveau', $id_niveau, PDO::PARAM_INT);
-            $stmt->bindParam(':id_annee_acad', $id_annee_acad, PDO::PARAM_INT);
+            if ($id_niveau === null) {
+                $stmt->bindValue(':id_niveau', null, PDO::PARAM_NULL);
+            } else {
+                $stmt->bindValue(':id_niveau', (int) $id_niveau, PDO::PARAM_INT);
+            }
+            if ($id_annee_acad === null) {
+                $stmt->bindValue(':id_annee_acad', null, PDO::PARAM_NULL);
+            } else {
+                $stmt->bindValue(':id_annee_acad', (int) $id_annee_acad, PDO::PARAM_INT);
+            }
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log("Erreur lors de l'ajout de l'étudiant : " . $e->getMessage());
+            error_log("Erreur lors de l'ajout de l'étudiant : " . $e->getMessage() . " | id_niveau=" . var_export($id_niveau, true) . " | id_annee_acad=" . var_export($id_annee_acad, true));
             return false;
         }
     }
@@ -142,12 +150,20 @@ class Etudiant
             $stmt->bindParam(':genre_etu', $genre_etu);
             $stmt->bindParam(':email_etu', $email_etu);
             $stmt->bindParam(':promotion_etu', $promotion_etu);
-            $stmt->bindParam(':id_niveau', $id_niveau, PDO::PARAM_INT);
-            $stmt->bindParam(':id_annee_acad', $id_annee_acad, PDO::PARAM_INT);
+            if ($id_niveau === null) {
+                $stmt->bindValue(':id_niveau', null, PDO::PARAM_NULL);
+            } else {
+                $stmt->bindValue(':id_niveau', (int) $id_niveau, PDO::PARAM_INT);
+            }
+            if ($id_annee_acad === null) {
+                $stmt->bindValue(':id_annee_acad', null, PDO::PARAM_NULL);
+            } else {
+                $stmt->bindValue(':id_annee_acad', (int) $id_annee_acad, PDO::PARAM_INT);
+            }
             $stmt->bindParam(':num_ident_etud', $identifiant_mesrs);
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log("Erreur lors de la modification de l'étudiant : " . $e->getMessage());
+            error_log("Erreur lors de la modification de l'étudiant : " . $e->getMessage() . " | id_niveau=" . var_export($id_niveau, true) . " | id_annee_acad=" . var_export($id_annee_acad, true));
             return false;
         }
     }

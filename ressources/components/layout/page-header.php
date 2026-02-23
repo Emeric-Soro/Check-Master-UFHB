@@ -1,38 +1,29 @@
 <?php
-$title = $title ?? 'Page';
-$subtitle = $subtitle ?? '';
-$annee = $annee ?? '';
-$breadcrumbs = $breadcrumbs ?? [];
-$icon = $icon ?? '';
-$show_title_group = isset($show_title_group) ? (bool) $show_title_group : true;
+$title = (string) ($title ?? '');
+$subtitle = (string) ($subtitle ?? '');
+$annee = (string) ($annee ?? '');
+$breadcrumbs = is_array($breadcrumbs ?? null) ? $breadcrumbs : [];
+$icon = (string) ($icon ?? '');
+$show_title = !isset($show_title_group) || (bool) $show_title_group;
 
-$has_heading = $show_title_group && ($title !== '' || $subtitle !== '' || $icon !== '');
+$has_title = $show_title && ($title !== '' || $subtitle !== '' || $icon !== '');
 $has_year = $annee !== '';
 $has_breadcrumbs = !empty($breadcrumbs);
 
-if (!$has_heading && !$has_year && !$has_breadcrumbs) {
+if (!$has_title && !$has_year && !$has_breadcrumbs) {
     return;
 }
 ?>
-<div class="cm-page-header">
-    <div class="cm-page-header__main <?= !$has_heading ? 'is-compact' : '' ?>">
-        <?php if ($has_year): ?>
-        <span class="cm-badge is-info cm-page-header__year">
-            <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-            <?= htmlspecialchars((string) $annee, ENT_QUOTES, 'UTF-8') ?>
-        </span>
-        <?php endif; ?>
-    </div>
-
+<section class="cm-page-header">
     <?php if ($has_breadcrumbs): ?>
-    <nav class="cm-breadcrumb" aria-label="Fil d'Ariane">
+    <nav class="cm-breadcrumb" aria-label="Fil d Ariane">
         <ol class="cm-breadcrumb__list">
             <?php foreach ($breadcrumbs as $i => $crumb): ?>
-            <?php
-            $label = (string) ($crumb['label'] ?? '');
-            $url = (string) ($crumb['url'] ?? '');
-            $is_last = ($i === count($breadcrumbs) - 1);
-            ?>
+                <?php
+                $label = (string) ($crumb['label'] ?? '');
+                $url = (string) ($crumb['url'] ?? '');
+                $is_last = ($i === count($breadcrumbs) - 1);
+                ?>
             <li class="cm-breadcrumb__item <?= $is_last ? 'is-active' : '' ?>">
                 <?php if (!$is_last && $url !== ''): ?>
                 <a href="<?= htmlspecialchars($url, ENT_QUOTES, 'UTF-8') ?>" class="cm-breadcrumb__link">
@@ -47,4 +38,4 @@ if (!$has_heading && !$has_year && !$has_breadcrumbs) {
         </ol>
     </nav>
     <?php endif; ?>
-</div>
+</section>

@@ -11,6 +11,31 @@ class Approuver
         $this->pdo = $pdo;
     }
 
+    private static function tableExists($pdo, $tableName)
+    {
+        try {
+            $stmt = $pdo->prepare("SHOW TABLES LIKE ?");
+            $stmt->execute([$tableName]);
+            return (bool) $stmt->fetchColumn();
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    private static function columnExists($pdo, $tableName, $columnName)
+    {
+        if (!self::tableExists($pdo, $tableName)) {
+            return false;
+        }
+        try {
+            $stmt = $pdo->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
+            $stmt->execute([$columnName]);
+            return (bool) $stmt->fetchColumn();
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
     public static function getByRapport($id_rapport)
     {
         $pdo = Database::getConnection();
@@ -30,12 +55,33 @@ class Approuver
     public static function getRapportsAvecAvis()
     {
         $pdo = Database::getConnection();
-        $stmt = $pdo->query("SELECT DISTINCT r.id_rapport, r.nom_rapport, r.theme_rapport, r.date_rapport, r.etape_validation, e.nom_etu, e.prenom_etu
+        if (!self::tableExists($pdo, 'approuver')) {
+            return [];
+        }
+
+        $titleCol = self::columnExists($pdo, 'rapport_etudiants', 'nom_rapport') ? 'r.nom_rapport' : 'r.theme_rapport';
+        $dateCol = self::columnExists($pdo, 'rapport_etudiants', 'date_rapport')
+            ? 'r.date_rapport'
+            : (self::columnExists($pdo, 'rapport_etudiants', 'date_redaction_rapport') ? 'r.date_redaction_rapport' : 'NULL');
+        $etapeCol = self::columnExists($pdo, 'rapport_etudiants', 'etape_validation')
+            ? 'r.etape_validation'
+            : "COALESCE(r.statut_rapport, '')";
+
+        $stmt = $pdo->query("
+            SELECT DISTINCT
+                r.id_rapport,
+                {$titleCol} AS nom_rapport,
+                r.theme_rapport,
+                {$dateCol} AS date_rapport,
+                {$etapeCol} AS etape_validation,
+                e.nom_etu,
+                e.prenom_etu
             FROM rapport_etudiants r
             JOIN etudiants e ON r.num_etu = e.num_carte_etud
             JOIN approuver a ON r.id_rapport = a.id_rapport
-            ORDER BY r.date_rapport DESC");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            ORDER BY " . ($dateCol === 'NULL' ? 'r.id_rapport DESC' : "{$dateCol} DESC")
+        );
+        return $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
     }
 
     /**
@@ -54,7 +100,10 @@ class Approuver
     public static function getTousAvis()
     {
         $pdo = Database::getConnection();
+        if (!self::tableExists($pdo, 'approuver')) {
+            return [];
+        }
         $stmt = $pdo->query("SELECT id_rapport, id_pers_admin, decision, commentaire_approv FROM approuver");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
     }
 }

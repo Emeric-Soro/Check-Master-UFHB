@@ -1,40 +1,23 @@
 <?php
 
-namespace CheckMaster\Support;
-
 /**
- * FormHelper - Registre centralisé des champs de formulaire par entité.
+ * FormHelper - lightweight form utilities and field registry.
  */
 class FormHelper
 {
+    /** @var array<string, array<string, array<string, mixed>>> */
     private array $registry = [
         'etudiant' => [
-            'num_carte_etud' => ['type' => 'text', 'label' => 'Matricule', 'size' => 'compresse', 'required' => true],
-            'nom_etudiant'   => ['type' => 'text', 'label' => 'Nom', 'size' => 'standard', 'required' => true],
-            'prenom_etudiant' => ['type' => 'text', 'label' => 'Prénom', 'size' => 'standard', 'required' => true],
-            'date_naiss_etudiant' => ['type' => 'date', 'label' => 'Date de naissance', 'size' => 'standard'],
-            'lieu_naiss_etudiant' => ['type' => 'text', 'label' => 'Lieu de naissance', 'size' => 'standard'],
-            'sexe_etudiant'  => ['type' => 'select', 'label' => 'Genre', 'size' => 'compresse', 'options' => ['M' => 'Masculin', 'F' => 'Féminin']],
-            'mail_etudiant'  => ['type' => 'email', 'label' => 'Email', 'size' => 'etendue', 'required' => true],
-            'tel_etudiant'   => ['type' => 'tel', 'label' => 'Téléphone', 'size' => 'standard'],
+            'num_carte_etud' => ['type' => 'text', 'label' => 'Matricule', 'required' => true],
+            'nom_etudiant' => ['type' => 'text', 'label' => 'Nom', 'required' => true],
+            'prenom_etudiant' => ['type' => 'text', 'label' => 'Prenom', 'required' => true],
+            'date_naiss_etudiant' => ['type' => 'date', 'label' => 'Date de naissance'],
+            'mail_etudiant' => ['type' => 'email', 'label' => 'Email', 'required' => true],
         ],
-        'enseignant' => [
-            'nom_enseignant'    => ['type' => 'text', 'label' => 'Nom', 'size' => 'standard', 'required' => true],
-            'prenom_enseignant' => ['type' => 'text', 'label' => 'Prénom', 'size' => 'standard', 'required' => true],
-            'mail_enseignant'   => ['type' => 'email', 'label' => 'Email', 'size' => 'etendue', 'required' => true],
-            'id_specialite'     => ['type' => 'select', 'label' => 'Spécialité', 'size' => 'standard'],
-            'type_enseignant'   => ['type' => 'select', 'label' => 'Type', 'size' => 'standard', 'options' => [1 => 'Permanent', 2 => 'Vacataire']],
-        ],
-        'utilisateur' => [
-            'nom_utilisateur'   => ['type' => 'text', 'label' => 'Nom Complet', 'size' => 'standard', 'required' => true],
-            'login_utilisateur' => ['type' => 'text', 'label' => 'Login', 'size' => 'standard', 'required' => true],
-            'statut_utilisateur' => ['type' => 'select', 'label' => 'Statut', 'size' => 'compresse', 'options' => [1 => 'Actif', 0 => 'Inactif']],
-            'id_GU'             => ['type' => 'select', 'label' => 'Groupe', 'size' => 'standard'],
-        ]
     ];
 
     /**
-     * Récupère la configuration d'un champ.
+     * @return array<string, mixed>|null
      */
     public function fieldConfig(string $entity, string $field): ?array
     {
@@ -42,32 +25,109 @@ class FormHelper
     }
 
     /**
-     * Récupère tous les champs pour une entité.
+     * @return array<string, array<string, mixed>>
      */
     public function entityFields(string $entity): array
     {
         return $this->registry[$entity] ?? [];
     }
+}
 
+if (!function_exists('cm_csrf_token')) {
     /**
-     * Construit les champs avec valeurs et erreurs.
+     * Return current CSRF token (CheckMaster Core token when available).
      */
-    public function buildFormFields(string $entity, array $values = [], array $errors = []): array
+    function cm_csrf_token(): string
     {
-        $fields = $this->entityFields($entity);
-        foreach ($fields as $name => &$config) {
-            $config['name'] = $name;
-            $config['value'] = $values[$name] ?? '';
-            $config['error'] = $errors[$name] ?? '';
+        if (class_exists('\CheckMaster\Core\Csrf')) {
+            return (string) \CheckMaster\Core\Csrf::token();
         }
-        return $fields;
+
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+
+        return (string) $_SESSION['csrf_token'];
     }
 }
 
-// ---------------------------------------------------------------------------
-// Backward-compatible procedural helpers (used by legacy code)
-// ---------------------------------------------------------------------------
+if (!function_exists('cm_csrf_verify')) {
+    /**
+     * Validate CSRF token or throw.
+     *
+     * @throws RuntimeException
+     */
+    function cm_csrf_verify(string $submitted): void
+    {
+        $submitted = trim($submitted);
+        if ($submitted === '') {
+            throw new RuntimeException('Token CSRF manquant.');
+        }
 
+        if (class_exists('\CheckMaster\Core\Csrf')) {
+            if (!\CheckMaster\Core\Csrf::validate($submitted)) {
+                throw new RuntimeException('Token CSRF invalide.');
+            }
+            return;
+        }
+
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        $token = (string) ($_SESSION['csrf_token'] ?? '');
+        if ($token === '' || !hash_equals($token, $submitted)) {
+            throw new RuntimeException('Token CSRF invalide.');
+        }
+    }
+}
+
+if (!function_exists('cm_old')) {
+    /**
+     * @param mixed $default
+     * @return mixed
+     */
+    function cm_old(string $field, $default = '')
+    {
+        if (isset($_POST[$field])) {
+            return $_POST[$field];
+        }
+
+        if (isset($_SESSION['old_input']) && is_array($_SESSION['old_input']) && array_key_exists($field, $_SESSION['old_input'])) {
+            return $_SESSION['old_input'][$field];
+        }
+
+        if (isset($_SESSION['old']) && is_array($_SESSION['old']) && array_key_exists($field, $_SESSION['old'])) {
+            return $_SESSION['old'][$field];
+        }
+
+        return $default;
+    }
+}
+
+if (!function_exists('cm_error')) {
+    /**
+     * @param string $field
+     */
+    function cm_error(string $field): string
+    {
+        if (isset($_SESSION['validation_errors']) && is_array($_SESSION['validation_errors']) && isset($_SESSION['validation_errors'][$field])) {
+            return (string) $_SESSION['validation_errors'][$field];
+        }
+
+        if (isset($_SESSION['errors']) && is_array($_SESSION['errors']) && isset($_SESSION['errors'][$field])) {
+            return (string) $_SESSION['errors'][$field];
+        }
+
+        return '';
+    }
+}
+
+// Backward-compatible aliases used by existing components.
 if (!function_exists('cm_form_old_value')) {
     /**
      * @param mixed $default
@@ -75,30 +135,15 @@ if (!function_exists('cm_form_old_value')) {
      */
     function cm_form_old_value(string $name, $default = '')
     {
-        if (isset($_POST[$name])) {
-            return $_POST[$name];
-        }
-
-        if (isset($_SESSION['old']) && is_array($_SESSION['old']) && array_key_exists($name, $_SESSION['old'])) {
-            return $_SESSION['old'][$name];
-        }
-
-        return $default;
+        return cm_old($name, $default);
     }
 }
 
 if (!function_exists('cm_form_field_error')) {
     function cm_form_field_error(string $name, string $default = ''): string
     {
-        if (isset($_SESSION['errors']) && is_array($_SESSION['errors']) && isset($_SESSION['errors'][$name])) {
-            return (string) $_SESSION['errors'][$name];
-        }
-
-        if (isset($GLOBALS['errors']) && is_array($GLOBALS['errors']) && isset($GLOBALS['errors'][$name])) {
-            return (string) $GLOBALS['errors'][$name];
-        }
-
-        return $default;
+        $message = cm_error($name);
+        return $message !== '' ? $message : $default;
     }
 }
 
@@ -142,13 +187,15 @@ if (!function_exists('cm_form_attr_string')) {
 
 if (!function_exists('cm_form_normalize_options')) {
     /**
-     * Normalize options to [['value'=>..., 'label'=>...], ...]
-     *
      * @param array<int|string, mixed> $options
      * @return array<int, array<string, mixed>>
      */
     function cm_form_normalize_options(array $options): array
     {
+        $isList = function_exists('array_is_list')
+            ? array_is_list($options)
+            : (array_keys($options) === range(0, count($options) - 1));
+
         $normalized = [];
         foreach ($options as $key => $option) {
             if (is_array($option)) {
@@ -171,11 +218,12 @@ if (!function_exists('cm_form_normalize_options')) {
             }
 
             $normalized[] = [
-                'value' => is_string($key) ? $key : (string) $option,
+                'value' => $isList ? (string) $option : (string) $key,
                 'label' => (string) $option,
                 'disabled' => false,
             ];
         }
+
         return $normalized;
     }
 }

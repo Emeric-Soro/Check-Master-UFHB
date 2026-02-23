@@ -322,15 +322,19 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
         <div class="cm-toolbar">
             <div class="cm-toolbar-left">
                 <label for="cmVersementsLimit"><strong>Afficher:</strong></label>
-                <select id="cmVersementsLimit" class="cm-form-control cm-form-select is-sm" style="max-width: 90px;">
+                <select id="cmVersementsLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
                     <?php foreach ($allowedLimits as $limit): ?>
                         <option value="<?php echo $limit; ?>" <?php echo $limit === $versementsParPage ? 'selected' : ''; ?>>
                             <?php echo $limit; ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <span class="cm-badge is-info cm-toolbar-year">
+                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                    <?php echo htmlspecialchars($anneeActiveLabel, ENT_QUOTES, 'UTF-8'); ?>
+                </span>
                 <label for="cmFiltreNiveau"><strong>Niveau:</strong></label>
-                <select id="cmFiltreNiveau" class="cm-form-control cm-form-select is-sm" style="max-width: 160px;">
+                <select id="cmFiltreNiveau" class="cm-form-control cm-form-select is-sm cm-toolbar-field-md">
                     <option value="">Tous</option>
                     <?php foreach ($niveauxOptions as $libelle): ?>
                         <option value="<?php echo htmlspecialchars(strtolower((string) $libelle), ENT_QUOTES, 'UTF-8'); ?>">
@@ -339,7 +343,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     <?php endforeach; ?>
                 </select>
                 <label for="cmFiltreStatut"><strong>Statut:</strong></label>
-                <select id="cmFiltreStatut" class="cm-form-control cm-form-select is-sm" style="max-width: 150px;">
+                <select id="cmFiltreStatut" class="cm-form-control cm-form-select is-sm cm-toolbar-field-sm">
                     <option value="">Tous</option>
                     <option value="solde">Solde</option>
                     <option value="partiel">Partiel</option>
@@ -461,6 +465,13 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
 (function () {
     const catalog = <?php echo json_encode($catalog, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const niveauxMontants = <?php echo json_encode($niveauxMontants, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const navigate = function (url) {
+        if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+            window.CM.ajax.load(url);
+            return;
+        }
+        window.location.href = url;
+    };
 
     const etudiantHidden = document.getElementById('cmEtudiantSelect_hidden');
     const etudiantSearchInput = document.getElementById('cmEtudiantSelect_search');
@@ -730,7 +741,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             const url = new URL(window.location.href);
             url.searchParams.set('limit_versements', String(limitSelect.value));
             url.searchParams.set('page_versements', '1');
-            window.location.href = url.toString();
+            navigate(url.toString());
         });
     }
 

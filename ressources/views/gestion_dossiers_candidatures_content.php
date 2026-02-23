@@ -100,7 +100,7 @@ $rowsPage = array_slice($rows, (int) ($pagination['offset'] ?? 0), $perPage);
 $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' . $perPage;
 ?>
 
-<div class="cm-prd3-screen cm-prd3-crud-screen h-full flex flex-col min-h-0">
+<div class="cm-prd3-screen cm-prd3-crud-screen">
     <?php
     cm_component('layout/page-header', [
         'title' => 'Dossiers de candidatures',
@@ -133,8 +133,8 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
         ?>
     </div>
 
-    <div class="cm-crud-wrapper flex-1 flex flex-col min-h-0">
-    <div class="cm-pole-superieur shrink-0">
+    <div class="cm-crud-wrapper">
+    <div class="cm-pole-superieur">
         <div class="cm-pole-superieur-title">
             <h2>
                 <i class="fas fa-user-gear" aria-hidden="true"></i>
@@ -205,26 +205,30 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
         </form>
     </div>
 
-    <div class="cm-barre-intermediaire shrink-0">
+    <div class="cm-barre-intermediaire">
         <div class="cm-toolbar">
             <div class="cm-toolbar-left">
                 <label for="cmCandidaturesLimit"><strong>Afficher:</strong></label>
-                <select id="cmCandidaturesLimit" class="cm-form-control cm-form-select is-sm" style="max-width: 90px;">
+                <select id="cmCandidaturesLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
                     <?php foreach ($allowedLimits as $limit): ?>
                         <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
                             <?php echo $limit; ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <span class="cm-badge is-info cm-toolbar-year">
+                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                    <?php echo date('Y') . '-' . (date('Y') + 1); ?>
+                </span>
                 <label for="cmFilterCandStatus"><strong>Statut:</strong></label>
-                <select id="cmFilterCandStatus" class="cm-form-control cm-form-select is-sm" style="max-width: 150px;">
+                <select id="cmFilterCandStatus" class="cm-form-control cm-form-select is-sm cm-toolbar-field-sm">
                     <option value="">Tous</option>
                     <option value="en attente">En attente</option>
                     <option value="validée">Validée</option>
                     <option value="rejetée">Rejetée</option>
                 </select>
                 <label for="cmFilterCandDate"><strong>Date:</strong></label>
-                <input type="date" id="cmFilterCandDate" class="cm-form-control is-sm" style="max-width: 180px;">
+                <input type="date" id="cmFilterCandDate" class="cm-form-control is-sm cm-toolbar-field-lg">
             </div>
             <div class="cm-toolbar-center">
                 <input type="text" id="cmSearchCandidature" class="cm-form-control" placeholder="Rechercher (etudiant, numero, titre)...">
@@ -254,10 +258,10 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
         </div>
     </div>
 
-    <div class="cm-pole-inferieur flex-1 flex flex-col min-h-0">
-        <div class="cm-table-wrapper flex-1 overflow-y-auto">
+    <div class="cm-pole-inferieur">
+        <div class="cm-table-wrapper">
             <table class="cm-data-table" id="cmCandidaturesTable">
-                <thead class="sticky top-0 bg-white z-10">
+                <thead>
                 <tr>
                     <th class="cm-data-table__th is-checkbox">
                         <input type="checkbox" id="cmCheckAllCandidatures" class="cm-checkbox" aria-label="Selectionner toutes les lignes">
@@ -378,6 +382,14 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
 
 <script>
 (function () {
+    const navigate = function (url) {
+        if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+            window.CM.ajax.load(url);
+            return;
+        }
+        window.location.href = url;
+    };
+
     const toggleButtons = document.querySelectorAll('.cm-toggle-detail');
     for (let i = 0; i < toggleButtons.length; i++) {
         toggleButtons[i].addEventListener('click', function () {
@@ -523,7 +535,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
             const url = new URL(window.location.href);
             url.searchParams.set('limit_candidatures', String(limitSelect.value));
             url.searchParams.set('p', '1');
-            window.location.href = url.toString();
+            navigate(url.toString());
         });
     }
 

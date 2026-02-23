@@ -72,7 +72,7 @@ $pagination = function_exists('cm_paginate')
 $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit=' . $itemsPerPage;
 ?>
 
-<div class="cm-prd3-screen cm-prd3-crud-screen h-full flex flex-col min-h-0">
+<div class="cm-prd3-screen cm-prd3-crud-screen">
     <?php
     cm_component('layout/page-header', [
         'title' => 'Gestion des etudiants',
@@ -89,8 +89,8 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
         <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $GLOBALS['messageErreur']]); ?>
     <?php endif; ?>
 
-    <div class="cm-crud-wrapper flex-1 flex flex-col min-h-0">
-    <div class="cm-pole-superieur shrink-0">
+    <div class="cm-crud-wrapper">
+    <div class="cm-pole-superieur">
         <div class="cm-pole-superieur-title">
             <h2>
                 <i class="fas fa-pen-to-square" aria-hidden="true"></i>
@@ -250,11 +250,11 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
         </form>
     </div>
 
-    <div class="cm-barre-intermediaire shrink-0">
+    <div class="cm-barre-intermediaire">
         <div class="cm-toolbar">
             <div class="cm-toolbar-left">
                 <label for="cmStudentLimit"><strong>Afficher:</strong></label>
-                <select id="cmStudentLimit" class="cm-form-control cm-form-select is-sm" style="max-width: 90px;">
+                <select id="cmStudentLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
                     <?php foreach ($allowedLimits as $limit): ?>
                         <option value="<?php echo $limit; ?>" <?php echo $limit === $itemsPerPage ? 'selected' : ''; ?>>
                             <?php echo $limit; ?>
@@ -298,12 +298,12 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
         </div>
     </div>
 
-    <div class="cm-pole-inferieur flex-1 flex flex-col min-h-0">
-        <form id="studentsBulkForm" method="POST" action="?page=gestion_etudiants&action=ajouter_des_etudiants" class="flex-1 flex flex-col min-h-0">
+    <div class="cm-pole-inferieur">
+        <form id="studentsBulkForm" method="POST" action="?page=gestion_etudiants&action=ajouter_des_etudiants" class="cm-table-form">
             <?php cm_component('form/csrf-token'); ?>
-            <div class="cm-table-wrapper flex-1 overflow-y-auto">
+            <div class="cm-table-wrapper">
                 <table class="cm-data-table" id="cmStudentsTable">
-                    <thead class="sticky top-0 bg-white z-10">
+                    <thead>
                     <tr>
                         <?php if (canEdit() || canDelete()): ?>
                             <th class="cm-data-table__th is-checkbox">
@@ -406,6 +406,13 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
     const limitSelect = document.getElementById('cmStudentLimit');
     const selectedCount = document.getElementById('cmSelectedCount');
     const deleteBtn = document.getElementById('cmDeleteSelectedBtn');
+    const navigate = function (url) {
+        if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+            window.CM.ajax.load(url);
+            return;
+        }
+        window.location.href = url;
+    };
 
     const rowCheckboxes = function () {
         return Array.from(document.querySelectorAll('#cmStudentsTableBody .cm-row-checkbox'));
@@ -506,7 +513,7 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
             const url = new URL(window.location.href);
             url.searchParams.set('limit', String(limitSelect.value));
             url.searchParams.set('p', '1');
-            window.location.href = url.toString();
+            navigate(url.toString());
         });
     }
 
