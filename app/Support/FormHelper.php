@@ -149,6 +149,10 @@ if (!function_exists('cm_form_normalize_options')) {
      */
     function cm_form_normalize_options(array $options): array
     {
+        $isList = function_exists('array_is_list')
+            ? array_is_list($options)
+            : (array_keys($options) === range(0, count($options) - 1));
+
         $normalized = [];
         foreach ($options as $key => $option) {
             if (is_array($option)) {
@@ -171,7 +175,7 @@ if (!function_exists('cm_form_normalize_options')) {
             }
 
             $normalized[] = [
-                'value' => is_string($key) ? $key : (string) $option,
+                'value' => $isList ? (string) $option : (string) $key,
                 'label' => (string) $option,
                 'disabled' => false,
             ];

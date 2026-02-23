@@ -1,9 +1,10 @@
 <?php
 
-namespace CheckMaster\Support;
-
 /**
- * ComponentHelper - Aide au rendu des composants réutilisables.
+ * ComponentHelper - centralized rendering for reusable UI components.
+ *
+ * This file intentionally exposes global procedural helpers (`cm_component`,
+ * `cm_render_component`, `cm_asset`) to match the legacy view layer.
  */
 class ComponentHelper
 {
@@ -11,144 +12,85 @@ class ComponentHelper
 
     public function __construct(?string $basePath = null)
     {
-        $this->basePath = $basePath ?? dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR . 'components' . DIRECTORY_SEPARATOR;
+        $this->basePath = $basePath
+            ?? dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'ressources' . DIRECTORY_SEPARATOR . 'components' . DIRECTORY_SEPARATOR;
     }
 
     /**
-     * Rend un composant générique.
+     * Render a component and return HTML.
+     *
+     * @param string $path   Component path without extension.
+     * @param array<string, mixed> $params
      */
     public function render(string $path, array $params = []): string
     {
-        $file = $this->basePath . str_replace('/', DIRECTORY_SEPARATOR, $path) . '.php';
-        if (!is_file($file)) {
-            return "<!-- Component not found: $path -->";
+        $normalized = trim(str_replace('\\', '/', $path), '/');
+        if ($normalized === '' || strpos($normalized, '..') !== false) {
+            return '<!-- Invalid component path -->';
         }
 
-        // Variable globale accessible dans le composant pour les inclusions récursives
-        $c = $this;
-        $component = function(string $p, array $pa = []) use ($c) {
-            return $c->render($p, $pa);
-        };
+        $file = $this->basePath . str_replace('/', DIRECTORY_SEPARATOR, $normalized) . '.php';
+        if (!is_file($file)) {
+            return "<!-- Component not found: {$normalized} -->";
+        }
 
         ob_start();
-        extract($params);
+        extract($params, EXTR_SKIP);
         include $file;
         return (string) ob_get_clean();
     }
-
-    /**
-     * Raccourci pour les composants de formulaire.
-     */
-    public function form(string $name, array $params = []): string
-    {
-        return $this->render("form/$name", $params);
-    }
-
-    /**
-     * Raccourci pour les composants de tableau.
-     */
-    public function table(string $name, array $params = []): string
-    {
-        return $this->render("table/$name", $params);
-    }
-
-    /**
-     * Raccourci pour les composants de panneau.
-     */
-    public function panel(string $name, array $params = []): string
-    {
-        return $this->render("panel/$name", $params);
-    }
-
-    /**
-     * Raccourci pour les composants de navigation.
-     */
-    public function nav(string $name, array $params = []): string
-    {
-        return $this->render("nav/$name", $params);
-    }
-
-    /**
-     * Raccourci pour les composants de widget.
-     */
-    public function widget(string $name, array $params = []): string
-    {
-        return $this->render("widget/$name", $params);
-    }
-
-    /**
-     * Raccourci pour les composants de feedback.
-     */
-    public function feedback(string $name, array $params = []): string
-    {
-        return $this->render("feedback/$name", $params);
-    }
-
-    /**
-     * Raccourci pour les composants de structure (layout).
-     */
-    public function layout(string $name, array $params = []): string
-    {
-        return $this->render("layout/$name", $params);
-    }
-
-    /**
-     * Raccourci pour les composants spéciaux.
-     */
-    public function special(string $name, array $params = []): string
-    {
-        return $this->render("special/$name", $params);
-    }
 }
-
-// ---------------------------------------------------------------------------
-// Backward-compatible procedural helpers (used by layout.php and legacy code)
-// ---------------------------------------------------------------------------
 
 if (!function_exists('cm_component')) {
     /**
-     * Render a reusable component from ressources/components.
+     * Include a reusable component from ressources/components.
      *
-     * @param string $name   Component path without extension, ex: "form/input-text".
-     * @param array<string, mixed> $params Variables exposed in component scope.
+     * @param string $name
+     * @param array<string, mixed> $props
+     *
+     * @throws RuntimeException if component does not exist.
      */
-    function cm_component(string $name, array $params = []): void
+    function cm_component(string $name, array $props = []): void
     {
         $normalized = trim(str_replace('\\', '/', $name), '/');
         if ($normalized === '' || strpos($normalized, '..') !== false) {
-            return;
+            throw new RuntimeException('[cm_component] Invalid component name: ' . $name);
         }
 
         $base = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'ressources' . DIRECTORY_SEPARATOR . 'components';
         $file = $base . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $normalized) . '.php';
 
         if (!is_file($file)) {
-            return;
+            throw new RuntimeException('[cm_component] Component not found: ' . $normalized . ' (' . $file . ')');
         }
 
-        extract($params, EXTR_SKIP);
-        include $file;
+        (static function (string $_file, array $_props): void {
+            extract($_props, EXTR_SKIP);
+            require $_file;
+        })($file, $props);
     }
 }
 
 if (!function_exists('cm_render_component')) {
     /**
-     * Render a component and return HTML.
+     * Render a component and return its HTML.
      *
      * @param string $name
-     * @param array<string, mixed> $params
+     * @param array<string, mixed> $props
      */
-    function cm_render_component(string $name, array $params = []): string
+    function cm_render_component(string $name, array $props = []): string
     {
         ob_start();
-        cm_component($name, $params);
+        cm_component($name, $props);
         return (string) ob_get_clean();
     }
 }
 
 if (!function_exists('cm_asset')) {
     /**
-     * Build a public asset URL relative to /public/layout.php context.
+     * Build an asset URL with cache busting from public/assets.
+     *
+     * Works for both `/public/layout.php` and `/public/app/layout.php`.
      */
     function cm_asset(string $path): string
     {
@@ -156,6 +98,14 @@ if (!function_exists('cm_asset')) {
         if ($clean === '') {
             return 'assets';
         }
-        return 'assets/' . $clean;
+
+        $full = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR
+            . str_replace('/', DIRECTORY_SEPARATOR, $clean);
+        $version = is_file($full) ? (string) filemtime($full) : (string) time();
+
+        $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+        $prefix = strpos($script, '/app/') !== false ? '../' : '';
+
+        return $prefix . 'assets/' . $clean . '?v=' . rawurlencode($version);
     }
 }

@@ -1,8 +1,16 @@
 <?php
 $title = (string) ($title ?? 'Document');
 $src = (string) ($src ?? '');
-$height = (string) ($height ?? '700px');
+$height = strtolower((string) ($height ?? 'lg'));
 $download_url = (string) ($download_url ?? $src);
+
+$height_map = [
+    'sm' => 'is-sm',
+    'md' => 'is-md',
+    'lg' => 'is-lg',
+    'xl' => 'is-xl',
+];
+$height_class = $height_map[$height] ?? $height_map['lg'];
 ?>
 <section class="cm-pdf-viewer">
     <header class="cm-pdf-viewer__header">
@@ -14,8 +22,11 @@ $download_url = (string) ($download_url ?? $src);
         </a>
         <?php endif; ?>
     </header>
+
     <?php if ($src !== ''): ?>
-    <iframe class="cm-pdf-viewer__frame" src="<?= htmlspecialchars($src, ENT_QUOTES, 'UTF-8') ?>" style="height: <?= htmlspecialchars($height, ENT_QUOTES, 'UTF-8') ?>;"></iframe>
+    <iframe class="cm-pdf-viewer__frame <?= htmlspecialchars($height_class, ENT_QUOTES, 'UTF-8') ?>"
+            src="<?= htmlspecialchars($src, ENT_QUOTES, 'UTF-8') ?>"
+            title="<?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?>"></iframe>
     <?php else: ?>
     <div class="cm-pdf-viewer__fallback">Aucun document disponible.</div>
     <?php endif; ?>

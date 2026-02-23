@@ -185,6 +185,9 @@ foreach ($normalized_options as $option) {
         if (event.target.closest('.cm-select-search__option')) {
             return;
         }
+        if (searchInput && event.target !== searchInput && event.target !== label && !event.target.closest('.cm-form-hint')) {
+            return;
+        }
         openList();
     });
 
@@ -232,5 +235,7 @@ foreach ($normalized_options as $option) {
             closeList();
         }
     });
+
+    closeList();
 })();
 </script>

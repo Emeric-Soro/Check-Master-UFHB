@@ -150,14 +150,10 @@ class GestionRapportService
 
             $peutDeposer = true;
             $messageDepot = '';
-            $nbMots = $this->compterMotsRapport($rapportId, $num_etu);
 
             if ($dejaDepose) {
                 $peutDeposer = false;
                 $messageDepot = 'Déjà déposé';
-            } elseif ($nbMots < 5000) {
-                $peutDeposer = false;
-                $messageDepot = 'Minimum 5 000 mots requis (' . (int) $nbMots . ')';
             } else {
                 // Vérifier si l'étudiant a un autre rapport en cours d'évaluation
                 $stmt = $this->rapportModel->pdo->prepare("
@@ -216,8 +212,7 @@ class GestionRapportService
 
         $entreprise = $this->entrepriseModel->getEntrepriseById($stage_info_raw->nom_entreprise);
         return [
-            'nom_entreprise' => $entreprise ? $entreprise->lib_long_entreprise : '',
-            'logo_entreprise' => $entreprise ? ((string) ($entreprise->logo ?? '')) : '',
+            'nom_entreprise' => $entreprise ? $entreprise->lib_entreprise : '',
             'date_debut_stage' => $stage_info_raw->date_debut_stage,
             'date_fin_stage' => $stage_info_raw->date_fin_stage,
             'sujet_stage' => $stage_info_raw->sujet_stage,
@@ -255,96 +250,6 @@ class GestionRapportService
             return file_get_contents($fichierContenu);
         }
         return '';
-    }
-
-    /**
-     * Compte le nombre de mots d'un rapport (contenu HTML).
-     */
-    private function compterMotsRapport($rapport_id, $num_etu)
-    {
-        $rapport = $this->rapportModel->getRapportByIdAndEtudiant($rapport_id, $num_etu);
-        if (!$rapport) {
-            return 0;
-        }
-
-        $html = $this->chargerContenuRapport($rapport_id);
-        if ($html === '') {
-            return 0;
-        }
-
-        $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        if (trim($text) === '') {
-            return 0;
-        }
-
-        if (preg_match_all('/[\\p{L}\\p{N}\\-]+/u', $text, $matches)) {
-            return count($matches[0]);
-        }
-
-        return 0;
-    }
-
-    /**
-     * Vérifie le quota minimum de mots avant dépôt.
-     */
-    private function verifierQuotaDepotRapport($rapport_id, $num_etu, $minimumMots = 5000)
-    {
-        return $this->compterMotsRapport($rapport_id, $num_etu) >= (int) $minimumMots;
-    }
-
-    private function normaliserStatutCandidature($statut)
-    {
-        $normalized = strtolower(trim((string) $statut));
-        $trans = [
-            'é' => 'e',
-            'è' => 'e',
-            'ê' => 'e',
-            'ë' => 'e',
-            'à' => 'a',
-            'â' => 'a',
-            'ä' => 'a',
-            'î' => 'i',
-            'ï' => 'i',
-            'ô' => 'o',
-            'ö' => 'o',
-            'ù' => 'u',
-            'û' => 'u',
-            'ü' => 'u',
-            'ç' => 'c',
-        ];
-        $normalized = strtr($normalized, $trans);
-        $normalized = str_replace([' ', '-'], '_', $normalized);
-        return $normalized;
-    }
-
-    /**
-     * Crée automatiquement une candidature de soutenance lors du dépôt si nécessaire.
-     */
-    private function assurerCandidatureAutomatique($num_etu)
-    {
-        $stmt = $this->rapportModel->pdo->prepare("
-            SELECT statut_candidature
-            FROM candidature_soutenance
-            WHERE num_etu = ?
-            ORDER BY date_candidature DESC
-            LIMIT 1
-        ");
-        $stmt->execute([$num_etu]);
-        $lastStatus = $stmt->fetchColumn();
-
-        if ($lastStatus !== false) {
-            $status = $this->normaliserStatutCandidature($lastStatus);
-            $statusBloquants = ['en_attente', 'validee', 'valide', 'acceptee', 'accepte'];
-            if (in_array($status, $statusBloquants, true)) {
-                return true;
-            }
-        }
-
-        $insert = $this->rapportModel->pdo->prepare("
-            INSERT INTO candidature_soutenance (num_etu, date_candidature, statut_candidature)
-            VALUES (?, NOW(), 'En attente')
-        ");
-        return $insert->execute([$num_etu]);
     }
 
     /**
@@ -501,50 +406,16 @@ class GestionRapportService
             return false;
         }
 
-        $pdo = $this->rapportModel->pdo;
-        $transactionStarted = false;
+        // Insérer le dépôt
+        $stmt = $this->rapportModel->pdo->prepare("INSERT INTO deposer (num_etu, id_rapport, date_depot) VALUES (?, ?, ?)");
+        $depotSuccess = $stmt->execute([$num_etu, $id_rapport, $date_depot]);
 
-        try {
-            if (!$pdo->inTransaction()) {
-                $pdo->beginTransaction();
-                $transactionStarted = true;
-            }
-
-            $stmt = $pdo->prepare("INSERT INTO deposer (num_etu, id_rapport, date_depot) VALUES (?, ?, ?)");
-            $depotSuccess = $stmt->execute([$num_etu, $id_rapport, $date_depot]);
-            if (!$depotSuccess) {
-                if ($transactionStarted && $pdo->inTransaction()) {
-                    $pdo->rollBack();
-                }
-                return false;
-            }
-
-            if (!$this->rapportModel->setRapportEnCours($id_rapport)) {
-                if ($transactionStarted && $pdo->inTransaction()) {
-                    $pdo->rollBack();
-                }
-                return false;
-            }
-
-            if (!$this->assurerCandidatureAutomatique($num_etu)) {
-                if ($transactionStarted && $pdo->inTransaction()) {
-                    $pdo->rollBack();
-                }
-                return false;
-            }
-
-            if ($transactionStarted && $pdo->inTransaction()) {
-                $pdo->commit();
-            }
-
-            return true;
-        } catch (\Throwable $e) {
-            if ($transactionStarted && $pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            error_log('Erreur enregistrerDepotRapport: ' . $e->getMessage());
-            return false;
+        // Si le dépôt est réussi, mettre à jour le statut du rapport en 'en_cours'
+        if ($depotSuccess) {
+            $this->rapportModel->setRapportEnCours($id_rapport);
         }
+
+        return $depotSuccess;
     }
 
     /**
@@ -967,10 +838,6 @@ class GestionRapportService
      */
     public function traiterDepotRapport($id_rapport, $num_etu)
     {
-        if (!$this->verifierQuotaDepotRapport($id_rapport, $num_etu, 5000)) {
-            return ['success' => false, 'redirect' => '?page=gestion_rapports&message=depot_quota'];
-        }
-
         $result = $this->enregistrerDepotRapport($id_rapport, $num_etu);
 
         if ($result) {

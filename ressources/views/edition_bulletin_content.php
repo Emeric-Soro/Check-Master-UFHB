@@ -122,33 +122,45 @@ $baseUrl = '?page=edition_bulletin'
                 </h2>
             </div>
 
-            <div class="cm-grid-2">
+            <div class="cm-grid-3">
                 <?php
                 cm_component('form/select', [
-                    'name' => 'cm_bulletin_session',
-                    'id' => 'cmBulletinSession',
-                    'label' => 'Session',
-                    'options' => ['all' => 'Toutes'],
-                    'selected' => 'all',
+                    'name' => 'cm_bulletin_niveau',
+                    'id' => 'cmBulletinNiveau',
+                    'label' => 'Niveau',
+                    'options' => $niveauOptions,
+                    'selected' => $niveauFilter,
                     'attrs' => [
-                        'data-cm-ajax-param' => 'bulletin_session',
+                        'data-cm-ajax-param' => 'bulletin_niveau',
                         'data-cm-ajax-reset-param' => 'page_bulletin',
                         'data-cm-ajax-reset-value' => '1',
                     ],
                 ]);
-                cm_component('form/input-text', [
-                    'name' => 'cm_bulletin_etudiant',
-                    'id' => 'cmBulletinEtudiant',
-                    'label' => 'Etudiant',
-                    'placeholder' => 'Rechercher...',
+                cm_component('form/select', [
+                    'name' => 'cm_bulletin_semestre',
+                    'id' => 'cmBulletinSemestre',
+                    'label' => 'Semestre',
+                    'options' => $semestreOptions,
+                    'selected' => $semestreFilter,
+                    'attrs' => [
+                        'data-cm-ajax-param' => 'bulletin_semestre',
+                        'data-cm-ajax-reset-param' => 'page_bulletin',
+                        'data-cm-ajax-reset-value' => '1',
+                    ],
+                ]);
+                cm_component('form/select', [
+                    'name' => 'cm_bulletin_promotion',
+                    'id' => 'cmBulletinPromotion',
+                    'label' => 'Promotion',
+                    'options' => $promotionOptions,
+                    'selected' => $promotionFilter,
+                    'attrs' => [
+                        'data-cm-ajax-param' => 'bulletin_promotion',
+                        'data-cm-ajax-reset-param' => 'page_bulletin',
+                        'data-cm-ajax-reset-value' => '1',
+                    ],
                 ]);
                 ?>
-                <div class="cm-form-group" style="display: flex; align-items: flex-end;">
-                    <button class="cm-btn is-success" type="button" id="cmBulletinGenerateAll">
-                        <i class="fas fa-file-circle-check" aria-hidden="true"></i>
-                        Generer tous les bulletins
-                    </button>
-                </div>
             </div>
         </div>
 
