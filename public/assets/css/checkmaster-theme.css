@@ -34,7 +34,7 @@
     --cm-feedback-info-bg: #ebf5fb;
 
     /* Base backgrounds */
-    --cm-app-bg: #f0f4f8;
+    --cm-app-bg: #dff2ff;
     --cm-content-bg: #ffffff;
     --cm-box-bg: #ffffff;
     --cm-pole-sup-bg: #ffffff;
@@ -71,7 +71,7 @@
     --cm-spacing-2xl: 3rem;
 
     /* Layout */
-    --cm-sidebar-width: 260px;
+    --cm-sidebar-width: 300px;
     --cm-sidebar-width-tablet: 220px;
     --cm-header-height: 56px;
     --cm-panel-width: 400px;
@@ -209,22 +209,27 @@ a:hover {
 }
 
 .cm-app-body {
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     background: var(--cm-app-bg);
 }
 
 .cm-main-wrapper {
-    min-height: 100vh;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .cm-content-area {
     margin-left: var(--cm-sidebar-width);
-    min-height: 100vh;
-    padding: calc(var(--cm-header-height) + var(--cm-spacing-md)) var(--cm-spacing-lg) var(--cm-spacing-lg);
-    overflow: hidden;
+    height: 100vh;
+    padding-top: var(--cm-header-height);
+    display: flex;
+    flex-direction: column;
+    transition: margin-left var(--cm-transition-normal);
 }
 
-.cm-content-area > * {
+.cm-content-area>* {
     max-width: var(--cm-content-max-width);
 }
 
@@ -244,27 +249,40 @@ a:hover {
     transition: left var(--cm-transition-normal);
 }
 
-.cm-main-wrapper.is-collapsed .cm-navbar {
-    left: 0;
-}
-
+/* ── Sidebar ── */
 .cm-sidebar {
     position: fixed;
     top: 0;
     left: 0;
     bottom: 0;
     width: var(--cm-sidebar-width);
-    background: var(--cm-primary);
+    background: linear-gradient(180deg, var(--cm-primary) 0%, var(--cm-primary-dark) 100%);
     color: var(--cm-text-on-primary);
     z-index: var(--cm-z-sidebar);
     display: flex;
     flex-direction: column;
-    overflow: hidden auto;
-    transition: transform var(--cm-transition-normal);
+    overflow: hidden;
+    transition: transform var(--cm-transition-normal), width var(--cm-transition-normal);
+    scrollbar-width: none;
 }
 
-.cm-main-wrapper.is-collapsed .cm-content-area {
+.cm-sidebar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+/* Desktop: collapse sidebar via hamburger */
+/* La sidebar étant hors du .cm-main-wrapper, on cible body.is-collapsed */
+body.cm-app-body.is-collapsed .cm-sidebar {
+    transform: translateX(-100%);
+}
+
+body.cm-app-body.is-collapsed .cm-content-area {
     margin-left: 0;
+}
+
+body.cm-app-body.is-collapsed .cm-navbar {
+    left: 0;
 }
 
 .cm-navbar__left,

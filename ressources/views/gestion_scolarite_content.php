@@ -175,16 +175,9 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             <?php cm_component('form/csrf-token'); ?>
             <input type="hidden" id="cmIsNewInscription" name="is_new_inscription" value="">
 
-            <div class="cm-grid-4">
+            <!-- Ligne 1: Niveau, Année A., Frais Scolarité -->
+            <div class="cm-grid-3">
                 <?php
-                cm_component('form/input-text', [
-                    'name' => 'annee_label',
-                    'id' => 'cmAnneeLabel',
-                    'label' => 'Annee Acad.',
-                    'value' => $anneeActiveLabel,
-                    'readonly' => true,
-                ]);
-
                 cm_component('form/select', [
                     'name' => 'niveau',
                     'id' => 'cmNiveau',
@@ -194,21 +187,35 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'required' => true,
                 ]);
 
+                cm_component('form/select', [
+                    'name' => 'annee_academique',
+                    'id' => 'cmAnneeAcademique',
+                    'label' => 'Annee A.',
+                    'required' => true,
+                    'options' => $anneesOptions,
+                    'selected' => (string) ($anneeActiveId ?? ''),
+                ]);
+
                 cm_component('form/input-number', [
                     'name' => 'frais_scolarite',
                     'id' => 'cmFraisScolarite',
-                    'label' => 'Frais scolarite (FCFA)',
+                    'label' => 'Frais',
                     'readonly' => true,
                     'value' => '',
                 ]);
+                ?>
+            </div>
 
+            <!-- Ligne 2: Nom Prénom, Identifiant, N° Carte -->
+            <div class="cm-grid-3">
+                <?php
                 cm_component('form/select-search', [
                     'name' => 'etudiant',
                     'id' => 'cmEtudiantSelect',
-                    'label' => 'Nom & Prenom',
+                    'label' => 'Nom Prénom',
                     'options' => $studentOptions,
                     'required' => true,
-                    'placeholder' => '-- Selectionner un etudiant --',
+                    'placeholder' => '-- Selectionner --',
                 ]);
 
                 cm_component('form/input-text', [
@@ -224,18 +231,23 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'label' => 'N° Carte',
                     'readonly' => true,
                 ]);
+                ?>
+            </div>
 
+            <!-- Ligne 3: Versement + Paiement (compact) -->
+            <div class="cm-grid-4">
+                <?php
                 cm_component('form/input-number', [
                     'name' => 'num_versement_display',
                     'id' => 'cmNumVersement',
-                    'label' => 'N° Versement',
+                    'label' => 'N° Vers.',
                     'readonly' => true,
                 ]);
 
                 cm_component('form/input-date', [
                     'name' => 'date_versement_display',
                     'id' => 'cmDateVersement',
-                    'label' => 'Date versement',
+                    'label' => 'Date',
                     'value' => date('Y-m-d'),
                     'required' => true,
                 ]);
@@ -243,16 +255,15 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                 cm_component('form/input-number', [
                     'name' => 'montant_versement',
                     'id' => 'cmMontantVersement',
-                    'label' => 'Montant verse',
+                    'label' => 'Montant',
                     'required' => true,
                     'min' => 1,
-                    'step' => '0.01',
                 ]);
 
                 cm_component('form/input-number', [
                     'name' => 'reste_a_payer_display',
                     'id' => 'cmResteAPayer',
-                    'label' => 'Reste a payer',
+                    'label' => 'Reste',
                     'readonly' => true,
                     'value' => '',
                 ]);
@@ -260,48 +271,28 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                 cm_component('form/select', [
                     'name' => 'methode_paiement',
                     'id' => 'cmModePaiement',
-                    'label' => 'Mode paiement',
+                    'label' => 'Mode',
                     'required' => true,
                     'options' => [
                         'Espece' => 'Espece',
                         'Cheque' => 'Cheque',
                         'Virement' => 'Virement',
                         'Mobile Money' => 'Mobile Money',
-                        'Orange money' => 'Orange money',
                         'Wave' => 'Wave',
-                        'MTN money' => 'MTN money',
-                        'Moov money' => 'Moov money',
                     ],
                 ]);
 
                 cm_component('form/input-text', [
                     'name' => 'num_piece',
                     'id' => 'cmNumPiece',
-                    'label' => 'N° Moyen paiement',
-                    'maxlength' => 50,
+                    'label' => 'N° M.P',
+                    'maxlength' => 30,
                 ]);
                 ?>
             </div>
 
-            <div class="cm-grid-2">
-                <?php
-                cm_component('form/select', [
-                    'name' => 'annee_academique',
-                    'id' => 'cmAnneeAcademique',
-                    'label' => 'Annee academique (creation)',
-                    'required' => false,
-                    'options' => $anneesOptions,
-                    'selected' => (string) ($anneeActiveId ?? ''),
-                ]);
-                cm_component('form/input-text', [
-                    'name' => 'cmInfoEtudiant',
-                    'id' => 'cmInfoEtudiant',
-                    'label' => 'Statut etudiant',
-                    'readonly' => true,
-                    'value' => '',
-                ]);
-                ?>
-            </div>
+            <!-- Hidden field -->
+            <input type="hidden" id="cmInfoEtudiant" name="cmInfoEtudiant" value="">
 
             <div class="cm-form-buttons">
                 <?php if (canCreate() || canEdit()): ?>

@@ -187,7 +187,7 @@ foreach ($soutenances as $soutenance) {
                 <div class="cm-form-buttons">
                     <button class="cm-btn is-success" type="submit" id="cmEvalSubmitBtn">
                         <i class="fas fa-check" aria-hidden="true"></i>
-                        Valider
+                        Enregistrer evaluation
                     </button>
                     <button class="cm-btn is-light" type="button" id="cmEvalResetBtn">
                         <i class="fas fa-rotate-left" aria-hidden="true"></i>

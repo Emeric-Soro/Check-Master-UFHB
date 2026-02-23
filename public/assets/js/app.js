@@ -112,7 +112,75 @@
       });
     }
 
+    function updateSidebarActive(url) {
+      try {
+        var parsedUrl = new window.URL(url, window.location.href);
+        var page = parsedUrl.searchParams.get('page') || '';
+        var action = parsedUrl.searchParams.get('action') || '';
+
+        // Remove all active classes first
+        var allLinks = document.querySelectorAll(
+          '.cm-sidebar__menu-link.is-active-blue, .cm-sidebar__menu-link.is-active'
+        );
+        allLinks.forEach(function (el) {
+          el.classList.remove('is-active-blue', 'is-active');
+        });
+
+        if (!page) return;
+
+        // Find the matching link
+        var links = document.querySelectorAll('.cm-sidebar__menu-link');
+        var matched = null;
+        links.forEach(function (link) {
+          var href = link.getAttribute('href') || '';
+          try {
+            var linkUrl = new window.URL(href, window.location.href);
+            var linkPage = linkUrl.searchParams.get('page') || '';
+            var linkAction = linkUrl.searchParams.get('action') || '';
+            if (linkPage === page) {
+              // Prefer exact action match; fallback to page-only match
+              if (action && linkAction) {
+                if (linkAction === action && !matched) matched = link;
+              } else if (!action && !linkAction && !matched) {
+                matched = link;
+              } else if (!matched) {
+                matched = link; // broad fallback
+              }
+            }
+          } catch (e) { /* skip */ }
+        });
+
+        if (!matched) return;
+
+        matched.classList.add('is-active-blue');
+
+        // Reveal parent category if collapsed
+        var catItems = matched.closest('[id^="collapse-"]');
+        if (catItems) {
+          catItems.style.display = '';
+          var catIcon = document.getElementById('icon-' + catItems.id);
+          if (catIcon) catIcon.classList.add('is-open');
+        }
+
+        // Reveal parent sub-menu if inside one
+        var subItems = matched.closest('.cm-sidebar__sub-items');
+        if (subItems && subItems.id) {
+          subItems.style.display = '';
+          var subIcon = document.getElementById('icon-' + subItems.id);
+          if (subIcon) subIcon.classList.add('is-open');
+          // Also activate the parent button
+          var parentBtn = document.querySelector(
+            '[aria-controls="' + subItems.id + '"]'
+          );
+          if (parentBtn) parentBtn.classList.add('is-active-blue');
+        }
+      } catch (e) { /* Silently ignore */ }
+    }
+
     function afterSwap(url) {
+      // Update sidebar active state on every AJAX navigation
+      updateSidebarActive(url);
+
       if (window.CM && window.CM.selectSearch && typeof window.CM.selectSearch.init === 'function') {
         window.CM.selectSearch.init();
       }
@@ -151,6 +219,13 @@
       var incomingTitle = incomingDocument.querySelector('title');
       if (incomingTitle && incomingTitle.textContent) {
         document.title = incomingTitle.textContent;
+      }
+
+      // Update navbar title from incoming page
+      var incomingNavbarTitle = incomingDocument.querySelector('.cm-navbar__app-name');
+      var currentNavbarTitle = document.querySelector('.cm-navbar__app-name');
+      if (incomingNavbarTitle && currentNavbarTitle) {
+        currentNavbarTitle.textContent = incomingNavbarTitle.textContent;
       }
 
       executeInlineScripts(currentMain);
@@ -463,28 +538,9 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     var contentArea = document.getElementById('contentArea');
-    var sidebarToggle = document.getElementById('sidebarToggle');
-    var sidebar = document.getElementById('cmSidebar');
 
     if (contentArea && document.querySelector('.cm-prd3-crud-screen')) {
       contentArea.classList.add('is-prd3-page');
-    }
-
-    if (sidebarToggle && sidebar) {
-      sidebarToggle.addEventListener('click', function () {
-        if (window.matchMedia('(max-width: 768px)').matches) {
-          sidebar.classList.toggle('is-open');
-        }
-      });
-
-      document.addEventListener('click', function (event) {
-        if (!window.matchMedia('(max-width: 768px)').matches) {
-          return;
-        }
-        if (!sidebar.contains(event.target) && !sidebarToggle.contains(event.target)) {
-          sidebar.classList.remove('is-open');
-        }
-      });
     }
 
     if (window.CM.selectSearch && typeof window.CM.selectSearch.init === 'function') {

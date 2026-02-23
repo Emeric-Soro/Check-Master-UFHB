@@ -51,6 +51,15 @@
         margin-left: 0;
         padding-left: var(--cm-spacing-md);
         padding-right: var(--cm-spacing-md);
+        /* Allow the page to scroll on mobile */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        height: 100vh;
+    }
+
+    /* Body must allow scrolling context for mobile */
+    .cm-app-body {
+        overflow: auto;
     }
 
     .cm-navbar {
@@ -142,6 +151,7 @@
 }
 
 @media (max-width: 480px) {
+
     .cm-grid-4,
     .cm-grid-3,
     .cm-grid-2,
