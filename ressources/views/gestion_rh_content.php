@@ -83,17 +83,14 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
             'add_button_label' => 'Enregistrer',
             'edit_button_label' => 'Modifier',
             'form_fields' => [
-                ['name' => 'matricule', 'label' => 'N° Matricule', 'type' => 'text', 'required' => true, 'value_key' => 'matricule_enseignant'],
                 ['name' => 'nom', 'label' => 'Nom', 'type' => 'text', 'required' => true, 'value_key' => 'nom_enseignant'],
-                ['name' => 'prenom', 'label' => 'Prénom', 'type' => 'text', 'required' => true, 'value_key' => 'prenom_enseignant'],
-                ['name' => 'genre', 'label' => 'Genre', 'type' => 'select', 'required' => true, 'options' => ['M' => 'M', 'F' => 'F'], 'value_key' => 'genre'],
-                ['name' => 'id_specialite', 'label' => 'Spécialité', 'type' => 'select', 'required' => true, 'options' => $specialitesOptions, 'value_key' => 'id_specialite'],
-                ['name' => 'id_grade', 'label' => 'Grade', 'type' => 'select', 'required' => true, 'options' => $gradesOptions, 'value_key' => 'id_grade'],
-                ['name' => 'date_occupation', 'label' => 'Date occupation', 'type' => 'date', 'required' => true, 'value_key' => 'date_occupation'],
-                ['name' => 'email', 'label' => 'E-mail', 'type' => 'email', 'required' => true, 'value_key' => 'mail_enseignant'],
-                ['name' => 'telephone', 'label' => 'Téléphone', 'type' => 'text', 'required' => true, 'value_key' => 'telephone_enseignant'],
+                ['name' => 'prenom', 'label' => 'Prenom', 'type' => 'text', 'required' => true, 'value_key' => 'prenom_enseignant'],
+                ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true, 'value_key' => 'mail_enseignant'],
+                ['name' => 'id_specialite', 'label' => 'Specialite', 'type' => 'select', 'required' => true, 'options' => $specialitesOptions, 'value_key' => 'id_specialite'],
                 ['name' => 'id_fonction', 'label' => 'Fonction', 'type' => 'select', 'required' => true, 'options' => $fonctionsOptions, 'value_key' => 'id_fonction'],
-                ['name' => 'date_fonction', 'label' => 'Date fonction', 'type' => 'date', 'required' => true, 'value_key' => 'date_fonction'],
+                ['name' => 'date_fonction', 'label' => 'Date occupation', 'type' => 'date', 'required' => true, 'value_key' => 'date_occupation'],
+                ['name' => 'id_grade', 'label' => 'Grade', 'type' => 'select', 'required' => true, 'options' => $gradesOptions, 'value_key' => 'id_grade'],
+                ['name' => 'date_grade', 'label' => 'Date obtention grade', 'type' => 'date', 'required' => true, 'value_key' => 'date_grade'],
                 [
                     'name' => 'type_enseignant',
                     'label' => 'Type enseignant',
@@ -102,18 +99,30 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
                     'options' => [
                         'Simple' => 'Simple',
                         'Administratif' => 'Administratif',
+                        '1' => 'Simple',
+                        '0' => 'Administratif',
                     ],
                     'value_key' => 'type_enseignant',
                 ],
             ],
             'columns' => [
-                ['key' => 'matricule_enseignant', 'label' => 'N° Matricule'],
                 ['key' => 'nom_enseignant', 'label' => 'Nom'],
-                ['key' => 'prenom_enseignant', 'label' => 'Prénom'],
-                ['key' => 'lib_specialite', 'label' => 'Spécialité'],
-                ['key' => 'lib_grade', 'label' => 'Grade'],
+                ['key' => 'prenom_enseignant', 'label' => 'Prenom'],
+                ['key' => 'mail_enseignant', 'label' => 'Email'],
+                ['key' => 'lib_specialite', 'label' => 'Specialite'],
                 ['key' => 'lib_fonction', 'label' => 'Fonction'],
-                ['key' => 'mail_enseignant', 'label' => 'E-mail'],
+                ['key' => 'lib_grade', 'label' => 'Grade'],
+                ['key' => 'date_grade', 'label' => 'Date grade'],
+                ['key' => 'type_enseignant_fmt', 'label' => 'Type', 'value' => static function ($row): string {
+                    $value = (string) ($row->type_enseignant ?? '');
+                    if ($value === '1' || strcasecmp($value, 'simple') === 0) {
+                        return 'Simple';
+                    }
+                    if ($value === '0' || strcasecmp($value, 'administratif') === 0) {
+                        return 'Administratif';
+                    }
+                    return $value !== '' ? $value : '-';
+                }],
             ],
         ]);
     } else {
@@ -139,25 +148,20 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
             'add_button_label' => 'Enregistrer',
             'edit_button_label' => 'Modifier',
             'form_fields' => [
-                ['name' => 'matricule', 'label' => 'N° Matricule', 'type' => 'text', 'required' => true, 'value_key' => 'matricule_pers_admin'],
                 ['name' => 'nom', 'label' => 'Nom', 'type' => 'text', 'required' => true, 'value_key' => 'nom_pers_admin'],
-                ['name' => 'prenom', 'label' => 'Prénom', 'type' => 'text', 'required' => true, 'value_key' => 'prenom_pers_admin'],
-                ['name' => 'genre', 'label' => 'Genre', 'type' => 'select', 'required' => true, 'options' => ['M' => 'M', 'F' => 'F'], 'value_key' => 'genre'],
-                ['name' => 'date_embauche', 'label' => "Date d'embauche", 'type' => 'date', 'required' => true, 'value_key' => 'date_embauche'],
-                ['name' => 'poste', 'label' => 'Poste', 'type' => 'select', 'required' => true, 'options' => $fonctionsOptions, 'value_key' => 'poste'],
-                ['name' => 'date_occupation', 'label' => 'Date occupation', 'type' => 'date', 'required' => true, 'value_key' => 'date_occupation'],
-                ['name' => 'email', 'label' => 'E-mail', 'type' => 'email', 'required' => true, 'value_key' => 'email_pers_admin'],
-                ['name' => 'telephone', 'label' => 'Téléphone', 'type' => 'text', 'required' => true, 'value_key' => 'tel_pers_admin'],
+                ['name' => 'prenom', 'label' => 'Prenom', 'type' => 'text', 'required' => true, 'value_key' => 'prenom_pers_admin'],
+                ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true, 'value_key' => 'email_pers_admin'],
+                ['name' => 'telephone', 'label' => 'Telephone', 'type' => 'text', 'required' => true, 'value_key' => 'tel_pers_admin'],
+                ['name' => 'poste', 'label' => 'Poste', 'type' => 'text', 'required' => true, 'value_key' => 'poste'],
+                ['name' => 'date_embauche', 'label' => 'Date embauche', 'type' => 'date', 'required' => true, 'value_key' => 'date_embauche'],
             ],
             'columns' => [
-                ['key' => 'matricule_pers_admin', 'label' => 'N° Matricule'],
                 ['key' => 'nom_pers_admin', 'label' => 'Nom'],
-                ['key' => 'prenom_pers_admin', 'label' => 'Prénom'],
-                ['key' => 'genre', 'label' => 'Genre', 'class' => 'cm-col-genre'],
-                ['key' => 'email_pers_admin', 'label' => 'E-mail'],
-                ['key' => 'tel_pers_admin', 'label' => 'Téléphone'],
+                ['key' => 'prenom_pers_admin', 'label' => 'Prenom'],
+                ['key' => 'email_pers_admin', 'label' => 'Email'],
+                ['key' => 'tel_pers_admin', 'label' => 'Telephone'],
                 ['key' => 'poste', 'label' => 'Poste'],
-                ['key' => 'date_embauche', 'label' => "Date d'embauche"],
+                ['key' => 'date_embauche', 'label' => 'Date embauche'],
             ],
         ]);
     }

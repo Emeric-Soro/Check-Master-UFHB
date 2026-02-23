@@ -31,7 +31,8 @@
     }
 
     .cm-grid-4,
-    .cm-grid-3 {
+    .cm-grid-3,
+    .cm-dashboard-stats-grid-5 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
@@ -63,7 +64,8 @@
     }
 
     .cm-grid-4,
-    .cm-grid-3 {
+    .cm-grid-3,
+    .cm-dashboard-stats-grid-5 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -87,6 +89,24 @@
         width: 100%;
         justify-content: flex-start;
         flex-wrap: wrap;
+    }
+
+    .cm-toolbar__search-wrap {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .cm-toolbar__search-wrap .cm-form-control {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .cm-tab-links {
+        width: 100%;
+    }
+
+    .cm-tab-links .cm-btn {
+        flex: 1 1 calc(50% - var(--cm-spacing-sm));
     }
 
     .cm-table-wrapper {
@@ -114,12 +134,18 @@
     .cm-prd3-crud-screen .cm-pole-superieur-title h2 {
         font-size: var(--cm-font-size-lg);
     }
+
+    .cm-profile-grid {
+        grid-template-columns: 1fr;
+    }
+
 }
 
 @media (max-width: 480px) {
     .cm-grid-4,
     .cm-grid-3,
-    .cm-grid-2 {
+    .cm-grid-2,
+    .cm-dashboard-stats-grid-5 {
         grid-template-columns: 1fr;
     }
 
@@ -135,5 +161,27 @@
 
     .cm-navbar__username {
         display: none;
+    }
+
+    .cm-tab-links .cm-btn {
+        flex-basis: 100%;
+    }
+}
+
+@media (max-width: 1024px) {
+    .cm-login-shell {
+        grid-template-columns: 1fr;
+        max-width: 760px;
+        padding: 16px;
+    }
+
+    .cm-login-brand h1 {
+        font-size: 1.9rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .cm-login-features {
+        grid-template-columns: 1fr;
     }
 }

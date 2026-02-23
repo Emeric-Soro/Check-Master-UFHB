@@ -40,6 +40,7 @@ include __DIR__ . '/../ressources/routes/sauvegardeRestaurationRoutes.php';
 include __DIR__ . '/../ressources/routes/notesResultatsRoutes.php';
 include __DIR__ . '/../ressources/routes/archivesDossiersSoutenanceRoutes.php';
 include __DIR__ . '/../ressources/routes/auditRoutes.php';
+include __DIR__ . '/../ressources/routes/criteresEvaluationRoutes.php';
 include __DIR__ . '/../ressources/routes/redactionCompteRenduRoutes.php';
 include __DIR__ . '/../ressources/routes/archivesCompteRenduRoutes.php';
 include __DIR__ . '/../ressources/routes/archiveHistoryRoutes.php';
@@ -79,21 +80,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
     $currentMenuSlug = isset($_GET['page']) ? $_GET['page'] : '';
     $currentPageLabel = '';
 
-    // Canonicalisation progressive: quelques écrans critiques passent par le Router.
-    // Le flag _r=1 évite les boucles (Router -> layout -> Router ...).
-    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && empty($_GET['_r'])) {
-        $action = $_GET['action'] ?? '';
-        // gestion_attribution est maintenant géré par layout.php directement (via ParametreController)
-        // donc on ne redirige plus vers index.php
-        if ($currentMenuSlug === 'sauvegarde_restauration') {
-            header('Location: index.php?_path=/admin/backups');
-            exit;
-        }
-        if ($currentMenuSlug === 'gestion_utilisateurs') {
-            header('Location: index.php?_path=/admin/users');
-            exit;
-        }
-    }
+    // Canonicalisation désactivée pour les pages legacy migrées:
+    // on garde l'URL courante pour éviter les doubles redirections et préserver la navigation AJAX.
 
     // Chercher le label dans le menu hiérarchique
     if (!empty($currentMenuSlug)) {
@@ -116,7 +104,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
     if (empty($currentPageLabel)) {
         $specialPages = [
             'archive_comptes_rendus' => 'Archives des comptes rendus',
-            'redaction_compte_rendu' => 'Rédaction de compte rendu'
+            'redaction_compte_rendu' => 'Rédaction de compte rendu',
+            'tableau_bord_enseignant' => 'Tableau de bord enseignant',
         ];
         if (isset($specialPages[$currentMenuSlug])) {
             $currentPageLabel = $specialPages[$currentMenuSlug];
@@ -461,6 +450,26 @@ if (!isset($_SESSION['id_utilisateur'])) {
                 $contentFile = $partialsBasePath . 'admin_historique.php';
             }
             break;
+        case 'maj_enseignant':
+            $_GET['tab'] = 'enseignant';
+            if (!class_exists('GestionRhController')) {
+                require_once __DIR__ . '/../app/controllers/GestionRhController.php';
+            }
+            $gestionRhController = new GestionRhController();
+            $gestionRhController->index();
+            $contentFile = $partialsBasePath . 'gestion_rh_content.php';
+            $currentPageLabel = 'Mise à jour enseignant';
+            break;
+        case 'maj_personnel_admin':
+            $_GET['tab'] = 'pers_admin';
+            if (!class_exists('GestionRhController')) {
+                require_once __DIR__ . '/../app/controllers/GestionRhController.php';
+            }
+            $gestionRhController = new GestionRhController();
+            $gestionRhController->index();
+            $contentFile = $partialsBasePath . 'gestion_rh_content.php';
+            $currentPageLabel = 'Mise à jour personnel administratif';
+            break;
         default:
             $groupeUtilisateur = $_SESSION['lib_GU'];
             if ($groupeUtilisateur) {
@@ -544,18 +553,6 @@ if (!isset($_SESSION['id_utilisateur'])) {
     // 2. Paramètres SPÉCIFIQUES (Opérationnels + Menus)
     $cardPSpecifiques = [
         [
-            'title' => 'Unités d\'Enseignement (UE)',
-            'description' => 'Gestion des matières.',
-            'link' => '?page=parametres_specifiques&action=ue',
-            'icon' => './images/livre-ouvert.png'
-        ],
-        [
-            'title' => 'Éléments Constitutifs (ECUE)',
-            'description' => 'Détail des cours.',
-            'link' => '?page=parametres_specifiques&action=ecue',
-            'icon' => './images/piece-de-puzzle.png'
-        ],
-        [
             'title' => 'Critères Évaluation',
             'description' => 'Barèmes de soutenance.',
             'link' => '?page=parametres_specifiques&action=criteres_evaluation',
@@ -637,7 +634,22 @@ if (!isset($_SESSION['id_utilisateur'])) {
         'evaluation_soutenance',
         'edition_bulletin',
     ];
-    $isPolarizedPage = in_array((string) $currentMenuSlug, $polarizedPages, true);
+    $adminCrudPages = [
+        'gestion_utilisateurs',
+        'piste_audit',
+        'sauvegarde_restauration',
+        'admin_historique',
+        'maj_enseignant',
+        'maj_personnel_admin',
+    ];
+    $isAdminParamCrud = in_array((string) $currentMenuSlug, ['parametres_generaux', 'parametres_specifiques'], true)
+        && !empty($_GET['action'])
+        && ((string) $_GET['action'] !== 'gestion_menus');
+    $isPolarizedPage = in_array((string) $currentMenuSlug, $polarizedPages, true)
+        || in_array((string) $currentMenuSlug, $adminCrudPages, true)
+        || $isAdminParamCrud;
+    $scriptPath = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+    $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
 }
 ?>
 <!DOCTYPE html>
@@ -647,7 +659,7 @@ if (!isset($_SESSION['id_utilisateur'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CheckMaster | <?php echo htmlspecialchars($currentPageLabel); ?></title>
-    <link rel="stylesheet" href="css/output.css">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars($publicPrefix . 'css/output.css', ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet"
         href="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('css/checkmaster-theme.css') : 'assets/css/checkmaster-theme.css', ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet"
@@ -656,34 +668,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
         href="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('css/utilities.css') : 'assets/css/utilities.css', ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet"
         href="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('css/responsive.css') : 'assets/css/responsive.css', ENT_QUOTES, 'UTF-8'); ?>">
-    <link rel="shortcut icon" href="image/logo_cm_sbg.png" type="image/x-icon">
+    <link rel="shortcut icon" href="<?php echo htmlspecialchars($publicPrefix . 'image/logo_cm_sbg.png', ENT_QUOTES, 'UTF-8'); ?>" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#1a5276',
-                        'primary-light': '#2980b9',
-                        'primary-lighter': '#3498db',
-                        secondary: '#ff8c00',
-                        accent: '#4caf50',
-                        success: '#4caf50',
-                        warning: '#f39c12',
-                        danger: '#e74c3c',
-                        'base-100': '#FFFFFF',
-                        'base-200': '#F8FAFC',
-                        'base-300': '#E2E8F0'
-                    },
-                    fontFamily: {
-                        'poppins': ['Poppins', 'sans-serif'],
-                        'montserrat': ['Montserrat', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/fr.js"></script>
@@ -716,7 +702,7 @@ if (!isset($_SESSION['id_utilisateur'])) {
             <div class="flex flex-col w-72 bg-primary text-white">
                 <div class="flex items-center justify-center h-24 px-4">
                     <div class="flex flex-col items-center text-center">
-                        <img src="image/logo_cm_sbg.png" alt="Logo CheckMaster" class="sidebar-logo mb-2">
+                        <img src="<?php echo htmlspecialchars($publicPrefix . 'image/logo_cm_sbg.png', ENT_QUOTES, 'UTF-8'); ?>" alt="Logo CheckMaster" class="sidebar-logo mb-2">
                         <span class="font-bold text-lg tracking-wide">CHECK MASTER</span>
                     </div>
                 </div>
@@ -766,7 +752,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
             </div>
             <main id="cmLayoutMain"
                   class="cm-layout-main flex-1 p-6 flex flex-col min-h-0 bg-[#DFF2FF] <?php echo $isPolarizedPage ? 'cm-layout-main--locked' : 'cm-layout-main--scroll'; ?>"
-                  data-page="<?php echo htmlspecialchars((string) $currentMenuSlug, ENT_QUOTES, 'UTF-8'); ?>">
+                  data-page="<?php echo htmlspecialchars((string) $currentMenuSlug, ENT_QUOTES, 'UTF-8'); ?>"
+                  data-action="<?php echo htmlspecialchars((string) ($currentAction ?? ($_GET['action'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
                 <?php
                 if (!empty($contentFile) && file_exists($contentFile)) {
                     include $contentFile;
@@ -800,8 +787,8 @@ if (!isset($_SESSION['id_utilisateur'])) {
     </script>
     <script defer
         src="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('js/app.js') : 'assets/js/app.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
-    <script src="./js/suivi_reclamation.js"></script>
-    <script src="./js/historique_reclamation.js"></script>
+    <script src="<?php echo htmlspecialchars($publicPrefix . 'js/suivi_reclamation.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars($publicPrefix . 'js/historique_reclamation.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body>
 
 </html>

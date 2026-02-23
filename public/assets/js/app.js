@@ -320,6 +320,33 @@
       return !!form && form.getAttribute('data-cm-ajax-form') === 'true';
     }
 
+    function buildGetUrl(action, formData) {
+      var url;
+      var params;
+
+      try {
+        url = new window.URL(action || window.location.href, window.location.href);
+      } catch (error) {
+        return action || window.location.href;
+      }
+
+      params = new window.URLSearchParams(url.search);
+      formData.forEach(function (value, key) {
+        if (params.has(key)) {
+          params.delete(key);
+        }
+      });
+      formData.forEach(function (value, key) {
+        if (value === null || value === undefined || value === '') {
+          return;
+        }
+        params.append(key, value);
+      });
+
+      url.search = params.toString();
+      return url.toString();
+    }
+
     function submitWithAjax(event) {
       var form = event.target;
       var method, action, formData, submitter;
@@ -342,7 +369,12 @@
       action = form.getAttribute('action') || window.location.href;
 
       if (method !== 'POST') {
-        window.CM.ajax.load(action);
+        submitter = event.submitter || document.activeElement;
+        formData = new window.FormData(form);
+        if (submitter && submitter.name && !formData.has(submitter.name)) {
+          formData.append(submitter.name, submitter.value || '');
+        }
+        window.CM.ajax.load(buildGetUrl(action, formData));
         return;
       }
 
