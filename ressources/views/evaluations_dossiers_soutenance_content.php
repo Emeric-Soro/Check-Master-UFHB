@@ -1,664 +1,638 @@
 <?php
-// Initialiser les statistiques par défaut
-$stats = [
-    'a_evaluer' => 0,
-    'valides' => 0,
-    'a_corriger' => 0,
-    'total' => 0
-];
+require_once __DIR__ . '/../../app/config/database.php';
+require_once __DIR__ . '/../../app/controllers/EvaluationDossiersController.php';
+
+$controller = new EvaluationDossiersController(Database::getConnection());
+$currentPageSlug = (string) ($_GET['page'] ?? 'evaluation_dossiers');
+
+if (isset($_GET['action']) && $_GET['action'] === 'traiter_decision' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    header('Content-Type: application/json; charset=UTF-8');
+    $_POST['action'] = 'traiter_decision';
+    $controller->traiterAction();
+    exit;
+}
+
+$routeStats = is_array($stats ?? null) ? $stats : null;
+$routeDossiers = is_array($dossiers ?? null) ? $dossiers : null;
+
+$data = $controller->index();
+$stats = $routeStats ?? (is_array($data['stats'] ?? null) ? $data['stats'] : []);
+$dossiers = $routeDossiers ?? (is_array($data['dossiers'] ?? null) ? $data['dossiers'] : []);
+
+$selectedDetailId = (int) ($_GET['detail'] ?? 0);
+
+$allowedLimits = [5, 10, 25, 50];
+$perPage = max(5, (int) ($_GET['limit_eval_dossiers'] ?? 10));
+if (!in_array($perPage, $allowedLimits, true)) {
+    $perPage = 10;
+}
+$currentPage = max(1, (int) ($_GET['page_eval_dossiers'] ?? 1));
+$pagination = function_exists('cm_paginate')
+    ? cm_paginate(count($dossiers), $perPage, $currentPage)
+    : [
+        'total' => count($dossiers),
+        'per_page' => $perPage,
+        'current' => 1,
+        'last' => 1,
+        'offset' => 0,
+        'has_prev' => false,
+        'has_next' => false,
+        'pages' => [1],
+    ];
+$rowsToShow = array_slice($dossiers, (int) ($pagination['offset'] ?? 0), $perPage);
+$baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_eval_dossiers=' . $perPage;
+
+$dossierOptions = [];
+$dossierIds = [];
+foreach ($dossiers as $dossier) {
+    $id = (int) ($dossier['id_rapport'] ?? 0);
+    if ($id <= 0) {
+        continue;
+    }
+    $dossierIds[] = $id;
+    $dossierOptions[$id] = '#' . $id . ' - ' . trim((string) ($dossier['prenom_etu'] ?? '') . ' ' . (string) ($dossier['nom_etu'] ?? ''));
+}
+
+$myEvaluationsByRapport = [];
+try {
+    $pdo = Database::getConnection();
+    $enseignantId = 0;
+    $idUtilisateur = (int) ($_SESSION['id_utilisateur'] ?? 0);
+
+    if ($idUtilisateur > 0) {
+        $stmtUser = $pdo->prepare('SELECT login_utilisateur FROM utilisateur WHERE id_utilisateur = ?');
+        $stmtUser->execute([$idUtilisateur]);
+        $userRow = $stmtUser->fetch(PDO::FETCH_ASSOC);
+
+        if (!empty($userRow['login_utilisateur'])) {
+            $stmtEns = $pdo->prepare('SELECT id_enseignant FROM enseignants WHERE mail_enseignant = ? LIMIT 1');
+            $stmtEns->execute([(string) $userRow['login_utilisateur']]);
+            $ensRow = $stmtEns->fetch(PDO::FETCH_ASSOC);
+            $enseignantId = (int) ($ensRow['id_enseignant'] ?? 0);
+        }
+    }
+
+    if ($enseignantId > 0 && !empty($dossierIds)) {
+        $placeholders = implode(',', array_fill(0, count($dossierIds), '?'));
+        $params = array_merge([$enseignantId], $dossierIds);
+
+        $sql = "
+            SELECT
+                id_rapport,
+                decision_evaluation,
+                commentaire,
+                COALESCE(date_modification, date_evaluation) AS date_eval
+            FROM evaluations_rapports
+            WHERE id_evaluateur = ?
+            AND id_rapport IN ($placeholders)
+        ";
+
+        $stmtEval = $pdo->prepare($sql);
+        $stmtEval->execute($params);
+        foreach ($stmtEval->fetchAll(PDO::FETCH_ASSOC) as $evalRow) {
+            $myEvaluationsByRapport[(int) ($evalRow['id_rapport'] ?? 0)] = $evalRow;
+        }
+    }
+} catch (Throwable $e) {
+    $myEvaluationsByRapport = [];
+}
+
+$aTraiter = (int) ($stats['a_evaluer'] ?? 0);
+$valides = (int) ($stats['valides'] ?? 0);
+$rejetes = (int) ($stats['a_corriger'] ?? 0);
 ?>
-<!DOCTYPE html>
-<html lang="fr">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Évaluations des Dossiers | Mr. Diarra</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .sidebar-hover:hover {
-            background-color: #fef3c7;
-            border-left: 4px solid #f59e0b;
-        }
+<div class="cm-prd3-screen cm-prd3-crud-screen">
+    <?php if (!empty($_SESSION['success'])): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => (string) $_SESSION['success']]); ?>
+        <?php unset($_SESSION['success']); ?>
+    <?php endif; ?>
+    <?php if (!empty($_SESSION['error'])): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $_SESSION['error']]); ?>
+        <?php unset($_SESSION['error']); ?>
+    <?php endif; ?>
 
-        .fade-in {
-            animation: fadeIn 0.3s ease-in;
-        }
+    <div id="cmEvalDecisionAlert"></div>
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
+    <div class="cm-crud-wrapper">
+        <div class="cm-pole-superieur">
+            <div class="cm-pole-superieur-title">
+                <h2>
+                    <i class="fas fa-clipboard-check" aria-hidden="true"></i>
+                    Analyse et approbation des rapports
+                </h2>
+            </div>
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+            <div class="cm-grid-3">
+                <div class="cm-card cm-p-md">
+                    <div class="cm-text-sm cm-text-semibold cm-text-primary">A TRAITER</div>
+                    <div style="font-size:1.6rem;font-weight:700;"><?php echo $aTraiter; ?></div>
+                </div>
+                <div class="cm-card cm-p-md">
+                    <div class="cm-text-sm cm-text-semibold cm-text-primary">VALIDES</div>
+                    <div style="font-size:1.6rem;font-weight:700;"><?php echo $valides; ?></div>
+                </div>
+                <div class="cm-card cm-p-md">
+                    <div class="cm-text-sm cm-text-semibold cm-text-primary">REJETES</div>
+                    <div style="font-size:1.6rem;font-weight:700;"><?php echo $rejetes; ?></div>
+                </div>
+            </div>
 
-        .stat-card {
-            transition: all 0.3s ease;
-        }
+            <form id="cmEvaluationDecisionForm"
+                  method="POST"
+                  action="?page=<?php echo htmlspecialchars(urlencode($currentPageSlug), ENT_QUOTES, 'UTF-8'); ?>&action=traiter_decision">
+                <?php cm_component('form/csrf-token'); ?>
+                <input type="hidden" name="action" value="traiter_decision">
 
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
+                <div class="cm-grid-2">
+                    <?php
+                    cm_component('form/select', [
+                        'name' => 'id_rapport',
+                        'id' => 'cmDecisionRapport',
+                        'label' => 'Rapport a evaluer',
+                        'required' => true,
+                        'options' => $dossierOptions,
+                        'selected' => $selectedDetailId > 0 ? (string) $selectedDetailId : '',
+                    ]);
 
-        .chart-container {
-            position: relative;
-            height: 300px;
-        }
-
-        .metric-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .trend-up {
-            color: #10b981;
-        }
-
-        .trend-down {
-            color: #ef4444;
-        }
-
-        .trend-stable {
-            color: #6b7280;
-        }
-
-        .evaluation-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
-        }
-    </style>
-</head>
-
-<body class="font-sans antialiased" style="background-color: #DFF2FF;">
-    <div class="flex h-screen overflow-hidden">
-        <!-- Main content area -->
-        <div class="flex-1 overflow-y-auto bg-gray-50">
-            <div class="max-w-7xl mx-auto p-6">
-                <!-- Header -->
-                <div class="flex justify-between items-center mb-8">
-                    <h1 class="text-2xl font-bold text-gray-800">
-                        <i class="fas fa-file-alt text-yellow-600 mr-2"></i>
-                        Évaluations des Dossiers de Soutenance
-                    </h1>
-                    <div class="flex space-x-3">
-                        <div class="relative">
-                            <select
-                                class="appearance-none bg-white border border-gray-300 rounded-md pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
-                                <option>Tous les dossiers</option>
-                                <option>En attente</option>
-                                <option>Validés</option>
-                                <option>À corriger</option>
-                            </select>
-                            <div
-                                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                <i class="fas fa-chevron-down text-xs"></i>
-                            </div>
-                        </div>
-                    </div>
+                    cm_component('form/select', [
+                        'name' => 'decision',
+                        'id' => 'cmDecisionChoice',
+                        'label' => 'Decision',
+                        'required' => true,
+                        'options' => [
+                            'valider' => 'Valider',
+                            'rejeter' => 'Rejeter',
+                        ],
+                    ]);
+                    ?>
                 </div>
 
-                <?php if (isset($detail)): ?>
-                    <div class="max-w-3xl mx-auto mb-8 p-6 bg-white rounded-lg shadow-lg fade-in">
-                        <h2 class="text-xl font-bold mb-4 text-gray-800">
-                            <i class="fas fa-file-alt text-yellow-600 mr-2"></i>
-                            Détail du dossier de soutenance
-                        </h2>
-                        <div class="mb-4">
-                            <span class="font-semibold">Étudiant :</span>
-                            <?= htmlspecialchars(($detail['rapport']['prenom_etu'] ?? '') . ' ' . ($detail['rapport']['nom_etu'] ?? '')) ?>
-                            <br>
-                            <span class="font-semibold">Email :</span>
-                            <?= htmlspecialchars($detail['rapport']['email_etu'] ?? 'Non renseigné') ?> <br>
-                            <span class="font-semibold">Promotion :</span>
-                            <?= htmlspecialchars($detail['rapport']['promotion_etu'] ?? 'Non renseignée') ?> <br>
-                            <span class="font-semibold">Sujet :</span>
-                            <?= htmlspecialchars($detail['rapport']['theme_rapport'] ?? 'Non renseigné') ?> <br>
-                            <span class="font-semibold">Date de dépôt :</span>
-                            <?= !empty($detail['rapport']['date_depot']) ? date('d/m/Y', strtotime($detail['rapport']['date_depot'])) : 'Non déposé' ?>
-                        </div>
-                        <div class="mb-4">
-                            <span class="font-semibold">Statut actuel :</span>
-                            <?= htmlspecialchars($detail['rapport']['etape_validation'] ?? 'Non défini') ?>
-                        </div>
-                        <div class="mb-4">
-                            <span class="font-semibold">Historique des décisions :</span>
-                            <ul class="mt-2 ml-4 list-disc text-gray-700">
-                                <?php foreach ($detail['decisions'] as $decision): ?>
-                                    <li>
-                                        <span
-                                            class="font-semibold"><?= htmlspecialchars($decision['decision_validation'] === 'valider' ? 'Validation' : 'Rejet') ?>
-                                            :</span>
-                                        <?= htmlspecialchars($decision['decision_validation']) ?>
-                                        par
-                                        <?= htmlspecialchars($decision['prenom_enseignant'] . ' ' . $decision['nom_enseignant']) ?>
-                                        le <?= date('d/m/Y H:i', strtotime($decision['date_validation'])) ?>
-                                        <?php if (!empty($decision['commentaire_validation'])): ?>
-                                            <br><span
-                                                class="italic text-gray-500">"<?= htmlspecialchars($decision['commentaire_validation']) ?>"</span>
-                                        <?php endif; ?>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-
-                        <!-- Formulaire de décision pour la commission -->
-                        <?php if (($detail['rapport']['etape_validation'] ?? '') === 'approuve_communication' && canEdit()): ?>
-                            <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                                    <i class="fas fa-gavel text-yellow-600 mr-2"></i>
-                                    Décision de la Commission
-                                </h3>
-                                <form id="decisionForm" class="space-y-4">
-                                    <input type="hidden" name="id_rapport"
-                                        value="<?= $detail['rapport']['id_rapport'] ?? '' ?>">
-
-                                    <div class="flex space-x-4">
-                                        <label class="flex items-center">
-                                            <input type="radio" name="decision" value="valider"
-                                                class="mr-2 text-yellow-600 focus:ring-yellow-500">
-                                            <span class="text-green-700 font-medium">
-                                                <i class="fas fa-check-circle mr-1"></i>
-                                                Valider le rapport
-                                            </span>
-                                        </label>
-                                        <label class="flex items-center">
-                                            <input type="radio" name="decision" value="rejeter"
-                                                class="mr-2 text-yellow-600 focus:ring-yellow-500">
-                                            <span class="text-red-700 font-medium">
-                                                <i class="fas fa-times-circle mr-1"></i>
-                                                Demander des corrections
-                                            </span>
-                                        </label>
-                                    </div>
-
-                                    <div id="commentaireSection">
-                                        <label for="commentaire" class="block text-sm font-medium text-gray-700 mb-2">
-                                            Commentaires :
-                                        </label>
-                                        <textarea id="commentaire" name="commentaire" rows="4"
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                                            placeholder="Ajoutez un commentaire pour expliquer votre décision..."></textarea>
-                                        <p class="text-xs text-gray-500 mt-1">
-                                            <span id="commentaireHint">Commentaire optionnel pour expliquer votre
-                                                décision</span>
-                                        </p>
-                                    </div>
-
-                                    <div class="flex space-x-3">
-                                        <button type="submit"
-                                            class="px-6 py-2 bg-yellow-600 text-white font-medium rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors">
-                                            <i class="fas fa-paper-plane mr-2"></i>
-                                            Soumettre la décision
-                                        </button>
-                                        <button type="button"
-                                            onclick="window.location.href='?page=evaluations_dossiers_soutenance'"
-                                            class="px-6 py-2 bg-gray-300 text-gray-700 font-medium rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
-                                            <i class="fas fa-times mr-2"></i>
-                                            Annuler
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        <?php endif; ?>
-
-                        <div class="flex space-x-3 mt-4">
-                            <a href="?page=evaluations_dossiers_soutenance"
-                                class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
-                                <i class="fas fa-arrow-left mr-1"></i> Retour à la liste
-                            </a>
-                            <a href="?page=evaluations_dossiers_soutenance&fichier=<?= $detail['rapport']['id_rapport'] ?? '' ?>"
-                                target="_blank" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                <i class="fas fa-file-pdf mr-1"></i> Lire le rapport
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Script JavaScript pour le formulaire de décision -->
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function () {
-                            const decisionForm = document.getElementById('decisionForm');
-                            const commentaireSection = document.getElementById('commentaireSection');
-                            const commentaireField = document.getElementById('commentaire');
-                            const radioButtons = document.querySelectorAll('input[name="decision"]');
-
-                            // Fonction pour afficher les notifications
-                            function showNotification(message, type = 'success') {
-                                // Créer la notification
-                                const notification = document.createElement('div');
-                                notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-                                }`;
-                                notification.innerHTML = `
-                            <div class="flex items-center">
-                                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
-                                <span>${message}</span>
-                            </div>
-                        `;
-
-                                document.body.appendChild(notification);
-
-                                // Animer l'entrée
-                                setTimeout(() => {
-                                    notification.classList.remove('translate-x-full');
-                                }, 100);
-
-                                // Supprimer après 3 secondes
-                                setTimeout(() => {
-                                    notification.classList.add('translate-x-full');
-                                    setTimeout(() => {
-                                        document.body.removeChild(notification);
-                                    }, 300);
-                                }, 3000);
-                            }
-
-                            // Afficher/masquer la section commentaire selon la décision
-                            radioButtons.forEach(radio => {
-                                radio.addEventListener('change', function () {
-                                    const commentaireField = document.getElementById('commentaire');
-                                    const commentaireHint = document.getElementById('commentaireHint');
-
-                                    if (this.value === 'rejeter') {
-                                        commentaireField.placeholder = "Détaillez les corrections à apporter au rapport...";
-                                        commentaireHint.textContent = "Commentaire recommandé pour expliquer les corrections demandées";
-                                        commentaireHint.className = "text-xs text-orange-500 mt-1";
-                                    } else if (this.value === 'valider') {
-                                        commentaireField.placeholder = "Ajoutez un commentaire pour expliquer pourquoi vous validez ce rapport...";
-                                        commentaireHint.textContent = "Commentaire optionnel pour expliquer votre validation";
-                                        commentaireHint.className = "text-xs text-gray-500 mt-1";
-                                    }
-                                });
-                            });
-
-                            // Gestion de la soumission du formulaire
-                            decisionForm.addEventListener('submit', function (e) {
-                                e.preventDefault();
-
-                                const formData = new FormData(this);
-                                const decision = formData.get('decision');
-                                const commentaire = formData.get('commentaire');
-
-                                // Validation
-                                if (!decision) {
-                                    showNotification('Veuillez sélectionner une décision.', 'error');
-                                    return;
-                                }
-
-                                // Le commentaire est maintenant optionnel pour toutes les décisions
-
-                                // Confirmation
-                                const action = decision === 'valider' ? 'valider' : 'rejeter';
-                                if (!confirm(`Êtes-vous sûr de vouloir ${action} ce rapport ?`)) {
-                                    return;
-                                }
-
-                                // Ajouter l'action au FormData
-                                formData.append('action', 'traiter_decision');
-
-                                // Désactiver le bouton pendant le traitement
-                                const submitButton = this.querySelector('button[type="submit"]');
-                                const originalText = submitButton.innerHTML;
-                                submitButton.disabled = true;
-                                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Traitement...';
-
-                                // Envoi de la requête AJAX
-                                fetch('?page=evaluations_dossiers_soutenance&action=traiter_decision', {
-                                    method: 'POST',
-                                    body: formData
-                                })
-                                    .then(response => response.json())
-                                    .then(data => {
-                                        if (data.success) {
-                                            showNotification(data.message || 'Décision enregistrée avec succès !', 'success');
-                                            setTimeout(() => {
-                                                window.location.href = '?page=evaluations_dossiers_soutenance';
-                                            }, 1500);
-                                        } else {
-                                            showNotification('Erreur lors de l\'enregistrement de la décision : ' + (data.message || 'Erreur inconnue'), 'error');
-                                            // Réactiver le bouton
-                                            submitButton.disabled = false;
-                                            submitButton.innerHTML = originalText;
-                                        }
-                                    })
-                                    .catch(error => {
-                                        console.error('Erreur:', error);
-                                        showNotification('Erreur lors de l\'enregistrement de la décision.', 'error');
-                                        // Réactiver le bouton
-                                        submitButton.disabled = false;
-                                        submitButton.innerHTML = originalText;
-                                    });
-                            });
-                        });
-                    </script>
-                <?php endif; ?>
-
-                <!-- KPI Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="stat-card bg-white rounded-lg shadow p-6 fade-in">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-600">Dossiers à évaluer</p>
-                                <p class="metric-value"><?= $stats['a_evaluer'] ?></p>
-                            </div>
-                            <div class="p-3 rounded-full bg-blue-100">
-                                <i class="fas fa-inbox text-blue-600 text-2xl"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="stat-card bg-white rounded-lg shadow p-6 fade-in">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-600">Dossiers validés</p>
-                                <p class="metric-value"><?= $stats['valides'] ?></p>
-                            </div>
-                            <div class="p-3 rounded-full bg-green-100">
-                                <i class="fas fa-check-circle text-green-600 text-2xl"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="stat-card bg-white rounded-lg shadow p-6 fade-in">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-600">Dossiers à corriger</p>
-                                <p class="metric-value"><?= $stats['a_corriger'] ?></p>
-                            </div>
-                            <div class="p-3 rounded-full bg-red-100">
-                                <i class="fas fa-exclamation-circle text-red-600 text-2xl"></i>
-                            </div>
-                        </div>
-                    </div>
-
-
+                <div class="cm-grid-3">
+                    <?php
+                    cm_component('form/input-text', [
+                        'name' => 'cm_etudiant_info',
+                        'id' => 'cmDecisionEtudiant',
+                        'label' => 'Etudiant',
+                        'readonly' => true,
+                    ]);
+                    cm_component('form/input-text', [
+                        'name' => 'cm_theme_info',
+                        'id' => 'cmDecisionTheme',
+                        'label' => 'Theme',
+                        'readonly' => true,
+                    ]);
+                    cm_component('form/input-text', [
+                        'name' => 'cm_statut_info',
+                        'id' => 'cmDecisionStatut',
+                        'label' => 'Statut actuel',
+                        'readonly' => true,
+                    ]);
+                    ?>
                 </div>
 
-                <!-- Evaluation Grid -->
-                <div class="evaluation-grid mb-8">
-                    <?php if (empty($dossiers)): ?>
-                        <div class="col-span-full text-center py-8">
-                            <i class="fas fa-inbox text-gray-400 text-4xl mb-4"></i>
-                            <p class="text-gray-500">Aucun dossier à évaluer pour le moment.</p>
-                        </div>
-                    <?php else: ?>
-                        <?php foreach ($dossiers as $dossier): ?>
-                            <div
-                                class="bg-white rounded-lg shadow overflow-hidden fade-in hover:shadow-lg transition-shadow duration-300">
-                                <div class="p-5">
-                                    <div class="flex justify-between items-start mb-3">
-                                        <div>
-                                            <h3 class="font-bold text-lg text-gray-800">
-                                                <?= htmlspecialchars($dossier['nom_rapport']) ?>
-                                            </h3>
-                                            <p class="text-sm text-gray-500">Étudiant:
-                                                <?= htmlspecialchars($dossier['prenom_etu'] . ' ' . $dossier['nom_etu']) ?>
-                                            </p>
-                                        </div>
-                                        <?php
-                                        $statusClass = '';
-                                        $statusText = '';
-                                        switch ($dossier['etape_validation']) {
-                                            case 'approuve_communication':
-                                                $statusClass = 'bg-blue-100 text-blue-800';
-                                                $statusText = 'Nouveau';
-                                                break;
-                                            case 'valide':
-                                                $statusClass = 'bg-green-100 text-green-800';
-                                                $statusText = 'Validé';
-                                                break;
-                                            case 'desapprouve_commission':
-                                                $statusClass = 'bg-orange-100 text-orange-800';
-                                                $statusText = 'À corriger';
-                                                break;
-                                            default:
-                                                $statusClass = 'bg-gray-100 text-gray-800';
-                                                $statusText = 'En cours';
-                                        }
-                                        ?>
-                                        <span
-                                            class="px-2 py-1 text-xs font-semibold rounded-full <?= $statusClass ?>"><?= $statusText ?></span>
-                                    </div>
-                                    <p class="text-sm text-gray-600 mb-4"><?= htmlspecialchars($dossier['theme_rapport']) ?></p>
+                <?php
+                cm_component('form/textarea', [
+                    'name' => 'commentaire',
+                    'id' => 'cmDecisionCommentaire',
+                    'label' => 'Commentaire (obligatoire si rejet)',
+                    'rows' => 4,
+                    'placeholder' => 'Saisissez votre commentaire...',
+                ]);
+                ?>
 
-                                    <div class="flex items-center justify-between text-sm mb-4">
-                                        <div>
-                                            <p class="font-medium text-gray-700">Date de dépôt:</p>
-                                            <p class="text-gray-500">
-                                                <?= $dossier['date_depot'] ? date('d/m/Y', strtotime($dossier['date_depot'])) : 'Non déposé' ?>
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p class="font-medium text-gray-700">Promotion:</p>
-                                            <p class="text-gray-500"><?= htmlspecialchars($dossier['promotion_etu']) ?></p>
-                                        </div>
-                                    </div>
+                <div class="cm-form-buttons">
+                    <a id="cmVoirRapportBtn"
+                       class="cm-btn is-info"
+                       href="#"
+                       target="_blank"
+                       rel="noopener">
+                        <i class="fas fa-eye" aria-hidden="true"></i>
+                        Voir rapport
+                    </a>
+                    <button class="cm-btn is-success" type="submit">
+                        <i class="fas fa-check" aria-hidden="true"></i>
+                        Soumettre decision
+                    </button>
+                </div>
+            </form>
+        </div>
 
-                                    <div class="mb-4">
-                                        <?php if ($dossier['etape_validation'] === 'valide'): ?>
-                                            <p class="text-sm font-medium text-gray-700 mb-1">Note:</p>
-                                            <div class="flex items-center">
-                                                <span class="text-lg font-bold text-yellow-600 mr-2">16.5/20</span>
-                                                <div class="flex-1 bg-gray-200 rounded-full h-2">
-                                                    <div class="bg-green-600 h-2 rounded-full" style="width: 82%"></div>
-                                                </div>
-                                            </div>
-                                        <?php elseif ($dossier['etape_validation'] === 'desapprouve_commission'): ?>
-                                            <p class="text-sm font-medium text-gray-700 mb-1">Retours:</p>
-                                            <div class="flex items-center text-sm text-orange-600">
-                                                <i class="fas fa-exclamation-circle mr-1"></i>
-                                                <span>Corrections demandées</span>
-                                            </div>
-                                        <?php else: ?>
-                                            <p class="text-sm font-medium text-gray-700 mb-1">Progression:</p>
-                                            <div class="w-full bg-gray-200 rounded-full h-2">
-                                                <div class="bg-yellow-600 h-2 rounded-full" style="width: 75%"></div>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
-
-                                    <div class="flex space-x-2">
-                                        <?php if ($dossier['etape_validation'] === 'approuve_communication'): ?>
-                                            <?php if (canEdit()): ?>
-                                            <a href="?page=evaluations_dossiers_soutenance&detail=<?= $dossier['id_rapport'] ?>"
-                                                class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors text-center">
-                                                <i class="fas fa-eye mr-1"></i> Évaluer
-                                            </a>
-                                            <?php endif; ?>
-                                        <?php elseif ($dossier['etape_validation'] === 'valide'): ?>
-                                            <?php if (canEdit()): ?>
-                                            <button
-                                                class="flex-1 bg-white border border-yellow-600 hover:bg-yellow-50 text-yellow-600 py-2 px-3 rounded-md text-sm font-medium transition-colors">
-                                                <i class="fas fa-edit mr-1"></i> Modifier
-                                            </button>
-                                            <?php endif; ?>
-                                        <?php elseif ($dossier['etape_validation'] === 'desapprouve_commission'): ?>
-                                            <button
-                                                class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors">
-                                                <i class="fas fa-eye mr-1"></i> Voir retours
-                                            </button>
-                                        <?php endif; ?>
-                                        <button
-                                            class="flex-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-3 rounded-md text-sm font-medium transition-colors">
-                                            <i class="fas fa-download mr-1"></i> Télécharger
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+        <div class="cm-barre-intermediaire">
+            <div class="cm-toolbar">
+                <div class="cm-toolbar-left">
+                    <label for="cmEvalLimit"><strong>Afficher:</strong></label>
+                    <select id="cmEvalLimit"
+                            class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
+                            data-cm-ajax-param="limit_eval_dossiers"
+                            data-cm-ajax-reset-param="page_eval_dossiers"
+                            data-cm-ajax-reset-value="1">
+                        <?php foreach ($allowedLimits as $limit): ?>
+                            <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
+                                <?php echo $limit; ?>
+                            </option>
                         <?php endforeach; ?>
-                    <?php endif; ?>
+                    </select>
+                    <input type="text" id="cmEvalSearch" class="cm-form-control cm-toolbar-field-lg" placeholder="Rechercher un dossier...">
+                </div>
+
+                <div class="cm-toolbar-center">
+                    <button type="button" class="cm-btn is-info is-sm" id="cmEvalSelectAllBtn">
+                        <i class="fas fa-square-check" aria-hidden="true"></i>
+                        Select. tout
+                    </button>
+                    <button type="button" class="cm-btn is-light is-sm" id="cmEvalDeselectBtn">
+                        <i class="fas fa-square" aria-hidden="true"></i>
+                        Deselect.
+                    </button>
+                    <button type="button" class="cm-btn is-light is-sm" id="cmEvalDeleteBtn" disabled>
+                        <i class="fas fa-trash" aria-hidden="true"></i>
+                        Supprimer (0)
+                    </button>
+                </div>
+
+                <div class="cm-toolbar-right">
+                    <button type="button" class="cm-btn is-info is-sm" id="cmEvalExport">
+                        <i class="fas fa-file-export" aria-hidden="true"></i>
+                        Export
+                    </button>
+                    <button type="button" class="cm-btn is-info is-sm" id="cmEvalPrint">
+                        <i class="fas fa-print" aria-hidden="true"></i>
+                        Impr.
+                    </button>
                 </div>
             </div>
         </div>
+
+        <div class="cm-pole-inferieur">
+            <div class="cm-table-wrapper">
+                <table class="cm-data-table" id="cmEvaluationDossiersTable">
+                    <thead>
+                    <tr>
+                        <th class="cm-data-table__th cm-data-table__th--check">
+                            <input type="checkbox" id="cmEvalCheckAll" aria-label="Tout selectionner">
+                        </th>
+                        <th class="cm-data-table__th">N Rap</th>
+                        <th class="cm-data-table__th">Etudiant</th>
+                        <th class="cm-data-table__th">Theme</th>
+                        <th class="cm-data-table__th">Ma decision</th>
+                        <th class="cm-data-table__th">Mon commentaire</th>
+                        <th class="cm-data-table__th">Date</th>
+                        <th class="cm-data-table__th is-center">Act</th>
+                    </tr>
+                    </thead>
+                    <tbody id="cmEvaluationDossiersBody">
+                    <?php if (empty($rowsToShow)): ?>
+                        <?php cm_component('ui/empty-state', [
+                            'in_table' => true,
+                            'colspan' => 8,
+                            'title' => 'Aucun dossier',
+                            'message' => 'Aucun dossier a afficher.',
+                        ]); ?>
+                    <?php else: ?>
+                        <?php foreach ($rowsToShow as $dossier): ?>
+                            <?php
+                            $idRapport = (int) ($dossier['id_rapport'] ?? 0);
+                            $etudiant = trim((string) ($dossier['prenom_etu'] ?? '') . ' ' . (string) ($dossier['nom_etu'] ?? ''));
+                            $theme = (string) ($dossier['theme_rapport'] ?? '');
+                            $searchText = strtolower((string) ($dossier['nom_rapport'] ?? '') . ' ' . $etudiant . ' ' . $theme);
+
+                            $myEval = $myEvaluationsByRapport[$idRapport] ?? null;
+                            $myDecision = strtolower((string) ($myEval['decision_evaluation'] ?? ''));
+                            $myComment = trim((string) ($myEval['commentaire'] ?? ''));
+                            $myDate = !empty($myEval['date_eval']) ? date('d/m/Y', strtotime((string) $myEval['date_eval'])) : '-';
+
+                            if ($myDecision === 'valider') {
+                                $decisionLabel = 'Valide';
+                                $decisionType = 'success';
+                            } elseif ($myDecision === 'rejeter') {
+                                $decisionLabel = 'Rejete';
+                                $decisionType = 'danger';
+                            } else {
+                                $decisionLabel = '-';
+                                $decisionType = 'light';
+                            }
+
+                            $etape = strtolower((string) ($dossier['etape_validation'] ?? ''));
+                            if ($etape === 'valide') {
+                                $statutLabel = 'Valide';
+                            } elseif ($etape === 'desapprouve_commission') {
+                                $statutLabel = 'A corriger';
+                            } elseif ($etape === 'approuve_communication') {
+                                $statutLabel = 'Nouveau';
+                            } else {
+                                $statutLabel = $etape !== '' ? ucfirst($etape) : 'En attente';
+                            }
+                            ?>
+                            <tr class="cm-data-table__row"
+                                data-id-rapport="<?php echo $idRapport; ?>"
+                                data-etudiant="<?php echo htmlspecialchars($etudiant, ENT_QUOTES, 'UTF-8'); ?>"
+                                data-theme="<?php echo htmlspecialchars($theme, ENT_QUOTES, 'UTF-8'); ?>"
+                                data-statut="<?php echo htmlspecialchars($statutLabel, ENT_QUOTES, 'UTF-8'); ?>"
+                                data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
+                                <td class="cm-data-table__td cm-data-table__td--check">
+                                    <input type="checkbox" class="cm-eval-check-row" value="<?php echo $idRapport; ?>" aria-label="Selectionner dossier <?php echo $idRapport; ?>">
+                                </td>
+                                <td class="cm-data-table__td">#<?php echo $idRapport; ?></td>
+                                <td class="cm-data-table__td"><?php echo htmlspecialchars($etudiant, ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="cm-data-table__td"><?php echo htmlspecialchars($theme, ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="cm-data-table__td">
+                                    <?php cm_component('ui/badge', ['text' => $decisionLabel, 'type' => $decisionType]); ?>
+                                </td>
+                                <td class="cm-data-table__td"><?php echo htmlspecialchars($myComment !== '' ? $myComment : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="cm-data-table__td"><?php echo htmlspecialchars($myDate, ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="cm-data-table__td is-center">
+                                    <div class="cm-table-actions">
+                                        <button type="button"
+                                                class="cm-btn-action is-edit cm-btn-evaluer-dossier"
+                                                data-id-rapport="<?php echo $idRapport; ?>"
+                                                title="Evaluer">
+                                            <i class="fas fa-pen" aria-hidden="true"></i>
+                                        </button>
+                                        <a class="cm-btn-action is-view"
+                                           href="?page=evaluations_dossiers_soutenance&fichier=<?php echo urlencode((string) $idRapport); ?>"
+                                           target="_blank"
+                                           rel="noopener"
+                                           title="Voir rapport">
+                                            <i class="fas fa-eye" aria-hidden="true"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <?php
+            cm_component('crud/pagination', [
+                'pagination' => $pagination,
+                'base_url' => $baseUrl,
+                'param_name' => 'page_eval_dossiers',
+            ]);
+            ?>
+        </div>
     </div>
+</div>
 
-    <script>
-        // Initialisation des graphiques
-        document.addEventListener('DOMContentLoaded', function () {
-            // Graphique de distribution des notes
-            const gradesCtx = document.getElementById('gradesChart').getContext('2d');
-            const gradesChart = new Chart(gradesCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['0-5', '5-10', '10-12', '12-14', '14-16', '16-18', '18-20'],
-                    datasets: [{
-                        label: '2025',
-                        data: [2, 5, 8, 12, 15, 10, 3],
-                        backgroundColor: '#3b82f6',
-                        borderColor: '#2563eb',
-                        borderWidth: 1
-                    }, {
-                        label: '2024',
-                        data: [3, 7, 10, 14, 12, 8, 2],
-                        backgroundColor: '#e5e7eb',
-                        borderColor: '#d1d5db',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                usePointStyle: true,
-                                padding: 20
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
+<script>
+(function () {
+    const decisionForm = document.getElementById('cmEvaluationDecisionForm');
+    const rapportSelect = document.getElementById('cmDecisionRapport');
+    const decisionSelect = document.getElementById('cmDecisionChoice');
+    const commentaireInput = document.getElementById('cmDecisionCommentaire');
+    const etudiantField = document.getElementById('cmDecisionEtudiant');
+    const themeField = document.getElementById('cmDecisionTheme');
+    const statutField = document.getElementById('cmDecisionStatut');
+    const viewBtn = document.getElementById('cmVoirRapportBtn');
+    const alertBox = document.getElementById('cmEvalDecisionAlert');
 
-            // Graphique d'évolution des statuts
-            const statusCtx = document.getElementById('statusEvolutionChart').getContext('2d');
-            const statusChart = new Chart(statusCtx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai'],
-                    datasets: [{
-                        label: 'Nouveaux',
-                        data: [5, 8, 12, 15, 18],
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }, {
-                        label: 'Validés',
-                        data: [3, 6, 10, 14, 20],
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }, {
-                        label: 'À corriger',
-                        data: [2, 4, 5, 8, 7],
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                usePointStyle: true,
-                                padding: 20
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    },
-                    elements: {
-                        point: {
-                            radius: 4,
-                            hoverRadius: 6
-                        }
-                    }
-                }
-            });
+    const searchInput = document.getElementById('cmEvalSearch');
+    const exportBtn = document.getElementById('cmEvalExport');
+    const printBtn = document.getElementById('cmEvalPrint');
 
-            // Animation des métriques
-            const metrics = document.querySelectorAll('.metric-value');
-            metrics.forEach((metric, index) => {
-                const finalValue = metric.textContent;
-                metric.textContent = '0';
+    const checkAll = document.getElementById('cmEvalCheckAll');
+    const selectAllBtn = document.getElementById('cmEvalSelectAllBtn');
+    const deselectBtn = document.getElementById('cmEvalDeselectBtn');
+    const deleteBtn = document.getElementById('cmEvalDeleteBtn');
 
-                setTimeout(() => {
-                    const increment = finalValue.includes('/') ? 0.5 : 1;
-                    const target = parseFloat(finalValue);
-                    let current = 0;
+    function getRows() {
+        return Array.from(document.querySelectorAll('#cmEvaluationDossiersBody .cm-data-table__row'));
+    }
 
-                    const timer = setInterval(() => {
-                        current += increment;
-                        if (current >= target) {
-                            current = target;
-                            clearInterval(timer);
-                        }
+    function getVisibleRows() {
+        return getRows().filter(function (row) {
+            return row.style.display !== 'none';
+        });
+    }
 
-                        if (finalValue.includes('/')) {
-                            metric.textContent = current.toFixed(1) + '/20';
-                        } else {
-                            metric.textContent = Math.round(current);
-                        }
-                    }, 50);
-                }, index * 200);
-            });
+    function getCheckedRows() {
+        return getRows().filter(function (row) {
+            const cb = row.querySelector('.cm-eval-check-row');
+            return cb && cb.checked;
+        });
+    }
 
-            // Animation d'entrée pour les éléments
-            const elements = document.querySelectorAll('.fade-in');
-            elements.forEach((el, index) => {
-                setTimeout(() => {
-                    el.style.opacity = '1';
-                    el.style.transform = 'translateY(0)';
-                }, index * 100);
-            });
+    function setAlert(type, message) {
+        if (!alertBox) {
+            return;
+        }
+        const cssType = type === 'success' ? 'success' : 'danger';
+        alertBox.innerHTML = '<div class="cm-alert is-' + cssType + '"><div class="cm-alert__content"><span class="cm-alert__message">' +
+            String(message || '').replace(/[<>&]/g, '') +
+            '</span></div></div>';
+    }
+
+    function syncSelectedRapport() {
+        if (!rapportSelect) {
+            return;
+        }
+        const selectedId = rapportSelect.value;
+        const row = getRows().find(function (tr) {
+            return String(tr.getAttribute('data-id-rapport')) === String(selectedId);
         });
 
-        // Fonction de rafraîchissement
-        function refreshCharts() {
-            // Simuler le rafraîchissement
-            console.log("Actualisation des graphiques...");
-            // En réalité, ici vous feriez une requête AJAX pour récupérer les nouvelles données
+        if (!row) {
+            if (etudiantField) etudiantField.value = '';
+            if (themeField) themeField.value = '';
+            if (statutField) statutField.value = '';
+            if (viewBtn) viewBtn.setAttribute('href', '#');
+            return;
         }
-    </script>
-</body>
 
-</html>
+        if (etudiantField) etudiantField.value = row.getAttribute('data-etudiant') || '';
+        if (themeField) themeField.value = row.getAttribute('data-theme') || '';
+        if (statutField) statutField.value = row.getAttribute('data-statut') || '';
+        if (viewBtn) {
+            viewBtn.setAttribute('href', '?page=evaluations_dossiers_soutenance&fichier=' + encodeURIComponent(selectedId));
+        }
+    }
+
+    function updateDeleteState() {
+        const count = getCheckedRows().length;
+        if (deleteBtn) {
+            deleteBtn.disabled = count === 0;
+            deleteBtn.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i> Supprimer (' + count + ')';
+        }
+        if (checkAll) {
+            const visible = getVisibleRows();
+            const checkedVisible = visible.filter(function (row) {
+                const cb = row.querySelector('.cm-eval-check-row');
+                return cb && cb.checked;
+            });
+            checkAll.checked = visible.length > 0 && checkedVisible.length === visible.length;
+        }
+    }
+
+    function applySearch() {
+        const term = searchInput ? (searchInput.value || '').trim().toLowerCase() : '';
+        getRows().forEach(function (row) {
+            const text = row.getAttribute('data-search') || '';
+            row.style.display = term === '' || text.indexOf(term) !== -1 ? '' : 'none';
+        });
+        updateDeleteState();
+    }
+
+    if (rapportSelect) {
+        rapportSelect.addEventListener('change', syncSelectedRapport);
+        syncSelectedRapport();
+    }
+
+    document.querySelectorAll('.cm-btn-evaluer-dossier').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            if (!rapportSelect) {
+                return;
+            }
+            rapportSelect.value = btn.getAttribute('data-id-rapport') || '';
+            syncSelectedRapport();
+            if (decisionSelect) {
+                decisionSelect.focus();
+            }
+        });
+    });
+
+    document.addEventListener('change', function (event) {
+        if (event.target && event.target.classList.contains('cm-eval-check-row')) {
+            updateDeleteState();
+        }
+    });
+
+    if (checkAll) {
+        checkAll.addEventListener('change', function () {
+            getVisibleRows().forEach(function (row) {
+                const cb = row.querySelector('.cm-eval-check-row');
+                if (cb) {
+                    cb.checked = checkAll.checked;
+                }
+            });
+            updateDeleteState();
+        });
+    }
+
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function () {
+            getVisibleRows().forEach(function (row) {
+                const cb = row.querySelector('.cm-eval-check-row');
+                if (cb) {
+                    cb.checked = true;
+                }
+            });
+            updateDeleteState();
+        });
+    }
+
+    if (deselectBtn) {
+        deselectBtn.addEventListener('click', function () {
+            getRows().forEach(function (row) {
+                const cb = row.querySelector('.cm-eval-check-row');
+                if (cb) {
+                    cb.checked = false;
+                }
+            });
+            updateDeleteState();
+        });
+    }
+
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function () {
+            getCheckedRows().forEach(function (row) {
+                row.remove();
+            });
+            updateDeleteState();
+            syncSelectedRapport();
+        });
+    }
+
+    if (decisionForm) {
+        decisionForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const decision = decisionSelect ? decisionSelect.value : '';
+            const commentaire = commentaireInput ? commentaireInput.value.trim() : '';
+
+            if (decision === 'rejeter' && commentaire === '') {
+                setAlert('error', 'Le commentaire est obligatoire pour un rejet.');
+                if (commentaireInput) {
+                    commentaireInput.focus();
+                }
+                return;
+            }
+
+            const formData = new FormData(decisionForm);
+            fetch(decisionForm.action, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (payload) {
+                    if (payload && payload.success) {
+                        setAlert('success', payload.message || 'Decision enregistree.');
+                        if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+                            window.CM.ajax.load(window.location.href, { replaceHistory: true, skipHistory: true });
+                        }
+                        return;
+                    }
+                    setAlert('error', (payload && payload.message) ? payload.message : 'Erreur lors de la soumission.');
+                })
+                .catch(function () {
+                    setAlert('error', 'Erreur reseau lors de la soumission.');
+                });
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', applySearch);
+    }
+
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function () {
+            const headers = ['N Rap', 'Etudiant', 'Theme', 'Decision', 'Commentaire', 'Date'];
+            const csvRows = [headers.join(';')];
+
+            getVisibleRows().forEach(function (row) {
+                const cols = row.querySelectorAll('.cm-data-table__td');
+                if (cols.length < 7) {
+                    return;
+                }
+                const values = [
+                    cols[1].innerText.trim(),
+                    cols[2].innerText.trim(),
+                    cols[3].innerText.trim(),
+                    cols[4].innerText.trim(),
+                    cols[5].innerText.trim(),
+                    cols[6].innerText.trim()
+                ].map(function (value) {
+                    return '"' + value.replace(/"/g, '""') + '"';
+                });
+                csvRows.push(values.join(';'));
+            });
+
+            const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'mes_evaluations_commission.csv';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        });
+    }
+
+    if (printBtn) {
+        printBtn.addEventListener('click', function () {
+            window.print();
+        });
+    }
+
+    applySearch();
+})();
+</script>

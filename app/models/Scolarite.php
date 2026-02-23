@@ -9,6 +9,17 @@ class Scolarite
         $this->db = $db;
     }
 
+    private function tableExists($tableName)
+    {
+        try {
+            $stmt = $this->db->prepare("SHOW TABLES LIKE ?");
+            $stmt->execute([$tableName]);
+            return (bool) $stmt->fetchColumn();
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
     /**
      * Récupérer le montant de la scolarité pour un niveau d'études
      */
@@ -310,5 +321,161 @@ class Scolarite
         $stmt = $this->db->prepare($query);
         $stmt->execute([$id_etudiant]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Récupère une inscription par ID (compatibilité avec les vues de reçu).
+     */
+    public function getInscriptionById($id_inscription)
+    {
+        try {
+            $hasVersements = $this->tableExists('versements');
+
+            $montantPayeExpr = $hasVersements
+                ? "COALESCE((SELECT SUM(v2.montant) FROM versements v2 WHERE v2.id_inscription = i.id_inscription), COALESCE(i.montant_paye, 0))"
+                : "COALESCE(i.montant_paye, COALESCE(i.montant_verser, 0), 0)";
+
+            $premierMontantExpr = $hasVersements
+                ? "(SELECT v3.montant FROM versements v3 WHERE v3.id_inscription = i.id_inscription ORDER BY v3.date_versement ASC, v3.id_versement ASC LIMIT 1)"
+                : "COALESCE(i.montant_verser, 0)";
+
+            $methodeExpr = $hasVersements
+                ? "(SELECT v3.methode_paiement FROM versements v3 WHERE v3.id_inscription = i.id_inscription ORDER BY v3.date_versement ASC, v3.id_versement ASC LIMIT 1)"
+                : "i.methode_paiement";
+
+            $sql = "
+                SELECT 
+                    i.*,
+                    n.lib_niv_etude AS nom_niveau,
+                    COALESCE(n.montant_scolarite, 0) AS montant_total,
+                    CONCAT(YEAR(a.date_deb), '-', YEAR(a.date_fin)) AS annee_academique,
+                    e.nom_etu AS nom_etudiant,
+                    e.prenom_etu AS prenom_etudiant,
+                    $premierMontantExpr AS montant_premier_versement,
+                    $methodeExpr AS methode_paiement,
+                    $montantPayeExpr AS montant_paye,
+                    GREATEST(COALESCE(n.montant_scolarite, 0) - $montantPayeExpr, 0) AS reste_a_payer
+                FROM inscriptions i
+                LEFT JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                LEFT JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
+                LEFT JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
+                WHERE i.id_inscription = ?
+                LIMIT 1
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$id_inscription]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Erreur getInscriptionById: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Récupère le dernier versement pour une inscription.
+     */
+    public function getLastVersementByInscription($id_inscription)
+    {
+        try {
+            if ($this->tableExists('versements')) {
+                $sql = "
+                    SELECT 
+                        v.*,
+                        i.id_etudiant AS num_etu,
+                        e.nom_etu AS nom_etudiant,
+                        e.prenom_etu AS prenom_etudiant
+                    FROM versements v
+                    JOIN inscriptions i ON v.id_inscription = i.id_inscription
+                    JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
+                    WHERE v.id_inscription = ?
+                    ORDER BY v.date_versement DESC, v.id_versement DESC
+                    LIMIT 1
+                ";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$id_inscription]);
+                return $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+
+            $sql = "
+                SELECT
+                    i.id_inscription AS id_versement,
+                    i.id_inscription,
+                    COALESCE(i.montant_verser, 0) AS montant,
+                    COALESCE(i.date_versement, i.date_inscription) AS date_versement,
+                    COALESCE(i.methode_paiement, '') AS methode_paiement,
+                    i.id_etudiant AS num_etu,
+                    e.nom_etu AS nom_etudiant,
+                    e.prenom_etu AS prenom_etudiant
+                FROM inscriptions i
+                LEFT JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
+                WHERE i.id_inscription = ?
+                LIMIT 1
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$id_inscription]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Erreur getLastVersementByInscription: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Calcule les montants à une date donnée pour l'historique des reçus.
+     */
+    public function getMontantsAsOf($id_inscription, $asOfDate)
+    {
+        try {
+            $sqlBase = "
+                SELECT
+                    COALESCE(n.montant_scolarite, 0) AS montant_total
+                FROM inscriptions i
+                LEFT JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                WHERE i.id_inscription = ?
+                LIMIT 1
+            ";
+            $stmtBase = $this->db->prepare($sqlBase);
+            $stmtBase->execute([$id_inscription]);
+            $base = $stmtBase->fetch(PDO::FETCH_ASSOC) ?: ['montant_total' => 0];
+            $montantTotal = (float) ($base['montant_total'] ?? 0);
+
+            $montantPaye = 0.0;
+            if ($this->tableExists('versements')) {
+                $sqlPaye = "
+                    SELECT COALESCE(SUM(v.montant), 0) AS montant_paye
+                    FROM versements v
+                    WHERE v.id_inscription = ?
+                    AND DATE(v.date_versement) <= DATE(?)
+                ";
+                $stmtPaye = $this->db->prepare($sqlPaye);
+                $stmtPaye->execute([$id_inscription, $asOfDate]);
+                $row = $stmtPaye->fetch(PDO::FETCH_ASSOC) ?: ['montant_paye' => 0];
+                $montantPaye = (float) ($row['montant_paye'] ?? 0);
+            } else {
+                $sqlPaye = "
+                    SELECT COALESCE(montant_paye, COALESCE(montant_verser, 0), 0) AS montant_paye
+                    FROM inscriptions
+                    WHERE id_inscription = ?
+                    LIMIT 1
+                ";
+                $stmtPaye = $this->db->prepare($sqlPaye);
+                $stmtPaye->execute([$id_inscription]);
+                $row = $stmtPaye->fetch(PDO::FETCH_ASSOC) ?: ['montant_paye' => 0];
+                $montantPaye = (float) ($row['montant_paye'] ?? 0);
+            }
+
+            return [
+                'montant_total' => $montantTotal,
+                'montant_paye' => $montantPaye,
+                'reste_a_payer' => max($montantTotal - $montantPaye, 0),
+            ];
+        } catch (Exception $e) {
+            error_log("Erreur getMontantsAsOf: " . $e->getMessage());
+            return [
+                'montant_total' => 0,
+                'montant_paye' => 0,
+                'reste_a_payer' => 0,
+            ];
+        }
     }
 }

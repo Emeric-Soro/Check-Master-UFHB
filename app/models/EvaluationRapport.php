@@ -5,10 +5,70 @@ class EvaluationRapport
 {
 
     private $pdo;
+    private $tableExistsCache = [];
+    private $columnExistsCache = [];
 
     public function __construct($pdo = null)
     {
         $this->pdo = $pdo ?: Database::getConnection();
+    }
+
+    private function tableExists($tableName)
+    {
+        if (array_key_exists($tableName, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$tableName];
+        }
+        try {
+            $stmt = $this->pdo->prepare("SHOW TABLES LIKE ?");
+            $stmt->execute([$tableName]);
+            $exists = (bool) $stmt->fetchColumn();
+            $this->tableExistsCache[$tableName] = $exists;
+            return $exists;
+        } catch (Throwable $e) {
+            $this->tableExistsCache[$tableName] = false;
+            return false;
+        }
+    }
+
+    private function columnExists($tableName, $columnName)
+    {
+        $key = strtolower((string) $tableName . '.' . (string) $columnName);
+        if (array_key_exists($key, $this->columnExistsCache)) {
+            return $this->columnExistsCache[$key];
+        }
+        if (!$this->tableExists($tableName)) {
+            $this->columnExistsCache[$key] = false;
+            return false;
+        }
+        try {
+            $stmt = $this->pdo->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
+            $stmt->execute([$columnName]);
+            $exists = (bool) $stmt->fetchColumn();
+            $this->columnExistsCache[$key] = $exists;
+            return $exists;
+        } catch (Throwable $e) {
+            $this->columnExistsCache[$key] = false;
+            return false;
+        }
+    }
+
+    private function rapportDateExpr($alias = 'r')
+    {
+        if ($this->columnExists('rapport_etudiants', 'date_rapport')) {
+            return $alias . '.date_rapport';
+        }
+        if ($this->columnExists('rapport_etudiants', 'date_redaction_rapport')) {
+            return $alias . '.date_redaction_rapport';
+        }
+        return 'NULL';
+    }
+
+    private function rapportTitleExpr($alias = 'r')
+    {
+        if ($this->columnExists('rapport_etudiants', 'nom_rapport')) {
+            return $alias . '.nom_rapport';
+        }
+        return $alias . '.theme_rapport';
     }
 
     /**
@@ -157,32 +217,57 @@ class EvaluationRapport
     public function getRapportsAvecStatutVote()
     {
         try {
-            $stmt = $this->pdo->prepare("
+            $titleExpr = $this->rapportTitleExpr('r');
+            $dateExpr = $this->rapportDateExpr('r');
+            $hasEtape = $this->columnExists('rapport_etudiants', 'etape_validation');
+            $hasDeposer = $this->tableExists('deposer');
+            $hasValider = $this->tableExists('valider');
+
+            $joinDeposer = $hasDeposer
+                ? "LEFT JOIN deposer d ON r.id_rapport = d.id_rapport"
+                : "";
+            $joinValider = $hasValider
+                ? "LEFT JOIN valider v ON r.id_rapport = v.id_rapport"
+                : "";
+
+            $where = [];
+            if ($hasEtape) {
+                $where[] = "r.etape_validation IN ('approuve_communication', 'en_attente_commission', 'valide', 'desapprouve_commission')";
+            } elseif ($hasValider) {
+                $where[] = "(v.id_rapport IS NULL OR v.decision_validation IN ('valider', 'rejeter'))";
+            }
+            $whereSql = empty($where) ? '' : ('WHERE ' . implode(' AND ', $where));
+
+            $orderSql = $hasDeposer ? 'ORDER BY d.date_depot DESC' : 'ORDER BY ' . $dateExpr . ' DESC';
+
+            $sql = "
                 SELECT 
                     r.id_rapport,
-                    r.nom_rapport,
+                    $titleExpr AS nom_rapport,
                     r.theme_rapport,
-                    r.date_rapport,
-                    r.etape_validation,
+                    $dateExpr AS date_rapport,
+                    " . ($hasEtape ? "r.etape_validation" : "COALESCE(r.statut_rapport, '')") . " AS etape_validation,
                     r.statut_rapport,
                     e.nom_etu,
                     e.prenom_etu,
                     e.email_etu,
                     e.promotion_etu,
-                    d.date_depot,
+                    " . ($hasDeposer ? "d.date_depot" : "$dateExpr") . " AS date_depot,
                     COUNT(ev.id_evaluation) as total_votes,
                     COUNT(CASE WHEN ev.decision_evaluation = 'valider' THEN 1 END) as votes_valider,
                     COUNT(CASE WHEN ev.decision_evaluation = 'rejeter' THEN 1 END) as votes_rejeter
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
-                JOIN deposer d ON r.id_rapport = d.id_rapport
+                $joinDeposer
+                $joinValider
                 LEFT JOIN evaluations_rapports ev ON r.id_rapport = ev.id_rapport
-                WHERE r.etape_validation = 'approuve_communication'
-                GROUP BY r.id_rapport, r.nom_rapport, r.theme_rapport, r.date_rapport, 
-                         r.etape_validation, r.statut_rapport, e.nom_etu, e.prenom_etu, 
-                         e.email_etu, e.promotion_etu, d.date_depot
-                ORDER BY d.date_depot DESC
-            ");
+                $whereSql
+                GROUP BY r.id_rapport, nom_rapport, r.theme_rapport, date_rapport, 
+                         etape_validation, r.statut_rapport, e.nom_etu, e.prenom_etu, 
+                         e.email_etu, e.promotion_etu, date_depot
+                $orderSql
+            ";
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {

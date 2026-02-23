@@ -1,579 +1,621 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions_helper.php';
+require_once __DIR__ . '/../../app/models/Note.php';
 
-// Initialiser les variables globales si elles n'existent pas
-$students = $GLOBALS['listeEtudiants'] ?? [];
-$niveauxEtude = $GLOBALS['niveauxEtude'] ?? [];
-$selectedNiveau = $GLOBALS['selectedNiveau'] ?? null;
-$selectedStudent = $GLOBALS['selectedStudent'] ?? null;
-$studentGrades = $GLOBALS['studentGrades'] ?? [];
+$niveaux = is_array($GLOBALS['niveaux'] ?? null) ? $GLOBALS['niveaux'] : [];
+$anneesAcademiques = is_array($GLOBALS['anneesAcademiques'] ?? null) ? $GLOBALS['anneesAcademiques'] : [];
+$etudiants = is_array($GLOBALS['etudiants'] ?? null) ? $GLOBALS['etudiants'] : [];
 
+$selectedNiveau = !empty($GLOBALS['selectedNiveau']) ? (int) $GLOBALS['selectedNiveau'] : null;
+$selectedAnneeAcad = !empty($GLOBALS['selectedAnneeAcad']) ? (int) $GLOBALS['selectedAnneeAcad'] : null;
+$selectedStudent = is_object($GLOBALS['selectedStudent'] ?? null) ? $GLOBALS['selectedStudent'] : null;
+$studentNote = is_object($GLOBALS['studentNote'] ?? null) ? $GLOBALS['studentNote'] : null;
+
+$activeAnneeId = null;
+$activeAnneeLabel = date('Y') . '-' . (date('Y') + 1);
+$today = date('Y-m-d');
+foreach ($anneesAcademiques as $annee) {
+    $debut = (string) ($annee->date_deb ?? '');
+    $fin = (string) ($annee->date_fin ?? '');
+    if ($debut !== '' && $fin !== '' && $today >= $debut && $today <= $fin) {
+        $activeAnneeId = (int) ($annee->id_annee_acad ?? 0);
+        $activeAnneeLabel = date('Y', strtotime($debut)) . '-' . date('Y', strtotime($fin));
+        break;
+    }
+}
+
+$effectiveAnneeId = $selectedAnneeAcad ?: $activeAnneeId;
+if ($selectedAnneeAcad) {
+    foreach ($anneesAcademiques as $annee) {
+        if ((int) ($annee->id_annee_acad ?? 0) === $selectedAnneeAcad) {
+            $activeAnneeLabel = date('Y', strtotime((string) $annee->date_deb)) . '-' . date('Y', strtotime((string) $annee->date_fin));
+            break;
+        }
+    }
+}
+
+$notesList = [];
+if ($effectiveAnneeId) {
+    try {
+        $noteModel = new Note(Database::getConnection());
+        if ($selectedNiveau) {
+            $notesList = $noteModel->getNotesByNiveauAndYear($selectedNiveau, $effectiveAnneeId);
+        } else {
+            $notesList = $noteModel->getNotesByYear($effectiveAnneeId);
+        }
+    } catch (Throwable $e) {
+        $notesList = [];
+    }
+}
+$notesEmptyMessage = $effectiveAnneeId
+    ? 'Aucune note enregistree pour cette annee academique.'
+    : 'Selectionnez une annee pour afficher les notes.';
+
+$studentOptions = [];
+$studentCatalog = [];
+foreach ($etudiants as $etu) {
+    $num = (string) ($etu->num_carte_etud ?? '');
+    if ($num === '') {
+        continue;
+    }
+    $label = trim((string) ($etu->nom_etu ?? '') . ' ' . (string) ($etu->prenom_etu ?? '')) . ' (' . $num . ')';
+    $studentOptions[$num] = $label;
+    $studentCatalog[$num] = [
+        'num' => $num,
+        'nom' => (string) ($etu->nom_etu ?? ''),
+        'prenom' => (string) ($etu->prenom_etu ?? ''),
+    ];
+}
+
+$selectedStudentId = $selectedStudent ? (string) ($selectedStudent->num_carte_etud ?? '') : '';
+$m1Value = $studentNote ? (string) ($studentNote->moyenne_M1 ?? '') : '';
+$m2Value = $studentNote ? (string) ($studentNote->moyenne_M2 ?? '') : '';
+
+$formAction = '?page=gestion_notes_evaluations&action=enregistrer_notes';
+if ($selectedNiveau) {
+    $formAction .= '&niveau=' . urlencode((string) $selectedNiveau);
+}
+if ($effectiveAnneeId) {
+    $formAction .= '&annee=' . urlencode((string) $effectiveAnneeId);
+}
+if ($selectedStudentId !== '') {
+    $formAction .= '&student=' . urlencode($selectedStudentId);
+}
+
+$allowedLimits = [2, 5, 10, 25, 50, 100];
+$notesPerPage = max(2, (int) ($_GET['limit_notes'] ?? 10));
+if (!in_array($notesPerPage, $allowedLimits, true)) {
+    $notesPerPage = 10;
+}
+$notesPage = max(1, (int) ($_GET['page_notes'] ?? 1));
+$notePagination = function_exists('cm_paginate')
+    ? cm_paginate(count($notesList), $notesPerPage, $notesPage)
+    : [
+        'total' => count($notesList),
+        'per_page' => $notesPerPage,
+        'current' => $notesPage,
+        'last' => max(1, (int) ceil(max(1, count($notesList)) / $notesPerPage)),
+        'offset' => max(0, ($notesPage - 1) * $notesPerPage),
+        'has_prev' => false,
+        'has_next' => false,
+        'pages' => [1],
+    ];
+$notesToShow = array_slice($notesList, (int) ($notePagination['offset'] ?? 0), $notesPerPage);
+$paginationBaseUrl = '?page=gestion_notes_evaluations&niveau=' . urlencode((string) ($selectedNiveau ?? '')) . '&annee=' . urlencode((string) ($effectiveAnneeId ?? '')) . '&limit_notes=' . $notesPerPage;
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
+<div class="cm-prd3-screen cm-prd3-crud-screen">
+    <?php
+    cm_component('layout/page-header', [
+        'title' => 'Saisie des moyennes',
+        'subtitle' => 'Saisie M1 / M2 par etudiant et annee academique.',
+        'annee' => $activeAnneeLabel,
+        'icon' => 'fa-calculator',
+    ]);
+    ?>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Responsable Scolarité | Gestion des Notes</title>
+    <?php if (!empty($_SESSION['success'])): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => (string) $_SESSION['success']]); ?>
+        <?php unset($_SESSION['success']); ?>
+    <?php endif; ?>
+    <?php if (!empty($_SESSION['error'])): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $_SESSION['error']]); ?>
+        <?php unset($_SESSION['error']); ?>
+    <?php endif; ?>
+    <?php if (!empty($GLOBALS['messageErreur'])): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $GLOBALS['messageErreur']]); ?>
+    <?php endif; ?>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <div class="cm-crud-wrapper">
+    <div class="cm-pole-superieur">
+        <div class="cm-pole-superieur-title">
+            <h2>
+                <i class="fas fa-marker" aria-hidden="true"></i>
+                Formulaire des notes
+            </h2>
+        </div>
 
-    <style>
-    .progress-ring__circle {
-        transition: stroke-dashoffset 0.35s;
-        transform: rotate(-90deg);
-        transform-origin: 50% 50%;
-    }
+        <div class="cm-grid-2">
+            <?php
+            $niveauOptions = [];
+            foreach ($niveaux as $niveau) {
+                $niveauOptions[(int) ($niveau->id_niv_etude ?? 0)] = (string) ($niveau->lib_niv_etude ?? 'Niveau');
+            }
+            cm_component('form/select', [
+                'name' => 'cm_niveau_filter',
+                'id' => 'cmNiveauFilter',
+                'label' => 'Niveau',
+                'options' => $niveauOptions,
+                'selected' => (string) ($selectedNiveau ?? ''),
+            ]);
 
-    .fade-in {
-        animation: fadeIn 0.5s ease-in;
-    }
+            $anneeOptions = [];
+            foreach ($anneesAcademiques as $annee) {
+                $id = (int) ($annee->id_annee_acad ?? 0);
+                $debut = !empty($annee->date_deb) ? date('Y', strtotime((string) $annee->date_deb)) : '';
+                $fin = !empty($annee->date_fin) ? date('Y', strtotime((string) $annee->date_fin)) : '';
+                $anneeOptions[$id] = trim($debut . '-' . $fin, '-');
+            }
+            cm_component('form/select', [
+                'name' => 'cm_annee_filter',
+                'id' => 'cmAnneeFilter',
+                'label' => 'Annee Academique',
+                'options' => $anneeOptions,
+                'selected' => (string) ($effectiveAnneeId ?? ''),
+            ]);
+            ?>
+        </div>
 
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
+        <form id="cmNotesForm" method="POST" action="<?php echo htmlspecialchars($formAction, ENT_QUOTES, 'UTF-8'); ?>">
+            <?php cm_component('form/csrf-token'); ?>
+            <input type="hidden" name="id_annee_acad" id="cmAnneeHidden" value="<?php echo htmlspecialchars((string) ($effectiveAnneeId ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
 
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
+            <div class="cm-grid-4">
+                <?php
+                cm_component('form/input-text', [
+                    'name' => 'annee_display',
+                    'id' => 'cmAnneeDisplay',
+                    'label' => 'Annee Acad.',
+                    'readonly' => true,
+                    'value' => $activeAnneeLabel,
+                ]);
 
-    .hover-scale {
-        transition: transform 0.3s ease;
-    }
+                cm_component('form/select-search', [
+                    'name' => 'student_picker',
+                    'id' => 'cmStudentPicker',
+                    'label' => 'Etudiant',
+                    'options' => $studentOptions,
+                    'selected' => $selectedStudentId,
+                    'required' => true,
+                    'placeholder' => '-- Selectionner un etudiant --',
+                ]);
 
-    .hover-scale:hover {
-        transform: scale(1.03);
-    }
+                cm_component('form/input-text', [
+                    'name' => 'num_etu_display',
+                    'id' => 'cmNumEtuDisplay',
+                    'label' => 'N° Carte',
+                    'readonly' => true,
+                    'value' => (string) ($selectedStudent->num_carte_etud ?? ''),
+                ]);
 
-    .sidebar-item.active {
-        background-color: #e6f7ff;
-        border-left: 4px solid #3b82f6;
-        color: #3b82f6;
-    }
+                cm_component('form/input-text', [
+                    'name' => 'nom_display',
+                    'id' => 'cmNomDisplay',
+                    'label' => 'Nom',
+                    'readonly' => true,
+                    'value' => (string) ($selectedStudent->nom_etu ?? ''),
+                ]);
 
-    .sidebar-item.active i {
-        color: #3b82f6;
-    }
+                cm_component('form/input-text', [
+                    'name' => 'prenom_display',
+                    'id' => 'cmPrenomDisplay',
+                    'label' => 'Prenom',
+                    'readonly' => true,
+                    'value' => (string) ($selectedStudent->prenom_etu ?? ''),
+                ]);
 
-    .note-input:focus {
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-    }
+                cm_component('form/input-number', [
+                    'name' => 'moyenne_M1',
+                    'id' => 'cmMoyenneM1',
+                    'label' => 'Moyenne M1',
+                    'required' => true,
+                    'min' => 0,
+                    'max' => 20,
+                    'step' => '0.01',
+                    'value' => $m1Value,
+                ]);
 
-    .status-badge {
-        padding: 0.25rem 0.5rem;
-        border-radius: 9999px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-
-    .search-container {
-        position: relative;
-    }
-
-    .search-results {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        z-index: 10;
-        max-height: 300px;
-        overflow-y: auto;
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.375rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-
-    .search-item {
-        padding: 0.75rem 1rem;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-
-    .search-item:hover {
-        background-color: #f3f4f6;
-    }
-
-    .tab-content {
-        display: none;
-    }
-
-    .tab-content.active {
-        display: block;
-        animation: fadeIn 0.3s ease-in;
-    }
-
-    /* Styles pour les alertes */
-    [role="alert"] {
-        opacity: 0;
-        transition: opacity 0.5s ease-in-out;
-    }
-
-    [role="alert"].show {
-        opacity: 1;
-    }
-
-    #alertContainer {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 1000;
-        max-width: 400px;
-    }
-    </style>
-    <script>
-    function toggleSemestreValidation(semestre) {
-        fetch('<?php echo '?page=gestion_notes_evaluations'; ?>', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    semestre: semestre,
-                    etudiant_id: '<?php echo $GLOBALS['selectedStudent']->num_carte_etud; ?>'
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert('Erreur lors de la validation du semestre');
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                alert('Erreur lors de la validation du semestre');
-            });
-    }
-
-    document.getElementById('saisiForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-
-        fetch('<?php echo '?page=gestion_notes_evaluations&action=enregistrer_notes'; ?>', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert('Erreur lors de l\'enregistrement des notes');
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                alert('Erreur lors de l\'enregistrement des notes');
-            });
-    });
-    </script>
-</head>
-
-<body class="font-sans antialiased" style="background-color: #DFF2FF;">
-    <div class="flex h-screen overflow-hidden">
-        <!-- Main content area -->
-        <div class="flex-1 p-4 md:p-6 overflow-y-auto ">
-            <div id="alertContainer">
-                <?php if (isset($_SESSION['success'])): ?>
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6"
-                    role="alert">
-                    <span class="block sm:inline"><?php echo htmlspecialchars($_SESSION['success']); ?></span>
-                </div>
-                <?php unset($_SESSION['success']); ?>
-                <?php endif; ?>
-
-                <?php if (isset($_SESSION['error'])): ?>
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
-                    <span class="block sm:inline"><?php echo htmlspecialchars($_SESSION['error']); ?></span>
-                </div>
-                <?php unset($_SESSION['error']); ?>
-                <?php endif; ?>
+                cm_component('form/input-number', [
+                    'name' => 'moyenne_M2',
+                    'id' => 'cmMoyenneM2',
+                    'label' => 'Moyenne M2',
+                    'required' => true,
+                    'min' => 0,
+                    'max' => 20,
+                    'step' => '0.01',
+                    'value' => $m2Value,
+                ]);
+                ?>
             </div>
 
-            <!-- Interface de saisie des notes (optimisée) -->
-            <div id="notes" class="tab-content active max-w-7xl mx-auto">
-                <!-- Header with student search -->
-                <div class="bg-white shadow-sm rounded-lg p-6 mb-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-bold text-gray-800">Gestion des Notes</h2>
-                        <div class="flex items-center space-x-4">
-                            <!-- Niveau d'étude -->
-                            <div class="relative">
-                                <select id="niveauSelect"
-                                    class="block w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Sélectionner un niveau</option>
-                                    <?php foreach ($GLOBALS['niveaux'] as $niveau): ?>
-                                    <option value="<?php echo htmlspecialchars($niveau->id_niv_etude); ?>"
-                                        <?php echo $GLOBALS['selectedNiveau'] == $niveau->id_niv_etude ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($niveau->lib_niv_etude); ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <!-- Étudiant -->
-                            <div class="relative">
-                                <select id="studentSelect"
-                                    class="block w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Sélectionner un étudiant</option>
-                                    <?php foreach ($GLOBALS['etudiants'] as $etudiant): ?>
-                                    <option value="<?php echo htmlspecialchars($etudiant->num_carte_etud); ?>"
-                                        <?php echo isset($GLOBALS['selectedStudent']) && $GLOBALS['selectedStudent']->num_carte_etud == $etudiant->num_carte_etud ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($etudiant->nom_etu . ' ' . $etudiant->prenom_etu); ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Message initial -->
-                    <?php if (empty($GLOBALS['selectedNiveau'])) { ?>
-                    <div class="text-center py-12 bg-gray-50 rounded-lg">
-                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
-                            <i class="fas fa-graduation-cap text-2xl text-blue-600"></i>
-                        </div>
-                        <h4 class="text-lg font-medium text-gray-900 mb-2">Sélectionnez un niveau d'étude</h4>
-                        <p class="text-gray-500">Veuillez sélectionner un niveau d'étude pour afficher les semestres et
-                            les unités d'enseignement.</p>
-                    </div>
-                    <?php } ?>
-
-                    <!-- Informations de l'étudiant -->
-                    <?php if (!empty($GLOBALS['selectedStudent'])): ?>
-                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                        <div class="flex items-center space-x-4">
-                            <div class="flex-shrink-0">
-                                <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
-                                    <i class="fas fa-user text-2xl text-blue-600"></i>
-                                </div>
-                            </div>
-                            <div class="flex-1">
-                                <h3 class="text-xl font-semibold text-gray-900">
-                                    <?php echo htmlspecialchars($GLOBALS['selectedStudent']->nom_etu . ' ' . $GLOBALS['selectedStudent']->prenom_etu); ?>
-                                </h3>
-                                <p class="text-gray-600">Numéro d'étudiant:
-                                    <?php echo htmlspecialchars($GLOBALS['selectedStudent']->num_carte_etud); ?></p>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-
-                    <!-- Semestres et UE -->
-                    <div class="space-y-6">
-                        <?php if (!empty($GLOBALS['selectedNiveau'])) { ?>
-
-                        <form id="saisiForm" class="space-y-6" action="?page=gestion_notes_evaluations<?php 
-                                echo !empty($GLOBALS['selectedNiveau']) ? '&niveau=' . htmlspecialchars($GLOBALS['selectedNiveau']) : '';
-                                echo !empty($GLOBALS['selectedStudent']) ? '&student=' . htmlspecialchars($GLOBALS['selectedStudent']->num_carte_etud) : '';
-                            ?>&action=enregistrer_notes" method="POST">
-                            <?php 
-                                $currentSemestre = null;
-                                if (!empty($GLOBALS['studentUes'])) {
-                                    foreach ($GLOBALS['studentUes'] as $ue) {
-                                        if ($currentSemestre !== $ue->lib_semestre) {
-                                            if ($currentSemestre !== null) {
-                                                echo '</div></div>';
-                                            }
-                                            $currentSemestre = $ue->lib_semestre;
-                                            
-                                            // Calculer le total des crédits pour ce semestre
-                                            $totalCreditsSemestre = 0;
-                                            foreach ($GLOBALS['studentUes'] as $ueSemestre) {
-                                                if ($ueSemestre->lib_semestre === $currentSemestre) {
-                                                    $totalCreditsSemestre += $ueSemestre->credit;
-                                                }
-                                            }
-                                            ?>
-                            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                                <div class="px-6 py-4 bg-blue-500">
-                                    <div class="flex justify-between items-center">
-                                        <h3 class="text-lg font-semibold text-white">
-                                            <?php echo htmlspecialchars($ue->lib_semestre); ?></h3>
-                                        <span class="text-sm text-blue-100"><?php echo $totalCreditsSemestre; ?>
-                                            crédits</span>
-                                    </div>
-                                </div>
-                                <div class="p-6">
-                                    <?php
-                                    }
-                                    ?>
-                                    <div class="mb-6 last:mb-0">
-                                        <?php
-                                        // Récupérer les ECUE de cette UE
-                                        $ecues = [];
-                                        if (!empty($GLOBALS['studentEcues'])) {
-                                            foreach ($GLOBALS['studentEcues'] as $ecue) {
-                                                if ($ecue->id_ue == $ue->id_ue) {
-                                                    $ecues[] = $ecue;
-                                                }
-                                            }
-                                        }
-                                        
-                                        if (!empty($ecues)) {
-                                            // Affichage avec ECUE
-                                            echo '<div class="flex justify-between items-center mb-2">';
-                                            echo '<h4 class="text-lg font-medium text-gray-900">' . htmlspecialchars($ue->lib_ue) . '</h4>';
-                                            echo '<span class="text-sm text-gray-500">' . $ue->credit . ' crédits</span>';
-                                            echo '</div>';
-                                            
-                                            echo '<div class="bg-gray-50 rounded-lg p-4 mb-4">';
-                                            echo '<h5 class="text-sm font-medium text-gray-700 mb-3">Éléments constitutifs (ECUE)</h5>';
-                                            echo '<div class="space-y-4">';
-                                            foreach ($ecues as $ecue) {
-                                                echo '<div class="flex items-center space-x-8">';
-                                                echo '<div class="flex-1">';
-                                                echo '<h4 class="text-sm font-medium text-gray-900">' . htmlspecialchars($ecue->lib_ecue) . '</h4>';
-                                                echo '</div>';
-                                                echo '<div class="w-24 mx-4">';
-                                                echo '<input type="number" step="0.01" min="0" max="20" name="notes_ecue[' . $ecue->id_ecue . ']" value="';
-                                                $note_ecue = null;
-                                                if (!empty($GLOBALS['studentGrades'])) {
-                                                    foreach ($GLOBALS['studentGrades'] as $grade) {
-                                                        if ($grade->id_ecue == $ecue->id_ecue) {
-                                                            $note_ecue = $grade->moyenne;
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                                echo $note_ecue !== null ? htmlspecialchars($note_ecue) : '';
-                                                echo '" class="note-input w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">';
-                                                echo '</div>';
-                                                echo '<div class="flex-1 mx-4">';
-                                                echo '<input type="text" name="commentaires_ecue[' . $ecue->id_ecue . ']" value="';
-                                                $commentaire_ecue = null;
-                                                if (!empty($GLOBALS['studentGrades'])) {
-                                                    foreach ($GLOBALS['studentGrades'] as $grade) {
-                                                        if ($grade->id_ecue == $ecue->id_ecue) {
-                                                            $commentaire_ecue = $grade->commentaire;
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                                echo $commentaire_ecue !== null ? htmlspecialchars($commentaire_ecue) : '';
-                                                echo '" placeholder="Commentaire" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">';
-                                                echo '</div>';
-                                                echo '</div>';
-                                            }
-                                            echo '</div>';
-                                            // Affichage de la moyenne de l'UE (lecture seule)
-                                            $moyenne_ue = null;
-                                            $nb_ecue = 0;
-                                            $somme = 0;
-                                            foreach ($ecues as $ecue) {
-                                                foreach ($GLOBALS['studentGrades'] as $grade) {
-                                                    if ($grade->id_ecue == $ecue->id_ecue && $grade->moyenne !== null) {
-                                                        $somme += $grade->moyenne;
-                                                        $nb_ecue++;
-                                                    }
-                                                }
-                                            }
-                                            if ($nb_ecue > 0) {
-                                                $moyenne_ue = round($somme / $nb_ecue, 2);
-                                            }
-                                            echo '<div class="mt-4 text-right"><span class="text-sm text-blue-700 font-semibold">Moyenne UE : ' . ($moyenne_ue !== null ? $moyenne_ue : '-') . '</span></div>';
-                                            echo '</div>';
-                                        } else {
-                                            // Affichage sans ECUE - tout sur une ligne
-                                            echo '<div class="flex items-center space-x-8">';
-                                            echo '<div class="flex-1">';
-                                            echo '<h4 class="text-lg font-medium text-gray-900">' . htmlspecialchars($ue->lib_ue) . '</h4>';
-                                            echo '</div>';
-                                            echo '<div class="w-24 mx-4">';
-                                            echo '<input type="number" step="0.01" min="0" max="20" name="notes[' . $ue->id_ue . ']" value="';
-                                            $note = null;
-                                            if (!empty($GLOBALS['studentGrades'])) {
-                                                foreach ($GLOBALS['studentGrades'] as $grade) {
-                                                    if ($grade->id_ue == $ue->id_ue) {
-                                                        $note = $grade->moyenne;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                            echo $note !== null ? htmlspecialchars($note) : '';
-                                            echo '" class="note-input w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">';
-                                            echo '</div>';
-                                            echo '<div class="flex-1 mx-4">';
-                                            echo '<input type="text" name="commentaires[' . $ue->id_ue . ']" value="';
-                                            $commentaire = null;
-                                            if (!empty($GLOBALS['studentGrades'])) {
-                                                foreach ($GLOBALS['studentGrades'] as $grade) {
-                                                    if ($grade->id_ue == $ue->id_ue) {
-                                                        $commentaire = $grade->commentaire;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                            echo $commentaire !== null ? htmlspecialchars($commentaire) : '';
-                                            echo '" placeholder="Commentaire" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">';
-                                            echo '</div>';
-                                            echo '<div class="w-20 text-right ml-4">';
-                                            echo '<span class="text-sm text-gray-500">' . $ue->credit . ' crédits</span>';
-                                            echo '</div>';
-                                            echo '</div>';
-                                        }
-                                        ?>
-                                    </div>
-                                    <?php
-                                }
-                                if ($currentSemestre !== null) {
-                                    echo '</div></div>';
-                                }
-                            ?>
-                                    <div class="flex justify-end mt-6">
-                                        <?php if (canCreate() || canEdit()): ?>
-                                        <button type="submit" name="btn_enregistrer_notes"
-                                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                                            Enregistrer les notes
-                                        </button>
-                                        <?php endif; ?>
-                                    </div>
-                        </form>
-                        <?php } ?>
-
-                        <?php } ?>
-                    </div>
-
-                    <!-- Résumé des notes -->
-                    <?php if (!empty($GLOBALS['selectedStudent'])): ?>
-                    <div class="bg-blue-50 rounded-lg p-4 mb-6 mt-4">
-                        <div class="flex gap-4 justify-center">
-                            <div class="bg-white rounded-lg p-4 shadow-sm">
-                                <h3 class="text-sm font-medium text-gray-500 mb-1">Moyenne Générale</h3>
-                                <p class="text-2xl font-bold text-blue-600">
-                                    <?php
-                                    $totalNotes = 0;
-                                    $totalCredits = 0;
-                                    foreach ($GLOBALS['studentGrades'] as $grade) {
-                                        $totalNotes += $grade->moyenne * $grade->credit;
-                                        $totalCredits += $grade->credit;
-                                    }
-                                    echo $totalCredits > 0 ? number_format($totalNotes / $totalCredits, 2) : '0.00';
-                                    ?>
-                                </p>
-                            </div>
-                            <div class="bg-white rounded-lg p-4 shadow-sm">
-                                <h3 class="text-sm font-medium text-gray-500 mb-1">Moyenne UE majeures</h3>
-                                <p class="text-2xl font-bold text-blue-600">
-                                    <?php
-                                    $sumMaj = $credMaj = 0;
-                                    foreach ($GLOBALS['studentGrades'] as $grade) {
-                                        if ($grade->credit > 3) {
-                                            $sumMaj += $grade->moyenne * $grade->credit;
-                                            $credMaj += $grade->credit;
-                                        }
-                                    }
-                                    $moyMaj = $credMaj ? round($sumMaj / $credMaj, 2) : '-';
-                                    echo $moyMaj;
-                                    ?>
-                                </p>
-                            </div>
-                            <div class="bg-white rounded-lg p-4 shadow-sm">
-                                <h3 class="text-sm font-medium text-gray-500 mb-1">Moyenne UE mineures</h3>
-                                <p class="text-2xl font-bold text-blue-600">
-                                    <?php
-                                    $sumMin = $credMin = 0;
-                                    foreach ($GLOBALS['studentGrades'] as $grade) {
-                                        if ($grade->credit <= 3) {
-                                            $sumMin += $grade->moyenne * $grade->credit;
-                                            $credMin += $grade->credit;
-                                        }
-                                    }
-                                    $moyMin = $credMin ? round($sumMin / $credMin, 2) : '-';
-                                    echo $moyMin;
-                                    ?>
-                                </p>
-                            </div>
-                            <div class="bg-white rounded-lg p-4 shadow-sm">
-                                <h3 class="text-sm font-medium text-gray-500 mb-1">Crédits Attribués</h3>
-                                <p class="text-2xl font-bold text-green-600">
-                                    <?php
-                                    // Validation du semestre selon les moyennes majeures/mineures
-                                    $semestreValide = ($moyMaj !== '-' && $moyMin !== '-' && $moyMaj >= 10 && $moyMin >= 10);
-                                    if ($semestreValide) {
-                                        echo $totalCredits;
-                                    } else {
-                                        // Sinon, somme des crédits des UE validées individuellement
-                                        $creditsValides = 0;
-                                        foreach ($GLOBALS['studentGrades'] as $grade) {
-                                            if ($grade->moyenne >= 10) {
-                                                $creditsValides += $grade->credit;
-                                            }
-                                        }
-                                        echo $creditsValides;
-                                    }
-                                    ?>
-                                </p>
-                            </div>
-                            <div class="bg-white rounded-lg p-4 shadow-sm">
-                                <h3 class="text-sm font-medium text-gray-500 mb-1">Validation Semestre</h3>
-                                <p
-                                    class="text-2xl font-bold <?php echo $semestreValide ? 'text-green-600' : 'text-red-600'; ?>">
-                                    <?php echo $semestreValide ? 'Validé' : 'Non validé'; ?>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-
-                    <?php if (!empty($GLOBALS['selectedStudent'])): ?>
-                    <div class="flex justify-end mb-4 no-print">
-                        <a href="?page=gestion_notes_evaluations&action=imprimer_releve&student=<?= urlencode($GLOBALS['selectedStudent']->num_carte_etud) ?>&niveau=<?= urlencode($GLOBALS['selectedNiveau']) ?>"
-                            target="_blank" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                            <i class="fa fa-file-pdf mr-2"></i> Imprimer le relevé de notes (PDF)
-                        </a>
-                    </div>
-                    <?php endif; ?>
-                </div>
+            <div class="cm-form-buttons">
+                <?php if (canCreate() || canEdit()): ?>
+                    <button class="cm-btn is-success" type="submit" name="btn_enregistrer_notes">
+                        <i class="fas fa-check" aria-hidden="true"></i>
+                        Valider
+                    </button>
+                <?php endif; ?>
+                <button class="cm-btn is-light" type="reset" id="cmResetNotes">
+                    <i class="fas fa-rotate-left" aria-hidden="true"></i>
+                    Reinitialiser
+                </button>
             </div>
+        </form>
+    </div>
 
+    <div class="cm-barre-intermediaire">
+        <div class="cm-toolbar">
+            <div class="cm-toolbar-left">
+                <label for="cmNotesLimit"><strong>Afficher:</strong></label>
+                <select id="cmNotesLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
+                    <?php foreach ($allowedLimits as $limit): ?>
+                        <option value="<?php echo $limit; ?>" <?php echo $limit === $notesPerPage ? 'selected' : ''; ?>>
+                            <?php echo $limit; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <span class="cm-badge is-info cm-toolbar-year">
+                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                    <?php echo htmlspecialchars($activeAnneeLabel, ENT_QUOTES, 'UTF-8'); ?>
+                </span>
+            </div>
+            <div class="cm-toolbar-center">
+                <input type="text" id="cmSearchNotes" class="cm-form-control" placeholder="Rechercher un etudiant...">
+            </div>
+            <div class="cm-toolbar-right">
+                <button type="button" class="cm-btn is-info is-sm" id="cmSelectAllNotes">
+                    <i class="fas fa-check-square" aria-hidden="true"></i>
+                    Tout selectionner
+                </button>
+                <button type="button" class="cm-btn is-light is-sm" id="cmDeselectAllNotes">
+                    <i class="fas fa-square" aria-hidden="true"></i>
+                    Deselectionner
+                </button>
+                <button type="button" class="cm-btn is-info is-sm" id="cmDeleteNotes" disabled>
+                    <i class="fas fa-trash" aria-hidden="true"></i>
+                    Supprimer (<span id="cmSelectedNotesCount">0</span>)
+                </button>
+                <button type="button" class="cm-btn is-info is-sm" id="cmExportNotes">
+                    <i class="fas fa-file-export" aria-hidden="true"></i>
+                    Exporter
+                </button>
+                <button type="button" class="cm-btn is-info is-sm" id="cmPrintNotes">
+                    <i class="fas fa-print" aria-hidden="true"></i>
+                    Imprimer
+                </button>
+            </div>
         </div>
     </div>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const niveauSelect = document.getElementById('niveauSelect');
-        const studentSelect = document.getElementById('studentSelect');
 
-        // Gestion des messages d'alerte
-        const alerts = document.querySelectorAll('[role="alert"]');
-        alerts.forEach(alert => {
-            // Faire apparaître l'alerte
-            setTimeout(() => {
-                alert.classList.add('show');
-            }, 100);
+    <div class="cm-pole-inferieur">
+        <div class="cm-table-wrapper">
+            <table class="cm-data-table" id="cmNotesTable">
+                <thead>
+                <tr>
+                    <th class="cm-data-table__th is-checkbox">
+                        <input type="checkbox" id="cmCheckAllNotes" class="cm-checkbox" aria-label="Selectionner toutes les lignes">
+                    </th>
+                    <th class="cm-data-table__th">N° Etudiant</th>
+                    <th class="cm-data-table__th">Nom</th>
+                    <th class="cm-data-table__th">Prenom</th>
+                    <th class="cm-data-table__th">Moy. M1</th>
+                    <th class="cm-data-table__th">Moy. M2</th>
+                    <th class="cm-data-table__th">Date saisie</th>
+                    <th class="cm-data-table__th">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="cmNotesTableBody">
+                <?php if (empty($notesToShow)): ?>
+                    <?php cm_component('ui/empty-state', [
+                        'in_table' => true,
+                        'colspan' => 8,
+                        'title' => 'Aucune note',
+                        'message' => $notesEmptyMessage,
+                    ]); ?>
+                <?php else: ?>
+                    <?php foreach ($notesToShow as $note): ?>
+                        <?php
+                        $numEtu = (string) ($note->num_carte_etud ?? $note->num_etu ?? '');
+                        $nom = (string) ($note->nom_etu ?? '');
+                        $prenom = (string) ($note->prenom_etu ?? '');
+                        $m1 = (string) ($note->moyenne_M1 ?? '');
+                        $m2 = (string) ($note->moyenne_M2 ?? '');
+                        $dateSaisie = '';
+                        if (!empty($note->date_creation)) {
+                            $dateSaisie = date('d/m/Y', strtotime((string) $note->date_creation));
+                        } elseif (!empty($note->date_modification)) {
+                            $dateSaisie = date('d/m/Y', strtotime((string) $note->date_modification));
+                        }
+                        ?>
+                        <tr class="cm-data-table__row"
+                            data-search="<?php echo htmlspecialchars(strtolower($numEtu . ' ' . $nom . ' ' . $prenom), ENT_QUOTES, 'UTF-8'); ?>">
+                            <td class="cm-data-table__td is-checkbox">
+                                <input type="checkbox" class="cm-checkbox cm-row-checkbox">
+                            </td>
+                            <td class="cm-data-table__td"><?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td class="cm-data-table__td"><?php echo htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td class="cm-data-table__td"><?php echo htmlspecialchars($prenom, ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td class="cm-data-table__td"><?php echo htmlspecialchars($m1, ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td class="cm-data-table__td"><?php echo htmlspecialchars($m2, ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td class="cm-data-table__td"><?php echo htmlspecialchars($dateSaisie, ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td class="cm-data-table__td">
+                                <div class="cm-row-actions">
+                                    <?php if (canEdit()): ?>
+                                        <button type="button"
+                                                class="cm-btn-action is-edit"
+                                                onclick="cmEditNote('<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>', '<?php echo htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'); ?>', '<?php echo htmlspecialchars($prenom, ENT_QUOTES, 'UTF-8'); ?>', '<?php echo htmlspecialchars($m1, ENT_QUOTES, 'UTF-8'); ?>', '<?php echo htmlspecialchars($m2, ENT_QUOTES, 'UTF-8'); ?>')"
+                                                title="Modifier">
+                                            <i class="fas fa-pen" aria-hidden="true"></i>
+                                        </button>
+                                    <?php endif; ?>
+                                    <?php if ($selectedNiveau): ?>
+                                        <a class="cm-btn-action is-edit"
+                                           href="?page=gestion_notes_evaluations&action=imprimer_releve&student=<?php echo urlencode($numEtu); ?>&niveau=<?php echo urlencode((string) $selectedNiveau); ?>"
+                                           target="_blank"
+                                           title="Imprimer releve">
+                                            <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
 
-            // Faire disparaître l'alerte après 5 secondes
-            setTimeout(() => {
-                alert.classList.remove('show');
-                setTimeout(() => {
-                    alert.remove();
-                }, 500);
-            }, 5000);
+        <?php cm_component('crud/pagination', [
+            'pagination' => $notePagination,
+            'base_url' => $paginationBaseUrl,
+            'param_name' => 'page_notes',
+        ]); ?>
+    </div>
+</div>
+</div>
+
+<script>
+(function () {
+    const studentCatalog = <?php echo json_encode($studentCatalog, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const niveauFilter = document.getElementById('cmNiveauFilter');
+    const anneeFilter = document.getElementById('cmAnneeFilter');
+    const notesLimit = document.getElementById('cmNotesLimit');
+    const studentHidden = document.getElementById('cmStudentPicker_hidden');
+    const numDisplay = document.getElementById('cmNumEtuDisplay');
+    const nomDisplay = document.getElementById('cmNomDisplay');
+    const prenomDisplay = document.getElementById('cmPrenomDisplay');
+    const m1Field = document.getElementById('cmMoyenneM1');
+    const m2Field = document.getElementById('cmMoyenneM2');
+    const notesForm = document.getElementById('cmNotesForm');
+    const navigate = function (url) {
+        if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+            window.CM.ajax.load(url);
+            return;
+        }
+        window.location.href = url;
+    };
+    const navigateWithParams = function (params) {
+        navigate('?' + params.toString());
+    };
+
+    const syncStudentFields = function () {
+        const id = studentHidden ? studentHidden.value : '';
+        const data = studentCatalog[id];
+        if (!data) {
+            numDisplay.value = '';
+            nomDisplay.value = '';
+            prenomDisplay.value = '';
+            return;
+        }
+        numDisplay.value = data.num || '';
+        nomDisplay.value = data.nom || '';
+        prenomDisplay.value = data.prenom || '';
+    };
+
+    const reloadByFilters = function () {
+        const niveau = niveauFilter ? niveauFilter.value : '';
+        const annee = anneeFilter ? anneeFilter.value : '';
+        const params = new URLSearchParams(window.location.search);
+        params.set('page', 'gestion_notes_evaluations');
+
+        if (niveau) {
+            params.set('niveau', niveau);
+        } else {
+            params.delete('niveau');
+        }
+        if (annee) {
+            params.set('annee', annee);
+        } else {
+            params.delete('annee');
+        }
+        params.delete('student');
+        params.delete('action');
+        navigateWithParams(params);
+    };
+
+    niveauFilter && niveauFilter.addEventListener('change', reloadByFilters);
+    anneeFilter && anneeFilter.addEventListener('change', reloadByFilters);
+    if (notesLimit) {
+        notesLimit.addEventListener('change', function () {
+            const params = new URLSearchParams(window.location.search);
+            params.set('page', 'gestion_notes_evaluations');
+            params.set('limit_notes', String(notesLimit.value));
+            params.set('page_notes', '1');
+            navigateWithParams(params);
         });
+    }
 
-        niveauSelect.addEventListener('change', function() {
-            const niveauId = this.value;
-            if (niveauId) {
-                window.location.href = `?page=gestion_notes_evaluations&niveau=${niveauId}`;
+    if (studentHidden) {
+        studentHidden.addEventListener('change', function () {
+            syncStudentFields();
+            if (!niveauFilter || !anneeFilter || !studentHidden.value || !niveauFilter.value || !anneeFilter.value) {
+                return;
             }
+            const params = new URLSearchParams(window.location.search);
+            params.set('page', 'gestion_notes_evaluations');
+            params.set('niveau', niveauFilter.value);
+            params.set('annee', anneeFilter.value);
+            params.set('student', studentHidden.value);
+            params.delete('action');
+            navigateWithParams(params);
         });
 
-        studentSelect.addEventListener('change', function() {
-            const studentId = this.value;
-            const niveauId = niveauSelect.value;
-            if (studentId && niveauId) {
-                window.location.href =
-                    `?page=gestion_notes_evaluations&niveau=${niveauId}&student=${studentId}`;
-            }
+        document.querySelectorAll('#cmStudentPicker_wrapper .cm-select-search__option').forEach(function (option) {
+            option.addEventListener('click', function () {
+                setTimeout(syncStudentFields, 0);
+            });
         });
+    }
+
+    window.cmEditNote = function (num, nom, prenom, m1, m2) {
+        if (studentHidden) {
+            studentHidden.value = num;
+        }
+        if (numDisplay) {
+            numDisplay.value = num;
+        }
+        if (nomDisplay) {
+            nomDisplay.value = nom;
+        }
+        if (prenomDisplay) {
+            prenomDisplay.value = prenom;
+        }
+        if (m1Field) {
+            m1Field.value = m1;
+        }
+        if (m2Field) {
+            m2Field.value = m2;
+        }
+    };
+
+    document.getElementById('cmResetNotes') && document.getElementById('cmResetNotes').addEventListener('click', function () {
+        setTimeout(function () {
+            if (m1Field) {
+                m1Field.value = '';
+            }
+            if (m2Field) {
+                m2Field.value = '';
+            }
+        }, 0);
     });
-    </script>
-</body>
 
-</html>
+    if (notesForm) {
+        notesForm.addEventListener('submit', function (event) {
+            const studentId = studentHidden ? studentHidden.value : '';
+            const m1 = Number(m1Field ? m1Field.value : 0);
+            const m2 = Number(m2Field ? m2Field.value : 0);
+
+            if (!studentId) {
+                event.preventDefault();
+                window.alert('Veuillez selectionner un etudiant.');
+                return;
+            }
+            if (isNaN(m1) || isNaN(m2) || m1 < 0 || m1 > 20 || m2 < 0 || m2 > 20) {
+                event.preventDefault();
+                window.alert('Les moyennes doivent etre comprises entre 0 et 20.');
+                return;
+            }
+
+            const actionUrl = new URL(notesForm.action, window.location.origin + window.location.pathname);
+            actionUrl.searchParams.set('student', studentId);
+            notesForm.action = actionUrl.pathname + actionUrl.search;
+        });
+    }
+
+    const searchInput = document.getElementById('cmSearchNotes');
+    const noteRows = function () { return Array.from(document.querySelectorAll('#cmNotesTableBody tr')); };
+    const noteCheckboxes = function () {
+        return Array.from(document.querySelectorAll('#cmNotesTableBody .cm-row-checkbox'));
+    };
+    const selectedNotesCount = document.getElementById('cmSelectedNotesCount');
+    const deleteNotesBtn = document.getElementById('cmDeleteNotes');
+    const updateSelectionState = function () {
+        const checked = noteCheckboxes().filter(function (cb) { return cb.checked; }).length;
+        if (selectedNotesCount) {
+            selectedNotesCount.textContent = String(checked);
+        }
+        if (deleteNotesBtn) {
+            deleteNotesBtn.disabled = checked === 0;
+        }
+        if (checkAll) {
+            const all = noteCheckboxes();
+            checkAll.checked = all.length > 0 && all.every(function (cb) { return cb.checked; });
+        }
+    };
+    const applySearch = function () {
+        const term = (searchInput ? searchInput.value : '').trim().toLowerCase();
+        noteRows().forEach(function (row) {
+            const haystack = row.getAttribute('data-search') || '';
+            row.style.display = haystack.indexOf(term) !== -1 ? '' : 'none';
+        });
+    };
+    searchInput && searchInput.addEventListener('input', applySearch);
+
+    const checkAll = document.getElementById('cmCheckAllNotes');
+    checkAll && checkAll.addEventListener('change', function () {
+        noteCheckboxes().forEach(function (cb) {
+            cb.checked = checkAll.checked;
+        });
+        updateSelectionState();
+    });
+    document.getElementById('cmSelectAllNotes') && document.getElementById('cmSelectAllNotes').addEventListener('click', function () {
+        noteCheckboxes().forEach(function (cb) { cb.checked = true; });
+        updateSelectionState();
+    });
+    document.getElementById('cmDeselectAllNotes') && document.getElementById('cmDeselectAllNotes').addEventListener('click', function () {
+        noteCheckboxes().forEach(function (cb) { cb.checked = false; });
+        updateSelectionState();
+    });
+    document.addEventListener('change', function (event) {
+        if (event.target.classList.contains('cm-row-checkbox')) {
+            updateSelectionState();
+        }
+    });
+    deleteNotesBtn && deleteNotesBtn.addEventListener('click', function () {
+        if (deleteNotesBtn.disabled) {
+            return;
+        }
+        window.alert('Suppression multiple indisponible sur cet ecran.');
+    });
+
+    document.getElementById('cmPrintNotes') && document.getElementById('cmPrintNotes').addEventListener('click', function () {
+        window.print();
+    });
+    document.getElementById('cmExportNotes') && document.getElementById('cmExportNotes').addEventListener('click', function () {
+        const headers = ['N° Etudiant', 'Nom', 'Prenom', 'Moy. M1', 'Moy. M2', 'Date saisie'];
+        const lines = [headers.join(';')];
+
+        noteRows().forEach(function (row) {
+            if (row.style.display === 'none') {
+                return;
+            }
+            const cells = Array.from(row.querySelectorAll('td')).slice(1, 7);
+            const values = cells.map(function (cell) {
+                return '"' + (cell.textContent || '').trim().replace(/"/g, '""') + '"';
+            });
+            lines.push(values.join(';'));
+        });
+
+        const blob = new Blob(["\uFEFF" + lines.join('\n')], {type: 'text/csv;charset=utf-8;'});
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'notes_' + new Date().toISOString().split('T')[0] + '.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+
+    syncStudentFields();
+    updateSelectionState();
+})();
+</script>

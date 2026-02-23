@@ -3,21 +3,104 @@
 class RapportEtudiant
 {
     public $pdo;
+    private $tableExistsCache = [];
+    private $columnExistsCache = [];
 
     public function __construct($pdo)
     {
         $this->pdo = $pdo;
     }
 
+    private function tableExists($tableName)
+    {
+        if (array_key_exists($tableName, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$tableName];
+        }
+        try {
+            $stmt = $this->pdo->prepare("SHOW TABLES LIKE ?");
+            $stmt->execute([$tableName]);
+            $exists = (bool) $stmt->fetchColumn();
+            $this->tableExistsCache[$tableName] = $exists;
+            return $exists;
+        } catch (Throwable $e) {
+            $this->tableExistsCache[$tableName] = false;
+            return false;
+        }
+    }
+
+    private function columnExists($tableName, $columnName)
+    {
+        $cacheKey = strtolower((string) $tableName . '.' . (string) $columnName);
+        if (array_key_exists($cacheKey, $this->columnExistsCache)) {
+            return $this->columnExistsCache[$cacheKey];
+        }
+        if (!$this->tableExists($tableName)) {
+            $this->columnExistsCache[$cacheKey] = false;
+            return false;
+        }
+        try {
+            $stmt = $this->pdo->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
+            $stmt->execute([$columnName]);
+            $exists = (bool) $stmt->fetchColumn();
+            $this->columnExistsCache[$cacheKey] = $exists;
+            return $exists;
+        } catch (Throwable $e) {
+            $this->columnExistsCache[$cacheKey] = false;
+            return false;
+        }
+    }
+
+    private function getReportDateColumn()
+    {
+        if ($this->columnExists('rapport_etudiants', 'date_rapport')) {
+            return 'date_rapport';
+        }
+        if ($this->columnExists('rapport_etudiants', 'date_redaction_rapport')) {
+            return 'date_redaction_rapport';
+        }
+        return null;
+    }
+
+    private function getReportTitleColumn()
+    {
+        return $this->columnExists('rapport_etudiants', 'nom_rapport') ? 'nom_rapport' : 'theme_rapport';
+    }
+
+    private function getReportSelectExtras($alias = 'r')
+    {
+        $titleCol = $this->getReportTitleColumn();
+        $dateCol = $this->getReportDateColumn();
+        $parts = [
+            $alias . '.' . $titleCol . ' AS nom_rapport',
+            $dateCol ? ($alias . '.' . $dateCol . ' AS date_rapport') : 'NULL AS date_rapport',
+        ];
+        return implode(', ', $parts);
+    }
+
+    private function getReportOrderBy($alias = 'r')
+    {
+        $dateCol = $this->getReportDateColumn();
+        if ($dateCol !== null) {
+            return 'ORDER BY ' . $alias . '.' . $dateCol . ' DESC';
+        }
+        return 'ORDER BY ' . $alias . '.id_rapport DESC';
+    }
+
     public function getAllRapports()
     {
-        $stmt = $this->pdo->query("
-            SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu 
-            FROM rapport_etudiants r
-            JOIN etudiants e ON r.num_etu = e.num_carte_etud
-            ORDER BY r.date_rapport DESC
-        ");
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $sql = "
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu
+                FROM rapport_etudiants r
+                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                " . $this->getReportOrderBy('r') . "
+            ";
+            $stmt = $this->pdo->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (PDOException $e) {
+            error_log("Erreur getAllRapports: " . $e->getMessage());
+            return [];
+        }
     }
 
     public function getRapportById($id_rapport)
@@ -25,6 +108,7 @@ class RapportEtudiant
         $stmt = $this->pdo->prepare("
             SELECT 
                 r.*, 
+                " . $this->getReportSelectExtras('r') . ",
                 e.nom_etu, 
                 e.prenom_etu, 
                 e.email_etu,
@@ -42,7 +126,7 @@ class RapportEtudiant
     public function getRapportDetail($id_rapport)
     {
         $stmt = $this->pdo->prepare("
-            SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu, d.date_depot
+            SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, d.date_depot
             FROM rapport_etudiants r
             JOIN etudiants e ON r.num_etu = e.num_carte_etud
             LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
@@ -55,7 +139,7 @@ class RapportEtudiant
     public function getRapportByIdAndEtudiant($id_rapport, $num_etu)
     {
         $stmt = $this->pdo->prepare("
-            SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu
+            SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu
             FROM rapport_etudiants r
             JOIN etudiants e ON r.num_etu = e.num_carte_etud
             WHERE r.id_rapport = ? AND r.num_etu = ?
@@ -66,15 +150,21 @@ class RapportEtudiant
 
     public function getRapportsByEtudiant($num_etu)
     {
-        $stmt = $this->pdo->prepare("
-            SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu
-            FROM rapport_etudiants r
-            JOIN etudiants e ON r.num_etu = e.num_carte_etud
-            WHERE r.num_etu = ?
-            ORDER BY r.date_rapport DESC
-        ");
-        $stmt->execute([$num_etu]);
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $sql = "
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu
+                FROM rapport_etudiants r
+                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                WHERE r.num_etu = ?
+                " . $this->getReportOrderBy('r') . "
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$num_etu]);
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (PDOException $e) {
+            error_log("Erreur getRapportsByEtudiant: " . $e->getMessage());
+            return [];
+        }
     }
 
     public function ajouterRapport($num_etu, $nom_rapport, $theme_rapport)
@@ -85,12 +175,43 @@ class RapportEtudiant
                 return false;
             }
 
-            $stmt = $this->pdo->prepare("
-            INSERT INTO rapport_etudiants (num_etu, nom_rapport, theme_rapport, date_rapport, statut_rapport, version) 
-            VALUES (?, ?, ?, NOW(), 'en_attente', 1)
-        ");
+            $dateCol = $this->getReportDateColumn();
+            $hasNomRapport = $this->columnExists('rapport_etudiants', 'nom_rapport');
+            $theme = trim((string) $theme_rapport) !== '' ? $theme_rapport : $nom_rapport;
 
-            if ($stmt->execute([$num_etu, $nom_rapport, $theme_rapport])) {
+            $fields = ['num_etu'];
+            $values = [$num_etu];
+            $placeholders = ['?'];
+
+            if ($hasNomRapport) {
+                $fields[] = 'nom_rapport';
+                $values[] = $nom_rapport;
+                $placeholders[] = '?';
+            }
+
+            $fields[] = 'theme_rapport';
+            $values[] = $theme;
+            $placeholders[] = '?';
+
+            if ($dateCol !== null) {
+                $fields[] = $dateCol;
+                $placeholders[] = 'NOW()';
+            }
+            if ($this->columnExists('rapport_etudiants', 'statut_rapport')) {
+                $fields[] = 'statut_rapport';
+                $values[] = 'en_attente';
+                $placeholders[] = '?';
+            }
+            if ($this->columnExists('rapport_etudiants', 'version')) {
+                $fields[] = 'version';
+                $values[] = 1;
+                $placeholders[] = '?';
+            }
+
+            $sql = 'INSERT INTO rapport_etudiants (' . implode(', ', $fields) . ') VALUES (' . implode(', ', $placeholders) . ')';
+            $stmt = $this->pdo->prepare($sql);
+
+            if ($stmt->execute($values)) {
                 return $this->pdo->lastInsertId();
             }
             return false;
@@ -109,12 +230,30 @@ class RapportEtudiant
                 return false;
             }
 
-            $stmt = $this->pdo->prepare("
-                UPDATE rapport_etudiants 
-                SET nom_rapport = ?, theme_rapport = ?, date_rapport = NOW()
-                WHERE id_rapport = ? AND num_etu = ?
-            ");
-            return $stmt->execute([$nom_rapport, $theme_rapport, $id_rapport, $num_etu]);
+            $hasNomRapport = $this->columnExists('rapport_etudiants', 'nom_rapport');
+            $dateCol = $this->getReportDateColumn();
+            $theme = trim((string) $theme_rapport) !== '' ? $theme_rapport : $nom_rapport;
+
+            $setParts = [];
+            $values = [];
+
+            if ($hasNomRapport) {
+                $setParts[] = 'nom_rapport = ?';
+                $values[] = $nom_rapport;
+            }
+            $setParts[] = 'theme_rapport = ?';
+            $values[] = $theme;
+
+            if ($dateCol !== null) {
+                $setParts[] = $dateCol . ' = NOW()';
+            }
+
+            $sql = 'UPDATE rapport_etudiants SET ' . implode(', ', $setParts) . ' WHERE id_rapport = ? AND num_etu = ?';
+            $values[] = $id_rapport;
+            $values[] = $num_etu;
+
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute($values);
         } catch (PDOException $e) {
             error_log("Erreur de mise à jour de rapport: " . $e->getMessage());
             return false;
@@ -162,7 +301,8 @@ class RapportEtudiant
     public function isRapportNomExist($nom_rapport, $num_etu, $id_rapport = null)
     {
         try {
-            $sql = "SELECT COUNT(*) FROM rapport_etudiants WHERE nom_rapport = ? AND num_etu = ?";
+            $titleCol = $this->getReportTitleColumn();
+            $sql = "SELECT COUNT(*) FROM rapport_etudiants WHERE $titleCol = ? AND num_etu = ?";
             $params = [$nom_rapport, $num_etu];
 
             // Si on vérifie pour une modification (ID existe)
@@ -184,16 +324,31 @@ class RapportEtudiant
     public function getStatsEtudiant($num_etu)
     {
         try {
-            $stmt = $this->pdo->prepare("
-                SELECT 
-                    COUNT(*) as total_rapports,
-                    COUNT(CASE WHEN DATE(date_rapport) = CURDATE() THEN 1 END) as rapports_aujourd_hui,
-                    COUNT(CASE WHEN date_rapport >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as rapports_semaine,
-                    COUNT(CASE WHEN date_rapport >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as rapports_mois,
-                    MAX(date_rapport) as dernier_rapport
-                FROM rapport_etudiants 
-                WHERE num_etu = ?
-            ");
+            $dateCol = $this->getReportDateColumn();
+            if ($dateCol !== null) {
+                $sql = "
+                    SELECT 
+                        COUNT(*) as total_rapports,
+                        COUNT(CASE WHEN DATE($dateCol) = CURDATE() THEN 1 END) as rapports_aujourd_hui,
+                        COUNT(CASE WHEN $dateCol >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as rapports_semaine,
+                        COUNT(CASE WHEN $dateCol >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as rapports_mois,
+                        MAX($dateCol) as dernier_rapport
+                    FROM rapport_etudiants 
+                    WHERE num_etu = ?
+                ";
+            } else {
+                $sql = "
+                    SELECT 
+                        COUNT(*) as total_rapports,
+                        0 as rapports_aujourd_hui,
+                        0 as rapports_semaine,
+                        0 as rapports_mois,
+                        NULL as dernier_rapport
+                    FROM rapport_etudiants 
+                    WHERE num_etu = ?
+                ";
+            }
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$num_etu]);
             return $stmt->fetch(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -205,21 +360,22 @@ class RapportEtudiant
     public function searchRapports($search_term, $num_etu = null)
     {
         try {
+            $hasNomRapport = $this->columnExists('rapport_etudiants', 'nom_rapport');
             $sql = "
-                SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
-                WHERE (r.nom_rapport LIKE ? OR r.theme_rapport LIKE ?)
+                WHERE " . ($hasNomRapport ? "(r.nom_rapport LIKE ? OR r.theme_rapport LIKE ?)" : "(r.theme_rapport LIKE ?)") . "
             ";
 
-            $params = ["%$search_term%", "%$search_term%"];
+            $params = $hasNomRapport ? ["%$search_term%", "%$search_term%"] : ["%$search_term%"];
 
             if ($num_etu !== null) {
                 $sql .= " AND r.num_etu = ?";
                 $params[] = $num_etu;
             }
 
-            $sql .= " ORDER BY r.date_rapport DESC";
+            $sql .= " " . $this->getReportOrderBy('r');
 
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
@@ -233,14 +389,20 @@ class RapportEtudiant
     public function getRecentRapports($limit = 10)
     {
         try {
-            $stmt = $this->pdo->prepare("
-                SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu 
+            $limit = (int) $limit;
+            if ($limit <= 0) {
+                $limit = 10;
+            }
+
+            $sql = "
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu 
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
-                ORDER BY r.date_rapport DESC
-                LIMIT ?
-            ");
-            $stmt->execute([$limit]);
+                " . $this->getReportOrderBy('r') . "
+                LIMIT " . $limit . "
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
             error_log("Erreur récupération rapports récents: " . $e->getMessage());
@@ -314,13 +476,14 @@ class RapportEtudiant
     public function getRapportsByStatut($statut)
     {
         try {
-            $stmt = $this->pdo->prepare("
-            SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu 
-            FROM rapport_etudiants r
-            JOIN etudiants e ON r.num_etu = e.num_carte_etud
-            WHERE r.statut_rapport = ?
-            ORDER BY r.date_rapport DESC
-        ");
+            $sql = "
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu 
+                FROM rapport_etudiants r
+                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                WHERE r.statut_rapport = ?
+                " . $this->getReportOrderBy('r') . "
+            ";
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$statut]);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
