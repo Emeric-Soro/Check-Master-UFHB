@@ -375,7 +375,7 @@ class Etudiant
     public function getInfoStage($numEtu)
     {
         try {
-            $sql = "SELECT infos_stage.*, e.lib_entreprise as nom_entreprise
+            $sql = "SELECT infos_stage.*, e.lib_long_entreprise as nom_entreprise, e.lib_court_en
                    FROM informations_stage infos_stage
                    JOIN entreprises e ON infos_stage.id_entreprise = e.id_entreprise
                    WHERE infos_stage.num_etu = :num_etu";

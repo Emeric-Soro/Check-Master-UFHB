@@ -5,12 +5,14 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/Entreprise.php';
 require_once __DIR__ . '/../models/InfoStage.php';
+require_once __DIR__ . '/../models/MaitreDeStage.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 
 use DateTime;
 use Etudiant;
 use Entreprise;
 use InfoStage;
+use MaitreDeStage;
 use AuditLog;
 use Database;
 
@@ -20,6 +22,7 @@ class CandidatureSoutenanceService
     private $etudiant;
     private $entreprise;
     private $stage;
+    private $maitreDeStage;
     private $auditLog;
 
     public function __construct($db)
@@ -28,6 +31,7 @@ class CandidatureSoutenanceService
         $this->etudiant = new Etudiant($this->db);
         $this->entreprise = new Entreprise($this->db);
         $this->stage = new InfoStage($this->db);
+        $this->maitreDeStage = new MaitreDeStage($this->db);
         $this->auditLog = new AuditLog($this->db);
     }
 
@@ -54,6 +58,11 @@ class CandidatureSoutenanceService
     public function getAllEntreprises()
     {
         return $this->entreprise->getAllEntreprises();
+    }
+
+    public function getAllMaitresDeStage()
+    {
+        return $this->maitreDeStage->getAllMaitresDeStage();
     }
 
     public function soumettreCandidature($etudiant_id, $id_utilisateur)
@@ -98,6 +107,16 @@ class CandidatureSoutenanceService
             $id_entreprise = $entreprise->id_entreprise;
         }
 
+        // Gérer le maître de stage (créer ou récupérer)
+        $maitreStageData = [
+            'encadrant' => $data['encadrant'],
+            'email_encadrant' => $data['email_encadrant'],
+            'telephone_encadrant' => $data['telephone_encadrant'],
+            'id_entreprise' => $id_entreprise
+        ];
+
+        $id_maitre_stage = $this->maitreDeStage->findOrCreate($maitreStageData);
+
         $existing_info = $this->stage->getStageInfo($etudiant_id);
 
         $stage_data = [
@@ -107,7 +126,8 @@ class CandidatureSoutenanceService
             'sujet_stage' => $data['sujet'],
             'encadrant_entreprise' => $data['encadrant'],
             'email_encadrant' => $data['email_encadrant'],
-            'telephone_encadrant' => $data['telephone_encadrant']
+            'telephone_encadrant' => $data['telephone_encadrant'],
+            'id_maitre_stage' => $id_maitre_stage // Nouveau champ
         ];
 
         $date_debut = new DateTime($data['date_debut']);

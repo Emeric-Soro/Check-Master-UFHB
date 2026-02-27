@@ -24,7 +24,7 @@ class Archive
                 e.nom_etu as nom,
                 e.prenom_etu as prenoms,
                 r.theme_rapport as theme,
-                ent.lib_entreprise as entreprise,
+                ent.lib_long_entreprise as entreprise,
                 r.statut_rapport as statut,
                 aa.date_deb,
                 aa.date_fin,
@@ -222,7 +222,7 @@ class Archive
     private function getStageInfo($numEtu)
     {
         $sql = "
-            SELECT ist.*, ent.lib_entreprise
+            SELECT ist.*, ent.lib_long_entreprise, ent.lib_court_en
             FROM informations_stage ist
             LEFT JOIN entreprises ent ON ist.id_entreprise = ent.id_entreprise
             WHERE ist.num_etu = :num_etu
@@ -508,11 +508,12 @@ class Archive
     {
         $sql = "
             SELECT 
-                ent.lib_entreprise,
+                ent.lib_long_entreprise,
+                ent.lib_court_en,
                 COUNT(*) as total
             FROM informations_stage ist
             INNER JOIN entreprises ent ON ent.id_entreprise = ist.id_entreprise
-            GROUP BY ent.id_entreprise, ent.lib_entreprise
+            GROUP BY ent.id_entreprise, ent.lib_long_entreprise, ent.lib_court_en
             ORDER BY total DESC
             LIMIT :limit
         ";

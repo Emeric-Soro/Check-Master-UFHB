@@ -70,6 +70,9 @@ class CandidatureSoutenanceController
         // Récupérer toutes les entreprises pour l'autocomplétion
         $GLOBALS['entreprises'] = $this->service->getAllEntreprises();
 
+        // Récupérer tous les maîtres de stage pour l'autocomplétion
+        $GLOBALS['maitres_de_stage'] = $this->service->getAllMaitresDeStage();
+
     }
 
 

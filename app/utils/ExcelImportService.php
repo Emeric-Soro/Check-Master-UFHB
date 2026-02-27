@@ -270,13 +270,13 @@ class ExcelImportService
     private function getOrCreateEnterprise($nomEntreprise)
     {
         $nom = !empty($nomEntreprise) ? trim($nomEntreprise) : 'Non spécifiée';
-        $stmt = $this->db->prepare("SELECT id_entreprise FROM entreprises WHERE lib_entreprise = :lib");
+        $stmt = $this->db->prepare("SELECT id_entreprise FROM entreprises WHERE lib_long_entreprise = :lib OR lib_court_en = :lib");
         $stmt->execute(['lib' => $nom]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($result)
             return $result['id_entreprise'];
 
-        $stmt = $this->db->prepare("INSERT INTO entreprises (lib_entreprise) VALUES (:lib)");
+        $stmt = $this->db->prepare("INSERT INTO entreprises (lib_long_entreprise, lib_court_en, email, telephone, logo) VALUES (:lib, '', '', '', '')");
         $stmt->execute(['lib' => $nom]);
         return $this->db->lastInsertId();
     }

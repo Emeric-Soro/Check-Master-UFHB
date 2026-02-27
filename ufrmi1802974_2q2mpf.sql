@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : dim. 22 fév. 2026 à 00:03
+-- Généré le : ven. 27 fév. 2026 à 16:28
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.3.6
 
@@ -1626,10 +1626,13 @@ DROP TABLE IF EXISTS `entreprises`;
 
 CREATE TABLE IF NOT EXISTS `entreprises` (
     `id_entreprise` int NOT NULL AUTO_INCREMENT,
-    `lib_entreprise` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
-    `lien_logo_entreprise` varchar(256) NOT NULL,
+    `lib_long_entreprise` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+    `lib_court_en` varchar(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+    `logo` varchar(256) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+    `email` varchar(100) NOT NULL,
+    `telephone` varchar(15) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
     PRIMARY KEY (`id_entreprise`)
-) ENGINE = InnoDB AUTO_INCREMENT = 13 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 45 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `entreprises`
@@ -1638,60 +1641,332 @@ CREATE TABLE IF NOT EXISTS `entreprises` (
 INSERT INTO
     `entreprises` (
         `id_entreprise`,
-        `lib_entreprise`,
-        `lien_logo_entreprise`
+        `lib_long_entreprise`,
+        `lib_court_en`,
+        `logo`,
+        `email`,
+        `telephone`
     )
 VALUES (
-        1,
-        'Orange Côte d\'Ivoire',
-        'logos/orange_ci.png'
-    ),
-    (
         2,
         'MTN Côte d\'Ivoire',
-        'logos/mtn_ci.png'
+        'MTN',
+        'logos/mtn_ci.png',
+        '',
+        ''
     ),
     (
         3,
         'Moov Africa Côte d\'Ivoire',
-        'logos/moov_ci.png'
-    ),
-    (
-        4,
-        'Société Générale Côte d\'Ivoire',
-        'logos/sgci.png'
-    ),
-    (
-        5,
-        'NSIA Banque Côte d\'Ivoire',
-        'logos/nsia.png'
+        'MOOV',
+        'logos/moov_ci.png',
+        '',
+        ''
     ),
     (
         6,
+        'SOCIETE DE DISTRIBUTION D\'EAU EN CÔTE D\'IVOIRE',
         'SODECI',
-        'logos/sodeci.png'
+        'logos/sodeci.png',
+        '',
+        ''
     ),
     (
         7,
-        'CIE (Compagnie Ivoirienne d\'Électricité)',
-        'logos/cie.png'
+        'COMPAGNIE IVOIRIENNE D\'ÉLECTRICITÉ',
+        'CIE',
+        'logos/cie.png',
+        '',
+        ''
     ),
     (
         8,
-        'Société Ivoirienne de Raffinage (SIR)',
-        'logos/sir.png'
+        'SOCIETE IVOIRIENNE DE RAFFINAGE',
+        'SIR',
+        'logos/sir.png',
+        '',
+        ''
     ),
     (
         9,
-        'Nestlé Côte d\'Ivoire',
-        'logos/nestle_ci.png'
+        'NESTLE CÔTE D\'IVOIRE',
+        'NESTLE CI',
+        'logos/nestle_ci.png',
+        '',
+        ''
     ),
     (
         10,
-        'Unilever Côte d\'Ivoire',
-        'logos/unilever_ci.png'
+        'UNILEVER CÔTE D\'IVOIRE',
+        'UNILEVER - CI',
+        'logos/unilever_ci.png',
+        '',
+        ''
     ),
-    (12, 'MasterSolut', '');
+    (
+        12,
+        'MASTERSOLUT',
+        'MS',
+        '',
+        '',
+        ''
+    ),
+    (
+        13,
+        'ASCENS SERVICES',
+        'ASCENS',
+        '',
+        '',
+        ''
+    ),
+    (
+        14,
+        'BANQUE ATLANTIQUE CÖTE D\'IVOIRE',
+        'BACI',
+        '',
+        '',
+        ''
+    ),
+    (
+        15,
+        'BANQUE GABONAISE et FRANCAISE COTE D\'IVOIRE',
+        'BGFI BANK CI',
+        '',
+        '',
+        ''
+    ),
+    (
+        16,
+        'CARGILL WEST AFRICA',
+        'CARGILL WEST AFRICA',
+        '',
+        '',
+        ''
+    ),
+    (
+        17,
+        'CENTRE MEDICAL EDLONA',
+        'CENTRE MEDICAL EDLONA',
+        '',
+        '',
+        ''
+    ),
+    (
+        18,
+        'COMPAGNIE IVOIRIENNE d\'ELECTRICITE',
+        'CIE',
+        '',
+        '',
+        ''
+    ),
+    (
+        19,
+        'CONSULTECH',
+        'CONSULTECH',
+        '',
+        '',
+        ''
+    ),
+    (
+        20,
+        'DJAMO',
+        'DJAMO',
+        '',
+        '',
+        ''
+    ),
+    (
+        21,
+        'DOCUMENTS KNOWLEDGE BUSINESS SOLUTIONS',
+        'DKBS',
+        '',
+        '',
+        ''
+    ),
+    (
+        22,
+        'EBENYX TECHNOLOGIES',
+        'EBENYX',
+        '',
+        '',
+        ''
+    ),
+    (
+        23,
+        'EBURTIS SARL',
+        'EBURTIS',
+        '',
+        '',
+        ''
+    ),
+    (
+        24,
+        'ECOBANK',
+        'ECOBANK',
+        '',
+        '',
+        ''
+    ),
+    (
+        25,
+        'ECO-ONE GESTION LOCATIVE',
+        'ECO-ONE GESTION LOCATIVE',
+        '',
+        '',
+        ''
+    ),
+    (
+        26,
+        'ERNST & YOUNG',
+        'EY',
+        '',
+        '',
+        ''
+    ),
+    (
+        27,
+        'EVEREST CONSULTING',
+        'EVEREST CONSULTING',
+        '',
+        '',
+        ''
+    ),
+    (
+        28,
+        'INTELLIGENCE et EXPERTISE AFRIQUE',
+        'INEXA',
+        '',
+        '',
+        ''
+    ),
+    (
+        29,
+        'KIP SERVICES ET TECHNOLOGIES',
+        'EKIP',
+        '',
+        '',
+        ''
+    ),
+    (
+        30,
+        'LOGICSQUARE',
+        'LOGICSQUARE',
+        '',
+        '',
+        ''
+    ),
+    (
+        31,
+        'MEDIASOFT LAFAYETTE',
+        'MEDIASOFT LAFAYETTE',
+        '',
+        '',
+        ''
+    ),
+    (
+        32,
+        'NIKKOSSA Communication',
+        'NIKKOSSA',
+        '',
+        '',
+        ''
+    ),
+    (
+        33,
+        'NOUVELLE SOCIETE INTERAFRICAINE d\'ASSURANCE',
+        'NSIA',
+        '',
+        '',
+        ''
+    ),
+    (
+        34,
+        'ORANGE COTE D\'IVOIRE',
+        'OCI',
+        '',
+        '',
+        ''
+    ),
+    (
+        35,
+        'OVERNETFLOW',
+        'OVERNETFLOW',
+        '',
+        '',
+        ''
+    ),
+    (
+        36,
+        'PRIME CONSULTING',
+        'PRIME CONSULTING',
+        '',
+        '',
+        ''
+    ),
+    (
+        37,
+        'SMART BUSINESS TECHNOLOGIES',
+        'SMART TECHNOLOGIES',
+        '',
+        '',
+        ''
+    ),
+    (
+        38,
+        'SMARTAPS INGENIERIE INFORMATIQUE',
+        'SMARTAPS',
+        '',
+        '',
+        ''
+    ),
+    (
+        39,
+        'SOCIETE GENERALE AFRICAN BUSINESS SERVICES',
+        'SGABS',
+        '',
+        '',
+        ''
+    ),
+    (
+        40,
+        'SOCIETE GENERALE COTE D\'IVOIRE',
+        'SGCI',
+        '',
+        '',
+        ''
+    ),
+    (
+        41,
+        'SOGITECH',
+        'SOGITECH',
+        '',
+        '',
+        ''
+    ),
+    (
+        42,
+        'SQORUS',
+        'SQORUS',
+        '',
+        '',
+        ''
+    ),
+    (
+        43,
+        'SUCRERIE AFRICAINE COTE D\'IVOIRE',
+        'SUCAF CI',
+        '',
+        '',
+        ''
+    ),
+    (
+        44,
+        'SYNELIA',
+        'SYNELIA',
+        '',
+        '',
+        ''
+    );
 
 -- --------------------------------------------------------
 
@@ -2362,6 +2637,174 @@ VALUES (
         '0000-00-00',
         2,
         '2019-2020',
+        NULL,
+        NULL
+    ),
+    (
+        'YOBH1802000001',
+        'CI0119376518',
+        'Yoboué',
+        'Henoc Jephté ',
+        '',
+        '0000-00-00',
+        1,
+        '2025-2026',
+        NULL,
+        NULL
+    ),
+    (
+        'BAHA2507970002',
+        'CI0120389024',
+        'Bah',
+        'Abdoulaye Sadjo',
+        '',
+        '0000-00-00',
+        1,
+        '2025-2026',
+        NULL,
+        NULL
+    ),
+    (
+        'DIAM1811010001',
+        'CI0120389040',
+        'Diabaté',
+        'Makan Eméric ',
+        '',
+        '0000-00-00',
+        1,
+        '2025-2026',
+        NULL,
+        NULL
+    ),
+    (
+        'KANT1303010001',
+        'CI0120389068',
+        'Kanga',
+        'Tiécoura Kouadio KpatchiboW.',
+        '',
+        '0000-00-00',
+        1,
+        '2025-2026',
+        NULL,
+        NULL
+    ),
+    (
+        'KONM3008010001',
+        'CI0120389081',
+        'Koné',
+        'Mohamed  ',
+        '',
+        '0000-00-00',
+        1,
+        '2025-2026',
+        NULL,
+        NULL
+    ),
+    (
+        'ATTK0309000002',
+        'CI0121398959',
+        'Attitso',
+        'Kossivi Joël ',
+        '',
+        '0000-00-00',
+        1,
+        '2025-2026',
+        NULL,
+        NULL
+    ),
+    (
+        '161213861/CISS',
+        'CI0121398966',
+        'Cissé',
+        'Kadidja  ',
+        '',
+        '0000-00-00',
+        2,
+        '2025-2026',
+        NULL,
+        NULL
+    ),
+    (
+        'CRIB2105030002',
+        'CI0121398969',
+        'Critié',
+        'Bi Boti Yann Florent',
+        '',
+        '0000-00-00',
+        1,
+        '2025-2026',
+        NULL,
+        NULL
+    ),
+    (
+        'DJAC1110020001',
+        'CI0121398973',
+        'Djadou',
+        'Cauphy Christian Jordy',
+        '',
+        '0000-00-00',
+        1,
+        '2025-2026',
+        NULL,
+        NULL
+    ),
+    (
+        'GANG1008030001',
+        'CI0121398983',
+        'Ganon',
+        'Gnidan Myriam ',
+        '',
+        '0000-00-00',
+        2,
+        '2025-2026',
+        NULL,
+        NULL
+    ),
+    (
+        '203402572/KOFF',
+        'CI0121398997',
+        'Koffi',
+        'André Yann Emmanuel',
+        '',
+        '0000-00-00',
+        1,
+        '2025-2026',
+        NULL,
+        NULL
+    ),
+    (
+        'KOUA3007030002',
+        'CI0121399010',
+        'Kouadio',
+        'Amenan Marie Renée Emmanuella',
+        '',
+        '0000-00-00',
+        2,
+        '2025-2026',
+        NULL,
+        NULL
+    ),
+    (
+        'KOUD2803030002',
+        'CI0121399019',
+        'Kouassi',
+        'Djôlo Yves-Aurel ',
+        '',
+        '0000-00-00',
+        1,
+        '2025-2026',
+        NULL,
+        NULL
+    ),
+    (
+        'TOUG2003030001',
+        'CI0121399059',
+        'Touré',
+        'Gnimy Henock ',
+        '',
+        '0000-00-00',
+        1,
+        '2025-2026',
         NULL,
         NULL
     );
@@ -3575,12 +4018,11 @@ CREATE TABLE IF NOT EXISTS `informations_stage` (
     `date_debut_stage` date NOT NULL,
     `date_fin_stage` date NOT NULL,
     `sujet_stage` text NOT NULL,
-    `encadrant_entreprise` varchar(100) NOT NULL,
-    `email_encadrant` varchar(100) NOT NULL,
-    `telephone_encadrant` varchar(20) NOT NULL,
+    `id_maitre_stage` varchar(15) NOT NULL,
     PRIMARY KEY (`id_info_stage`),
     KEY `num_etu` (`num_etu`),
-    KEY `id_entreprise` (`id_entreprise`)
+    KEY `id_entreprise` (`id_entreprise`),
+    KEY `id_maitre_stage` (`id_maitre_stage`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
 
 -- --------------------------------------------------------
@@ -3685,6 +4127,267 @@ VALUES (
         'Espèce',
         '',
         575000.00
+    );
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `maitre_de_stage`
+--
+
+DROP TABLE IF EXISTS `maitre_de_stage`;
+
+CREATE TABLE IF NOT EXISTS `maitre_de_stage` (
+    `id_maitre_stage` varchar(15) NOT NULL,
+    `Nom` varchar(50) NOT NULL,
+    `prenom` varchar(100) NOT NULL,
+    `email` varchar(100) NOT NULL,
+    `telephone` varchar(15) NOT NULL,
+    `id_entreprise` int NOT NULL,
+    `id_fonction` varchar(10) NOT NULL,
+    PRIMARY KEY (`id_maitre_stage`),
+    KEY `id_entreprise` (`id_entreprise`),
+    KEY `id_fonction` (`id_fonction`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `maitre_de_stage`
+--
+
+INSERT INTO
+    `maitre_de_stage` (
+        `id_maitre_stage`,
+        `Nom`,
+        `prenom`,
+        `email`,
+        `telephone`,
+        `id_entreprise`,
+        `id_fonction`
+    )
+VALUES (
+        'MS-13-001',
+        'FOFANA',
+        'Mariam',
+        '',
+        '',
+        13,
+        'NA'
+    ),
+    (
+        'MS-14-001',
+        'COFFI',
+        'Amany',
+        '',
+        '',
+        14,
+        'NA'
+    ),
+    (
+        'MS-15-001',
+        'ZAMBLE',
+        'Yves',
+        '',
+        '',
+        15,
+        'NA'
+    ),
+    (
+        'MS-16-001',
+        'AKA',
+        'Gervais',
+        '',
+        '',
+        16,
+        'NA'
+    ),
+    (
+        'MS-17-001',
+        'LAUBHOUET',
+        'Roger',
+        '',
+        '',
+        17,
+        'NA'
+    ),
+    (
+        'MS-18-001',
+        'KALA',
+        'Jules Raymond',
+        '',
+        '',
+        18,
+        'NA'
+    ),
+    (
+        'MS-18-002',
+        'SANOGO',
+        'Souleymane',
+        '',
+        '',
+        18,
+        'NA'
+    ),
+    (
+        'MS-18-003',
+        'YAMB',
+        'Etienne Landry',
+        '',
+        '',
+        18,
+        'NA'
+    ),
+    (
+        'MS-19-001',
+        'ANHE',
+        'Esther',
+        '',
+        '',
+        19,
+        'NA'
+    ),
+    (
+        'MS-20-001',
+        'KOFFI',
+        'Néhémie',
+        '',
+        '',
+        20,
+        'NA'
+    ),
+    (
+        'MS-21-001',
+        'KESSE',
+        'Brice',
+        '',
+        '',
+        21,
+        'NA'
+    ),
+    (
+        'MS-22-001',
+        'ADOU',
+        'Wilfried',
+        '',
+        '',
+        22,
+        'NA'
+    ),
+    (
+        'MS-22-002',
+        'ALLOUKA',
+        'Jean Romaric',
+        '',
+        '',
+        22,
+        'NA'
+    ),
+    (
+        'MS-23-001',
+        'BEYARA',
+        'Koutouan Jean Roméo',
+        '',
+        '',
+        23,
+        'NA'
+    ),
+    (
+        'MS-24-001',
+        'AMOIKON',
+        'Georges Wilrid',
+        '',
+        '',
+        24,
+        'NA'
+    ),
+    (
+        'MS-25-001',
+        'BOGUE',
+        'Jonathan',
+        '',
+        '',
+        25,
+        'NA'
+    ),
+    (
+        'MS-26-001',
+        'TOURE',
+        'Mohamed Lamine',
+        '',
+        '',
+        26,
+        'NA'
+    ),
+    (
+        'MS-27-001',
+        'TAMBIE',
+        'Guy Alexis',
+        '',
+        '',
+        27,
+        'NA'
+    ),
+    (
+        'MS-28-001',
+        'ANGUI',
+        'Ange Boris',
+        '',
+        '',
+        28,
+        'NA'
+    ),
+    (
+        'MS-28-002',
+        'ASSAH',
+        'Esdras',
+        '',
+        '',
+        28,
+        'NA'
+    ),
+    (
+        'MS-28-003',
+        'MAMADOU',
+        'Diarra',
+        '',
+        '',
+        28,
+        'NA'
+    ),
+    (
+        'MS-29-001',
+        'NIGBAOUA',
+        'Abdouramane Sorho',
+        '',
+        '',
+        29,
+        'NA'
+    ),
+    (
+        'MS-30-001',
+        'KOFFI',
+        'Annette-Cyrielle',
+        '',
+        '',
+        30,
+        'NA'
+    ),
+    (
+        'MS-30-002',
+        'TOUKAM',
+        'Isidore',
+        '',
+        '',
+        30,
+        'NA'
+    ),
+    (
+        'MS-31-001',
+        'BEKOUAN',
+        'Kassi',
+        '',
+        '',
+        31,
+        'NA'
     );
 
 -- --------------------------------------------------------
@@ -4519,7 +5222,7 @@ CREATE TABLE IF NOT EXISTS `pister` (
     KEY `idx_utilisateur_action` (`id_utilisateur`, `action`),
     KEY `id_action` (`action`),
     KEY `id_action_2` (`action`)
-) ENGINE = InnoDB AUTO_INCREMENT = 69 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 71 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `pister`
@@ -5077,6 +5780,22 @@ VALUES (
         'Succès',
         'permissions',
         '2026-02-20 22:45:12'
+    ),
+    (
+        69,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-02-23 21:25:51'
+    ),
+    (
+        70,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-02-27 15:05:09'
     );
 
 -- --------------------------------------------------------
@@ -6093,7 +6812,8 @@ ADD CONSTRAINT `fk_groupe_utilisateur_type` FOREIGN KEY (`id_type_utilisateur`) 
 --
 ALTER TABLE `informations_stage`
 ADD CONSTRAINT `informations_stage_ibfk_2` FOREIGN KEY (`id_entreprise`) REFERENCES `entreprises` (`id_entreprise`) ON DELETE CASCADE ON UPDATE CASCADE,
-ADD CONSTRAINT `informations_stage_ibfk_3` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE;
+ADD CONSTRAINT `informations_stage_ibfk_3` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
+ADD CONSTRAINT `informations_stage_ibfk_4` FOREIGN KEY (`id_maitre_stage`) REFERENCES `maitre_de_stage` (`id_maitre_stage`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `inscriptions`
@@ -6102,6 +6822,12 @@ ALTER TABLE `inscriptions`
 ADD CONSTRAINT `inscriptions_ibfk_3` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE CASCADE ON UPDATE CASCADE,
 ADD CONSTRAINT `inscriptions_ibfk_4` FOREIGN KEY (`id_etudiant`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
 ADD CONSTRAINT `inscriptions_ibfk_niveau` FOREIGN KEY (`id_niveau`) REFERENCES `niveau_etude` (`id_niv_etude`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `maitre_de_stage`
+--
+ALTER TABLE `maitre_de_stage`
+ADD CONSTRAINT `maitre_de_stage_ibfk_1` FOREIGN KEY (`id_entreprise`) REFERENCES `entreprises` (`id_entreprise`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `notes`

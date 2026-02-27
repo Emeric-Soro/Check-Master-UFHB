@@ -216,8 +216,8 @@ class GestionRapportService
 
         $entreprise = $this->entrepriseModel->getEntrepriseById($stage_info_raw->nom_entreprise);
         return [
-            'nom_entreprise' => $entreprise ? $entreprise->lib_entreprise : '',
-            'logo_entreprise' => $entreprise ? ((string) ($entreprise->lien_logo_entreprise ?? '')) : '',
+            'nom_entreprise' => $entreprise ? $entreprise->lib_long_entreprise : '',
+            'logo_entreprise' => $entreprise ? ((string) ($entreprise->logo ?? '')) : '',
             'date_debut_stage' => $stage_info_raw->date_debut_stage,
             'date_fin_stage' => $stage_info_raw->date_fin_stage,
             'sujet_stage' => $stage_info_raw->sujet_stage,
@@ -296,11 +296,20 @@ class GestionRapportService
     {
         $normalized = strtolower(trim((string) $statut));
         $trans = [
-            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
-            'à' => 'a', 'â' => 'a', 'ä' => 'a',
-            'î' => 'i', 'ï' => 'i',
-            'ô' => 'o', 'ö' => 'o',
-            'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+            'é' => 'e',
+            'è' => 'e',
+            'ê' => 'e',
+            'ë' => 'e',
+            'à' => 'a',
+            'â' => 'a',
+            'ä' => 'a',
+            'î' => 'i',
+            'ï' => 'i',
+            'ô' => 'o',
+            'ö' => 'o',
+            'ù' => 'u',
+            'û' => 'u',
+            'ü' => 'u',
             'ç' => 'c',
         ];
         $normalized = strtr($normalized, $trans);
