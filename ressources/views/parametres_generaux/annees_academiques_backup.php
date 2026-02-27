@@ -217,11 +217,10 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
             </div>
 
             <!-- Table with Scroll -->
-            <div class="overflow-y-auto" style="max-height: 130px;">
-                <div class="overflow-x-auto">
-                    <form method="POST" action="?page=parametres_generaux&action=annees_academiques" id="formListeAnnees">
-                        <input type="hidden" name="submit_delete_multiple" id="submitDeleteHidden" value="0">
-                        <table class="min-w-full divide-y divide-gray-200">
+            <div class="cm-table-wrapper" style="max-height: 200px;">
+                <form method="POST" action="?page=parametres_generaux&action=annees_academiques" id="formListeAnnees">
+                    <input type="hidden" name="submit_delete_multiple" id="submitDeleteHidden" value="0">
+                    <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50 sticky top-0 z-10">
                                 <tr>
                                     <?php if (canDelete()): ?>
@@ -293,9 +292,8 @@ $listeAnnees = array_slice($listeAnnees, $offset, $limit);
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
-                        </table>
-                    </form>
-                </div>
+                    </table>
+                </form>
             </div>
 
             <!-- Pagination en bas du tableau -->

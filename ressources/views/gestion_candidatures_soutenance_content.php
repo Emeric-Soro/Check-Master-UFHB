@@ -911,7 +911,7 @@ foreach ($candidatures as $c) {
             </div>
 
             <!-- Table d'historique des candidatures examinées -->
-            <div class="table-container" style="margin-top: 2rem;">
+            <div class="table-container cm-table-wrapper" style="margin-top: 2rem;">
                 <div class="table-header"
                     style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                     <h2 class="table-title">Historique des candidatures examinées</h2>

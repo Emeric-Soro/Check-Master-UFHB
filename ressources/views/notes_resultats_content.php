@@ -117,7 +117,7 @@ $semestres = $GLOBALS['semestres'] ?? [];
             </div>
 
             <!-- Table -->
-            <div class="overflow-x-auto">
+            <div class="cm-table-wrapper">
                 <table class="min-w-full divide-y divide-gray-200" id="gradesTable">
                     <thead class="bg-gray-50">
                         <tr>

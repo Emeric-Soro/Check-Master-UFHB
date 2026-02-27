@@ -585,7 +585,7 @@
     display: grid;
     grid-template-rows: minmax(0, 1fr) auto;
     gap: 0.125rem;
-    overflow: hidden;
+    overflow: auto;
     border: 0;
     border-radius: 0;
 }
@@ -726,22 +726,50 @@
     gap: var(--cm-spacing-sm);
 }
 
-/* Data table */
+/* Data table - global scrollbar for all tables */
 .cm-table-wrapper {
     width: 100%;
     overflow: auto;
     border: 1px solid var(--cm-table-border-color);
     border-radius: var(--cm-border-radius-lg);
     background: var(--cm-content-bg);
+    max-height: 500px;
+    scrollbar-gutter: stable both-edges;
 }
 
+/* Webkit scrollbar styles for all table wrappers */
+.cm-table-wrapper::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.cm-table-wrapper::-webkit-scrollbar-track {
+    background: var(--cm-barre-bg);
+    border-radius: var(--cm-border-radius);
+}
+
+.cm-table-wrapper::-webkit-scrollbar-thumb {
+    background: var(--cm-primary-light);
+    border-radius: 8px;
+}
+
+.cm-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--cm-primary);
+}
+
+/* Firefox scrollbar */
+.cm-table-wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: var(--cm-primary-light) var(--cm-barre-bg);
+}
+
+/* Specific override for CRUD screens */
 .cm-prd3-crud-screen .cm-table-wrapper {
     flex: 1 1 auto;
-    min-height: 0;
     max-height: 100%;
     min-height: 170px;
     overflow-x: auto;
-    overflow-y: scroll;
+    overflow-y: auto;
     scrollbar-gutter: stable both-edges;
     background: #dff2ff;
     border: 0;
@@ -784,6 +812,48 @@
     width: 100%;
     border-collapse: collapse;
     min-width: 760px;
+}
+
+/* Global scrollbar for all tables - wrap behavior */
+.cm-pole-inferieur {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+/* Scrollbar styles for table containers */
+.cm-pole-inferieur::-webkit-scrollbar,
+.cm-form-group::-webkit-scrollbar,
+.cm-crud-wrapper::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.cm-pole-inferieur::-webkit-scrollbar-track,
+.cm-form-group::-webkit-scrollbar-track,
+.cm-crud-wrapper::-webkit-scrollbar-track {
+    background: var(--cm-barre-bg);
+    border-radius: var(--cm-border-radius);
+}
+
+.cm-pole-inferieur::-webkit-scrollbar-thumb,
+.cm-form-group::-webkit-scrollbar-thumb,
+.cm-crud-wrapper::-webkit-scrollbar-thumb {
+    background: var(--cm-primary-light);
+    border-radius: 8px;
+}
+
+.cm-pole-inferieur::-webkit-scrollbar-thumb:hover,
+.cm-form-group::-webkit-scrollbar-thumb:hover,
+.cm-crud-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--cm-primary);
+}
+
+/* Firefox scrollbar */
+.cm-pole-inferieur,
+.cm-form-group,
+.cm-crud-wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: var(--cm-primary-light) var(--cm-barre-bg);
 }
 
 .cm-data-table__th,
@@ -3449,13 +3519,13 @@
     flex: 0 0 auto !important;
     height: auto !important;
     min-height: auto !important;
-    overflow: visible !important;
+    overflow: auto !important;
     display: block !important;
 }
 
 .cm-prd6-admin-screen .cm-table-wrapper {
-    max-height: none !important;
-    overflow: visible !important;
+    max-height: 500px !important;
+    overflow: auto !important;
     min-height: auto !important;
 }
 
