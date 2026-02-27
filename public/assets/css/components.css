@@ -507,6 +507,17 @@
     padding: 0.35rem 0.6rem;
 }
 
+/* Ajustement visuel specifique: remonter la case "Annee A." */
+.cm-prd3-crud-screen label[for="id_annee_acad"] {
+    position: relative;
+    top: -40px;
+}
+
+.cm-prd3-crud-screen #id_annee_acad {
+    position: relative;
+    top: -45px;
+}
+
 .cm-prd3-crud-screen .cm-form-buttons {
     padding-top: 0.25rem;
     border-top: 0;

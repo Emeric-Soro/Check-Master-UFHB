@@ -80,6 +80,7 @@ $pagination = function_exists('cm_paginate')
     ];
 
 $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit=' . $itemsPerPage;
+$preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . urlencode((string) $currentPage);
 ?>
 
 <div class="cm-prd3-screen cm-prd3-crud-screen">
@@ -108,7 +109,7 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
             </h2>
         </div>
 
-        <form id="studentForm" method="POST" action="?page=gestion_etudiants&action=ajouter_des_etudiants">
+        <form id="studentForm" method="POST" action="?page=gestion_etudiants&action=ajouter_des_etudiants<?php echo $preservedListParams; ?>">
             <?php cm_component('form/csrf-token'); ?>
             <?php if (is_object($etudiantAModifier)): ?>
                 <input type="hidden" name="old_num_etu" value="<?php echo htmlspecialchars((string) ($etudiantAModifier->num_carte_etud ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
@@ -244,7 +245,7 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
 
             <div class="cm-form-buttons">
                 <?php if (is_object($etudiantAModifier)): ?>
-                    <a class="cm-btn is-light" href="?page=gestion_etudiants&action=ajouter_des_etudiants">
+                    <a class="cm-btn is-light" href="?page=gestion_etudiants&action=ajouter_des_etudiants<?php echo $preservedListParams; ?>">
                         <i class="fas fa-xmark" aria-hidden="true"></i>
                         Annuler
                     </a>
@@ -330,14 +331,14 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
                                 <input type="checkbox" id="cmCheckAllRows" class="cm-checkbox" aria-label="Selectionner toutes les lignes">
                             </th>
                         <?php endif; ?>
-                        <th class="cm-data-table__th">N° Carte Etud.</th>
-                        <th class="cm-data-table__th">ID MESRS</th>
-                        <th class="cm-data-table__th">Nom</th>
-                        <th class="cm-data-table__th">Prenom</th>
-                        <th class="cm-data-table__th">Date Nais.</th>
-                        <th class="cm-data-table__th">Genre</th>
-                        <th class="cm-data-table__th">Email</th>
-                        <th class="cm-data-table__th">Promotion</th>
+                        <th class="cm-data-table__th" data-sort-field="num_etu">N° Carte Etud.</th>
+                        <th class="cm-data-table__th" data-sort-field="id_mesrs">ID MESRS</th>
+                        <th class="cm-data-table__th" data-sort-field="nom">Nom</th>
+                        <th class="cm-data-table__th" data-sort-field="prenom">Prenom</th>
+                        <th class="cm-data-table__th" data-sort-field="date_naiss">Date Nais.</th>
+                        <th class="cm-data-table__th" data-sort-field="genre">Genre</th>
+                        <th class="cm-data-table__th" data-sort-field="email">Email</th>
+                        <th class="cm-data-table__th" data-sort-field="promotion">Promotion</th>
                         <?php if (canEdit()): ?>
                             <th class="cm-data-table__th is-center">Actions</th>
                         <?php endif; ?>
@@ -363,7 +364,16 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
                             $email = (string) ($etudiant->email_etu ?? '');
                             $promotion = (string) ($etudiant->promotion_etu ?? '');
                             ?>
-                            <tr class="cm-data-table__row" data-search="<?php echo htmlspecialchars(strtolower($numEtu . ' ' . $nom . ' ' . $prenom . ' ' . $email . ' ' . $idMesrs), ENT_QUOTES, 'UTF-8'); ?>">
+                            <tr class="cm-data-table__row"
+                                data-search="<?php echo htmlspecialchars(strtolower($numEtu . ' ' . $nom . ' ' . $prenom . ' ' . $email . ' ' . $idMesrs), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-num-etu="<?php echo htmlspecialchars(strtolower($numEtu), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-id-mesrs="<?php echo htmlspecialchars(strtolower($idMesrs), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-nom="<?php echo htmlspecialchars(strtolower($nom), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-prenom="<?php echo htmlspecialchars(strtolower($prenom), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-date-naiss="<?php echo htmlspecialchars($dateNaiss, ENT_QUOTES, 'UTF-8'); ?>"
+                                data-genre="<?php echo htmlspecialchars(strtolower($genre), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-email="<?php echo htmlspecialchars(strtolower($email), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-promotion="<?php echo htmlspecialchars($promotion, ENT_QUOTES, 'UTF-8'); ?>">
                                 <?php if (canEdit() || canDelete()): ?>
                                     <td class="cm-data-table__td is-checkbox">
                                         <input type="checkbox"
@@ -384,7 +394,7 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
                                     <td class="cm-data-table__td is-center">
                                         <div class="cm-row-actions">
                                             <a class="cm-btn-action is-edit"
-                                               href="?page=gestion_etudiants&action=ajouter_des_etudiants&num_etu=<?php echo urlencode($numEtu); ?>"
+                                               href="?page=gestion_etudiants&action=ajouter_des_etudiants&num_etu=<?php echo urlencode($numEtu); ?><?php echo $preservedListParams; ?>"
                                                title="Modifier">
                                                 <i class="fas fa-pen" aria-hidden="true"></i>
                                             </a>
@@ -426,6 +436,8 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
     const limitSelect = document.getElementById('cmStudentLimit');
     const selectedCount = document.getElementById('cmSelectedCount');
     const deleteBtn = document.getElementById('cmDeleteSelectedBtn');
+    const sortableHeaders = Array.from(document.querySelectorAll('#cmStudentsTable thead th[data-sort-field]'));
+    let currentSort = { field: null, direction: 'asc' };
     const navigate = function (url) {
         if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
             window.CM.ajax.load(url);
@@ -441,6 +453,43 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
     const visibleRows = function () {
         return Array.from(document.querySelectorAll('#cmStudentsTableBody tr')).filter(function (row) {
             return row.style.display !== 'none';
+        });
+    };
+
+    const parseSortableValue = function (raw) {
+        const value = String(raw || '').trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            return new Date(value + 'T00:00:00').getTime();
+        }
+        if (/^\d+(\.\d+)?$/.test(value)) {
+            return Number(value);
+        }
+        return value.toLowerCase();
+    };
+
+    const sortRows = function (field, direction) {
+        const tbody = document.getElementById('cmStudentsTableBody');
+        if (!tbody) {
+            return;
+        }
+
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        rows.sort(function (a, b) {
+            const attr = 'data-' + field.replace(/_/g, '-');
+            const av = parseSortableValue(a.getAttribute(attr));
+            const bv = parseSortableValue(b.getAttribute(attr));
+
+            if (av < bv) {
+                return direction === 'asc' ? -1 : 1;
+            }
+            if (av > bv) {
+                return direction === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
+
+        rows.forEach(function (row) {
+            tbody.appendChild(row);
         });
     };
 
@@ -527,6 +576,37 @@ $paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit
             });
         });
     }
+
+    sortableHeaders.forEach(function (th) {
+        th.style.cursor = 'pointer';
+        th.title = 'Trier';
+        th.addEventListener('click', function () {
+            const field = th.getAttribute('data-sort-field');
+            if (!field) {
+                return;
+            }
+            const nextDirection = (currentSort.field === field && currentSort.direction === 'asc') ? 'desc' : 'asc';
+            currentSort = { field: field, direction: nextDirection };
+            sortableHeaders.forEach(function (header) {
+                header.removeAttribute('data-sort-dir');
+            });
+            th.setAttribute('data-sort-dir', nextDirection);
+            sortRows(field, nextDirection);
+            updateSelectionState();
+        });
+    });
+
+    // Tri par defaut: Promotion desc (derniere annee academique en premier)
+    const defaultSortField = 'promotion';
+    const defaultSortDirection = 'desc';
+    currentSort = { field: defaultSortField, direction: defaultSortDirection };
+    sortRows(defaultSortField, defaultSortDirection);
+    sortableHeaders.forEach(function (header) {
+        header.removeAttribute('data-sort-dir');
+        if (header.getAttribute('data-sort-field') === defaultSortField) {
+            header.setAttribute('data-sort-dir', defaultSortDirection);
+        }
+    });
 
     if (limitSelect) {
         limitSelect.addEventListener('change', function () {

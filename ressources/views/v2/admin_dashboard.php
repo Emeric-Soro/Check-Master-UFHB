@@ -276,16 +276,23 @@ try {
                     <i class="fas fa-sliders" aria-hidden="true"></i>
                     Parametrage
                 </a>
+                <a class="cm-btn is-warning" href="?page=enseignants_jury" data-cm-ajax-link="true">
+                    <i class="fas fa-users" aria-hidden="true"></i>
+                    Enseignants Jury
+                </a>
             </div>
         </div>
     </div>
 
     <div class="cm-card cm-mt-md">
-        <div class="cm-card__header">
+        <div class="cm-card__header cm-flex-between">
             <h3 class="cm-card__title">
                 <i class="fas fa-users cm-mr-sm"></i>
                 Enseignants - Participation aux jurys
             </h3>
+            <a href="?page=enseignants_jury" class="cm-btn cm-btn--primary cm-btn--sm" data-cm-ajax-link="true">
+                <i class="fas fa-external-link-alt cm-mr-sm"></i> Voir tout
+            </a>
         </div>
         <div class="cm-card__body">
             <form method="GET" class="cm-grid-3 cm-mb-md" style="align-items: end;">
