@@ -272,92 +272,15 @@ class Etudiant
                 ];
             }
 
-            $id_niveau = $niveau_etudiant['id_niveau'];
-
-            // Compter le nombre total d'UE pour ce niveau
-            $sql_total_ue = "SELECT COUNT(*) as total_ue 
-                            FROM ue 
-                            WHERE id_niveau_etude = :id_niveau 
-                           ";
-
-            $stmt_total_ue = $this->db->prepare($sql_total_ue);
-            $stmt_total_ue->execute([':id_niveau' => $id_niveau]);
-            $total_ue = $stmt_total_ue->fetch(PDO::FETCH_ASSOC)['total_ue'];
-
-            // Compter le nombre d'UE où l'étudiant a des notes
-            $sql_ue_avec_notes = "SELECT COUNT(DISTINCT u.id_ue) as ue_avec_notes 
-                                 FROM ue u 
-                                 JOIN notes n ON u.id_ue = n.id_ue 
-                                 WHERE u.id_niveau_etude = :id_niveau 
-                                 AND n.num_etu = :num_etu ";
-
-            $stmt_ue_avec_notes = $this->db->prepare($sql_ue_avec_notes);
-            $stmt_ue_avec_notes->execute([':id_niveau' => $id_niveau, ':num_etu' => $numEtu]);
-            $ue_avec_notes = $stmt_ue_avec_notes->fetch(PDO::FETCH_ASSOC)['ue_avec_notes'];
-
-
-
-            // Debug: Vérifier les notes de l'étudiant
-            $sql_debug_notes = "SELECT n.moyenne, u.lib_ue, u.id_niveau_etude, u.id_annee_academique
-                               FROM notes n 
-                               JOIN ue u ON n.id_ue = u.id_ue
-                               WHERE n.num_etu = :num_etu";
-            $stmt_debug = $this->db->prepare($sql_debug_notes);
-            $stmt_debug->execute([':num_etu' => $numEtu]);
-            $debug_notes = $stmt_debug->fetchAll(PDO::FETCH_ASSOC);
-
-            error_log("DEBUG - Étudiant $numEtu - Niveau: $id_niveau - Notes trouvées: " . count($debug_notes));
-            foreach ($debug_notes as $note) {
-                error_log("DEBUG - Note: {$note['moyenne']}, UE: {$note['lib_ue']}, Niveau UE: {$note['id_niveau_etude']}, Année UE: {$note['id_annee_academique']}");
-            }
-
-            // Calculer la moyenne (version simplifiée pour debug)
-            $sql_moyenne = "SELECT AVG(n.moyenne) as moyenne 
-                           FROM notes n 
-                           JOIN ue u ON n.id_ue = u.id_ue
-                           WHERE n.num_etu = :num_etu";
-
-            $stmt_moyenne = $this->db->prepare($sql_moyenne);
-            $stmt_moyenne->execute([':num_etu' => $numEtu]);
-            $result = $stmt_moyenne->fetch(PDO::FETCH_ASSOC);
-
-            error_log("DEBUG - Moyenne calculée: " . ($result['moyenne'] ?? 'NULL'));
-
-            // Récupérer le total des crédits du niveau
-            $sql_total_credits = "SELECT SUM(u.credit) as total_credits
-                                 FROM ue u
-                                 WHERE u.id_niveau_etude = :id_niveau";
-
-            $stmt_total_credits = $this->db->prepare($sql_total_credits);
-            $stmt_total_credits->execute([':id_niveau' => $id_niveau]);
-            $total_credits = $stmt_total_credits->fetch(PDO::FETCH_ASSOC)['total_credits'] ?? 0;
-
-            // Calculer les crédits validés selon la moyenne générale
-            $moyenne_generale = $result['moyenne'] ?? 0;
-            $credits_valides = 0;
-
-            if ($moyenne_generale >= 10) {
-                // Si la moyenne générale est ≥ 10, accorder tous les crédits
-                $credits_valides = $total_credits;
-            } else {
-                // Sinon, calculer les crédits validés UE par UE
-                $sql_credits_ue = "SELECT SUM(u.credit) as credits_valides
-                                  FROM ue u
-                                  LEFT JOIN notes n ON u.id_ue = n.id_ue AND n.num_etu = :num_etu
-                                  WHERE u.id_niveau_etude = :id_niveau 
-                                  AND n.moyenne >= 10";
-
-                $stmt_credits_ue = $this->db->prepare($sql_credits_ue);
-                $stmt_credits_ue->execute([':num_etu' => $numEtu, ':id_niveau' => $id_niveau]);
-                $credits_valides = $stmt_credits_ue->fetch(PDO::FETCH_ASSOC)['credits_valides'] ?? 0;
-            }
-
+            // La table ue n'existe plus - retourner des valeurs par défaut
+            error_log("INFO - La table 'ue' n'existe plus dans la base de données. Fonctionnalité de calcul des moyennes désactivée.");
+            
             return [
-                'moyenne' => $result['moyenne'] ?? 0,
-                'total_unites' => $total_credits,
-                'unites_validees' => $credits_valides,
-                'resultats_disponibles' => true,
-                'message' => 'Résultats disponibles'
+                'moyenne' => 0,
+                'total_unites' => 0,
+                'unites_validees' => 0,
+                'resultats_disponibles' => false,
+                'message' => 'Calcul des moyennes temporairement indisponible'
             ];
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération des notes: " . $e->getMessage());
@@ -496,52 +419,18 @@ class Etudiant
 
     /**
      * Calcule les moyennes majeures, mineures, la moyenne du semestre et la validation
+     * NOTE: La table 'ue' n'existe plus - retourne des valeurs par défaut
      */
     public function getMoyennesSemestre($numEtu, $id_semestre)
     {
-        // Récupérer toutes les notes d'UE de l'étudiant pour ce semestre
-        $sql = "SELECT n.moyenne, u.credit
-                FROM notes n
-                JOIN ue u ON n.id_ue = u.id_ue
-                WHERE n.num_etu = :num_etu
-                  AND u.id_semestre = :id_semestre";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':num_etu' => $numEtu, ':id_semestre' => $id_semestre]);
-        $notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $majeures = $mineures = [];
-        foreach ($notes as $note) {
-            if ($note['credit'] > 3) {
-                $majeures[] = $note['moyenne'];
-            } else {
-                $mineures[] = $note['moyenne'];
-            }
-        }
-
-        $moyenne_majeure = count($majeures) ? array_sum($majeures) / count($majeures) : 0;
-        $moyenne_mineure = count($mineures) ? array_sum($mineures) / count($mineures) : 0;
-
-        $semestre_valide = ($moyenne_majeure >= 10 && $moyenne_mineure >= 10);
-
-        // Moyenne du semestre = moyenne arithmétique des deux
-        $moyenne_semestre = ($moyenne_majeure + $moyenne_mineure) / 2;
-
-        // Crédits attribués
-        $credits = 0;
-        if ($semestre_valide) {
-            $sql = "SELECT SUM(credit) as total_credits FROM ue WHERE id_semestre = :id_semestre";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([':id_semestre' => $id_semestre]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            $credits = $row['total_credits'] ?? 0;
-        }
-
+        error_log("INFO - La table 'ue' n'existe plus. Calcul des moyennes par semestre désactivé.");
+        
         return [
-            'moyenne_majeure' => round($moyenne_majeure, 2),
-            'moyenne_mineure' => round($moyenne_mineure, 2),
-            'moyenne_semestre' => round($moyenne_semestre, 2),
-            'semestre_valide' => $semestre_valide,
-            'credits_attribues' => $credits
+            'moyenne_majeure' => 0,
+            'moyenne_mineure' => 0,
+            'moyenne_semestre' => 0,
+            'semestre_valide' => false,
+            'credits_attribues' => 0
         ];
     }
 

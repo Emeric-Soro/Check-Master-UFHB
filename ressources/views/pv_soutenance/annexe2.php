@@ -191,6 +191,7 @@
     <div class="info-line" style="margin-top: 10px;">NOM ET PRENOMS DE L'IMPETRANT : <?= htmlspecialchars($data['nom_etudiant'] ?? '') ?></div>
 
     <!-- Moyenne Table -->
+    <div class="cm-table-wrapper">
     <table class="data-table">
         <thead>
             <tr>
@@ -227,6 +228,7 @@
             </tr>
         </tbody>
     </table>
+    </div>
 
     <div class="moyenne-line">Moyenne &nbsp;&nbsp;&nbsp; <?= number_format($data['note_finale'] ?? 0, 2) ?>/20</div>
 

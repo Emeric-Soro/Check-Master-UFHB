@@ -154,8 +154,6 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
                 <?php cm_component('form/csrf-token'); ?>
                 <?php if ($utilisateurEdit): ?><input type="hidden" name="id_utilisateur" value="<?= htmlspecialchars((string) ($utilisateurEdit->id_utilisateur ?? ''), ENT_QUOTES, 'UTF-8') ?>"><?php endif; ?>
                 <div class="cm-grid-4">
-                    <div class="cm-form-group" id="cmUserNameTextWrap"><?php cm_component('form/input-text', ['name' => 'nom_utilisateur', 'id' => 'cmNomUtilisateurText', 'label' => 'Nom utilisateur', 'required' => true, 'value' => $editNomValue, 'placeholder' => 'Nom complet']); ?></div>
-                    <div class="cm-form-group cm-hidden" id="cmUserNameSelectWrap"><label for="cmNomUtilisateurSelect" class="cm-form-label">Nom utilisateur</label><select id="cmNomUtilisateurSelect" class="cm-form-control"></select></div>
                     <?php cm_component('form/select', ['name' => 'id_type_utilisateur', 'id' => 'cmTypeUtilisateur', 'label' => 'Type utilisateur', 'required' => true, 'options' => $typeOptions, 'selected' => $editTypeValue]); ?>
                     <div class="cm-form-group">
                         <label for="cmGroupeUtilisateur" class="cm-form-label">Groupe utilisateur</label>
@@ -165,6 +163,8 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <div class="cm-form-group" id="cmUserNameTextWrap"><?php cm_component('form/input-text', ['name' => 'nom_utilisateur', 'id' => 'cmNomUtilisateurText', 'label' => 'Nom utilisateur', 'required' => true, 'value' => $editNomValue, 'placeholder' => 'Nom complet']); ?></div>
+                    <div class="cm-form-group cm-hidden" id="cmUserNameSelectWrap"><label for="cmNomUtilisateurSelect" class="cm-form-label">Nom utilisateur</label><select id="cmNomUtilisateurSelect" class="cm-form-control"></select></div>
                     <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'id' => 'cmNiveauAcces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'selected' => $editNiveauValue !== '' ? $editNiveauValue : (string) array_key_first($niveauOptions)]); ?>
                     <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'id' => 'cmStatutUtilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif'], 'selected' => $editStatutValue]); ?>
                     <?php cm_component('form/input-text', ['name' => 'login_utilisateur', 'id' => 'cmLoginUtilisateur', 'label' => 'Login', 'required' => true, 'value' => $editLoginValue, 'placeholder' => 'login']); ?>
@@ -251,9 +251,9 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
         const values = [];
         if (existingName && list.indexOf(existingName) === -1) values.push(existingName);
         list.forEach(function (item) { if (item && values.indexOf(item) === -1) values.push(item); });
-        values.forEach(function (value) {
+        values.forEach(function (value, index) {
             const opt = document.createElement('option'); opt.value = value; opt.textContent = value;
-            if (value === existingName || value === nomText.value) opt.selected = true;
+            if (value === existingName || value === nomText.value || index === 0) opt.selected = true;
             nomSelect.appendChild(opt);
         });
     }
@@ -279,11 +279,24 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
             nomText.removeAttribute('name'); nomSelect.setAttribute('name', 'nom_utilisateur');
             nomTextWrap.classList.add('cm-hidden');
             nomSelectWrap.classList.remove('cm-hidden');
+            // Regenerer le login avec le premier nom de la liste
+            if (loginInput) {
+                const nameValue = nomSelect.value || '';
+                if (nameValue) {
+                    loginInput.value = generateLoginFromName(nameValue);
+                    checkLoginAvailability(loginInput.value.trim());
+                }
+            }
         } else {
             if (nomSelect.value) nomText.value = nomSelect.value;
             nomSelect.removeAttribute('name'); nomText.setAttribute('name', 'nom_utilisateur');
             nomTextWrap.classList.remove('cm-hidden');
             nomSelectWrap.classList.add('cm-hidden');
+            // Regenerer le login avec la valeur texte
+            if (loginInput && nomText.value) {
+                loginInput.value = generateLoginFromName(nomText.value);
+                checkLoginAvailability(loginInput.value.trim());
+            }
         }
         bindGroupByType();
     }
@@ -306,7 +319,7 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
 
     if (typeSelect) { typeSelect.addEventListener('change', syncNameFieldByType); syncNameFieldByType(); }
     if (nomText) nomText.addEventListener('blur', function () { if (loginInput && loginInput.value.trim() === '') { loginInput.value = generateLoginFromName(nomText.value); checkLoginAvailability(loginInput.value.trim()); } });
-    if (nomSelect) nomSelect.addEventListener('change', function () { if (loginInput && loginInput.value.trim() === '') { loginInput.value = generateLoginFromName(nomSelect.value); checkLoginAvailability(loginInput.value.trim()); } });
+    if (nomSelect) nomSelect.addEventListener('change', function () { if (loginInput) { loginInput.value = generateLoginFromName(nomSelect.value); checkLoginAvailability(loginInput.value.trim()); } });
     if (loginInput) loginInput.addEventListener('blur', function () { checkLoginAvailability(loginInput.value.trim()); });
 
     const table = document.getElementById('cmUsersTable');

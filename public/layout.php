@@ -451,6 +451,13 @@ if (!isset($_SESSION['id_utilisateur'])) {
                 $contentFile = $partialsBasePath . 'admin_historique.php';
             }
             break;
+        case 'repertoire_enseignant':
+            require_once __DIR__ . '/../app/Services/RepertoireEnseignantService.php';
+            $service = new \CheckMaster\Services\RepertoireEnseignantService(\Database::getConnection());
+            $service->index();
+            $contentFile = $partialsBasePath . 'repertoire_enseignant_content.php';
+            $currentPageLabel = 'Repertoire documents';
+            break;
         case 'maj_enseignant':
             $_GET['tab'] = 'enseignant';
             if (!class_exists('GestionRhController')) {
@@ -734,17 +741,20 @@ if (!isset($_SESSION['id_utilisateur'])) {
           data-action="<?php echo htmlspecialchars((string) ($currentAction ?? ($_GET['action'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
         <?php cm_component('ui/toast'); ?>
         <?php
-        if (!empty($contentFile) && file_exists($contentFile)) {
-            include $contentFile;
-        } else {
-            echo "<div class='cm-card cm-p-lg'>";
-            echo "<div class='cm-text-danger cm-text-semibold cm-mb-sm'>Erreur de chargement</div>";
-            if (empty($contentFile)) {
-                echo "<div>Aucun fichier de contenu n'a été spécifié pour cette vue.</div>";
+        // Si $contentFile est explicitement null, le contenu a déjà été géré par un service
+        if ($contentFile !== null) {
+            if (!empty($contentFile) && file_exists($contentFile)) {
+                include $contentFile;
             } else {
-                echo "<div>Le fichier de contenu pour '" . htmlspecialchars($currentPageLabel) . "' est introuvable.</div>";
+                echo "<div class='cm-card cm-p-lg'>";
+                echo "<div class='cm-text-danger cm-text-semibold cm-mb-sm'>Erreur de chargement</div>";
+                if (empty($contentFile)) {
+                    echo "<div>Aucun fichier de contenu n'a été spécifié pour cette vue.</div>";
+                } else {
+                    echo "<div>Le fichier de contenu pour '" . htmlspecialchars($currentPageLabel) . "' est introuvable.</div>";
+                }
+                echo "</div>";
             }
-            echo "</div>";
         }
         ?>
     </main>

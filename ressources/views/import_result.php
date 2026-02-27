@@ -56,7 +56,7 @@ $hasErrors = ($importSummary['total_errors'] ?? 0) > 0;
                  <button class="text-sm text-blue-600 hover:underline"><i class="fas fa-download mr-2"></i>Exporter les erreurs</button>
             </div>
            
-            <div class="max-h-60 overflow-y-auto pr-2">
+            <div class="cm-table-wrapper max-h-60 pr-2">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50 sticky top-0">
                         <tr>

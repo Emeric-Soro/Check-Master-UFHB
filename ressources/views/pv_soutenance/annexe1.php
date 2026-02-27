@@ -194,6 +194,7 @@
     <div class="info-line" style="margin-top: 10px;">NOM ET PRENOMS DE L'IMPETRANT : <?= htmlspecialchars($data['nom_etudiant'] ?? '') ?></div>
 
     <!-- Appreciation Table -->
+    <div class="cm-table-wrapper">
     <table class="data-table">
         <thead>
             <tr>
@@ -219,6 +220,7 @@
             </tr>
         </tbody>
     </table>
+    </div>
 
     <!-- Decision Section -->
     <div class="section-title">DECISION DU JURY :</div>

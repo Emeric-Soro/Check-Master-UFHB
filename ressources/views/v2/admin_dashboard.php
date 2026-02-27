@@ -1,5 +1,10 @@
 <?php
 $yearLabel = date('Y') . '-' . (date('Y') + 1);
+$filtreAnneeAdmin = isset($_GET['id_annee_acad']) && $_GET['id_annee_acad'] !== '' ? (int) $_GET['id_annee_acad'] : null;
+$filtreSessionAdmin = isset($_GET['id_session']) && $_GET['id_session'] !== '' ? (int) $_GET['id_session'] : null;
+$pageNumAdmin = max(1, (int) ($_GET['page_num'] ?? 1));
+$perPageAdmin = 20;
+
 try {
     if (!class_exists('Database')) {
         require_once dirname(__DIR__, 3) . '/app/config/database.php';
@@ -11,9 +16,12 @@ try {
     $anneeActive = $anneeModel->getAnneeAcademiqueActive();
     if ($anneeActive && is_object($anneeActive) && !empty($anneeActive->date_deb) && !empty($anneeActive->date_fin)) {
         $yearLabel = date('Y', strtotime((string) $anneeActive->date_deb)) . '-' . date('Y', strtotime((string) $anneeActive->date_fin));
+        if ($filtreAnneeAdmin === null) {
+            $filtreAnneeAdmin = (int) ($anneeActive->id_annee_acad ?? 0);
+        }
     }
 } catch (Throwable $e) {
-    error_log('PRD5 admin dashboard year fallback: ' . $e->getMessage());
+    error_log('PRD8 admin dashboard year fallback: ' . $e->getMessage());
 }
 
 $statsUsers = is_array($GLOBALS['stats_utilisateurs'] ?? null) ? $GLOBALS['stats_utilisateurs'] : [];
@@ -33,6 +41,11 @@ $distribution = [
     'Etudiants' => 0,
 ];
 $recentActivityItems = [];
+
+$enseignantsJuryData = [];
+$enseignantsJuryPagination = [];
+$anneeOptionsAdmin = [];
+$sessionOptionsAdmin = [];
 
 try {
     if (!class_exists('Database')) {
@@ -86,8 +99,94 @@ try {
             'time' => $formattedDate,
         ];
     }
+
+    // Options pour les filtres
+    $stmtAnnees = $pdo->query("SELECT id_annee_acad, CONCAT(YEAR(date_deb), '-', YEAR(date_fin)) AS libelle FROM annee_academique ORDER BY date_deb DESC");
+    $anneeOptionsAdmin = $stmtAnnees->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+
+    $stmtSessions = $pdo->query("SELECT id_session, lib_session FROM session ORDER BY id_session");
+    $sessionOptionsAdmin = $stmtSessions->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+
+    // Tableau des enseignants jury
+    $juryTable = $pdo->query("SHOW TABLES LIKE 'enseignant_jury'")->fetchColumn() ? 'enseignant_jury' : 'composer_jury';
+
+    $whereConditions = [];
+    $params = [];
+
+    if ($filtreAnneeAdmin !== null) {
+        $whereConditions[] = "e2.id_annee_acad = :id_annee_acad";
+        $params[':id_annee_acad'] = $filtreAnneeAdmin;
+    }
+
+    if ($filtreSessionAdmin !== null) {
+        $whereConditions[] = "ps2.id_session = :id_session";
+        $params[':id_session'] = $filtreSessionAdmin;
+    }
+
+    $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+
+    $countSql = "SELECT COUNT(*) FROM (
+                     SELECT ens.id_enseignant
+                     FROM enseignants ens
+                     JOIN {$juryTable} ej ON CAST(ej.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
+                     LEFT JOIN affecter a ON CAST(a.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
+                     LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
+                     LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
+                     LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
+                     {$whereClause}
+                     GROUP BY ens.id_enseignant
+                     HAVING COUNT(DISTINCT ej.num_soutenance) > 0
+                 ) AS sub_count";
+
+    $countStmt = $pdo->prepare($countSql);
+    $countStmt->execute($params);
+    $total = (int) $countStmt->fetchColumn();
+
+    $offset = ($pageNumAdmin - 1) * $perPageAdmin;
+
+    $sql = "SELECT
+                ens.id_enseignant,
+                ens.nom_enseignant,
+                ens.prenom_enseignant,
+                COUNT(DISTINCT ej.num_soutenance) AS nb_soutenances_jury,
+                COUNT(DISTINCT CASE WHEN a.role = 'encadrant' THEN ps2.num_soutenance END) AS nb_soutenances_encadrees,
+                COUNT(DISTINCT CASE WHEN a.role = 'directeur' THEN ps2.num_soutenance END) AS nb_soutenances_dirigees
+            FROM enseignants ens
+            JOIN {$juryTable} ej ON CAST(ej.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
+            LEFT JOIN affecter a ON CAST(a.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
+            LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
+            LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
+            LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
+            {$whereClause}
+            GROUP BY ens.id_enseignant, ens.nom_enseignant, ens.prenom_enseignant
+            HAVING COUNT(DISTINCT ej.num_soutenance) > 0
+            ORDER BY nb_soutenances_encadrees DESC, ens.nom_enseignant ASC
+            LIMIT :limit OFFSET :offset";
+
+    $params[':limit'] = $perPageAdmin;
+    $params[':offset'] = $offset;
+
+    $stmt = $pdo->prepare($sql);
+    foreach ($params as $key => $value) {
+        $type = is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR;
+        $stmt->bindValue($key, $value, $type);
+    }
+    $stmt->execute();
+    $enseignantsJuryData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $lastPage = max(1, (int) ceil($total / $perPageAdmin));
+    $enseignantsJuryPagination = [
+        'total' => $total,
+        'current' => $pageNumAdmin,
+        'per_page' => $perPageAdmin,
+        'last' => $lastPage,
+        'offset' => $offset,
+        'has_prev' => $pageNumAdmin > 1,
+        'has_next' => $pageNumAdmin < $lastPage,
+        'pages' => range(1, $lastPage),
+    ];
 } catch (Throwable $e) {
-    error_log('PRD5 admin dashboard data error: ' . $e->getMessage());
+    error_log('PRD8 admin dashboard data error: ' . $e->getMessage());
 }
 ?>
 
@@ -178,6 +277,99 @@ try {
                     Parametrage
                 </a>
             </div>
+        </div>
+    </div>
+
+    <div class="cm-card cm-mt-md">
+        <div class="cm-card__header">
+            <h3 class="cm-card__title">
+                <i class="fas fa-users cm-mr-sm"></i>
+                Enseignants - Participation aux jurys
+            </h3>
+        </div>
+        <div class="cm-card__body">
+            <form method="GET" class="cm-grid-3 cm-mb-md" style="align-items: end;">
+                <input type="hidden" name="page" value="dashboard">
+
+                <?= cm_component('form/select', [
+                    'name' => 'id_annee_acad',
+                    'label' => 'Annee academique',
+                    'options' => $anneeOptionsAdmin,
+                    'selected' => (string)($filtreAnneeAdmin ?? ''),
+                    'placeholder' => 'Toutes les annees'
+                ]) ?>
+
+                <?= cm_component('form/select', [
+                    'name' => 'id_session',
+                    'label' => 'Periode',
+                    'options' => $sessionOptionsAdmin,
+                    'selected' => (string)($filtreSessionAdmin ?? ''),
+                    'placeholder' => 'Toutes les periodes'
+                ]) ?>
+
+                <div class="cm-flex cm-flex-gap-sm">
+                    <button type="submit" class="cm-btn cm-btn--primary">
+                        <i class="fas fa-filter cm-mr-sm"></i> Filtrer
+                    </button>
+                    <a href="?page=dashboard" class="cm-btn cm-btn--outline">
+                        Reinitialiser
+                    </a>
+                </div>
+            </form>
+
+            <table class="cm-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nom</th>
+                        <th>Prenom</th>
+                        <th class="cm-text-center">Jurys</th>
+                        <th class="cm-text-center">Encadrees</th>
+                        <th class="cm-text-center">Dirigees</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($enseignantsJuryData)): ?>
+                        <tr>
+                            <td colspan="6">
+                                <?= cm_component('ui/empty-state', [
+                                    'title' => 'Aucun enseignant',
+                                    'message' => 'Aucun enseignant n a participe a un jury pour les criteres selectionnes.',
+                                    'icon' => 'fa-users',
+                                    'in_table' => true,
+                                    'colspan' => 6
+                                ]) ?>
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($enseignantsJuryData as $ens): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($ens['id_enseignant'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                <td><?= htmlspecialchars(strtoupper($ens['nom_enseignant'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                                <td><?= htmlspecialchars($ens['prenom_enseignant'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                <td class="cm-text-center">
+                                    <span class="cm-badge cm-badge--primary"><?= (int) ($ens['nb_soutenances_jury'] ?? 0) ?></span>
+                                </td>
+                                <td class="cm-text-center">
+                                    <span class="cm-badge cm-badge--success"><?= (int) ($ens['nb_soutenances_encadrees'] ?? 0) ?></span>
+                                </td>
+                                <td class="cm-text-center">
+                                    <span class="cm-badge cm-badge--info"><?= (int) ($ens['nb_soutenances_dirigees'] ?? 0) ?></span>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+
+            <?php if (!empty($enseignantsJuryPagination) && $enseignantsJuryPagination['total'] > 0): ?>
+                <div class="cm-mt-md">
+                    <?= cm_component('crud/pagination', [
+                        'pagination' => (object) $enseignantsJuryPagination,
+                        'base_url' => '?page=dashboard&id_annee_acad=' . urlencode((string)($filtreAnneeAdmin ?? '')) . '&id_session=' . urlencode((string)($filtreSessionAdmin ?? ''))
+                    ]) ?>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </section>

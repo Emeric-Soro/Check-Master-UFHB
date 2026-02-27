@@ -386,7 +386,7 @@ function traduireStatut($statut)
                 <p>Vérifiez, validez ou rejetez les rapports soumis par les étudiants</p>
             </div>
 
-            <div class="overflow-x-auto">
+            <div class="cm-table-wrapper">
                 <table id="rapportsTable" class="table">
                     <thead>
                         <tr>

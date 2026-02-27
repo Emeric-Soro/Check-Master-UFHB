@@ -94,8 +94,11 @@ class GestionRapportController
             $isEditMode = false;
             $contenuRapport = '';
 
-            // Récupérer les informations de stage de l'étudiant
-            $stage_info = $this->service->getStageInfo($_SESSION['num_etu']);
+            // Récupérer les informations de stage de l'étudiant (uniquement pour les étudiants)
+            $stage_info = null;
+            if ($this->isEtudiant() && isset($_SESSION['num_etu'])) {
+                $stage_info = $this->service->getStageInfo($_SESSION['num_etu']);
+            }
 
             if ($stage_info) {
                 // Rendre disponible pour la vue
