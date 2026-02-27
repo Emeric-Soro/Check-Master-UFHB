@@ -181,7 +181,7 @@ $planifications = $controller->getPlanificationsForView();
         </div>
     </div>
 
-    <div class="overflow-x-auto">
+    <div class="cm-table-wrapper">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>

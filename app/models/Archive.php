@@ -158,39 +158,22 @@ class Archive
 
     /**
      * Get M1 Average
+     * NOTE: La table 'ue' n'existe plus
      */
     private function getMoyenneM1($numEtu)
     {
-        $sql = "
-            SELECT SUM(n.moyenne * u.credit) / SUM(u.credit) as moyenne
-            FROM notes n
-            INNER JOIN ue u ON n.id_ue = u.id_ue
-            WHERE n.num_etu = :num_etu AND u.id_niveau_etude = 10 AND n.moyenne IS NOT NULL
-        ";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute(['num_etu' => $numEtu]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['moyenne'] ?? null;
+        error_log("INFO - La table 'ue' n'existe plus. Calcul de moyenne M1 désactivé.");
+        return null;
     }
 
     /**
      * Get M2 S1 Average
+     * NOTE: La table 'ue' n'existe plus
      */
     private function getMoyenneM2S1($numEtu)
     {
-        $sql = "
-            SELECT SUM(n.moyenne * u.credit) / SUM(u.credit) as moyenne
-            FROM notes n
-            INNER JOIN ue u ON n.id_ue = u.id_ue
-            WHERE n.num_etu = :num_etu AND u.id_semestre > 21 AND n.moyenne IS NOT NULL
-            GROUP BY u.id_semestre
-            ORDER BY u.id_semestre ASC
-            LIMIT 1
-        ";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute(['num_etu' => $numEtu]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['moyenne'] ?? null;
+        error_log("INFO - La table 'ue' n'existe plus. Calcul de moyenne M2S1 désactivé.");
+        return null;
     }
 
     /**

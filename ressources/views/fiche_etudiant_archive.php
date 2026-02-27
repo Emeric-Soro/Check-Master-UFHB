@@ -244,7 +244,7 @@ $timeline_steps = array_reverse($timeline_steps, true);
         <?php if (!empty($studentFile['soutenance']['notes'])): ?>
         <div class="bg-white rounded-2xl shadow-sm p-6">
             <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-clipboard-list mr-3 text-blue-500"></i>Notes Détaillées de la Soutenance</h3>
-            <div class="overflow-x-auto border rounded-lg">
+            <div class="cm-table-wrapper border rounded-lg">
                 <table class="min-w-full text-sm">
                     <thead class="bg-gray-50">
                         <tr>

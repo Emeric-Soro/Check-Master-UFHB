@@ -91,7 +91,7 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                 <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg">Filtrer</button>
             </form>
         </div>
-        <div class="bg-white rounded-xl shadow-lg overflow-x-auto">
+        <div class="bg-white rounded-xl shadow-lg cm-table-wrapper">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-green-50">
                     <tr>

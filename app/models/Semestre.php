@@ -37,26 +37,14 @@ class Semestre {
 
     public function getSemestresByNiveau(int $niveauId, ?int $studentId = null): array
     {
+        // NOTE: La table 'ue' n'existe plus - requête simplifiée
         $sql = "SELECT DISTINCT s.* 
                 FROM semestre s 
-                WHERE s.id_niv_etude = :niveau_id";
-        
-        $params = [':niveau_id' => $niveauId];
-        
-        if ($studentId) {
-            $sql .= " AND s.id_semestre IN (
-                SELECT DISTINCT u.id_semestre 
-                FROM ue u 
-                JOIN note n ON u.id_ue = n.ue_id 
-                WHERE n.num_etu = :student_id
-            )";
-            $params[':student_id'] = $studentId;
-        }
-        
-        $sql .= " ORDER BY s.lib_semestre";
+                WHERE s.id_niv_etude = :niveau_id
+                ORDER BY s.lib_semestre";
         
         $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
+        $stmt->execute([':niveau_id' => $niveauId]);
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 }

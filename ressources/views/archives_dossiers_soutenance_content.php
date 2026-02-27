@@ -481,7 +481,7 @@ function getTimeAgo($date)
             </div>
 
             <div id="tableView" class="hidden">
-                <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="bg-white rounded-lg shadow cm-table-wrapper">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>

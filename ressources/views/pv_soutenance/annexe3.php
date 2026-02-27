@@ -190,6 +190,7 @@
     <div class="info-line">NOM ET PRENOMS DE L'IMPETRANT</div>
 
     <!-- Moyenne Table -->
+    <div class="cm-table-wrapper">
     <table class="data-table">
         <thead>
             <tr>
@@ -220,6 +221,7 @@
             </tr>
         </tbody>
     </table>
+    </div>
 
     <div class="moyenne-line">Moyenne &nbsp;&nbsp;&nbsp; /20</div>
 
