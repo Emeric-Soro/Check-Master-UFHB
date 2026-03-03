@@ -824,6 +824,20 @@ class EvaluationSoutenanceService
         return 'Insuffisant';
     }
 
+    public function getBaremeCriteres()
+    {
+        try {
+            $annee = $this->getAnneeAcademiqueCourante();
+            $idAnneeAcad = (string) ($annee['id_annee_acad'] ?? '');
+            if ($idAnneeAcad === '') {
+                return [];
+            }
+            return $this->getCriteriaRowsByYear($idAnneeAcad);
+        } catch (Throwable $e) {
+            error_log('Erreur getBaremeCriteres: ' . $e->getMessage());
+            return [];
+        }
+    }
     public function calculerMoyennesPourAnnexe2(string $numEtu): array
     {
         try {

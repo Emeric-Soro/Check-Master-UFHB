@@ -134,480 +134,504 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
     </div>
 
     <div class="cm-crud-wrapper">
-    <div class="cm-pole-superieur">
-        <div class="cm-pole-superieur-title">
-            <h2>
-                <i class="fas fa-user-gear" aria-hidden="true"></i>
-                Traitement du dossier
-            </h2>
-        </div>
+        <div class="cm-pole-superieur">
+            <div class="cm-pole-superieur-title">
+                <h2>
+                    <i class="fas fa-user-gear" aria-hidden="true"></i>
+                    Traitement du dossier
+                </h2>
+            </div>
 
-        <form id="cmTraitementForm" onsubmit="return false;">
-            <input type="hidden" id="cmSelectedRapportId" value="">
-            <input type="hidden" id="cmSelectedRapportUrl" value="">
+            <form id="cmTraitementForm" onsubmit="return false;">
+                <input type="hidden" id="cmSelectedRapportId" value="">
+                <input type="hidden" id="cmSelectedRapportUrl" value="">
 
-            <div class="cm-grid-4">
+                <div class="cm-grid-4">
+                    <?php
+                    cm_component('form/input-text', [
+                        'name' => 'traitement_etudiant',
+                        'id' => 'cmTraitementEtudiant',
+                        'label' => 'Etudiant',
+                        'readonly' => true,
+                    ]);
+                    cm_component('form/input-date', [
+                        'name' => 'traitement_date',
+                        'id' => 'cmTraitementDate',
+                        'label' => 'Date candidature',
+                        'readonly' => true,
+                    ]);
+                    cm_component('form/select', [
+                        'name' => 'traitement_statut',
+                        'id' => 'cmTraitementStatut',
+                        'label' => 'Statut',
+                        'required' => true,
+                        'options' => [
+                            'Validée' => 'Validée',
+                            'Rejetée' => 'Rejetée',
+                        ],
+                    ]);
+                    cm_component('form/input-text', [
+                        'name' => 'traitement_info',
+                        'id' => 'cmTraitementInfo',
+                        'label' => 'Info dossier',
+                        'readonly' => true,
+                    ]);
+                    ?>
+                </div>
                 <?php
-                cm_component('form/input-text', [
-                    'name' => 'traitement_etudiant',
-                    'id' => 'cmTraitementEtudiant',
-                    'label' => 'Etudiant',
-                    'readonly' => true,
-                ]);
-                cm_component('form/input-date', [
-                    'name' => 'traitement_date',
-                    'id' => 'cmTraitementDate',
-                    'label' => 'Date candidature',
-                    'readonly' => true,
-                ]);
-                cm_component('form/select', [
-                    'name' => 'traitement_statut',
-                    'id' => 'cmTraitementStatut',
-                    'label' => 'Statut',
-                    'required' => true,
-                    'options' => [
-                        'Validée' => 'Validée',
-                        'Rejetée' => 'Rejetée',
-                    ],
-                ]);
-                cm_component('form/input-text', [
-                    'name' => 'traitement_info',
-                    'id' => 'cmTraitementInfo',
-                    'label' => 'Info dossier',
-                    'readonly' => true,
+                cm_component('form/textarea', [
+                    'name' => 'traitement_commentaire',
+                    'id' => 'cmTraitementCommentaire',
+                    'label' => 'Commentaire admin',
+                    'rows' => 3,
+                    'maxlength' => 500,
                 ]);
                 ?>
-            </div>
-            <?php
-            cm_component('form/textarea', [
-                'name' => 'traitement_commentaire',
-                'id' => 'cmTraitementCommentaire',
-                'label' => 'Commentaire admin',
-                'rows' => 3,
-                'maxlength' => 500,
-            ]);
-            ?>
 
-            <div class="cm-form-buttons">
-                <button type="button" class="cm-btn is-success" id="cmApplyTraitement">
-                    <i class="fas fa-check" aria-hidden="true"></i>
-                    Appliquer le traitement
-                </button>
-                <a href="#" id="cmOpenRapportFromForm" class="cm-btn is-info cm-hidden" target="_blank">
-                    <i class="fas fa-eye" aria-hidden="true"></i>
-                    Consulter le rapport
-                </a>
-                <button type="button" class="cm-btn is-light" id="cmResetTraitement">
-                    <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                    Reinitialiser
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <div class="cm-barre-intermediaire">
-        <div class="cm-toolbar">
-            <div class="cm-toolbar-left">
-                <label for="cmCandidaturesLimit"><strong>Afficher:</strong></label>
-                <select id="cmCandidaturesLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
-                    <?php foreach ($allowedLimits as $limit): ?>
-                        <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
-                            <?php echo $limit; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <span class="cm-badge is-info cm-toolbar-year">
-                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-                    <?php echo date('Y') . '-' . (date('Y') + 1); ?>
-                </span>
-                <label for="cmFilterCandStatus"><strong>Statut:</strong></label>
-                <select id="cmFilterCandStatus" class="cm-form-control cm-form-select is-sm cm-toolbar-field-sm">
-                    <option value="">Tous</option>
-                    <option value="en attente">En attente</option>
-                    <option value="validée">Validée</option>
-                    <option value="rejetée">Rejetée</option>
-                </select>
-                <label for="cmFilterCandDate"><strong>Date:</strong></label>
-                <input type="date" id="cmFilterCandDate" class="cm-form-control is-sm cm-toolbar-field-lg">
-            </div>
-            <div class="cm-toolbar-center">
-                <input type="text" id="cmSearchCandidature" class="cm-form-control" placeholder="Rechercher (etudiant, numero, titre)...">
-            </div>
-            <div class="cm-toolbar-right">
-                <button type="button" class="cm-btn is-info is-sm" id="cmSelectAllCandidatures">
-                    <i class="fas fa-check-square" aria-hidden="true"></i>
-                    Tout selectionner
-                </button>
-                <button type="button" class="cm-btn is-light is-sm" id="cmDeselectAllCandidatures">
-                    <i class="fas fa-square" aria-hidden="true"></i>
-                    Deselectionner
-                </button>
-                <button type="button" class="cm-btn is-info is-sm" id="cmDeleteCandidatures" disabled>
-                    <i class="fas fa-trash" aria-hidden="true"></i>
-                    Supprimer (<span id="cmSelectedCandidaturesCount">0</span>)
-                </button>
-                <button type="button" class="cm-btn is-info is-sm" id="cmExportCandidatures">
-                    <i class="fas fa-file-export" aria-hidden="true"></i>
-                    Exporter
-                </button>
-                <button type="button" class="cm-btn is-info is-sm" id="cmPrintCandidatures">
-                    <i class="fas fa-print" aria-hidden="true"></i>
-                    Imprimer
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div class="cm-pole-inferieur">
-        <div class="cm-table-wrapper">
-            <table class="cm-data-table" id="cmCandidaturesTable">
-                <thead>
-                <tr>
-                    <th class="cm-data-table__th is-checkbox">
-                        <input type="checkbox" id="cmCheckAllCandidatures" class="cm-checkbox" aria-label="Selectionner toutes les lignes">
-                    </th>
-                    <th class="cm-data-table__th">N°C</th>
-                    <th class="cm-data-table__th">N° Etud.</th>
-                    <th class="cm-data-table__th">Nom & Prenom</th>
-                    <th class="cm-data-table__th">Niveau</th>
-                    <th class="cm-data-table__th">M1</th>
-                    <th class="cm-data-table__th">M2</th>
-                    <th class="cm-data-table__th">Verse</th>
-                    <th class="cm-data-table__th">Reste</th>
-                    <th class="cm-data-table__th">Statut paiement</th>
-                    <th class="cm-data-table__th">Detail</th>
-                </tr>
-                </thead>
-                <tbody id="cmCandidaturesTableBody">
-                <?php if (empty($rowsPage)): ?>
-                    <?php cm_component('ui/empty-state', [
-                        'in_table' => true,
-                        'colspan' => 11,
-                        'title' => 'Aucun dossier',
-                        'message' => 'Aucune candidature verifiee disponible.',
-                    ]); ?>
-                <?php else: ?>
-                    <?php foreach ($rowsPage as $row): ?>
-                        <?php
-                        $dateCandIso = '';
-                        if (!empty($row['date_candidature'])) {
-                            $dateCandIso = date('Y-m-d', strtotime((string) $row['date_candidature']));
-                        }
-                        $searchBlob = strtolower((string) ($row['id_rapport'] . ' ' . $row['num_etu'] . ' ' . $row['nom_complet'] . ' ' . $row['title']));
-                        ?>
-                        <tr class="cm-data-table__row cm-cand-main-row"
-                            data-row-id="<?php echo (int) $row['id_rapport']; ?>"
-                            data-search="<?php echo htmlspecialchars($searchBlob, ENT_QUOTES, 'UTF-8'); ?>"
-                            data-status="<?php echo htmlspecialchars(strtolower((string) $row['cand_status']), ENT_QUOTES, 'UTF-8'); ?>"
-                            data-date="<?php echo htmlspecialchars($dateCandIso, ENT_QUOTES, 'UTF-8'); ?>">
-                            <td class="cm-data-table__td is-checkbox">
-                                <input type="checkbox" class="cm-checkbox cm-row-checkbox">
-                            </td>
-                            <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['id_rapport'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['num_etu'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['nom_complet'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['niveau'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="cm-data-table__td"><?php echo $row['m1'] !== null ? htmlspecialchars(number_format((float) $row['m1'], 2), ENT_QUOTES, 'UTF-8') : '-'; ?></td>
-                            <td class="cm-data-table__td"><?php echo $row['m2'] !== null ? htmlspecialchars(number_format((float) $row['m2'], 2), ENT_QUOTES, 'UTF-8') : '-'; ?></td>
-                            <td class="cm-data-table__td"><?php echo htmlspecialchars(number_format((float) $row['montant_verse'], 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="cm-data-table__td"><?php echo htmlspecialchars(number_format((float) $row['reste_a_payer'], 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="cm-data-table__td">
-                                <?php cm_component('ui/badge', ['text' => (string) $row['payment_status'], 'type' => (string) $row['payment_badge']]); ?>
-                            </td>
-                            <td class="cm-data-table__td is-center">
-                                <button type="button" class="cm-btn-action is-edit cm-toggle-detail" data-target="cmCandDetail_<?php echo (int) $row['id_rapport']; ?>" title="Voir detail">
-                                    <i class="fas fa-eye" aria-hidden="true"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr id="cmCandDetail_<?php echo (int) $row['id_rapport']; ?>" class="cm-cand-detail-row cm-hidden">
-                            <td class="cm-data-table__td" colspan="11">
-                                <div class="cm-grid-4">
-                                    <div><strong>Date Cand.</strong><br><?php echo !empty($row['date_candidature']) ? htmlspecialchars(date('d/m/Y', strtotime((string) $row['date_candidature'])), ENT_QUOTES, 'UTF-8') : '-'; ?></div>
-                                    <div><strong>Statut Candidature</strong><br><?php cm_component('ui/badge', ['text' => (string) $row['cand_status'], 'type' => (string) $row['cand_badge']]); ?></div>
-                                    <div><strong>Admin traitant</strong><br><?php echo htmlspecialchars((string) ($row['admin'] !== '' ? $row['admin'] : '-'), ENT_QUOTES, 'UTF-8'); ?></div>
-                                    <div><strong>Date traitement</strong><br><?php echo !empty($row['date_traitement']) ? htmlspecialchars(date('d/m/Y', strtotime((string) $row['date_traitement'])), ENT_QUOTES, 'UTF-8') : '-'; ?></div>
-                                </div>
-                                <div class="cm-mt-md">
-                                    <strong>Titre rapport:</strong>
-                                    <?php echo htmlspecialchars((string) $row['title'], ENT_QUOTES, 'UTF-8'); ?>
-                                </div>
-                                <?php if (!empty($row['commentaire'])): ?>
-                                    <div class="cm-mt-sm">
-                                        <strong>Commentaire:</strong>
-                                        <?php echo htmlspecialchars((string) $row['commentaire'], ENT_QUOTES, 'UTF-8'); ?>
-                                    </div>
-                                <?php endif; ?>
-                                <div class="cm-form-buttons cm-mt-md">
-                                    <a class="cm-btn is-info"
-                                       href="?page=gestion_dossiers_candidatures&action=consulter_rapport&id_rapport=<?php echo urlencode((string) $row['id_rapport']); ?>"
-                                       target="_blank">
-                                        <i class="fas fa-eye" aria-hidden="true"></i>
-                                        Consulter
-                                    </a>
-                                    <a class="cm-btn is-info"
-                                       href="?page=gestion_dossiers_candidatures&action=telecharger_pdf&id_rapport=<?php echo urlencode((string) $row['id_rapport']); ?>">
-                                        <i class="fas fa-file-pdf" aria-hidden="true"></i>
-                                        PDF
-                                    </a>
-                                    <button type="button"
-                                            class="cm-btn is-success cm-pick-traitement"
-                                            data-id="<?php echo (int) $row['id_rapport']; ?>"
-                                            data-etudiant="<?php echo htmlspecialchars((string) $row['nom_complet'], ENT_QUOTES, 'UTF-8'); ?>"
-                                            data-date="<?php echo htmlspecialchars($dateCandIso, ENT_QUOTES, 'UTF-8'); ?>"
-                                            data-status="<?php echo htmlspecialchars((string) $row['cand_status'], ENT_QUOTES, 'UTF-8'); ?>"
-                                            data-commentaire="<?php echo htmlspecialchars((string) $row['commentaire'], ENT_QUOTES, 'UTF-8'); ?>"
-                                            data-url="<?php echo htmlspecialchars('?page=gestion_dossiers_candidatures&action=consulter_rapport&id_rapport=' . urlencode((string) $row['id_rapport']), ENT_QUOTES, 'UTF-8'); ?>"
-                                            data-info="<?php echo htmlspecialchars('Niveau: ' . $row['niveau'] . ' | Verse: ' . number_format((float) $row['montant_verse'], 0, ',', ' ') . ' FCFA | Reste: ' . number_format((float) $row['reste_a_payer'], 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?>">
-                                        <i class="fas fa-pen" aria-hidden="true"></i>
-                                        Traiter
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-                </tbody>
-            </table>
+                <div class="cm-form-buttons">
+                    <button type="button" class="cm-btn is-success" id="cmApplyTraitement">
+                        <i class="fas fa-check" aria-hidden="true"></i>
+                        Appliquer le traitement
+                    </button>
+                    <a href="#" id="cmOpenRapportFromForm" class="cm-btn is-info cm-hidden" target="_blank">
+                        <i class="fas fa-eye" aria-hidden="true"></i>
+                        Consulter le rapport
+                    </a>
+                    <button type="button" class="cm-btn is-light" id="cmResetTraitement">
+                        <i class="fas fa-rotate-left" aria-hidden="true"></i>
+                        Reinitialiser
+                    </button>
+                </div>
+            </form>
         </div>
 
-        <?php cm_component('crud/pagination', [
-            'pagination' => $pagination,
-            'base_url' => $paginationBaseUrl,
-            'param_name' => 'p',
-        ]); ?>
+        <div class="cm-barre-intermediaire">
+            <div class="cm-toolbar">
+                <div class="cm-toolbar-left">
+                    <label for="cmCandidaturesLimit"><strong>Afficher:</strong></label>
+                    <select id="cmCandidaturesLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
+                        <?php foreach ($allowedLimits as $limit): ?>
+                            <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
+                                <?php echo $limit; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <span class="cm-badge is-info cm-toolbar-year">
+                        <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                        <?php echo date('Y') . '-' . (date('Y') + 1); ?>
+                    </span>
+                    <label for="cmFilterCandStatus"><strong>Statut:</strong></label>
+                    <select id="cmFilterCandStatus" class="cm-form-control cm-form-select is-sm cm-toolbar-field-sm">
+                        <option value="">Tous</option>
+                        <option value="en attente">En attente</option>
+                        <option value="validée">Validée</option>
+                        <option value="rejetée">Rejetée</option>
+                    </select>
+                    <label for="cmFilterCandDate"><strong>Date:</strong></label>
+                    <input type="date" id="cmFilterCandDate" class="cm-form-control is-sm cm-toolbar-field-lg">
+                </div>
+                <div class="cm-toolbar-center">
+                    <input type="text" id="cmSearchCandidature" class="cm-form-control"
+                        placeholder="Rechercher (etudiant, numero, titre)...">
+                </div>
+                <div class="cm-toolbar-right">
+                    <button type="button" class="cm-btn is-info is-sm" id="cmSelectAllCandidatures">
+                        <i class="fas fa-check-square" aria-hidden="true"></i>
+                        Tout selectionner
+                    </button>
+                    <button type="button" class="cm-btn is-light is-sm" id="cmDeselectAllCandidatures">
+                        <i class="fas fa-square" aria-hidden="true"></i>
+                        Deselectionner
+                    </button>
+                    <button type="button" class="cm-btn is-info is-sm" id="cmDeleteCandidatures" disabled>
+                        <i class="fas fa-trash" aria-hidden="true"></i>
+                        Supprimer (<span id="cmSelectedCandidaturesCount">0</span>)
+                    </button>
+                    <button type="button" class="cm-btn is-info is-sm" id="cmExportCandidatures">
+                        <i class="fas fa-file-export" aria-hidden="true"></i>
+                        Exporter
+                    </button>
+                    <button type="button" class="cm-btn is-info is-sm" id="cmPrintCandidatures">
+                        <i class="fas fa-print" aria-hidden="true"></i>
+                        Imprimer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="cm-pole-inferieur">
+            <div class="cm-table-wrapper">
+                <table class="cm-data-table" id="cmCandidaturesTable">
+                    <thead>
+                        <tr>
+                            <th class="cm-data-table__th is-checkbox">
+                                <input type="checkbox" id="cmCheckAllCandidatures" class="cm-checkbox"
+                                    aria-label="Selectionner toutes les lignes">
+                            </th>
+                            <th class="cm-data-table__th">N°C</th>
+                            <th class="cm-data-table__th">N° Etud.</th>
+                            <th class="cm-data-table__th">Nom & Prenom</th>
+                            <th class="cm-data-table__th">Niveau</th>
+                            <th class="cm-data-table__th">Moyenne M1</th>
+                            <th class="cm-data-table__th">Moyenne M2</th>
+                            <th class="cm-data-table__th">Verse</th>
+                            <th class="cm-data-table__th">Reste</th>
+                            <th class="cm-data-table__th">Statut paiement</th>
+                            <th class="cm-data-table__th">Detail</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cmCandidaturesTableBody">
+                        <?php if (empty($rowsPage)): ?>
+                            <?php cm_component('ui/empty-state', [
+                                'in_table' => true,
+                                'colspan' => 11,
+                                'title' => 'Aucun dossier',
+                                'message' => 'Aucune candidature verifiee disponible.',
+                            ]); ?>
+                        <?php else: ?>
+                            <?php foreach ($rowsPage as $row): ?>
+                                <?php
+                                $dateCandIso = '';
+                                if (!empty($row['date_candidature'])) {
+                                    $dateCandIso = date('Y-m-d', strtotime((string) $row['date_candidature']));
+                                }
+                                $searchBlob = strtolower((string) ($row['id_rapport'] . ' ' . $row['num_etu'] . ' ' . $row['nom_complet'] . ' ' . $row['title']));
+                                ?>
+                                <tr class="cm-data-table__row cm-cand-main-row"
+                                    data-row-id="<?php echo (int) $row['id_rapport']; ?>"
+                                    data-search="<?php echo htmlspecialchars($searchBlob, ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-status="<?php echo htmlspecialchars(strtolower((string) $row['cand_status']), ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-date="<?php echo htmlspecialchars($dateCandIso, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <td class="cm-data-table__td is-checkbox">
+                                        <input type="checkbox" class="cm-checkbox cm-row-checkbox">
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars((string) $row['id_rapport'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars((string) $row['num_etu'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars((string) $row['nom_complet'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars((string) $row['niveau'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo $row['m1'] !== null ? htmlspecialchars(number_format((float) $row['m1'], 2), ENT_QUOTES, 'UTF-8') : '-'; ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo $row['m2'] !== null ? htmlspecialchars(number_format((float) $row['m2'], 2), ENT_QUOTES, 'UTF-8') : '-'; ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars(number_format((float) $row['montant_verse'], 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars(number_format((float) $row['reste_a_payer'], 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php cm_component('ui/badge', ['text' => (string) $row['payment_status'], 'type' => (string) $row['payment_badge']]); ?>
+                                    </td>
+                                    <td class="cm-data-table__td is-center">
+                                        <button type="button" class="cm-btn-action is-edit cm-toggle-detail"
+                                            data-target="cmCandDetail_<?php echo (int) $row['id_rapport']; ?>"
+                                            title="Voir detail">
+                                            <i class="fas fa-eye" aria-hidden="true"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr id="cmCandDetail_<?php echo (int) $row['id_rapport']; ?>"
+                                    class="cm-cand-detail-row cm-hidden">
+                                    <td class="cm-data-table__td" colspan="11">
+                                        <div class="cm-grid-4">
+                                            <div><strong>Date
+                                                    Cand.</strong><br><?php echo !empty($row['date_candidature']) ? htmlspecialchars(date('d/m/Y', strtotime((string) $row['date_candidature'])), ENT_QUOTES, 'UTF-8') : '-'; ?>
+                                            </div>
+                                            <div><strong>Statut
+                                                    Candidature</strong><br><?php cm_component('ui/badge', ['text' => (string) $row['cand_status'], 'type' => (string) $row['cand_badge']]); ?>
+                                            </div>
+                                            <div><strong>Admin
+                                                    traitant</strong><br><?php echo htmlspecialchars((string) ($row['admin'] !== '' ? $row['admin'] : '-'), ENT_QUOTES, 'UTF-8'); ?>
+                                            </div>
+                                            <div><strong>Date
+                                                    traitement</strong><br><?php echo !empty($row['date_traitement']) ? htmlspecialchars(date('d/m/Y', strtotime((string) $row['date_traitement'])), ENT_QUOTES, 'UTF-8') : '-'; ?>
+                                            </div>
+                                        </div>
+                                        <div class="cm-mt-md">
+                                            <strong>Titre rapport:</strong>
+                                            <?php echo htmlspecialchars((string) $row['title'], ENT_QUOTES, 'UTF-8'); ?>
+                                        </div>
+                                        <?php if (!empty($row['commentaire'])): ?>
+                                            <div class="cm-mt-sm">
+                                                <strong>Commentaire:</strong>
+                                                <?php echo htmlspecialchars((string) $row['commentaire'], ENT_QUOTES, 'UTF-8'); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <div class="cm-form-buttons cm-mt-md">
+                                            <a class="cm-btn is-info"
+                                                href="?page=gestion_dossiers_candidatures&action=consulter_rapport&id_rapport=<?php echo urlencode((string) $row['id_rapport']); ?>"
+                                                target="_blank">
+                                                <i class="fas fa-eye" aria-hidden="true"></i>
+                                                Consulter
+                                            </a>
+                                            <a class="cm-btn is-info"
+                                                href="?page=gestion_dossiers_candidatures&action=telecharger_pdf&id_rapport=<?php echo urlencode((string) $row['id_rapport']); ?>">
+                                                <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                                                PDF
+                                            </a>
+                                            <button type="button" class="cm-btn is-success cm-pick-traitement"
+                                                data-id="<?php echo (int) $row['id_rapport']; ?>"
+                                                data-etudiant="<?php echo htmlspecialchars((string) $row['nom_complet'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                data-date="<?php echo htmlspecialchars($dateCandIso, ENT_QUOTES, 'UTF-8'); ?>"
+                                                data-status="<?php echo htmlspecialchars((string) $row['cand_status'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                data-commentaire="<?php echo htmlspecialchars((string) $row['commentaire'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                data-url="<?php echo htmlspecialchars('?page=gestion_dossiers_candidatures&action=consulter_rapport&id_rapport=' . urlencode((string) $row['id_rapport']), ENT_QUOTES, 'UTF-8'); ?>"
+                                                data-info="<?php echo htmlspecialchars('Niveau: ' . $row['niveau'] . ' | Verse: ' . number_format((float) $row['montant_verse'], 0, ',', ' ') . ' FCFA | Reste: ' . number_format((float) $row['reste_a_payer'], 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?>">
+                                                <i class="fas fa-pen" aria-hidden="true"></i>
+                                                Traiter
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <?php cm_component('crud/pagination', [
+                'pagination' => $pagination,
+                'base_url' => $paginationBaseUrl,
+                'param_name' => 'p',
+            ]); ?>
+        </div>
     </div>
-</div>
 </div>
 
 <script>
-(function () {
-    const navigate = function (url) {
-        if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
-            window.CM.ajax.load(url);
-            return;
-        }
-        window.location.href = url;
-    };
-
-    const toggleButtons = document.querySelectorAll('.cm-toggle-detail');
-    for (let i = 0; i < toggleButtons.length; i++) {
-        toggleButtons[i].addEventListener('click', function () {
-            const targetId = toggleButtons[i].getAttribute('data-target');
-            if (!targetId) {
+    (function () {
+        const navigate = function (url) {
+            if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+                window.CM.ajax.load(url);
                 return;
             }
-            const target = document.getElementById(targetId);
-            if (!target) {
-                return;
-            }
-            target.classList.toggle('cm-hidden');
-        });
-    }
+            window.location.href = url;
+        };
 
-    const selectedId = document.getElementById('cmSelectedRapportId');
-    const selectedUrl = document.getElementById('cmSelectedRapportUrl');
-    const fieldEtudiant = document.getElementById('cmTraitementEtudiant');
-    const fieldDate = document.getElementById('cmTraitementDate');
-    const fieldStatut = document.getElementById('cmTraitementStatut');
-    const fieldInfo = document.getElementById('cmTraitementInfo');
-    const fieldCommentaire = document.getElementById('cmTraitementCommentaire');
-    const openLink = document.getElementById('cmOpenRapportFromForm');
-
-    const pickButtons = document.querySelectorAll('.cm-pick-traitement');
-    for (let i = 0; i < pickButtons.length; i++) {
-        pickButtons[i].addEventListener('click', function () {
-            const btn = pickButtons[i];
-            selectedId.value = btn.getAttribute('data-id') || '';
-            selectedUrl.value = btn.getAttribute('data-url') || '';
-            fieldEtudiant.value = btn.getAttribute('data-etudiant') || '';
-            fieldDate.value = btn.getAttribute('data-date') || '';
-            fieldStatut.value = btn.getAttribute('data-status') || '';
-            fieldInfo.value = btn.getAttribute('data-info') || '';
-            fieldCommentaire.value = btn.getAttribute('data-commentaire') || '';
-
-            if (openLink && selectedUrl.value !== '') {
-                openLink.href = selectedUrl.value;
-                openLink.classList.remove('cm-hidden');
-            }
-        });
-    }
-
-    const applyBtn = document.getElementById('cmApplyTraitement');
-    if (applyBtn) {
-        applyBtn.addEventListener('click', function () {
-            if (!selectedId.value) {
-                window.alert('Selectionnez d\'abord un dossier via le bouton Traiter.');
-                return;
-            }
-            const statut = fieldStatut.value || '';
-            const commentaire = (fieldCommentaire.value || '').trim();
-            const normalized = statut.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-            if (normalized === 'rejetee' && commentaire === '') {
-                window.alert('Le commentaire est obligatoire pour un dossier rejete.');
-                return;
-            }
-            window.alert('Traitement pre-rempli. Le flux de validation final est gere par le module de commission.');
-        });
-    }
-
-    const resetBtn = document.getElementById('cmResetTraitement');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', function () {
-            selectedId.value = '';
-            selectedUrl.value = '';
-            fieldEtudiant.value = '';
-            fieldDate.value = '';
-            fieldStatut.value = '';
-            fieldInfo.value = '';
-            fieldCommentaire.value = '';
-            if (openLink) {
-                openLink.href = '#';
-                openLink.classList.add('cm-hidden');
-            }
-        });
-    }
-
-    const searchInput = document.getElementById('cmSearchCandidature');
-    const limitSelect = document.getElementById('cmCandidaturesLimit');
-    const statusFilter = document.getElementById('cmFilterCandStatus');
-    const dateFilter = document.getElementById('cmFilterCandDate');
-    const selectAllBtn = document.getElementById('cmSelectAllCandidatures');
-    const deselectAllBtn = document.getElementById('cmDeselectAllCandidatures');
-    const deleteBtn = document.getElementById('cmDeleteCandidatures');
-    const selectedCount = document.getElementById('cmSelectedCandidaturesCount');
-    const rowCheckboxes = function () {
-        return Array.from(document.querySelectorAll('#cmCandidaturesTableBody .cm-cand-main-row .cm-row-checkbox'));
-    };
-    const updateSelectionState = function () {
-        const all = rowCheckboxes();
-        const checked = all.filter(function (cb) { return cb.checked; }).length;
-        if (selectedCount) {
-            selectedCount.textContent = String(checked);
-        }
-        if (deleteBtn) {
-            deleteBtn.disabled = checked === 0;
-        }
-        if (checkAll) {
-            checkAll.checked = all.length > 0 && all.every(function (cb) { return cb.checked; });
-        }
-    };
-
-    const applyFilters = function () {
-        const term = (searchInput ? searchInput.value : '').trim().toLowerCase();
-        const status = (statusFilter ? statusFilter.value : '').trim().toLowerCase();
-        const date = (dateFilter ? dateFilter.value : '').trim();
-        const rows = document.querySelectorAll('.cm-cand-main-row');
-
-        for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            const detailRow = document.getElementById('cmCandDetail_' + row.getAttribute('data-row-id'));
-            const search = row.getAttribute('data-search') || '';
-            const rowStatus = row.getAttribute('data-status') || '';
-            const rowDate = row.getAttribute('data-date') || '';
-
-            const matchSearch = term === '' || search.indexOf(term) !== -1;
-            const matchStatus = status === '' || rowStatus === status;
-            const matchDate = date === '' || rowDate === date;
-            const visible = matchSearch && matchStatus && matchDate;
-
-            row.style.display = visible ? '' : 'none';
-            if (detailRow) {
-                detailRow.style.display = visible ? '' : 'none';
-                if (!visible) {
-                    detailRow.classList.add('cm-hidden');
-                }
-            }
-        }
-    };
-
-    if (searchInput) {
-        searchInput.addEventListener('input', applyFilters);
-    }
-    if (statusFilter) {
-        statusFilter.addEventListener('change', applyFilters);
-    }
-    if (dateFilter) {
-        dateFilter.addEventListener('change', applyFilters);
-    }
-    if (limitSelect) {
-        limitSelect.addEventListener('change', function () {
-            const url = new URL(window.location.href);
-            url.searchParams.set('limit_candidatures', String(limitSelect.value));
-            url.searchParams.set('p', '1');
-            navigate(url.toString());
-        });
-    }
-
-    const checkAll = document.getElementById('cmCheckAllCandidatures');
-    if (checkAll) {
-        checkAll.addEventListener('change', function () {
-            rowCheckboxes().forEach(function (cb) {
-                cb.checked = checkAll.checked;
-            });
-            updateSelectionState();
-        });
-    }
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener('click', function () {
-            rowCheckboxes().forEach(function (cb) { cb.checked = true; });
-            updateSelectionState();
-        });
-    }
-    if (deselectAllBtn) {
-        deselectAllBtn.addEventListener('click', function () {
-            rowCheckboxes().forEach(function (cb) { cb.checked = false; });
-            updateSelectionState();
-        });
-    }
-    document.addEventListener('change', function (event) {
-        if (event.target.classList.contains('cm-row-checkbox')) {
-            updateSelectionState();
-        }
-    });
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', function () {
-            if (deleteBtn.disabled) {
-                return;
-            }
-            window.alert('Suppression multiple indisponible sur cet ecran.');
-        });
-    }
-
-    const exportBtn = document.getElementById('cmExportCandidatures');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', function () {
-            const headers = ['N°C', 'N° Etud.', 'Nom & Prenom', 'Niveau', 'M1', 'M2', 'Verse', 'Reste', 'Statut paiement'];
-            const lines = [headers.join(';')];
-
-            document.querySelectorAll('.cm-cand-main-row').forEach(function (row) {
-                if (row.style.display === 'none') {
+        const toggleButtons = document.querySelectorAll('.cm-toggle-detail');
+        for (let i = 0; i < toggleButtons.length; i++) {
+            toggleButtons[i].addEventListener('click', function () {
+                const targetId = toggleButtons[i].getAttribute('data-target');
+                if (!targetId) {
                     return;
                 }
-                const cells = Array.from(row.querySelectorAll('td')).slice(1, 10);
-                const values = cells.map(function (cell) {
-                    return '"' + (cell.textContent || '').trim().replace(/"/g, '""') + '"';
-                });
-                lines.push(values.join(';'));
+                const target = document.getElementById(targetId);
+                if (!target) {
+                    return;
+                }
+                target.classList.toggle('cm-hidden');
             });
+        }
 
-            const blob = new Blob(["\uFEFF" + lines.join('\n')], {type: 'text/csv;charset=utf-8;'});
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'candidatures_' + new Date().toISOString().split('T')[0] + '.csv';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        const selectedId = document.getElementById('cmSelectedRapportId');
+        const selectedUrl = document.getElementById('cmSelectedRapportUrl');
+        const fieldEtudiant = document.getElementById('cmTraitementEtudiant');
+        const fieldDate = document.getElementById('cmTraitementDate');
+        const fieldStatut = document.getElementById('cmTraitementStatut');
+        const fieldInfo = document.getElementById('cmTraitementInfo');
+        const fieldCommentaire = document.getElementById('cmTraitementCommentaire');
+        const openLink = document.getElementById('cmOpenRapportFromForm');
+
+        const pickButtons = document.querySelectorAll('.cm-pick-traitement');
+        for (let i = 0; i < pickButtons.length; i++) {
+            pickButtons[i].addEventListener('click', function () {
+                const btn = pickButtons[i];
+                selectedId.value = btn.getAttribute('data-id') || '';
+                selectedUrl.value = btn.getAttribute('data-url') || '';
+                fieldEtudiant.value = btn.getAttribute('data-etudiant') || '';
+                fieldDate.value = btn.getAttribute('data-date') || '';
+                fieldStatut.value = btn.getAttribute('data-status') || '';
+                fieldInfo.value = btn.getAttribute('data-info') || '';
+                fieldCommentaire.value = btn.getAttribute('data-commentaire') || '';
+
+                if (openLink && selectedUrl.value !== '') {
+                    openLink.href = selectedUrl.value;
+                    openLink.classList.remove('cm-hidden');
+                }
+            });
+        }
+
+        const applyBtn = document.getElementById('cmApplyTraitement');
+        if (applyBtn) {
+            applyBtn.addEventListener('click', function () {
+                if (!selectedId.value) {
+                    window.alert('Selectionnez d\'abord un dossier via le bouton Traiter.');
+                    return;
+                }
+                const statut = fieldStatut.value || '';
+                const commentaire = (fieldCommentaire.value || '').trim();
+                const normalized = statut.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (normalized === 'rejetee' && commentaire === '') {
+                    window.alert('Le commentaire est obligatoire pour un dossier rejete.');
+                    return;
+                }
+                window.alert('Traitement pre-rempli. Le flux de validation final est gere par le module de commission.');
+            });
+        }
+
+        const resetBtn = document.getElementById('cmResetTraitement');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function () {
+                selectedId.value = '';
+                selectedUrl.value = '';
+                fieldEtudiant.value = '';
+                fieldDate.value = '';
+                fieldStatut.value = '';
+                fieldInfo.value = '';
+                fieldCommentaire.value = '';
+                if (openLink) {
+                    openLink.href = '#';
+                    openLink.classList.add('cm-hidden');
+                }
+            });
+        }
+
+        const searchInput = document.getElementById('cmSearchCandidature');
+        const limitSelect = document.getElementById('cmCandidaturesLimit');
+        const statusFilter = document.getElementById('cmFilterCandStatus');
+        const dateFilter = document.getElementById('cmFilterCandDate');
+        const selectAllBtn = document.getElementById('cmSelectAllCandidatures');
+        const deselectAllBtn = document.getElementById('cmDeselectAllCandidatures');
+        const deleteBtn = document.getElementById('cmDeleteCandidatures');
+        const selectedCount = document.getElementById('cmSelectedCandidaturesCount');
+        const rowCheckboxes = function () {
+            return Array.from(document.querySelectorAll('#cmCandidaturesTableBody .cm-cand-main-row .cm-row-checkbox'));
+        };
+        const updateSelectionState = function () {
+            const all = rowCheckboxes();
+            const checked = all.filter(function (cb) { return cb.checked; }).length;
+            if (selectedCount) {
+                selectedCount.textContent = String(checked);
+            }
+            if (deleteBtn) {
+                deleteBtn.disabled = checked === 0;
+            }
+            if (checkAll) {
+                checkAll.checked = all.length > 0 && all.every(function (cb) { return cb.checked; });
+            }
+        };
+
+        const applyFilters = function () {
+            const term = (searchInput ? searchInput.value : '').trim().toLowerCase();
+            const status = (statusFilter ? statusFilter.value : '').trim().toLowerCase();
+            const date = (dateFilter ? dateFilter.value : '').trim();
+            const rows = document.querySelectorAll('.cm-cand-main-row');
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const detailRow = document.getElementById('cmCandDetail_' + row.getAttribute('data-row-id'));
+                const search = row.getAttribute('data-search') || '';
+                const rowStatus = row.getAttribute('data-status') || '';
+                const rowDate = row.getAttribute('data-date') || '';
+
+                const matchSearch = term === '' || search.indexOf(term) !== -1;
+                const matchStatus = status === '' || rowStatus === status;
+                const matchDate = date === '' || rowDate === date;
+                const visible = matchSearch && matchStatus && matchDate;
+
+                row.style.display = visible ? '' : 'none';
+                if (detailRow) {
+                    detailRow.style.display = visible ? '' : 'none';
+                    if (!visible) {
+                        detailRow.classList.add('cm-hidden');
+                    }
+                }
+            }
+        };
+
+        if (searchInput) {
+            searchInput.addEventListener('input', applyFilters);
+        }
+        if (statusFilter) {
+            statusFilter.addEventListener('change', applyFilters);
+        }
+        if (dateFilter) {
+            dateFilter.addEventListener('change', applyFilters);
+        }
+        if (limitSelect) {
+            limitSelect.addEventListener('change', function () {
+                const url = new URL(window.location.href);
+                url.searchParams.set('limit_candidatures', String(limitSelect.value));
+                url.searchParams.set('p', '1');
+                navigate(url.toString());
+            });
+        }
+
+        const checkAll = document.getElementById('cmCheckAllCandidatures');
+        if (checkAll) {
+            checkAll.addEventListener('change', function () {
+                rowCheckboxes().forEach(function (cb) {
+                    cb.checked = checkAll.checked;
+                });
+                updateSelectionState();
+            });
+        }
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', function () {
+                rowCheckboxes().forEach(function (cb) { cb.checked = true; });
+                updateSelectionState();
+            });
+        }
+        if (deselectAllBtn) {
+            deselectAllBtn.addEventListener('click', function () {
+                rowCheckboxes().forEach(function (cb) { cb.checked = false; });
+                updateSelectionState();
+            });
+        }
+        document.addEventListener('change', function (event) {
+            if (event.target.classList.contains('cm-row-checkbox')) {
+                updateSelectionState();
+            }
         });
-    }
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', function () {
+                if (deleteBtn.disabled) {
+                    return;
+                }
+                window.alert('Suppression multiple indisponible sur cet ecran.');
+            });
+        }
 
-    const printBtn = document.getElementById('cmPrintCandidatures');
-    if (printBtn) {
-        printBtn.addEventListener('click', function () {
-            window.print();
-        });
-    }
+        const exportBtn = document.getElementById('cmExportCandidatures');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', function () {
+                const headers = ['N°C', 'N° Etud.', 'Nom & Prenom', 'Niveau', 'M1', 'M2', 'Verse', 'Reste', 'Statut paiement'];
+                const lines = [headers.join(';')];
 
-    updateSelectionState();
-})();
+                document.querySelectorAll('.cm-cand-main-row').forEach(function (row) {
+                    if (row.style.display === 'none') {
+                        return;
+                    }
+                    const cells = Array.from(row.querySelectorAll('td')).slice(1, 10);
+                    const values = cells.map(function (cell) {
+                        return '"' + (cell.textContent || '').trim().replace(/"/g, '""') + '"';
+                    });
+                    lines.push(values.join(';'));
+                });
+
+                const blob = new Blob(["\uFEFF" + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'candidatures_' + new Date().toISOString().split('T')[0] + '.csv';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        }
+
+        const printBtn = document.getElementById('cmPrintCandidatures');
+        if (printBtn) {
+            printBtn.addEventListener('click', function () {
+                window.print();
+            });
+        }
+
+        updateSelectionState();
+    })();
 </script>

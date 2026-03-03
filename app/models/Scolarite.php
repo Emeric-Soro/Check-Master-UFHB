@@ -34,12 +34,24 @@ class Scolarite
 
     /**
      * Récupérer tous les niveaux d'études
+     * 
+     * @param int|null $idAnneeAcad ID de l'année académique (optionnel)
+     * @return array Liste des niveaux d'études
      */
-    public function getNiveauxEtudes()
+    public function getNiveauxEtudes($idAnneeAcad = null)
     {
-        $query = "SELECT id_niv_etude, lib_niv_etude, montant_scolarite, montant_inscription FROM niveau_etude";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
+        if ($idAnneeAcad !== null) {
+            $query = "SELECT id_niv_etude, lib_niv_etude, montant_scolarite, montant_inscription, id_annee_acad 
+                      FROM niveau_etude 
+                      WHERE id_annee_acad = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$idAnneeAcad]);
+        } else {
+            $query = "SELECT id_niv_etude, lib_niv_etude, montant_scolarite, montant_inscription, id_annee_acad 
+                      FROM niveau_etude";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+        }
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -476,6 +488,28 @@ class Scolarite
                 'montant_paye' => 0,
                 'reste_a_payer' => 0,
             ];
+        }
+    }
+
+    /**
+     * Mettre à jour le chemin de la fiche d'inscription d'un étudiant
+     *
+     * @param int $idInscription ID de l'inscription
+     * @param string $fichePath Chemin du fichier
+     * @return bool Succès de l'opération
+     */
+    public function updateFicheInscription($idInscription, $fichePath)
+    {
+        try {
+            $sql = "UPDATE inscriptions SET fiche_inscription = :fiche WHERE id_inscription = :id";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                'fiche' => $fichePath,
+                'id' => $idInscription
+            ]);
+        } catch (Exception $e) {
+            error_log("Erreur updateFicheInscription: " . $e->getMessage());
+            return false;
         }
     }
 }

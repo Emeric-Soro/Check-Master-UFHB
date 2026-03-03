@@ -50,7 +50,9 @@ class GestionScolariteController
                     case 'mettre_a_jour_versement':
                         $this->mettreAJourVersement();
                         break;
-
+                    case 'upload_fiche':
+                        $this->uploadFicheInscription();
+                        break;
                 }
             }
         }
@@ -107,5 +109,15 @@ class GestionScolariteController
         } else {
             $GLOBALS['messageErreur'] = $result['message'];
         }
+    }
+
+    public function uploadFicheInscription()
+    {
+        header('Content-Type: application/json');
+
+        $result = $this->service->uploadFicheInscription($_POST, $_FILES, $_SESSION['id_utilisateur']);
+
+        echo json_encode($result);
+        exit;
     }
 }

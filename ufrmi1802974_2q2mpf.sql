@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : ven. 27 fév. 2026 à 16:28
+-- Généré le : ven. 27 fév. 2026 à 19:48
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.3.6
 
@@ -2027,11 +2027,7 @@ CREATE TABLE IF NOT EXISTS `etudiants` (
     `date_naiss_etu` date NOT NULL,
     `genre_etu` int NOT NULL,
     `promotion_etu` varchar(15) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
-    `id_niveau` int DEFAULT NULL,
-    `id_annee_acad` int DEFAULT NULL,
     PRIMARY KEY (`num_carte_etud`),
-    KEY `fk_etudiant_niveau` (`id_niveau`),
-    KEY `fk_etudiant_annee_acad` (`id_annee_acad`),
     KEY `genre_etu` (`genre_etu`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
 
@@ -2048,9 +2044,7 @@ INSERT INTO
         `email_etu`,
         `date_naiss_etu`,
         `genre_etu`,
-        `promotion_etu`,
-        `id_niveau`,
-        `id_annee_acad`
+        `promotion_etu`
     )
 VALUES (
         'CI0106187064',
@@ -2060,9 +2054,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2016-2017',
-        NULL,
-        NULL
+        '2016-2017'
     ),
     (
         'CI0108207902',
@@ -2072,9 +2064,7 @@ VALUES (
         '',
         '0000-00-00',
         2,
-        '2004-2005',
-        NULL,
-        NULL
+        '2004-2005'
     ),
     (
         'CI0108207903',
@@ -2084,9 +2074,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2014-2015',
-        NULL,
-        NULL
+        '2014-2015'
     ),
     (
         'CI0108211061',
@@ -2096,9 +2084,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2018-2019',
-        NULL,
-        NULL
+        '2018-2019'
     ),
     (
         'CI0108212628',
@@ -2108,9 +2094,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2014-2015',
-        NULL,
-        NULL
+        '2014-2015'
     ),
     (
         'CI0109224375',
@@ -2120,9 +2104,7 @@ VALUES (
         '',
         '0000-00-00',
         2,
-        '2013-2014',
-        NULL,
-        NULL
+        '2013-2014'
     ),
     (
         'BOBJ2203880001',
@@ -2132,9 +2114,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2013-2014',
-        NULL,
-        NULL
+        '2013-2014'
     ),
     (
         'KOUA0204890001',
@@ -2144,9 +2124,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2013-2014',
-        NULL,
-        NULL
+        '2013-2014'
     ),
     (
         'CI0110242904',
@@ -2156,9 +2134,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2014-2015',
-        NULL,
-        NULL
+        '2014-2015'
     ),
     (
         'CI0110243163',
@@ -2168,9 +2144,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2013-2014',
-        NULL,
-        NULL
+        '2013-2014'
     ),
     (
         'CI0110243311',
@@ -2180,9 +2154,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2013-2014',
-        NULL,
-        NULL
+        '2013-2014'
     ),
     (
         'CI0111272399',
@@ -2192,9 +2164,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2014-2015',
-        NULL,
-        NULL
+        '2014-2015'
     ),
     (
         'CI0111272409',
@@ -2204,9 +2174,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2015-2016',
-        NULL,
-        NULL
+        '2015-2016'
     ),
     (
         'CI0111272412',
@@ -2216,9 +2184,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2015-2016',
-        NULL,
-        NULL
+        '2015-2016'
     ),
     (
         'CI0111272417',
@@ -2228,9 +2194,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2010-2011',
-        NULL,
-        NULL
+        '2010-2011'
     ),
     (
         'CI0112272423',
@@ -2240,9 +2204,7 @@ VALUES (
         '',
         '0000-00-00',
         2,
-        '2015-2016',
-        NULL,
-        NULL
+        '2015-2016'
     ),
     (
         'CI0112272430',
@@ -2252,9 +2214,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2016-2017',
-        NULL,
-        NULL
+        '2016-2017'
     ),
     (
         'CI0112272431',
@@ -2264,9 +2224,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2016-2017',
-        NULL,
-        NULL
+        '2016-2017'
     ),
     (
         'CI0112272435',
@@ -2276,9 +2234,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2015-2016',
-        NULL,
-        NULL
+        '2015-2016'
     ),
     (
         'CI0112272443',
@@ -2288,9 +2244,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2015-2016',
-        NULL,
-        NULL
+        '2015-2016'
     ),
     (
         'CI0113272684',
@@ -2300,9 +2254,7 @@ VALUES (
         '',
         '0000-00-00',
         2,
-        '2016-2017',
-        NULL,
-        NULL
+        '2016-2017'
     ),
     (
         'CI0113272986',
@@ -2312,9 +2264,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2016-2017',
-        NULL,
-        NULL
+        '2016-2017'
     ),
     (
         'KEUF2403950001',
@@ -2324,9 +2274,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2016-2017',
-        NULL,
-        NULL
+        '2016-2017'
     ),
     (
         'CI0113273196',
@@ -2336,9 +2284,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2016-2017',
-        NULL,
-        NULL
+        '2016-2017'
     ),
     (
         'CI0113273198',
@@ -2348,9 +2294,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2016-2017',
-        NULL,
-        NULL
+        '2016-2017'
     ),
     (
         'CI0113273793',
@@ -2360,9 +2304,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2015-2016',
-        NULL,
-        NULL
+        '2015-2016'
     ),
     (
         'CI0114277408',
@@ -2372,9 +2314,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2017-2018',
-        NULL,
-        NULL
+        '2017-2018'
     ),
     (
         'CI0114278909',
@@ -2384,9 +2324,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2018-2019',
-        NULL,
-        NULL
+        '2018-2019'
     ),
     (
         'CI0114279119',
@@ -2396,9 +2334,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2017-2018',
-        NULL,
-        NULL
+        '2017-2018'
     ),
     (
         'CI0114283286',
@@ -2408,9 +2344,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2018-2019',
-        NULL,
-        NULL
+        '2018-2019'
     ),
     (
         'CI0114283821',
@@ -2420,9 +2354,7 @@ VALUES (
         '',
         '0000-00-00',
         2,
-        '2017-2018',
-        NULL,
-        NULL
+        '2017-2018'
     ),
     (
         'OUAD2508910002',
@@ -2432,9 +2364,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2016-2017',
-        NULL,
-        NULL
+        '2016-2017'
     ),
     (
         'CI0114284425',
@@ -2444,9 +2374,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2017-2018',
-        NULL,
-        NULL
+        '2017-2018'
     ),
     (
         'CI0114284687',
@@ -2456,9 +2384,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2016-2017',
-        NULL,
-        NULL
+        '2016-2017'
     ),
     (
         'EHIA2912960001',
@@ -2468,9 +2394,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2018-2019',
-        NULL,
-        NULL
+        '2018-2019'
     ),
     (
         'CI0115290089',
@@ -2480,9 +2404,7 @@ VALUES (
         '',
         '0000-00-00',
         2,
-        '2018-2019',
-        NULL,
-        NULL
+        '2018-2019'
     ),
     (
         'CI0115290094',
@@ -2492,9 +2414,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2018-2019',
-        NULL,
-        NULL
+        '2018-2019'
     ),
     (
         'DIAM2310950002',
@@ -2504,9 +2424,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2019-2020',
-        NULL,
-        NULL
+        '2019-2020'
     ),
     (
         '14-24-LMI',
@@ -2516,9 +2434,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2018-2019',
-        NULL,
-        NULL
+        '2018-2019'
     ),
     (
         'CI0115291194',
@@ -2528,9 +2444,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2018-2019',
-        NULL,
-        NULL
+        '2018-2019'
     ),
     (
         'CI0115291243',
@@ -2540,9 +2454,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2018-2019',
-        NULL,
-        NULL
+        '2018-2019'
     ),
     (
         'CI0115301569',
@@ -2552,9 +2464,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2016-2017',
-        NULL,
-        NULL
+        '2016-2017'
     ),
     (
         'CI0115301657',
@@ -2564,9 +2474,7 @@ VALUES (
         '',
         '0000-00-00',
         2,
-        '2017-2018',
-        NULL,
-        NULL
+        '2017-2018'
     ),
     (
         'CI0115301658',
@@ -2576,9 +2484,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2016-2017',
-        NULL,
-        NULL
+        '2016-2017'
     ),
     (
         'CI0115302301',
@@ -2588,9 +2494,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2018-2019',
-        NULL,
-        NULL
+        '2018-2019'
     ),
     (
         'CI0115303004',
@@ -2600,9 +2504,7 @@ VALUES (
         '',
         '0000-00-00',
         2,
-        '2017-2018',
-        NULL,
-        NULL
+        '2017-2018'
     ),
     (
         'DEML1504910001',
@@ -2612,9 +2514,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2019-2020',
-        NULL,
-        NULL
+        '2019-2020'
     ),
     (
         'COUA2104970001',
@@ -2624,9 +2524,7 @@ VALUES (
         '',
         '0000-00-00',
         2,
-        '2019-2020',
-        NULL,
-        NULL
+        '2019-2020'
     ),
     (
         '134108790/DIAR',
@@ -2636,9 +2534,7 @@ VALUES (
         '',
         '0000-00-00',
         2,
-        '2019-2020',
-        NULL,
-        NULL
+        '2019-2020'
     ),
     (
         'YOBH1802000001',
@@ -2648,9 +2544,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2025-2026',
-        NULL,
-        NULL
+        '2025-2026'
     ),
     (
         'BAHA2507970002',
@@ -2660,9 +2554,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2025-2026',
-        NULL,
-        NULL
+        '2025-2026'
     ),
     (
         'DIAM1811010001',
@@ -2672,9 +2564,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2025-2026',
-        NULL,
-        NULL
+        '2025-2026'
     ),
     (
         'KANT1303010001',
@@ -2684,9 +2574,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2025-2026',
-        NULL,
-        NULL
+        '2025-2026'
     ),
     (
         'KONM3008010001',
@@ -2696,9 +2584,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2025-2026',
-        NULL,
-        NULL
+        '2025-2026'
     ),
     (
         'ATTK0309000002',
@@ -2708,9 +2594,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2025-2026',
-        NULL,
-        NULL
+        '2025-2026'
     ),
     (
         '161213861/CISS',
@@ -2720,9 +2604,7 @@ VALUES (
         '',
         '0000-00-00',
         2,
-        '2025-2026',
-        NULL,
-        NULL
+        '2025-2026'
     ),
     (
         'CRIB2105030002',
@@ -2732,9 +2614,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2025-2026',
-        NULL,
-        NULL
+        '2025-2026'
     ),
     (
         'DJAC1110020001',
@@ -2744,9 +2624,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2025-2026',
-        NULL,
-        NULL
+        '2025-2026'
     ),
     (
         'GANG1008030001',
@@ -2756,9 +2634,7 @@ VALUES (
         '',
         '0000-00-00',
         2,
-        '2025-2026',
-        NULL,
-        NULL
+        '2025-2026'
     ),
     (
         '203402572/KOFF',
@@ -2768,9 +2644,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2025-2026',
-        NULL,
-        NULL
+        '2025-2026'
     ),
     (
         'KOUA3007030002',
@@ -2780,9 +2654,17 @@ VALUES (
         '',
         '0000-00-00',
         2,
-        '2025-2026',
-        NULL,
-        NULL
+        '2025-2026'
+    ),
+    (
+        'KOUY1806010001',
+        'CI0121399012',
+        'Kouadio',
+        'Yao Elyse Vedrine',
+        'vedrineKouadio@gmail.com',
+        '2001-06-18',
+        1,
+        '2025-2026'
     ),
     (
         'KOUD2803030002',
@@ -2792,9 +2674,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2025-2026',
-        NULL,
-        NULL
+        '2025-2026'
     ),
     (
         'TOUG2003030001',
@@ -2804,9 +2684,7 @@ VALUES (
         '',
         '0000-00-00',
         1,
-        '2025-2026',
-        NULL,
-        NULL
+        '2025-2026'
     );
 
 -- --------------------------------------------------------
@@ -2967,7 +2845,7 @@ CREATE TABLE IF NOT EXISTS `fonctionnalites` (
     PRIMARY KEY (`id_fonctionnalite`),
     UNIQUE KEY `code_fonctionnalite` (`code_fonctionnalite`),
     KEY `id_categorie` (`id_categorie`)
-) ENGINE = InnoDB AUTO_INCREMENT = 117 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 118 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `fonctionnalites`
@@ -3903,6 +3781,21 @@ VALUES (
         NULL,
         1,
         '2026-02-20 22:44:42'
+    ),
+    (
+        117,
+        25,
+        'repertoire_enseignant',
+        'Repertoire documents',
+        'Repertoire documents',
+        'Consultation des rapports, comptes-rendus et memoires rattaches a l enseignant',
+        '?page=repertoire_enseignant',
+        'fas fa-folder-open',
+        10,
+        0,
+        NULL,
+        1,
+        '2026-02-27 18:49:53'
     );
 
 -- --------------------------------------------------------
@@ -4049,6 +3942,7 @@ CREATE TABLE IF NOT EXISTS `inscriptions` (
     `methode_paiement` varchar(50) DEFAULT NULL,
     `num_piece_mp` varchar(100) DEFAULT NULL,
     `solde` decimal(10, 2) DEFAULT '0.00',
+    `fiche_inscription` varchar(255) DEFAULT NULL COMMENT 'Chemin vers le fichier de la fiche d''inscription (PDF ou image)',
     PRIMARY KEY (`id_inscription`),
     KEY `id_etudiant` (`id_etudiant`),
     KEY `id_annee_acad` (`id_annee_acad`),
@@ -4075,7 +3969,8 @@ INSERT INTO
         `montant_verser`,
         `methode_paiement`,
         `num_piece_mp`,
-        `solde`
+        `solde`,
+        `fiche_inscription`
     )
 VALUES (
         1,
@@ -4092,7 +3987,8 @@ VALUES (
         300000.00,
         'Espèce',
         'TEST-001',
-        675000.00
+        675000.00,
+        NULL
     ),
     (
         2,
@@ -4109,7 +4005,8 @@ VALUES (
         200000.00,
         'Virement',
         'VIREMENT-002',
-        475000.00
+        475000.00,
+        NULL
     ),
     (
         3,
@@ -4126,7 +4023,8 @@ VALUES (
         450000.00,
         'Espèce',
         '',
-        575000.00
+        575000.00,
+        NULL
     );
 
 -- --------------------------------------------------------
@@ -4509,8 +4407,10 @@ CREATE TABLE IF NOT EXISTS `niveau_etude` (
     `id_enseignant` int DEFAULT NULL,
     `montant_scolarite` decimal(10, 2) DEFAULT NULL,
     `montant_inscription` decimal(10, 2) NOT NULL,
+    `id_annee_acad` int NOT NULL,
     PRIMARY KEY (`id_niv_etude`),
-    KEY `id_enseignant` (`id_enseignant`)
+    KEY `id_enseignant` (`id_enseignant`),
+    KEY `id_annee_acad` (`id_annee_acad`)
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 DEFAULT CHARSET = utf8mb3;
 
 --
@@ -4523,21 +4423,24 @@ INSERT INTO
         `lib_niv_etude`,
         `id_enseignant`,
         `montant_scolarite`,
-        `montant_inscription`
+        `montant_inscription`,
+        `id_annee_acad`
     )
 VALUES (
         1,
         'Master 1',
         7,
         975000.00,
-        450000.00
+        450000.00,
+        22625
     ),
     (
         2,
         'Master 2',
         7,
         1025000.00,
-        450000.00
+        450000.00,
+        22625
     );
 
 -- --------------------------------------------------------
@@ -4722,7 +4625,7 @@ CREATE TABLE IF NOT EXISTS `permissions` (
     PRIMARY KEY (`id_permission`),
     UNIQUE KEY `unique_permission` (`id_GU`, `id_fonctionnalite`),
     KEY `id_fonctionnalite` (`id_fonctionnalite`)
-) ENGINE = InnoDB AUTO_INCREMENT = 1804 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 1809 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `permissions`
@@ -5178,6 +5081,56 @@ VALUES (
         1,
         0,
         '2026-02-20 22:45:12'
+    ),
+    (
+        1804,
+        12,
+        117,
+        1,
+        0,
+        0,
+        0,
+        '2026-02-27 18:49:53'
+    ),
+    (
+        1805,
+        5,
+        117,
+        1,
+        1,
+        1,
+        1,
+        '2026-02-27 18:49:53'
+    ),
+    (
+        1806,
+        9,
+        117,
+        1,
+        0,
+        0,
+        0,
+        '2026-02-27 18:49:53'
+    ),
+    (
+        1807,
+        10,
+        117,
+        1,
+        0,
+        0,
+        0,
+        '2026-02-27 18:49:54'
+    ),
+    (
+        1808,
+        11,
+        117,
+        1,
+        0,
+        0,
+        0,
+        '2026-02-27 18:49:54'
     );
 
 -- --------------------------------------------------------
@@ -5222,7 +5175,7 @@ CREATE TABLE IF NOT EXISTS `pister` (
     KEY `idx_utilisateur_action` (`id_utilisateur`, `action`),
     KEY `id_action` (`action`),
     KEY `id_action_2` (`action`)
-) ENGINE = InnoDB AUTO_INCREMENT = 71 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 74 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `pister`
@@ -5796,6 +5749,30 @@ VALUES (
         'Succès',
         'utilisateur',
         '2026-02-27 15:05:09'
+    ),
+    (
+        71,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-27 19:02:58'
+    ),
+    (
+        72,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-02-27 19:02:58'
+    ),
+    (
+        73,
+        5,
+        'Création',
+        'Succès',
+        'etudiants',
+        '2026-02-27 19:38:13'
     );
 
 -- --------------------------------------------------------
@@ -6784,9 +6761,7 @@ ADD CONSTRAINT `fk_composer_role` FOREIGN KEY (`id_qualite_jury`) REFERENCES `qu
 -- Contraintes pour la table `etudiants`
 --
 ALTER TABLE `etudiants`
-ADD CONSTRAINT `etudiants_ibfk_1` FOREIGN KEY (`genre_etu`) REFERENCES `genre` (`id_genre`) ON DELETE CASCADE ON UPDATE CASCADE,
-ADD CONSTRAINT `fk_etudiant_annee_acad` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE SET NULL ON UPDATE CASCADE,
-ADD CONSTRAINT `fk_etudiant_niveau` FOREIGN KEY (`id_niveau`) REFERENCES `niveau_etude` (`id_niv_etude`) ON DELETE SET NULL ON UPDATE CASCADE;
+ADD CONSTRAINT `etudiants_ibfk_1` FOREIGN KEY (`genre_etu`) REFERENCES `genre` (`id_genre`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `evaluations_rapports`
@@ -6828,6 +6803,12 @@ ADD CONSTRAINT `inscriptions_ibfk_niveau` FOREIGN KEY (`id_niveau`) REFERENCES `
 --
 ALTER TABLE `maitre_de_stage`
 ADD CONSTRAINT `maitre_de_stage_ibfk_1` FOREIGN KEY (`id_entreprise`) REFERENCES `entreprises` (`id_entreprise`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `niveau_etude`
+--
+ALTER TABLE `niveau_etude`
+ADD CONSTRAINT `niveau_etude_ibfk_1` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `notes`

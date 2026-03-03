@@ -101,6 +101,21 @@ class EvaluationSoutenanceController
         }
     }
 
+    public function getBaremeCriteres()
+    {
+        $idAnneeAcad = $_GET['id_annee_acad'] ?? null;
+
+        $result = $this->service->getBaremeCriteres();
+
+        header('Content-Type: application/json');
+        if ($result['success']) {
+            echo json_encode($result);
+        } else {
+            http_response_code(400);
+            echo json_encode($result);
+        }
+    }
+
     /**
      * Imprimer les procès-verbaux (PV) de soutenance en PDF - Les 3 annexes dans un seul document
      */
