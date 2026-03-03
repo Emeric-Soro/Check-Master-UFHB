@@ -252,7 +252,9 @@ class EvaluationRapport
                     e.prenom_etu,
                     e.email_etu,
                     e.promotion_etu,
-                    e.id_annee_acad AS id_annee_acad,
+                    (SELECT i.id_annee_acad FROM inscriptions i 
+                     WHERE i.id_etudiant = e.num_carte_etud 
+                     ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad,
                     " . ($hasDeposer ? "d.date_depot" : "$dateExpr") . " AS date_depot,
                     COUNT(ev.id_evaluation) as total_votes,
                     COUNT(CASE WHEN ev.decision_evaluation = 'valider' THEN 1 END) as votes_valider,
@@ -265,7 +267,7 @@ class EvaluationRapport
                 $whereSql
                 GROUP BY r.id_rapport, nom_rapport, r.theme_rapport, date_rapport, 
                          etape_validation, r.statut_rapport, e.nom_etu, e.prenom_etu, 
-                         e.email_etu, e.promotion_etu, e.id_annee_acad, date_depot
+                         e.email_etu, e.promotion_etu, e.num_carte_etud, date_depot
                 $orderSql
             ";
             $stmt = $this->pdo->prepare($sql);

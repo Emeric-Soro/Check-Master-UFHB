@@ -50,7 +50,7 @@ class EvaluationSoutenanceService
     private function getStudentAcademicYearId(string $numEtu): ?int
     {
         try {
-            $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM etudiants WHERE num_carte_etud = ? LIMIT 1");
+            $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM inscriptions WHERE id_etudiant = ? ORDER BY date_inscription DESC, id_inscription DESC LIMIT 1");
             $stmt->execute([$numEtu]);
             $value = $stmt->fetchColumn();
             if (is_numeric($value) && (int) $value > 0) {
@@ -62,7 +62,14 @@ class EvaluationSoutenanceService
 
         if ($this->columnExists('etudiants', 'num_ident_etud')) {
             try {
-                $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM etudiants WHERE num_ident_etud = ? LIMIT 1");
+                $stmt = $this->pdo->prepare("
+                    SELECT i.id_annee_acad
+                    FROM inscriptions i
+                    INNER JOIN etudiants e ON e.num_carte_etud = i.id_etudiant
+                    WHERE e.num_ident_etud = ?
+                    ORDER BY i.date_inscription DESC, i.id_inscription DESC
+                    LIMIT 1
+                ");
                 $stmt->execute([$numEtu]);
                 $value = $stmt->fetchColumn();
                 if (is_numeric($value) && (int) $value > 0) {
@@ -457,7 +464,7 @@ class EvaluationSoutenanceService
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
-                $sql .= " AND e.id_annee_acad = :id_annee_acad";
+                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
             }
 
             $sql .= "

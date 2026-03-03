@@ -113,9 +113,14 @@ class ProcessusValidationService
     {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT e.id_annee_acad
+                SELECT i.id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                JOIN inscriptions i ON i.id_inscription = (
+                    SELECT i2.id_inscription FROM inscriptions i2
+                    WHERE i2.id_etudiant = e.num_carte_etud
+                    ORDER BY i2.date_inscription DESC, i2.id_inscription DESC LIMIT 1
+                )
                 WHERE r.id_rapport = ?
                 LIMIT 1
             ");

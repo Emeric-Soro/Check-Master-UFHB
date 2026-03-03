@@ -33,20 +33,27 @@ class Etudiant
     public function getAllEtudiants($id_annee_acad = null)
     {
         try {
-            $query = "SELECT e.*, e.num_ident_etud as identifiant_mesrs, n.lib_niv_etude, a.date_deb, a.date_fin, g.libelle_genre
+            $query = "SELECT e.*, e.num_ident_etud as identifiant_mesrs, 
+                            n.lib_niv_etude as lib_niv_etude, 
+                            a.date_deb, a.date_fin, g.libelle_genre
                      FROM etudiants e 
-                     LEFT JOIN niveau_etude n ON e.id_niveau = n.id_niv_etude 
-                     LEFT JOIN annee_academique a ON e.id_annee_acad = a.id_annee_acad
+                     LEFT JOIN inscriptions i ON i.id_inscription = (
+                         SELECT i2.id_inscription FROM inscriptions i2 
+                         WHERE i2.id_etudiant = e.num_carte_etud 
+                         ORDER BY i2.date_inscription DESC LIMIT 1
+                     )
+                     LEFT JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude 
+                     LEFT JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
                      LEFT JOIN genre g ON e.genre_etu = g.id_genre";
 
             $params = [];
             if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
-                $query .= " WHERE (e.id_annee_acad = ? 
+                $query .= " WHERE (i.id_annee_acad = ? 
                             OR EXISTS (
                                 SELECT 1
-                                FROM inscriptions i
-                                WHERE i.id_etudiant = e.num_carte_etud
-                                  AND i.id_annee_acad = ?
+                                FROM inscriptions i3
+                                WHERE i3.id_etudiant = e.num_carte_etud
+                                  AND i3.id_annee_acad = ?
                             )";
                 $params[] = (int) $id_annee_acad;
                 $params[] = (int) $id_annee_acad;
@@ -76,9 +83,9 @@ class Etudiant
             $query = "SELECT
                         e.*,
                         e.num_ident_etud as identifiant_mesrs,
-                        COALESCE(n.lib_niv_etude, n_student.lib_niv_etude) AS lib_niv_etude,
-                        COALESCE(n.id_niv_etude, n_student.id_niv_etude) AS id_niv_etude,
-                        a.id_annee_acad,
+                        n.lib_niv_etude AS lib_niv_etude,
+                        n.id_niv_etude AS id_niv_etude,
+                        i.id_annee_acad,
                         a.date_deb,
                         a.date_fin,
                         g.libelle_genre
@@ -92,8 +99,7 @@ class Etudiant
                           LIMIT 1
                       )
                       LEFT JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
-                      LEFT JOIN niveau_etude n_student ON e.id_niveau = n_student.id_niv_etude
-                      LEFT JOIN annee_academique a ON a.id_annee_acad = COALESCE(i.id_annee_acad, e.id_annee_acad)
+                      LEFT JOIN annee_academique a ON a.id_annee_acad = i.id_annee_acad
                       LEFT JOIN genre g ON e.genre_etu = g.id_genre
                       WHERE 1 = 1";
 
@@ -101,7 +107,7 @@ class Etudiant
             if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
                 $yearLabel = $this->getAcademicYearLabelById($id_annee_acad);
                 $query .= " AND (
-                                e.id_annee_acad = :annee_filter
+                                i.id_annee_acad = :annee_filter
                                 OR EXISTS (
                                     SELECT 1
                                     FROM inscriptions i3
@@ -179,8 +185,8 @@ class Etudiant
     public function ajouterEtudiant($num_etu, $nom_etu, $prenom_etu, $date_naiss_etu, $genre_etu, $email_etu, $promotion_etu, $id_niveau = null, $id_annee_acad = null, $identifiant_mesrs = null)
     {
         try {
-            $sql = "INSERT INTO etudiants (num_carte_etud, num_ident_etud, nom_etu, prenom_etu, date_naiss_etu, genre_etu, email_etu, promotion_etu, id_niveau, id_annee_acad) 
-                    VALUES (:num_etu, :num_ident_etud, :nom_etu, :prenom_etu, :date_naiss_etu, :genre_etu, :email_etu, :promotion_etu, :id_niveau, :id_annee_acad)";
+            $sql = "INSERT INTO etudiants (num_carte_etud, num_ident_etud, nom_etu, prenom_etu, date_naiss_etu, genre_etu, email_etu, promotion_etu) 
+                    VALUES (:num_etu, :num_ident_etud, :nom_etu, :prenom_etu, :date_naiss_etu, :genre_etu, :email_etu, :promotion_etu)";
             $stmt = $this->db->prepare($sql);
             $stmt->bindParam(':num_etu', $num_etu);
             $stmt->bindParam(':num_ident_etud', $identifiant_mesrs);
@@ -190,19 +196,9 @@ class Etudiant
             $stmt->bindParam(':genre_etu', $genre_etu);
             $stmt->bindParam(':email_etu', $email_etu);
             $stmt->bindParam(':promotion_etu', $promotion_etu);
-            if ($id_niveau === null) {
-                $stmt->bindValue(':id_niveau', null, PDO::PARAM_NULL);
-            } else {
-                $stmt->bindValue(':id_niveau', (int) $id_niveau, PDO::PARAM_INT);
-            }
-            if ($id_annee_acad === null) {
-                $stmt->bindValue(':id_annee_acad', null, PDO::PARAM_NULL);
-            } else {
-                $stmt->bindValue(':id_annee_acad', (int) $id_annee_acad, PDO::PARAM_INT);
-            }
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log("Erreur lors de l'ajout de l'étudiant : " . $e->getMessage() . " | id_niveau=" . var_export($id_niveau, true) . " | id_annee_acad=" . var_export($id_annee_acad, true));
+            error_log("Erreur lors de l'ajout de l'étudiant : " . $e->getMessage());
             return false;
         }
     }
@@ -218,8 +214,6 @@ class Etudiant
                         genre_etu = :genre_etu, 
                         email_etu = :email_etu,
                         promotion_etu = :promotion_etu,
-                        id_niveau = :id_niveau,
-                        id_annee_acad = :id_annee_acad,
                         num_ident_etud = :num_ident_etud
                     WHERE num_carte_etud = :old_num_etu";
             $stmt = $this->db->prepare($sql);
@@ -231,20 +225,10 @@ class Etudiant
             $stmt->bindParam(':genre_etu', $genre_etu);
             $stmt->bindParam(':email_etu', $email_etu);
             $stmt->bindParam(':promotion_etu', $promotion_etu);
-            if ($id_niveau === null) {
-                $stmt->bindValue(':id_niveau', null, PDO::PARAM_NULL);
-            } else {
-                $stmt->bindValue(':id_niveau', (int) $id_niveau, PDO::PARAM_INT);
-            }
-            if ($id_annee_acad === null) {
-                $stmt->bindValue(':id_annee_acad', null, PDO::PARAM_NULL);
-            } else {
-                $stmt->bindValue(':id_annee_acad', (int) $id_annee_acad, PDO::PARAM_INT);
-            }
             $stmt->bindParam(':num_ident_etud', $identifiant_mesrs);
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log("Erreur lors de la modification de l'étudiant : " . $e->getMessage() . " | id_niveau=" . var_export($id_niveau, true) . " | id_annee_acad=" . var_export($id_annee_acad, true));
+            error_log("Erreur lors de la modification de l'étudiant : " . $e->getMessage());
             return false;
         }
     }
@@ -298,10 +282,16 @@ class Etudiant
 
     public function getAllCandidature()
     {
-        $sql = "SELECT cs.*, e.nom_etu, e.prenom_etu, e.id_annee_acad, e.promotion_etu, a.date_deb, a.date_fin
+        $sql = "SELECT cs.*, e.nom_etu, e.prenom_etu, e.promotion_etu, 
+                       i.id_annee_acad, a.date_deb, a.date_fin
                 FROM candidature_soutenance cs 
                 INNER JOIN etudiants e ON e.num_carte_etud = cs.num_etu 
-                LEFT JOIN annee_academique a ON a.id_annee_acad = e.id_annee_acad
+                LEFT JOIN inscriptions i ON i.id_inscription = (
+                    SELECT i2.id_inscription FROM inscriptions i2 
+                    WHERE i2.id_etudiant = e.num_carte_etud 
+                    ORDER BY i2.date_inscription DESC LIMIT 1
+                )
+                LEFT JOIN annee_academique a ON a.id_annee_acad = i.id_annee_acad
                 ORDER BY cs.date_candidature DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();

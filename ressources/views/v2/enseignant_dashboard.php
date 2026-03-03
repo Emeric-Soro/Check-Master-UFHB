@@ -67,7 +67,7 @@ try {
         $params = [':id_enseignant' => $teacherId];
 
         if ($filtreAnnee !== null) {
-            $whereConditions[] = "e.id_annee_acad = :id_annee_acad";
+            $whereConditions[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
             $params[':id_annee_acad'] = $filtreAnnee;
         }
 
@@ -120,9 +120,9 @@ try {
         $whereStudents = "CAST(a.id_enseignant AS CHAR) = :id_enseignant AND a.role IN ('encadrant', 'directeur')";
 
         if ($filtreAnnee !== null) {
-            $whereReports .= " AND EXISTS (SELECT 1 FROM etudiants e WHERE e.num_carte_etud = r.num_etu AND e.id_annee_acad = :id_annee_acad)";
-            $whereSoutenances .= " AND e.id_annee_acad = :id_annee_acad";
-            $whereStudents .= " AND EXISTS (SELECT 1 FROM etudiants e WHERE e.num_carte_etud = r.num_etu AND e.id_annee_acad = :id_annee_acad)";
+            $whereReports .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
+            $whereSoutenances .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+            $whereStudents .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
         }
 
         if ($filtreSession !== null) {
@@ -150,7 +150,7 @@ try {
         ];
         $paramsNext = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) {
-            $whereNext[] = "e.id_annee_acad = :id_annee_acad";
+            $whereNext[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
             $paramsNext[':id_annee_acad'] = $filtreAnnee;
         }
         if ($filtreSession !== null) {
@@ -172,7 +172,7 @@ try {
         $whereRecentReports = ["CAST(a.id_enseignant AS CHAR) = :id_enseignant"];
         $paramsRecentReports = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) {
-            $whereRecentReports[] = "EXISTS (SELECT 1 FROM etudiants e WHERE e.num_carte_etud = r.num_etu AND e.id_annee_acad = :id_annee_acad)";
+            $whereRecentReports[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
             $paramsRecentReports[':id_annee_acad'] = $filtreAnnee;
         }
         $stmtRecentReports = $pdo->prepare("SELECT r.theme_rapport, r.date_redaction_rapport FROM affecter a INNER JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport WHERE " . implode(' AND ', $whereRecentReports) . " ORDER BY r.date_redaction_rapport DESC LIMIT 5");
@@ -192,7 +192,7 @@ try {
         $whereRecentSout = ["CAST(ej.id_enseignant AS CHAR) = :id_enseignant"];
         $paramsRecentSout = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) {
-            $whereRecentSout[] = "e.id_annee_acad = :id_annee_acad";
+            $whereRecentSout[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
             $paramsRecentSout[':id_annee_acad'] = $filtreAnnee;
         }
         if ($filtreSession !== null) {

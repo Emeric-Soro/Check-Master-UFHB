@@ -30,9 +30,14 @@ class RedactionCompteRenduService
         $selectedYearId = $this->getSelectedYearId();
 
         $sql = "
-            SELECT r.id_rapport, r.num_etu, r.theme_rapport, e.prenom_etu, e.nom_etu, v2.decision_validation, e.id_annee_acad
+            SELECT r.id_rapport, r.num_etu, r.theme_rapport, e.prenom_etu, e.nom_etu, v2.decision_validation, ins.id_annee_acad
             FROM rapport_etudiants r
             JOIN etudiants e ON r.num_etu = e.num_carte_etud
+            LEFT JOIN inscriptions ins ON ins.id_inscription = (
+                SELECT i2.id_inscription FROM inscriptions i2
+                WHERE i2.id_etudiant = e.num_carte_etud
+                ORDER BY i2.date_inscription DESC, i2.id_inscription DESC LIMIT 1
+            )
             JOIN (
                 SELECT id_rapport, MAX(date_validation) AS last_validation
                 FROM valider
@@ -46,7 +51,7 @@ class RedactionCompteRenduService
 
         $params = [];
         if ($selectedYearId !== null && $selectedYearId > 0) {
-            $sql .= " AND e.id_annee_acad = :id_annee_acad";
+            $sql .= " AND ins.id_annee_acad = :id_annee_acad";
             $params[':id_annee_acad'] = $selectedYearId;
         }
 
