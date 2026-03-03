@@ -120,9 +120,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
         ]); ?>
     <?php endif; ?>
     <div class="cm-crud-wrapper">
-        <div class="cm-pole-superieur">
-            <div class="">
-            </div>
+        <div class="cm-pole-superieur is-compact">
             <div class="cm-grid-3">
                 <div class="cm-card cm-p-md">
                     <div class="cm-text-sm cm-text-semibold cm-text-primary">A TRAITER</div>
@@ -195,7 +193,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     'placeholder' => 'Saisissez votre commentaire...',
                 ]);
                 ?>
-                <div class="cm-form-buttons">
+                <div class="cm-form-buttons is-dense">
                     <a id="cmVoirRapportBtn"
                        class="cm-btn is-info"
                        href="#"
@@ -226,7 +224,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <input type="text" id="cmEvalSearch" class="cm-form-control cm-toolbar-field-lg" placeholder="Rechercher un dossier...">
+                    <input type="text" id="cmEvalSearch" class="cm-form-control is-sm cm-toolbar-field-lg" placeholder="Rechercher un dossier...">
                 </div>
                 <div class="cm-toolbar-center">
                     <button type="button" class="cm-btn is-info is-sm" id="cmEvalSelectAllBtn">
@@ -238,25 +236,31 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                         Deselect.
                     </button>
                     <?php if (function_exists('canDelete') ? canDelete() : true): ?>
+                    <button type="button" class="cm-btn is-danger is-sm" id="cmEvalDeleteBtn" disabled>
                         <i class="fas fa-trash" aria-hidden="true"></i>
                         Supprimer (0)
+                    </button>
                     <?php endif; ?>
                 </div>
                 <div class="cm-toolbar-right">
                     <?php if (function_exists('canView') ? canView() : true): ?>
+                    <button type="button" class="cm-btn is-light is-sm" id="cmEvalExport">
                         <i class="fas fa-file-export" aria-hidden="true"></i>
                         Export
+                    </button>
                     <?php endif; ?>
                     <?php if (function_exists('canView') ? canView() : true): ?>
+                    <button type="button" class="cm-btn is-light is-sm" id="cmEvalPrint">
                         <i class="fas fa-print" aria-hidden="true"></i>
                         Impr.
+                    </button>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
-                <table class="cm-data-table" id="cmEvaluationDossiersTable">
+                <table class="cm-data-table cm-data-table--compact" id="cmEvaluationDossiersTable">
                     <thead>
                     <tr>
                         <th class="cm-data-table__th cm-data-table__th--check">
@@ -269,7 +273,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                         <th class="cm-data-table__th">Ma decision</th>
                         <th class="cm-data-table__th">Mon commentaire</th>
                         <th class="cm-data-table__th">Date</th>
-                        <th class="cm-data-table__th is-center">Act</th>
+                        <th class="cm-data-table__th is-center is-actions">Act</th>
                     </tr>
                     </thead>
                     <tbody id="cmEvaluationDossiersBody">
@@ -334,7 +338,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                                 </td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($myComment !== '' ? $myComment : '-', ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($myDate, ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td class="cm-data-table__td is-center">
+                                <td class="cm-data-table__td is-center is-actions">
                                     <div class="cm-table-actions">
                                         <?php if (function_exists('canEdit') ? canEdit() : true): ?>
                                         <button type="button"

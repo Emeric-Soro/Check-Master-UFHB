@@ -178,9 +178,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
         ]); ?>
     <?php endif; ?>
     <div class="cm-crud-wrapper">
-    <div class="">
-        <div class="">
-        </div>
+    <div class="cm-pole-superieur is-compact">
         <form id="cmPaiementForm" method="POST" action="?page=gestion_scolarite&action=enregistrer_paiement">
             <?php cm_component('form/csrf-token'); ?>
             <input type="hidden" id="cmIsNewInscription" name="is_new_inscription" value="">
@@ -217,6 +215,9 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'options' => $studentOptions,
                     'required' => true,
                     'placeholder' => '-- Sélectionner --',
+                    'dense' => true,
+                    'size' => 'sm',
+                    'show_selected_label' => false,
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'identifiant_display',
@@ -292,7 +293,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             </div>
             <!-- Hidden field -->
             <input type="hidden" id="cmInfoEtudiant" name="cmInfoEtudiant" value="">
-            <div class="cm-form-buttons">
+            <div class="cm-form-buttons is-dense">
                 <?php if (canCreate() || canEdit()): ?>
                     <button class="cm-btn is-success" type="submit">
                         <i class="fas fa-check" aria-hidden="true"></i>
@@ -334,7 +335,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                 </select>
             </div>
             <div class="cm-toolbar-center">
-                <input type="text" id="cmSearchVersement" class="cm-form-control" placeholder="Rechercher (étudiant, numero, mode)...">
+                <input type="text" id="cmSearchVersement" class="cm-form-control is-sm cm-toolbar-field-lg" placeholder="Rechercher (étudiant, numero, mode)...">
             </div>
             <div class="cm-toolbar-right">
                 <button type="button" class="cm-btn is-info is-sm" id="cmSelectAllVersements">
@@ -364,10 +365,10 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
     </div>
     <div class="cm-pole-inferieur">
         <div class="cm-table-wrapper">
-            <table class="cm-data-table" id="cmVersementsTable">
+            <table class="cm-data-table cm-data-table--compact" id="cmVersementsTable">
                 <thead>
                 <tr>
-                    <th class="cm-data-table__th is-checkbox">
+                    <th class="cm-data-table__th cm-data-table__th--check">
                         <input type="checkbox" id="cmCheckAllVersements" class="cm-checkbox" aria-label="Sélectionner toutes les lignes">
                     </th>
                     <th class="cm-data-table__th">N° Etud.</th>
@@ -411,7 +412,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                             data-search="<?php echo htmlspecialchars(strtolower($numEtu . ' ' . $nomPrenom . ' ' . $mode . ' ' . $numPiece), ENT_QUOTES, 'UTF-8'); ?>"
                             data-niveau="<?php echo htmlspecialchars($niveauLib, ENT_QUOTES, 'UTF-8'); ?>"
                             data-statut="<?php echo htmlspecialchars($statutPaiement, ENT_QUOTES, 'UTF-8'); ?>">
-                            <td class="cm-data-table__td is-checkbox">
+                            <td class="cm-data-table__td cm-data-table__td--check">
                                 <input type="checkbox" class="cm-checkbox cm-row-checkbox">
                             </td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?></td>
@@ -424,8 +425,8 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                             <td class="cm-data-table__td"><?php echo htmlspecialchars(number_format($soldeVersement, 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars($mode, ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars($numPiece, ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="cm-data-table__td">
-                                <div class="cm-row-actions">
+                            <td class="cm-data-table__td is-center is-actions">
+                                <div class="cm-table-actions">
                                     <button type="button"
                                             class="cm-btn-action is-edit cmPrefillPaiement"
                                             data-student="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>"

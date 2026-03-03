@@ -57,17 +57,6 @@ class NotesService
             error_log('resolveStudentNiveau(inscriptions): ' . $e->getMessage());
         }
 
-        try {
-            $stmt = $this->db->prepare("SELECT id_niveau FROM etudiants WHERE num_carte_etud = ? LIMIT 1");
-            $stmt->execute([$studentId]);
-            $niveau = $stmt->fetchColumn();
-            if ($niveau !== false && (int) $niveau > 0) {
-                return (int) $niveau;
-            }
-        } catch (\Throwable $e) {
-            error_log('resolveStudentNiveau(etudiants): ' . $e->getMessage());
-        }
-
         return null;
     }
 

@@ -202,14 +202,14 @@ class Note
                         ) latest ON latest.id_etudiant = i1.id_etudiant
                                AND latest.max_id = i1.id_inscription
                         ) ins ON ins.id_etudiant = e.num_carte_etud
-                     WHERE COALESCE(ins.id_niveau, e.id_niveau) = ?
+                     WHERE ins.id_niveau = ?
                      ORDER BY e.nom_etu, e.prenom_etu";
 
             $params = [$niveauId];
             if ($anneeAcadId !== null && $anneeAcadId !== '' && (int) $anneeAcadId > 0) {
                 $query = str_replace(
-                    'WHERE COALESCE(ins.id_niveau, e.id_niveau) = ?',
-                    'WHERE n.id_annee_acad = ? AND COALESCE(ins.id_niveau, e.id_niveau) = ?',
+                    'WHERE ins.id_niveau = ?',
+                    'WHERE n.id_annee_acad = ? AND ins.id_niveau = ?',
                     $query
                 );
                 $params = [(int) $anneeAcadId, $niveauId];
