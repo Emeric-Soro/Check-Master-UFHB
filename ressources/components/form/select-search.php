@@ -11,6 +11,16 @@ $readonly = $readonly ?? false;
 $hint = $hint ?? '';
 $error = cm_form_field_error((string) $name, $error ?? '');
 $attrs = $attrs ?? [];
+$size = trim((string) ($size ?? 'sm'));
+if ($size === '') {
+    $size = 'sm';
+}
+$dense = isset($dense) ? !empty($dense) : true;
+$group_class = cm_form_class_names('cm-field--select-search', (string) ($group_class ?? ''));
+$label_class = (string) ($label_class ?? '');
+$control_class = (string) ($control_class ?? '');
+$wrapper_class = (string) ($wrapper_class ?? '');
+$show_selected_label = !isset($show_selected_label) || (bool) $show_selected_label;
 
 $options = $options ?? [];
 $placeholder = $placeholder ?? '-- Selectionner --';
@@ -20,14 +30,36 @@ $min_search = isset($min_search) ? max(0, (int) $min_search) : 5;
 
 $normalized_options = cm_form_normalize_options((array) $options);
 $show_search = count($normalized_options) >= $min_search;
+if (!$show_search) {
+    $show_selected_label = true;
+}
 
-$group_classes = 'cm-form-group';
-if ($required) {
-    $group_classes .= ' is-required';
-}
-if ($error !== '') {
-    $group_classes .= ' is-invalid';
-}
+$group_classes = cm_form_group_class((bool) $required, $error, [
+    'readonly' => $readonly,
+    'disabled' => $disabled,
+    'dense' => $dense,
+    'size' => $size,
+    'group_class' => $group_class,
+]);
+$labelClass = cm_form_label_class([
+    'readonly' => $readonly,
+    'dense' => $dense,
+    'size' => $size,
+    'label_class' => $label_class,
+]);
+$searchInputClass = cm_form_control_class('cm-form-control cm-select-search__input', [
+    'readonly' => $readonly,
+    'disabled' => $disabled,
+    'dense' => $dense,
+    'size' => $size,
+    'control_class' => $control_class,
+]);
+$wrapperClass = cm_form_class_names(
+    'cm-select-search',
+    $dense ? 'is-dense' : '',
+    $size !== '' ? 'is-' . $size : '',
+    $wrapper_class
+);
 
 $search_id = (string) $id . '_search';
 $list_id = (string) $id . '_list';
@@ -43,16 +75,16 @@ foreach ($normalized_options as $option) {
 ?>
 <div class="<?= htmlspecialchars($group_classes, ENT_QUOTES, 'UTF-8') ?>">
     <?php if ($label !== ''): ?>
-    <label for="<?= htmlspecialchars($hidden_id, ENT_QUOTES, 'UTF-8') ?>" class="cm-form-label">
+    <label for="<?= htmlspecialchars($hidden_id, ENT_QUOTES, 'UTF-8') ?>" class="<?= htmlspecialchars($labelClass, ENT_QUOTES, 'UTF-8') ?>">
         <?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8') ?><?= $required ? ' <span class="cm-required-star">*</span>' : '' ?>
     </label>
     <?php endif; ?>
 
-    <div class="cm-select-search" id="<?= htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8') ?>_wrapper" aria-expanded="false">
+    <div class="<?= htmlspecialchars($wrapperClass, ENT_QUOTES, 'UTF-8') ?>" id="<?= htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8') ?>_wrapper" aria-expanded="false">
         <?php if ($show_search): ?>
         <input type="text"
                id="<?= htmlspecialchars($search_id, ENT_QUOTES, 'UTF-8') ?>"
-               class="cm-form-control cm-select-search__input"
+               class="<?= htmlspecialchars($searchInputClass, ENT_QUOTES, 'UTF-8') ?>"
                placeholder="<?= htmlspecialchars((string) $search_placeholder, ENT_QUOTES, 'UTF-8') ?>"
                autocomplete="off"
                <?= $disabled ? 'disabled' : '' ?>>
@@ -91,9 +123,11 @@ foreach ($normalized_options as $option) {
                value="<?= htmlspecialchars($selected, ENT_QUOTES, 'UTF-8') ?>"
                <?= $required ? 'required' : '' ?><?= cm_form_attr_string((array) $attrs) ?>>
 
-        <div class="cm-form-hint" id="<?= htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8') ?>_selected_label">
+        <?php if ($show_selected_label): ?>
+        <div class="cm-form-hint cm-select-search__selected-label" id="<?= htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8') ?>_selected_label">
             <?= htmlspecialchars($selected_label, ENT_QUOTES, 'UTF-8') ?>
         </div>
+        <?php endif; ?>
     </div>
 
     <?php if ($error !== ''): ?>
@@ -119,6 +153,7 @@ foreach ($normalized_options as $option) {
 
     const options = Array.from(list.querySelectorAll('.cm-select-search__option'));
     const placeholder = <?= json_encode((string) $placeholder) ?>;
+    const keepSelectedInInput = <?= json_encode($show_search && !$show_selected_label) ?>;
 
     const resetFilteredOptions = function () {
         options.forEach(function (button) {
@@ -162,7 +197,7 @@ foreach ($normalized_options as $option) {
             label.textContent = nextLabel;
         }
         if (searchInput) {
-            searchInput.value = '';
+            searchInput.value = keepSelectedInInput && nextLabel !== placeholder ? nextLabel : '';
         }
 
         if (previousValue !== nextValue) {
@@ -192,7 +227,16 @@ foreach ($normalized_options as $option) {
     });
 
     if (searchInput) {
-        searchInput.addEventListener('focus', openList);
+        if (keepSelectedInInput && hidden.value !== '') {
+            searchInput.value = selectedLabel !== placeholder ? selectedLabel : '';
+        }
+
+        searchInput.addEventListener('focus', function () {
+            if (keepSelectedInInput && searchInput.value !== '') {
+                searchInput.select();
+            }
+            openList();
+        });
 
         searchInput.addEventListener('input', function () {
             const term = searchInput.value.trim().toLowerCase();

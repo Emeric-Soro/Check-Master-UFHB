@@ -35,7 +35,7 @@ $telephoneEncadrantValue = (string) ($stage_info['telephone_encadrant'] ?? '');
                                 class="cm-required-star">*</span></label>
                     <p class="cm-etu-help">Choisissez ou tapez pour ajouter</p>
                     <div class="cm-etu-autocomplete">
-                        <input type="text" id="entreprise" name="entreprise" class="cm-etu-input" autocomplete="off"
+                        <input type="text" id="entreprise" name="entreprise" class="cm-etu-input cm-field-lg" autocomplete="off"
                                required value="<?= htmlspecialchars($entrepriseValue, ENT_QUOTES, 'UTF-8') ?>"
                                placeholder="Ex: Orange Côte d'Ivoire">
                         <div id="entrepriseSuggestions" class="cm-etu-autocomplete__list" aria-live="polite"></div>
@@ -46,7 +46,7 @@ $telephoneEncadrantValue = (string) ($stage_info['telephone_encadrant'] ?? '');
                                 class="cm-required-star">*</span></label>
                     <p class="cm-etu-help">Sélectionnez d'abord une entreprise, puis choisissez ou ajoutez</p>
                     <div class="cm-etu-autocomplete">
-                        <input type="text" id="encadrant" name="encadrant" class="cm-etu-input" autocomplete="off"
+                        <input type="text" id="encadrant" name="encadrant" class="cm-etu-input cm-field-lg" autocomplete="off"
                                required value="<?= htmlspecialchars($encadrantValue, ENT_QUOTES, 'UTF-8') ?>"
                                placeholder="Ex: Koné Seydou">
                         <div id="encadrantSuggestions" class="cm-etu-autocomplete__list" aria-live="polite"></div>
@@ -55,34 +55,34 @@ $telephoneEncadrantValue = (string) ($stage_info['telephone_encadrant'] ?? '');
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="date_debut">Date de début <span
                                 class="cm-required-star">*</span></label>
-                    <input type="date" id="date_debut" name="date_debut" class="cm-etu-input" required
+                    <input type="date" id="date_debut" name="date_debut" class="cm-etu-input cm-field-sm" required
                            max="<?= date('Y-m-d') ?>"
                            value="<?= htmlspecialchars($dateDebutValue, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="date_fin">Date de fin <span
                                 class="cm-required-star">*</span></label>
-                    <input type="date" id="date_fin" name="date_fin" class="cm-etu-input" required
+                    <input type="date" id="date_fin" name="date_fin" class="cm-etu-input cm-field-sm" required
                            max="<?= date('Y-m-d') ?>" value="<?= htmlspecialchars($dateFinValue, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="sujet">Thème du rapport <span
                                 class="cm-required-star">*</span></label>
-                    <input type="text" id="sujet" name="sujet" class="cm-etu-input" required maxlength="150"
+                    <input type="text" id="sujet" name="sujet" class="cm-etu-input cm-field-xl" required maxlength="150"
                            value="<?= htmlspecialchars($sujetValue, ENT_QUOTES, 'UTF-8') ?>"
                            placeholder="Ex: Mise en place d'une API REST sécurisée">
                 </div>
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="email_encadrant">Email Maître de Stage <span
                                 class="cm-required-star">*</span></label>
-                    <input type="email" id="email_encadrant" name="email_encadrant" class="cm-etu-input" required
+                    <input type="email" id="email_encadrant" name="email_encadrant" class="cm-etu-input cm-field-lg" required
                            value="<?= htmlspecialchars($emailEncadrantValue, ENT_QUOTES, 'UTF-8') ?>"
                            placeholder="email@entreprise.ci">
                 </div>
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="telephone_encadrant">Téléphone Maître de Stage <span
                                 class="cm-required-star">*</span></label>
-                    <input type="tel" id="telephone_encadrant" name="telephone_encadrant" class="cm-etu-input" required
+                    <input type="tel" id="telephone_encadrant" name="telephone_encadrant" class="cm-etu-input cm-field-md" required
                            value="<?= htmlspecialchars($telephoneEncadrantValue, ENT_QUOTES, 'UTF-8') ?>"
                            placeholder="+225 07 00 00 00 00">
                 </div>

@@ -103,9 +103,23 @@ class ProcessusValidationService
             return ['sql' => '', 'params' => []];
         }
 
+        if ($this->columnExists('inscriptions', 'id_etudiant') && $this->columnExists('inscriptions', 'id_annee_acad')) {
+            return [
+                'sql' => " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = {$alias}.num_carte_etud AND i.id_annee_acad = :id_annee_acad)",
+                'params' => [':id_annee_acad' => $selectedYearId],
+            ];
+        }
+
+        if ($this->columnExists('etudiants', 'id_annee_acad')) {
+            return [
+                'sql' => " AND {$alias}.id_annee_acad = :id_annee_acad",
+                'params' => [':id_annee_acad' => $selectedYearId],
+            ];
+        }
+
         return [
-            'sql' => " AND {$alias}.id_annee_acad = :id_annee_acad",
-            'params' => [':id_annee_acad' => $selectedYearId],
+            'sql' => '',
+            'params' => [],
         ];
     }
 
@@ -113,9 +127,14 @@ class ProcessusValidationService
     {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT e.id_annee_acad
+                SELECT i.id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                JOIN inscriptions i ON i.id_inscription = (
+                    SELECT i2.id_inscription FROM inscriptions i2
+                    WHERE i2.id_etudiant = e.num_carte_etud
+                    ORDER BY i2.date_inscription DESC, i2.id_inscription DESC LIMIT 1
+                )
                 WHERE r.id_rapport = ?
                 LIMIT 1
             ");

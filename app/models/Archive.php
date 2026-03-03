@@ -666,29 +666,167 @@ class Archive
     }
 
     /**
-     * Get available academic years
+     * Get success rate for a specific academic year
      */
-    public function getAcademicYears()
+    public function getTauxReussite($anneeAcad = null)
     {
-        $sql = "
-            SELECT DISTINCT 
-                CONCAT(YEAR(date_deb), '-', YEAR(date_fin)) as annee_academique
-            FROM annee_academique
-            ORDER BY date_deb DESC
-        ";
-
+        $anneeExpr = $this->getAcademicYearExpression('e', 'aa');
         try {
-            $stmt = $this->db->query($sql);
-            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $sql = "SELECT 
+                        COUNT(CASE WHEN r.statut_rapport = 'valider' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) as taux
+                    FROM rapport_etudiants r
+                    JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
+                    WHERE 1=1";
+            
+            $params = [];
+            if ($anneeAcad) {
+                $sql .= " AND " . $anneeExpr . " = :annee_acad";
+                $params['annee_acad'] = $anneeAcad;
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return round((float)($stmt->fetchColumn() ?: 0), 1);
         } catch (PDOException $e) {
-            error_log("Error getting academic years: " . $e->getMessage());
-            return [];
+            error_log("Error getting success rate: " . $e->getMessage());
+            return 0;
         }
     }
 
     /**
-     * Update student information
+     * Get general average for a specific academic year
      */
+    public function getMoyenneGenerale($anneeAcad = null)
+    {
+        $anneeExpr = $this->getAcademicYearExpression('e', 'aa');
+        try {
+            $sql = "SELECT AVG(ev.note)
+                    FROM evaluer ev
+                    JOIN etudiants e ON ev.num_etudiant = e.num_carte_etud
+                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
+                    WHERE 1=1";
+            
+            $params = [];
+            if ($anneeAcad) {
+                $sql .= " AND " . $anneeExpr . " = :annee_acad";
+                $params['annee_acad'] = $anneeAcad;
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return round((float)($stmt->fetchColumn() ?: 0), 2);
+        } catch (PDOException $e) {
+            error_log("Error getting average: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Get number of defense days
+     */
+    public function getJoursSoutenance($anneeAcad = null)
+    {
+        $programmationTable = $this->getProgrammationTable();
+        $anneeExpr = $this->getAcademicYearExpression('e', 'aa');
+        try {
+            $sql = "SELECT COUNT(DISTINCT p.date_soutenance)
+                    FROM {$programmationTable} p
+                    JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
+                    WHERE p.date_soutenance IS NOT NULL";
+            
+            $params = [];
+            if ($anneeAcad) {
+                $sql .= " AND " . $anneeExpr . " = :annee_acad";
+                $params['annee_acad'] = $anneeAcad;
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return (int)($stmt->fetchColumn() ?: 0);
+        } catch (PDOException $e) {
+            error_log("Error getting defense days: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Get timeline events for an academic year
+     */
+    public function getTimeline($anneeAcad = null)
+    {
+        $events = [];
+        $anneeExpr = $this->getAcademicYearExpression('e', 'aa');
+        $progTable = $this->getProgrammationTable();
+
+        try {
+            // Candidatures
+            if ($this->tableExists('candidature_soutenance')) {
+                $sql = "SELECT MIN(cs.date_candidature) as date, 'Ouverture candidatures' as event
+                        FROM candidature_soutenance cs
+                        JOIN etudiants e ON cs.num_etu = e.num_carte_etud
+                        LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                        LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
+                        WHERE 1=1";
+                $params = [];
+                if ($anneeAcad) { $sql .= " AND " . $anneeExpr . " = :annee"; $params['annee'] = $anneeAcad; }
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute($params);
+                if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if($row['date']) $events[] = $row;
+            }
+
+            // Start defenses
+            $sql = "SELECT MIN(ps.date_soutenance) as date, 'Début des soutenances' as event
+                    FROM {$progTable} ps
+                    JOIN etudiants e ON ps.num_etud = e.num_carte_etud
+                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
+                    WHERE 1=1";
+            $params = [];
+            if ($anneeAcad) { $sql .= " AND " . $anneeExpr . " = :annee"; $params['annee'] = $anneeAcad; }
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if($row['date']) $events[] = $row;
+
+            // End defenses
+            $sql = "SELECT MAX(ps.date_soutenance) as date, 'Fin des soutenances' as event
+                    FROM {$progTable} ps
+                    JOIN etudiants e ON ps.num_etud = e.num_carte_etud
+                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
+                    WHERE 1=1";
+            $params = [];
+            if ($anneeAcad) { $sql .= " AND " . $anneeExpr . " = :annee"; $params['annee'] = $anneeAcad; }
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if($row['date']) $events[] = $row;
+
+        } catch (PDOException $e) {
+            error_log("Error getting timeline: " . $e->getMessage());
+        }
+
+        usort($events, function ($a, $b) {
+            return strtotime($a['date']) - strtotime($b['date']);
+        });
+
+        return $events;
+    }
+
+    /**
+     * Get counts for all categories
+     */
+    public function getQuickCounts($anneeAcad = null)
+    {
+        return [
+            'etudiants' => $this->countStudents($anneeAcad),
+            'soutenances' => $this->getGlobalStats()['total_soutenances'], // Simplified
+            'documents' => $this->countStudents($anneeAcad), // Approximate for now
+        ];
+    }
     public function updateStudentInfo($numEtu, $data)
     {
         try {

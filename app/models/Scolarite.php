@@ -3,6 +3,7 @@
 class Scolarite
 {
     private $db;
+    private $columnExistsCache = [];
 
     public function __construct($db)
     {
@@ -16,6 +17,25 @@ class Scolarite
             $stmt->execute([$tableName]);
             return (bool) $stmt->fetchColumn();
         } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    private function columnExists($tableName, $columnName): bool
+    {
+        $key = strtolower((string) $tableName . '.' . (string) $columnName);
+        if (array_key_exists($key, $this->columnExistsCache)) {
+            return $this->columnExistsCache[$key];
+        }
+
+        try {
+            $stmt = $this->db->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
+            $stmt->execute([(string) $columnName]);
+            $exists = (bool) $stmt->fetchColumn();
+            $this->columnExistsCache[$key] = $exists;
+            return $exists;
+        } catch (Throwable $e) {
+            $this->columnExistsCache[$key] = false;
             return false;
         }
     }
@@ -39,29 +59,40 @@ class Scolarite
 
     private function synchronizeStudentAcademicContext($id_etudiant, $id_niveau, $id_annee_acad): void
     {
-        $yearLabel = $this->getAcademicYearLabelById($id_annee_acad);
+        if (!$this->tableExists('etudiants')) {
+            return;
+        }
+
+        $setParts = [];
+        $params = [':id_etudiant' => (string) $id_etudiant];
+
+        if ($this->columnExists('etudiants', 'id_niveau')) {
+            $setParts[] = "id_niveau = :id_niveau";
+            $params[':id_niveau'] = ($id_niveau === null || (int) $id_niveau <= 0) ? null : (int) $id_niveau;
+        }
+
+        if ($this->columnExists('etudiants', 'id_annee_acad')) {
+            $setParts[] = "id_annee_acad = :id_annee_acad";
+            $params[':id_annee_acad'] = ($id_annee_acad === null || (int) $id_annee_acad <= 0) ? null : (int) $id_annee_acad;
+        }
+
+        if ($this->columnExists('etudiants', 'promotion_etu')) {
+            $setParts[] = "promotion_etu = COALESCE(:promotion_etu, promotion_etu)";
+            $yearLabel = $this->getAcademicYearLabelById($id_annee_acad);
+            $params[':promotion_etu'] = $yearLabel !== '' ? $yearLabel : null;
+        }
+
+        if ($setParts === []) {
+            return;
+        }
+
         $sql = "
             UPDATE etudiants
-            SET id_niveau = :id_niveau,
-                id_annee_acad = :id_annee_acad,
-                promotion_etu = COALESCE(:promotion_etu, promotion_etu)
+            SET " . implode(', ', $setParts) . "
             WHERE num_carte_etud = :id_etudiant
         ";
-
         $stmt = $this->db->prepare($sql);
-        if ($id_niveau === null || (int) $id_niveau <= 0) {
-            $stmt->bindValue(':id_niveau', null, PDO::PARAM_NULL);
-        } else {
-            $stmt->bindValue(':id_niveau', (int) $id_niveau, PDO::PARAM_INT);
-        }
-        if ($id_annee_acad === null || (int) $id_annee_acad <= 0) {
-            $stmt->bindValue(':id_annee_acad', null, PDO::PARAM_NULL);
-        } else {
-            $stmt->bindValue(':id_annee_acad', (int) $id_annee_acad, PDO::PARAM_INT);
-        }
-        $stmt->bindValue(':promotion_etu', $yearLabel !== '' ? $yearLabel : null, $yearLabel !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
-        $stmt->bindValue(':id_etudiant', (string) $id_etudiant, PDO::PARAM_STR);
-        $stmt->execute();
+        $stmt->execute($params);
     }
 
     private function refreshStudentYearBalances($id_etudiant, $id_annee_acad, $id_niveau = null): void
@@ -139,12 +170,24 @@ class Scolarite
 
     /**
      * Récupérer tous les niveaux d'études
+     * 
+     * @param int|null $idAnneeAcad ID de l'année académique (optionnel)
+     * @return array Liste des niveaux d'études
      */
-    public function getNiveauxEtudes()
+    public function getNiveauxEtudes($idAnneeAcad = null)
     {
-        $query = "SELECT id_niv_etude, lib_niv_etude, montant_scolarite, montant_inscription FROM niveau_etude";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
+        if ($idAnneeAcad !== null) {
+            $query = "SELECT id_niv_etude, lib_niv_etude, montant_scolarite, montant_inscription, id_annee_acad 
+                      FROM niveau_etude 
+                      WHERE id_annee_acad = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$idAnneeAcad]);
+        } else {
+            $query = "SELECT id_niv_etude, lib_niv_etude, montant_scolarite, montant_inscription, id_annee_acad 
+                      FROM niveau_etude";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+        }
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -796,6 +839,28 @@ class Scolarite
                 'montant_paye' => 0,
                 'reste_a_payer' => 0,
             ];
+        }
+    }
+
+    /**
+     * Mettre à jour le chemin de la fiche d'inscription d'un étudiant
+     *
+     * @param int $idInscription ID de l'inscription
+     * @param string $fichePath Chemin du fichier
+     * @return bool Succès de l'opération
+     */
+    public function updateFicheInscription($idInscription, $fichePath)
+    {
+        try {
+            $sql = "UPDATE inscriptions SET fiche_inscription = :fiche WHERE id_inscription = :id";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                'fiche' => $fichePath,
+                'id' => $idInscription
+            ]);
+        } catch (Exception $e) {
+            error_log("Erreur updateFicheInscription: " . $e->getMessage());
+            return false;
         }
     }
 }

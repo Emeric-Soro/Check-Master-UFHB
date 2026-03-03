@@ -14,6 +14,14 @@ unset($_SESSION['message']);
 ?>
 
 <div class="cm-etu-screen">
+    <?php cm_toolbar([
+        'screen' => 'gestion_reclamations',
+        'id_prefix' => 'reclamations',
+        'search_value' => $_GET['search'] ?? '',
+        'limit' => 10,
+        'can_delete' => canDelete(),
+        'can_view' => canView(),
+    ]); ?>
     <section class="cm-etu-panel">
         <header class="cm-etu-panel__header">
             <div>

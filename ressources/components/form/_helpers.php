@@ -40,6 +40,138 @@ if (!function_exists('cm_form_attr_string')) {
     }
 }
 
+if (!function_exists('cm_form_class_names')) {
+    /**
+     * @param mixed ...$parts
+     */
+    function cm_form_class_names(...$parts): string
+    {
+        $classes = [];
+
+        $append = static function ($value) use (&$classes): void {
+            if (!is_string($value) || trim($value) === '') {
+                return;
+            }
+
+            foreach (preg_split('/\s+/', trim($value)) as $className) {
+                if ($className === '' || in_array($className, $classes, true)) {
+                    continue;
+                }
+                $classes[] = $className;
+            }
+        };
+
+        foreach ($parts as $part) {
+            if (is_array($part)) {
+                foreach ($part as $item) {
+                    $append($item);
+                }
+                continue;
+            }
+
+            $append($part);
+        }
+
+        return implode(' ', $classes);
+    }
+}
+
+if (!function_exists('cm_form_group_class')) {
+    /**
+     * @param array<string, mixed> $options
+     */
+    function cm_form_group_class(bool $required, string $error, array $options = []): string
+    {
+        $classes = ['cm-form-group'];
+
+        if ($required) {
+            $classes[] = 'is-required';
+        }
+        if ($error !== '') {
+            $classes[] = 'is-invalid';
+        }
+        if (!empty($options['readonly'])) {
+            $classes[] = 'is-readonly';
+        }
+        if (!empty($options['disabled'])) {
+            $classes[] = 'is-disabled';
+        }
+        if (!empty($options['dense'])) {
+            $classes[] = 'is-dense';
+        }
+
+        $size = trim((string) ($options['size'] ?? ''));
+        if ($size !== '') {
+            $classes[] = 'is-' . $size;
+        }
+
+        if (!empty($options['group_class'])) {
+            $classes[] = (string) $options['group_class'];
+        }
+
+        return cm_form_class_names($classes);
+    }
+}
+
+if (!function_exists('cm_form_label_class')) {
+    /**
+     * @param array<string, mixed> $options
+     */
+    function cm_form_label_class(array $options = []): string
+    {
+        $classes = ['cm-form-label'];
+
+        if (!empty($options['readonly'])) {
+            $classes[] = 'is-readonly';
+        }
+        if (!empty($options['dense'])) {
+            $classes[] = 'is-dense';
+        }
+
+        $size = trim((string) ($options['size'] ?? ''));
+        if ($size !== '') {
+            $classes[] = 'is-' . $size;
+        }
+
+        if (!empty($options['label_class'])) {
+            $classes[] = (string) $options['label_class'];
+        }
+
+        return cm_form_class_names($classes);
+    }
+}
+
+if (!function_exists('cm_form_control_class')) {
+    /**
+     * @param array<string, mixed> $options
+     */
+    function cm_form_control_class(string $baseClass = 'cm-form-control', array $options = []): string
+    {
+        $classes = [$baseClass];
+
+        if (!empty($options['readonly'])) {
+            $classes[] = 'is-readonly';
+        }
+        if (!empty($options['disabled'])) {
+            $classes[] = 'is-disabled';
+        }
+        if (!empty($options['dense'])) {
+            $classes[] = 'is-dense';
+        }
+
+        $size = trim((string) ($options['size'] ?? ''));
+        if ($size !== '') {
+            $classes[] = 'is-' . $size;
+        }
+
+        if (!empty($options['control_class'])) {
+            $classes[] = (string) $options['control_class'];
+        }
+
+        return cm_form_class_names($classes);
+    }
+}
+
 if (!function_exists('cm_form_normalize_options')) {
     /**
      * @param array<int|string, mixed> $options

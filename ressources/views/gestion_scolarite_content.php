@@ -178,9 +178,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
         ]); ?>
     <?php endif; ?>
     <div class="cm-crud-wrapper">
-    <div class="">
-        <div class="">
-        </div>
+    <div class="cm-pole-superieur is-compact">
         <form id="cmPaiementForm" method="POST" action="?page=gestion_scolarite&action=enregistrer_paiement">
             <?php cm_component('form/csrf-token'); ?>
             <input type="hidden" id="cmIsNewInscription" name="is_new_inscription" value="">
@@ -194,6 +192,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'options' => $niveauxOptions,
                     'selected' => '',
                     'required' => true,
+                    'control_class' => 'cm-field-md',
                 ]);
                 ?>
                 <input type="hidden" name="annee_academique" id="cmAnneeAcademique" value="<?= htmlspecialchars((string) $anneeEcritureId, ENT_QUOTES, 'UTF-8') ?>">
@@ -204,6 +203,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'label' => 'Frais',
                     'readonly' => true,
                     'value' => '',
+                    'control_class' => 'cm-field-md',
                 ]);
                 ?>
             </div>
@@ -217,18 +217,24 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'options' => $studentOptions,
                     'required' => true,
                     'placeholder' => '-- Sélectionner --',
+                    'dense' => true,
+                    'size' => 'sm',
+                    'show_selected_label' => false,
+                    'control_class' => 'cm-field-lg',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'identifiant_display',
                     'id' => 'cmIdentifiantDisplay',
                     'label' => 'Identifiant',
                     'readonly' => true,
+                    'control_class' => 'cm-field-md',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'num_carte_display',
                     'id' => 'cmNumCarteDisplay',
                     'label' => 'N° Carte',
                     'readonly' => true,
+                    'control_class' => 'cm-field-md',
                 ]);
                 ?>
             </div>
@@ -240,6 +246,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'id' => 'cmNumVersement',
                     'label' => 'N° Vers.',
                     'readonly' => true,
+                    'control_class' => 'cm-field-sm',
                 ]);
                 cm_component('form/input-date', [
                     'name' => 'date_versement_display',
@@ -247,6 +254,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'label' => 'Date',
                     'value' => date('Y-m-d'),
                     'required' => true,
+                    'control_class' => 'cm-field-sm',
                 ]);
                 cm_component('form/input-number', [
                     'name' => 'montant_versement',
@@ -254,6 +262,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'label' => 'Montant',
                     'required' => true,
                     'min' => 1,
+                    'control_class' => 'cm-field-md',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'reste_a_payer_display',
@@ -261,6 +270,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'label' => 'Reste',
                     'readonly' => true,
                     'value' => '',
+                    'control_class' => 'cm-field-md',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'solde_display',
@@ -268,6 +278,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'label' => 'Solde',
                     'readonly' => true,
                     'value' => '',
+                    'control_class' => 'cm-field-md',
                 ]);
                 cm_component('form/select', [
                     'name' => 'methode_paiement',
@@ -281,18 +292,20 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                         'Mobile Money' => 'Mobile Money',
                         'Wave' => 'Wave',
                     ],
+                    'control_class' => 'cm-field-md',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'num_piece',
                     'id' => 'cmNumPiece',
                     'label' => 'N° M.P',
                     'maxlength' => 30,
+                    'control_class' => 'cm-field-md',
                 ]);
                 ?>
             </div>
             <!-- Hidden field -->
             <input type="hidden" id="cmInfoEtudiant" name="cmInfoEtudiant" value="">
-            <div class="cm-form-buttons">
+            <div class="cm-form-buttons is-dense">
                 <?php if (canCreate() || canEdit()): ?>
                     <button class="cm-btn is-success" type="submit">
                         <i class="fas fa-check" aria-hidden="true"></i>
@@ -306,68 +319,38 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             </div>
         </form>
     </div>
-    <div class="cm-barre-intermediaire">
-        <div class="cm-toolbar">
-            <div class="cm-toolbar-left">
-                <label for="cmVersementsLimit"><strong>Afficher:</strong></label>
-                <select id="cmVersementsLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
-                    <?php foreach ($allowedLimits as $limit): ?>
-                        <option value="<?php echo $limit; ?>" <?php echo $limit === $versementsParPage ? 'selected' : ''; ?>>
-                            <?php echo $limit; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <label for="cmFiltreNiveau"><strong>Niveau:</strong></label>
-                <select id="cmFiltreNiveau" class="cm-form-control cm-form-select is-sm cm-toolbar-field-md">
-                    <option value="">Tous</option>
-                    <?php foreach ($niveauxOptions as $libelle): ?>
-                        <option value="<?php echo htmlspecialchars(strtolower((string) $libelle), ENT_QUOTES, 'UTF-8'); ?>">
-                            <?php echo htmlspecialchars((string) $libelle, ENT_QUOTES, 'UTF-8'); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <label for="cmFiltreStatut"><strong>Statut:</strong></label>
-                <select id="cmFiltreStatut" class="cm-form-control cm-form-select is-sm cm-toolbar-field-sm">
-                    <option value="">Tous</option>
-                    <option value="solde">Solde</option>
-                    <option value="partiel">Partiel</option>
-                </select>
-            </div>
-            <div class="cm-toolbar-center">
-                <input type="text" id="cmSearchVersement" class="cm-form-control" placeholder="Rechercher (étudiant, numero, mode)...">
-            </div>
-            <div class="cm-toolbar-right">
-                <button type="button" class="cm-btn is-info is-sm" id="cmSelectAllVersements">
-                    <i class="fas fa-check-square" aria-hidden="true"></i>
-                    Tout sélectionner
-                </button>
-                <button type="button" class="cm-btn is-light is-sm" id="cmDeselectAllVersements">
-                    <i class="fas fa-square" aria-hidden="true"></i>
-                    Deselectionner
-                </button>
-                <button type="button" class="cm-btn is-info is-sm" id="cmDeleteVersements" disabled>
-                    <i class="fas fa-trash" aria-hidden="true"></i>
-                    Supprimer (<span id="cmSelectedVersementsCount">0</span>)
-                </button>
-                <?php if (canView()): ?>
-                <button type="button" class="cm-btn is-info is-sm" id="cmPrintVersements">
-                    <i class="fas fa-print" aria-hidden="true"></i>
-                    Imprimer
-                </button>
-                <button type="button" class="cm-btn is-info is-sm" id="cmExportVersements">
-                    <i class="fas fa-file-export" aria-hidden="true"></i>
-                    Exporter
-                </button>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
+    <?php
+    // Préparer les options de filtres dynamiques
+    $niveauxFilterOptions = ['' => 'Tous'];
+    foreach ($niveauxOptions as $idNiveau => $libelle) {
+        $niveauxFilterOptions[$idNiveau] = $libelle;
+    }
+
+    cm_toolbar([
+        'screen' => 'gestion_scolarite',
+        'id_prefix' => 'cmScolarite',
+        'search_name' => 'search',
+        'search_value' => $_GET['search'] ?? '',
+        'search_placeholder' => 'Rechercher (étudiant, numero, mode)...',
+        'limit' => $versementsParPage,
+        'limit_options' => $allowedLimits,
+        'limit_name' => 'limit_versements',
+        'can_delete' => canDelete(),
+        'can_view' => canView(),
+        'filters' => [
+            ['type' => 'select', 'name' => 'niveau', 'label' => 'Niveau', 'options' => $niveauxFilterOptions],
+            ['type' => 'select', 'name' => 'statut_paiement', 'label' => 'Statut paiement', 'options' => ['' => 'Tous', 'solde' => 'Soldé', 'partiel' => 'Partiel', 'non_solde' => 'Non soldé']],
+            ['type' => 'select', 'name' => 'mode_paiement', 'label' => 'Mode paiement', 'options' => ['' => 'Tous', 'especes' => 'Espèces', 'cheque' => 'Chèque', 'virement' => 'Virement', 'mobile' => 'Mobile Money']],
+            ['type' => 'date_range', 'name' => 'date_versement', 'label' => 'Date de versement'],
+        ],
+    ]);
+    ?>
     <div class="cm-pole-inferieur">
         <div class="cm-table-wrapper">
-            <table class="cm-data-table" id="cmVersementsTable">
+            <table class="cm-data-table cm-data-table--compact" id="cmVersementsTable">
                 <thead>
                 <tr>
-                    <th class="cm-data-table__th is-checkbox">
+                    <th class="cm-data-table__th cm-data-table__th--check">
                         <input type="checkbox" id="cmCheckAllVersements" class="cm-checkbox" aria-label="Sélectionner toutes les lignes">
                     </th>
                     <th class="cm-data-table__th">N° Etud.</th>
@@ -405,13 +388,29 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                         $mode = (string) ($versement['methode_paiement'] ?? '');
                         $numPiece = (string) ($versement['num_piece_mp'] ?? '');
                         $niveauLib = strtolower((string) ($versement['lib_niv_etude'] ?? ''));
+                        $niveauId = (string) ($versement['id_niv_etude'] ?? $versement['id_niveau'] ?? '');
                         $statutPaiement = $soldeVersement <= 0 ? 'solde' : 'partiel';
+                        $modeNormalized = strtolower(trim($mode));
+                        $modeFilterKey = '';
+                        if (strpos($modeNormalized, 'espe') !== false) {
+                            $modeFilterKey = 'especes';
+                        } elseif (strpos($modeNormalized, 'cheq') !== false) {
+                            $modeFilterKey = 'cheque';
+                        } elseif (strpos($modeNormalized, 'vir') !== false) {
+                            $modeFilterKey = 'virement';
+                        } elseif (strpos($modeNormalized, 'mobile') !== false || strpos($modeNormalized, 'wave') !== false) {
+                            $modeFilterKey = 'mobile';
+                        }
+                        $dateVersementRaw = !empty($versement['date_versement']) ? date('Y-m-d', strtotime((string) $versement['date_versement'])) : '';
                         ?>
                         <tr class="cm-data-table__row"
                             data-search="<?php echo htmlspecialchars(strtolower($numEtu . ' ' . $nomPrenom . ' ' . $mode . ' ' . $numPiece), ENT_QUOTES, 'UTF-8'); ?>"
                             data-niveau="<?php echo htmlspecialchars($niveauLib, ENT_QUOTES, 'UTF-8'); ?>"
-                            data-statut="<?php echo htmlspecialchars($statutPaiement, ENT_QUOTES, 'UTF-8'); ?>">
-                            <td class="cm-data-table__td is-checkbox">
+                            data-niveau-id="<?php echo htmlspecialchars($niveauId, ENT_QUOTES, 'UTF-8'); ?>"
+                            data-statut="<?php echo htmlspecialchars($statutPaiement, ENT_QUOTES, 'UTF-8'); ?>"
+                            data-mode="<?php echo htmlspecialchars($modeFilterKey, ENT_QUOTES, 'UTF-8'); ?>"
+                            data-date="<?php echo htmlspecialchars($dateVersementRaw, ENT_QUOTES, 'UTF-8'); ?>">
+                            <td class="cm-data-table__td cm-data-table__td--check">
                                 <input type="checkbox" class="cm-checkbox cm-row-checkbox">
                             </td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?></td>
@@ -424,8 +423,8 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                             <td class="cm-data-table__td"><?php echo htmlspecialchars(number_format($soldeVersement, 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars($mode, ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars($numPiece, ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="cm-data-table__td">
-                                <div class="cm-row-actions">
+                            <td class="cm-data-table__td is-center is-actions">
+                                <div class="cm-table-actions">
                                     <button type="button"
                                             class="cm-btn-action is-edit cmPrefillPaiement"
                                             data-student="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>"
@@ -676,10 +675,14 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             }
         });
     }
-    const searchInput = document.getElementById('cmSearchVersement');
-    const limitSelect = document.getElementById('cmVersementsLimit');
-    const filterNiveau = document.getElementById('cmFiltreNiveau');
-    const filterStatut = document.getElementById('cmFiltreStatut');
+    const toolbarId = 'cmScolarite_toolbar';
+    const searchInput = document.getElementById('cmScolarite_search');
+    const limitSelect = document.getElementById('cmScolarite_limit');
+    const filterNiveau = document.getElementById('cmScolarite_filter_niveau');
+    const filterStatut = document.getElementById('cmScolarite_filter_statut_paiement');
+    const filterMode = document.getElementById('cmScolarite_filter_mode_paiement');
+    const filterDateStart = document.getElementById('cmScolarite_filter_date_versement_debut');
+    const filterDateEnd = document.getElementById('cmScolarite_filter_date_versement_fin');
     const selectAllRowsBtn = document.getElementById('cmSelectAllVersements');
     const deselectAllRowsBtn = document.getElementById('cmDeselectAllVersements');
     const deleteRowsBtn = document.getElementById('cmDeleteVersements');
@@ -703,13 +706,20 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
     };
     const applyFilters = function () {
         const term = (searchInput ? searchInput.value : '').trim().toLowerCase();
-        const niveau = (filterNiveau ? filterNiveau.value : '').trim().toLowerCase();
+        const niveau = (filterNiveau ? filterNiveau.value : '').trim();
         const statut = (filterStatut ? filterStatut.value : '').trim().toLowerCase();
+        const mode = (filterMode ? filterMode.value : '').trim().toLowerCase();
+        const dateStart = (filterDateStart ? filterDateStart.value : '').trim();
+        const dateEnd = (filterDateEnd ? filterDateEnd.value : '').trim();
         rows().forEach(function (row) {
             const matchSearch = term === '' || (row.getAttribute('data-search') || '').indexOf(term) !== -1;
-            const matchNiveau = niveau === '' || (row.getAttribute('data-niveau') || '') === niveau;
+            const matchNiveau = niveau === '' || (row.getAttribute('data-niveau-id') || '') === niveau;
             const matchStatut = statut === '' || (row.getAttribute('data-statut') || '') === statut;
-            row.style.display = matchSearch && matchNiveau && matchStatut ? '' : 'none';
+            const matchMode = mode === '' || (row.getAttribute('data-mode') || '') === mode;
+            const rowDate = row.getAttribute('data-date') || '';
+            const matchDateStart = dateStart === '' || (rowDate !== '' && rowDate >= dateStart);
+            const matchDateEnd = dateEnd === '' || (rowDate !== '' && rowDate <= dateEnd);
+            row.style.display = matchSearch && matchNiveau && matchStatut && matchMode && matchDateStart && matchDateEnd ? '' : 'none';
         });
     };
     if (searchInput) {
@@ -721,14 +731,55 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
     if (filterStatut) {
         filterStatut.addEventListener('change', applyFilters);
     }
-    if (limitSelect) {
-        limitSelect.addEventListener('change', function () {
-            const url = new URL(window.location.href);
-            url.searchParams.set('limit_versements', String(limitSelect.value));
-            url.searchParams.set('page_versements', '1');
-            navigate(url.toString());
-        });
+    if (filterMode) {
+        filterMode.addEventListener('change', applyFilters);
     }
+    if (filterDateStart) {
+        filterDateStart.addEventListener('change', applyFilters);
+    }
+    if (filterDateEnd) {
+        filterDateEnd.addEventListener('change', applyFilters);
+    }
+
+    const isThisToolbarEvent = function (event) {
+        return !!(event && event.detail && event.detail.toolbar && event.detail.toolbar.id === toolbarId);
+    };
+
+    document.addEventListener('cm:toolbar:search', function (event) {
+        if (!isThisToolbarEvent(event)) {
+            return;
+        }
+        event.preventDefault();
+        applyFilters();
+    });
+
+    document.addEventListener('cm:toolbar:filter:apply', function (event) {
+        if (!isThisToolbarEvent(event)) {
+            return;
+        }
+        event.preventDefault();
+        applyFilters();
+    });
+
+    document.addEventListener('cm:toolbar:filter:reset', function (event) {
+        if (!isThisToolbarEvent(event)) {
+            return;
+        }
+        event.preventDefault();
+        applyFilters();
+    });
+
+    document.addEventListener('cm:toolbar:limit:change', function (event) {
+        if (!isThisToolbarEvent(event)) {
+            return;
+        }
+        event.preventDefault();
+        const selectedLimit = event.detail && event.detail.limit ? String(event.detail.limit) : (limitSelect ? String(limitSelect.value) : '10');
+        const url = new URL(window.location.href);
+        url.searchParams.set('limit_versements', selectedLimit);
+        url.searchParams.set('page_versements', '1');
+        navigate(url.toString());
+    });
     const checkAllRows = document.getElementById('cmCheckAllVersements');
     if (checkAllRows) {
         checkAllRows.addEventListener('change', function () {
@@ -795,5 +846,6 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
     }
     syncByStudent();
     updateSelectionState();
+    applyFilters();
 })();
 </script>

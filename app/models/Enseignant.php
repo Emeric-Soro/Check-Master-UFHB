@@ -105,24 +105,22 @@ class Enseignant{
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
-    public function ajouterEnseignant($nom, $prenom, $email, $id_grade, $id_specialite, $id_fonction, $date_grade, $date_fonction,$type_enseignant) {
+    public function ajouterEnseignant($id_enseignant, $nom, $prenom, $email, $id_grade, $id_specialite, $id_fonction, $date_grade, $date_fonction,$type_enseignant) {
         try {
             $this->db->beginTransaction();
             
 
             // 1. Insérer dans la table enseignants
-            $query = "INSERT INTO enseignants (nom_enseignant, prenom_enseignant, mail_enseignant, id_specialite,type_enseignant) 
-                     VALUES (:nom, :prenom, :email, :id_specialite,:type_enseignant)";
+            $query = "INSERT INTO enseignants (id_enseignant, nom_enseignant, prenom_enseignant, mail_enseignant, id_specialite,type_enseignant) 
+                     VALUES (:id_enseignant, :nom, :prenom, :email, :id_specialite,:type_enseignant)";
             $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':id_enseignant', $id_enseignant);
             $stmt->bindParam(':nom', $nom);
             $stmt->bindParam(':prenom', $prenom);
             $stmt->bindParam(':email', $email);
             $stmt->bindParam(':id_specialite', $id_specialite);
             $stmt->bindParam(':type_enseignant', $type_enseignant);
             $stmt->execute();
-
-            // Récupérer l'ID du dernier enseignant inséré
-            $id_enseignant = $this->db->lastInsertId();
 
             // 2. Insérer dans la table avoir (liaison enseignant-grade)
             $query = "INSERT INTO avoir ( id_grade,id_enseignant, date_grade) 

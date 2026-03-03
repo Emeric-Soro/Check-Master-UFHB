@@ -115,18 +115,6 @@ $allYearsSelected = \AcademicYear::isAllSelectedFromSession();
 $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
 ?>
 <div class="cm-prd3-screen cm-prd3-crud-screen">
-    <div id="cmProgAlert"></div>
-    <?php if ($selectedYearLabel !== ''): ?>
-        <?php cm_component('ui/alert-box', [
-            'type' => $allYearsSelected || $writeAllowed ? 'info' : 'warning',
-            'message' => $allYearsSelected
-                ? "Affichage multi-années actif. Les nouvelles programmations restent réservées à l'année académique active {$writeYearLabel}."
-                : ($writeAllowed
-                    ? "Année académique affichée: {$selectedYearLabel}."
-                    : "Consultation historique: {$selectedYearLabel}. Les programmations sont réservées à l'année académique active {$activeYearLabel}."),
-        ]); ?>
-    <?php endif; ?>
-    <div class="cm-crud-wrapper">
         <div class="">
             <div class="">
             </div>
@@ -136,6 +124,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 <input type="hidden" id="cmProgDirecteurId" value="">
                 <input type="hidden" id="cmProgEncadreurId" value="">
                 <input type="hidden" id="cmProgMaitreId" value="">
+
                 <div class="cm-grid-4">
                     <?php
                     cm_component('form/select', [
@@ -144,6 +133,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         'label' => 'Etudiant',
                         'required' => true,
                         'options' => $studentOptions,
+                        'control_class' => 'cm-field-lg',
                     ]);
                     cm_component('form/input-date', [
                         'name' => 'cm_prog_date',
@@ -151,6 +141,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         'label' => 'Date soutenance',
                         'required' => true,
                         'value' => date('Y-m-d'),
+                        'control_class' => 'cm-field-sm',
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_heure',
@@ -159,6 +150,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         'required' => true,
                         'value' => date('H:i'),
                         'attrs' => ['placeholder' => 'HH:MM'],
+                        'control_class' => 'cm-field-sm',
                     ]);
                     cm_component('form/select', [
                         'name' => 'cm_prog_salle',
@@ -166,6 +158,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         'label' => 'Salle',
                         'required' => true,
                         'options' => $salleOptions,
+                        'control_class' => 'cm-field-md',
                     ]);
                     ?>
                 </div>
@@ -177,6 +170,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         'label' => 'Theme',
                         'required' => true,
                         'placeholder' => 'Theme de soutenance',
+                        'control_class' => 'cm-field-xl',
                     ]);
                     ?>
                 </div>
@@ -190,6 +184,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         'label' => 'President',
                         'required' => true,
                         'options' => $presidentOptions,
+                        'control_class' => 'cm-field-lg',
                     ]);
                     cm_component('form/select', [
                         'name' => 'cm_prog_examinateur',
@@ -197,27 +192,32 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         'label' => 'Examinateur',
                         'required' => true,
                         'options' => $enseignantOptions,
+                        'control_class' => 'cm-field-lg',
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_directeur',
                         'id' => 'cmProgDirecteur',
                         'label' => 'Dir. mémoire',
                         'readonly' => true,
+                        'control_class' => 'cm-field-lg',
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_encadreur',
                         'id' => 'cmProgEncadreur',
                         'label' => 'Encadreur P.',
                         'readonly' => true,
+                        'control_class' => 'cm-field-lg',
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_maitre',
                         'id' => 'cmProgMaitreStage',
                         'label' => 'Maître stage',
                         'readonly' => true,
+                        'control_class' => 'cm-field-lg',
                     ]);
                     ?>
                 </div>
+
                 <div class="cm-form-buttons">
                     <button class="cm-btn is-light" type="button" id="cmProgResetBtn">
                         <i class="fas fa-rotate-left" aria-hidden="true"></i>
@@ -233,45 +233,14 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
             </form>
         </div>
         <div class="cm-barre-intermediaire">
-            <div class="cm-toolbar">
-                <div class="cm-toolbar-left">
-                    <input type="text" id="cmProgSearch" class="cm-form-control cm-toolbar-field-lg" placeholder="Rechercher...">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmProgExport">
-                        <i class="fas fa-file-export" aria-hidden="true"></i>
-                        Export
-                    </button>
-                    <button type="button" class="cm-btn is-info is-sm" id="cmProgPrint">
-                        <i class="fas fa-print" aria-hidden="true"></i>
-                        Impr.
-                    </button>
-                    <label for="cmProgLimit"><strong>Afficher:</strong></label>
-                    <select id="cmProgLimit"
-                            class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
-                            data-cm-ajax-param="limit_prog"
-                            data-cm-ajax-reset-param="page_prog"
-                            data-cm-ajax-reset-value="1">
-                        <?php foreach ($allowedLimits as $limit): ?>
-                            <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
-                                <?php echo $limit; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="cm-toolbar-right">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmProgSelectAllBtn">
-                        <i class="fas fa-square-check" aria-hidden="true"></i>
-                        Select. tout
-                    </button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmProgDeselectBtn">
-                        <i class="fas fa-square" aria-hidden="true"></i>
-                        Deselect.
-                    </button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmProgDeleteBtn" disabled>
-                        <i class="fas fa-trash" aria-hidden="true"></i>
-                        Supprimer (0)
-                    </button>
-                </div>
-            </div>
+            <?php cm_toolbar([
+                'screen' => 'programmation_soutenance',
+                'id_prefix' => 'prog_sout',
+                'search_value' => $_GET['search'] ?? '',
+                'limit' => $perPage,
+                'can_delete' => canDelete(),
+                'can_view' => canView(),
+            ]); ?>
         </div>
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">

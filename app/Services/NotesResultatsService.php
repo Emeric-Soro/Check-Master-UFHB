@@ -6,15 +6,11 @@ require_once __DIR__ . '/../models/Note.php';
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/NiveauEtude.php';
 require_once __DIR__ . '/../models/Semestre.php';
-require_once __DIR__ . '/../models/Ue.php';
-require_once __DIR__ . '/../models/Ecue.php';
 
 use Note;
 use Etudiant;
 use NiveauEtude;
 use Semestre;
-use Ue;
-use Ecue;
 use PDO;
 
 /**
@@ -42,12 +38,6 @@ class NotesResultatsService
     /** @var Semestre */
     private $semestreModel;
 
-    /** @var Ue */
-    private $ueModel;
-
-    /** @var Ecue */
-    private $ecueModel;
-
     /**
      * Constructeur du service
      *
@@ -60,8 +50,6 @@ class NotesResultatsService
         $this->etudiantModel = new \Etudiant($db);
         $this->niveauModel = new \NiveauEtude($db);
         $this->semestreModel = new \Semestre($db);
-        $this->ueModel = new \Ue($db);
-        $this->ecueModel = new \Ecue($db);
     }
 
     /**
@@ -94,18 +82,8 @@ class NotesResultatsService
      */
     public function getMoyenneGenerale($studentId)
     {
-        return $this->noteModel->getMoyenneGenerale($studentId)->moyenne_generale ?? null;
-    }
-
-    /**
-     * Récupère le nombre d'UE validées par un étudiant
-     *
-     * @param string $studentId Numéro de l'étudiant
-     * @return int
-     */
-    public function getNbUeValide($studentId)
-    {
-        return $this->noteModel->getValidUe($studentId)[0]->nb_ue_valide ?? 0;
+        $moyenneObj = $this->noteModel->getMoyenneGenerale($studentId);
+        return $moyenneObj->moyenne_generale ?? null;
     }
 
     /**
@@ -158,7 +136,6 @@ class NotesResultatsService
         $GLOBALS['etudiant'] = $this->getEtudiant($studentId);
         $GLOBALS['notes'] = $this->getNotes($studentId);
         $GLOBALS['moyenneGenerale'] = $this->getMoyenneGenerale($studentId);
-        $GLOBALS['nbUeValide'] = $this->getNbUeValide($studentId);
 
         $classement = $this->getClassement($studentId);
         $GLOBALS['classement'] = $classement['classement'];

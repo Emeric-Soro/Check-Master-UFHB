@@ -4,7 +4,6 @@ namespace CheckMaster\Services;
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Action.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
-require_once __DIR__ . '/../models/Ecue.php';
 require_once __DIR__ . '/../models/Fonction.php';
 require_once __DIR__ . '/../models/Grade.php';
 require_once __DIR__ . '/../models/GroupeUtilisateur.php';
@@ -13,7 +12,6 @@ require_once __DIR__ . '/../models/NiveauApprobation.php';
 require_once __DIR__ . '/../models/Specialite.php';
 require_once __DIR__ . '/../models/StatutJury.php';
 require_once __DIR__ . '/../models/TypeUtilisateur.php';
-require_once __DIR__ . '/../models/Ue.php';
 require_once __DIR__ . '/../models/NiveauEtude.php';
 require_once __DIR__ . '/../models/Semestre.php';
 require_once __DIR__ . '/../models/Traitement.php';
@@ -25,7 +23,6 @@ require_once __DIR__ . '/../models/AuditLog.php';
 
 use Action;
 use AnneeAcademique;
-use Ecue;
 use Fonction;
 use Grade;
 use GroupeUtilisateur;
@@ -34,7 +31,6 @@ use NiveauApprobation;
 use Specialite;
 use StatutJury;
 use TypeUtilisateur;
-use Ue;
 use NiveauEtude;
 use Semestre;
 use Traitement;
@@ -50,9 +46,9 @@ use Throwable;
 
 class ParametreService
 {
+    private $db;
     private $action;
     private $anneeAcademique;
-    private $ecue;
     private $fonction;
     private $grade;
     private $groupeUtilisateur;
@@ -62,7 +58,6 @@ class ParametreService
     private $specialite;
     private $statutJury;
     private $typeUtilisateur;
-    private $ue;
     private $semestre;
     private $entreprise;
     private $traitement;
@@ -73,6 +68,7 @@ class ParametreService
 
     public function __construct($db)
     {
+        $this->db = $db;
         $this->anneeAcademique = new AnneeAcademique($db);
         $this->action = new Action($db);
         $this->fonction = new Fonction($db);
@@ -81,8 +77,6 @@ class ParametreService
         $this->niveauAccesDonnees = new NiveauAccesDonnees($db);
         $this->niveauApprobation = new NiveauApprobation($db);
         $this->typeUtilisateur = new TypeUtilisateur($db);
-        $this->ue = new Ue($db);
-        $this->ecue = new Ecue($db);
         $this->statutJury = new StatutJury($db);
         $this->specialite = new Specialite($db);
         $this->niveauEtude = new NiveauEtude($db);
@@ -494,140 +488,6 @@ class ParametreService
         return [
             'niveau_a_modifier' => $niveau_a_modifier,
             'listeNiveaux' => $this->niveauEtude->getAllNiveauxEtudes(),
-            'listeEnseignants' => $this->enseignant->getAllEnseignants(),
-            'messageErreur' => $messageErreur,
-            'messageSuccess' => $messageSuccess,
-        ];
-    }
-
-
-    //=============================GESTION UE=============================
-    public function gestionUe(array $post, array $get, string $userId): array
-    {
-        $ue_a_modifier = null;
-        $messageErreur = '';
-        $messageSuccess = '';
-
-        if (isset($post['btn_add_ue']) || isset($post['btn_modifier_ue'])) {
-            $lib_ue = $post['lib_ue'];
-            $credit = $post['credit'];
-            $id_niveau_etude = $post['niveau_etude'];
-            $id_semestre = $post['semestre'];
-            $id_annee = $post['annee_academique'];
-            $id_enseignant = $post['professeur_responsable'] ?? null;
-
-            if (!empty($post['id_ue'])) {
-                if ($this->ue->updateUe($post['id_ue'], $lib_ue, $id_niveau_etude, $id_semestre, $id_annee, $credit, $id_enseignant)) {
-                    $messageSuccess = "UE modifiée avec succès.";
-                    $this->auditLog->logModification($userId, 'ue', 'Succès');
-                } else {
-                    $messageErreur = "Erreur lors de la modification de l'UE.";
-                    $this->auditLog->logModification($userId, 'ue', 'Erreur');
-                }
-            } else {
-                if ($this->ue->ajouterUe($lib_ue, $id_niveau_etude, $id_semestre, $id_annee, $credit, $id_enseignant)) {
-                    $messageSuccess = "UE ajoutée avec succès.";
-                    $this->auditLog->logCreation($userId, 'ue', 'Succès');
-                } else {
-                    $messageErreur = "Erreur lors de l'ajout de l'UE.";
-                    $this->auditLog->logCreation($userId, 'ue', 'Erreur');
-                }
-            }
-        }
-
-        if (isset($post['submit_delete_multiple']) && isset($post['selected_ids'])) {
-            $success = true;
-            foreach ($post['selected_ids'] as $id) {
-                if (!$this->ue->deleteUe($id)) {
-                    $success = false;
-                    break;
-                }
-            }
-
-            if ($success) {
-                $messageSuccess = "UEs supprimées avec succès.";
-                $this->auditLog->logSuppression($userId, 'ue', 'Succès');
-            } else {
-                $messageErreur = "Erreur lors de la suppression des UEs.";
-                $this->auditLog->logSuppression($userId, 'ue', 'Erreur');
-            }
-        }
-
-        if (isset($get['id_ue'])) {
-            $ue_a_modifier = $this->ue->getUeById($get['id_ue']);
-        }
-
-        return [
-            'ue_a_modifier' => $ue_a_modifier,
-            'listeUes' => $this->ue->getAllUes(),
-            'listeNiveauxEtude' => $this->niveauEtude->getAllNiveauxEtudes(),
-            'listeSemestres' => $this->semestre->getAllSemestres(),
-            'listeAnnees' => $this->anneeAcademique->getAllAnneeAcademiques(),
-            'listeEnseignants' => $this->enseignant->getAllEnseignants(),
-            'messageErreur' => $messageErreur,
-            'messageSuccess' => $messageSuccess,
-        ];
-    }
-
-
-    //=============================GESTION ECUE=============================
-    public function gestionEcue(array $post, array $get, string $userId): array
-    {
-        $ecue_a_modifier = null;
-        $messageErreur = '';
-        $messageSuccess = '';
-
-        if (isset($post['btn_add_ecue']) || isset($post['btn_modifier_ecue'])) {
-            $id_ue = $post['id_ue'];
-            $lib_ecue = $post['lib_ecue'];
-            $credit = $post['credit'];
-            $id_enseignant = $post['professeur_responsable'] ?? null;
-
-            if (!empty($post['id_ecue'])) {
-                if ($this->ecue->updateEcue($post['id_ecue'], $id_ue, $lib_ecue, $credit, $id_enseignant)) {
-                    $messageSuccess = "ECUE modifiée avec succès.";
-                    $this->auditLog->logModification($userId, 'ecue', 'Succès');
-                } else {
-                    $messageErreur = "Erreur lors de la modification de l'ECUE.";
-                    $this->auditLog->logModification($userId, 'ecue', 'Erreur');
-                }
-            } else {
-                if ($this->ecue->ajouterEcue($id_ue, $lib_ecue, $credit, $id_enseignant)) {
-                    $messageSuccess = "ECUE ajoutée avec succès.";
-                    $this->auditLog->logCreation($userId, 'ecue', 'Succès');
-                } else {
-                    $messageErreur = "Erreur lors de l'ajout de l'ECUE.";
-                    $this->auditLog->logCreation($userId, 'ecue', 'Erreur');
-                }
-            }
-        }
-
-        if (isset($post['submit_delete_multiple']) && isset($post['selected_ids'])) {
-            $success = true;
-            foreach ($post['selected_ids'] as $id) {
-                if (!$this->ecue->deleteEcue($id)) {
-                    $success = false;
-                    break;
-                }
-            }
-
-            if ($success) {
-                $messageSuccess = "ECUEs supprimées avec succès.";
-                $this->auditLog->logSuppression($userId, 'ecue', 'Succès');
-            } else {
-                $messageErreur = "Erreur lors de la suppression des ECUEs.";
-                $this->auditLog->logSuppression($userId, 'ecue', 'Erreur');
-            }
-        }
-
-        if (isset($get['id_ecue'])) {
-            $ecue_a_modifier = $this->ecue->getEcueById($get['id_ecue']);
-        }
-
-        return [
-            'ecue_a_modifier' => $ecue_a_modifier,
-            'listeEcues' => $this->ecue->getAllEcues(),
-            'listeUes' => $this->ue->getAllUes(),
             'listeEnseignants' => $this->enseignant->getAllEnseignants(),
             'messageErreur' => $messageErreur,
             'messageSuccess' => $messageSuccess,
@@ -1478,6 +1338,565 @@ class ParametreService
             'menuMgmtIsEditable' => $isEditable,
             'messageErreur' => $messageErreur,
             'messageSuccess' => $messageSuccess,
+        ];
+    }
+
+    //============================GESTION REFERENTIELS SIMPLES==================================
+    public function gestionReferentielSimple(array $post, array $get, string $userId): array
+    {
+        $action = (string) ($get['action'] ?? '');
+        $config = $this->getReferentielSimpleConfig($action);
+
+        if ($config === null) {
+            return [
+                'item_a_modifier' => null,
+                'listeReferentiel' => [],
+                'messageErreur' => 'Référentiel non supporté.',
+                'messageSuccess' => '',
+            ];
+        }
+
+        $table = (string) $config['table'];
+        $idColumn = (string) $config['id_column'];
+        $idParam = (string) ($config['id_param'] ?? $idColumn);
+        $idPostKey = (string) ($config['id_post_key'] ?? $idColumn);
+        $fields = is_array($config['fields'] ?? null) ? $config['fields'] : [];
+        $requiredFields = is_array($config['required_fields'] ?? null) ? $config['required_fields'] : [];
+        $boolFields = is_array($config['bool_fields'] ?? null) ? $config['bool_fields'] : [];
+        $intFields = is_array($config['int_fields'] ?? null) ? $config['int_fields'] : [];
+        $nullableFields = is_array($config['nullable_fields'] ?? null) ? $config['nullable_fields'] : [];
+        $allowManualId = !empty($config['allow_manual_id']);
+        $allowIdUpdate = !empty($config['allow_id_update']);
+        $orderBy = (string) ($config['order_by'] ?? $idColumn . ' DESC');
+        $entity = (string) ($config['audit_entity'] ?? $table);
+        $addButton = (string) ($config['add_button'] ?? ('btn_add_' . $action));
+        $editButton = (string) ($config['edit_button'] ?? ('btn_modifier_' . $action));
+
+        $itemAModifier = null;
+        $messageErreur = '';
+        $messageSuccess = '';
+
+        if (!$this->tableExists($table)) {
+            return [
+                'item_a_modifier' => null,
+                'listeReferentiel' => [],
+                'messageErreur' => "La table '{$table}' n'existe pas dans la base de données.",
+                'messageSuccess' => '',
+            ];
+        }
+
+        if (isset($post['submit_delete_multiple']) && isset($post['selected_ids']) && is_array($post['selected_ids'])) {
+            $success = true;
+            $sql = "DELETE FROM {$this->quoteIdentifier($table)} WHERE {$this->quoteIdentifier($idColumn)} = ?";
+            $stmt = $this->db->prepare($sql);
+
+            foreach ($post['selected_ids'] as $id) {
+                if (!$stmt->execute([$id])) {
+                    $success = false;
+                    break;
+                }
+            }
+
+            if ($success) {
+                $messageSuccess = 'Éléments supprimés avec succès.';
+                $this->auditLog->logSuppression($userId, $entity, 'Succès');
+            } else {
+                $messageErreur = 'Erreur lors de la suppression.';
+                $this->auditLog->logSuppression($userId, $entity, 'Erreur');
+            }
+        } elseif (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (isset($post[$addButton]) || isset($post[$editButton]))) {
+            $isUpdate = isset($post[$editButton]);
+            $data = [];
+
+            foreach ($fields as $field) {
+                $fieldName = (string) $field;
+
+                if (in_array($fieldName, $boolFields, true)) {
+                    $rawBool = $post[$fieldName] ?? null;
+                    if ($rawBool === null) {
+                        $data[$fieldName] = 0;
+                    } else {
+                        $boolValue = is_string($rawBool) ? strtolower(trim($rawBool)) : (string) $rawBool;
+                        $data[$fieldName] = in_array($boolValue, ['1', 'true', 'on', 'yes', 'oui'], true) ? 1 : 0;
+                    }
+                    continue;
+                }
+
+                $value = $post[$fieldName] ?? null;
+                if (is_string($value)) {
+                    $value = trim($value);
+                }
+                if (in_array($fieldName, $nullableFields, true) && $value === '') {
+                    $value = null;
+                }
+                if (in_array($fieldName, $intFields, true) && $value !== null && $value !== '') {
+                    $value = (int) $value;
+                }
+                $data[$fieldName] = $value;
+            }
+
+            foreach ($requiredFields as $required) {
+                $requiredName = (string) $required;
+                if (!array_key_exists($requiredName, $data) || $data[$requiredName] === null || $data[$requiredName] === '') {
+                    $messageErreur = 'Veuillez renseigner tous les champs obligatoires.';
+                    break;
+                }
+            }
+
+            if ($messageErreur === '') {
+                try {
+                    if ($isUpdate) {
+                        $currentId = trim((string) ($post[$idPostKey] ?? ''));
+                        if ($currentId === '') {
+                            throw new Exception('Identifiant de modification invalide.');
+                        }
+
+                        $updateData = $data;
+                        if (!$allowIdUpdate) {
+                            unset($updateData[$idColumn]);
+                        }
+                        if (empty($updateData)) {
+                            throw new Exception('Aucune donnée à mettre à jour.');
+                        }
+
+                        $setParts = [];
+                        $params = [];
+                        foreach ($updateData as $column => $value) {
+                            $paramName = ':u_' . $column;
+                            $setParts[] = $this->quoteIdentifier((string) $column) . ' = ' . $paramName;
+                            $params[$paramName] = $value;
+                        }
+                        $params[':current_id'] = $currentId;
+
+                        $sql = "UPDATE {$this->quoteIdentifier($table)}
+                                SET " . implode(', ', $setParts) . "
+                                WHERE {$this->quoteIdentifier($idColumn)} = :current_id";
+                        $stmt = $this->db->prepare($sql);
+
+                        if ($stmt->execute($params)) {
+                            $messageSuccess = 'Élément modifié avec succès.';
+                            $this->auditLog->logModification($userId, $entity, 'Succès');
+                        } else {
+                            $messageErreur = 'Erreur lors de la modification.';
+                            $this->auditLog->logModification($userId, $entity, 'Erreur');
+                        }
+                    } else {
+                        $insertData = $data;
+                        if (!$allowManualId) {
+                            unset($insertData[$idColumn]);
+                        }
+
+                        $insertData = array_filter(
+                            $insertData,
+                            static fn($value) => $value !== null
+                        );
+
+                        if (empty($insertData)) {
+                            throw new Exception('Aucune donnée à enregistrer.');
+                        }
+
+                        $columns = array_keys($insertData);
+                        $placeholders = array_map(static fn($col) => ':i_' . $col, $columns);
+                        $params = [];
+                        foreach ($columns as $col) {
+                            $params[':i_' . $col] = $insertData[$col];
+                        }
+
+                        $sql = "INSERT INTO {$this->quoteIdentifier($table)}
+                                (" . implode(', ', array_map([$this, 'quoteIdentifier'], $columns)) . ")
+                                VALUES (" . implode(', ', $placeholders) . ")";
+                        $stmt = $this->db->prepare($sql);
+
+                        if ($stmt->execute($params)) {
+                            $messageSuccess = 'Élément ajouté avec succès.';
+                            $this->auditLog->logCreation($userId, $entity, 'Succès');
+                        } else {
+                            $messageErreur = 'Erreur lors de l\'ajout.';
+                            $this->auditLog->logCreation($userId, $entity, 'Erreur');
+                        }
+                    }
+                } catch (Throwable $e) {
+                    $messageErreur = 'Erreur base de données: ' . $e->getMessage();
+                    $this->auditLog->logModification($userId, $entity, 'Erreur');
+                }
+            }
+        }
+
+        if (isset($get[$idParam]) && trim((string) $get[$idParam]) !== '') {
+            $itemAModifier = $this->fetchReferentielRow($table, $idColumn, $get[$idParam]);
+        }
+
+        $result = [
+            'item_a_modifier' => $itemAModifier,
+            'listeReferentiel' => $this->fetchReferentielList($table, $orderBy),
+            'messageErreur' => $messageErreur,
+            'messageSuccess' => $messageSuccess,
+        ];
+
+        if ($action === 'maitre_stage') {
+            $result['listeEntreprisesRef'] = $this->fetchReferentielOptions('entreprises', 'id_entreprise', 'lib_long_entreprise', 'lib_long_entreprise ASC');
+            $result['listeFonctionsRef'] = $this->fetchReferentielOptions('fonction', 'id_fonction', 'lib_fonction', 'lib_fonction ASC');
+        }
+
+        return $result;
+    }
+
+    //============================GESTION BAREME CRITERE==================================
+    public function gestionBaremeCritere(array $post, array $get, string $userId): array
+    {
+        $messageErreur = '';
+        $messageSuccess = '';
+        $baremeAModifier = null;
+
+        if (!$this->tableExists('bareme_critere')) {
+            return [
+                'bareme_a_modifier' => null,
+                'listeBaremes' => [],
+                'listeAnneesBareme' => [],
+                'listeCriteresBareme' => [],
+                'messageErreur' => "La table 'bareme_critere' n'existe pas.",
+                'messageSuccess' => '',
+            ];
+        }
+
+        if (isset($post['submit_delete_multiple']) && isset($post['selected_ids']) && is_array($post['selected_ids'])) {
+            $success = true;
+            $stmt = $this->db->prepare('DELETE FROM bareme_critere WHERE id_annee_acad = ? AND id_critere = ?');
+
+            foreach ($post['selected_ids'] as $encodedId) {
+                $decoded = $this->decodeBaremePk((string) $encodedId);
+                if ($decoded === null || !$stmt->execute([$decoded['id_annee_acad'], $decoded['id_critere']])) {
+                    $success = false;
+                    break;
+                }
+            }
+
+            if ($success) {
+                $messageSuccess = 'Barèmes supprimés avec succès.';
+                $this->auditLog->logSuppression($userId, 'bareme_critere', 'Succès');
+            } else {
+                $messageErreur = 'Erreur lors de la suppression des barèmes.';
+                $this->auditLog->logSuppression($userId, 'bareme_critere', 'Erreur');
+            }
+        } elseif (isset($post['btn_add_bareme_critere']) || isset($post['btn_modifier_bareme_critere'])) {
+            $idAnnee = (int) ($post['id_annee_acad'] ?? 0);
+            $idCritere = (int) ($post['id_critere'] ?? 0);
+            $bareme = (int) ($post['bareme'] ?? 0);
+
+            if ($idAnnee <= 0 || $idCritere <= 0 || $bareme <= 0) {
+                $messageErreur = 'Veuillez renseigner une année, un critère et un barème valides.';
+            } else {
+                try {
+                    if (isset($post['btn_modifier_bareme_critere']) && !empty($post['bareme_pk'])) {
+                        $oldPk = $this->decodeBaremePk((string) $post['bareme_pk']);
+                        if ($oldPk === null) {
+                            throw new Exception('Clé de barème invalide.');
+                        }
+
+                        $stmt = $this->db->prepare(
+                            'UPDATE bareme_critere
+                             SET id_annee_acad = ?, id_critere = ?, bareme = ?
+                             WHERE id_annee_acad = ? AND id_critere = ?'
+                        );
+                        $ok = $stmt->execute([$idAnnee, $idCritere, $bareme, $oldPk['id_annee_acad'], $oldPk['id_critere']]);
+
+                        if ($ok) {
+                            $messageSuccess = 'Barème modifié avec succès.';
+                            $this->auditLog->logModification($userId, 'bareme_critere', 'Succès');
+                        } else {
+                            $messageErreur = 'Erreur lors de la modification du barème.';
+                            $this->auditLog->logModification($userId, 'bareme_critere', 'Erreur');
+                        }
+                    } else {
+                        $stmt = $this->db->prepare(
+                            'INSERT INTO bareme_critere (id_annee_acad, id_critere, bareme)
+                             VALUES (?, ?, ?)
+                             ON DUPLICATE KEY UPDATE bareme = VALUES(bareme)'
+                        );
+                        $ok = $stmt->execute([$idAnnee, $idCritere, $bareme]);
+
+                        if ($ok) {
+                            $messageSuccess = 'Barème ajouté avec succès.';
+                            $this->auditLog->logCreation($userId, 'bareme_critere', 'Succès');
+                        } else {
+                            $messageErreur = 'Erreur lors de l\'ajout du barème.';
+                            $this->auditLog->logCreation($userId, 'bareme_critere', 'Erreur');
+                        }
+                    }
+                } catch (Throwable $e) {
+                    $messageErreur = 'Erreur base de données: ' . $e->getMessage();
+                    $this->auditLog->logModification($userId, 'bareme_critere', 'Erreur');
+                }
+            }
+        }
+
+        if (isset($get['bareme_pk']) && trim((string) $get['bareme_pk']) !== '') {
+            $decoded = $this->decodeBaremePk((string) $get['bareme_pk']);
+            if ($decoded !== null) {
+                $stmt = $this->db->prepare(
+                    'SELECT bc.id_annee_acad, bc.id_critere, bc.bareme
+                     FROM bareme_critere bc
+                     WHERE bc.id_annee_acad = ? AND bc.id_critere = ?'
+                );
+                $stmt->execute([$decoded['id_annee_acad'], $decoded['id_critere']]);
+                $baremeAModifier = $stmt->fetch(PDO::FETCH_OBJ) ?: null;
+                if ($baremeAModifier !== null) {
+                    $baremeAModifier->bareme_pk = $this->encodeBaremePk((int) $baremeAModifier->id_annee_acad, (int) $baremeAModifier->id_critere);
+                }
+            }
+        }
+
+        $stmtList = $this->db->query(
+            "SELECT
+                bc.id_annee_acad,
+                bc.id_critere,
+                bc.bareme,
+                ce.code_critere,
+                ce.lib_critere,
+                CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) AS lib_annee
+             FROM bareme_critere bc
+             LEFT JOIN critere_evaluation ce ON ce.id_critere = bc.id_critere
+             LEFT JOIN annee_academique aa ON aa.id_annee_acad = bc.id_annee_acad
+             ORDER BY bc.id_annee_acad DESC, ce.lib_critere ASC"
+        );
+        $listeBaremes = $stmtList->fetchAll(PDO::FETCH_OBJ);
+        foreach ($listeBaremes as $row) {
+            $row->bareme_pk = $this->encodeBaremePk((int) ($row->id_annee_acad ?? 0), (int) ($row->id_critere ?? 0));
+        }
+
+        $listeAnnees = $this->db->query(
+            'SELECT id_annee_acad, date_deb, date_fin
+             FROM annee_academique
+             ORDER BY id_annee_acad DESC'
+        )->fetchAll(PDO::FETCH_OBJ);
+
+        foreach ($listeAnnees as $annee) {
+            $annee->lib_annee = date('Y', strtotime((string) ($annee->date_deb ?? ''))) . '-' . date('Y', strtotime((string) ($annee->date_fin ?? '')));
+        }
+
+        $listeCriteres = $this->db->query(
+            'SELECT id_critere, code_critere, lib_critere
+             FROM critere_evaluation
+             ORDER BY lib_critere ASC'
+        )->fetchAll(PDO::FETCH_OBJ);
+
+        return [
+            'bareme_a_modifier' => $baremeAModifier,
+            'listeBaremes' => $listeBaremes,
+            'listeAnneesBareme' => $listeAnnees,
+            'listeCriteresBareme' => $listeCriteres,
+            'messageErreur' => $messageErreur,
+            'messageSuccess' => $messageSuccess,
+        ];
+    }
+
+    private function getReferentielSimpleConfig(string $action): ?array
+    {
+        $configs = [
+            'app_settings' => [
+                'table' => 'app_settings',
+                'id_column' => 'setting_key',
+                'id_post_key' => 'current_setting_key',
+                'id_param' => 'setting_key',
+                'fields' => ['setting_key', 'setting_value', 'is_sensitive'],
+                'required_fields' => ['setting_key', 'setting_value'],
+                'bool_fields' => ['is_sensitive'],
+                'allow_manual_id' => true,
+                'allow_id_update' => true,
+                'order_by' => 'setting_key ASC',
+                'audit_entity' => 'app_settings',
+            ],
+            'genre' => [
+                'table' => 'genre',
+                'id_column' => 'id_genre',
+                'id_param' => 'id_genre',
+                'fields' => ['libelle_genre'],
+                'required_fields' => ['libelle_genre'],
+                'order_by' => 'libelle_genre ASC',
+                'audit_entity' => 'genre',
+            ],
+            'decisions_jury' => [
+                'table' => 'decisions_jury',
+                'id_column' => 'id_decision',
+                'id_param' => 'id_decision',
+                'fields' => ['lib_decision', 'description', 'actif'],
+                'required_fields' => ['lib_decision'],
+                'bool_fields' => ['actif'],
+                'nullable_fields' => ['description'],
+                'order_by' => 'lib_decision ASC',
+                'audit_entity' => 'decisions_jury',
+            ],
+            'etablissement_origine' => [
+                'table' => 'etablissement_origine',
+                'id_column' => 'id_etablissement',
+                'id_param' => 'id_etablissement',
+                'fields' => ['libelle_long', 'libelle_court'],
+                'required_fields' => ['libelle_long', 'libelle_court'],
+                'order_by' => 'libelle_long ASC',
+                'audit_entity' => 'etablissement_origine',
+            ],
+            'session' => [
+                'table' => 'session',
+                'id_column' => 'id_session',
+                'id_param' => 'id_session',
+                'fields' => ['lib_session'],
+                'required_fields' => ['lib_session'],
+                'order_by' => 'lib_session ASC',
+                'audit_entity' => 'session',
+            ],
+            'mode_paiement' => [
+                'table' => 'mode_paiement',
+                'id_column' => 'id_mode_paiement',
+                'id_param' => 'id_mode_paiement',
+                'fields' => ['code_mode_paiement', 'libelle_mode_paement'],
+                'required_fields' => ['code_mode_paiement', 'libelle_mode_paement'],
+                'order_by' => 'libelle_mode_paement ASC',
+                'audit_entity' => 'mode_paiement',
+            ],
+            'statut_reclamation' => [
+                'table' => 'statut_reclamation',
+                'id_column' => 'id_statut_reclamation',
+                'id_param' => 'id_statut_reclamation',
+                'fields' => ['libelle_statut_reclamation'],
+                'required_fields' => ['libelle_statut_reclamation'],
+                'order_by' => 'libelle_statut_reclamation ASC',
+                'audit_entity' => 'statut_reclamation',
+            ],
+            'domaine' => [
+                'table' => 'domaine',
+                'id_column' => 'id_domaine',
+                'id_param' => 'id_domaine',
+                'fields' => ['lib_domaine'],
+                'required_fields' => ['lib_domaine'],
+                'order_by' => 'lib_domaine ASC',
+                'audit_entity' => 'domaine',
+            ],
+            'mentions' => [
+                'table' => 'mentions',
+                'id_column' => 'id_mention',
+                'id_param' => 'id_mention',
+                'fields' => ['lib_mention', 'actif'],
+                'required_fields' => ['lib_mention'],
+                'bool_fields' => ['actif'],
+                'order_by' => 'lib_mention ASC',
+                'audit_entity' => 'mentions',
+            ],
+            'filieres' => [
+                'table' => 'filiere',
+                'id_column' => 'id_filiere',
+                'id_param' => 'id_filiere',
+                'fields' => ['lib_filiere'],
+                'required_fields' => ['lib_filiere'],
+                'order_by' => 'lib_filiere ASC',
+                'audit_entity' => 'filiere',
+            ],
+            'qualite_jury' => [
+                'table' => 'qualite_jury',
+                'id_column' => 'id_role_jury',
+                'id_param' => 'id_role_jury',
+                'fields' => ['code_qltjury', 'lib_role'],
+                'required_fields' => ['code_qltjury', 'lib_role'],
+                'order_by' => 'lib_role ASC',
+                'audit_entity' => 'qualite_jury',
+            ],
+            'maitre_stage' => [
+                'table' => 'maitre_de_stage',
+                'id_column' => 'id_maitre_stage',
+                'id_param' => 'id_maitre_stage',
+                'fields' => ['id_maitre_stage', 'Nom', 'prenom', 'email', 'telephone', 'id_entreprise', 'id_fonction'],
+                'required_fields' => ['id_maitre_stage', 'Nom', 'prenom', 'id_entreprise'],
+                'allow_manual_id' => true,
+                'allow_id_update' => false,
+                'nullable_fields' => ['email', 'telephone', 'id_fonction'],
+                'int_fields' => ['id_entreprise'],
+                'order_by' => 'Nom ASC, prenom ASC',
+                'audit_entity' => 'maitre_de_stage',
+            ],
+            'type_enseignant' => [
+                'table' => 'type_enseignant',
+                'id_column' => 'id_type_enseignant',
+                'id_param' => 'id_type_enseignant',
+                'fields' => ['libelle'],
+                'required_fields' => ['libelle'],
+                'order_by' => 'libelle ASC',
+                'audit_entity' => 'type_enseignant',
+            ],
+        ];
+
+        return $configs[$action] ?? null;
+    }
+
+    private function tableExists(string $table): bool
+    {
+        $stmt = $this->db->prepare('SHOW TABLES LIKE ?');
+        $stmt->execute([$table]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    private function fetchReferentielRow(string $table, string $idColumn, $id): ?object
+    {
+        $sql = "SELECT * FROM {$this->quoteIdentifier($table)}
+                WHERE {$this->quoteIdentifier($idColumn)} = ?
+                LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$id]);
+        $row = $stmt->fetch(PDO::FETCH_OBJ);
+
+        return $row !== false ? $row : null;
+    }
+
+    private function fetchReferentielList(string $table, string $orderBy): array
+    {
+        $sql = "SELECT * FROM {$this->quoteIdentifier($table)} ORDER BY {$orderBy}";
+        $stmt = $this->db->query($sql);
+        return $stmt ? $stmt->fetchAll(PDO::FETCH_OBJ) : [];
+    }
+
+    private function fetchReferentielOptions(string $table, string $idColumn, string $labelColumn, string $orderBy = ''): array
+    {
+        if (!$this->tableExists($table)) {
+            return [];
+        }
+
+        $orderSql = $orderBy !== '' ? $orderBy : $labelColumn . ' ASC';
+        $sql = "SELECT {$this->quoteIdentifier($idColumn)} AS id, {$this->quoteIdentifier($labelColumn)} AS label
+                FROM {$this->quoteIdentifier($table)}
+                ORDER BY {$orderSql}";
+
+        $stmt = $this->db->query($sql);
+        return $stmt ? $stmt->fetchAll(PDO::FETCH_OBJ) : [];
+    }
+
+    private function quoteIdentifier(string $identifier): string
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $identifier)) {
+            throw new Exception("Identifiant SQL invalide: {$identifier}");
+        }
+
+        return '`' . $identifier . '`';
+    }
+
+    private function encodeBaremePk(int $idAnnee, int $idCritere): string
+    {
+        return $idAnnee . ':' . $idCritere;
+    }
+
+    private function decodeBaremePk(string $encoded): ?array
+    {
+        $parts = explode(':', trim($encoded), 2);
+        if (count($parts) !== 2) {
+            return null;
+        }
+
+        $idAnnee = (int) $parts[0];
+        $idCritere = (int) $parts[1];
+        if ($idAnnee <= 0 || $idCritere <= 0) {
+            return null;
+        }
+
+        return [
+            'id_annee_acad' => $idAnnee,
+            'id_critere' => $idCritere,
         ];
     }
 

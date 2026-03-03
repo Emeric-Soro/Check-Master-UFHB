@@ -38,6 +38,18 @@ switch ($action) {
         $controller->deleteAttribution();
         break;
 
+    case 'getPlanningPreview':
+        $controller->getPlanningPreview();
+        break;
+
+    case 'generatePlanningPdf':
+        $controller->generatePlanningPdf();
+        break;
+
+    case 'getDayDetails':
+        $controller->getDayDetails();
+        break;
+
     default:
         header('Content-Type: application/json');
         http_response_code(400);

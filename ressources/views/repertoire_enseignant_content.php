@@ -46,35 +46,14 @@ $baseUrlParams = http_build_query([
             <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?>
         </div>
     <?php endif; ?>
-    <div class="cm-card cm-mb-md">
-        <form method="GET" class="cm-grid-4" style="align-items: end;">
-            <input type="hidden" name="page" value="repertoire_enseignant">
-            <input type="hidden" name="tab" value="<?= htmlspecialchars($tab, ENT_QUOTES, 'UTF-8') ?>">
-            <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars((string) (\AcademicYear::getWritableIdFromSession() ?? ''), ENT_QUOTES, 'UTF-8') ?>">
-            <?= cm_component('form/select', [
-                'name' => 'id_session',
-                'label' => 'Période',
-                'options' => $sessionOptions,
-                'selected' => (string)($filtreSession ?? ''),
-                'placeholder' => 'Toutes les périodes'
-            ]) ?>
-            <div>
-                <label class="cm-form__label" for="search">Recherche</label>
-                <input type="text" id="search" name="search" class="cm-form__input" 
-                       value="<?= htmlspecialchars($search, ENT_QUOTES, 'UTF-8') ?>" 
-                       placeholder="Nom, theme...">
-            </div>
-            <div class="cm-flex cm-flex-gap-sm">
-                <button type="submit" class="cm-btn cm-btn--primary">
-                    <i class="fas fa-filter cm-mr-sm"></i> Filtrer
-                </button>
-                <a href="?page=repertoire_enseignant&tab=<?= htmlspecialchars($tab, ENT_QUOTES, 'UTF-8') ?>" 
-                   class="cm-btn cm-btn--outline">
-                    Réinitialiser
-                </a>
-            </div>
-        </form>
-    </div>
+    <?php cm_toolbar([
+        'screen' => 'repertoire_enseignant',
+        'id_prefix' => 'repertoire',
+        'search_value' => $search,
+        'limit' => 10,
+        'can_delete' => canDelete(),
+        'can_view' => canView(),
+    ]); ?>
     <?= cm_component('tabs/tab-nav', [
         'tabs' => $tabs,
         'active' => $tab,

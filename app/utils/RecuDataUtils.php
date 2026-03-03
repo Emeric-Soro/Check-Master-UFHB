@@ -104,8 +104,13 @@ class RecuDataUtils
             'SELECT e.num_carte_etud, e.nom_etu AS nom_etudiant,
                     e.prenom_etu AS prenom_etudiant,
                     e.email_etu AS email_etudiant,
-                    e.id_niveau, e.id_annee_acad
+                    i.id_niveau, i.id_annee_acad
              FROM etudiants e
+             LEFT JOIN inscriptions i ON i.id_inscription = (
+                 SELECT i2.id_inscription FROM inscriptions i2 
+                 WHERE i2.id_etudiant = e.num_carte_etud 
+                 ORDER BY i2.date_inscription DESC LIMIT 1
+             )
              WHERE e.num_carte_etud = :matricule'
         );
         $stmt->execute(['matricule' => $matricule]);

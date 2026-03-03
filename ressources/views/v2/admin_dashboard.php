@@ -120,7 +120,7 @@ try {
     $params = [];
 
     if ($filtreAnneeAdmin !== null) {
-        $whereConditions[] = "e2.id_annee_acad = :id_annee_acad";
+        $whereConditions[] = "i2.id_annee_acad = :id_annee_acad";
         $params[':id_annee_acad'] = $filtreAnneeAdmin;
     }
 
@@ -139,6 +139,7 @@ try {
                      LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
                      LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
                      LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
+                     LEFT JOIN inscriptions i2 ON i2.id_etudiant = e2.num_carte_etud
                      {$whereClause}
                      GROUP BY ens.id_enseignant
                      HAVING COUNT(DISTINCT ej.num_soutenance) > 0
@@ -163,6 +164,7 @@ try {
             LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
             LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
             LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
+            LEFT JOIN inscriptions i2 ON i2.id_etudiant = e2.num_carte_etud
             {$whereClause}
             GROUP BY ens.id_enseignant, ens.nom_enseignant, ens.prenom_enseignant
             HAVING COUNT(DISTINCT ej.num_soutenance) > 0
@@ -259,23 +261,33 @@ try {
         </div>
         <div class="cm-chart-container__body">
             <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
+                <?php if (canView('gestion_utilisateurs')): ?>
                 <a class="cm-btn is-info" href="?page=gestion_utilisateurs" data-cm-ajax-link="true">
                     <i class="fas fa-users-cog" aria-hidden="true"></i>
                     Gerer les utilisateurs
                 </a>
+                <?php endif; ?>
+
+                <?php if (canView('piste_audit')): ?>
                 <a class="cm-btn is-primary" href="?page=piste_audit" data-cm-ajax-link="true">
                     <i class="fas fa-shield-halved" aria-hidden="true"></i>
                     Piste d audit
                 </a>
+                <?php endif; ?>
+
+                <?php if (canView('parametres_generaux')): ?>
                 <a class="cm-btn is-success" href="?page=parametres_generaux" data-cm-ajax-link="true">
                     <i class="fas fa-sliders" aria-hidden="true"></i>
                     Parametrage
                 </a>
+                <?php endif; ?>
+
+                <?php if (canView('enseignants_jury')): ?>
                 <a class="cm-btn is-warning" href="?page=enseignants_jury" data-cm-ajax-link="true">
                     <i class="fas fa-users" aria-hidden="true"></i>
                     Enseignants Jury
                 </a>
-            </div>
+                <?php endif; ?>
         </div>
     </div>
 

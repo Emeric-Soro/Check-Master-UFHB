@@ -8,9 +8,15 @@ $rows = is_array($rows ?? null) ? $rows : [];
 $empty_title = (string) ($empty_title ?? 'Aucune donnee');
 $empty_message = (string) ($empty_message ?? 'Aucune ligne a afficher.');
 $table_class = (string) ($table_class ?? 'cm-data-table');
+$wrapper_class = (string) ($wrapper_class ?? 'cm-table-wrapper');
 $selectable = !empty($selectable);
 $row_key = (string) ($row_key ?? 'id');
 $actions = is_array($actions ?? null) ? $actions : [];
+$dense = !empty($dense);
+
+if ($dense && strpos($table_class, 'cm-data-table--compact') === false) {
+    $table_class .= ' cm-data-table--compact';
+}
 
 if (empty($columns) && !empty($headers)) {
     $columns = [];
@@ -19,7 +25,7 @@ if (empty($columns) && !empty($headers)) {
     }
 }
 ?>
-<div class="cm-table-wrapper">
+<div class="<?= htmlspecialchars(trim($wrapper_class), ENT_QUOTES, 'UTF-8') ?>">
     <table class="<?= htmlspecialchars($table_class, ENT_QUOTES, 'UTF-8') ?>" id="<?= htmlspecialchars($id, ENT_QUOTES, 'UTF-8') ?>">
         <thead>
             <tr>
@@ -45,7 +51,7 @@ if (empty($columns) && !empty($headers)) {
                 <?php endforeach; ?>
 
                 <?php if (!empty($actions)): ?>
-                <th class="cm-data-table__th is-center">Actions</th>
+                <th class="cm-data-table__th is-center is-actions">Actions</th>
                 <?php endif; ?>
             </tr>
         </thead>
@@ -109,7 +115,7 @@ if (empty($columns) && !empty($headers)) {
                     <?php endforeach; ?>
 
                     <?php if (!empty($actions)): ?>
-                    <td class="cm-data-table__td is-center">
+                    <td class="cm-data-table__td is-center is-actions">
                         <div class="cm-table-actions">
                             <?php foreach ($actions as $action): ?>
                                 <?php

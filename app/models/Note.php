@@ -202,14 +202,14 @@ class Note
                         ) latest ON latest.id_etudiant = i1.id_etudiant
                                AND latest.max_id = i1.id_inscription
                         ) ins ON ins.id_etudiant = e.num_carte_etud
-                     WHERE COALESCE(ins.id_niveau, e.id_niveau) = ?
+                     WHERE ins.id_niveau = ?
                      ORDER BY e.nom_etu, e.prenom_etu";
 
             $params = [$niveauId];
             if ($anneeAcadId !== null && $anneeAcadId !== '' && (int) $anneeAcadId > 0) {
                 $query = str_replace(
-                    'WHERE COALESCE(ins.id_niveau, e.id_niveau) = ?',
-                    'WHERE n.id_annee_acad = ? AND COALESCE(ins.id_niveau, e.id_niveau) = ?',
+                    'WHERE ins.id_niveau = ?',
+                    'WHERE n.id_annee_acad = ? AND ins.id_niveau = ?',
                     $query
                 );
                 $params = [(int) $anneeAcadId, $niveauId];
@@ -225,33 +225,101 @@ class Note
     }
 
     /**
-     * Récupérer toutes les notes d'une année académique (sans filtre niveau)
+     * Récupérer toutes les notes (filtrables par année académique)
      */
-    public function getNotesByYear($anneeAcadId)
+    public function getNotesByYear($anneeAcadId = null)
     {
         try {
             $query = "SELECT n.*, e.nom_etu, e.prenom_etu, e.num_carte_etud,
                             a.date_deb, a.date_fin
                      FROM notes n
                      INNER JOIN etudiants e ON n.num_etu = e.num_carte_etud
-                     LEFT JOIN annee_academique a ON n.id_annee_acad = a.id_annee_acad
-                     ORDER BY e.nom_etu, e.prenom_etu";
-            $params = [];
+                     LEFT JOIN annee_academique a ON n.id_annee_acad = a.id_annee_acad";
 
+            $params = [];
             if ($anneeAcadId !== null && $anneeAcadId !== '' && (int) $anneeAcadId > 0) {
-                $query = str_replace(
-                    'ORDER BY e.nom_etu, e.prenom_etu',
-                    'WHERE n.id_annee_acad = ? ORDER BY e.nom_etu, e.prenom_etu',
-                    $query
-                );
+                $query .= " WHERE n.id_annee_acad = ?";
                 $params[] = (int) $anneeAcadId;
             }
+
+            $query .= " ORDER BY e.nom_etu, e.prenom_etu";
 
             $stmt = $this->db->prepare($query);
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération des notes par année: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Récupérer le classement d'un étudiant dans son niveau
+     */
+    public function getClassementStudent($studentId)
+    {
+        try {
+            // 1. Trouver le niveau et l'année de l'étudiant
+            $latestNote = $this->getLatestNote($studentId);
+            if (!$latestNote) return (object)['classement' => null, 'total' => 0];
+
+            $anneeAcadId = $latestNote->id_annee_acad;
+
+            // 2. Trouver le niveau via l'inscription
+            $queryNiveau = "SELECT id_niveau FROM inscriptions WHERE id_etudiant = ? ORDER BY id_inscription DESC LIMIT 1";
+            $stmtNiv = $this->db->prepare($queryNiveau);
+            $stmtNiv->execute([$studentId]);
+            $niveau = $stmtNiv->fetch(PDO::FETCH_OBJ);
+            if (!$niveau) return (object)['classement' => null, 'total' => 0];
+
+            $niveauId = $niveau->id_niveau;
+
+            // 3. Récupérer toutes les moyennes du même niveau et même année
+            // On calcule la moyenne (M1+M2)/2 pour le classement
+            $queryAll = "SELECT n.num_etu, (n.moyenne_M1 + n.moyenne_M2) / 2 as moyenne_gen
+                        FROM notes n
+                        INNER JOIN inscriptions i ON n.num_etu = i.id_etudiant
+                        WHERE i.id_niveau = ? AND n.id_annee_acad = ?
+                        ORDER BY moyenne_gen DESC";
+            
+            $stmtAll = $this->db->prepare($queryAll);
+            $stmtAll->execute([$niveauId, $anneeAcadId]);
+            $allNotes = $stmtAll->fetchAll(PDO::FETCH_OBJ);
+
+            $total = count($allNotes);
+            $classement = null;
+
+            foreach ($allNotes as $index => $row) {
+                if ($row->num_etu == $studentId) {
+                    $classement = $index + 1;
+                    break;
+                }
+            }
+
+            return (object)['classement' => $classement, 'total' => $total];
+        } catch (PDOException $e) {
+            error_log("Erreur lors du calcul du classement: " . $e->getMessage());
+            return (object)['classement' => null, 'total' => 0];
+        }
+    }
+
+    /**
+     * Récupérer les semestres rattachés au niveau d'un étudiant
+     */
+    public function getSemestreByEtudiant($studentId)
+    {
+        try {
+            $query = "SELECT s.* 
+                     FROM semestre s
+                     INNER JOIN inscriptions i ON s.id_niv_etude = i.id_niveau
+                     WHERE i.id_etudiant = ?
+                     ORDER BY i.id_inscription DESC, s.id_semestre ASC";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$studentId]);
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (PDOException $e) {
+            error_log("Erreur lors de la récupération des semestres: " . $e->getMessage());
             return [];
         }
     }

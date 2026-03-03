@@ -101,7 +101,7 @@ final class RapportPdfGeneratorService
                 'metadata' => json_encode([
                     'rapport_id' => $rapportId,
                     'matricule' => $rapport['matricule_etudiant'],
-                    'titre' => $rapport['titre_rapport'],
+                    'titre' => $rapport['theme_rapport'],
                     'annee_academique' => $rapport['libelle_annee'],
                 ]),
                 'id_utilisateur_generation' => $userId,

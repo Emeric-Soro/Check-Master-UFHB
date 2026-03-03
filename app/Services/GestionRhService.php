@@ -91,8 +91,9 @@ class GestionRhService
         }
 
         // Ajout
+        $id_enseignant = $data['id_enseignant'] ?? null;
         if ($this->enseignantModel->ajouterEnseignant(
-            $nom, $prenom, $email, $id_grade,
+            $id_enseignant, $nom, $prenom, $email, $id_grade,
             $id_specialite, $id_fonction, $date_grade, $date_fonction, $type_enseignant
         )) {
             $this->auditLog->logCreation($userId, 'enseignant', 'Succès');

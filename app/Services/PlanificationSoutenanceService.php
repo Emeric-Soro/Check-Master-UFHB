@@ -131,9 +131,14 @@ class PlanificationSoutenanceService
 
             $idColumn = $this->getProgrammationIdColumn($progTable);
             $stmt = $this->pdo->prepare("
-                SELECT e.id_annee_acad
+                SELECT ins.id_annee_acad
                 FROM {$progTable} p
                 INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                LEFT JOIN inscriptions ins ON ins.id_inscription = (
+                    SELECT i2.id_inscription FROM inscriptions i2
+                    WHERE i2.id_etudiant = e.num_carte_etud
+                    ORDER BY i2.date_inscription DESC, i2.id_inscription DESC LIMIT 1
+                )
                 WHERE p.{$idColumn} = ?
                 LIMIT 1
             ");
@@ -237,7 +242,7 @@ class PlanificationSoutenanceService
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
-                $sql .= " AND e.id_annee_acad = :id_annee_acad";
+                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
             }
 
             $sql .= "
@@ -317,7 +322,7 @@ class PlanificationSoutenanceService
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
-                $sql .= " AND e.id_annee_acad = :id_annee_acad";
+                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
             }
 
             $sql .= " ORDER BY p.date_soutenance ASC, p.heure_soutenance ASC";

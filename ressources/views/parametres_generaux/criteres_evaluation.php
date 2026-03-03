@@ -11,9 +11,9 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
                 <?php cm_component('form/input-text', [
                     'name' => 'lib_critere',
                     'id' => 'cmCritereLibelle',
-                    'label' => 'Libelle critere',
+                    'label' => 'Libellé critère',
                     'required' => true,
-                    'placeholder' => 'Ex: Qualite de la presentation',
+                    'placeholder' => 'Ex: Qualité de la présentation',
                 ]); ?>
                 <div class="cm-form-group">
                     <label class="cm-form-label">Barèmes par année</label>
@@ -55,45 +55,19 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
         ]);
         ?>
 
-        <?php
-        ob_start();
-        ?>
-        <label class="cm-toolbar__control">
-            <span>Annee:</span>
-            <select id="cmCritFilterYear" class="cm-form-control cm-toolbar__select">
-                <option value="">Toutes</option>
-            </select>
-        </label>
-        <?php
-        $leftHtml = (string) ob_get_clean();
-
-        ob_start();
-        ?>
-        <div class="cm-toolbar__search-wrap">
-            <input type="search" class="cm-form-control" id="cmCritSearch" placeholder="Rechercher un critere...">
-        </div>
-        <?php
-        $centerHtml = (string) ob_get_clean();
-
-        ob_start();
-        ?>
-        <div class="cm-toolbar__actions">
-            <button type="button" class="cm-btn is-info is-sm" id="cmCritPrint">
-                <i class="fas fa-print" aria-hidden="true"></i>
-                <span>Imprimer</span>
-            </button>
-            <button type="button" class="cm-btn is-info is-sm" id="cmCritExport">
-                <i class="fas fa-file-export" aria-hidden="true"></i>
-                <span>Exporter</span>
-            </button>
-        </div>
-        <?php
-        cm_component('crud/toolbar', [
-            'left_html' => $leftHtml,
-            'center_html' => $centerHtml,
-            'right_html' => (string) ob_get_clean(),
-        ]);
-        ?>
+        <?php cm_toolbar([
+            'screen' => 'criteres_evaluation',
+            'id_prefix' => 'cmCritToolbar',
+            'search_placeholder' => 'Rechercher un critère...',
+            'show_actions' => false,
+            'filters' => [
+                ['type' => 'select', 'name' => 'annee', 'label' => 'Année', 'options' => ['' => 'Toutes']],
+            ],
+            'custom_actions' => [
+                ['tag' => 'button', 'type' => 'button', 'id' => 'cmCritPrint', 'label' => 'Imprimer', 'class' => 'cm-btn is-info is-sm'],
+                ['tag' => 'button', 'type' => 'button', 'id' => 'cmCritExport', 'label' => 'Exporter', 'class' => 'cm-btn is-info is-sm'],
+            ],
+        ]); ?>
 
         <div class="cm-pole-inferieur">
             <div id="cmCritereNotice"></div>
@@ -101,8 +75,8 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
                 <table class="cm-data-table" id="cmCritereTable">
                     <thead>
                         <tr>
-                            <th class="cm-data-table__th">Critere</th>
-                            <th class="cm-data-table__th">Baremes</th>
+                            <th class="cm-data-table__th">Critère</th>
+                            <th class="cm-data-table__th">Barèmes</th>
                             <th class="cm-data-table__th is-center">Actions</th>
                         </tr>
                     </thead>
@@ -123,7 +97,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
             <option value="">-- Sélectionner année --</option>
         </select>
         <div class="cm-bareme-row__value-wrap">
-            <input type="number" min="0" max="20" class="cm-form-control js-bareme-value" placeholder="Bareme">
+            <input type="number" min="0" max="20" class="cm-form-control js-bareme-value" placeholder="Barème">
             <button type="button" class="cm-btn-action is-delete js-remove-bareme" aria-label="Supprimer">
                 <i class="fas fa-trash" aria-hidden="true"></i>
             </button>
@@ -134,8 +108,9 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
 <script>
 (function () {
     const routeBase = '?page=criteres_evaluation&action=';
-    const yearsFilter = document.getElementById('cmCritFilterYear');
-    const searchInput = document.getElementById('cmCritSearch');
+    const yearsFilter = document.getElementById('cmCritToolbar_filter_annee');
+    const searchInput = document.getElementById('cmCritToolbar_search');
+    const toolbarId = 'cmCritToolbar_toolbar';
     const tableBody = document.getElementById('cmCritereTableBody');
     const noticeBox = document.getElementById('cmCritereNotice');
     const form = document.getElementById('cmCritereForm');
@@ -192,15 +167,34 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
         baremesRows.appendChild(node);
     }
 
+    function setSubmitButtonLabel(label) {
+        const submit = document.getElementById('cmSubmitCritere');
+        if (!submit) {
+            return;
+        }
+
+        const span = submit.querySelector('span');
+        if (span) {
+            span.textContent = label;
+            return;
+        }
+
+        const icon = submit.querySelector('i');
+        submit.textContent = '';
+        if (icon) {
+            submit.appendChild(icon);
+            submit.appendChild(document.createTextNode(' ' + label));
+            return;
+        }
+        submit.textContent = label;
+    }
+
     function resetForm() {
         editingId = null;
         libelleInput.value = '';
         baremesRows.innerHTML = '';
         addBaremeRow('', '');
-        const submit = document.getElementById('cmSubmitCritere');
-        if (submit) {
-            submit.querySelector('span').textContent = 'Enregistrer';
-        }
+        setSubmitButtonLabel('Enregistrer');
     }
 
     function collectBaremes() {
@@ -230,7 +224,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
     function renderTable() {
         const data = filterData();
         if (data.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="3" class="cm-data-table__td is-center">Aucun critere trouve.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="3" class="cm-data-table__td is-center">Aucun critère trouvé.</td></tr>';
             return;
         }
 
@@ -241,7 +235,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
             return '' +
                 '<tr class="cm-data-table__row">' +
                     '<td class="cm-data-table__td">' + esc(row.libelle) + '</td>' +
-                    '<td class="cm-data-table__td">' + (baremes || '<span class="cm-text-muted">Aucun bareme</span>') + '</td>' +
+                    '<td class="cm-data-table__td">' + (baremes || '<span class="cm-text-muted">Aucun barème</span>') + '</td>' +
                     '<td class="cm-data-table__td is-center">' +
                         '<button type="button" class="cm-btn-action is-edit js-edit" data-id="' + esc(row.id) + '" aria-label="Modifier"><i class="fas fa-pen"></i></button>' +
                         '<button type="button" class="cm-btn-action is-delete js-delete" data-id="' + esc(row.id) + '" aria-label="Supprimer"><i class="fas fa-trash"></i></button>' +
@@ -269,7 +263,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 if (!res.success) {
-                    throw new Error(res.message || 'Erreur chargement criteres');
+                    throw new Error(res.message || 'Erreur chargement critères');
                 }
                 criteres = Array.isArray(res.data) ? res.data : [];
                 renderTable();
@@ -298,11 +292,11 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
         const libelle = (libelleInput.value || '').trim();
         const baremes = collectBaremes();
         if (libelle === '') {
-            showNotice('danger', 'Le libelle est obligatoire.');
+            showNotice('danger', 'Le libellé est obligatoire.');
             return;
         }
         if (baremes.length === 0) {
-            showNotice('danger', 'Au moins un bareme est obligatoire.');
+            showNotice('danger', 'Au moins un barème est obligatoire.');
             return;
         }
 
@@ -315,7 +309,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
             if (!res.success) {
                 throw new Error(res.message || 'Erreur enregistrement');
             }
-            showNotice('success', res.message || 'Enregistrement reussi');
+            showNotice('success', res.message || 'Enregistrement réussi');
             resetForm();
             return loadCriteres();
         }).catch(function (err) {
@@ -334,8 +328,34 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
         });
     }
 
-    yearsFilter.addEventListener('change', renderTable);
-    searchInput.addEventListener('input', renderTable);
+    if (yearsFilter) {
+        yearsFilter.addEventListener('change', renderTable);
+    }
+    if (searchInput) {
+        searchInput.addEventListener('input', renderTable);
+    }
+
+    function isThisToolbarEvent(event) {
+        return !!(event && event.detail && event.detail.toolbar && event.detail.toolbar.id === toolbarId);
+    }
+
+    document.addEventListener('cm:toolbar:search', function (event) {
+        if (!isThisToolbarEvent(event)) return;
+        event.preventDefault();
+        renderTable();
+    });
+
+    document.addEventListener('cm:toolbar:filter:apply', function (event) {
+        if (!isThisToolbarEvent(event)) return;
+        event.preventDefault();
+        renderTable();
+    });
+
+    document.addEventListener('cm:toolbar:filter:reset', function (event) {
+        if (!isThisToolbarEvent(event)) return;
+        event.preventDefault();
+        renderTable();
+    });
 
     tableBody.addEventListener('click', function (event) {
         const editBtn = event.target.closest('.js-edit');
@@ -354,10 +374,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
             if (baremesRows.children.length === 0) {
                 addBaremeRow('', '');
             }
-            const submit = document.getElementById('cmSubmitCritere');
-            if (submit) {
-                submit.querySelector('span').textContent = 'Mettre a jour';
-            }
+            setSubmitButtonLabel('Mettre a jour');
             return;
         }
 
@@ -367,14 +384,14 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
             if (!id) {
                 return;
             }
-            if (!window.confirm('Supprimer ce critere ?')) {
+            if (!window.confirm('Supprimer ce critère ?')) {
                 return;
             }
             deleteCritere(id).then(function (res) {
                 if (!res.success) {
                     throw new Error(res.message || 'Erreur suppression');
                 }
-                showNotice('success', res.message || 'Suppression reussie');
+                showNotice('success', res.message || 'Suppression réussie');
                 if (editingId === id) {
                     resetForm();
                 }
@@ -399,7 +416,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
     });
 
     document.getElementById('cmCritExport').addEventListener('click', function () {
-        const rows = [['Critere', 'Année', 'Bareme']];
+        const rows = [['Critère', 'Année', 'Barème']];
         filterData().forEach(function (c) {
             (c.baremes || []).forEach(function (b) {
                 rows.push([c.libelle || '', b.annee_lib || b.annee_id || '', String(b.bareme || '')]);
@@ -427,3 +444,5 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
     });
 })();
 </script>
+
+

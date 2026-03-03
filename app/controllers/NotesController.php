@@ -47,7 +47,8 @@ class NotesController
     public function enregistrerNotes()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_enregistrer_notes'])) {
-            $studentId = $_GET['student'] ?? null;
+            $studentId = $_GET['student'] ?? ($_POST['student'] ?? ($_POST['student_picker'] ?? null));
+            $studentId = is_string($studentId) ? trim($studentId) : $studentId;
             $anneeAcadId = $_POST['id_annee_acad'] ?? null;
 
             if (!$studentId) {
@@ -92,8 +93,9 @@ class NotesController
         if (!empty($_GET['annee'])) {
             $redirectUrl .= "&annee=" . $_GET['annee'];
         }
-        if (!empty($_GET['student'])) {
-            $redirectUrl .= "&student=" . $_GET['student'];
+        $studentId = $_GET['student'] ?? ($_POST['student'] ?? ($_POST['student_picker'] ?? null));
+        if (!empty($studentId)) {
+            $redirectUrl .= "&student=" . $studentId;
         }
 
         header("Location: " . $redirectUrl);

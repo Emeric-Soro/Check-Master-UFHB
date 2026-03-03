@@ -115,7 +115,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
     <div class="">
         <div class="">
         </div>
-        <form id="studentForm" method="POST" action="?page=gestion_etudiants&action=ajouter_des_etudiants<?php echo $preservedListParams; ?>">
+        <form id="studentForm" class="cm-ajout-etudiant-form" method="POST" action="?page=gestion_etudiants&action=ajouter_des_etudiants<?php echo $preservedListParams; ?>">
             <?php cm_component('form/csrf-token'); ?>
             <?php if (is_object($etudiantAModifier)): ?>
                 <input type="hidden" name="old_num_etu" value="<?php echo htmlspecialchars((string) ($etudiantAModifier->num_carte_etud ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
@@ -135,6 +135,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                     'required' => false,
                     'options' => $niveauOptions,
                     'selected' => (string) $formValues['id_niveau'],
+                    'control_class' => 'cm-field-md',
                 ]);
                 $promotionOptions = [];
                 foreach ($listeAnneesAcad as $annee) {
@@ -152,6 +153,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                     'required' => true,
                     'options' => $promotionOptions,
                     'selected' => (string) $formValues['promotion_etu'],
+                    'control_class' => 'cm-field-md',
                 ]);
                 echo '<input type="hidden" name="id_annee_acad" value="' . htmlspecialchars((string) $formValues['id_annee_acad'], ENT_QUOTES, 'UTF-8') . '">';
                 ?>
@@ -165,6 +167,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                     'label' => 'Identifiant (MESRS)',
                     'maxlength' => 25,
                     'value' => (string) $formValues['identifiant_mesrs'],
+                    'control_class' => 'cm-field-md',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'num_etu',
@@ -173,6 +176,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                     'maxlength' => 25,
                     'required' => true,
                     'value' => (string) $formValues['num_etu'],
+                    'control_class' => 'cm-field-md',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'nom_etu',
@@ -181,6 +185,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                     'maxlength' => 50,
                     'required' => true,
                     'value' => (string) $formValues['nom_etu'],
+                    'control_class' => 'cm-field-lg',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'prenom_etu',
@@ -189,6 +194,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                     'maxlength' => 100,
                     'required' => true,
                     'value' => (string) $formValues['prenom_etu'],
+                    'control_class' => 'cm-field-lg',
                 ]);
                 ?>
             </div>
@@ -201,6 +207,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                     'label' => 'Date Naissance',
                     'required' => true,
                     'value' => (string) $formValues['date_naiss_etu'],
+                    'control_class' => 'cm-field-sm',
                 ]);
                 cm_component('form/select', [
                     'name' => 'genre_etu',
@@ -213,6 +220,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                         '3' => 'Neutre',
                     ],
                     'selected' => (string) $formValues['genre_etu'],
+                    'control_class' => 'cm-field-md',
                 ]);
                 cm_component('form/input-email', [
                     'name' => 'email_etu',
@@ -221,6 +229,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                     'required' => true,
                     'maxlength' => 60,
                     'value' => (string) $formValues['email_etu'],
+                    'control_class' => 'cm-field-lg',
                 ]);
                 ?>
             </div>
@@ -251,49 +260,15 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
             </div>
         </form>
     </div>
-    <div class="cm-barre-intermediaire">
-        <div class="cm-toolbar">
-            <div class="cm-toolbar-left">
-                <label for="cmStudentLimit"><strong>Afficher:</strong></label>
-                <select id="cmStudentLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
-                    <?php foreach ($allowedLimits as $limit): ?>
-                        <option value="<?php echo $limit; ?>" <?php echo $limit === $itemsPerPage ? 'selected' : ''; ?>>
-                            <?php echo $limit; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="cm-toolbar-center">
-                <input type="text" id="cmStudentSearch" class="cm-form-control" placeholder="Rechercher (nom, prénom, numéro, email)...">
-            </div>
-            <div class="cm-toolbar-right">
-                <button type="button" class="cm-btn is-info is-sm" id="cmSelectAllBtn">
-                    <i class="fas fa-check-square" aria-hidden="true"></i>
-                    Tout sélectionner
-                </button>
-                <button type="button" class="cm-btn is-light is-sm" id="cmDeselectAllBtn">
-                    <i class="fas fa-square" aria-hidden="true"></i>
-                    Deselectionner
-                </button>
-                <?php if (canDelete() || canEdit()): ?>
-                    <button type="button" class="cm-btn is-info is-sm" id="cmDeleteSelectedBtn" disabled>
-                        <i class="fas fa-trash" aria-hidden="true"></i>
-                        Supprimer (<span id="cmSelectedCount">0</span>)
-                    </button>
-                <?php endif; ?>
-                <?php if (canView()): ?>
-                <button type="button" class="cm-btn is-info is-sm" id="cmPrintBtn">
-                    <i class="fas fa-print" aria-hidden="true"></i>
-                    Imprimer
-                </button>
-                <button type="button" class="cm-btn is-info is-sm" id="cmExportBtn">
-                    <i class="fas fa-file-export" aria-hidden="true"></i>
-                    Exporter
-                </button>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
+    <?php cm_toolbar([
+        'screen' => 'gestion_etudiants',
+        'id_prefix' => 'students',
+        'limit' => $itemsPerPage,
+        'limit_options' => $allowedLimits,
+        'search_placeholder' => 'Rechercher (nom, prénom, numéro, email)...',
+        'can_delete' => canDelete() || canEdit(),
+        'can_view' => canView(),
+    ]); ?>
     <div class="cm-pole-inferieur">
         <form id="studentsBulkForm" method="POST" action="?page=gestion_etudiants&action=ajouter_des_etudiants" class="cm-table-form">
             <?php cm_component('form/csrf-token'); ?>
@@ -306,8 +281,8 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                                 <input type="checkbox" id="cmCheckAllRows" class="cm-checkbox" aria-label="Sélectionner toutes les lignes">
                             </th>
                         <?php endif; ?>
-                        <th class="cm-data-table__th cm-col-id" data-sort-field="num_etu">N° Carte Etud.</th>
                         <th class="cm-data-table__th cm-col-id" data-sort-field="id_mesrs">ID MESRS</th>
+                        <th class="cm-data-table__th cm-col-id" data-sort-field="num_etu">N° Carte Etud.</th>
                         <th class="cm-data-table__th" data-sort-field="nom">Nom</th>
                         <th class="cm-data-table__th" data-sort-field="prenom">Prénom</th>
                         <th class="cm-data-table__th cm-col-date" data-sort-field="date_naiss">Date Nais.</th>
@@ -357,8 +332,8 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                                                value="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>">
                                     </td>
                                 <?php endif; ?>
-                                <td class="cm-data-table__td cm-col-id"><?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td cm-col-id"><?php echo htmlspecialchars($idMesrs, ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="cm-data-table__td cm-col-id"><?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($prenom, ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td cm-col-date"><?php echo htmlspecialchars($dateNaiss, ENT_QUOTES, 'UTF-8'); ?></td>
@@ -579,7 +554,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
     const exportBtn = document.getElementById('cmExportBtn');
     if (exportBtn) {
         exportBtn.addEventListener('click', function () {
-            const headers = ['N° Carte Etud.', 'ID MESRS', 'Nom', 'Prénom', 'Date Nais.', 'Genre', 'Email', 'Promotion'];
+            const headers = ['ID MESRS', 'N° Carte Etud.', 'Nom', 'Prénom', 'Date Nais.', 'Genre', 'Email', 'Promotion'];
             const lines = [headers.join(';')];
             visibleRows().forEach(function (row) {
                 const cells = Array.from(row.querySelectorAll('td'));

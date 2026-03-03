@@ -9,13 +9,26 @@ if ($teacherName === '') {
     $teacherName = 'Enseignant';
 }
 
+// Vérifier si l'utilisateur est administrateur
+$isAdmin = false;
+$libGU = strtolower(trim((string) ($_SESSION['lib_GU'] ?? '')));
+if (strpos($libGU, 'admin') !== false) {
+    $isAdmin = true;
+}
+
 $allYearsSelected = \AcademicYear::isAllSelectedFromSession();
 $filtreAnnee = isset($_GET['id_annee_acad']) && $_GET['id_annee_acad'] !== '' ? (int) $_GET['id_annee_acad'] : \AcademicYear::getSelectedIdFromSession();
 $filtreSession = isset($_GET['id_session']) && $_GET['id_session'] !== '' ? (int) $_GET['id_session'] : null;
+$filtreQualiteJury = isset($_GET['id_qualite_jury']) && $_GET['id_qualite_jury'] !== '' ? (int) $_GET['id_qualite_jury'] : null;
+$enseignantSelectionne = isset($_GET['id_enseignant_selected']) && $_GET['id_enseignant_selected'] !== '' ? (int) $_GET['id_enseignant_selected'] : null;
 
 $anneeOptions = [];
 $sessionOptions = [];
+$qualiteJuryOptions = [];
+$enseignantOptions = [];
 $qualitesJury = [];
+$listeEtudiants = [];
+$soutenancesProgrammees = [];
 
 try {
     if (!class_exists('Database')) {
@@ -41,12 +54,35 @@ try {
     }
 
     $enseignantModel = new Enseignant($pdo);
-    $enseignant = $enseignantModel->getEnseignantByLogin((string) ($_SESSION['login_utilisateur'] ?? ''));
-    if ($enseignant && is_object($enseignant)) {
-        $teacherId = (string) ($enseignant->id_enseignant ?? '');
-        $fullName = trim((string) ($enseignant->nom_enseignant ?? '') . ' ' . (string) ($enseignant->prenom_enseignant ?? ''));
-        if ($fullName !== '') {
-            $teacherName = $fullName;
+    
+    // Si admin, charger la liste de tous les enseignants
+    if ($isAdmin) {
+        $tousEnseignants = $enseignantModel->getAllEnseignants();
+        foreach ($tousEnseignants as $ens) {
+            $enseignantOptions[$ens->id_enseignant] = trim($ens->nom_enseignant . ' ' . $ens->prenom_enseignant);
+        }
+    }
+    
+    // Déterminer quel enseignant afficher
+    if ($isAdmin && $enseignantSelectionne !== null) {
+        // Admin a sélectionné un enseignant
+        $enseignant = $enseignantModel->getEnseignantById($enseignantSelectionne);
+        if ($enseignant && is_object($enseignant)) {
+            $teacherId = (string) ($enseignant->id_enseignant ?? '');
+            $fullName = trim((string) ($enseignant->nom_enseignant ?? '') . ' ' . (string) ($enseignant->prenom_enseignant ?? ''));
+            if ($fullName !== '') {
+                $teacherName = $fullName;
+            }
+        }
+    } else {
+        // Enseignant connecté ou admin sans sélection
+        $enseignant = $enseignantModel->getEnseignantByLogin((string) ($_SESSION['login_utilisateur'] ?? ''));
+        if ($enseignant && is_object($enseignant)) {
+            $teacherId = (string) ($enseignant->id_enseignant ?? '');
+            $fullName = trim((string) ($enseignant->nom_enseignant ?? '') . ' ' . (string) ($enseignant->prenom_enseignant ?? ''));
+            if ($fullName !== '') {
+                $teacherName = $fullName;
+            }
         }
     }
 
@@ -56,6 +92,10 @@ try {
 
     $stmtSessions = $pdo->query("SELECT id_session, lib_session FROM session ORDER BY id_session");
     $sessionOptions = $stmtSessions->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+
+    // Options qualités de jury
+    $stmtQualites = $pdo->query("SELECT id_role_jury, lib_role FROM qualite_jury ORDER BY id_role_jury");
+    $qualiteJuryOptions = $stmtQualites->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
 
     // Qualites de jury
     if ($teacherId !== '') {
@@ -67,13 +107,18 @@ try {
         $params = [':id_enseignant' => $teacherId];
 
         if ($filtreAnnee !== null) {
-            $whereConditions[] = "e.id_annee_acad = :id_annee_acad";
+            $whereConditions[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
             $params[':id_annee_acad'] = $filtreAnnee;
         }
 
         if ($filtreSession !== null) {
             $whereConditions[] = "ps.id_session = :id_session";
             $params[':id_session'] = $filtreSession;
+        }
+
+        if ($filtreQualiteJury !== null) {
+            $whereConditions[] = "ej.id_qualite_jury = :id_qualite_jury";
+            $params[':id_qualite_jury'] = $filtreQualiteJury;
         }
 
         $whereClause = implode(' AND ', $whereConditions);
@@ -92,6 +137,100 @@ try {
         $stmtQualites = $pdo->prepare($sqlQualites);
         $stmtQualites->execute($params);
         $qualitesJury = $stmtQualites->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        // Tableau des étudiants avec tous les rôles de jury
+        $whereEtudiants = ["CAST(ej_main.id_enseignant AS CHAR) = :id_enseignant"];
+        $paramsEtudiants = [':id_enseignant' => $teacherId];
+        
+        if ($filtreAnnee !== null) {
+            $whereEtudiants[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+            $paramsEtudiants[':id_annee_acad'] = $filtreAnnee;
+        }
+        
+        if ($filtreSession !== null) {
+            $whereEtudiants[] = "ps.id_session = :id_session";
+            $paramsEtudiants[':id_session'] = $filtreSession;
+        }
+
+        if ($filtreQualiteJury !== null) {
+            $whereEtudiants[] = "ej_main.id_qualite_jury = :id_qualite_jury";
+            $paramsEtudiants[':id_qualite_jury'] = $filtreQualiteJury;
+        }
+        
+        $whereEtudiantsClause = implode(' AND ', $whereEtudiants);
+
+        $sqlEtudiants = "SELECT DISTINCT
+                            e.num_carte_etud,
+                            e.nom_etu AS nom_etud,
+                            e.prenom_etu AS prenom_etud,
+                            ps.theme_soutenance,
+                            ps.num_soutenance,
+                            (SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ')
+                             FROM {$juryTable} ej 
+                             JOIN enseignants en ON en.id_enseignant = ej.id_enseignant
+                             WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = 1) AS president,
+                            (SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ')
+                             FROM {$juryTable} ej 
+                             JOIN enseignants en ON en.id_enseignant = ej.id_enseignant
+                             WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = 2) AS directeur_memoire,
+                            (SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ')
+                             FROM {$juryTable} ej 
+                             JOIN enseignants en ON en.id_enseignant = ej.id_enseignant
+                             WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = 3) AS examinateur,
+                            (SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ')
+                             FROM {$juryTable} ej 
+                             JOIN enseignants en ON en.id_enseignant = ej.id_enseignant
+                             WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = 4) AS encadrant,
+                            (SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ')
+                             FROM {$juryTable} ej 
+                             JOIN enseignants en ON en.id_enseignant = ej.id_enseignant
+                             WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = 5) AS maitre_stage
+                        FROM {$juryTable} ej_main
+                        JOIN {$progTable} ps ON ps.num_soutenance = ej_main.num_soutenance
+                        JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                        WHERE {$whereEtudiantsClause}
+                        ORDER BY e.nom_etu, e.prenom_etu";
+        
+        $stmtEtudiants = $pdo->prepare($sqlEtudiants);
+        $stmtEtudiants->execute($paramsEtudiants);
+        $listeEtudiants = $stmtEtudiants->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        // Soutenances à venir pour cet enseignant
+        $whereSoutenances = ["CAST(ej.id_enseignant AS CHAR) = :id_enseignant", "ps.date_soutenance IS NOT NULL", "CONCAT(ps.date_soutenance, ' ', COALESCE(ps.heure_soutenance, '00:00:00')) >= NOW()"];
+        $paramsSoutenances = [':id_enseignant' => $teacherId];
+        
+        if ($filtreSession !== null) {
+            $whereSoutenances[] = "ps.id_session = :id_session";
+            $paramsSoutenances[':id_session'] = $filtreSession;
+        }
+
+        if ($filtreQualiteJury !== null) {
+            $whereSoutenances[] = "ej.id_qualite_jury = :id_qualite_jury";
+            $paramsSoutenances[':id_qualite_jury'] = $filtreQualiteJury;
+        }
+        
+        $whereSoutenancesClause = implode(' AND ', $whereSoutenances);
+        
+        $sqlSoutenances = "SELECT DISTINCT
+                            ps.date_soutenance,
+                            ps.heure_soutenance,
+                            e.num_carte_etud,
+                            CONCAT(e.nom_etu, ' ', e.prenom_etu) AS nom_complet_etudiant,
+                            ps.theme_soutenance,
+                            qj.lib_role,
+                            qj.code_qltjury,
+                            s.lib_salle AS nom_salle
+                        FROM {$juryTable} ej
+                        JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance
+                        JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                        JOIN {$rolesTable} qj ON qj.id_role_jury = ej.id_qualite_jury
+                        LEFT JOIN salles s ON s.id_salle = ps.id_salle
+                        WHERE {$whereSoutenancesClause}
+                        ORDER BY ps.date_soutenance ASC, ps.heure_soutenance ASC";
+        
+        $stmtSoutenances = $pdo->prepare($sqlSoutenances);
+        $stmtSoutenances->execute($paramsSoutenances);
+        $soutenancesProgrammees = $stmtSoutenances->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 } catch (Throwable $e) {
     error_log('PRD8 enseignant dashboard filters error: ' . $e->getMessage());
@@ -120,9 +259,9 @@ try {
         $whereStudents = "CAST(a.id_enseignant AS CHAR) = :id_enseignant AND a.role IN ('encadrant', 'directeur')";
 
         if ($filtreAnnee !== null) {
-            $whereReports .= " AND EXISTS (SELECT 1 FROM etudiants e WHERE e.num_carte_etud = r.num_etu AND e.id_annee_acad = :id_annee_acad)";
-            $whereSoutenances .= " AND e.id_annee_acad = :id_annee_acad";
-            $whereStudents .= " AND EXISTS (SELECT 1 FROM etudiants e WHERE e.num_carte_etud = r.num_etu AND e.id_annee_acad = :id_annee_acad)";
+            $whereReports .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
+            $whereSoutenances .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+            $whereStudents .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
         }
 
         if ($filtreSession !== null) {
@@ -150,7 +289,7 @@ try {
         ];
         $paramsNext = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) {
-            $whereNext[] = "e.id_annee_acad = :id_annee_acad";
+            $whereNext[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
             $paramsNext[':id_annee_acad'] = $filtreAnnee;
         }
         if ($filtreSession !== null) {
@@ -172,7 +311,7 @@ try {
         $whereRecentReports = ["CAST(a.id_enseignant AS CHAR) = :id_enseignant"];
         $paramsRecentReports = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) {
-            $whereRecentReports[] = "EXISTS (SELECT 1 FROM etudiants e WHERE e.num_carte_etud = r.num_etu AND e.id_annee_acad = :id_annee_acad)";
+            $whereRecentReports[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
             $paramsRecentReports[':id_annee_acad'] = $filtreAnnee;
         }
         $stmtRecentReports = $pdo->prepare("SELECT r.theme_rapport, r.date_redaction_rapport FROM affecter a INNER JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport WHERE " . implode(' AND ', $whereRecentReports) . " ORDER BY r.date_redaction_rapport DESC LIMIT 5");
@@ -192,7 +331,7 @@ try {
         $whereRecentSout = ["CAST(ej.id_enseignant AS CHAR) = :id_enseignant"];
         $paramsRecentSout = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) {
-            $whereRecentSout[] = "e.id_annee_acad = :id_annee_acad";
+            $whereRecentSout[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
             $paramsRecentSout[':id_annee_acad'] = $filtreAnnee;
         }
         if ($filtreSession !== null) {
@@ -233,19 +372,6 @@ if ((int) $stats['etudiants_encadres'] === 0) {
     $stats['etudiants_encadres'] = (int) ($GLOBALS['total_etudiants'] ?? 0);
 }
 
-if (empty($activityItems)) {
-    $mesCours = is_array($GLOBALS['mes_cours'] ?? null) ? $GLOBALS['mes_cours'] : [];
-    foreach (array_slice($mesCours, 0, 6) as $cours) {
-        $course = is_array($cours) ? $cours : (array) $cours;
-        $activityItems[] = [
-            'type' => 'info',
-            'icon' => 'fa-book-open',
-            'text' => 'Cours assigne: ' . (string) ($course['nom'] ?? 'Cours'),
-            'time' => '',
-        ];
-    }
-}
-
 // Mapping des icones et couleurs pour les qualites de jury
 $roleIcons = [
     'President' => ['icon' => 'fa-gavel', 'color' => 'primary'],
@@ -267,43 +393,81 @@ function normalizeRoleName(string $role): string {
 ?>
 
 <section class="cm-prd3-screen">
+    <?php if ($isAdmin): ?>
+        <div class="cm-card cm-mb-md">
+            <div class="cm-card__body">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-user-shield" style="font-size: 24px;"></i>
+                    <div>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">
+                            <?php if ($enseignantSelectionne !== null): ?>
+                                Consultation des données de : <strong><?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?></strong>
+                            <?php else: ?>
+                                Sélectionnez un enseignant pour consulter ses informations
+                            <?php endif; ?>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div class="cm-card cm-mb-md">
-        <form method="GET" class="cm-grid-3" style="align-items: end;">
+        <form method="GET" style="align-items: end;">
             <input type="hidden" name="page" value="tableau_bord_enseignant">
 
             <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars((string) (\AcademicYear::getWritableIdFromSession() ?? ''), ENT_QUOTES, 'UTF-8') ?>">
 
-            <?= cm_component('form/select', [
-                'name' => 'id_session',
-                'label' => 'Période',
-                'options' => $sessionOptions,
-                'selected' => (string)($filtreSession ?? ''),
-                'placeholder' => 'Toutes les périodes'
-            ]) ?>
+            <?php if ($isAdmin): ?>
+                <div class="cm-mb-md" style="max-width: 380px;">
+                    <?= cm_component('form/select', [
+                        'name' => 'id_enseignant_selected',
+                        'label' => 'Enseignant à consulter',
+                        'options' => $enseignantOptions,
+                        'selected' => (string)($enseignantSelectionne ?? ''),
+                        'placeholder' => 'Sélectionner un enseignant'
+                    ]) ?>
+                </div>
+            <?php endif; ?>
 
-            <div class="cm-flex cm-flex-gap-sm">
-                <button type="submit" class="cm-btn cm-btn--primary">
-                    <i class="fas fa-filter cm-mr-sm"></i> Filtrer
-                </button>
-                <a href="?page=tableau_bord_enseignant" class="cm-btn cm-btn--outline">
-                    Réinitialiser
-                </a>
+            <div class="cm-grid-3 cm-mb-md">
+                <?= cm_component('form/select', [
+                    'name' => 'id_session',
+                    'label' => 'Session',
+                    'options' => $sessionOptions,
+                    'selected' => (string)($filtreSession ?? ''),
+                    'placeholder' => 'Toutes les sessions'
+                ]) ?>
+
+                <?= cm_component('form/select', [
+                    'name' => 'id_qualite_jury',
+                    'label' => 'Qualité de jury',
+                    'options' => $qualiteJuryOptions,
+                    'selected' => (string)($filtreQualiteJury ?? ''),
+                    'placeholder' => 'Toutes les qualités'
+                ]) ?>
+
+                <div class="cm-flex cm-flex-gap-sm">
+                    <button type="submit" class="cm-btn cm-btn--primary">
+                        <i class="fas fa-filter cm-mr-sm"></i> Filtrer
+                    </button>
+                    <a href="?page=tableau_bord_enseignant" class="cm-btn cm-btn--outline">
+                        Réinitialiser
+                    </a>
+                </div>
             </div>
         </form>
     </div>
 
     <div class="cm-grid-4">
         <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format((int) $stats['rapports_a_evaluer'], 0, ',', ' '), 'label' => 'Rapports à évaluer', 'icon' => 'fa-file-circle-check', 'color' => 'warning']); ?>
-            <a class="cm-stat-card__link" href="?page=rapport_a_valider" data-cm-ajax-link="true">Voir ▸</a>
-        </div>
-        <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format((int) $stats['soutenances_planifiees'], 0, ',', ' '), 'label' => 'Soutenances planifiées', 'icon' => 'fa-calendar-check', 'color' => 'info']); ?>
-            <a class="cm-stat-card__link" href="?page=programmation_soutenance" data-cm-ajax-link="true">Voir ▸</a>
+            <?php cm_component('dashboard/stat-widget', ['value' => number_format((int) $stats['soutenances_planifiees'], 0, ',', ' '), 'label' => 'Soutenances à venir', 'icon' => 'fa-calendar-check', 'color' => 'info']); ?>
+            <?php if (!empty($soutenancesProgrammees)): ?>
+                <a class="cm-stat-card__link" href="#section-soutenances-a-venir" onclick="document.getElementById('section-soutenances-a-venir').scrollIntoView({behavior: 'smooth', block: 'start'}); return false;">Voir ▸</a>
+            <?php endif; ?>
         </div>
         <div>
             <?php cm_component('dashboard/stat-widget', ['value' => number_format((int) $stats['etudiants_encadres'], 0, ',', ' '), 'label' => 'Étudiants encadrés', 'icon' => 'fa-users', 'color' => 'success']); ?>
-            <a class="cm-stat-card__link" href="?page=liste_etudiants_ens" data-cm-ajax-link="true">Liste ▸</a>
         </div>
         <div>
             <?php cm_component('dashboard/stat-widget', ['value' => (string) $stats['prochaine_soutenance'], 'label' => 'Prochaine soutenance', 'icon' => 'fa-clock', 'color' => 'primary']); ?>
@@ -343,36 +507,161 @@ function normalizeRoleName(string $role): string {
                 ]) ?>
             </div>
         </div>
+    <?php elseif ($isAdmin && $enseignantSelectionne === null): ?>
+        <div class="cm-card cm-mt-md">
+            <div class="cm-card__body">
+                <?= cm_component('ui/empty-state', [
+                    'title' => 'Aucun enseignant sélectionné',
+                    'message' => 'Veuillez sélectionner un enseignant dans le filtre ci-dessus pour consulter ses informations.',
+                    'icon' => 'fa-user-circle',
+                ]) ?>
+            </div>
+        </div>
     <?php endif; ?>
 
-    <div class="cm-grid-2 cm-mt-md">
-        <?php cm_component('dashboard/activity-list', ['title' => '', 'items' => $activityItems]); ?>
-
-        <div class="cm-chart-container">
-            <div class="cm-chart-container__header">
-
-                <p class="cm-chart-container__subtitle">Navigation directe</p>
+    <?php if (!empty($listeEtudiants)): ?>
+        <div class="cm-card cm-mt-md">
+            <div class="cm-card__header">
+                <h3 class="cm-card__title">
+                    <i class="fas fa-users-cog cm-mr-sm"></i>
+                    Liste des étudiants et composition du jury
+                </h3>
             </div>
-            <div class="cm-chart-container__body">
-                <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
-                    <a class="cm-btn is-info" href="?page=rapport_a_valider" data-cm-ajax-link="true">
-                        <i class="fas fa-file-signature" aria-hidden="true"></i>
-                        Evaluations
-                    </a>
-                    <a class="cm-btn is-primary" href="?page=programmation_soutenance" data-cm-ajax-link="true">
-                        <i class="fas fa-calendar-days" aria-hidden="true"></i>
-                        Planning soutenances
-                    </a>
-                    <a class="cm-btn is-success" href="?page=liste_etudiants_ens" data-cm-ajax-link="true">
-                        <i class="fas fa-list" aria-hidden="true"></i>
-                        Liste étudiants
-                    </a>
-                    <a class="cm-btn is-warning" href="?page=repertoire_enseignant" data-cm-ajax-link="true">
-                        <i class="fas fa-folder-open" aria-hidden="true"></i>
-                        Repertoire documents
+            <div class="cm-card__body">
+                <div style="overflow-x: auto;">
+                    <table class="cm-table">
+                        <thead>
+                            <tr>
+                                <th>N° Étudiant</th>
+                                <th>Nom et Prénom</th>
+                                <th>Thème</th>
+                                <th>Président</th>
+                                <th>Directeur mémoire</th>
+                                <th>Examinateur</th>
+                                <th>Encadrant</th>
+                                <th>Maître de stage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($listeEtudiants as $etudiant): 
+                                $teacherFullName = $teacherName ?? '';
+                            ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($etudiant['num_carte_etud'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars(($etudiant['nom_etud'] ?? '') . ' ' . ($etudiant['prenom_etud'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><small><?= htmlspecialchars($etudiant['theme_soutenance'] ?? '', ENT_QUOTES, 'UTF-8') ?></small></td>
+                                    <td <?php 
+                                        $president = $etudiant['president'] ?? '';
+                                        if ($president !== '' && stripos($president, $teacherFullName) !== false) {
+                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
+                                        }
+                                    ?>><?= htmlspecialchars($president, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
+                                    <td <?php 
+                                        $directeur = $etudiant['directeur_memoire'] ?? '';
+                                        if ($directeur !== '' && stripos($directeur, $teacherFullName) !== false) {
+                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
+                                        }
+                                    ?>><?= htmlspecialchars($directeur, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
+                                    <td <?php 
+                                        $examinateur = $etudiant['examinateur'] ?? '';
+                                        if ($examinateur !== '' && stripos($examinateur, $teacherFullName) !== false) {
+                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
+                                        }
+                                    ?>><?= htmlspecialchars($examinateur, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
+                                    <td <?php 
+                                        $encadrant = $etudiant['encadrant'] ?? '';
+                                        if ($encadrant !== '' && stripos($encadrant, $teacherFullName) !== false) {
+                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
+                                        }
+                                    ?>><?= htmlspecialchars($encadrant, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
+                                    <td <?php 
+                                        $maitre = $etudiant['maitre_stage'] ?? '';
+                                        if ($maitre !== '' && stripos($maitre, $teacherFullName) !== false) {
+                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
+                                        }
+                                    ?>><?= htmlspecialchars($maitre, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($soutenancesProgrammees)): ?>
+        <div class="cm-card cm-mt-md" id="section-soutenances-a-venir">
+            <div class="cm-card__header">
+                <h3 class="cm-card__title">
+                    <i class="fas fa-calendar-alt cm-mr-sm"></i>
+                    Soutenances à venir
+                </h3>
+                <p class="cm-text-muted"><small>
+                    <?php if ($isAdmin && $enseignantSelectionne !== null): ?>
+                        Soutenances où <?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?> est membre du jury
+                    <?php else: ?>
+                        Soutenances où vous êtes membre du jury
+                    <?php endif; ?>
+                </small></p>
+            </div>
+            <div class="cm-card__body">
+                <div style="overflow-x: auto;">
+                    <table class="cm-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Heure</th>
+                                <th>N° Étudiant</th>
+                                <th>Étudiant</th>
+                                <th>Thème</th>
+                                <th><?php echo ($isAdmin && $enseignantSelectionne !== null) ? 'Rôle' : 'Votre rôle'; ?></th>
+                                <th>Salle</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($soutenancesProgrammees as $soutenance): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars(date('d/m/Y', strtotime($soutenance['date_soutenance'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars(date('H:i', strtotime($soutenance['heure_soutenance'] ?? '00:00:00')), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($soutenance['num_carte_etud'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($soutenance['nom_complet_etudiant'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><small><?= htmlspecialchars($soutenance['theme_soutenance'] ?? '', ENT_QUOTES, 'UTF-8') ?></small></td>
+                                    <td>
+                                        <span class="cm-badge cm-badge--<?php 
+                                            $code = $soutenance['code_qltjury'] ?? '';
+                                            echo $code === 'PJ' ? 'primary' : ($code === 'DM' ? 'info' : ($code === 'EX' ? 'warning' : ($code === 'EN' ? 'success' : 'danger')));
+                                        ?>">
+                                            <?= htmlspecialchars($soutenance['lib_role'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                                        </span>
+                                    </td>
+                                    <td><?= htmlspecialchars($soutenance['nom_salle'] ?? '-', ENT_QUOTES, 'UTF-8') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="cm-mt-md">
+                    <?php 
+                        $exportParams = [
+                            'id_session' => $filtreSession, 
+                            'id_qualite_jury' => $filtreQualiteJury
+                        ];
+                        if ($isAdmin && $enseignantSelectionne !== null) {
+                            $exportParams['id_enseignant_selected'] = $enseignantSelectionne;
+                        }
+                    ?>
+                    <a href="../ressources/views/v2/export_planning_enseignant_pdf.php?<?= http_build_query($exportParams) ?>" 
+                       class="cm-btn cm-btn--primary" 
+                       target="_blank">
+                        <i class="fas fa-file-pdf cm-mr-sm"></i>
+                        Télécharger le planning (PDF)
                     </a>
                 </div>
             </div>
         </div>
+    <?php endif; ?>
+
+    <div class="cm-grid-2 cm-mt-md">
+        <?php cm_component('dashboard/activity-list', ['title' => '', 'items' => $activityItems]); ?>
     </div>
 </section>

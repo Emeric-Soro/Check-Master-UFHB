@@ -108,20 +108,20 @@ function traduireStatut($statut)
         .search-container {
             position: relative;
             background: rgba(255, 255, 255, 0.9);
-            border-radius: 16px;
-            padding: 0.35rem 0.45rem;
+            border-radius: 14px;
+            padding: 0.3rem 0.4rem;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            max-width: 520px;
+            max-width: 460px;
         }
 
         .search-input {
             width: 100%;
-            min-height: 40px;
-            padding: 0.7rem 0.85rem 0.7rem 2.5rem;
+            min-height: 36px;
+            padding: 0.55rem 0.75rem 0.55rem 2.25rem;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             background: transparent;
-            font-size: 0.92rem;
+            font-size: 0.86rem;
             color: #374151;
             outline: none;
         }
@@ -132,20 +132,20 @@ function traduireStatut($statut)
 
         .search-icon {
             position: absolute;
-            left: 1rem;
+            left: 0.85rem;
             top: 50%;
             transform: translateY(-50%);
             color: #667eea;
-            font-size: 1rem;
+            font-size: 0.92rem;
         }
 
         .verification-comment {
             width: 100%;
-            min-height: 88px;
-            padding: 0.55rem 0.7rem;
+            min-height: 72px;
+            padding: 0.45rem 0.6rem;
             border: 1px solid #d1d5db;
-            border-radius: 12px;
-            font-size: 0.88rem;
+            border-radius: 10px;
+            font-size: 0.84rem;
             resize: vertical;
         }
 
@@ -394,11 +394,14 @@ function traduireStatut($statut)
             </div>
         <?php endif; ?>
 
-        <div class="search-container mb-6">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" id="searchInput" class="search-input"
-                placeholder="Rechercher par nom d'étudiant, rapport ou thème...">
-        </div>
+        <?php cm_toolbar([
+            'screen' => 'verification_candidatures',
+            'id_prefix' => 'verif_cand',
+            'search_value' => $_GET['search'] ?? '',
+            'limit' => 10,
+            'can_delete' => canDelete(),
+            'can_view' => canView(),
+        ]); ?>
 
 
         <!-- Table Section -->

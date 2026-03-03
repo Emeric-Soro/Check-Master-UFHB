@@ -79,6 +79,11 @@ $queryForPager = array_filter([
     return $value !== '';
 });
 $pagerBase = '?' . http_build_query($queryForPager);
+$exportFilters = $filters;
+unset($exportFilters['action']);
+$exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter($exportFilters, static function ($v) {
+    return $v !== '';
+}));
 ?>
 <section class="cm-prd3-crud-screen cm-prd6-admin-screen">
     <?php if (!empty($_GET['success']) && $_GET['success'] === 'cleanup'): ?>
@@ -92,9 +97,7 @@ $pagerBase = '?' . http_build_query($queryForPager);
     <?php endif; ?>
 
     <div class="cm-crud-wrapper">
-        <?php
-        ob_start();
-        ?>
+        <?php ob_start(); ?>
         <form id="cmAuditFiltersForm" method="GET" data-cm-ajax-form="true">
             <input type="hidden" name="page" value="piste_audit">
             <div class="cm-grid-4">
@@ -170,35 +173,36 @@ $pagerBase = '?' . http_build_query($queryForPager);
         ]);
         ?>
 
-        <?php
-        ob_start();
-        ?>
-        <div class="cm-toolbar__actions">
-            <?php
-            $exportFilters = $filters;
-            unset($exportFilters['action']);
-            ?>
-            <a class="cm-btn is-info is-sm" href="<?= htmlspecialchars('?page=piste_audit&action=export&' . http_build_query(array_filter($exportFilters, static function ($v) { return $v !== ''; })), ENT_QUOTES, 'UTF-8') ?>">
-                <i class="fas fa-file-export" aria-hidden="true"></i>
-                <span>Exporter CSV</span>
-            </a>
-            <?php if (function_exists('canDelete') ? canDelete() : true): ?>
-            <form method="POST" action="?page=piste_audit&action=cleanup" class="cm-inline-form" data-cm-ajax-form="true">
+        <?php cm_toolbar([
+            'screen' => 'piste_audit',
+            'id_prefix' => 'audit',
+            'search_value' => $filters['search'],
+            'limit' => $perPage,
+            'show_actions' => false,
+            'custom_actions' => array_values(array_filter([
+                [
+                    'tag' => 'a',
+                    'href' => $exportUrl,
+                    'label' => 'Exporter CSV',
+                    'class' => 'cm-btn is-info is-sm',
+                ],
+                (function_exists('canDelete') ? canDelete() : true) ? [
+                    'tag' => 'button',
+                    'type' => 'submit',
+                    'label' => 'Nettoyer',
+                    'class' => 'cm-btn is-danger is-sm',
+                    'attrs' => [
+                        'form' => 'cmAuditCleanupForm',
+                    ],
+                ] : null,
+            ])),
+        ]); ?>
+        <?php if (function_exists('canDelete') ? canDelete() : true): ?>
+            <form id="cmAuditCleanupForm" method="POST" action="?page=piste_audit&action=cleanup" class="cm-hidden" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
-                <input type="number" name="days" min="1" max="365" value="30" class="cm-form-control cm-field-xs">
-                <button type="submit" class="cm-btn is-danger is-sm">
-                    <i class="fas fa-broom" aria-hidden="true"></i>
-                    <span>Nettoyer</span>
-                </button>
+                <input type="hidden" name="days" value="30">
             </form>
-            <?php endif; ?>
-        </div>
-        <?php
-        cm_component('crud/toolbar', [
-            'left_html' => '<span class="cm-text-muted">Total logs: ' . (int) $totalLogs . '</span>',
-            'right_html' => (string) ob_get_clean(),
-        ]);
-        ?>
+        <?php endif; ?>
 
         <div class="cm-pole-inferieur">
             <?php

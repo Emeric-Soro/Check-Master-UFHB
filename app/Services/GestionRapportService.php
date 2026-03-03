@@ -64,7 +64,7 @@ class GestionRapportService
     private function getStudentAcademicYearId($num_etu): ?int
     {
         try {
-            $stmt = $this->db->prepare('SELECT id_annee_acad FROM etudiants WHERE num_carte_etud = ? LIMIT 1');
+            $stmt = $this->db->prepare('SELECT id_annee_acad FROM inscriptions WHERE id_etudiant = ? ORDER BY date_inscription DESC, id_inscription DESC LIMIT 1');
             $stmt->execute([(string) $num_etu]);
             $value = $stmt->fetchColumn();
             return is_numeric($value) ? (int) $value : null;

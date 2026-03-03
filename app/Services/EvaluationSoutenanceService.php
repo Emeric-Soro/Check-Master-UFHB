@@ -50,7 +50,7 @@ class EvaluationSoutenanceService
     private function getStudentAcademicYearId(string $numEtu): ?int
     {
         try {
-            $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM etudiants WHERE num_carte_etud = ? LIMIT 1");
+            $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM inscriptions WHERE id_etudiant = ? ORDER BY date_inscription DESC, id_inscription DESC LIMIT 1");
             $stmt->execute([$numEtu]);
             $value = $stmt->fetchColumn();
             if (is_numeric($value) && (int) $value > 0) {
@@ -62,7 +62,14 @@ class EvaluationSoutenanceService
 
         if ($this->columnExists('etudiants', 'num_ident_etud')) {
             try {
-                $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM etudiants WHERE num_ident_etud = ? LIMIT 1");
+                $stmt = $this->pdo->prepare("
+                    SELECT i.id_annee_acad
+                    FROM inscriptions i
+                    INNER JOIN etudiants e ON e.num_carte_etud = i.id_etudiant
+                    WHERE e.num_ident_etud = ?
+                    ORDER BY i.date_inscription DESC, i.id_inscription DESC
+                    LIMIT 1
+                ");
                 $stmt->execute([$numEtu]);
                 $value = $stmt->fetchColumn();
                 if (is_numeric($value) && (int) $value > 0) {
@@ -317,30 +324,62 @@ class EvaluationSoutenanceService
 
         if ($this->tableExists('bareme_critere')) {
             $sql = "
-                SELECT c.id_critere, c.lib_critere, COALESCE(bc.bareme, 20) AS bareme_max
+                SELECT c.id_critere, c.code_critere, c.lib_critere, bc.bareme AS bareme_max
                 FROM critere_evaluation c
-                LEFT JOIN bareme_critere bc ON c.id_critere = bc.id_critere AND bc.id_annee_acad = ?
+                INNER JOIN bareme_critere bc ON c.id_critere = bc.id_critere
+                WHERE bc.id_annee_acad = ?
                 ORDER BY c.id_critere
             ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$idAnneeAcad]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (!empty($rows)) {
+                return $rows;
+            }
+
+            $stmt = $this->pdo->query("
+                SELECT c.id_critere, c.code_critere, c.lib_critere, bc.bareme AS bareme_max
+                FROM critere_evaluation c
+                INNER JOIN bareme_critere bc ON c.id_critere = bc.id_critere
+                WHERE bc.id_annee_acad = (SELECT MAX(id_annee_acad) FROM bareme_critere)
+                ORDER BY c.id_critere
+            ");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (!empty($rows)) {
+                return $rows;
+            }
         }
 
         if ($this->tableExists('correspondre')) {
             $sql = "
-                SELECT c.id_critere, c.lib_critere, COALESCE(cr.bareme, 20) AS bareme_max
+                SELECT c.id_critere, c.code_critere, c.lib_critere, cr.bareme AS bareme_max
                 FROM critere_evaluation c
-                LEFT JOIN correspondre cr ON c.id_critere = cr.id_critere AND cr.id_annee_acad = ?
+                INNER JOIN correspondre cr ON c.id_critere = cr.id_critere
+                WHERE cr.id_annee_acad = ?
                 ORDER BY c.id_critere
             ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$idAnneeAcad]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (!empty($rows)) {
+                return $rows;
+            }
+
+            $stmt = $this->pdo->query("
+                SELECT c.id_critere, c.code_critere, c.lib_critere, cr.bareme AS bareme_max
+                FROM critere_evaluation c
+                INNER JOIN correspondre cr ON c.id_critere = cr.id_critere
+                WHERE cr.id_annee_acad = (SELECT MAX(id_annee_acad) FROM correspondre)
+                ORDER BY c.id_critere
+            ");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (!empty($rows)) {
+                return $rows;
+            }
         }
 
         $stmt = $this->pdo->query("
-            SELECT c.id_critere, c.lib_critere, 20 AS bareme_max
+            SELECT c.id_critere, c.code_critere, c.lib_critere, NULL AS bareme_max
             FROM critere_evaluation c
             ORDER BY c.id_critere
         ");
@@ -352,7 +391,7 @@ class EvaluationSoutenanceService
         $idCritere = (int) $idCritere;
         $idAnneeAcad = (string) $idAnneeAcad;
         if ($idCritere <= 0) {
-            return 20.0;
+            throw new Exception('Critere invalide');
         }
 
         try {
@@ -364,6 +403,19 @@ class EvaluationSoutenanceService
                     LIMIT 1
                 ");
                 $stmt->execute([$idCritere, $idAnneeAcad]);
+                $value = $stmt->fetchColumn();
+                if ($value !== false && $value !== null) {
+                    return (float) $value;
+                }
+
+                $stmt = $this->pdo->prepare("
+                    SELECT bareme
+                    FROM bareme_critere
+                    WHERE id_critere = ?
+                    ORDER BY id_annee_acad DESC
+                    LIMIT 1
+                ");
+                $stmt->execute([$idCritere]);
                 $value = $stmt->fetchColumn();
                 if ($value !== false && $value !== null) {
                     return (float) $value;
@@ -382,12 +434,25 @@ class EvaluationSoutenanceService
                 if ($value !== false && $value !== null) {
                     return (float) $value;
                 }
+
+                $stmt = $this->pdo->prepare("
+                    SELECT bareme
+                    FROM correspondre
+                    WHERE id_critere = ?
+                    ORDER BY id_annee_acad DESC
+                    LIMIT 1
+                ");
+                $stmt->execute([$idCritere]);
+                $value = $stmt->fetchColumn();
+                if ($value !== false && $value !== null) {
+                    return (float) $value;
+                }
             }
         } catch (Throwable $e) {
-            return 20.0;
+            throw new Exception('Barème introuvable pour le critère ' . $idCritere);
         }
 
-        return 20.0;
+        throw new Exception('Barème introuvable pour le critère ' . $idCritere);
     }
 
     public function getSoutenancesProgrammeesForView(): array
@@ -457,7 +522,7 @@ class EvaluationSoutenanceService
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
-                $sql .= " AND e.id_annee_acad = :id_annee_acad";
+                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
             }
 
             $sql .= "
@@ -516,8 +581,9 @@ class EvaluationSoutenanceService
             foreach ($rows as $row) {
                 $result[] = [
                     'id_critere' => (int) ($row->id_critere ?? 0),
+                    'code_critere' => (string) ($row->code_critere ?? ''),
                     'lib_critere' => (string) ($row->lib_critere ?? ''),
-                    'bareme_max' => 20,
+                    'bareme_max' => null,
                 ];
             }
             return $result;
@@ -826,7 +892,20 @@ class EvaluationSoutenanceService
 
         if ($this->tableExists('bareme_critere') && $idAnneeAcad !== '') {
             $stmtEval = $this->pdo->prepare("
-                SELECT ev.id_critere, ev.note, ce.lib_critere, COALESCE(bc.bareme, 20) AS bareme
+                SELECT
+                    ev.id_critere,
+                    ev.note,
+                    ce.lib_critere,
+                    COALESCE(
+                        bc.bareme,
+                        (
+                            SELECT b2.bareme
+                            FROM bareme_critere b2
+                            WHERE b2.id_critere = ev.id_critere
+                            ORDER BY b2.id_annee_acad DESC
+                            LIMIT 1
+                        )
+                    ) AS bareme
                 FROM evaluer ev
                 LEFT JOIN critere_evaluation ce ON ce.id_critere = ev.id_critere
                 LEFT JOIN bareme_critere bc ON bc.id_critere = ev.id_critere AND bc.id_annee_acad = ?
@@ -834,9 +913,32 @@ class EvaluationSoutenanceService
                 ORDER BY ev.id_critere
             ");
             $stmtEval->execute([$idAnneeAcad, $soutenance['num_etu'], $juryRef]);
+        } elseif ($this->tableExists('correspondre') && $idAnneeAcad !== '') {
+            $stmtEval = $this->pdo->prepare("
+                SELECT
+                    ev.id_critere,
+                    ev.note,
+                    ce.lib_critere,
+                    COALESCE(
+                        cr.bareme,
+                        (
+                            SELECT c2.bareme
+                            FROM correspondre c2
+                            WHERE c2.id_critere = ev.id_critere
+                            ORDER BY c2.id_annee_acad DESC
+                            LIMIT 1
+                        )
+                    ) AS bareme
+                FROM evaluer ev
+                LEFT JOIN critere_evaluation ce ON ce.id_critere = ev.id_critere
+                LEFT JOIN correspondre cr ON cr.id_critere = ev.id_critere AND cr.id_annee_acad = ?
+                WHERE ev.num_etudiant = ? AND ev.num_jury = ?
+                ORDER BY ev.id_critere
+            ");
+            $stmtEval->execute([$idAnneeAcad, $soutenance['num_etu'], $juryRef]);
         } else {
             $stmtEval = $this->pdo->prepare("
-                SELECT ev.id_critere, ev.note, ce.lib_critere, 20 AS bareme
+                SELECT ev.id_critere, ev.note, ce.lib_critere, NULL AS bareme
                 FROM evaluer ev
                 LEFT JOIN critere_evaluation ce ON ce.id_critere = ev.id_critere
                 WHERE ev.num_etudiant = ? AND ev.num_jury = ?
@@ -936,6 +1038,20 @@ class EvaluationSoutenanceService
         return 'Insuffisant';
     }
 
+    public function getBaremeCriteres()
+    {
+        try {
+            $annee = $this->getAnneeAcademiqueCourante();
+            $idAnneeAcad = (string) ($annee['id_annee_acad'] ?? '');
+            if ($idAnneeAcad === '') {
+                return [];
+            }
+            return $this->getCriteriaRowsByYear($idAnneeAcad);
+        } catch (Throwable $e) {
+            error_log('Erreur getBaremeCriteres: ' . $e->getMessage());
+            return [];
+        }
+    }
     public function calculerMoyennesPourAnnexe2(string $numEtu): array
     {
         try {

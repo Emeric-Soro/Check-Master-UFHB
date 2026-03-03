@@ -163,11 +163,11 @@ class RepertoireEnseignantService
         try {
             $offset = ($page - 1) * $perPage;
 
-            $whereConditions = ["CAST(a.id_enseignant AS CHAR) = :id_enseignant"];
+            $whereConditions = ["a.id_enseignant = :id_enseignant"];
             $params = [':id_enseignant' => $idEnseignant];
 
             if ($annee !== null) {
-                $whereConditions[] = "e.id_annee_acad = :id_annee_acad";
+                $whereConditions[] = "i.id_annee_acad = :id_annee_acad";
                 $params[':id_annee_acad'] = $annee;
             }
 
@@ -187,6 +187,11 @@ class RepertoireEnseignantService
                          FROM affecter a
                          JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
                          JOIN etudiants e ON e.num_carte_etud = r.num_etu
+                         LEFT JOIN inscriptions i ON i.id_inscription = (
+                             SELECT i2.id_inscription FROM inscriptions i2 
+                             WHERE i2.id_etudiant = e.num_carte_etud 
+                             ORDER BY i2.date_inscription DESC LIMIT 1
+                         )
                          LEFT JOIN programmer_soutenance ps ON ps.num_etud = e.num_carte_etud
                          WHERE {$whereClause}";
 
@@ -208,7 +213,12 @@ class RepertoireEnseignantService
                     FROM affecter a
                     JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
                     JOIN etudiants e ON e.num_carte_etud = r.num_etu
-                    LEFT JOIN annee_academique aa ON aa.id_annee_acad = e.id_annee_acad
+                    LEFT JOIN inscriptions i ON i.id_inscription = (
+                        SELECT i2.id_inscription FROM inscriptions i2 
+                        WHERE i2.id_etudiant = e.num_carte_etud 
+                        ORDER BY i2.date_inscription DESC LIMIT 1
+                    )
+                    LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
                     LEFT JOIN programmer_soutenance ps ON ps.num_etud = e.num_carte_etud
                     LEFT JOIN session s ON s.id_session = ps.id_session
                     WHERE {$whereClause}
@@ -241,11 +251,11 @@ class RepertoireEnseignantService
         try {
             $offset = ($page - 1) * $perPage;
 
-            $whereConditions = ["(CAST(a.id_enseignant AS CHAR) = :id_enseignant OR CAST(rd.id_enseignant AS CHAR) = :id_enseignant)"];
+            $whereConditions = ["(a.id_enseignant = :id_enseignant OR rd.id_enseignant = :id_enseignant)"];
             $params = [':id_enseignant' => $idEnseignant];
 
             if ($annee !== null) {
-                $whereConditions[] = "e.id_annee_acad = :id_annee_acad";
+                $whereConditions[] = "i.id_annee_acad = :id_annee_acad";
                 $params[':id_annee_acad'] = $annee;
             }
 
@@ -266,6 +276,11 @@ class RepertoireEnseignantService
                          LEFT JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
                          LEFT JOIN rapport_etudiants r ON r.id_rapport = crr.id_rapport
                          LEFT JOIN etudiants e ON e.num_carte_etud = COALESCE(r.num_etu, cr.num_etu)
+                         LEFT JOIN inscriptions i ON i.id_inscription = (
+                             SELECT i2.id_inscription FROM inscriptions i2 
+                             WHERE i2.id_etudiant = e.num_carte_etud 
+                             ORDER BY i2.date_inscription DESC LIMIT 1
+                         )
                          LEFT JOIN affecter a ON a.id_rapport = r.id_rapport
                          LEFT JOIN rendre rd ON rd.id_CR = cr.id_CR
                          LEFT JOIN programmer_soutenance ps ON ps.num_etud = e.num_carte_etud
@@ -287,6 +302,11 @@ class RepertoireEnseignantService
                     LEFT JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
                     LEFT JOIN rapport_etudiants r ON r.id_rapport = crr.id_rapport
                     LEFT JOIN etudiants e ON e.num_carte_etud = COALESCE(r.num_etu, cr.num_etu)
+                    LEFT JOIN inscriptions i ON i.id_inscription = (
+                        SELECT i2.id_inscription FROM inscriptions i2 
+                        WHERE i2.id_etudiant = e.num_carte_etud 
+                        ORDER BY i2.date_inscription DESC LIMIT 1
+                    )
                     LEFT JOIN affecter a ON a.id_rapport = r.id_rapport
                     LEFT JOIN rendre rd ON rd.id_CR = cr.id_CR
                     LEFT JOIN programmer_soutenance ps ON ps.num_etud = e.num_carte_etud
@@ -326,19 +346,19 @@ class RepertoireEnseignantService
 
             $juryExistsSql = "SELECT 1 FROM {$this->getJuryTable()} ej 
                               WHERE ej.num_soutenance = ps.num_soutenance 
-                              AND CAST(ej.id_enseignant AS CHAR) = :id_enseignant";
+                              AND ej.id_enseignant = :id_enseignant";
 
             $affecterExistsSql = "SELECT 1 FROM rapport_etudiants r 
                                   JOIN affecter a ON a.id_rapport = r.id_rapport 
                                   WHERE r.num_etu = ps.num_etud 
-                                  AND CAST(a.id_enseignant AS CHAR) = :id_enseignant 
+                                  AND a.id_enseignant = :id_enseignant 
                                   AND a.role IN ('encadrant', 'directeur')";
 
             $whereConditions[] = "EXISTS ({$juryExistsSql}) OR EXISTS ({$affecterExistsSql})";
             $params[':id_enseignant'] = $idEnseignant;
 
             if ($annee !== null) {
-                $whereConditions[] = "e.id_annee_acad = :id_annee_acad";
+                $whereConditions[] = "i.id_annee_acad = :id_annee_acad";
                 $params[':id_annee_acad'] = $annee;
             }
 
@@ -357,6 +377,11 @@ class RepertoireEnseignantService
             $countSql = "SELECT COUNT(DISTINCT ps.num_soutenance)
                          FROM {$progTable} ps
                          JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                         LEFT JOIN inscriptions i ON i.id_inscription = (
+                             SELECT i2.id_inscription FROM inscriptions i2 
+                             WHERE i2.id_etudiant = e.num_carte_etud 
+                             ORDER BY i2.date_inscription DESC LIMIT 1
+                         )
                          WHERE {$whereClause}";
 
             $countStmt = $this->pdo->prepare($countSql);
@@ -376,8 +401,13 @@ class RepertoireEnseignantService
                         SUM(COALESCE(ev.note, 0)) AS note_memoire
                     FROM {$progTable} ps
                     JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                    LEFT JOIN inscriptions i ON i.id_inscription = (
+                        SELECT i2.id_inscription FROM inscriptions i2 
+                        WHERE i2.id_etudiant = e.num_carte_etud 
+                        ORDER BY i2.date_inscription DESC LIMIT 1
+                    )
                     LEFT JOIN session s ON s.id_session = ps.id_session
-                    LEFT JOIN annee_academique aa ON aa.id_annee_acad = e.id_annee_acad
+                    LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
                     LEFT JOIN evaluer ev ON ev.num_etudiant = ps.num_etud AND ev.num_jury = ps.num_soutenance
                     WHERE {$whereClause}
                     GROUP BY ps.num_soutenance, ps.theme_soutenance, ps.date_soutenance, ps.heure_soutenance,
@@ -413,11 +443,11 @@ class RepertoireEnseignantService
             $rolesTable = $this->getRolesTable();
             $progTable = $this->getProgrammationTable();
 
-            $whereConditions = ["CAST(ej.id_enseignant AS CHAR) = :id_enseignant"];
+            $whereConditions = ["ej.id_enseignant = :id_enseignant"];
             $params = [':id_enseignant' => $idEnseignant];
 
             if ($annee !== null) {
-                $whereConditions[] = "e.id_annee_acad = :id_annee_acad";
+                $whereConditions[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
                 $params[':id_annee_acad'] = $annee;
             }
 
@@ -459,7 +489,7 @@ class RepertoireEnseignantService
             $params = [];
 
             if ($annee !== null) {
-                $whereConditions[] = "e2.id_annee_acad = :id_annee_acad";
+                $whereConditions[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e2.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
                 $params[':id_annee_acad'] = $annee;
             }
 
@@ -473,8 +503,8 @@ class RepertoireEnseignantService
             $countSql = "SELECT COUNT(*) FROM (
                              SELECT ens.id_enseignant
                              FROM enseignants ens
-                             JOIN {$juryTable} ej ON CAST(ej.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
-                             LEFT JOIN affecter a ON CAST(a.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
+                             JOIN {$juryTable} ej ON ej.id_enseignant = ens.id_enseignant
+                             LEFT JOIN affecter a ON a.id_enseignant = ens.id_enseignant
                              LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
                              LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
                              LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
@@ -495,8 +525,8 @@ class RepertoireEnseignantService
                         COUNT(DISTINCT CASE WHEN a.role = 'encadrant' THEN ps2.num_soutenance END) AS nb_soutenances_encadrees,
                         COUNT(DISTINCT CASE WHEN a.role = 'directeur' THEN ps2.num_soutenance END) AS nb_soutenances_dirigees
                     FROM enseignants ens
-                    JOIN {$juryTable} ej ON CAST(ej.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
-                    LEFT JOIN affecter a ON CAST(a.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
+                    JOIN {$juryTable} ej ON ej.id_enseignant = ens.id_enseignant
+                    LEFT JOIN affecter a ON a.id_enseignant = ens.id_enseignant
                     LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
                     LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
                     LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
@@ -609,9 +639,9 @@ class RepertoireEnseignantService
 
         try {
             // --- Rapports ---
-            $w = ["CAST(a.id_enseignant AS CHAR) = :id_enseignant"];
+            $w = ["a.id_enseignant = :id_enseignant"];
             $p = [':id_enseignant' => $idEnseignant];
-            if ($annee !== null) { $w[] = "e.id_annee_acad = :id_annee_acad"; $p[':id_annee_acad'] = $annee; }
+            if ($annee !== null) { $w[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)"; $p[':id_annee_acad'] = $annee; }
             if ($session !== null) { $w[] = "ps.id_session = :id_session"; $p[':id_session'] = $session; }
             if ($search !== null && $search !== '') { $w[] = "(r.theme_rapport LIKE CONCAT('%', :search, '%') OR e.nom_etu LIKE CONCAT('%', :search, '%') OR e.prenom_etu LIKE CONCAT('%', :search, '%'))"; $p[':search'] = $search; }
             $wc = implode(' AND ', $w);
@@ -620,9 +650,9 @@ class RepertoireEnseignantService
             $counts['rapports'] = (int) $stmt->fetchColumn();
 
             // --- Comptes-rendus ---
-            $w = ["(CAST(a.id_enseignant AS CHAR) = :id_enseignant OR CAST(rd.id_enseignant AS CHAR) = :id_enseignant)"];
+            $w = ["(a.id_enseignant = :id_enseignant OR rd.id_enseignant = :id_enseignant)"];
             $p = [':id_enseignant' => $idEnseignant];
-            if ($annee !== null) { $w[] = "e.id_annee_acad = :id_annee_acad"; $p[':id_annee_acad'] = $annee; }
+            if ($annee !== null) { $w[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)"; $p[':id_annee_acad'] = $annee; }
             if ($session !== null) { $w[] = "ps.id_session = :id_session"; $p[':id_session'] = $session; }
             if ($search !== null && $search !== '') { $w[] = "(cr.nom_CR LIKE CONCAT('%', :search, '%') OR e.nom_etu LIKE CONCAT('%', :search, '%'))"; $p[':search'] = $search; }
             $wc = implode(' AND ', $w);
@@ -633,11 +663,11 @@ class RepertoireEnseignantService
             // --- Memoires ---
             $progTable = $this->getProgrammationTable();
             $juryTable = $this->getJuryTable();
-            $juryExists = "SELECT 1 FROM {$juryTable} ej WHERE ej.num_soutenance = ps.num_soutenance AND CAST(ej.id_enseignant AS CHAR) = :id_enseignant";
-            $affecterExists = "SELECT 1 FROM rapport_etudiants r JOIN affecter a ON a.id_rapport = r.id_rapport WHERE r.num_etu = ps.num_etud AND CAST(a.id_enseignant AS CHAR) = :id_enseignant AND a.role IN ('encadrant', 'directeur')";
+            $juryExists = "SELECT 1 FROM {$juryTable} ej WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_enseignant = :id_enseignant";
+            $affecterExists = "SELECT 1 FROM rapport_etudiants r JOIN affecter a ON a.id_rapport = r.id_rapport WHERE r.num_etu = ps.num_etud AND a.id_enseignant = :id_enseignant AND a.role IN ('encadrant', 'directeur')";
             $w = ["EXISTS ({$juryExists}) OR EXISTS ({$affecterExists})"];
             $p = [':id_enseignant' => $idEnseignant];
-            if ($annee !== null) { $w[] = "e.id_annee_acad = :id_annee_acad"; $p[':id_annee_acad'] = $annee; }
+            if ($annee !== null) { $w[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)"; $p[':id_annee_acad'] = $annee; }
             if ($session !== null) { $w[] = "ps.id_session = :id_session"; $p[':id_session'] = $session; }
             if ($search !== null && $search !== '') { $w[] = "(ps.theme_soutenance LIKE CONCAT('%', :search, '%') OR e.nom_etu LIKE CONCAT('%', :search, '%'))"; $p[':search'] = $search; }
             $wc = implode(' AND ', $w);

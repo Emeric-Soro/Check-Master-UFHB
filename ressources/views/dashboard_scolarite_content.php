@@ -202,20 +202,6 @@ cm_component('layout/page-header', [
                     Dossiers de candidatures
                 </a>
                 <?php endif; ?>
-            </div>
-                <a class="cm-btn is-info" href="?page=gestion_etudiants&action=ajouter_des_etudiants">
-                    <i class="fas fa-user-graduate" aria-hidden="true"></i>
-                    Gérer les étudiants
-                </a>
-                <a class="cm-btn is-info" href="?page=gestion_scolarite">
-                    <i class="fas fa-credit-card" aria-hidden="true"></i>
-                    Inscriptions / paiements
-                </a>
-                <a class="cm-btn is-info" href="?page=gestion_dossiers_candidatures">
-                    <i class="fas fa-folder-open" aria-hidden="true"></i>
-                    Dossiers de candidatures
-                </a>
-            </div>
         </div>
     </div>
 </div>

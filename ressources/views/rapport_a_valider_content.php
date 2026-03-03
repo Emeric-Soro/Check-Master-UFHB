@@ -114,64 +114,15 @@ $statusOptions = [
                 <?php cm_component('ui/badge', ['text' => 'Deja traites: ' . $totalTraites, 'type' => 'success']); ?>
             </div>
         </div>
-        <div class="cm-barre-intermediaire">
-            <div class="cm-toolbar">
-                <div class="cm-toolbar-left">
-                    <input type="text" id="cmReceptionSearch" class="cm-form-control cm-toolbar-field-lg" placeholder="Rechercher un rapport...">
-                    <?php
-                    cm_component('form/select', [
-                        'name' => 'cm_reception_status',
-                        'id' => 'cmReceptionStatusFilter',
-                        'label' => '',
-                        'options' => $statusOptions,
-                        'selected' => $statusFilter,
-                        'attrs' => [
-                            'class' => 'cm-toolbar-field-sm',
-                            'data-cm-ajax-param' => 'reception_status',
-                            'data-cm-ajax-reset-param' => 'page_reception',
-                            'data-cm-ajax-reset-value' => '1',
-                        ],
-                    ]);
-                    ?>
-                    <label for="cmReceptionLimit"><strong>Afficher:</strong></label>
-                    <select id="cmReceptionLimit"
-                            class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
-                            data-cm-ajax-param="limit_reception"
-                            data-cm-ajax-reset-param="page_reception"
-                            data-cm-ajax-reset-value="1">
-                        <?php foreach ($allowedLimits as $limit): ?>
-                            <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
-                                <?php echo $limit; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="cm-toolbar-center">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmReceptionSelectAllBtn">
-                        <i class="fas fa-square-check" aria-hidden="true"></i>
-                        Select. tout
-                    </button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmReceptionDeselectBtn">
-                        <i class="fas fa-square" aria-hidden="true"></i>
-                        Deselect.
-                    </button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmReceptionDeleteBtn" disabled>
-                        <i class="fas fa-trash" aria-hidden="true"></i>
-                        Supprimer (0)
-                    </button>
-                </div>
-                <div class="cm-toolbar-right">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmReceptionExport">
-                        <i class="fas fa-file-export" aria-hidden="true"></i>
-                        Export
-                    </button>
-                    <button type="button" class="cm-btn is-info is-sm" id="cmReceptionPrint">
-                        <i class="fas fa-print" aria-hidden="true"></i>
-                        Impr.
-                    </button>
-                </div>
-            </div>
-        </div>
+        <?php cm_toolbar([
+            'screen' => 'rapport_a_valider',
+            'id_prefix' => 'cmReception',
+            'search_value' => $_GET['search'] ?? '',
+            'limit' => $perPage,
+            'allowed_limits' => $allowedLimits,
+            'can_delete' => canDelete(),
+            'can_view' => canView(),
+        ]); ?>
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
                 <table class="cm-data-table" id="cmReceptionTable">

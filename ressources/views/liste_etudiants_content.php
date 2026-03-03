@@ -90,39 +90,14 @@ $pagination = [
 ];
 ?>
 <section class="cm-prd3-screen">
-    <div class="cm-card cm-mb-md">
-        <form method="GET" class="cm-grid-4" style="align-items: end;">
-            <input type="hidden" name="page" value="liste_etudiants_ens">
-            <div>
-                <label class="cm-form__label" for="search">Recherche</label>
-                <input type="text" id="search" name="search" class="cm-form__input" 
-                       value="<?= htmlspecialchars($search) ?>" 
-                       placeholder="Nom, prénom, email, N° carte...">
-            </div>
-            <?= cm_component('form/select', [
-                'name' => 'promotion',
-                'label' => 'Année académique',
-                'options' => $anneeOptions,
-                'selected' => $promotion,
-                'placeholder' => 'Toutes les années'
-            ]) ?>
-            <?= cm_component('form/select', [
-                'name' => 'niveau',
-                'label' => 'Niveau d\'étude',
-                'options' => $niveauOptions,
-                'selected' => $niveau,
-                'placeholder' => 'Tous les niveaux'
-            ]) ?>
-            <div class="cm-flex cm-flex-gap-sm">
-                <button type="submit" class="cm-btn cm-btn--primary">
-                    <i class="fas fa-filter cm-mr-sm"></i> Filtrer
-                </button>
-                <a href="?page=liste_etudiants_ens" class="cm-btn cm-btn--outline">
-                    Réinitialiser
-                </a>
-            </div>
-        </form>
-    </div>
+    <?php cm_toolbar([
+        'screen' => 'liste_etudiants_resp',
+        'id_prefix' => 'etudiants',
+        'search_value' => $search,
+        'limit' => $perPage,
+        'can_delete' => canDelete(),
+        'can_view' => canView(),
+    ]); ?>
     <div class="cm-card">
         <div class="cm-table-responsive">
             <table class="cm-table">
@@ -150,7 +125,7 @@ $pagination = [
                             </td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($etudiantsPage as $etudiant): 
+                        <?php foreach ($etudiantsPage as $etudiant):
                             $promoLib = '';
                             foreach ($listeAnnees as $annee) {
                                 if ($annee->id_annee_acad == ($etudiant->id_annee_acad ?? 0)) {
@@ -167,7 +142,7 @@ $pagination = [
                                 <td><?= htmlspecialchars($promoLib) ?></td>
                                 <td>
                                     <?php if (canView()): ?>
-                                    <a href="?page=dossier_academique&num_etu=<?= urlencode($etudiant->num_carte_etud ?? '') ?>" 
+                                    <a href="?page=dossier_academique&num_etu=<?= urlencode($etudiant->num_carte_etud ?? '') ?>"
                                        class="cm-btn cm-btn--sm cm-btn--ghost" title="Voir dossier">
                                         <i class="fas fa-eye"></i>
                                     </a>

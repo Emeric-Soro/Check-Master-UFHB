@@ -100,30 +100,21 @@ $isEditable = function_exists('canEdit') ? (bool) canEdit() : true;
             'content' => (string) ob_get_clean(),
         ]);
         ?>
-
         <?php
-        ob_start();
-        ?>
-        <div class="cm-toolbar__actions">
-            <button type="button" class="cm-btn is-info is-sm" id="cmAttribCheckAll">
-                <i class="fas fa-check-square" aria-hidden="true"></i>
-                <span>Tout cocher</span>
-            </button>
-            <button type="button" class="cm-btn is-light is-sm" id="cmAttribUncheckAll">
-                <i class="fas fa-square" aria-hidden="true"></i>
-                <span>Tout decocher</span>
-            </button>
-            <?php if ($selectedGroupeId !== '' && $isEditable): ?>
-            <button type="submit" form="cmAttribForm" class="cm-btn is-success is-sm">
-                <i class="fas fa-save" aria-hidden="true"></i>
-                <span>Enregistrer</span>
-            </button>
-            <?php endif; ?>
-        </div>
-        <?php
-        cm_component('crud/toolbar', [
-            'left_html' => '<span class="cm-text-muted">Matrice CRUD des permissions par ecran.</span>',
-            'right_html' => (string) ob_get_clean(),
+        $attribActions = [
+            ['tag' => 'button', 'type' => 'button', 'id' => 'cmAttribCheckAll', 'label' => 'Tout cocher', 'class' => 'cm-btn is-info is-sm'],
+            ['tag' => 'button', 'type' => 'button', 'id' => 'cmAttribUncheckAll', 'label' => 'Tout decocher', 'class' => 'cm-btn is-light is-sm'],
+        ];
+        if ($selectedGroupeId !== '' && $isEditable) {
+            $attribActions[] = ['tag' => 'button', 'type' => 'submit', 'label' => 'Enregistrer', 'class' => 'cm-btn is-success is-sm', 'attrs' => ['form' => 'cmAttribForm']];
+        }
+        cm_toolbar([
+            'screen' => 'gestion_attribution',
+            'id_prefix' => 'cmAttribToolbar',
+            'search_placeholder' => 'Rechercher un ecran...',
+            'show_actions' => false,
+            'show_filters' => false,
+            'custom_actions' => $attribActions,
         ]);
         ?>
 

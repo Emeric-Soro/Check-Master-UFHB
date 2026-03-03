@@ -25,11 +25,15 @@ $filteredCards = array_values(array_filter($cards, static function ($card): bool
 }));
 
 $iconByTitle = [
-    'Critères Évaluation' => 'fa-list-ol',
+    'Critères' => 'fa-list-check',
+    'Barème Critère' => 'fa-scale-balanced',
     'Salles' => 'fa-door-open',
     'Entreprises' => 'fa-building',
+    'Spécialités' => 'fa-user-graduate',
+    'Maître de stage' => 'fa-user-tie',
+    'Type Enseignant' => 'fa-chalkboard-user',
     'Gestion des Menus' => 'fa-sitemap',
-    'Habilitations (Attributions)' => 'fa-key',
+    'Habilitations' => 'fa-key',
     'Traitements' => 'fa-clipboard-list',
     'Messages Système' => 'fa-envelope',
 ];

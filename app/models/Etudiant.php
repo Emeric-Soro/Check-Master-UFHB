@@ -33,20 +33,27 @@ class Etudiant
     public function getAllEtudiants($id_annee_acad = null)
     {
         try {
-            $query = "SELECT e.*, e.num_ident_etud as identifiant_mesrs, n.lib_niv_etude, a.date_deb, a.date_fin, g.libelle_genre
+            $query = "SELECT e.*, e.num_ident_etud as identifiant_mesrs, 
+                            n.lib_niv_etude as lib_niv_etude, 
+                            a.date_deb, a.date_fin, g.libelle_genre
                      FROM etudiants e 
-                     LEFT JOIN niveau_etude n ON e.id_niveau = n.id_niv_etude 
-                     LEFT JOIN annee_academique a ON e.id_annee_acad = a.id_annee_acad
+                     LEFT JOIN inscriptions i ON i.id_inscription = (
+                         SELECT i2.id_inscription FROM inscriptions i2 
+                         WHERE i2.id_etudiant = e.num_carte_etud 
+                         ORDER BY i2.date_inscription DESC LIMIT 1
+                     )
+                     LEFT JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude 
+                     LEFT JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
                      LEFT JOIN genre g ON e.genre_etu = g.id_genre";
 
             $params = [];
             if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
-                $query .= " WHERE (e.id_annee_acad = ? 
+                $query .= " WHERE (i.id_annee_acad = ? 
                             OR EXISTS (
                                 SELECT 1
-                                FROM inscriptions i
-                                WHERE i.id_etudiant = e.num_carte_etud
-                                  AND i.id_annee_acad = ?
+                                FROM inscriptions i3
+                                WHERE i3.id_etudiant = e.num_carte_etud
+                                  AND i3.id_annee_acad = ?
                             )";
                 $params[] = (int) $id_annee_acad;
                 $params[] = (int) $id_annee_acad;
@@ -76,9 +83,9 @@ class Etudiant
             $query = "SELECT
                         e.*,
                         e.num_ident_etud as identifiant_mesrs,
-                        COALESCE(n.lib_niv_etude, n_student.lib_niv_etude) AS lib_niv_etude,
-                        COALESCE(n.id_niv_etude, n_student.id_niv_etude) AS id_niv_etude,
-                        a.id_annee_acad,
+                        n.lib_niv_etude AS lib_niv_etude,
+                        n.id_niv_etude AS id_niv_etude,
+                        i.id_annee_acad,
                         a.date_deb,
                         a.date_fin,
                         g.libelle_genre
@@ -92,8 +99,7 @@ class Etudiant
                           LIMIT 1
                       )
                       LEFT JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
-                      LEFT JOIN niveau_etude n_student ON e.id_niveau = n_student.id_niv_etude
-                      LEFT JOIN annee_academique a ON a.id_annee_acad = COALESCE(i.id_annee_acad, e.id_annee_acad)
+                      LEFT JOIN annee_academique a ON a.id_annee_acad = i.id_annee_acad
                       LEFT JOIN genre g ON e.genre_etu = g.id_genre
                       WHERE 1 = 1";
 
@@ -101,7 +107,7 @@ class Etudiant
             if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
                 $yearLabel = $this->getAcademicYearLabelById($id_annee_acad);
                 $query .= " AND (
-                                e.id_annee_acad = :annee_filter
+                                i.id_annee_acad = :annee_filter
                                 OR EXISTS (
                                     SELECT 1
                                     FROM inscriptions i3
@@ -179,8 +185,8 @@ class Etudiant
     public function ajouterEtudiant($num_etu, $nom_etu, $prenom_etu, $date_naiss_etu, $genre_etu, $email_etu, $promotion_etu, $id_niveau = null, $id_annee_acad = null, $identifiant_mesrs = null)
     {
         try {
-            $sql = "INSERT INTO etudiants (num_carte_etud, num_ident_etud, nom_etu, prenom_etu, date_naiss_etu, genre_etu, email_etu, promotion_etu, id_niveau, id_annee_acad) 
-                    VALUES (:num_etu, :num_ident_etud, :nom_etu, :prenom_etu, :date_naiss_etu, :genre_etu, :email_etu, :promotion_etu, :id_niveau, :id_annee_acad)";
+            $sql = "INSERT INTO etudiants (num_carte_etud, num_ident_etud, nom_etu, prenom_etu, date_naiss_etu, genre_etu, email_etu, promotion_etu) 
+                    VALUES (:num_etu, :num_ident_etud, :nom_etu, :prenom_etu, :date_naiss_etu, :genre_etu, :email_etu, :promotion_etu)";
             $stmt = $this->db->prepare($sql);
             $stmt->bindParam(':num_etu', $num_etu);
             $stmt->bindParam(':num_ident_etud', $identifiant_mesrs);
@@ -190,19 +196,9 @@ class Etudiant
             $stmt->bindParam(':genre_etu', $genre_etu);
             $stmt->bindParam(':email_etu', $email_etu);
             $stmt->bindParam(':promotion_etu', $promotion_etu);
-            if ($id_niveau === null) {
-                $stmt->bindValue(':id_niveau', null, PDO::PARAM_NULL);
-            } else {
-                $stmt->bindValue(':id_niveau', (int) $id_niveau, PDO::PARAM_INT);
-            }
-            if ($id_annee_acad === null) {
-                $stmt->bindValue(':id_annee_acad', null, PDO::PARAM_NULL);
-            } else {
-                $stmt->bindValue(':id_annee_acad', (int) $id_annee_acad, PDO::PARAM_INT);
-            }
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log("Erreur lors de l'ajout de l'étudiant : " . $e->getMessage() . " | id_niveau=" . var_export($id_niveau, true) . " | id_annee_acad=" . var_export($id_annee_acad, true));
+            error_log("Erreur lors de l'ajout de l'étudiant : " . $e->getMessage());
             return false;
         }
     }
@@ -218,8 +214,6 @@ class Etudiant
                         genre_etu = :genre_etu, 
                         email_etu = :email_etu,
                         promotion_etu = :promotion_etu,
-                        id_niveau = :id_niveau,
-                        id_annee_acad = :id_annee_acad,
                         num_ident_etud = :num_ident_etud
                     WHERE num_carte_etud = :old_num_etu";
             $stmt = $this->db->prepare($sql);
@@ -231,20 +225,10 @@ class Etudiant
             $stmt->bindParam(':genre_etu', $genre_etu);
             $stmt->bindParam(':email_etu', $email_etu);
             $stmt->bindParam(':promotion_etu', $promotion_etu);
-            if ($id_niveau === null) {
-                $stmt->bindValue(':id_niveau', null, PDO::PARAM_NULL);
-            } else {
-                $stmt->bindValue(':id_niveau', (int) $id_niveau, PDO::PARAM_INT);
-            }
-            if ($id_annee_acad === null) {
-                $stmt->bindValue(':id_annee_acad', null, PDO::PARAM_NULL);
-            } else {
-                $stmt->bindValue(':id_annee_acad', (int) $id_annee_acad, PDO::PARAM_INT);
-            }
             $stmt->bindParam(':num_ident_etud', $identifiant_mesrs);
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log("Erreur lors de la modification de l'étudiant : " . $e->getMessage() . " | id_niveau=" . var_export($id_niveau, true) . " | id_annee_acad=" . var_export($id_annee_acad, true));
+            error_log("Erreur lors de la modification de l'étudiant : " . $e->getMessage());
             return false;
         }
     }
@@ -298,10 +282,16 @@ class Etudiant
 
     public function getAllCandidature()
     {
-        $sql = "SELECT cs.*, e.nom_etu, e.prenom_etu, e.id_annee_acad, e.promotion_etu, a.date_deb, a.date_fin
+        $sql = "SELECT cs.*, e.nom_etu, e.prenom_etu, e.promotion_etu, 
+                       i.id_annee_acad, a.date_deb, a.date_fin
                 FROM candidature_soutenance cs 
                 INNER JOIN etudiants e ON e.num_carte_etud = cs.num_etu 
-                LEFT JOIN annee_academique a ON a.id_annee_acad = e.id_annee_acad
+                LEFT JOIN inscriptions i ON i.id_inscription = (
+                    SELECT i2.id_inscription FROM inscriptions i2 
+                    WHERE i2.id_etudiant = e.num_carte_etud 
+                    ORDER BY i2.date_inscription DESC LIMIT 1
+                )
+                LEFT JOIN annee_academique a ON a.id_annee_acad = i.id_annee_acad
                 ORDER BY cs.date_candidature DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
@@ -642,6 +632,626 @@ class Etudiant
         $stmt = $this->db->prepare($query);
         $stmt->execute([$num_etu]);
         return $stmt->fetch(PDO::FETCH_OBJ);
+    }
+
+    /**
+     * Liste archive des étudiants pour une année académique.
+     *
+     * @param int $id_annee_acad
+     * @param array<string, mixed> $filters
+     * @param int $limit
+     * @param int $offset
+     * @return array<int, array<string, mixed>>
+     */
+    public function getByAnnee($id_annee_acad, array $filters = [], $limit = 100, $offset = 0)
+    {
+        [$sql, $params] = $this->buildArchiveStudentsQuery($id_annee_acad, $filters, false);
+        if ($sql === null) {
+            return [];
+        }
+
+        $sql .= " ORDER BY e.nom_etu ASC, e.prenom_etu ASC LIMIT :cm_limit OFFSET :cm_offset";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->bindValue(':cm_limit', max(1, (int) $limit), PDO::PARAM_INT);
+            $stmt->bindValue(':cm_offset', max(0, (int) $offset), PDO::PARAM_INT);
+            $stmt->execute();
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log("Erreur archive getByAnnee (Etudiant): " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Nombre total d'étudiants archives pour une année académique.
+     *
+     * @param int $id_annee_acad
+     * @param array<string, mixed> $filters
+     * @return int
+     */
+    public function countByAnnee($id_annee_acad, array $filters = [])
+    {
+        [$sql, $params] = $this->buildArchiveStudentsQuery($id_annee_acad, $filters, true);
+        if ($sql === null) {
+            return 0;
+        }
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->execute();
+            return (int) ($stmt->fetchColumn() ?: 0);
+        } catch (PDOException $e) {
+            error_log("Erreur archive countByAnnee (Etudiant): " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Chronologie détaillée d'un étudiant (timeline PRD8).
+     *
+     * @param string $matricule
+     * @return array<int, array<string, mixed>>
+     */
+    public function getParcours($matricule)
+    {
+        $sql = "
+            SELECT * FROM (
+                SELECT
+                    'inscription' AS type,
+                    i.date_inscription AS date_event,
+                    CONCAT('Inscription ', COALESCE(ne.lib_niv_etude, '')) AS titre,
+                    CONCAT('Statut: ', COALESCE(i.statut_inscription, 'N/A')) AS description
+                FROM inscriptions i
+                LEFT JOIN niveau_etude ne ON ne.id_niv_etude = i.id_niveau
+                WHERE i.id_etudiant = :m1
+
+                UNION ALL
+
+                SELECT
+                    'candidature' AS type,
+                    cs.date_candidature AS date_event,
+                    'Candidature soutenance' AS titre,
+                    CONCAT('Statut: ', COALESCE(cs.statut_candidature, 'N/A')) AS description
+                FROM candidature_soutenance cs
+                WHERE cs.num_etu = :m2
+
+                UNION ALL
+
+                SELECT
+                    'depot_rapport' AS type,
+                    re.date_redaction_rapport AS date_event,
+                    CONCAT('Depot rapport v', COALESCE(re.version, 1)) AS titre,
+                    COALESCE(re.theme_rapport, '') AS description
+                FROM rapport_etudiants re
+                WHERE re.num_etu = :m3
+
+                UNION ALL
+
+                SELECT
+                    'validation' AS type,
+                    v.date_validation AS date_event,
+                    'Validation commission' AS titre,
+                    CONCAT('Decision: ', COALESCE(v.decision_validation, 'N/A')) AS description
+                FROM valider v
+                INNER JOIN rapport_etudiants re ON re.id_rapport = v.id_rapport
+                WHERE re.num_etu = :m4
+
+                UNION ALL
+
+                SELECT
+                    'soutenance' AS type,
+                    ps.date_soutenance AS date_event,
+                    'Soutenance' AS titre,
+                    CONCAT('Salle: ', COALESCE(s.lib_salle, 'N/A'), ' a ', COALESCE(TIME_FORMAT(ps.heure_soutenance, '%H:%i'), '--:--')) AS description
+                FROM programmer_soutenance ps
+                LEFT JOIN salles s ON s.id_salle = ps.id_salle
+                WHERE ps.num_etud = :m5
+
+                UNION ALL
+
+                SELECT
+                    'reclamation' AS type,
+                    r.date_creation AS date_event,
+                    CONCAT('Reclamation: ', COALESCE(r.objet_reclamation, 'N/A')) AS titre,
+                    LEFT(COALESCE(r.description_reclamation, ''), 100) AS description
+                FROM reclamations r
+                WHERE r.num_carte_etud = :m6
+            ) AS timeline
+            WHERE timeline.date_event IS NOT NULL
+            ORDER BY timeline.date_event ASC
+        ";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':m1' => $matricule,
+                ':m2' => $matricule,
+                ':m3' => $matricule,
+                ':m4' => $matricule,
+                ':m5' => $matricule,
+                ':m6' => $matricule,
+            ]);
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log("Erreur archive getParcours (Etudiant): " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Liste de tous les documents archivés d'un étudiant.
+     *
+     * @param string $matricule
+     * @param int|null $id_annee_acad
+     * @return array<int, array<string, mixed>>
+     */
+    public function getDocuments($matricule, $id_annee_acad = null)
+    {
+        $yearFilter = '';
+        $params = [':matricule' => $matricule];
+
+        if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
+            $yearFilter = " AND i.id_annee_acad = :id_annee";
+            $params[':id_annee'] = (int) $id_annee_acad;
+        }
+
+        $sql = "
+            SELECT
+                'fiche_inscription' AS type_doc,
+                i.id_inscription AS id_doc,
+                i.fiche_inscription AS chemin,
+                CONCAT('Fiche inscription ', COALESCE(CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)), '')) AS titre,
+                i.date_inscription AS date_document,
+                NULL AS taille_fichier
+            FROM inscriptions i
+            LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
+            WHERE i.id_etudiant = :matricule
+              AND i.fiche_inscription IS NOT NULL
+              AND i.fiche_inscription <> ''
+              {$yearFilter}
+
+            UNION ALL
+
+            SELECT
+                'rapport' AS type_doc,
+                re.id_rapport AS id_doc,
+                re.chemin_fichier AS chemin,
+                COALESCE(re.theme_rapport, CONCAT('Rapport #', re.id_rapport)) AS titre,
+                re.date_redaction_rapport AS date_document,
+                re.taille_fichier AS taille_fichier
+            FROM rapport_etudiants re
+            INNER JOIN inscriptions i ON i.id_etudiant = re.num_etu
+            WHERE re.num_etu = :matricule
+              AND re.chemin_fichier IS NOT NULL
+              AND re.chemin_fichier <> ''
+              {$yearFilter}
+
+            UNION ALL
+
+            SELECT
+                'compte_rendu' AS type_doc,
+                cr.id_CR AS id_doc,
+                cr.chemin_fichier_pdf AS chemin,
+                COALESCE(cr.nom_CR, CONCAT('Compte rendu #', cr.id_CR)) AS titre,
+                cr.date_CR AS date_document,
+                NULL AS taille_fichier
+            FROM compte_rendu cr
+            INNER JOIN inscriptions i ON i.id_etudiant = cr.num_etu
+            WHERE cr.num_etu = :matricule
+              AND cr.chemin_fichier_pdf IS NOT NULL
+              AND cr.chemin_fichier_pdf <> ''
+              {$yearFilter}
+
+            ORDER BY date_document DESC
+        ";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log("Erreur archive getDocuments (Etudiant): " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Dossier complet d'un étudiant pour la fiche archive PRD8.
+     *
+     * @param string $matricule
+     * @param int|null $id_annee_acad
+     * @return array<string, mixed>|null
+     */
+    public function getArchiveProfile($matricule, $id_annee_acad = null)
+    {
+        $params = [':matricule' => $matricule];
+        $yearWhere = '';
+        if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
+            $yearWhere = " AND i.id_annee_acad = :id_annee";
+            $params[':id_annee'] = (int) $id_annee_acad;
+        }
+
+        try {
+            $stmtBase = $this->db->prepare("
+                SELECT
+                    e.*,
+                    g.libelle_genre,
+                    i.id_inscription,
+                    i.id_annee_acad,
+                    i.date_inscription,
+                    i.statut_inscription,
+                    i.montant_paye,
+                    i.reste_a_payer,
+                    i.solde,
+                    i.fiche_inscription,
+                    ne.lib_niv_etude,
+                    aa.date_deb,
+                    aa.date_fin,
+                    sp.lib_specialite
+                FROM etudiants e
+                LEFT JOIN genre g ON g.id_genre = e.genre_etu
+                LEFT JOIN inscriptions i ON i.id_inscription = (
+                    SELECT i2.id_inscription
+                    FROM inscriptions i2
+                    WHERE i2.id_etudiant = e.num_carte_etud
+                    " . ($id_annee_acad !== null && (int) $id_annee_acad > 0 ? "AND i2.id_annee_acad = :id_annee" : "") . "
+                    ORDER BY i2.date_inscription DESC, i2.id_inscription DESC
+                    LIMIT 1
+                )
+                LEFT JOIN niveau_etude ne ON ne.id_niv_etude = i.id_niveau
+                LEFT JOIN enseignants ens_niv ON ens_niv.id_enseignant = ne.id_enseignant
+                LEFT JOIN specialite sp ON sp.id_specialite = ens_niv.id_specialite
+                LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
+                WHERE e.num_carte_etud = :matricule
+                LIMIT 1
+            ");
+            $stmtBase->execute($params);
+            $base = $stmtBase->fetch(PDO::FETCH_ASSOC);
+            if (!$base) {
+                return null;
+            }
+
+            $idAnneeFromBase = isset($base['id_annee_acad']) ? (int) $base['id_annee_acad'] : null;
+            $yearParams = [':matricule' => $matricule];
+            if ($idAnneeFromBase !== null && $idAnneeFromBase > 0) {
+                $yearParams[':id_annee'] = $idAnneeFromBase;
+            }
+
+            $stmtNotes = $this->db->prepare("
+                SELECT n.*
+                FROM notes n
+                WHERE n.num_etu = :matricule
+                " . (($idAnneeFromBase !== null && $idAnneeFromBase > 0) ? "AND n.id_annee_acad = :id_annee" : "") . "
+                ORDER BY n.id DESC
+                LIMIT 1
+            ");
+            $stmtNotes->execute($yearParams);
+            $notes = $stmtNotes->fetch(PDO::FETCH_ASSOC) ?: null;
+
+            $stmtStage = $this->db->prepare("
+                SELECT
+                    inf.*,
+                    en.lib_long_entreprise,
+                    en.email AS entreprise_email,
+                    en.telephone AS entreprise_telephone,
+                    ms.Nom AS maitre_nom,
+                    ms.prenom AS maitre_prenom,
+                    ms.email AS maitre_email,
+                    ms.telephone AS maitre_tel,
+                    f.lib_fonction
+                FROM informations_stage inf
+                LEFT JOIN entreprises en ON en.id_entreprise = inf.id_entreprise
+                LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = inf.id_maitre_stage
+                LEFT JOIN fonction f ON f.id_fonction = ms.id_fonction
+                WHERE inf.num_etu = :matricule
+                ORDER BY inf.id_info_stage DESC
+                LIMIT 1
+            ");
+            $stmtStage->execute([':matricule' => $matricule]);
+            $stage = $stmtStage->fetch(PDO::FETCH_ASSOC) ?: null;
+
+            $stmtRapport = $this->db->prepare("
+                SELECT re.*
+                FROM rapport_etudiants re
+                WHERE re.num_etu = :matricule
+                ORDER BY re.id_rapport DESC
+                LIMIT 1
+            ");
+            $stmtRapport->execute([':matricule' => $matricule]);
+            $rapport = $stmtRapport->fetch(PDO::FETCH_ASSOC) ?: null;
+
+            $encadrement = [];
+            if ($rapport && isset($rapport['id_rapport'])) {
+                $stmtEnc = $this->db->prepare("
+                    SELECT
+                        af.role,
+                        ens.id_enseignant,
+                        ens.nom_enseignant,
+                        ens.prenom_enseignant,
+                        ens.mail_enseignant
+                    FROM affecter af
+                    INNER JOIN enseignants ens ON ens.id_enseignant = af.id_enseignant
+                    WHERE af.id_rapport = :id_rapport
+                    ORDER BY af.role ASC
+                ");
+                $stmtEnc->execute([':id_rapport' => $rapport['id_rapport']]);
+                $encadrement = $stmtEnc->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            }
+
+            $stmtSoutenance = $this->db->prepare("
+                SELECT
+                    ps.*,
+                    s.lib_salle,
+                    d.lib_domaine,
+                    se.lib_session
+                FROM programmer_soutenance ps
+                LEFT JOIN salles s ON s.id_salle = ps.id_salle
+                LEFT JOIN domaine d ON d.id_domaine = ps.id_domaine
+                LEFT JOIN session se ON se.id_session = ps.id_session
+                WHERE ps.num_etud = :matricule
+                ORDER BY ps.date_soutenance DESC, ps.heure_soutenance DESC
+                LIMIT 1
+            ");
+            $stmtSoutenance->execute([':matricule' => $matricule]);
+            $soutenance = $stmtSoutenance->fetch(PDO::FETCH_ASSOC) ?: null;
+
+            $jury = [];
+            $evaluation = [];
+            if ($soutenance && !empty($soutenance['num_soutenance'])) {
+                $stmtJury = $this->db->prepare("
+                    SELECT
+                        en.id_enseignant,
+                        en.nom_enseignant,
+                        en.prenom_enseignant,
+                        en.mail_enseignant,
+                        qj.lib_role,
+                        g.lib_grade
+                    FROM enseignant_jury ej
+                    INNER JOIN enseignants en ON en.id_enseignant = ej.id_enseignant
+                    INNER JOIN qualite_jury qj ON qj.id_role_jury = ej.id_qualite_jury
+                    LEFT JOIN avoir a ON a.id_enseignant = en.id_enseignant
+                    LEFT JOIN grade g ON g.id_grade = a.id_grade
+                    WHERE ej.num_soutenance = :num_soutenance
+                    ORDER BY qj.id_role_jury ASC
+                ");
+                $stmtJury->execute([':num_soutenance' => $soutenance['num_soutenance']]);
+                $jury = $stmtJury->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+                $numJury = ctype_digit((string) $soutenance['num_soutenance'])
+                    ? (int) $soutenance['num_soutenance']
+                    : null;
+                if ($numJury !== null) {
+                    $evalParams = [
+                        ':num_etud' => $matricule,
+                        ':num_jury' => $numJury,
+                    ];
+                    $evalSql = "
+                        SELECT
+                            ce.lib_critere,
+                            ev.note,
+                            bc.bareme AS coefficient,
+                            (ev.note * COALESCE(bc.bareme, 0) / 20) AS points
+                        FROM evaluer ev
+                        INNER JOIN critere_evaluation ce ON ce.id_critere = ev.id_critere
+                        LEFT JOIN bareme_critere bc ON bc.id_critere = ce.id_critere
+                    ";
+                    if ($idAnneeFromBase !== null && $idAnneeFromBase > 0) {
+                        $evalSql .= " AND bc.id_annee_acad = :id_annee";
+                        $evalParams[':id_annee'] = $idAnneeFromBase;
+                    }
+                    $evalSql .= " WHERE ev.num_etudiant = :num_etud AND ev.num_jury = :num_jury";
+
+                    $stmtEval = $this->db->prepare($evalSql);
+                    $stmtEval->execute($evalParams);
+                    $evaluation = $stmtEval->fetchAll(PDO::FETCH_ASSOC) ?: [];
+                }
+            }
+
+            $stmtCandidatures = $this->db->prepare("
+                SELECT
+                    cs.*,
+                    CONCAT(pa.nom_pers_admin, ' ', pa.prenom_pers_admin) AS traite_par
+                FROM candidature_soutenance cs
+                LEFT JOIN personnel_admin pa ON pa.id_pers_admin = cs.id_pers_admin
+                WHERE cs.num_etu = :matricule
+                ORDER BY cs.date_candidature DESC
+            ");
+            $stmtCandidatures->execute([':matricule' => $matricule]);
+            $candidatures = $stmtCandidatures->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            $stmtReclamations = $this->db->prepare("
+                SELECT
+                    r.*,
+                    sr.libelle_statut_reclamation
+                FROM reclamations r
+                LEFT JOIN statut_reclamation sr ON sr.id_statut_reclamation = r.statut_reclamation
+                WHERE r.num_carte_etud = :matricule
+                ORDER BY r.date_creation DESC
+            ");
+            $stmtReclamations->execute([':matricule' => $matricule]);
+            $reclamations = $stmtReclamations->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            return [
+                'base' => $base,
+                'notes' => $notes,
+                'stage' => $stage,
+                'rapport' => $rapport,
+                'encadrement' => $encadrement,
+                'soutenance' => $soutenance,
+                'jury' => $jury,
+                'evaluation' => $evaluation,
+                'candidatures' => $candidatures,
+                'reclamations' => $reclamations,
+                'documents' => $this->getDocuments($matricule, $idAnneeFromBase),
+                'parcours' => $this->getParcours($matricule),
+            ];
+        } catch (PDOException $e) {
+            error_log("Erreur archive getArchiveProfile (Etudiant): " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * @param int $id_annee_acad
+     * @param array<string, mixed> $filters
+     * @param bool $countOnly
+     * @return array{0: string|null, 1: array<string, mixed>}
+     */
+    private function buildArchiveStudentsQuery($id_annee_acad, array $filters, $countOnly = false)
+    {
+        $idAnnee = (int) $id_annee_acad;
+        if ($idAnnee <= 0) {
+            return [null, []];
+        }
+
+        $yearLabel = $this->getAcademicYearLabelById($idAnnee);
+        $params = [':id_annee' => $idAnnee];
+
+        $yearWhere = "i.id_annee_acad = :id_annee";
+        if ($yearLabel !== '') {
+            $yearWhere .= " OR e.promotion_etu = :annee_label";
+            $params[':annee_label'] = $yearLabel;
+        }
+
+        $select = $countOnly
+            ? "COUNT(DISTINCT e.num_carte_etud) AS total"
+            : "
+                DISTINCT
+                e.num_carte_etud,
+                e.nom_etu,
+                e.prenom_etu,
+                e.email_etu,
+                e.promotion_etu,
+                i.id_annee_acad,
+                ne.lib_niv_etude,
+                sp.lib_specialite,
+                en.lib_long_entreprise,
+                re.id_rapport,
+                re.theme_rapport,
+                re.chemin_fichier,
+                re.date_redaction_rapport,
+                n.moyenne_M1,
+                n.moyenne_M2,
+                enc.encadreur_nom,
+                v.decision_validation AS statut_brut,
+                CASE
+                    WHEN v.decision_validation = 'valider' THEN 'Validé'
+                    WHEN v.decision_validation = 'rejeter' THEN 'Rejeté'
+                    ELSE 'En cours'
+                END AS statut
+            ";
+
+        $sql = "
+            SELECT {$select}
+            FROM etudiants e
+            LEFT JOIN inscriptions i ON i.id_etudiant = e.num_carte_etud
+            LEFT JOIN niveau_etude ne ON ne.id_niv_etude = i.id_niveau
+            LEFT JOIN enseignants ens_niv ON ens_niv.id_enseignant = ne.id_enseignant
+            LEFT JOIN specialite sp ON sp.id_specialite = ens_niv.id_specialite
+            LEFT JOIN (
+                SELECT x.*
+                FROM informations_stage x
+                INNER JOIN (
+                    SELECT num_etu, MAX(id_info_stage) AS last_id
+                    FROM informations_stage
+                    GROUP BY num_etu
+                ) m ON m.last_id = x.id_info_stage
+            ) inf ON inf.num_etu = e.num_carte_etud
+            LEFT JOIN entreprises en ON en.id_entreprise = inf.id_entreprise
+            LEFT JOIN (
+                SELECT x.*
+                FROM rapport_etudiants x
+                INNER JOIN (
+                    SELECT num_etu, MAX(id_rapport) AS last_id
+                    FROM rapport_etudiants
+                    GROUP BY num_etu
+                ) m ON m.last_id = x.id_rapport
+            ) re ON re.num_etu = e.num_carte_etud
+            LEFT JOIN (
+                SELECT
+                    v.id_rapport,
+                    SUBSTRING_INDEX(GROUP_CONCAT(v.decision_validation ORDER BY v.date_validation DESC), ',', 1) AS decision_validation
+                FROM valider v
+                GROUP BY v.id_rapport
+            ) v ON v.id_rapport = re.id_rapport
+            LEFT JOIN notes n ON n.num_etu = e.num_carte_etud AND n.id_annee_acad = :id_annee
+            LEFT JOIN (
+                SELECT
+                    a.id_rapport,
+                    GROUP_CONCAT(DISTINCT CONCAT(en2.nom_enseignant, ' ', en2.prenom_enseignant) SEPARATOR ', ') AS encadreur_nom
+                FROM affecter a
+                INNER JOIN enseignants en2 ON en2.id_enseignant = a.id_enseignant
+                WHERE a.role IN ('encadrant', 'encadreur')
+                GROUP BY a.id_rapport
+            ) enc ON enc.id_rapport = re.id_rapport
+            WHERE ({$yearWhere})
+        ";
+
+        if (!empty($filters['promotion'])) {
+            $sql .= " AND e.promotion_etu = :f_promotion";
+            $params[':f_promotion'] = (string) $filters['promotion'];
+        }
+
+        if (!empty($filters['specialite'])) {
+            $sql .= " AND sp.id_specialite = :f_specialite";
+            $params[':f_specialite'] = (int) $filters['specialite'];
+        }
+
+        if (!empty($filters['statut'])) {
+            $statut = strtolower(trim((string) $filters['statut']));
+            if ($statut === 'en_cours' || $statut === 'encours' || $statut === 'en cours') {
+                $sql .= " AND (v.decision_validation IS NULL OR v.decision_validation = '')";
+            } elseif (in_array($statut, ['valider', 'validé', 'valide'], true)) {
+                $sql .= " AND v.decision_validation = 'valider'";
+            } elseif (in_array($statut, ['rejeter', 'rejeté', 'rejete'], true)) {
+                $sql .= " AND v.decision_validation = 'rejeter'";
+            }
+        }
+
+        if (!empty($filters['entreprise'])) {
+            $sql .= " AND en.lib_long_entreprise LIKE :f_entreprise";
+            $params[':f_entreprise'] = '%' . trim((string) $filters['entreprise']) . '%';
+        }
+
+        if (!empty($filters['encadreur'])) {
+            $sql .= " AND enc.encadreur_nom LIKE :f_encadreur";
+            $params[':f_encadreur'] = '%' . trim((string) $filters['encadreur']) . '%';
+        }
+
+        if (isset($filters['note_min']) && $filters['note_min'] !== '') {
+            $sql .= " AND COALESCE(n.moyenne_M2, n.moyenne_M1, 0) >= :f_note_min";
+            $params[':f_note_min'] = (float) $filters['note_min'];
+        }
+
+        if (isset($filters['note_max']) && $filters['note_max'] !== '') {
+            $sql .= " AND COALESCE(n.moyenne_M2, n.moyenne_M1, 0) <= :f_note_max";
+            $params[':f_note_max'] = (float) $filters['note_max'];
+        }
+
+        if (!empty($filters['search'])) {
+            $sql .= "
+                AND (
+                    e.num_carte_etud LIKE :f_search
+                    OR e.nom_etu LIKE :f_search
+                    OR e.prenom_etu LIKE :f_search
+                    OR re.theme_rapport LIKE :f_search
+                    OR en.lib_long_entreprise LIKE :f_search
+                )
+            ";
+            $params[':f_search'] = '%' . trim((string) $filters['search']) . '%';
+        }
+
+        return [$sql, $params];
     }
 
 }

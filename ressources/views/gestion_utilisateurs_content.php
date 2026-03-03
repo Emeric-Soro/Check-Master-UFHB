@@ -109,7 +109,11 @@ $editStatutValue = (string) ($utilisateurEdit->statut_utilisateur ?? 'Actif');
 $editNomValue = (string) ($utilisateurEdit->nom_utilisateur ?? '');
 $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
 ?>
+<?php if (!canView()): ?>
+    <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => "Vous n'avez pas l'autorisation d'accéder à cette page."]); ?>
+<?php else: ?>
 <section class="cm-prd3-crud-screen cm-prd6-admin-screen">
+
     <?php if ($messageSuccess !== ''): ?>
         <?php cm_component('ui/alert-box', ['type' => $messageSuccessType, 'message' => $messageSuccess]); ?>
     <?php endif; ?>
@@ -123,10 +127,10 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
             <form method="POST" action="?page=gestion_utilisateurs" id="cmUsersMassForm" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <div class="cm-grid-4">
-                    <?php cm_component('form/select', ['name' => 'id_type_utilisateur', 'label' => 'Type utilisateur', 'required' => true, 'options' => $typeOptions]); ?>
-                    <?php cm_component('form/select', ['name' => 'id_GU', 'label' => 'Groupe utilisateur', 'required' => true, 'options' => $groupOptions]); ?>
-                    <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions]); ?>
-                    <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif'], 'selected' => 'Actif']); ?>
+                    <?php cm_component('form/select', ['name' => 'id_type_utilisateur', 'label' => 'Type utilisateur', 'required' => true, 'options' => $typeOptions, 'control_class' => 'cm-field-md']); ?>
+                    <?php cm_component('form/select', ['name' => 'id_GU', 'label' => 'Groupe utilisateur', 'required' => true, 'options' => $groupOptions, 'control_class' => 'cm-field-md']); ?>
+                    <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'control_class' => 'cm-field-md']); ?>
+                    <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif'], 'selected' => 'Actif', 'control_class' => 'cm-field-md']); ?>
                 </div>
                 <div class="cm-form-group">
                     <label class="cm-form-label">Selection des personnes</label>
@@ -162,20 +166,20 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
                 <input type="hidden" name="source_reference_id" id="cmSourceReferenceId" value="">
                 <input type="hidden" name="source_reference_email" id="cmSourceReferenceEmail" value="">
                 <div class="cm-grid-4">
-                    <?php cm_component('form/select', ['name' => 'id_type_utilisateur', 'id' => 'cmTypeUtilisateur', 'label' => 'Type utilisateur', 'required' => true, 'options' => $typeOptions, 'selected' => $editTypeValue]); ?>
+                    <?php cm_component('form/select', ['name' => 'id_type_utilisateur', 'id' => 'cmTypeUtilisateur', 'label' => 'Type utilisateur', 'required' => true, 'options' => $typeOptions, 'selected' => $editTypeValue, 'control_class' => 'cm-field-md']); ?>
                     <div class="cm-form-group">
                         <label for="cmGroupeUtilisateur" class="cm-form-label">Groupe utilisateur</label>
-                        <select name="id_GU" id="cmGroupeUtilisateur" class="cm-form-control" required>
+                        <select name="id_GU" id="cmGroupeUtilisateur" class="cm-form-control cm-field-md" required>
                             <?php foreach ($groupesUtilisateur as $groupe): $gid = (string) ($groupe->id_GU ?? ''); if ($gid === '') { continue; } ?>
                             <option value="<?= htmlspecialchars($gid, ENT_QUOTES, 'UTF-8') ?>" data-type-id="<?= htmlspecialchars((string) ($groupe->id_type_utilisateur ?? ''), ENT_QUOTES, 'UTF-8') ?>" <?= $editGroupeValue === $gid ? 'selected' : '' ?>><?= htmlspecialchars((string) ($groupe->lib_GU ?? ('Groupe ' . $gid)), ENT_QUOTES, 'UTF-8') ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="cm-form-group" id="cmUserNameTextWrap"><?php cm_component('form/input-text', ['name' => 'nom_utilisateur', 'id' => 'cmNomUtilisateurText', 'label' => 'Nom utilisateur', 'required' => true, 'value' => $editNomValue, 'placeholder' => 'Nom complet']); ?></div>
-                    <div class="cm-form-group cm-hidden" id="cmUserNameSelectWrap"><label for="cmNomUtilisateurSelect" class="cm-form-label">Nom utilisateur</label><select id="cmNomUtilisateurSelect" class="cm-form-control"></select></div>
-                    <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'id' => 'cmNiveauAcces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'selected' => $editNiveauValue !== '' ? $editNiveauValue : (string) array_key_first($niveauOptions)]); ?>
-                    <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'id' => 'cmStatutUtilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif'], 'selected' => $editStatutValue]); ?>
-                    <?php cm_component('form/input-text', ['name' => 'login_utilisateur', 'id' => 'cmLoginUtilisateur', 'label' => 'Login', 'required' => true, 'value' => $editLoginValue, 'placeholder' => 'login']); ?>
+                    <div class="cm-form-group" id="cmUserNameTextWrap"><?php cm_component('form/input-text', ['name' => 'nom_utilisateur', 'id' => 'cmNomUtilisateurText', 'label' => 'Nom utilisateur', 'required' => true, 'value' => $editNomValue, 'placeholder' => 'Nom complet', 'control_class' => 'cm-field-lg']); ?></div>
+                    <div class="cm-form-group cm-hidden" id="cmUserNameSelectWrap"><label for="cmNomUtilisateurSelect" class="cm-form-label">Nom utilisateur</label><select id="cmNomUtilisateurSelect" class="cm-form-control cm-field-lg"></select></div>
+                    <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'id' => 'cmNiveauAcces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'selected' => $editNiveauValue !== '' ? $editNiveauValue : (string) array_key_first($niveauOptions), 'control_class' => 'cm-field-md']); ?>
+                    <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'id' => 'cmStatutUtilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif'], 'selected' => $editStatutValue, 'control_class' => 'cm-field-md']); ?>
+                    <?php cm_component('form/input-text', ['name' => 'login_utilisateur', 'id' => 'cmLoginUtilisateur', 'label' => 'Login', 'required' => true, 'value' => $editLoginValue, 'placeholder' => 'login', 'control_class' => 'cm-field-md']); ?>
                 </div>
                 <div class="cm-form-group"><small id="cmLoginHint" class="cm-text-muted"></small></div>
                 <?php cm_component('crud/form-actions', ['actions' => array_filter([
@@ -191,28 +195,14 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
         <?php if (!$isMassMode): ?>
             <form id="cmUsersFilters" method="GET" data-cm-ajax-form="true">
                 <input type="hidden" name="page" value="gestion_utilisateurs">
-                <?php ob_start(); ?>
-                <label class="cm-toolbar__control"><span>Afficher:</span><select class="cm-form-control cm-toolbar__select" name="limit"><?php foreach ([10,25,50,100] as $opt): ?><option value="<?= $opt ?>" <?= $limit === $opt ? 'selected' : '' ?>><?= $opt ?></option><?php endforeach; ?></select></label>
-                <label class="cm-toolbar__control"><span>Type:</span><select class="cm-form-control cm-toolbar__select" name="type"><?php foreach ($typeOptions as $id => $label): ?><option value="<?= htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8') ?>" <?= $filters['type'] === (string) $id ? 'selected' : '' ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select></label>
-                <label class="cm-toolbar__control"><span>Groupe:</span><select class="cm-form-control cm-toolbar__select" name="groupe"><?php foreach ($groupOptions as $id => $label): ?><option value="<?= htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8') ?>" <?= $filters['groupe'] === (string) $id ? 'selected' : '' ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select></label>
-                <label class="cm-toolbar__control"><span>Statut:</span><select class="cm-form-control cm-toolbar__select" name="statut"><option value="">Tous</option><option value="Actif" <?= $filters['statut'] === 'Actif' ? 'selected' : '' ?>>Actif</option><option value="Inactif" <?= $filters['statut'] === 'Inactif' ? 'selected' : '' ?>>Inactif</option></select></label>
-                <?php $leftHtml = (string) ob_get_clean(); ob_start(); ?>
-                <div class="cm-toolbar__search-wrap"><input type="search" class="cm-form-control" name="search" value="<?= htmlspecialchars($filters['search'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Nom, login..."><button type="submit" class="cm-btn is-info is-sm"><i class="fas fa-search"></i><span>Filtrer</span></button></div>
-                <?php $centerHtml = (string) ob_get_clean(); ob_start(); ?>
-                <div class="cm-toolbar__actions">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmUsersSelectAll"><i class="fas fa-check-square"></i><span>Tout sélectionner</span></button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmUsersDeselectAll"><i class="fas fa-square"></i><span>Deselectionner</span></button>
-                    <?php if (canEdit()): ?>
-                    <button type="button" class="cm-btn is-danger is-sm" id="cmUsersDisable"><i class="fas fa-user-slash"></i><span>Desactiver</span></button>
-                    <button type="button" class="cm-btn is-success is-sm" id="cmUsersEnable"><i class="fas fa-user-check"></i><span>Activer</span></button>
-                    <button type="button" class="cm-btn is-info is-sm" id="cmUsersSendAccess"><i class="fas fa-paper-plane"></i><span>Envoyer acces</span></button>
-                    <?php endif; ?>
-                    <?php if (canView()): ?>
-                    <button type="button" class="cm-btn is-info is-sm" id="cmUsersPrint"><i class="fas fa-print"></i><span>Imprimer</span></button>
-                    <button type="button" class="cm-btn is-info is-sm" id="cmUsersExport"><i class="fas fa-file-export"></i><span>Exporter</span></button>
-                    <?php endif; ?>
-                </div>
-                <?php cm_component('crud/toolbar', ['left_html' => $leftHtml, 'center_html' => $centerHtml, 'right_html' => (string) ob_get_clean()]); ?>
+                <?php cm_toolbar([
+                    'screen' => 'gestion_utilisateurs',
+                    'id_prefix' => 'users',
+                    'search_value' => $filters['search'],
+                    'limit' => $limit,
+                    'can_delete' => canDelete(),
+                    'can_view' => canView(),
+                ]); ?>
             </form>
 
             <div class="cm-pole-inferieur">
@@ -241,6 +231,8 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
         <?php endif; ?>
     </div>
 </section>
+<?php endif; ?>
+
 <script>
 (function () {
     const typeSelect = document.getElementById('cmTypeUtilisateur');
