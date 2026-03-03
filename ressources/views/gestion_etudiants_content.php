@@ -11,7 +11,6 @@
                         <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mr-4">
                             <i class="fas fa-user-plus text-white text-xl"></i>
                         </div>
-                        <h2 class="text-xl font-semibold text-gray-800">Ajouter un Étudiant</h2>
                     </div>
                     <p class="text-gray-600 mb-4">
                         Créez un nouveau profil étudiant dans la base de données. Cette option permet d'ajouter
@@ -34,7 +33,7 @@
                         <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-4">
                             <i class="fas fa-user-graduate text-white text-xl"></i>
                         </div>
-                        <h2 class="text-xl font-semibold text-gray-800">Inscrire un Étudiant</h2>
+                        
                     </div>
                     <p class="text-gray-600 mb-4">
                         Inscrivez un étudiant à une formation ou un cours. Cette option permet de gérer les inscriptions

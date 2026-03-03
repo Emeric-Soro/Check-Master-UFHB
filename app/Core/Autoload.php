@@ -1,8 +1,18 @@
 <?php
 /**
- * Autoloader minimal (sans framework) pour nouvelles classes sous namespace CheckMaster\.
- * Note: on garde Composer pour vendor/ 
+ * Autoloader central du projet CheckMaster.
+ *
+ * 1. Charge le Composer autoloader (PSR-4 : App\ -> src/ + app/, vendor/).
+ * 2. Fallback SPL pour le namespace CheckMaster\ (mapping legacy -> app/).
  */
+
+// --- Composer autoloader (gère App\, vendor/ et PSR-4) ---
+$composerAutoload = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
+// --- Fallback SPL pour les classes sous namespace CheckMaster\ ---
 spl_autoload_register(function (string $class): void {
     $prefix = 'CheckMaster\\';
     if (strncmp($class, $prefix, strlen($prefix)) !== 0) {
@@ -18,4 +28,3 @@ spl_autoload_register(function (string $class): void {
         require_once $file;
     }
 });
-

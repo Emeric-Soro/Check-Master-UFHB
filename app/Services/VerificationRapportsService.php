@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../Core/Autoload.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use CheckMaster\Core\Session;
 
@@ -100,6 +101,32 @@ class VerificationRapportsService
         $stmt->execute([$fallbackStatut, $idRapport]);
     }
 
+    private function filterRowsBySelectedYear(array $rows): array
+    {
+        return \AcademicYear::filterRowsBySelectedYear($rows, 'id_annee_acad');
+    }
+
+    private function getRapportYearId($idRapport): ?int
+    {
+        $rapport = $this->rapportModel->getRapportDetail($idRapport);
+        if (is_object($rapport) && isset($rapport->id_annee_acad) && is_numeric($rapport->id_annee_acad)) {
+            return (int) $rapport->id_annee_acad;
+        }
+        if (is_array($rapport) && isset($rapport['id_annee_acad']) && is_numeric($rapport['id_annee_acad'])) {
+            return (int) $rapport['id_annee_acad'];
+        }
+        return null;
+    }
+
+    private function isInSelectedYear($idRapport): bool
+    {
+        $selectedYearId = \AcademicYear::getSelectedIdFromSession();
+        if ($selectedYearId === null || $selectedYearId <= 0) {
+            return true;
+        }
+        return $this->getRapportYearId($idRapport) === $selectedYearId;
+    }
+
     // ========================= LISTE & STATISTIQUES =========================
 
     /**
@@ -109,7 +136,7 @@ class VerificationRapportsService
      */
     public function getIndexData()
     {
-        $rapports = $this->rapportModel->getRapportsDeposes();
+        $rapports = $this->filterRowsBySelectedYear($this->rapportModel->getRapportsDeposes());
         $stats = $this->getStatsRapports();
 
         return [
@@ -127,7 +154,7 @@ class VerificationRapportsService
     public function getStatsRapports()
     {
         try {
-            $rapports = $this->rapportModel->getRapportsDeposes();
+            $rapports = $this->filterRowsBySelectedYear($this->rapportModel->getRapportsDeposes());
             $stats = [
                 'total' => 0, // en_attente_communication
                 'approuves' => 0, // approuve_communication
@@ -185,6 +212,15 @@ class VerificationRapportsService
                 return ['success' => false, 'message' => 'Paramètres manquants ou administrateur non reconnu'];
             }
 
+            if (!$this->isInSelectedYear((int) $id_rapport)) {
+                return ['success' => false, 'message' => 'Le rapport ne correspond pas à l année académique actuellement sélectionnée.'];
+            }
+
+            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId((int) $id_rapport), 'une verification de rapport');
+            if (!$writeGuard['success']) {
+                return ['success' => false, 'message' => $writeGuard['message']];
+            }
+
             if ($this->tableExists('approuver')) {
                 $stmt = $this->pdo->prepare("
                     INSERT INTO approuver (id_rapport, id_pers_admin, commentaire_approv, decision, date_approv, id_approb)
@@ -226,6 +262,15 @@ class VerificationRapportsService
                 return ['success' => false, 'message' => 'Paramètres manquants ou administrateur non reconnu'];
             }
 
+            if (!$this->isInSelectedYear((int) $id_rapport)) {
+                return ['success' => false, 'message' => 'Le rapport ne correspond pas à l année académique actuellement sélectionnée.'];
+            }
+
+            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId((int) $id_rapport), 'une verification de rapport');
+            if (!$writeGuard['success']) {
+                return ['success' => false, 'message' => $writeGuard['message']];
+            }
+
             if ($this->tableExists('approuver')) {
                 $stmt = $this->pdo->prepare("
                     INSERT INTO approuver (id_rapport, id_pers_admin, commentaire_approv, decision, date_approv, id_approb)
@@ -258,6 +303,9 @@ class VerificationRapportsService
     public function getRapportDetail($id_rapport)
     {
         try {
+            if (!$this->isInSelectedYear((int) $id_rapport)) {
+                return null;
+            }
             return $this->rapportModel->getRapportDetail($id_rapport);
         } catch (\Exception $e) {
             error_log("Erreur récupération détail rapport: " . $e->getMessage());
@@ -274,6 +322,9 @@ class VerificationRapportsService
     public function getDecisionsEvaluation($id_rapport)
     {
         try {
+            if (!$this->isInSelectedYear((int) $id_rapport)) {
+                return [];
+            }
             return $this->rapportModel->getDecisionsEvaluation($id_rapport);
         } catch (\Exception $e) {
             error_log("Erreur récupération décisions évaluation: " . $e->getMessage());

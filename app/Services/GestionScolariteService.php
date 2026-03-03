@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Scolarite.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use Scolarite;
 use AnneeAcademique;
@@ -22,6 +23,9 @@ use AuditLog;
  */
 class GestionScolariteService
 {
+    /** @var \PDO */
+    private $db;
+
     /** @var Scolarite */
     private $scolariteModel;
 
@@ -36,6 +40,7 @@ class GestionScolariteService
      */
     public function __construct($db)
     {
+        $this->db = $db;
         $this->scolariteModel = new Scolarite($db);
         $this->anneeAcademique = new AnneeAcademique($db);
         $this->auditLog = new AuditLog($db);
@@ -48,13 +53,45 @@ class GestionScolariteService
      */
     public function getReferenceLists(): array
     {
+        $selectedYearId = \AcademicYear::getSelectedIdFromSession();
+        $etudiantsInscrits = $this->scolariteModel->getEtudiantsInscrits();
+        $listeAllEtudiant = $this->scolariteModel->getAllEtudiants();
+        $listeVersement = $this->scolariteModel->getAllVersements();
+
+        if ($selectedYearId !== null && $selectedYearId > 0) {
+            $etudiantsInscrits = array_values(array_filter($etudiantsInscrits, static function (array $row) use ($selectedYearId): bool {
+                return (int) ($row['id_annee_acad'] ?? 0) === $selectedYearId;
+            }));
+
+            $listeVersement = array_values(array_filter($listeVersement, static function (array $row) use ($selectedYearId): bool {
+                $label = trim((string) ($row['date_deb'] ?? '')) !== '' && trim((string) ($row['date_fin'] ?? '')) !== ''
+                    ? date('Y', strtotime((string) $row['date_deb'])) . '-' . date('Y', strtotime((string) $row['date_fin']))
+                    : '';
+
+                return $label !== '' && $label === \AcademicYear::getSelectedLabelFromSession();
+            }));
+        }
+
+        $inscritsByStudent = [];
+        foreach ($etudiantsInscrits as $row) {
+            $studentId = (string) ($row['id_etudiant'] ?? '');
+            if ($studentId !== '') {
+                $inscritsByStudent[$studentId] = true;
+            }
+        }
+
+        $etudiantsNonInscrits = array_values(array_filter($listeAllEtudiant, static function (array $row) use ($inscritsByStudent): bool {
+            $studentId = (string) ($row['num_carte_etud'] ?? '');
+            return $studentId !== '' && !isset($inscritsByStudent[$studentId]);
+        }));
+
         return [
-            'etudiantsNonInscrits' => $this->scolariteModel->getEtudiantsNonInscrits(),
-            'niveaux' => $this->scolariteModel->getNiveauxEtudes(), // Récupère tous les niveaux avec leur année académique
-            'etudiantsInscrits' => $this->scolariteModel->getEtudiantsInscrits(),
-            'listeAllEtudiant' => $this->scolariteModel->getAllEtudiants(),
+            'etudiantsNonInscrits' => $etudiantsNonInscrits,
+            'niveaux' => $this->scolariteModel->getNiveauxEtudes(),
+            'etudiantsInscrits' => $etudiantsInscrits,
+            'listeAllEtudiant' => $listeAllEtudiant,
             'listeAnnees' => $this->anneeAcademique->getAllAnneeAcademiques(),
-            'listeVersement' => $this->scolariteModel->getAllVersements(),
+            'listeVersement' => $listeVersement,
         ];
     }
 
@@ -103,6 +140,11 @@ class GestionScolariteService
             $inscription = $this->scolariteModel->getInscriptionByEtudiantId($data['id_etudiant']);
             if (!$inscription) {
                 return ['success' => false, 'message' => 'Aucune inscription trouvée pour cet étudiant.', 'data' => null];
+            }
+
+            $writeGuard = \AcademicYear::ensureWritableYear($this->db, $inscription['id_annee_acad'] ?? null, 'un versement');
+            if (!$writeGuard['success']) {
+                return ['success' => false, 'message' => $writeGuard['message'], 'data' => null];
             }
 
             // Vérifier si l'étudiant a déjà soldé sa scolarité
@@ -182,6 +224,11 @@ class GestionScolariteService
             $inscription = $this->scolariteModel->getInscriptionById($versement['id_inscription']);
             if (!$inscription) {
                 return ['success' => false, 'message' => 'Inscription introuvable.', 'data' => null];
+            }
+
+            $writeGuard = \AcademicYear::ensureWritableYear($this->db, $inscription['id_annee_acad'] ?? null, 'un versement');
+            if (!$writeGuard['success']) {
+                return ['success' => false, 'message' => $writeGuard['message'], 'data' => null];
             }
 
             $ancienMontant = floatval($versement['montant']);
@@ -296,6 +343,11 @@ class GestionScolariteService
         $methode_paiement = $data['methode_paiement'];
         $num_piece = isset($data['num_piece']) ? $data['num_piece'] : null;
 
+        $writeGuard = \AcademicYear::ensureWritableYear($this->db, $id_annee_acad, "une inscription");
+        if (!$writeGuard['success']) {
+            return ['success' => false, 'message' => $writeGuard['message'], 'refreshLists' => false];
+        }
+
         $inscriptionExistante = $this->scolariteModel->getDerniereInscription($id_etudiant);
         if ($inscriptionExistante && $inscriptionExistante['id_annee_acad'] == $id_annee_acad) {
             return ['success' => false, 'message' => 'Cet étudiant est déjà inscrit pour cette année académique.', 'refreshLists' => false];
@@ -364,6 +416,11 @@ class GestionScolariteService
         $id_niveau = $derniere_inscription['id_niveau'];
         $id_annee_acad = $derniere_inscription['id_annee_acad'];
 
+        $writeGuard = \AcademicYear::ensureWritableYear($this->db, $id_annee_acad, "un versement");
+        if (!$writeGuard['success']) {
+            return ['success' => false, 'message' => $writeGuard['message'], 'refreshLists' => false];
+        }
+
         $infos_paiement = $this->scolariteModel->getInfosPaiementEtudiant($id_etudiant, $id_annee_acad);
 
         if (!$infos_paiement) {
@@ -402,93 +459,6 @@ class GestionScolariteService
         } else {
             $this->auditLog->logCreation($userId, 'inscriptions', 'Erreur');
             return ['success' => false, 'message' => "❌ Erreur lors de l'enregistrement.", 'refreshLists' => false];
-        }
-    }
-
-    /**
-     * Upload de la fiche d'inscription d'un étudiant
-     *
-     * @param array $data Données POST
-     * @param array $files Données FILES
-     * @param int $userId ID de l'utilisateur
-     * @return array Résultat de l'upload
-     */
-    public function uploadFicheInscription(array $data, array $files, int $userId): array
-    {
-        try {
-            // Vérifier que l'ID d'inscription est fourni
-            if (empty($data['id_inscription'])) {
-                return ['success' => false, 'message' => 'ID d\'inscription manquant'];
-            }
-
-            $idInscription = (int) $data['id_inscription'];
-
-            // Vérifier qu'un fichier a été uploadé
-            if (empty($files['fiche_inscription']) || $files['fiche_inscription']['error'] === UPLOAD_ERR_NO_FILE) {
-                return ['success' => false, 'message' => 'Aucun fichier sélectionné'];
-            }
-
-            $file = $files['fiche_inscription'];
-
-            // Vérifier les erreurs d'upload
-            if ($file['error'] !== UPLOAD_ERR_OK) {
-                return ['success' => false, 'message' => 'Erreur lors de l\'upload du fichier'];
-            }
-
-            // Vérifier la taille du fichier (max 5 Mo)
-            $maxSize = 5 * 1024 * 1024; // 5 Mo
-            if ($file['size'] > $maxSize) {
-                return ['success' => false, 'message' => 'Le fichier est trop volumineux (max 5 Mo)'];
-            }
-
-            // Vérifier le type de fichier
-            $allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-            $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
-
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mimeType = finfo_file($finfo, $file['tmp_name']);
-            finfo_close($finfo);
-
-            $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-
-            if (!in_array($mimeType, $allowedTypes) || !in_array($extension, $allowedExtensions)) {
-                return ['success' => false, 'message' => 'Format de fichier non accepté (PDF, JPG, PNG uniquement)'];
-            }
-
-            // Créer le dossier de destination s'il n'existe pas
-            $uploadDir = __DIR__ . '/../../ressources/uploads/fiches_inscription/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
-            }
-
-            // Générer un nom de fichier unique
-            $filename = 'fiche_' . $idInscription . '_' . time() . '.' . $extension;
-            $destination = $uploadDir . $filename;
-            $relativePath = 'ressources/uploads/fiches_inscription/' . $filename;
-
-            // Déplacer le fichier uploadé
-            if (!move_uploaded_file($file['tmp_name'], $destination)) {
-                return ['success' => false, 'message' => 'Erreur lors de l\'enregistrement du fichier'];
-            }
-
-            // Mettre à jour la base de données
-            $result = $this->scolariteModel->updateFicheInscription($idInscription, $relativePath);
-
-            if ($result) {
-                $this->auditLog->logModification($userId, 'inscriptions', 'Upload fiche d\'inscription');
-                return [
-                    'success' => true,
-                    'message' => 'Fiche d\'inscription uploadée avec succès',
-                    'file_path' => $relativePath
-                ];
-            } else {
-                // Supprimer le fichier en cas d'erreur de BDD
-                unlink($destination);
-                return ['success' => false, 'message' => 'Erreur lors de la mise à jour de la base de données'];
-            }
-        } catch (\Exception $e) {
-            error_log('Erreur upload fiche inscription: ' . $e->getMessage());
-            return ['success' => false, 'message' => 'Erreur serveur: ' . $e->getMessage()];
         }
     }
 }

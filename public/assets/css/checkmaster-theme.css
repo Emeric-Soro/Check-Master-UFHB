@@ -63,12 +63,12 @@
     --cm-line-height-relaxed: 1.75;
 
     /* Spacing */
-    --cm-spacing-xs: 0.25rem;
-    --cm-spacing-sm: 0.5rem;
-    --cm-spacing-md: 1rem;
-    --cm-spacing-lg: 1.5rem;
-    --cm-spacing-xl: 2rem;
-    --cm-spacing-2xl: 3rem;
+    --cm-spacing-xs: 0.2rem;
+    --cm-spacing-sm: 0.35rem;
+    --cm-spacing-md: 0.75rem;
+    --cm-spacing-lg: 1.25rem;
+    --cm-spacing-xl: 1.75rem;
+    --cm-spacing-2xl: 2.5rem;
 
     /* Layout */
     --cm-sidebar-width: 300px;

@@ -1,9 +1,7 @@
 <?php
 require_once __DIR__ . '/../../app/controllers/ProcessusValidationController.php';
-
 $controller = new ProcessusValidationController();
 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-
 $resolveEnseignantId = static function (ProcessusValidationController $ctrl): ?int {
     $candidateKeys = ['id_enseignant', 'id_utilisateur', 'enseignant_id'];
     foreach ($candidateKeys as $key) {
@@ -14,7 +12,6 @@ $resolveEnseignantId = static function (ProcessusValidationController $ctrl): ?i
             }
         }
     }
-
     $payload = $ctrl->getDonneesPage();
     $membres = is_array($payload['membres_commission'] ?? null) ? $payload['membres_commission'] : [];
     if (!empty($membres[0]['id_enseignant'])) {
@@ -22,12 +19,10 @@ $resolveEnseignantId = static function (ProcessusValidationController $ctrl): ?i
     }
     return null;
 };
-
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (string) ($_POST['action'] ?? '') === 'finaliser') {
     $idRapport = (int) ($_POST['id_rapport'] ?? 0);
     $commentaire = trim((string) ($_POST['commentaire_validation'] ?? ''));
     $idEnseignant = $resolveEnseignantId($controller);
-
     if ($idRapport > 0 && $idEnseignant) {
         $result = $controller->finaliserRapport($idRapport, $idEnseignant, $commentaire !== '' ? $commentaire : null);
     } else {
@@ -36,37 +31,30 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (string) ($_POST['action
             'message' => 'Impossible de finaliser: identifiant manquant.',
         ];
     }
-
     if ($isAjax) {
         header('Content-Type: application/json; charset=UTF-8');
         echo json_encode($result);
         exit;
     }
-
     $_SESSION[$result['success'] ? 'success' : 'error'] = (string) ($result['message'] ?? '');
     header('Location: layout.php?page=processus_validation');
     exit;
 }
-
 $donnees = $controller->getDonneesPage();
 $statistiques = is_array($donnees['statistiques'] ?? null) ? $donnees['statistiques'] : [];
 $rapports = is_array($donnees['rapports'] ?? null) ? $donnees['rapports'] : [];
 $membresCommission = is_array($donnees['membres_commission'] ?? null) ? $donnees['membres_commission'] : [];
-
 $statusFilter = strtolower(trim((string) ($_GET['pv_status'] ?? 'all')));
 if ($statusFilter === '') {
     $statusFilter = 'all';
 }
 $memberFilter = trim((string) ($_GET['pv_member'] ?? ''));
-
 $filteredRapports = array_values(array_filter($rapports, static function (array $rapport) use ($statusFilter, $memberFilter): bool {
     $vote = is_array($rapport['statut_vote'] ?? null) ? $rapport['statut_vote'] : [];
     $statut = strtolower((string) ($vote['statut'] ?? ''));
-
     if ($statusFilter !== 'all' && $statusFilter !== '' && $statut !== $statusFilter) {
         return false;
     }
-
     if ($memberFilter !== '') {
         $found = false;
         $evaluations = is_array($rapport['evaluations'] ?? null) ? $rapport['evaluations'] : [];
@@ -81,10 +69,8 @@ $filteredRapports = array_values(array_filter($rapports, static function (array 
             return false;
         }
     }
-
     return true;
 }));
-
 $allowedLimits = [5, 10, 25, 50];
 $perPage = max(5, (int) ($_GET['limit_processus'] ?? 10));
 if (!in_array($perPage, $allowedLimits, true)) {
@@ -104,12 +90,10 @@ $pagination = function_exists('cm_paginate')
         'pages' => [1],
     ];
 $rowsToShow = array_slice($filteredRapports, (int) ($pagination['offset'] ?? 0), $perPage);
-
 $baseUrl = '?page=processus_validation'
     . '&pv_status=' . urlencode($statusFilter)
     . '&pv_member=' . urlencode($memberFilter)
     . '&limit_processus=' . $perPage;
-
 $memberOptions = ['' => 'Tous'];
 foreach ($membresCommission as $membre) {
     $label = trim((string) ($membre['nom_enseignant'] ?? '') . ' ' . (string) ($membre['prenom_enseignant'] ?? ''));
@@ -118,7 +102,6 @@ foreach ($membresCommission as $membre) {
     }
 }
 ?>
-
 <div class="cm-prd3-screen cm-prd3-crud-screen">
     <?php if (!empty($_SESSION['success'])): ?>
         <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => (string) $_SESSION['success']]); ?>
@@ -128,18 +111,11 @@ foreach ($membresCommission as $membre) {
         <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $_SESSION['error']]); ?>
         <?php unset($_SESSION['error']); ?>
     <?php endif; ?>
-
     <div id="cmProcessAlert"></div>
-
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur">
-            <div class="cm-pole-superieur-title">
-                <h2>
-                    <i class="fas fa-list-check" aria-hidden="true"></i>
-                    Suivi global de validation
-                </h2>
+            <div class="">
             </div>
-
             <div class="cm-grid-4">
                 <?php cm_component('dashboard/stat-widget', [
                     'value' => (string) ((int) ($statistiques['total_rapports'] ?? 0)),
@@ -155,18 +131,17 @@ foreach ($membresCommission as $membre) {
                 ]); ?>
                 <?php cm_component('dashboard/stat-widget', [
                     'value' => (string) ((int) ($statistiques['valides'] ?? 0)),
-                    'label' => 'Valides',
+                    'label' => 'Validés',
                     'icon' => 'fa-check-circle',
                     'color' => 'success',
                 ]); ?>
                 <?php cm_component('dashboard/stat-widget', [
                     'value' => (string) ((int) ($statistiques['rejetes'] ?? 0)),
-                    'label' => 'Rejetes',
+                    'label' => 'Rejetés',
                     'icon' => 'fa-xmark-circle',
                     'color' => 'warning',
                 ]); ?>
             </div>
-
             <div class="cm-grid-2">
                 <?php
                 cm_component('form/select', [
@@ -177,8 +152,8 @@ foreach ($membresCommission as $membre) {
                         'all' => 'Tous',
                         'en_cours' => 'En cours',
                         'pret_a_finaliser' => 'Pret a finaliser',
-                        'valide' => 'Valide',
-                        'rejete' => 'Rejete',
+                        'valide' => 'Validé',
+                        'rejete' => 'Rejeté',
                     ],
                     'selected' => $statusFilter,
                     'attrs' => [
@@ -187,7 +162,6 @@ foreach ($membresCommission as $membre) {
                         'data-cm-ajax-reset-value' => '1',
                     ],
                 ]);
-
                 cm_component('form/select', [
                     'name' => 'cm_process_member',
                     'id' => 'cmProcessMemberFilter',
@@ -203,7 +177,6 @@ foreach ($membresCommission as $membre) {
                 ?>
             </div>
         </div>
-
         <div class="cm-barre-intermediaire">
             <div class="cm-toolbar">
                 <div class="cm-toolbar-left">
@@ -221,7 +194,7 @@ foreach ($membresCommission as $membre) {
                     </select>
                 </div>
                 <div class="cm-toolbar-center">
-                    <input type="text" id="cmProcessSearch" class="cm-form-control" placeholder="Rechercher un rapport ou etudiant...">
+                    <input type="text" id="cmProcessSearch" class="cm-form-control" placeholder="Rechercher un rapport ou étudiant...">
                 </div>
                 <div class="cm-toolbar-right">
                     <button type="button" class="cm-btn is-info is-sm" id="cmProcessExport">
@@ -235,7 +208,6 @@ foreach ($membresCommission as $membre) {
                 </div>
             </div>
         </div>
-
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
                 <table class="cm-data-table" id="cmProcessTable">
@@ -255,7 +227,7 @@ foreach ($membresCommission as $membre) {
                         <?php cm_component('ui/empty-state', [
                             'in_table' => true,
                             'colspan' => 7,
-                            'title' => 'Aucun rapport',
+                            'title' => '',
                             'message' => 'Aucune ligne disponible pour ces filtres.',
                         ]); ?>
                     <?php else: ?>
@@ -265,10 +237,10 @@ foreach ($membresCommission as $membre) {
                             $statut = strtolower((string) ($vote['statut'] ?? 'en_cours'));
                             if ($statut === 'valide') {
                                 $badgeType = 'success';
-                                $statutLabel = 'Valide';
+                                $statutLabel = 'Validé';
                             } elseif ($statut === 'rejete') {
                                 $badgeType = 'warning';
-                                $statutLabel = 'Rejete';
+                                $statutLabel = 'Rejeté';
                             } elseif ($statut === 'pret_a_finaliser') {
                                 $badgeType = 'info';
                                 $statutLabel = 'Pret a finaliser';
@@ -276,7 +248,6 @@ foreach ($membresCommission as $membre) {
                                 $badgeType = 'info';
                                 $statutLabel = 'En cours';
                             }
-
                             $idRapport = (int) ($rapport['id_rapport'] ?? 0);
                             $etudiant = trim((string) ($rapport['nom_etu'] ?? '') . ' ' . (string) ($rapport['prenom_etu'] ?? ''));
                             $searchText = strtolower((string) ($rapport['nom_rapport'] ?? '') . ' ' . $etudiant . ' ' . (string) ($rapport['theme_rapport'] ?? ''));
@@ -328,7 +299,6 @@ foreach ($membresCommission as $membre) {
                     </tbody>
                 </table>
             </div>
-
             <?php
             cm_component('crud/pagination', [
                 'pagination' => $pagination,
@@ -339,7 +309,6 @@ foreach ($membresCommission as $membre) {
         </div>
     </div>
 </div>
-
 <script>
 (function () {
     const tableRows = Array.from(document.querySelectorAll('#cmProcessTableBody .cm-data-table__row'));
@@ -347,7 +316,6 @@ foreach ($membresCommission as $membre) {
     const exportBtn = document.getElementById('cmProcessExport');
     const printBtn = document.getElementById('cmProcessPrint');
     const alertBox = document.getElementById('cmProcessAlert');
-
     function setAlert(type, message) {
         if (!alertBox) {
             return;
@@ -357,7 +325,6 @@ foreach ($membresCommission as $membre) {
             String(message || '').replace(/[<>&]/g, '') +
             '</span></div></div>';
     }
-
     if (searchInput) {
         searchInput.addEventListener('input', function () {
             const term = (searchInput.value || '').trim().toLowerCase();
@@ -367,12 +334,10 @@ foreach ($membresCommission as $membre) {
             });
         });
     }
-
     if (exportBtn) {
         exportBtn.addEventListener('click', function () {
             const headers = ['Rapport', 'Etudiant', 'Promotion', 'Statut', 'Votes', 'Date approbation'];
             const csvRows = [headers.join(';')];
-
             tableRows.forEach(function (row) {
                 if (row.style.display === 'none') {
                     return;
@@ -393,7 +358,6 @@ foreach ($membresCommission as $membre) {
                 });
                 csvRows.push(line.join(';'));
             });
-
             const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -405,13 +369,11 @@ foreach ($membresCommission as $membre) {
             URL.revokeObjectURL(url);
         });
     }
-
     if (printBtn) {
         printBtn.addEventListener('click', function () {
             window.print();
         });
     }
-
     document.addEventListener('cm:ajax:form:error', function (event) {
         const payload = event && event.detail ? event.detail.payload : null;
         if (payload && payload.message) {

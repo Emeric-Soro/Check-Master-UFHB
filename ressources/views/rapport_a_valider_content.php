@@ -2,28 +2,22 @@
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/models/RapportEtudiant.php';
 require_once __DIR__ . '/../../app/models/EvaluationRapport.php';
-
 $pdo = Database::getConnection();
 $rapportModel = new RapportEtudiant($pdo);
 $evaluationModel = new EvaluationRapport($pdo);
-
 $idUtilisateur = (int) ($_SESSION['id_utilisateur'] ?? 0);
 $allRapports = $rapportModel->getAllRapports();
-
 $rapports = [];
 $totalNouveaux = 0;
 $totalTraites = 0;
-
 foreach ($allRapports as $rapport) {
     $idRapport = (int) ($rapport->id_rapport ?? 0);
     if ($idRapport <= 0) {
         continue;
     }
-
     $evaluations = $evaluationModel->getEvaluationsRapport($idRapport);
     $nbEvaluations = count($evaluations);
     $dejaEvalue = $idUtilisateur > 0 ? (bool) $evaluationModel->evaluationExiste($idRapport, $idUtilisateur) : false;
-
     $votesValider = 0;
     $votesRejeter = 0;
     foreach ($evaluations as $evaluation) {
@@ -34,14 +28,12 @@ foreach ($allRapports as $rapport) {
             $votesRejeter++;
         }
     }
-
     $isNouveau = $nbEvaluations === 0;
     if ($isNouveau) {
         $totalNouveaux++;
     } else {
         $totalTraites++;
     }
-
     $rapports[] = [
         'id_rapport' => $idRapport,
         'num_etu' => (string) ($rapport->num_etu ?? ''),
@@ -58,18 +50,15 @@ foreach ($allRapports as $rapport) {
         'deja_evalue' => $dejaEvalue,
     ];
 }
-
 usort($rapports, static function (array $a, array $b): int {
     $dateA = strtotime((string) ($a['date_rapport'] ?? '1970-01-01'));
     $dateB = strtotime((string) ($b['date_rapport'] ?? '1970-01-01'));
     return $dateB <=> $dateA;
 });
-
 $statusFilter = strtolower(trim((string) ($_GET['reception_status'] ?? 'all')));
 if ($statusFilter === '') {
     $statusFilter = 'all';
 }
-
 $filteredRapports = array_values(array_filter($rapports, static function (array $row) use ($statusFilter): bool {
     if ($statusFilter === 'all') {
         return true;
@@ -82,7 +71,6 @@ $filteredRapports = array_values(array_filter($rapports, static function (array 
     }
     return strtolower((string) ($row['statut_rapport'] ?? '')) === $statusFilter;
 }));
-
 $allowedLimits = [5, 10, 25, 50, 100];
 $perPage = max(5, (int) ($_GET['limit_reception'] ?? 10));
 if (!in_array($perPage, $allowedLimits, true)) {
@@ -102,44 +90,34 @@ $pagination = function_exists('cm_paginate')
         'pages' => [1],
     ];
 $rowsToShow = array_slice($filteredRapports, (int) ($pagination['offset'] ?? 0), $perPage);
-
 $baseUrl = '?page=' . urlencode((string) ($_GET['page'] ?? 'rapport_a_valider'))
     . '&reception_status=' . urlencode($statusFilter)
     . '&limit_reception=' . $perPage;
-
 $statusOptions = [
     'all' => 'Tous',
     'nouveau' => 'Nouveaux',
     'traite' => 'Traites',
     'en_attente' => 'En attente',
     'en_cours' => 'En cours',
-    'valider' => 'Valides',
-    'rejeter' => 'Rejetes',
+    'valider' => 'Validés',
+    'rejeter' => 'Rejetés',
 ];
 ?>
-
 <div class="cm-prd3-screen cm-prd3-crud-screen">
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur">
-            <div class="cm-pole-superieur-title">
-                <h2>
-                    <i class="fas fa-inbox" aria-hidden="true"></i>
-                    Reception des rapports
-                </h2>
+            <div class="">
             </div>
-
             <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
                 <?php cm_component('ui/badge', ['text' => 'Total rapports: ' . count($rapports), 'type' => 'info']); ?>
                 <?php cm_component('ui/badge', ['text' => 'Nouveaux: ' . $totalNouveaux, 'type' => 'warning']); ?>
                 <?php cm_component('ui/badge', ['text' => 'Deja traites: ' . $totalTraites, 'type' => 'success']); ?>
             </div>
         </div>
-
         <div class="cm-barre-intermediaire">
             <div class="cm-toolbar">
                 <div class="cm-toolbar-left">
                     <input type="text" id="cmReceptionSearch" class="cm-form-control cm-toolbar-field-lg" placeholder="Rechercher un rapport...">
-
                     <?php
                     cm_component('form/select', [
                         'name' => 'cm_reception_status',
@@ -155,7 +133,6 @@ $statusOptions = [
                         ],
                     ]);
                     ?>
-
                     <label for="cmReceptionLimit"><strong>Afficher:</strong></label>
                     <select id="cmReceptionLimit"
                             class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
@@ -169,7 +146,6 @@ $statusOptions = [
                         <?php endforeach; ?>
                     </select>
                 </div>
-
                 <div class="cm-toolbar-center">
                     <button type="button" class="cm-btn is-info is-sm" id="cmReceptionSelectAllBtn">
                         <i class="fas fa-square-check" aria-hidden="true"></i>
@@ -184,7 +160,6 @@ $statusOptions = [
                         Supprimer (0)
                     </button>
                 </div>
-
                 <div class="cm-toolbar-right">
                     <button type="button" class="cm-btn is-info is-sm" id="cmReceptionExport">
                         <i class="fas fa-file-export" aria-hidden="true"></i>
@@ -197,14 +172,13 @@ $statusOptions = [
                 </div>
             </div>
         </div>
-
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
                 <table class="cm-data-table" id="cmReceptionTable">
                     <thead>
                     <tr>
                         <th class="cm-data-table__th cm-data-table__th--check">
-                            <input type="checkbox" id="cmReceptionCheckAll" aria-label="Tout selectionner">
+                            <input type="checkbox" id="cmReceptionCheckAll" aria-label="Tout sélectionner">
                         </th>
                         <th class="cm-data-table__th">Nouv.</th>
                         <th class="cm-data-table__th">N Rap</th>
@@ -221,7 +195,7 @@ $statusOptions = [
                         <?php cm_component('ui/empty-state', [
                             'in_table' => true,
                             'colspan' => 9,
-                            'title' => 'Aucun rapport',
+                            'title' => '',
                             'message' => 'Aucun rapport ne correspond aux filtres.',
                         ]); ?>
                     <?php else: ?>
@@ -239,14 +213,13 @@ $statusOptions = [
                             );
                             $dateDepot = !empty($row['date_rapport']) ? date('d/m/Y', strtotime((string) $row['date_rapport'])) : '-';
                             $statut = strtolower((string) ($row['statut_rapport'] ?? 'en_attente'));
-
                             $statutLabel = 'En attente';
                             $badgeType = 'info';
                             if ($statut === 'valider') {
-                                $statutLabel = 'Valide';
+                                $statutLabel = 'Validé';
                                 $badgeType = 'success';
                             } elseif ($statut === 'rejeter') {
-                                $statutLabel = 'Rejete';
+                                $statutLabel = 'Rejeté';
                                 $badgeType = 'danger';
                             } elseif ($statut === 'en_cours') {
                                 $statutLabel = 'En cours';
@@ -258,7 +231,7 @@ $statusOptions = [
                                 data-is-new="<?php echo $isNouveau ? '1' : '0'; ?>"
                                 data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
                                 <td class="cm-data-table__td cm-data-table__td--check">
-                                    <input type="checkbox" class="cm-reception-check-row" value="<?php echo $idRapport; ?>" aria-label="Selectionner ligne rapport <?php echo $idRapport; ?>">
+                                    <input type="checkbox" class="cm-reception-check-row" value="<?php echo $idRapport; ?>" aria-label="Sélectionner ligne rapport <?php echo $idRapport; ?>">
                                 </td>
                                 <td class="cm-data-table__td">
                                     <?php if ($isNouveau): ?>
@@ -282,7 +255,6 @@ $statusOptions = [
                     </tbody>
                 </table>
             </div>
-
             <?php
             cm_component('crud/pagination', [
                 'pagination' => $pagination,
@@ -290,14 +262,12 @@ $statusOptions = [
                 'param_name' => 'page_reception',
             ]);
             ?>
-
             <div class="cm-text-sm cm-text-muted cm-px-md">
                 Cliquez sur un rapport marque nouveau pour le traiter (redirection automatique).
             </div>
         </div>
     </div>
 </div>
-
 <script>
 (function () {
     const searchInput = document.getElementById('cmReceptionSearch');
@@ -308,31 +278,26 @@ $statusOptions = [
     const selectAllBtn = document.getElementById('cmReceptionSelectAllBtn');
     const deselectBtn = document.getElementById('cmReceptionDeselectBtn');
     const deleteBtn = document.getElementById('cmReceptionDeleteBtn');
-
     function getRows() {
         return Array.from(document.querySelectorAll('#cmReceptionTableBody .cm-data-table__row'));
     }
-
     function getVisibleRows() {
         return getRows().filter(function (row) {
             return row.style.display !== 'none';
         });
     }
-
     function getCheckedRows() {
         return getRows().filter(function (row) {
             const checkbox = row.querySelector('.cm-reception-check-row');
             return checkbox && checkbox.checked;
         });
     }
-
     function updateDeleteState() {
         const count = getCheckedRows().length;
         if (deleteBtn) {
             deleteBtn.disabled = count === 0;
             deleteBtn.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i> Supprimer (' + count + ')';
         }
-
         if (checkAll) {
             const visible = getVisibleRows();
             const checkedVisible = visible.filter(function (row) {
@@ -342,7 +307,6 @@ $statusOptions = [
             checkAll.checked = visible.length > 0 && checkedVisible.length === visible.length;
         }
     }
-
     function applySearch() {
         const term = searchInput ? (searchInput.value || '').trim().toLowerCase() : '';
         getRows().forEach(function (row) {
@@ -351,7 +315,6 @@ $statusOptions = [
         });
         updateDeleteState();
     }
-
     function bindRowClickBehavior() {
         getRows().forEach(function (row) {
             const isNew = row.getAttribute('data-is-new') === '1';
@@ -359,13 +322,11 @@ $statusOptions = [
             if (!isNew || !rapportId) {
                 return;
             }
-
             row.style.cursor = 'pointer';
             row.addEventListener('click', function (event) {
                 if (event.target.closest('a,button,input,select,textarea,label')) {
                     return;
                 }
-
                 const url = '?page=evaluation_dossiers&detail=' + encodeURIComponent(rapportId);
                 if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
                     window.CM.ajax.load(url);
@@ -375,7 +336,6 @@ $statusOptions = [
             });
         });
     }
-
     if (tableBody) {
         tableBody.addEventListener('change', function (event) {
             if (event.target && event.target.classList.contains('cm-reception-check-row')) {
@@ -383,7 +343,6 @@ $statusOptions = [
             }
         });
     }
-
     if (checkAll) {
         checkAll.addEventListener('change', function () {
             getVisibleRows().forEach(function (row) {
@@ -395,7 +354,6 @@ $statusOptions = [
             updateDeleteState();
         });
     }
-
     if (selectAllBtn) {
         selectAllBtn.addEventListener('click', function () {
             getVisibleRows().forEach(function (row) {
@@ -407,7 +365,6 @@ $statusOptions = [
             updateDeleteState();
         });
     }
-
     if (deselectBtn) {
         deselectBtn.addEventListener('click', function () {
             getRows().forEach(function (row) {
@@ -419,7 +376,6 @@ $statusOptions = [
             updateDeleteState();
         });
     }
-
     if (deleteBtn) {
         deleteBtn.addEventListener('click', function () {
             const checked = getCheckedRows();
@@ -432,16 +388,13 @@ $statusOptions = [
             updateDeleteState();
         });
     }
-
     if (searchInput) {
         searchInput.addEventListener('input', applySearch);
     }
-
     if (exportBtn) {
         exportBtn.addEventListener('click', function () {
             const headers = ['Nouveau', 'N Rap', 'N Etud', 'Nom Prenom', 'Nom rapport', 'Theme', 'Date depot', 'Statut'];
             const csvRows = [headers.join(';')];
-
             getVisibleRows().forEach(function (row) {
                 const cols = row.querySelectorAll('.cm-data-table__td');
                 if (cols.length < 9) {
@@ -461,7 +414,6 @@ $statusOptions = [
                 });
                 csvRows.push(line.join(';'));
             });
-
             const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -473,13 +425,11 @@ $statusOptions = [
             URL.revokeObjectURL(url);
         });
     }
-
     if (printBtn) {
         printBtn.addEventListener('click', function () {
             window.print();
         });
     }
-
     bindRowClickBehavior();
     applySearch();
 })();

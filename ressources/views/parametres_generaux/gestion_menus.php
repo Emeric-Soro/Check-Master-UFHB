@@ -185,7 +185,7 @@ function isChecked($v): string
         </div>
         <?php
         cm_component('crud/form-pole', [
-                'title' => 'Ajouter',
+                'title' => '',
                 'icon'  => 'fa-plus-circle',
                 'content' => (string) ob_get_clean(),
         ]);
@@ -428,10 +428,7 @@ function isChecked($v): string
 <div id="editCategoryModal" class="cm-modal-overlay">
     <div class="cm-modal">
         <div class="cm-modal__header">
-            <h3 class="cm-modal__title">
-                <i class="fas fa-layer-group" aria-hidden="true"></i>
-                Modifier une catégorie
-            </h3>
+
             <button type="button" class="cm-modal__close" onclick="closeModal('editCategoryModal')">
                 <i class="fas fa-times" aria-hidden="true"></i>
             </button>
@@ -489,10 +486,7 @@ function isChecked($v): string
 <div id="editItemModal" class="cm-modal-overlay">
     <div class="cm-modal">
         <div class="cm-modal__header">
-            <h3 class="cm-modal__title">
-                <i class="fas fa-file-alt" aria-hidden="true"></i>
-                Modifier un sous-menu / écran
-            </h3>
+
             <button type="button" class="cm-modal__close" onclick="closeModal('editItemModal')">
                 <i class="fas fa-times" aria-hidden="true"></i>
             </button>

@@ -7,13 +7,16 @@ $dashboardData = $dashboardController->getDashboardData();
 
 $stats = is_array($dashboardData['stats'] ?? null) ? $dashboardData['stats'] : [];
 $inscriptionsParNiveau = is_array($dashboardData['inscriptionsParNiveau'] ?? null) ? $dashboardData['inscriptionsParNiveau'] : [];
+$selectedYearId = !empty($_SESSION['global_annee_id']) ? (int) $_SESSION['global_annee_id'] : null;
 
-$anneeLabel = date('Y') . '-' . (date('Y') + 1);
+$anneeLabel = trim((string) ($_SESSION['global_annee_selected'] ?? ''));
 if (!empty($GLOBALS['anneeAcademiqueActive']) && is_object($GLOBALS['anneeAcademiqueActive'])) {
     $annee = $GLOBALS['anneeAcademiqueActive'];
     $anneeDebut = !empty($annee->date_deb) ? date('Y', strtotime((string) $annee->date_deb)) : date('Y');
     $anneeFin = !empty($annee->date_fin) ? date('Y', strtotime((string) $annee->date_fin)) : (date('Y') + 1);
-    $anneeLabel = $anneeDebut . '-' . $anneeFin;
+    if ($anneeLabel === '') {
+        $anneeLabel = $anneeDebut . '-' . $anneeFin;
+    }
 }
 
 $niveauLabels = [];
@@ -27,12 +30,12 @@ $genres = [
     'Masculin' => 0,
     'Feminin' => 0,
     'Neutre' => 0,
-    'Non precise' => 0,
+    'Non précisé' => 0,
 ];
 
 try {
     $etudiantModel = new Etudiant(Database::getConnection());
-    $allEtudiants = $etudiantModel->getAllEtudiants();
+    $allEtudiants = $etudiantModel->getAllEtudiants($selectedYearId);
     foreach ($allEtudiants as $etu) {
         $rawGenre = strtolower(trim((string) ($etu->libelle_genre ?? $etu->genre_etu ?? '')));
         if ($rawGenre === 'masculin' || $rawGenre === '1') {
@@ -42,17 +45,17 @@ try {
         } elseif ($rawGenre === 'neutre' || $rawGenre === '3') {
             $genres['Neutre']++;
         } else {
-            $genres['Non precise']++;
+            $genres['Non précisé']++;
         }
     }
 } catch (Throwable $e) {
-    // Affichage degrade sans bloquer la page.
+    // Affichage dégradé sans bloquer la page.
 }
 
 $alertItems = [
     [
         'type' => 'warning',
-        'message' => (int) ($stats['reclamations_en_attente'] ?? 0) . ' reclamation(s) non traitee(s).',
+        'message' => (int) ($stats['reclamations_en_attente'] ?? 0) . ' réclamation(s) non traitée(s).',
         'action_url' => '?page=gestion_reclamations_scolarite',
         'action_label' => 'Traiter',
     ],
@@ -67,8 +70,8 @@ $alertItems = [
 
 <?php
 cm_component('layout/page-header', [
-    'title' => 'Tableau de Bord Scolarite',
-    'subtitle' => 'Pilotage global des etudiants, paiements et reclamations.',
+    'title' => '',
+    'subtitle' => 'Pilotage global des étudiants, paiements et réclamations.',
     'annee' => $anneeLabel,
     'icon' => 'fa-school',
 ]);
@@ -78,8 +81,8 @@ cm_component('layout/page-header', [
     <?php
     cm_component('dashboard/stat-widget', [
         'value' => number_format((int) ($stats['etudiants'] ?? 0), 0, ',', ' '),
-        'label' => 'Total etudiants',
-        'subtitle' => 'Etudiants inscrits',
+        'label' => 'Total étudiants',
+        'subtitle' => 'Étudiants inscrits',
         'icon' => 'fa-users',
         'color' => 'primary',
     ]);
@@ -92,15 +95,15 @@ cm_component('layout/page-header', [
     ]);
     cm_component('dashboard/stat-widget', [
         'value' => number_format((float) ($stats['montant_percu'] ?? 0), 0, ',', ' ') . ' FCFA',
-        'label' => 'Montant total percu',
-        'subtitle' => 'Versements enregistres',
+        'label' => 'Montant total perçu',
+        'subtitle' => 'Versements enregistrés',
         'icon' => 'fa-money-bill-wave',
         'color' => 'success',
     ]);
     cm_component('dashboard/stat-widget', [
         'value' => number_format((int) ($stats['reclamations_en_attente'] ?? 0), 0, ',', ' '),
-        'label' => 'Alertes groupees',
-        'subtitle' => 'Reclamations + reste a payer',
+        'label' => 'Alertes groupées',
+        'subtitle' => 'Réclamations + reste à payer',
         'icon' => 'fa-triangle-exclamation',
         'color' => 'warning',
     ]);
@@ -111,15 +114,15 @@ cm_component('layout/page-header', [
     <?php
     cm_component('dashboard/chart-container', [
         'chart_id' => 'cmScolariteNiveaux',
-        'title' => 'Repartition par niveau',
-        'subtitle' => 'Inscriptions par niveau d\'etude',
+        'title' => '',
+        'subtitle' => 'Inscriptions par niveau d\'étude',
         'type' => 'bar',
         'height' => '320px',
         'data' => [
             'labels' => $niveauLabels,
             'datasets' => [
                 [
-                    'label' => 'Etudiants',
+                    'label' => 'Étudiants',
                     'data' => $niveauValues,
                     'backgroundColor' => 'rgba(52, 152, 219, 0.55)',
                     'borderColor' => '#1a5276',
@@ -139,15 +142,15 @@ cm_component('layout/page-header', [
 
     cm_component('dashboard/chart-container', [
         'chart_id' => 'cmScolariteGenres',
-        'title' => 'Repartition par genre',
-        'subtitle' => 'Population etudiante',
+        'title' => '',
+        'subtitle' => 'Population étudiante',
         'type' => 'bar',
         'height' => '320px',
         'data' => [
             'labels' => array_keys($genres),
             'datasets' => [
                 [
-                    'label' => 'Etudiants',
+                    'label' => 'Étudiants',
                     'data' => array_values($genres),
                     'backgroundColor' => [
                         'rgba(26, 82, 118, 0.65)',
@@ -172,18 +175,37 @@ cm_component('layout/page-header', [
 </div>
 
 <div class="cm-grid-2">
-    <?php cm_component('dashboard/alert-list', ['title' => 'Alertes', 'items' => $alertItems, 'max_show' => 4]); ?>
+    <?php cm_component('dashboard/alert-list', ['title' => '', 'items' => $alertItems, 'max_show' => 4]); ?>
 
     <div class="cm-chart-container">
         <div class="cm-chart-container__header">
-            <h3 class="cm-chart-container__title">Actions rapides</h3>
-            <p class="cm-chart-container__subtitle">Acces direct aux operations de scolarite</p>
+
+            <p class="cm-chart-container__subtitle">Accès direct aux opérations de scolarite</p>
         </div>
         <div class="cm-chart-container__body">
             <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
+                <?php if (canCreate()): ?>
                 <a class="cm-btn is-info" href="?page=gestion_etudiants&action=ajouter_des_etudiants">
                     <i class="fas fa-user-graduate" aria-hidden="true"></i>
-                    Gerer les etudiants
+                    Gérer les étudiants
+                </a>
+                <?php endif; ?>
+                <?php if (canView()): ?>
+                <a class="cm-btn is-info" href="?page=gestion_scolarite">
+                    <i class="fas fa-credit-card" aria-hidden="true"></i>
+                    Inscriptions / paiements
+                </a>
+                <?php endif; ?>
+                <?php if (canView()): ?>
+                <a class="cm-btn is-info" href="?page=gestion_dossiers_candidatures">
+                    <i class="fas fa-folder-open" aria-hidden="true"></i>
+                    Dossiers de candidatures
+                </a>
+                <?php endif; ?>
+            </div>
+                <a class="cm-btn is-info" href="?page=gestion_etudiants&action=ajouter_des_etudiants">
+                    <i class="fas fa-user-graduate" aria-hidden="true"></i>
+                    Gérer les étudiants
                 </a>
                 <a class="cm-btn is-info" href="?page=gestion_scolarite">
                     <i class="fas fa-credit-card" aria-hidden="true"></i>

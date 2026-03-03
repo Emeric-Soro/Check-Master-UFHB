@@ -8,6 +8,7 @@ require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/EvaluationRapport.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use RapportEtudiant;
 use EvaluationRapport;
@@ -110,6 +111,37 @@ class EvaluationDossiersService
         $stmt->execute($params);
     }
 
+    private function getSelectedYearId(): ?int
+    {
+        return \AcademicYear::getSelectedIdFromSession();
+    }
+
+    private function getRapportYearId($idRapport): ?int
+    {
+        $rapport = $this->rapportEtudiant->getRapportById($idRapport);
+        if (is_object($rapport) && isset($rapport->id_annee_acad) && is_numeric($rapport->id_annee_acad)) {
+            return (int) $rapport->id_annee_acad;
+        }
+        if (is_array($rapport) && isset($rapport['id_annee_acad']) && is_numeric($rapport['id_annee_acad'])) {
+            return (int) $rapport['id_annee_acad'];
+        }
+        return null;
+    }
+
+    private function ensureWritableRapport($idRapport, string $context): void
+    {
+        $rapportYearId = $this->getRapportYearId($idRapport);
+        $selectedYearId = $this->getSelectedYearId();
+        if ($selectedYearId !== null && $rapportYearId !== null && $selectedYearId !== $rapportYearId) {
+            throw new Exception("Le rapport ne correspond pas a l'annee academique actuellement selectionnee.");
+        }
+
+        $writeGuard = \AcademicYear::ensureWritableYear($this->db, $rapportYearId, $context);
+        if (!$writeGuard['success']) {
+            throw new Exception((string) $writeGuard['message']);
+        }
+    }
+
     /**
      * Récupère les données de la page index (stats + dossiers)
      *
@@ -135,65 +167,99 @@ class EvaluationDossiersService
         $aCorriger = 0;
         try {
             if ($this->columnExists('rapport_etudiants', 'etape_validation')) {
+                $yearWhere = '';
+                $yearParams = [];
+                if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
+                    $yearWhere = " AND e.id_annee_acad = ?";
+                    $yearParams[] = $selectedYearId;
+                }
                 $stmt = $this->db->prepare("
                     SELECT COUNT(*) as total
                     FROM rapport_etudiants r
+                    INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
                     LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                     WHERE r.etape_validation IN ('approuve_communication', 'en_attente_commission')
+                    {$yearWhere}
                 ");
-                $stmt->execute();
+                $stmt->execute($yearParams);
                 $aEvaluer = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
 
                 $stmt = $this->db->prepare("
                     SELECT COUNT(*) as total
                     FROM rapport_etudiants r
+                    INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
                     WHERE r.etape_validation = 'valide'
+                    {$yearWhere}
                 ");
-                $stmt->execute();
+                $stmt->execute($yearParams);
                 $valides = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
 
                 $stmt = $this->db->prepare("
                     SELECT COUNT(*) as total
                     FROM rapport_etudiants r
+                    INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
                     WHERE r.etape_validation = 'desapprouve_commission'
+                    {$yearWhere}
                 ");
-                $stmt->execute();
+                $stmt->execute($yearParams);
                 $aCorriger = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
             } else {
                 if ($this->tableExists('valider')) {
+                    $yearWhere = '';
+                    $yearParams = [];
+                    if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
+                        $yearWhere = " AND e.id_annee_acad = ?";
+                        $yearParams[] = $selectedYearId;
+                    }
                     $stmt = $this->db->prepare("
                         SELECT COUNT(*) as total
                         FROM rapport_etudiants r
+                        INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
                         LEFT JOIN valider v ON r.id_rapport = v.id_rapport
                         WHERE v.id_rapport IS NULL
+                        {$yearWhere}
                     ");
-                    $stmt->execute();
+                    $stmt->execute($yearParams);
                     $aEvaluer = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
 
                     $stmt = $this->db->prepare("
-                        SELECT COUNT(DISTINCT id_rapport) as total
-                        FROM valider
+                        SELECT COUNT(DISTINCT v.id_rapport) as total
+                        FROM valider v
+                        INNER JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
+                        INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
                         WHERE decision_validation = 'valider'
+                        {$yearWhere}
                     ");
-                    $stmt->execute();
+                    $stmt->execute($yearParams);
                     $valides = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
 
                     $stmt = $this->db->prepare("
-                        SELECT COUNT(DISTINCT id_rapport) as total
-                        FROM valider
+                        SELECT COUNT(DISTINCT v.id_rapport) as total
+                        FROM valider v
+                        INNER JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
+                        INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
                         WHERE decision_validation = 'rejeter'
+                        {$yearWhere}
                     ");
-                    $stmt->execute();
+                    $stmt->execute($yearParams);
                     $aCorriger = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
                 } else {
+                    $yearWhere = '';
+                    $yearParams = [];
+                    if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
+                        $yearWhere = " WHERE e.id_annee_acad = ?";
+                        $yearParams[] = $selectedYearId;
+                    }
                     $stmt = $this->db->prepare("
                         SELECT
                             SUM(CASE WHEN COALESCE(statut_rapport, '') IN ('valider', 'valide') THEN 1 ELSE 0 END) as valides,
                             SUM(CASE WHEN COALESCE(statut_rapport, '') IN ('rejeter', 'desapprouve_commission') THEN 1 ELSE 0 END) as rejetes,
                             SUM(CASE WHEN COALESCE(statut_rapport, '') NOT IN ('valider', 'valide', 'rejeter', 'desapprouve_commission') THEN 1 ELSE 0 END) as en_cours
-                        FROM rapport_etudiants
+                        FROM rapport_etudiants r
+                        INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                        {$yearWhere}
                     ");
-                    $stmt->execute();
+                    $stmt->execute($yearParams);
                     $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
                     $aEvaluer = (int) ($row['en_cours'] ?? 0);
                     $valides = (int) ($row['valides'] ?? 0);
@@ -220,7 +286,7 @@ class EvaluationDossiersService
     public function getDossiersAEvaluer()
     {
         $evaluationRapport = new EvaluationRapport($this->db);
-        return $evaluationRapport->getRapportsAvecStatutVote();
+        return \AcademicYear::filterRowsBySelectedYear($evaluationRapport->getRapportsAvecStatutVote(), 'id_annee_acad');
     }
 
     /**
@@ -283,6 +349,7 @@ class EvaluationDossiersService
     public function validerDossier($id_rapport, $id_utilisateur)
     {
         try {
+            $this->ensureWritableRapport($id_rapport, 'une validation de dossier');
             $id_enseignant = $this->getEnseignantIdFromAdmin($id_utilisateur);
             if (!$id_enseignant) {
                 return ['success' => false, 'message' => 'Aucun enseignant trouvé pour cet utilisateur'];
@@ -313,6 +380,7 @@ class EvaluationDossiersService
     public function rejeterDossier($id_rapport, $commentaire, $id_utilisateur)
     {
         try {
+            $this->ensureWritableRapport($id_rapport, 'un rejet de dossier');
             $id_enseignant = $this->getEnseignantIdFromAdmin($id_utilisateur);
             if (!$id_enseignant) {
                 return ['success' => false, 'message' => 'Aucun enseignant trouvé pour cet utilisateur'];
@@ -344,6 +412,7 @@ class EvaluationDossiersService
     public function traiterDecisionCommission($id_rapport, $decision, $commentaire, $id_utilisateur)
     {
         try {
+            $this->ensureWritableRapport($id_rapport, 'une evaluation de commission');
             $id_enseignant = $this->getEnseignantIdFromAdmin($id_utilisateur);
             if (!$id_enseignant) {
                 return ['success' => false, 'message' => 'Enseignant non trouvé'];
@@ -400,6 +469,7 @@ class EvaluationDossiersService
     public function finaliserDecisionCommission($id_rapport, $id_utilisateur)
     {
         try {
+            $this->ensureWritableRapport($id_rapport, 'une finalisation de decision de commission');
             $evaluationRapport = new EvaluationRapport();
 
             $statutVote = $evaluationRapport->getStatutVotes($id_rapport);
@@ -449,6 +519,15 @@ class EvaluationDossiersService
      */
     public function getDetail($id_rapport)
     {
+        $selectedYearId = $this->getSelectedYearId();
+        $rapportYearId = $this->getRapportYearId($id_rapport);
+        if ($selectedYearId !== null && $rapportYearId !== null && $selectedYearId !== $rapportYearId) {
+            return [
+                'rapport' => null,
+                'decisions' => []
+            ];
+        }
+
         $rapport = $this->rapportEtudiant->getRapportById($id_rapport);
         $decisions = Valider::getByRapport($id_rapport);
         return [

@@ -62,26 +62,22 @@ class GestionDossiersCandidaturesController
             exit;
         }
 
-        // Créer le PDF avec DOMPDF
-        require_once __DIR__ . '/../../vendor/autoload.php';
-        $dompdf = new Dompdf\Dompdf();
-
-        $dompdf->loadHtml($donnees['html']);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
+        // Créer le PDF avec PdfGeneratorService (TCPDF)
+        require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
+        $pdfGen = new \App\Services\Document\PdfGeneratorService(
+            __DIR__ . '/../../storage',
+            __DIR__ . '/../../public/assets/img/logo.png'
+        );
+        $pdf = $pdfGen->createDocument('P', 'A4', 'Rapport');
+        $pdf->AddPage();
+        $pdfGen->writeHtml($pdf, $donnees['html']);
 
         // Audit logging pour le téléchargement
         $this->service->logImpression($_SESSION['id_utilisateur']);
 
         // Nettoyer tout output et envoyer le PDF
         ob_end_clean();
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="' . $donnees['nomFichier'] . '"');
-        header('Cache-Control: no-cache, no-store, must-revalidate');
-        header('Pragma: no-cache');
-        header('Expires: 0');
-
-        echo $dompdf->output();
+        $pdf->Output($donnees['nomFichier'], 'D');
         exit;
     }
 

@@ -75,7 +75,6 @@
 
 /* Theme helpers */
 .cm-card {
-    background: var(--cm-card-bg);
     border: 1px solid var(--cm-card-border);
     border-radius: var(--cm-card-radius);
     box-shadow: var(--cm-card-shadow);

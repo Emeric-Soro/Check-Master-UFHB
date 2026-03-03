@@ -1,25 +1,28 @@
 <?php
 require_once __DIR__ . '/../../app/controllers/EvaluationSoutenanceController.php';
-
 $controller = new EvaluationSoutenanceController();
 $soutenances = $controller->getSoutenancesProgrammeesForView();
-
+$anneesAcademiques = $controller->getAnneesAcademiques();
 $niveauOptions = ['all' => 'Tous'];
 $semestreOptions = ['all' => 'Tous', 'S1' => 'S1', 'S2' => 'S2'];
 $promotionOptions = ['all' => 'Toutes'];
-
+$anneeOptions = ['all' => 'Toutes'];
 $rows = [];
+foreach ($anneesAcademiques as $annee) {
+    $label = (string) ($annee['lib_annee'] ?? '');
+    if ($label !== '') {
+        $anneeOptions[$label] = $label;
+    }
+}
 foreach ($soutenances as $row) {
     $numEtu = (string) ($row['num_etu'] ?? '');
     if ($numEtu === '') {
         continue;
     }
-
     $fullName = trim((string) ($row['nom_etudiant'] ?? 'Etudiant'));
     $nameParts = preg_split('/\s+/', $fullName, 2);
     $prenom = trim((string) ($nameParts[0] ?? ''));
     $nom = trim((string) ($nameParts[1] ?? ''));
-
     $promotion = trim((string) ($row['promotion_etu'] ?? ''));
     $niveau = '-';
     if (stripos($promotion, 'M2') !== false) {
@@ -28,10 +31,8 @@ foreach ($soutenances as $row) {
         $niveau = 'M1';
     }
     $semestre = 'S1';
-
     $isEvaluated = (int) ($row['est_evalue'] ?? 0) > 0;
     $moyenne = (float) ($row['note_finale'] ?? 0);
-
     $mention = '-';
     if ($isEvaluated) {
         if ($moyenne >= 16) {
@@ -46,14 +47,12 @@ foreach ($soutenances as $row) {
             $mention = 'Insuffisant';
         }
     }
-
     if ($niveau !== '-' && !isset($niveauOptions[$niveau])) {
         $niveauOptions[$niveau] = $niveau;
     }
     if ($promotion !== '' && !isset($promotionOptions[$promotion])) {
         $promotionOptions[$promotion] = $promotion;
     }
-
     $rows[] = [
         'num_etu' => $numEtu,
         'matricule' => (string) ($row['matricule_etudiant'] ?? $numEtu),
@@ -67,16 +66,21 @@ foreach ($soutenances as $row) {
         'is_evaluated' => $isEvaluated,
     ];
 }
-
 $niveauFilter = (string) ($_GET['bulletin_niveau'] ?? 'all');
 $semestreFilter = (string) ($_GET['bulletin_semestre'] ?? 'all');
-$promotionFilter = (string) ($_GET['bulletin_promotion'] ?? 'all');
-
-$filteredRows = array_values(array_filter($rows, static function (array $row) use ($niveauFilter, $semestreFilter, $promotionFilter): bool {
+$bulletinYearFilter = (string) ($_GET['bulletin_annee'] ?? ($_SESSION['global_annee_selected'] ?? 'all'));
+$promotionFilter = (string) ($_GET['bulletin_promotion'] ?? $bulletinYearFilter);
+if ($bulletinYearFilter !== 'all') {
+    $promotionFilter = $bulletinYearFilter;
+}
+$filteredRows = array_values(array_filter($rows, static function (array $row) use ($niveauFilter, $semestreFilter, $promotionFilter, $bulletinYearFilter): bool {
     if ($niveauFilter !== 'all' && (string) ($row['niveau'] ?? '') !== $niveauFilter) {
         return false;
     }
     if ($semestreFilter !== 'all' && (string) ($row['semestre'] ?? '') !== $semestreFilter) {
+        return false;
+    }
+    if ($bulletinYearFilter !== 'all' && (string) ($row['promotion'] ?? '') !== $bulletinYearFilter) {
         return false;
     }
     if ($promotionFilter !== 'all' && (string) ($row['promotion'] ?? '') !== $promotionFilter) {
@@ -84,7 +88,6 @@ $filteredRows = array_values(array_filter($rows, static function (array $row) us
     }
     return true;
 }));
-
 $allowedLimits = [5, 10, 25, 50, 100];
 $perPage = max(5, (int) ($_GET['limit_bulletin'] ?? 10));
 if (!in_array($perPage, $allowedLimits, true)) {
@@ -104,26 +107,32 @@ $pagination = function_exists('cm_paginate')
         'pages' => [1],
     ];
 $rowsToShow = array_slice($filteredRows, (int) ($pagination['offset'] ?? 0), $perPage);
-
 $baseUrl = '?page=edition_bulletin'
     . '&bulletin_niveau=' . urlencode($niveauFilter)
     . '&bulletin_semestre=' . urlencode($semestreFilter)
+    . '&bulletin_annee=' . urlencode($bulletinYearFilter)
     . '&bulletin_promotion=' . urlencode($promotionFilter)
     . '&limit_bulletin=' . $perPage;
 ?>
-
 <div class="cm-prd3-screen cm-prd3-crud-screen">
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur">
-            <div class="cm-pole-superieur-title">
-                <h2>
-                    <i class="fas fa-file-lines" aria-hidden="true"></i>
-                    Edition des bulletins
-                </h2>
+            <div class="">
             </div>
-
-            <div class="cm-grid-2">
+            <div class="cm-grid-3">
                 <?php
+                cm_component('form/select', [
+                    'name' => 'cm_bulletin_annee',
+                    'id' => 'cmBulletinAnnee',
+                    'label' => 'Année académique',
+                    'options' => $anneeOptions,
+                    'selected' => $bulletinYearFilter,
+                    'attrs' => [
+                        'data-cm-ajax-param' => 'bulletin_annee',
+                        'data-cm-ajax-reset-param' => 'page_bulletin',
+                        'data-cm-ajax-reset-value' => '1',
+                    ],
+                ]);
                 cm_component('form/select', [
                     'name' => 'cm_bulletin_session',
                     'id' => 'cmBulletinSession',
@@ -144,6 +153,13 @@ $baseUrl = '?page=edition_bulletin'
                 ]);
                 ?>
                 <div class="cm-form-group" style="display: flex; align-items: flex-end;">
+                    <?php if (canCreate() || canEdit()): ?>
+                    <button class="cm-btn is-success" type="button" id="cmBulletinGenerateAll">
+                        <i class="fas fa-file-circle-check" aria-hidden="true"></i>
+                        Generer tous les bulletins
+                    </button>
+                    <?php endif; ?>
+                </div>
                     <button class="cm-btn is-success" type="button" id="cmBulletinGenerateAll">
                         <i class="fas fa-file-circle-check" aria-hidden="true"></i>
                         Generer tous les bulletins
@@ -151,7 +167,6 @@ $baseUrl = '?page=edition_bulletin'
                 </div>
             </div>
         </div>
-
         <div class="cm-barre-intermediaire">
             <div class="cm-toolbar">
                 <div class="cm-toolbar-left">
@@ -167,11 +182,24 @@ $baseUrl = '?page=edition_bulletin'
                             </option>
                         <?php endforeach; ?>
                     </select>
-
-                    <input type="text" id="cmBulletinSearch" class="cm-form-control cm-toolbar-field-lg" placeholder="Rechercher un etudiant...">
+                    <input type="text" id="cmBulletinSearch" class="cm-form-control cm-toolbar-field-lg" placeholder="Rechercher un étudiant...">
                 </div>
-
                 <div class="cm-toolbar-center">
+                    <button type="button" class="cm-btn is-info is-sm" id="cmBulletinSelectAllBtn">
+                        <i class="fas fa-square-check" aria-hidden="true"></i>
+                        Select. tout
+                    </button>
+                    <button type="button" class="cm-btn is-light is-sm" id="cmBulletinDeselectBtn">
+                        <i class="fas fa-square" aria-hidden="true"></i>
+                        Deselect.
+                    </button>
+                    <?php if (canDelete()): ?>
+                    <button type="button" class="cm-btn is-light is-sm" id="cmBulletinDeleteBtn" disabled>
+                        <i class="fas fa-trash" aria-hidden="true"></i>
+                        Supprimer (0)
+                    </button>
+                    <?php endif; ?>
+                </div>
                     <button type="button" class="cm-btn is-info is-sm" id="cmBulletinSelectAllBtn">
                         <i class="fas fa-square-check" aria-hidden="true"></i>
                         Select. tout
@@ -187,18 +215,17 @@ $baseUrl = '?page=edition_bulletin'
                 </div>
             </div>
         </div>
-
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
                 <table class="cm-data-table" id="cmBulletinTable">
                     <thead>
                     <tr>
                         <th class="cm-data-table__th cm-data-table__th--check">
-                            <input type="checkbox" id="cmBulletinCheckAll" aria-label="Tout selectionner">
+                            <input type="checkbox" id="cmBulletinCheckAll" aria-label="Tout sélectionner">
                         </th>
                         <th class="cm-data-table__th">N Carte</th>
                         <th class="cm-data-table__th">Nom</th>
-                        <th class="cm-data-table__th">Prenom</th>
+                        <th class="cm-data-table__th">Prénom</th>
                         <th class="cm-data-table__th">Niv</th>
                         <th class="cm-data-table__th">Moy. Gen</th>
                         <th class="cm-data-table__th">Mention</th>
@@ -211,7 +238,7 @@ $baseUrl = '?page=edition_bulletin'
                         <?php cm_component('ui/empty-state', [
                             'in_table' => true,
                             'colspan' => 9,
-                            'title' => 'Aucun bulletin',
+                            'title' => '',
                             'message' => 'Aucune ligne disponible pour ces filtres.',
                         ]); ?>
                     <?php else: ?>
@@ -229,7 +256,7 @@ $baseUrl = '?page=edition_bulletin'
                                 data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>"
                                 data-num-etu="<?php echo htmlspecialchars((string) ($row['num_etu'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                                 <td class="cm-data-table__td cm-data-table__td--check">
-                                    <input type="checkbox" class="cm-bulletin-check-row" value="<?php echo htmlspecialchars((string) ($row['num_etu'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" aria-label="Selectionner etudiant">
+                                    <input type="checkbox" class="cm-bulletin-check-row" value="<?php echo htmlspecialchars((string) ($row['num_etu'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" aria-label="Sélectionner étudiant">
                                 </td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($row['matricule'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($row['nom'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -245,6 +272,15 @@ $baseUrl = '?page=edition_bulletin'
                                 </td>
                                 <td class="cm-data-table__td is-center">
                                     <div class="cm-table-actions">
+                                        <?php if (!empty($row['is_evaluated']) && canView()): ?>
+                                            <button type="button"
+                                                    class="cm-btn-action is-view cm-bulletin-pdf"
+                                                    data-num-etu="<?php echo htmlspecialchars((string) ($row['num_etu'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                    title="Generer PDF">
+                                                <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
                                         <?php if (!empty($row['is_evaluated'])): ?>
                                             <button type="button"
                                                     class="cm-btn-action is-view cm-bulletin-pdf"
@@ -261,7 +297,6 @@ $baseUrl = '?page=edition_bulletin'
                     </tbody>
                 </table>
             </div>
-
             <?php
             cm_component('crud/pagination', [
                 'pagination' => $pagination,
@@ -270,10 +305,26 @@ $baseUrl = '?page=edition_bulletin'
             ]);
             ?>
         </div>
-
         <div class="cm-barre-intermediaire">
             <div class="cm-toolbar">
                 <div class="cm-toolbar-right">
+                    <?php if (canCreate() || canEdit()): ?>
+                    <button class="cm-btn is-success" type="button" id="cmBulletinGenerateSelected">
+                        <i class="fas fa-file-circle-check" aria-hidden="true"></i>
+                        Generer bulletins selectionnes
+                    </button>
+                    <?php endif; ?>
+                    <?php if (canView()): ?>
+                    <button class="cm-btn is-info" type="button" id="cmBulletinExportAll">
+                        <i class="fas fa-file-export" aria-hidden="true"></i>
+                        Exporter tous
+                    </button>
+                    <button class="cm-btn is-info" type="button" id="cmBulletinPrint">
+                        <i class="fas fa-print" aria-hidden="true"></i>
+                        Imprimer
+                    </button>
+                    <?php endif; ?>
+                </div>
                     <button class="cm-btn is-success" type="button" id="cmBulletinGenerateSelected">
                         <i class="fas fa-file-circle-check" aria-hidden="true"></i>
                         Generer bulletins selectionnes
@@ -291,7 +342,6 @@ $baseUrl = '?page=edition_bulletin'
         </div>
     </div>
 </div>
-
 <script>
 (function () {
     const searchInput = document.getElementById('cmBulletinSearch');
@@ -302,24 +352,20 @@ $baseUrl = '?page=edition_bulletin'
     const printBtn = document.getElementById('cmBulletinPrint');
     const exportAllBtn = document.getElementById('cmBulletinExportAll');
     const generateSelectedBtn = document.getElementById('cmBulletinGenerateSelected');
-
     function getRows() {
         return Array.from(document.querySelectorAll('#cmBulletinBody .cm-data-table__row'));
     }
-
     function getVisibleRows() {
         return getRows().filter(function (row) {
             return row.style.display !== 'none';
         });
     }
-
     function getCheckedRows() {
         return getRows().filter(function (row) {
             const cb = row.querySelector('.cm-bulletin-check-row');
             return cb && cb.checked;
         });
     }
-
     function updateDeleteState() {
         const checked = getCheckedRows();
         if (deleteBtn) {
@@ -335,7 +381,6 @@ $baseUrl = '?page=edition_bulletin'
             checkAll.checked = visible.length > 0 && checkedVisible.length === visible.length;
         }
     }
-
     function openPv(numEtu) {
         if (!numEtu) {
             return;
@@ -343,11 +388,9 @@ $baseUrl = '?page=edition_bulletin'
         const url = '?page=evaluation_soutenance&action=imprimer_pv&num_etu=' + encodeURIComponent(numEtu);
         window.open(url, '_blank');
     }
-
     function exportVisibleCsv() {
-        const headers = ['N Carte', 'Nom', 'Prenom', 'Niveau', 'Moyenne', 'Mention', 'Statut'];
+        const headers = ['N Carte', 'Nom', 'Prénom', 'Niveau', 'Moyenne', 'Mention', 'Statut'];
         const rows = [headers.join(';')];
-
         getVisibleRows().forEach(function (row) {
             const cells = row.querySelectorAll('.cm-data-table__td');
             if (cells.length < 8) {
@@ -366,7 +409,6 @@ $baseUrl = '?page=edition_bulletin'
             });
             rows.push(values.join(';'));
         });
-
         const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -377,13 +419,11 @@ $baseUrl = '?page=edition_bulletin'
         link.remove();
         URL.revokeObjectURL(url);
     }
-
     document.querySelectorAll('.cm-bulletin-pdf').forEach(function (button) {
         button.addEventListener('click', function () {
             openPv(button.getAttribute('data-num-etu') || '');
         });
     });
-
     if (searchInput) {
         searchInput.addEventListener('input', function () {
             const term = (searchInput.value || '').trim().toLowerCase();
@@ -394,13 +434,11 @@ $baseUrl = '?page=edition_bulletin'
             updateDeleteState();
         });
     }
-
     document.addEventListener('change', function (event) {
         if (event.target && event.target.classList.contains('cm-bulletin-check-row')) {
             updateDeleteState();
         }
     });
-
     if (checkAll) {
         checkAll.addEventListener('change', function () {
             getVisibleRows().forEach(function (row) {
@@ -412,7 +450,6 @@ $baseUrl = '?page=edition_bulletin'
             updateDeleteState();
         });
     }
-
     if (selectAllBtn) {
         selectAllBtn.addEventListener('click', function () {
             getVisibleRows().forEach(function (row) {
@@ -424,7 +461,6 @@ $baseUrl = '?page=edition_bulletin'
             updateDeleteState();
         });
     }
-
     if (deselectBtn) {
         deselectBtn.addEventListener('click', function () {
             getRows().forEach(function (row) {
@@ -436,7 +472,6 @@ $baseUrl = '?page=edition_bulletin'
             updateDeleteState();
         });
     }
-
     if (deleteBtn) {
         deleteBtn.addEventListener('click', function () {
             getCheckedRows().forEach(function (row) {
@@ -445,7 +480,6 @@ $baseUrl = '?page=edition_bulletin'
             updateDeleteState();
         });
     }
-
     if (generateSelectedBtn) {
         generateSelectedBtn.addEventListener('click', function () {
             const selected = getCheckedRows();
@@ -465,17 +499,14 @@ $baseUrl = '?page=edition_bulletin'
             });
         });
     }
-
     if (exportAllBtn) {
         exportAllBtn.addEventListener('click', exportVisibleCsv);
     }
-
     if (printBtn) {
         printBtn.addEventListener('click', function () {
             window.print();
         });
     }
-
     updateDeleteState();
 })();
 </script>

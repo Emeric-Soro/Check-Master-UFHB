@@ -17,7 +17,7 @@ unset($_SESSION['message']);
     <section class="cm-etu-panel">
         <header class="cm-etu-panel__header">
             <div>
-                <h2 class="cm-etu-panel__title"><i class="fas fa-exclamation-circle" aria-hidden="true"></i> Gestion des Réclamations</h2>
+                
                 <p class="cm-etu-panel__subtitle">Soumettez, suivez et consultez vos réclamations.</p>
             </div>
             <span class="cm-etu-count-badge"><?= (int) $totalReclamations ?> réclamation<?= (int) $totalReclamations > 1 ? 's' : '' ?></span>
@@ -33,7 +33,7 @@ unset($_SESSION['message']);
         <div class="cm-etu-hub-grid">
             <article class="cm-etu-hub-card">
                 <div class="cm-etu-hub-card__icon"><i class="fas fa-pen-to-square" aria-hidden="true"></i></div>
-                <h3 class="cm-etu-hub-card__title">Soumettre une Réclamation</h3>
+
                 <p class="cm-etu-hub-card__desc">Rédigez et soumettez une nouvelle réclamation à la scolarité.</p>
                 <?php if (canCreate()): ?>
                     <a class="cm-btn is-primary is-sm" href="?page=gestion_reclamations&action=soumettre_reclamation">Nouvelle réclamation</a>
@@ -42,7 +42,7 @@ unset($_SESSION['message']);
 
             <article class="cm-etu-hub-card">
                 <div class="cm-etu-hub-card__icon"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i></div>
-                <h3 class="cm-etu-hub-card__title">Suivi & Historique</h3>
+
                 <p class="cm-etu-hub-card__desc">Consultez le statut et l'historique de vos réclamations.</p>
                 <a class="cm-btn is-info is-sm" href="?page=gestion_reclamations&action=suivi_historique_reclamation">Consulter</a>
             </article>
@@ -50,7 +50,7 @@ unset($_SESSION['message']);
 
         <?php if (!empty($reclamationsRecentes)): ?>
             <div class="cm-etu-list-header">
-                <h3 class="cm-etu-list-title"><i class="fas fa-folder-open" aria-hidden="true"></i> Réclamations récentes</h3>
+
                 <?php cm_component('ui/badge', ['type' => 'info', 'text' => count($reclamationsRecentes) . ' récente' . (count($reclamationsRecentes) > 1 ? 's' : '')]); ?>
             </div>
 
@@ -78,7 +78,7 @@ unset($_SESSION['message']);
                     <article class="cm-etu-report-item">
                         <div class="cm-etu-report-item__main">
                             <div class="cm-etu-report-item__head">
-                                <h4 class="cm-etu-report-item__title"><?= htmlspecialchars($objetRecl, ENT_QUOTES, 'UTF-8') ?></h4>
+                                <span class="cm-etu-report-item__title"><?= htmlspecialchars($objetRecl, ENT_QUOTES, 'UTF-8') ?></span>
                                 <?php cm_component('ui/badge', ['type' => $badgeType, 'text' => $badgeText]); ?>
                             </div>
                             <?php if ($typeRecl !== ''): ?>

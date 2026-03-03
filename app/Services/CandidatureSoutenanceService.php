@@ -7,6 +7,7 @@ require_once __DIR__ . '/../models/Entreprise.php';
 require_once __DIR__ . '/../models/InfoStage.php';
 require_once __DIR__ . '/../models/MaitreDeStage.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use DateTime;
 use Etudiant;
@@ -65,8 +66,31 @@ class CandidatureSoutenanceService
         return $this->maitreDeStage->getAllMaitresDeStage();
     }
 
+    private function getStudentAcademicYearId(string $etudiantId): ?int
+    {
+        $etudiant = $this->etudiant->getEtudiantById($etudiantId);
+        if ($etudiant && isset($etudiant->id_annee_acad) && is_numeric($etudiant->id_annee_acad)) {
+            return (int) $etudiant->id_annee_acad;
+        }
+
+        return null;
+    }
+
     public function soumettreCandidature($etudiant_id, $id_utilisateur)
     {
+        $studentYearId = $this->getStudentAcademicYearId((string) $etudiant_id);
+        $selectedYearId = \AcademicYear::getSelectedIdFromSession();
+        if ($selectedYearId !== null && $studentYearId !== null && $selectedYearId !== $studentYearId) {
+            $this->auditLog->logCreation($id_utilisateur, "candidature_soutenance", "Erreur");
+            return ['success' => false, 'message' => "L'étudiant ne correspond pas à l'année académique actuellement sélectionnée."];
+        }
+
+        $writeGuard = \AcademicYear::ensureWritableYear($this->db, $studentYearId, 'une candidature de soutenance');
+        if (!$writeGuard['success']) {
+            $this->auditLog->logCreation($id_utilisateur, "candidature_soutenance", "Erreur");
+            return ['success' => false, 'message' => $writeGuard['message']];
+        }
+
         // Vérifier si l'étudiant a déjà soumis une candidature
         $existing_candidature = $this->etudiant->getCandidature($etudiant_id);
         $status = $existing_candidature ? $existing_candidature['statut_candidature'] : null;
@@ -97,6 +121,19 @@ class CandidatureSoutenanceService
 
     public function enregistrerInfoStage($etudiant_id, $id_utilisateur, $data)
     {
+        $studentYearId = $this->getStudentAcademicYearId((string) $etudiant_id);
+        $selectedYearId = \AcademicYear::getSelectedIdFromSession();
+        if ($selectedYearId !== null && $studentYearId !== null && $selectedYearId !== $studentYearId) {
+            $this->auditLog->logCreation($id_utilisateur, "candidature_soutenance", "Erreur");
+            return ['success' => false, 'message' => "L'étudiant ne correspond pas à l'année académique actuellement sélectionnée."];
+        }
+
+        $writeGuard = \AcademicYear::ensureWritableYear($this->db, $studentYearId, 'des informations de stage');
+        if (!$writeGuard['success']) {
+            $this->auditLog->logCreation($id_utilisateur, "candidature_soutenance", "Erreur");
+            return ['success' => false, 'message' => $writeGuard['message']];
+        }
+
         $nom_entreprise = $data['entreprise'];
 
         $entreprise = $this->entreprise->getEntrepriseByLibelle($nom_entreprise);

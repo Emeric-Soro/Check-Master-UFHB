@@ -8,14 +8,11 @@ if (!is_array($stats ?? null)) {
         $stats = [];
     }
 }
-
 $dashboardData = is_array($stats ?? null) ? $stats : [];
-
 $enAttente = (int) ($dashboardData['en_attente'] ?? 0);
 $repartition = is_array($dashboardData['repartition_statuts'] ?? null) ? $dashboardData['repartition_statuts'] : [];
 $activites = is_array($dashboardData['activites_recentes'] ?? null) ? $dashboardData['activites_recentes'] : [];
 $rapportsDetails = is_array($dashboardData['rapports_details'] ?? null) ? $dashboardData['rapports_details'] : [];
-
 $countByStatut = static function (array $rows, string $needle): int {
     $count = 0;
     foreach ($rows as $row) {
@@ -25,16 +22,13 @@ $countByStatut = static function (array $rows, string $needle): int {
     }
     return $count;
 };
-
 $valides = $countByStatut($repartition, 'valider');
 $rejetes = $countByStatut($repartition, 'rejeter');
 $crRediges = count($rapportsDetails);
-
 $totalRapports = max(1, $enAttente + $valides + $rejetes);
 $pctValides = (int) round(($valides / $totalRapports) * 100);
 $pctAttente = (int) round(($enAttente / $totalRapports) * 100);
 $pctRejetes = (int) round(($rejetes / $totalRapports) * 100);
-
 $activityLines = [];
 foreach (array_slice($activites, 0, 5) as $activite) {
     $titre = trim((string) ($activite['titre'] ?? 'Rapport'));
@@ -42,7 +36,6 @@ foreach (array_slice($activites, 0, 5) as $activite) {
     $date = !empty($activite['date_validation'])
         ? date('d/m/Y', strtotime((string) $activite['date_validation']))
         : '';
-
     $line = $titre;
     if ($etudiant !== '') {
         $line .= ' - ' . $etudiant;
@@ -50,21 +43,14 @@ foreach (array_slice($activites, 0, 5) as $activite) {
     if ($date !== '') {
         $line .= ' (' . $date . ')';
     }
-
     $activityLines[] = $line;
 }
 ?>
-
 <div class="cm-prd3-screen cm-prd3-crud-screen">
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur">
-            <div class="cm-pole-superieur-title">
-                <h2>
-                    <i class="fas fa-gauge-high" aria-hidden="true"></i>
-                    Tableau de bord - commission de validation
-                </h2>
+            <div class="">
             </div>
-
             <div class="cm-grid-4">
                 <div class="cm-card cm-p-md">
                     <div class="cm-text-sm cm-text-semibold cm-text-primary cm-mb-sm">
@@ -73,56 +59,56 @@ foreach (array_slice($activites, 0, 5) as $activite) {
                     </div>
                     <div style="font-size:1.85rem;font-weight:700;line-height:1.1;"><?php echo $enAttente; ?></div>
                     <div class="cm-mt-md">
+                        <?php if (canView()): ?>
                         <a class="cm-btn is-info is-sm" href="?page=reception_rapport_com">Voir</a>
+                        <?php endif; ?>
                     </div>
                 </div>
-
                 <div class="cm-card cm-p-md">
                     <div class="cm-text-sm cm-text-semibold cm-text-primary cm-mb-sm">
                         <i class="fas fa-circle-check" aria-hidden="true"></i>
-                        VALIDES
+                        VALIDÉS
                     </div>
                     <div style="font-size:1.85rem;font-weight:700;line-height:1.1;"><?php echo $valides; ?></div>
                     <div class="cm-mt-md">
+                        <?php if (canView()): ?>
                         <a class="cm-btn is-info is-sm" href="?page=processus_validation">Voir</a>
+                        <?php endif; ?>
                     </div>
                 </div>
-
                 <div class="cm-card cm-p-md">
                     <div class="cm-text-sm cm-text-semibold cm-text-primary cm-mb-sm">
                         <i class="fas fa-circle-xmark" aria-hidden="true"></i>
-                        REJETES
+                        REJETÉS
                     </div>
                     <div style="font-size:1.85rem;font-weight:700;line-height:1.1;"><?php echo $rejetes; ?></div>
                     <div class="cm-mt-md">
+                        <?php if (canView()): ?>
                         <a class="cm-btn is-info is-sm" href="?page=processus_validation&status=rejete">Voir</a>
+                        <?php endif; ?>
                     </div>
                 </div>
-
                 <div class="cm-card cm-p-md">
                     <div class="cm-text-sm cm-text-semibold cm-text-primary cm-mb-sm">
                         <i class="fas fa-file-signature" aria-hidden="true"></i>
-                        CR REDIGES
+                        CR RÉDIGÉS
                     </div>
                     <div style="font-size:1.85rem;font-weight:700;line-height:1.1;"><?php echo $crRediges; ?></div>
                     <div class="cm-mt-md">
-                        <a class="cm-btn is-info is-sm" href="?page=redaction_compte_rendu&cr_view=redaction">Rediger</a>
+                        <?php if (canCreate()): ?>
+                        <a class="cm-btn is-info is-sm" href="?page=redaction_compte_rendu&cr_view=redaction">Rédiger</a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
-
             <div class="cm-grid-2">
                 <div class="cm-card cm-p-md">
-                    <h3 class="cm-text-lg cm-text-semibold cm-m-0 cm-mb-md">
-                        <i class="fas fa-chart-column" aria-hidden="true"></i>
-                        Avancement des rapports
-                    </h3>
 
                     <?php
                     $progressRows = [
-                        ['label' => 'Valides', 'count' => $valides, 'pct' => $pctValides, 'color' => '#1a5276'],
+                        ['label' => 'Validés', 'count' => $valides, 'pct' => $pctValides, 'color' => '#1a5276'],
                         ['label' => 'En attente', 'count' => $enAttente, 'pct' => $pctAttente, 'color' => '#3498db'],
-                        ['label' => 'Rejetes', 'count' => $rejetes, 'pct' => $pctRejetes, 'color' => '#e74c3c'],
+                        ['label' => 'Rejetés', 'count' => $rejetes, 'pct' => $pctRejetes, 'color' => '#e74c3c'],
                     ];
                     foreach ($progressRows as $row):
                     ?>
@@ -137,15 +123,10 @@ foreach (array_slice($activites, 0, 5) as $activite) {
                         </div>
                     <?php endforeach; ?>
                 </div>
-
                 <div class="cm-card cm-p-md">
-                    <h3 class="cm-text-lg cm-text-semibold cm-m-0 cm-mb-md">
-                        <i class="fas fa-clock-rotate-left" aria-hidden="true"></i>
-                        Activite recente
-                    </h3>
 
                     <?php if (empty($activityLines)): ?>
-                        <p class="cm-text-sm cm-text-muted cm-m-0">Aucune activite recente.</p>
+                        <p class="cm-text-sm cm-text-muted cm-m-0">Aucune activité récente.</p>
                     <?php else: ?>
                         <ul class="cm-m-0" style="padding-left:1.1rem; display:grid; gap:0.45rem;">
                             <?php foreach ($activityLines as $line): ?>

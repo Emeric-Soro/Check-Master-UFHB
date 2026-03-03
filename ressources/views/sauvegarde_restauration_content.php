@@ -1,6 +1,6 @@
 <?php
 $backups = is_array($backups ?? null) ? $backups : (is_array($GLOBALS['backups'] ?? null) ? $GLOBALS['backups'] : []);
-$isAdminUser = function_exists('isAdmin') ? (bool) isAdmin() : false;
+
 
 $rows = [];
 foreach ($backups as $backup) {
@@ -31,7 +31,7 @@ foreach ($backups as $backup) {
         <?php
         ob_start();
         ?>
-        <?php if ($isAdminUser): ?>
+        <?php if (canCreate()): ?>
         <form method="POST" action="?page=sauvegarde_restauration&action=create" data-cm-ajax-form="true">
             <?php cm_component('form/csrf-token'); ?>
             <div class="cm-grid-2">
@@ -56,7 +56,7 @@ foreach ($backups as $backup) {
         <?php endif; ?>
         <?php
         cm_component('crud/form-pole', [
-            'title' => 'Sauvegarde et restauration',
+            'title' => '',
             'icon' => 'fa-database',
             'content' => (string) ob_get_clean(),
         ]);
@@ -85,7 +85,7 @@ foreach ($backups as $backup) {
                 'icon' => 'fa-download',
                 'class' => 'cm-btn-action is-info js-backup-download',
             ];
-            if ($isAdminUser) {
+            if (canEdit()) {
                 $actions[] = [
                     'tag' => 'button',
                     'type' => 'button',
@@ -122,7 +122,7 @@ foreach ($backups as $backup) {
     </div>
 </section>
 
-<?php if ($isAdminUser): ?>
+<?php if (canEdit()): ?>
 <form id="cmBackupDeleteForm" method="POST" action="?page=sauvegarde_restauration&action=delete" class="cm-hidden" data-cm-ajax-form="true">
     <?php cm_component('form/csrf-token'); ?>
     <input type="hidden" name="filename" id="cmBackupDeleteFilename" value="">
@@ -140,7 +140,7 @@ foreach ($backups as $backup) {
         return;
     }
 
-    const isAdmin = <?= $isAdminUser ? 'true' : 'false' ?>;
+    const isAdmin = <?= canEdit() ? 'true' : 'false' ?>;
     const deleteForm = document.getElementById('cmBackupDeleteForm');
     const restoreForm = document.getElementById('cmBackupRestoreForm');
     const deleteInput = document.getElementById('cmBackupDeleteFilename');

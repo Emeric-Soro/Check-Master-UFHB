@@ -147,7 +147,7 @@ $pagerBase = '?' . http_build_query($queryForPager);
                     [
                         'tag' => 'a',
                         'href' => '?page=piste_audit',
-                        'label' => 'Reinitialiser',
+                        'label' => 'Réinitialiser',
                         'icon' => 'fa-rotate-left',
                         'class' => 'cm-btn is-light',
                     ],
@@ -164,7 +164,7 @@ $pagerBase = '?' . http_build_query($queryForPager);
         </form>
         <?php
         cm_component('crud/form-pole', [
-            'title' => 'Piste audit',
+            'title' => '',
             'icon' => 'fa-shield-alt',
             'content' => (string) ob_get_clean(),
         ]);

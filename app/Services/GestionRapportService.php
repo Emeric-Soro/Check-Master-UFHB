@@ -7,6 +7,7 @@ require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../models/InfoStage.php';
 require_once __DIR__ . '/../models/Entreprise.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 /**
  * Service métier de la gestion des rapports
@@ -20,6 +21,9 @@ require_once __DIR__ . '/../models/Entreprise.php';
  */
 class GestionRapportService
 {
+    /** @var \PDO */
+    private $db;
+
     /** @var RapportEtudiant */
     private $rapportModel;
 
@@ -43,12 +47,43 @@ class GestionRapportService
      */
     public function __construct($db)
     {
+        $this->db = $db;
         $this->rapportModel = new RapportEtudiant($db);
         $this->etudiant = new Etudiant($db);
         $this->auditLog = new AuditLog($db);
         $this->infoStageModel = new InfoStage($db);
         $this->entrepriseModel = new Entreprise($db);
         $this->uploadsPath = __DIR__ . '/../../ressources/uploads/rapports/';
+    }
+
+    private function filterReportsBySelectedYear(array $rapports): array
+    {
+        return \AcademicYear::filterRowsBySelectedYear($rapports, 'id_annee_acad');
+    }
+
+    private function getStudentAcademicYearId($num_etu): ?int
+    {
+        try {
+            $stmt = $this->db->prepare('SELECT id_annee_acad FROM etudiants WHERE num_carte_etud = ? LIMIT 1');
+            $stmt->execute([(string) $num_etu]);
+            $value = $stmt->fetchColumn();
+            return is_numeric($value) ? (int) $value : null;
+        } catch (\Throwable $e) {
+            error_log('Erreur getStudentAcademicYearId: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function ensureWritableForStudent(string $num_etu, string $context): array
+    {
+        return \AcademicYear::ensureWritableYear($this->db, $this->getStudentAcademicYearId($num_etu), $context);
+    }
+
+    private function ensureWritableForRapport($rapportId, string $context): array
+    {
+        $rapport = $this->rapportModel->getRapportById($rapportId);
+        $yearId = is_array($rapport) && !empty($rapport['id_annee_acad']) ? (int) $rapport['id_annee_acad'] : null;
+        return \AcademicYear::ensureWritableYear($this->db, $yearId, $context);
     }
 
     // ========================= STATISTIQUES =========================
@@ -66,7 +101,7 @@ class GestionRapportService
      */
     public function getRapportsRecentsEtudiant($num_etu, $limit = 5)
     {
-        $rapports = $this->rapportModel->getRapportsByEtudiant($num_etu);
+        $rapports = $this->filterReportsBySelectedYear($this->rapportModel->getRapportsByEtudiant($num_etu));
         return array_slice($rapports, 0, $limit);
     }
 
@@ -75,7 +110,7 @@ class GestionRapportService
      */
     public function getRecentRapports($limit = 5)
     {
-        return $this->rapportModel->getRecentRapports($limit);
+        return array_slice($this->filterReportsBySelectedYear($this->rapportModel->getRecentRapports($limit * 4)), 0, $limit);
     }
 
     /**
@@ -83,7 +118,7 @@ class GestionRapportService
      */
     public function calculerStatistiquesGlobales()
     {
-        $rapports = $this->rapportModel->getAllRapports();
+        $rapports = $this->filterReportsBySelectedYear($this->rapportModel->getAllRapports());
 
         $stats = [
             'total' => count($rapports),
@@ -138,7 +173,7 @@ class GestionRapportService
     public function getInfosDepotRapports($num_etu)
     {
         $infos = [];
-        $rapports = $this->rapportModel->getRapportsByEtudiant($num_etu);
+        $rapports = $this->filterReportsBySelectedYear($this->rapportModel->getRapportsByEtudiant($num_etu));
 
         foreach ($rapports as $rapport) {
             $rapportId = $rapport->id_rapport;
@@ -322,6 +357,11 @@ class GestionRapportService
      */
     private function assurerCandidatureAutomatique($num_etu)
     {
+        $writeGuard = $this->ensureWritableForStudent((string) $num_etu, 'une candidature de soutenance');
+        if (empty($writeGuard['success'])) {
+            return false;
+        }
+
         $stmt = $this->rapportModel->pdo->prepare("
             SELECT statut_candidature
             FROM candidature_soutenance
@@ -388,6 +428,13 @@ class GestionRapportService
      */
     public function sauvegarderRapport($donneesRapport, $num_etu)
     {
+        $writeGuard = !empty($donneesRapport['edit_id'])
+            ? $this->ensureWritableForRapport($donneesRapport['edit_id'], 'un rapport')
+            : $this->ensureWritableForStudent((string) $num_etu, 'un rapport');
+        if (empty($writeGuard['success'])) {
+            return ['success' => false, 'message' => (string) ($writeGuard['message'] ?? 'Operation interdite.')];
+        }
+
         // Validation
         $erreurs = $this->validerDonneesRapport($donneesRapport);
         if (!empty($erreurs)) {
@@ -490,6 +537,10 @@ class GestionRapportService
     public function enregistrerDepotRapport($id_rapport, $num_etu)
     {
         $date_depot = date('Y-m-d H:i:s');
+        $writeGuard = $this->ensureWritableForRapport($id_rapport, 'un depot de rapport');
+        if (empty($writeGuard['success'])) {
+            return false;
+        }
 
         // Vérifier si l'étudiant a déjà un rapport en cours d'évaluation
         if ($this->aUnRapportEnCours($num_etu)) {
@@ -593,7 +644,7 @@ class GestionRapportService
      */
     public function getRapportsAvecDecisions($num_etu)
     {
-        $rapports = $this->rapportModel->getRapportsByEtudiant($num_etu);
+        $rapports = $this->filterReportsBySelectedYear($this->rapportModel->getRapportsByEtudiant($num_etu));
 
         foreach ($rapports as &$rapport) {
             $rapport = (array) $rapport;
@@ -619,11 +670,11 @@ class GestionRapportService
         if ($isEtudiant) {
             $rapports = array_map(function ($rapport) {
                 return (array) $rapport;
-            }, $this->rapportModel->getRapportsByEtudiant($num_etu));
+            }, $this->filterReportsBySelectedYear($this->rapportModel->getRapportsByEtudiant($num_etu)));
         } else {
             $rapports = array_map(function ($rapport) {
                 return (array) $rapport;
-            }, $this->rapportModel->getAllRapports());
+            }, $this->filterReportsBySelectedYear($this->rapportModel->getAllRapports()));
         }
 
         // Appliquer les filtres
@@ -697,15 +748,6 @@ class GestionRapportService
      */
     public function genererPdf($contenu_rapport, $nom_rapport, $edit_id, $num_etu)
     {
-        // Vérifier que DOMPDF est disponible
-        if (!class_exists('\Dompdf\Dompdf')) {
-            require_once __DIR__ . '/../../vendor/autoload.php';
-        }
-
-        if (!class_exists('\Dompdf\Dompdf')) {
-            throw new \Exception('DOMPDF n\'est pas installé ou accessible.');
-        }
-
         // Si on est en mode édition, vérifier les permissions
         if ($edit_id) {
             $rapport = $this->rapportModel->getRapportById($edit_id);
@@ -741,35 +783,22 @@ class GestionRapportService
 
         error_log("HTML Content length: " . strlen($htmlContent));
 
-        $options = new \Dompdf\Options();
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isPhpEnabled', false);
-        $options->set('isRemoteEnabled', true);
-        $options->set('defaultFont', 'Arial');
-        $options->set('defaultPaperSize', 'A4');
-        $options->set('defaultPaperOrientation', 'portrait');
-        $options->set('isFontSubsettingEnabled', true);
-        $options->set('isCssFloatEnabled', true);
-        $options->set('isJavascriptEnabled', false);
-        $options->set('chroot', __DIR__ . '/../../public/');
+        // Générer le PDF avec PdfGeneratorService (TCPDF)
+        require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
+        $pdfGen = new \App\Services\Document\PdfGeneratorService(
+            __DIR__ . '/../../storage',
+            __DIR__ . '/../../public/assets/img/logo.png'
+        );
+        $pdf = $pdfGen->createDocument('P', 'A4', htmlspecialchars($nom_rapport));
+        $pdf->AddPage();
+        $pdfGen->writeHtml($pdf, $htmlContent);
 
-        $dompdf = new \Dompdf\Dompdf($options);
-
-        if (!$dompdf) {
-            throw new \Exception('Impossible d\'instancier DOMPDF.');
-        }
-
-        $dompdf->loadHtml($htmlContent);
-        $dompdf->setPaper('A4', 'portrait');
-
-        error_log("Starting PDF rendering...");
-        $dompdf->render();
         error_log("PDF rendering completed.");
 
         $pdfName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nom_rapport) . '.pdf';
 
         return [
-            'pdf_output' => $dompdf->output(),
+            'pdf_output' => $pdf->Output($pdfName, 'S'),
             'pdf_name' => $pdfName
         ];
     }
@@ -869,6 +898,11 @@ class GestionRapportService
             return ['success' => false, 'message' => 'Rapport non trouvé ou accès non autorisé'];
         }
 
+        $writeGuard = $this->ensureWritableForRapport($rapportId, 'un rapport');
+        if (empty($writeGuard['success'])) {
+            return ['success' => false, 'message' => (string) ($writeGuard['message'] ?? 'Suppression interdite.')];
+        }
+
         // Vérifier que le rapport n'est pas déjà déposé
         if ($this->isRapportDepose($num_etu, $rapportId)) {
             return ['success' => false, 'message' => 'Impossible de supprimer un rapport déjà déposé'];
@@ -895,6 +929,11 @@ class GestionRapportService
      */
     public function deleteRapport($rapport_id, $num_etu)
     {
+        $writeGuard = $this->ensureWritableForRapport($rapport_id, 'un rapport');
+        if (empty($writeGuard['success'])) {
+            return ['success' => false, 'message' => (string) ($writeGuard['message'] ?? 'Suppression interdite.')];
+        }
+
         $result = $this->rapportModel->deleteRapport($rapport_id, $num_etu);
 
         if ($result) {
@@ -933,7 +972,7 @@ class GestionRapportService
      */
     public function getAllRapports()
     {
-        return $this->rapportModel->getAllRapports();
+        return $this->filterReportsBySelectedYear($this->rapportModel->getAllRapports());
     }
 
     // ========================= CANDIDATURES =========================

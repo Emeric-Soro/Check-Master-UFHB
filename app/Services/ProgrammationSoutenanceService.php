@@ -2,6 +2,7 @@
 namespace CheckMaster\Services;
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use Exception;
 use PDO;
@@ -16,6 +17,86 @@ class ProgrammationSoutenanceService
     public function __construct($pdo = null)
     {
         $this->pdo = $pdo ?: \Database::getConnection();
+    }
+
+    private function getSelectedAcademicYearId(): ?int
+    {
+        return \AcademicYear::getSelectedIdFromSession();
+    }
+
+    private function ensureWritableContext(string $context): void
+    {
+        $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getSelectedAcademicYearId(), $context);
+        if (!$writeGuard['success']) {
+            throw new Exception($writeGuard['message']);
+        }
+    }
+
+    private function getStudentAcademicYearId(string $studentId): ?int
+    {
+        try {
+            $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM etudiants WHERE num_carte_etud = ? LIMIT 1");
+            $stmt->execute([$studentId]);
+            $value = $stmt->fetchColumn();
+            return is_numeric($value) ? (int) $value : null;
+        } catch (Exception $e) {
+            error_log('Erreur getStudentAcademicYearId: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function ensureWritableStudent(string $studentId, string $context): void
+    {
+        $targetYearId = $this->getStudentAcademicYearId($studentId);
+        $selectedYearId = $this->getSelectedAcademicYearId();
+
+        if ($selectedYearId !== null && $targetYearId !== null && $selectedYearId !== $targetYearId) {
+            throw new Exception("L'etudiant ne correspond pas a l'annee academique actuellement selectionnee.");
+        }
+
+        $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $targetYearId, $context);
+        if (!$writeGuard['success']) {
+            throw new Exception($writeGuard['message']);
+        }
+    }
+
+    private function getAttributionAcademicYearId($id): ?int
+    {
+        try {
+            $progTable = $this->getProgrammationTable();
+            if ($progTable === null) {
+                return null;
+            }
+            $idCol = $this->getProgrammationIdColumn($progTable);
+            $stmt = $this->pdo->prepare("
+                SELECT e.id_annee_acad
+                FROM {$progTable} p
+                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                WHERE p.{$idCol} = ?
+                LIMIT 1
+            ");
+            $stmt->execute([(string) $id]);
+            $value = $stmt->fetchColumn();
+            return is_numeric($value) ? (int) $value : null;
+        } catch (Exception $e) {
+            error_log('Erreur getAttributionAcademicYearId: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function ensureWritableAttribution($id, string $context): void
+    {
+        $targetYearId = $this->getAttributionAcademicYearId($id);
+        $selectedYearId = $this->getSelectedAcademicYearId();
+
+        if ($selectedYearId !== null && $targetYearId !== null && $selectedYearId !== $targetYearId) {
+            throw new Exception("L'attribution ne correspond pas a l'annee academique actuellement selectionnee.");
+        }
+
+        $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $targetYearId, $context);
+        if (!$writeGuard['success']) {
+            throw new Exception($writeGuard['message']);
+        }
     }
 
     private function tableExists($tableName)
@@ -59,11 +140,11 @@ class ProgrammationSoutenanceService
 
     private function getProgrammationTable()
     {
-        if ($this->tableExists('programmer')) {
-            return 'programmer';
-        }
         if ($this->tableExists('programmer_soutenance')) {
             return 'programmer_soutenance';
+        }
+        if ($this->tableExists('programmer')) {
+            return 'programmer';
         }
         return null;
     }
@@ -82,11 +163,11 @@ class ProgrammationSoutenanceService
 
     private function getJuryTable()
     {
-        if ($this->tableExists('composer_jury')) {
-            return 'composer_jury';
-        }
         if ($this->tableExists('enseignant_jury')) {
             return 'enseignant_jury';
+        }
+        if ($this->tableExists('composer_jury')) {
+            return 'composer_jury';
         }
         return null;
     }
@@ -99,11 +180,11 @@ class ProgrammationSoutenanceService
 
     private function getRolesTable()
     {
-        if ($this->tableExists('roles_jury')) {
-            return 'roles_jury';
-        }
         if ($this->tableExists('qualite_jury')) {
             return 'qualite_jury';
+        }
+        if ($this->tableExists('roles_jury')) {
+            return 'roles_jury';
         }
         return null;
     }
@@ -217,6 +298,7 @@ class ProgrammationSoutenanceService
             if ($progTable === null) {
                 return [];
             }
+            $selectedYearId = $this->getSelectedAcademicYearId();
 
             $sql = "
                 SELECT DISTINCT
@@ -226,10 +308,11 @@ class ProgrammationSoutenanceService
                     CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_complet,
                     e.num_carte_etud as matricule_etudiant,
                     e.email_etu as email_etudiant,
+                    e.promotion_etu,
                     e.promotion_etu as lib_specialite,
                     r.theme_rapport,
-                    ist.encadrant_entreprise as maitre_stage_nom,
-                    ist.email_encadrant as maitre_stage_email,
+                    CONCAT(ms.prenom, ' ', ms.Nom) as maitre_stage_nom,
+                    ms.email as maitre_stage_email,
                     (SELECT CONCAT(ens_dir.prenom_enseignant, ' ', ens_dir.nom_enseignant)
                      FROM affecter af_dir
                      JOIN enseignants ens_dir ON af_dir.id_enseignant = ens_dir.id_enseignant
@@ -262,12 +345,21 @@ class ProgrammationSoutenanceService
                 INNER JOIN rapport_etudiants r ON e.num_carte_etud = r.num_etu
                 LEFT JOIN valider v ON r.id_rapport = v.id_rapport
                 LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
+                LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 LEFT JOIN {$progTable} p ON e.num_carte_etud = p.num_etud
                 WHERE (v.decision_validation = 'valider' OR COALESCE(r.statut_rapport, '') IN ('valider', 'valide'))
-                ORDER BY e.nom_etu, e.prenom_etu
             ";
 
+            if ($selectedYearId !== null && $selectedYearId > 0) {
+                $sql .= " AND e.id_annee_acad = :id_annee_acad";
+            }
+
+            $sql .= " ORDER BY e.nom_etu, e.prenom_etu";
+
             $stmt = $this->pdo->prepare($sql);
+            if ($selectedYearId !== null && $selectedYearId > 0) {
+                $stmt->bindValue(':id_annee_acad', $selectedYearId, PDO::PARAM_INT);
+            }
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
@@ -381,6 +473,7 @@ class ProgrammationSoutenanceService
                 return [];
             }
             $idCol = $this->getProgrammationIdColumn($progTable);
+            $selectedYearId = $this->getSelectedAcademicYearId();
 
             $presidentId = $this->juryIdExpr('president', 'p');
             $presidentNom = $this->juryNameExpr('president', 'p');
@@ -398,6 +491,7 @@ class ProgrammationSoutenanceService
                     e.num_carte_etud as id_etudiant,
                     CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_etudiant,
                     e.num_carte_etud as matricule_etudiant,
+                    e.promotion_etu,
                     {$presidentId} as president_id,
                     {$presidentNom} as president_nom,
                     {$examinateurId} as examinateur_id,
@@ -425,7 +519,7 @@ class ProgrammationSoutenanceService
                      AND LOWER(af_enc.role) LIKE 'encadr%'
                      LIMIT 1) as encadreur_nom,
                     NULL as maitre_stage_id,
-                    ist.encadrant_entreprise as maitre_stage_nom
+                    CONCAT(ms.prenom, ' ', ms.Nom) as maitre_stage_nom
                 FROM {$progTable} p
                 LEFT JOIN etudiants e ON p.num_etud = e.num_carte_etud
                 LEFT JOIN (
@@ -439,10 +533,19 @@ class ProgrammationSoutenanceService
                 ) r ON r.num_etu = e.num_carte_etud
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
                 LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
-                ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
+                LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
             ";
 
+            if ($selectedYearId !== null && $selectedYearId > 0) {
+                $sql .= " WHERE e.id_annee_acad = :id_annee_acad";
+            }
+
+            $sql .= " ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC";
+
             $stmt = $this->pdo->prepare($sql);
+            if ($selectedYearId !== null && $selectedYearId > 0) {
+                $stmt->bindValue(':id_annee_acad', $selectedYearId, PDO::PARAM_INT);
+            }
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
@@ -485,6 +588,8 @@ class ProgrammationSoutenanceService
             if ($progTable === null) {
                 throw new Exception('Aucune table de programmation de soutenance disponible');
             }
+
+            $this->ensureWritableStudent((string) $data['id_etudiant'], 'une programmation de soutenance');
 
             $this->pdo->beginTransaction();
 
@@ -587,6 +692,7 @@ class ProgrammationSoutenanceService
                 throw new Exception('Aucune table de programmation de soutenance disponible');
             }
             $idCol = $this->getProgrammationIdColumn($progTable);
+            $this->ensureWritableAttribution((string) $data['id'], 'une programmation de soutenance');
 
             $this->pdo->beginTransaction();
 
@@ -652,6 +758,7 @@ class ProgrammationSoutenanceService
                 throw new Exception('Aucune table de programmation de soutenance disponible');
             }
             $idCol = $this->getProgrammationIdColumn($progTable);
+            $this->ensureWritableAttribution($id, 'une programmation de soutenance');
 
             $this->pdo->beginTransaction();
 

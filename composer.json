@@ -27,7 +27,20 @@
   },
   "autoload": {
     "psr-4": {
-      "App\\": "src/"
-    }
+      "App\\": ["src/", "app/"]
+    },
+    "classmap": [
+      "app/utils/ReceiptUtils.php",
+      "app/utils/EmailService.php",
+      "app/utils/FormHelper.php",
+      "app/utils/TableHelper.php",
+      "app/utils/ComponentHelper.php",
+      "app/utils/FormattingUtils.php",
+      "app/utils/ExcelImportService.php"
+    ],
+    "files": [
+      "app/utils/permissions_helper.php",
+      "app/utils/PaginationHelper.php"
+    ]
   }
 }

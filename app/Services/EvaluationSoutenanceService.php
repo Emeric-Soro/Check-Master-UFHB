@@ -3,6 +3,7 @@ namespace CheckMaster\Services;
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/CritereEvaluation.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use CritereEvaluation;
 use Exception;
@@ -21,6 +22,85 @@ class EvaluationSoutenanceService
     {
         $this->pdo = $pdo ?: \Database::getConnection();
         $this->critereModel = new CritereEvaluation($this->pdo);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function resolveAcademicYear(?string $preferredId = null): ?array
+    {
+        if ($preferredId !== null && is_numeric($preferredId) && (int) $preferredId > 0) {
+            $year = \AcademicYear::getById($this->pdo, (int) $preferredId);
+            if ($year !== null) {
+                return $year;
+            }
+        }
+
+        $selectedId = \AcademicYear::getSelectedIdFromSession();
+        if ($selectedId !== null && $selectedId > 0) {
+            $year = \AcademicYear::getById($this->pdo, $selectedId);
+            if ($year !== null) {
+                return $year;
+            }
+        }
+
+        return \AcademicYear::getActive($this->pdo);
+    }
+
+    private function getStudentAcademicYearId(string $numEtu): ?int
+    {
+        try {
+            $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM etudiants WHERE num_carte_etud = ? LIMIT 1");
+            $stmt->execute([$numEtu]);
+            $value = $stmt->fetchColumn();
+            if (is_numeric($value) && (int) $value > 0) {
+                return (int) $value;
+            }
+        } catch (Throwable $e) {
+            error_log('Erreur getStudentAcademicYearId by card: ' . $e->getMessage());
+        }
+
+        if ($this->columnExists('etudiants', 'num_ident_etud')) {
+            try {
+                $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM etudiants WHERE num_ident_etud = ? LIMIT 1");
+                $stmt->execute([$numEtu]);
+                $value = $stmt->fetchColumn();
+                if (is_numeric($value) && (int) $value > 0) {
+                    return (int) $value;
+                }
+            } catch (Throwable $e) {
+                error_log('Erreur getStudentAcademicYearId by ident: ' . $e->getMessage());
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveEvaluationJuryRefForEtudiant(string $numEtu): ?string
+    {
+        $juryRef = $this->resolveJuryRefForEtudiant($numEtu);
+        if ($juryRef !== null && $juryRef !== '') {
+            return (string) $juryRef;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT num_jury
+                FROM evaluer
+                WHERE num_etudiant = ?
+                ORDER BY date_eval DESC, id_critere ASC
+                LIMIT 1
+            ");
+            $stmt->execute([$numEtu]);
+            $value = $stmt->fetchColumn();
+            if ($value !== false && $value !== null && $value !== '') {
+                return (string) $value;
+            }
+        } catch (Throwable $e) {
+            error_log('Erreur resolveEvaluationJuryRefForEtudiant: ' . $e->getMessage());
+        }
+
+        return null;
     }
 
     private function tableExists($tableName)
@@ -64,11 +144,11 @@ class EvaluationSoutenanceService
 
     private function getProgrammationTable()
     {
-        if ($this->tableExists('programmer')) {
-            return 'programmer';
-        }
         if ($this->tableExists('programmer_soutenance')) {
             return 'programmer_soutenance';
+        }
+        if ($this->tableExists('programmer')) {
+            return 'programmer';
         }
         return null;
     }
@@ -87,11 +167,11 @@ class EvaluationSoutenanceService
 
     private function getJuryTable()
     {
-        if ($this->tableExists('composer_jury')) {
-            return 'composer_jury';
-        }
         if ($this->tableExists('enseignant_jury')) {
             return 'enseignant_jury';
+        }
+        if ($this->tableExists('composer_jury')) {
+            return 'composer_jury';
         }
         return null;
     }
@@ -104,11 +184,11 @@ class EvaluationSoutenanceService
 
     private function getRolesTable()
     {
-        if ($this->tableExists('roles_jury')) {
-            return 'roles_jury';
-        }
         if ($this->tableExists('qualite_jury')) {
             return 'qualite_jury';
+        }
+        if ($this->tableExists('roles_jury')) {
+            return 'roles_jury';
         }
         return null;
     }
@@ -325,6 +405,7 @@ class EvaluationSoutenanceService
             $examinateurNom = $this->juryNameExpr('examinateur', 'p');
             $directeurNom = $this->juryNameExpr('directeur', 'p');
             $encadreurNom = $this->juryNameExpr('encadreur', 'p');
+            $selectedYearId = \AcademicYear::getSelectedIdFromSession();
 
             $sql = "
                 SELECT
@@ -342,7 +423,7 @@ class EvaluationSoutenanceService
                     {$examinateurNom} AS examinateur_nom,
                     {$directeurNom} AS directeur_nom,
                     {$encadreurNom} AS encadreur_nom,
-                    ist.encadrant_entreprise AS maitre_stage_nom,
+                    CONCAT(ms.prenom, ' ', ms.Nom) AS maitre_stage_nom,
                     (
                         SELECT COUNT(*)
                         FROM evaluer ev
@@ -369,13 +450,24 @@ class EvaluationSoutenanceService
                 LEFT JOIN etudiants e ON p.num_etud = e.num_carte_etud
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
                 LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(e.num_carte_etud, p.num_etud)
+                LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 WHERE p.id_salle IS NOT NULL
                   AND p.date_soutenance IS NOT NULL
                   AND p.heure_soutenance IS NOT NULL
+            ";
+
+            if ($selectedYearId !== null && $selectedYearId > 0) {
+                $sql .= " AND e.id_annee_acad = :id_annee_acad";
+            }
+
+            $sql .= "
                 ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
             ";
 
             $stmt = $this->pdo->prepare($sql);
+            if ($selectedYearId !== null && $selectedYearId > 0) {
+                $stmt->bindValue(':id_annee_acad', $selectedYearId, PDO::PARAM_INT);
+            }
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Throwable $e) {
@@ -387,29 +479,16 @@ class EvaluationSoutenanceService
     public function getAnneeAcademiqueCourante()
     {
         try {
-            $dateActuelle = date('Y-m-d');
-            $stmt = $this->pdo->prepare("
-                SELECT id_annee_acad, date_deb, date_fin
-                FROM annee_academique
-                WHERE ? BETWEEN date_deb AND date_fin
-                ORDER BY date_deb DESC
-                LIMIT 1
-            ");
-            $stmt->execute([$dateActuelle]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if (!$row) {
-                $stmt = $this->pdo->prepare("
-                    SELECT id_annee_acad, date_deb, date_fin
-                    FROM annee_academique
-                    ORDER BY date_deb DESC
-                    LIMIT 1
-                ");
-                $stmt->execute();
-                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $row = \AcademicYear::getActive($this->pdo);
+            if ($row === null) {
+                return null;
             }
 
-            return $row ?: null;
+            return [
+                'id_annee_acad' => $row['id'] ?? null,
+                'date_deb' => $row['date_deb'] ?? null,
+                'date_fin' => $row['date_fin'] ?? null,
+            ];
         } catch (Throwable $e) {
             error_log('Erreur getAnneeAcademiqueCourante: ' . $e->getMessage());
             return null;
@@ -419,8 +498,11 @@ class EvaluationSoutenanceService
     public function getCriteresEvaluation(): array
     {
         try {
-            $annee = $this->getAnneeAcademiqueCourante();
+            $annee = $this->resolveAcademicYear();
             $idAnneeAcad = (string) ($annee['id_annee_acad'] ?? '');
+            if ($idAnneeAcad === '' && isset($annee['id'])) {
+                $idAnneeAcad = (string) $annee['id'];
+            }
 
             if ($idAnneeAcad !== '') {
                 $rows = $this->getCriteriaRowsByYear($idAnneeAcad);
@@ -510,10 +592,22 @@ class EvaluationSoutenanceService
                 throw new Exception('Aucune soutenance programmee pour cet etudiant');
             }
 
-            if (empty($idAnneeAcad)) {
-                $annee = $this->getAnneeAcademiqueCourante();
-                $idAnneeAcad = (string) ($annee['id_annee_acad'] ?? '');
+            $studentYearId = $this->getStudentAcademicYearId($numEtu);
+            if ($studentYearId === null || $studentYearId <= 0) {
+                throw new Exception("Impossible de determiner l'annee academique de l'etudiant");
             }
+
+            $selectedYearId = \AcademicYear::getSelectedIdFromSession();
+            if ($selectedYearId !== null && $selectedYearId > 0 && $selectedYearId !== $studentYearId) {
+                throw new Exception("L'etudiant ne correspond pas a l'annee academique actuellement selectionnee.");
+            }
+
+            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $studentYearId, 'une evaluation de soutenance');
+            if (!$writeGuard['success']) {
+                throw new Exception($writeGuard['message']);
+            }
+
+            $idAnneeAcad = (string) $studentYearId;
 
             $notesValides = [];
             foreach ($criteres as $idCritere => $note) {
@@ -593,8 +687,24 @@ class EvaluationSoutenanceService
                 throw new Exception('Numero etudiant requis');
             }
 
-            $stmt = $this->pdo->prepare("DELETE FROM evaluer WHERE num_etudiant = ?");
-            $stmt->execute([$numEtu]);
+            $studentYearId = $this->getStudentAcademicYearId($numEtu);
+            $selectedYearId = \AcademicYear::getSelectedIdFromSession();
+            if ($selectedYearId !== null && $studentYearId !== null && $selectedYearId !== $studentYearId) {
+                throw new Exception("L'etudiant ne correspond pas a l'annee academique actuellement selectionnee.");
+            }
+
+            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $studentYearId, 'une suppression d evaluation de soutenance');
+            if (!$writeGuard['success']) {
+                throw new Exception((string) $writeGuard['message']);
+            }
+
+            $juryRef = $this->resolveEvaluationJuryRefForEtudiant($numEtu);
+            if ($juryRef === null || $juryRef === '') {
+                throw new Exception('Aucune evaluation cible n a ete trouvee pour cet etudiant.');
+            }
+
+            $stmt = $this->pdo->prepare("DELETE FROM evaluer WHERE num_etudiant = ? AND num_jury = ?");
+            $stmt->execute([$numEtu, $juryRef]);
 
             return [
                 'success' => true,
@@ -660,10 +770,11 @@ class EvaluationSoutenanceService
                 {$examinateurNom} AS examinateur,
                 {$directeurNom} AS directeur,
                 {$encadreurNom} AS encadreur,
-                ist.encadrant_entreprise AS maitre_stage
+                CONCAT(ms.prenom, ' ', ms.Nom) AS maitre_stage
             FROM {$progTable} p
             LEFT JOIN etudiants e ON p.num_etud = e.num_carte_etud
             LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(e.num_carte_etud, p.num_etud)
+            LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
             WHERE p.num_etud = ?
             ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
             LIMIT 1
@@ -687,10 +798,11 @@ class EvaluationSoutenanceService
                     {$examinateurNom} AS examinateur,
                     {$directeurNom} AS directeur,
                     {$encadreurNom} AS encadreur,
-                    ist.encadrant_entreprise AS maitre_stage
+                    CONCAT(ms.prenom, ' ', ms.Nom) AS maitre_stage
                 FROM {$progTable} p
                 JOIN etudiants e ON p.num_etud = e.num_carte_etud
                 LEFT JOIN informations_stage ist ON ist.num_etu = e.num_carte_etud
+                LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 WHERE e.num_ident_etud = ?
                 ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
                 LIMIT 1
@@ -709,8 +821,8 @@ class EvaluationSoutenanceService
             throw new Exception('Jury non trouve pour cette soutenance');
         }
 
-        $annee = $this->getAnneeAcademiqueCourante();
-        $idAnneeAcad = (string) ($annee['id_annee_acad'] ?? '');
+        $annee = $this->resolveAcademicYear();
+        $idAnneeAcad = (string) ($annee['id'] ?? $annee['id_annee_acad'] ?? '');
 
         if ($this->tableExists('bareme_critere') && $idAnneeAcad !== '') {
             $stmtEval = $this->pdo->prepare("

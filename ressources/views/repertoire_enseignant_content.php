@@ -11,32 +11,26 @@ $filtreSession = $data['filtre_session'] ?? null;
 $search = (string) ($data['search'] ?? '');
 $error = (string) ($data['error'] ?? '');
 $tabCounts = (array) ($data['tab_counts'] ?? ['rapports' => 0, 'comptes_rendus' => 0, 'memoires' => 0]);
-
 $uploadsBase = __DIR__ . '/../../ressources/uploads/';
-
 function formatDate(?string $date): string {
     if (empty($date) || $date === '0000-00-00') return '—';
     $ts = strtotime($date);
     return $ts !== false ? date('d/m/Y', $ts) : '—';
 }
-
 function truncate(string $text, int $max = 80): string {
     if (strlen($text) <= $max) return $text;
     return substr($text, 0, $max - 3) . '...';
 }
-
 function fileExistsSafe(?string $path, string $base): bool {
     if (empty($path)) return false;
     $full = realpath($base . ltrim($path, '/\\'));
     return $full !== false && strpos($full, realpath($base)) === 0 && file_exists($full);
 }
-
 $tabs = [
     ['id' => 'rapports', 'label' => 'Rapports (' . $tabCounts['rapports'] . ')'],
     ['id' => 'comptes_rendus', 'label' => 'Comptes-rendus (' . $tabCounts['comptes_rendus'] . ')'],
     ['id' => 'memoires', 'label' => 'Memoires (' . $tabCounts['memoires'] . ')'],
 ];
-
 $baseUrlParams = http_build_query([
     'page' => 'repertoire_enseignant',
     'tab' => $tab,
@@ -45,74 +39,46 @@ $baseUrlParams = http_build_query([
     'search' => $search,
 ]);
 ?>
-
 <section class="cm-prd3-screen">
-    <header class="cm-flex-between cm-mb-md">
-        <div>
-            <h2 class="cm-m-0 cm-text-xl cm-text-bold cm-text-primary">
-                <i class="fas fa-folder-open cm-mr-sm" aria-hidden="true"></i>
-                Repertoire Documents
-            </h2>
-            <p class="cm-m-0 cm-text-muted">Consultez vos rapports, comptes-rendus et memoires.</p>
-        </div>
-        <span class="cm-text-muted">
-            <i class="fas fa-user cm-mr-sm" aria-hidden="true"></i>
-            <?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?>
-        </span>
-    </header>
-
     <?php if ($error): ?>
         <div class="cm-alert cm-alert--danger cm-mb-md">
             <i class="fas fa-circle-exclamation cm-mr-sm"></i>
             <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?>
         </div>
     <?php endif; ?>
-
     <div class="cm-card cm-mb-md">
         <form method="GET" class="cm-grid-4" style="align-items: end;">
             <input type="hidden" name="page" value="repertoire_enseignant">
             <input type="hidden" name="tab" value="<?= htmlspecialchars($tab, ENT_QUOTES, 'UTF-8') ?>">
-            
-            <?= cm_component('form/select', [
-                'name' => 'id_annee_acad',
-                'label' => 'Annee academique',
-                'options' => $anneeOptions,
-                'selected' => (string)($filtreAnnee ?? ''),
-                'placeholder' => 'Toutes les annees'
-            ]) ?>
-
+            <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars((string) (\AcademicYear::getWritableIdFromSession() ?? ''), ENT_QUOTES, 'UTF-8') ?>">
             <?= cm_component('form/select', [
                 'name' => 'id_session',
-                'label' => 'Periode',
+                'label' => 'Période',
                 'options' => $sessionOptions,
                 'selected' => (string)($filtreSession ?? ''),
-                'placeholder' => 'Toutes les periodes'
+                'placeholder' => 'Toutes les périodes'
             ]) ?>
-
             <div>
                 <label class="cm-form__label" for="search">Recherche</label>
                 <input type="text" id="search" name="search" class="cm-form__input" 
                        value="<?= htmlspecialchars($search, ENT_QUOTES, 'UTF-8') ?>" 
                        placeholder="Nom, theme...">
             </div>
-
             <div class="cm-flex cm-flex-gap-sm">
                 <button type="submit" class="cm-btn cm-btn--primary">
                     <i class="fas fa-filter cm-mr-sm"></i> Filtrer
                 </button>
                 <a href="?page=repertoire_enseignant&tab=<?= htmlspecialchars($tab, ENT_QUOTES, 'UTF-8') ?>" 
                    class="cm-btn cm-btn--outline">
-                    Reinitialiser
+                    Réinitialiser
                 </a>
             </div>
         </form>
     </div>
-
     <?= cm_component('tabs/tab-nav', [
         'tabs' => $tabs,
         'active' => $tab,
     ]) ?>
-
     <?php if ($tab === 'rapports'): ?>
         <?php ob_start(); ?>
         <table class="cm-table">
@@ -133,8 +99,8 @@ $baseUrlParams = http_build_query([
                     <tr>
                         <td colspan="8">
                             <?= cm_component('ui/empty-state', [
-                                'title' => 'Aucun rapport',
-                                'message' => 'Aucun rapport associe pour les criteres selectionnes.',
+                                'title' => '',
+                                'message' => 'Aucun rapport associe pour les critères sélectionnés.',
                                 'icon' => 'fa-file-alt',
                                 'in_table' => true,
                                 'colspan' => 8
@@ -183,7 +149,6 @@ $baseUrlParams = http_build_query([
             'content' => $tableContent
         ]);
         ?>
-
     <?php elseif ($tab === 'comptes_rendus'): ?>
         <?php ob_start(); ?>
         <table class="cm-table">
@@ -201,8 +166,8 @@ $baseUrlParams = http_build_query([
                     <tr>
                         <td colspan="5">
                             <?= cm_component('ui/empty-state', [
-                                'title' => 'Aucun compte-rendu',
-                                'message' => 'Aucun compte-rendu trouve pour les criteres selectionnes.',
+                                'title' => '',
+                                'message' => 'Aucun compte-rendu trouve pour les critères sélectionnés.',
                                 'icon' => 'fa-file-contract',
                                 'in_table' => true,
                                 'colspan' => 5
@@ -243,7 +208,6 @@ $baseUrlParams = http_build_query([
             'content' => $tableContent
         ]);
         ?>
-
     <?php else: // memoires ?>
         <?php ob_start(); ?>
         <table class="cm-table">
@@ -264,8 +228,8 @@ $baseUrlParams = http_build_query([
                     <tr>
                         <td colspan="8">
                             <?= cm_component('ui/empty-state', [
-                                'title' => 'Aucune soutenance',
-                                'message' => 'Aucune soutenance trouvee pour les criteres selectionnes.',
+                                'title' => '',
+                                'message' => 'Aucune soutenance trouvee pour les critères sélectionnés.',
                                 'icon' => 'fa-graduation-cap',
                                 'in_table' => true,
                                 'colspan' => 8
@@ -304,7 +268,6 @@ $baseUrlParams = http_build_query([
         ]);
         ?>
     <?php endif; ?>
-
     <?php if (!empty($pagination) && $pagination['total'] > 0): ?>
         <div class="cm-mt-md">
             <?= cm_component('crud/pagination', [

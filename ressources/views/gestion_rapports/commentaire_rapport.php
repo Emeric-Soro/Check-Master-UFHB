@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/../../../app/utils/permissions_helper.php';
 
 $rapports = is_array($rapports ?? null) ? $rapports : [];
 $statistiquesCompteRendu = is_array($statistiquesCompteRendu ?? null) ? $statistiquesCompteRendu : [];
@@ -16,7 +15,7 @@ $filterSearch = (string) ($_GET['search'] ?? '');
     <section class="cm-etu-panel">
         <header class="cm-etu-panel__header">
             <div>
-                <h2 class="cm-etu-panel__title"><i class="fas fa-comments" aria-hidden="true"></i> Retours des Évaluateurs</h2>
+                
                 <p class="cm-etu-panel__subtitle">Consultez les commentaires publiés par les évaluateurs sur vos rapports.</p>
             </div>
             <a href="?page=gestion_rapports" class="cm-btn is-light is-sm">
@@ -30,17 +29,17 @@ $filterSearch = (string) ($_GET['search'] ?? '');
             <div class="cm-etu-hub-grid">
                 <article class="cm-etu-hub-card cm-etu-hub-card--stat">
                     <div class="cm-etu-hub-card__icon"><i class="fas fa-file-alt" aria-hidden="true"></i></div>
-                    <h3 class="cm-etu-hub-card__title">Total Rapports</h3>
+
                     <p class="cm-etu-stat-value"><?= $totalRapports ?></p>
                 </article>
                 <article class="cm-etu-hub-card cm-etu-hub-card--stat">
                     <div class="cm-etu-hub-card__icon" style="background: rgba(39, 174, 96, 0.14); color: #27ae60;"><i class="fas fa-check-circle" aria-hidden="true"></i></div>
-                    <h3 class="cm-etu-hub-card__title">Cette semaine</h3>
+
                     <p class="cm-etu-stat-value"><?= $semaine ?></p>
                 </article>
                 <article class="cm-etu-hub-card cm-etu-hub-card--stat">
                     <div class="cm-etu-hub-card__icon" style="background: rgba(243, 156, 18, 0.14); color: #e67e22;"><i class="fas fa-calendar-alt" aria-hidden="true"></i></div>
-                    <h3 class="cm-etu-hub-card__title">Ce mois</h3>
+
                     <p class="cm-etu-stat-value"><?= $mois ?></p>
                 </article>
             </div>
@@ -112,7 +111,7 @@ $filterSearch = (string) ($_GET['search'] ?? '');
                     <article class="cm-etu-report-item">
                         <div class="cm-etu-report-item__main">
                             <div class="cm-etu-report-item__head">
-                                <h4 class="cm-etu-report-item__title"><?= htmlspecialchars($nomRapport, ENT_QUOTES, 'UTF-8') ?></h4>
+                                <span class="cm-etu-report-item__title"><?= htmlspecialchars($nomRapport, ENT_QUOTES, 'UTF-8') ?></span>
                                 <?php cm_component('ui/badge', ['type' => $badgeType, 'text' => $badgeText]); ?>
                             </div>
                             <?php if ($themeRapport !== ''): ?>
@@ -147,7 +146,7 @@ $filterSearch = (string) ($_GET['search'] ?? '');
 <div id="commentsDetailModal" class="cm-etu-modal" hidden>
     <div class="cm-etu-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="commentsDetailTitle" style="width: min(680px, 100%); max-height: 90vh; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3 id="commentsDetailTitle"><i class="fas fa-comments" aria-hidden="true"></i> Commentaires des évaluateurs</h3>
+
             <button type="button" class="cm-btn is-light is-sm" id="closeCommentsModal">
                 <i class="fas fa-xmark" aria-hidden="true"></i>
             </button>

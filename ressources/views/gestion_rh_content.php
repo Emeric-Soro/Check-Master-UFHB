@@ -48,17 +48,6 @@ $tabPersUrl = '?page=' . rawurlencode($pageSlug) . '&tab=pers_admin';
 $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
 ?>
 <section class="cm-prd3-crud-screen cm-prd6-admin-screen">
-    <div class="cm-tab-links" role="tablist" aria-label="Referentiel RH">
-        <a href="<?= htmlspecialchars($tabPersUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn <?= $activeTab === 'pers_admin' ? 'is-info' : 'is-light' ?>">
-            <i class="fas fa-users-cog" aria-hidden="true"></i>
-            <span>Personnel administratif</span>
-        </a>
-        <a href="<?= htmlspecialchars($tabEnsUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn <?= $activeTab === 'enseignant' ? 'is-info' : 'is-light' ?>">
-            <i class="fas fa-user-tag" aria-hidden="true"></i>
-            <span>Enseignants</span>
-        </a>
-    </div>
-
     <?php
     if ($activeTab === 'enseignant') {
         cm_render_param_crud_view([
@@ -66,10 +55,10 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
             'page_slug' => $pageSlug,
             'action' => 'edit',
             'extra_query' => ['tab' => 'enseignant'],
-            'title' => 'Mise a jour enseignant',
+            'title' => '',
             'icon' => 'fa-user-tag',
-            'form_title_add' => 'Ajout enseignant',
-            'form_title_edit' => 'Modification enseignant',
+            'form_title_add' => '',
+            'form_title_edit' => '',
             'id_key' => 'id_enseignant',
             'id_field_name' => 'id_enseignant',
             'id_param' => 'id_enseignant',
@@ -91,7 +80,7 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
                 ['name' => 'id_grade', 'label' => 'Grade', 'type' => 'select', 'required' => true, 'options' => $gradesOptions, 'value_key' => 'id_grade'],
                 ['name' => 'date_occupation', 'label' => 'Date occupation', 'type' => 'date', 'required' => true, 'value_key' => 'date_occupation'],
                 ['name' => 'email', 'label' => 'E-mail', 'type' => 'email', 'required' => true, 'value_key' => 'mail_enseignant'],
-                ['name' => 'telephone', 'label' => 'Téléphone', 'type' => 'text', 'required' => true, 'value_key' => 'telephone_enseignant'],
+                ['name' => 'telephone', 'label' => 'Téléphone', 'type' => 'text', 'required' => true, 'value_key' => 'tel_enseignant'],
                 ['name' => 'id_fonction', 'label' => 'Fonction', 'type' => 'select', 'required' => true, 'options' => $fonctionsOptions, 'value_key' => 'id_fonction'],
                 ['name' => 'date_fonction', 'label' => 'Date fonction', 'type' => 'date', 'required' => true, 'value_key' => 'date_fonction'],
                 [
@@ -122,10 +111,10 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
             'page_slug' => $pageSlug,
             'action' => 'edit',
             'extra_query' => ['tab' => 'pers_admin'],
-            'title' => 'Mise a jour personnel administratif',
+            'title' => '',
             'icon' => 'fa-users-cog',
-            'form_title_add' => 'Ajout personnel administratif',
-            'form_title_edit' => 'Modification personnel administratif',
+            'form_title_add' => '',
+            'form_title_edit' => '',
             'id_key' => 'id_pers_admin',
             'id_field_name' => 'id_pers_admin',
             'id_param' => 'id_pers_admin',

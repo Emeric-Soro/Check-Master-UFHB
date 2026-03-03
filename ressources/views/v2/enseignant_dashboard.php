@@ -1,12 +1,16 @@
 <?php
-$yearLabel = date('Y') . '-' . (date('Y') + 1);
+$yearLabel = \AcademicYear::getSelectedLabelFromSession();
+if ($yearLabel === '') {
+    $yearLabel = date('Y') . '-' . (date('Y') + 1);
+}
 $teacherId = '';
 $teacherName = trim((string) ($_SESSION['nom_utilisateur'] ?? 'Enseignant'));
 if ($teacherName === '') {
     $teacherName = 'Enseignant';
 }
 
-$filtreAnnee = isset($_GET['id_annee_acad']) && $_GET['id_annee_acad'] !== '' ? (int) $_GET['id_annee_acad'] : null;
+$allYearsSelected = \AcademicYear::isAllSelectedFromSession();
+$filtreAnnee = isset($_GET['id_annee_acad']) && $_GET['id_annee_acad'] !== '' ? (int) $_GET['id_annee_acad'] : \AcademicYear::getSelectedIdFromSession();
 $filtreSession = isset($_GET['id_session']) && $_GET['id_session'] !== '' ? (int) $_GET['id_session'] : null;
 
 $anneeOptions = [];
@@ -28,8 +32,10 @@ try {
     $anneeModel = new AnneeAcademique($pdo);
     $anneeActive = $anneeModel->getAnneeAcademiqueActive();
     if ($anneeActive && is_object($anneeActive) && !empty($anneeActive->date_deb) && !empty($anneeActive->date_fin)) {
-        $yearLabel = date('Y', strtotime((string) $anneeActive->date_deb)) . '-' . date('Y', strtotime((string) $anneeActive->date_fin));
-        if ($filtreAnnee === null) {
+        if ($yearLabel === '') {
+            $yearLabel = date('Y', strtotime((string) $anneeActive->date_deb)) . '-' . date('Y', strtotime((string) $anneeActive->date_fin));
+        }
+        if ($filtreAnnee === null && !$allYearsSelected) {
             $filtreAnnee = (int) ($anneeActive->id_annee_acad ?? 0);
         }
     }
@@ -107,6 +113,7 @@ try {
 
     if ($teacherId !== '') {
         $progTable = $pdo->query("SHOW TABLES LIKE 'programmer_soutenance'")->fetchColumn() ? 'programmer_soutenance' : 'programmer';
+        $juryTable = $pdo->query("SHOW TABLES LIKE 'enseignant_jury'")->fetchColumn() ? 'enseignant_jury' : 'composer_jury';
 
         $whereReports = "CAST(a.id_enseignant AS CHAR) = :id_enseignant AND r.statut_rapport IN ('en_attente', 'en_cours')";
         $whereSoutenances = "CAST(ej.id_enseignant AS CHAR) = :id_enseignant AND CONCAT(ps.date_soutenance, ' ', COALESCE(ps.heure_soutenance, '00:00:00')) >= NOW()";
@@ -126,7 +133,7 @@ try {
         $stmtReports->execute($filtreAnnee !== null ? [':id_enseignant' => $teacherId, ':id_annee_acad' => $filtreAnnee] : [':id_enseignant' => $teacherId]);
         $stats['rapports_a_evaluer'] = (int) ($stmtReports->fetchColumn() ?: 0);
 
-        $stmtSoutenances = $pdo->prepare("SELECT COUNT(DISTINCT ej.num_soutenance) AS total FROM enseignant_jury ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance JOIN etudiants e ON e.num_carte_etud = ps.num_etud WHERE {$whereSoutenances}");
+        $stmtSoutenances = $pdo->prepare("SELECT COUNT(DISTINCT ej.num_soutenance) AS total FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance JOIN etudiants e ON e.num_carte_etud = ps.num_etud WHERE {$whereSoutenances}");
         $paramsSoutenances = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) $paramsSoutenances[':id_annee_acad'] = $filtreAnnee;
         if ($filtreSession !== null) $paramsSoutenances[':id_session'] = $filtreSession;
@@ -137,8 +144,21 @@ try {
         $stmtStudents->execute($filtreAnnee !== null ? [':id_enseignant' => $teacherId, ':id_annee_acad' => $filtreAnnee] : [':id_enseignant' => $teacherId]);
         $stats['etudiants_encadres'] = (int) ($stmtStudents->fetchColumn() ?: 0);
 
-        $stmtNext = $pdo->prepare("SELECT ps.date_soutenance, ps.heure_soutenance FROM enseignant_jury ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance WHERE CAST(ej.id_enseignant AS CHAR) = :id_enseignant AND CONCAT(ps.date_soutenance, ' ', COALESCE(ps.heure_soutenance, '00:00:00')) >= NOW() ORDER BY ps.date_soutenance ASC, ps.heure_soutenance ASC LIMIT 1");
-        $stmtNext->execute([':id_enseignant' => $teacherId]);
+        $whereNext = [
+            "CAST(ej.id_enseignant AS CHAR) = :id_enseignant",
+            "CONCAT(ps.date_soutenance, ' ', COALESCE(ps.heure_soutenance, '00:00:00')) >= NOW()",
+        ];
+        $paramsNext = [':id_enseignant' => $teacherId];
+        if ($filtreAnnee !== null) {
+            $whereNext[] = "e.id_annee_acad = :id_annee_acad";
+            $paramsNext[':id_annee_acad'] = $filtreAnnee;
+        }
+        if ($filtreSession !== null) {
+            $whereNext[] = "ps.id_session = :id_session";
+            $paramsNext[':id_session'] = $filtreSession;
+        }
+        $stmtNext = $pdo->prepare("SELECT ps.date_soutenance, ps.heure_soutenance FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud WHERE " . implode(' AND ', $whereNext) . " ORDER BY ps.date_soutenance ASC, ps.heure_soutenance ASC LIMIT 1");
+        $stmtNext->execute($paramsNext);
         $next = $stmtNext->fetch(PDO::FETCH_ASSOC);
         if (is_array($next) && !empty($next['date_soutenance'])) {
             $nextTs = strtotime((string) $next['date_soutenance'] . ' ' . (string) ($next['heure_soutenance'] ?? '00:00:00'));
@@ -149,8 +169,14 @@ try {
 
         $timeline = [];
 
-        $stmtRecentReports = $pdo->prepare("SELECT r.theme_rapport, r.date_redaction_rapport FROM affecter a INNER JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport WHERE CAST(a.id_enseignant AS CHAR) = :id_enseignant ORDER BY r.date_redaction_rapport DESC LIMIT 5");
-        $stmtRecentReports->execute([':id_enseignant' => $teacherId]);
+        $whereRecentReports = ["CAST(a.id_enseignant AS CHAR) = :id_enseignant"];
+        $paramsRecentReports = [':id_enseignant' => $teacherId];
+        if ($filtreAnnee !== null) {
+            $whereRecentReports[] = "EXISTS (SELECT 1 FROM etudiants e WHERE e.num_carte_etud = r.num_etu AND e.id_annee_acad = :id_annee_acad)";
+            $paramsRecentReports[':id_annee_acad'] = $filtreAnnee;
+        }
+        $stmtRecentReports = $pdo->prepare("SELECT r.theme_rapport, r.date_redaction_rapport FROM affecter a INNER JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport WHERE " . implode(' AND ', $whereRecentReports) . " ORDER BY r.date_redaction_rapport DESC LIMIT 5");
+        $stmtRecentReports->execute($paramsRecentReports);
         foreach (($stmtRecentReports->fetchAll(PDO::FETCH_ASSOC) ?: []) as $row) {
             $rawDate = (string) ($row['date_redaction_rapport'] ?? '');
             $stamp = strtotime($rawDate) ?: time();
@@ -163,8 +189,18 @@ try {
             ];
         }
 
-        $stmtRecentSout = $pdo->prepare("SELECT ps.theme_soutenance, ps.date_soutenance, ps.heure_soutenance FROM enseignant_jury ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance WHERE CAST(ej.id_enseignant AS CHAR) = :id_enseignant ORDER BY ps.date_soutenance DESC, ps.heure_soutenance DESC LIMIT 5");
-        $stmtRecentSout->execute([':id_enseignant' => $teacherId]);
+        $whereRecentSout = ["CAST(ej.id_enseignant AS CHAR) = :id_enseignant"];
+        $paramsRecentSout = [':id_enseignant' => $teacherId];
+        if ($filtreAnnee !== null) {
+            $whereRecentSout[] = "e.id_annee_acad = :id_annee_acad";
+            $paramsRecentSout[':id_annee_acad'] = $filtreAnnee;
+        }
+        if ($filtreSession !== null) {
+            $whereRecentSout[] = "ps.id_session = :id_session";
+            $paramsRecentSout[':id_session'] = $filtreSession;
+        }
+        $stmtRecentSout = $pdo->prepare("SELECT ps.theme_soutenance, ps.date_soutenance, ps.heure_soutenance FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud WHERE " . implode(' AND ', $whereRecentSout) . " ORDER BY ps.date_soutenance DESC, ps.heure_soutenance DESC LIMIT 5");
+        $stmtRecentSout->execute($paramsRecentSout);
         foreach (($stmtRecentSout->fetchAll(PDO::FETCH_ASSOC) ?: []) as $row) {
             $rawDate = trim((string) ($row['date_soutenance'] ?? '') . ' ' . (string) ($row['heure_soutenance'] ?? '00:00:00'));
             $stamp = strtotime($rawDate) ?: time();
@@ -231,35 +267,18 @@ function normalizeRoleName(string $role): string {
 ?>
 
 <section class="cm-prd3-screen">
-    <header class="cm-flex-between cm-mb-md">
-        <div>
-            <h2 class="cm-m-0 cm-text-xl cm-text-bold cm-text-primary">Bonjour, Pr. <?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?></h2>
-            <p class="cm-m-0 cm-text-muted">Synthese de vos activites pedagogiques.</p>
-        </div>
-        <span class="cm-toolbar-year">
-            <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-            <?= htmlspecialchars($yearLabel, ENT_QUOTES, 'UTF-8') ?>
-        </span>
-    </header>
-
     <div class="cm-card cm-mb-md">
         <form method="GET" class="cm-grid-3" style="align-items: end;">
             <input type="hidden" name="page" value="tableau_bord_enseignant">
 
-            <?= cm_component('form/select', [
-                'name' => 'id_annee_acad',
-                'label' => 'Annee academique',
-                'options' => $anneeOptions,
-                'selected' => (string)($filtreAnnee ?? ''),
-                'placeholder' => 'Toutes les annees'
-            ]) ?>
+            <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars((string) (\AcademicYear::getWritableIdFromSession() ?? ''), ENT_QUOTES, 'UTF-8') ?>">
 
             <?= cm_component('form/select', [
                 'name' => 'id_session',
-                'label' => 'Periode',
+                'label' => 'Période',
                 'options' => $sessionOptions,
                 'selected' => (string)($filtreSession ?? ''),
-                'placeholder' => 'Toutes les periodes'
+                'placeholder' => 'Toutes les périodes'
             ]) ?>
 
             <div class="cm-flex cm-flex-gap-sm">
@@ -267,7 +286,7 @@ function normalizeRoleName(string $role): string {
                     <i class="fas fa-filter cm-mr-sm"></i> Filtrer
                 </button>
                 <a href="?page=tableau_bord_enseignant" class="cm-btn cm-btn--outline">
-                    Reinitialiser
+                    Réinitialiser
                 </a>
             </div>
         </form>
@@ -275,15 +294,15 @@ function normalizeRoleName(string $role): string {
 
     <div class="cm-grid-4">
         <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format((int) $stats['rapports_a_evaluer'], 0, ',', ' '), 'label' => 'Rapports a evaluer', 'icon' => 'fa-file-circle-check', 'color' => 'warning']); ?>
+            <?php cm_component('dashboard/stat-widget', ['value' => number_format((int) $stats['rapports_a_evaluer'], 0, ',', ' '), 'label' => 'Rapports à évaluer', 'icon' => 'fa-file-circle-check', 'color' => 'warning']); ?>
             <a class="cm-stat-card__link" href="?page=rapport_a_valider" data-cm-ajax-link="true">Voir ▸</a>
         </div>
         <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format((int) $stats['soutenances_planifiees'], 0, ',', ' '), 'label' => 'Soutenances planifiees', 'icon' => 'fa-calendar-check', 'color' => 'info']); ?>
+            <?php cm_component('dashboard/stat-widget', ['value' => number_format((int) $stats['soutenances_planifiees'], 0, ',', ' '), 'label' => 'Soutenances planifiées', 'icon' => 'fa-calendar-check', 'color' => 'info']); ?>
             <a class="cm-stat-card__link" href="?page=programmation_soutenance" data-cm-ajax-link="true">Voir ▸</a>
         </div>
         <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format((int) $stats['etudiants_encadres'], 0, ',', ' '), 'label' => 'Etudiants encadres', 'icon' => 'fa-users', 'color' => 'success']); ?>
+            <?php cm_component('dashboard/stat-widget', ['value' => number_format((int) $stats['etudiants_encadres'], 0, ',', ' '), 'label' => 'Étudiants encadrés', 'icon' => 'fa-users', 'color' => 'success']); ?>
             <a class="cm-stat-card__link" href="?page=liste_etudiants_ens" data-cm-ajax-link="true">Liste ▸</a>
         </div>
         <div>
@@ -294,10 +313,7 @@ function normalizeRoleName(string $role): string {
     <?php if (!empty($qualitesJury)): ?>
         <div class="cm-card cm-mt-md">
             <div class="cm-card__header">
-                <h3 class="cm-card__title">
-                    <i class="fas fa-gavel cm-mr-sm"></i>
-                    Mes qualites de jury
-                </h3>
+
             </div>
             <div class="cm-card__body">
                 <div class="cm-grid-<?= min(count($qualitesJury), 5) ?>">
@@ -321,8 +337,8 @@ function normalizeRoleName(string $role): string {
         <div class="cm-card cm-mt-md">
             <div class="cm-card__body">
                 <?= cm_component('ui/empty-state', [
-                    'title' => 'Aucune participation a un jury',
-                    'message' => 'Aucune participation a un jury pour les criteres selectionnes.',
+                    'title' => '',
+                    'message' => 'Aucune participation a un jury pour les critères sélectionnés.',
                     'icon' => 'fa-users-slash',
                 ]) ?>
             </div>
@@ -330,11 +346,11 @@ function normalizeRoleName(string $role): string {
     <?php endif; ?>
 
     <div class="cm-grid-2 cm-mt-md">
-        <?php cm_component('dashboard/activity-list', ['title' => 'Activites recentes', 'items' => $activityItems]); ?>
+        <?php cm_component('dashboard/activity-list', ['title' => '', 'items' => $activityItems]); ?>
 
         <div class="cm-chart-container">
             <div class="cm-chart-container__header">
-                <h3 class="cm-chart-container__title">Actions rapides</h3>
+
                 <p class="cm-chart-container__subtitle">Navigation directe</p>
             </div>
             <div class="cm-chart-container__body">
@@ -349,7 +365,7 @@ function normalizeRoleName(string $role): string {
                     </a>
                     <a class="cm-btn is-success" href="?page=liste_etudiants_ens" data-cm-ajax-link="true">
                         <i class="fas fa-list" aria-hidden="true"></i>
-                        Liste etudiants
+                        Liste étudiants
                     </a>
                     <a class="cm-btn is-warning" href="?page=repertoire_enseignant" data-cm-ajax-link="true">
                         <i class="fas fa-folder-open" aria-hidden="true"></i>

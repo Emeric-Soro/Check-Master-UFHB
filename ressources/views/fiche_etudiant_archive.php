@@ -93,7 +93,7 @@ $timeline_steps = array_reverse($timeline_steps, true);
         <div class="bg-white rounded-2xl shadow-sm p-6">
              <div class="flex flex-col sm:flex-row items-start gap-6">
                 <div class="flex-grow">
-                    <h1 class="text-2xl font-bold text-gray-800"><?php echo htmlspecialchars($studentFile['nom_etu'] . ' ' . $studentFile['prenom_etu']); ?></h1>
+                    <span class="text-2xl font-bold text-gray-800"><?php echo htmlspecialchars($studentFile['nom_etu'] . ' ' . $studentFile['prenom_etu']); ?></span>
                     <p class="text-gray-500">Matricule: <span class="font-medium"><?php echo htmlspecialchars($studentFile['num_etu']); ?></span></p>
                     <p class="text-gray-500">Année académique: <span class="font-medium"><?php echo htmlspecialchars($studentFile['soutenance']['annee_academique'] ?? $studentFile['rapport']['annee_academique'] ?? $studentFile['annee_academique'] ?? 'N/A'); ?></span></p>
                     <?php if($mention): ?>
@@ -111,7 +111,7 @@ $timeline_steps = array_reverse($timeline_steps, true);
 
         <!-- Timeline -->
         <div class="bg-white rounded-2xl shadow-sm p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-6 flex items-center"><i class="fas fa-stream mr-3 text-blue-500"></i>Parcours de l'étudiant</h3>
+
             <ol class="relative border-l border-gray-200">
                 <?php foreach($timeline_steps as $title => $step): ?>
                 <li class="mb-10 ml-6">
@@ -119,9 +119,9 @@ $timeline_steps = array_reverse($timeline_steps, true);
                     <span class="absolute flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full -left-4 ring-8 ring-white">
                         <i class="fas <?php echo $step['icon']; ?> text-blue-600"></i>
                     </span>
-                    <h4 class="flex items-center mb-1 text-base font-semibold text-gray-900"><?php echo $title; ?>
+                    <span class="flex items-center mb-1 text-base font-semibold text-gray-900"><?php echo $title; ?>
                         <span class="text-green-500 bg-green-100 text-sm font-medium mr-2 px-2.5 py-0.5 rounded ml-3">Terminé</span>
-                    </h4>
+                    </span>
                     <?php
                         $timelineDate = $step['date'] ?? null;
                         $hasTimelineDate = $timelineDate && !str_starts_with($timelineDate, '0000-00-00');
@@ -135,7 +135,7 @@ $timeline_steps = array_reverse($timeline_steps, true);
                      <span class="absolute flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full -left-4 ring-8 ring-white">
                         <i class="fas fa-hourglass-half text-gray-500"></i>
                     </span>
-                    <h4 class="flex items-center mb-1 text-base font-semibold text-gray-500"><?php echo $title; ?></h4>
+                    <span class="flex items-center mb-1 text-base font-semibold text-gray-500"><?php echo $title; ?></span>
                     <time class="block mb-2 text-sm font-normal leading-none text-gray-400">En attente</time>
                     <?php endif; ?>
                 </li>
@@ -150,7 +150,7 @@ $timeline_steps = array_reverse($timeline_steps, true);
                 <!-- Encadrement -->
                 <?php if (!empty($studentFile['encadrement']['directeur']) || !empty($studentFile['encadrement']['encadrant'])): ?>
                 <div class="bg-white rounded-2xl shadow-sm p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-chalkboard-teacher mr-3 text-blue-500"></i>Encadrement Académique</h3>
+
                     <dl class="text-sm space-y-2">
                         <?php if(!empty($studentFile['encadrement']['directeur'])): ?>
                         <div class="flex"><dt class="font-medium text-gray-500 w-32">Directeur</dt><dd class="text-gray-900"><?php echo htmlspecialchars($studentFile['encadrement']['directeur']['nom_enseignant'] . ' ' . $studentFile['encadrement']['directeur']['prenom_enseignant']); ?></dd></div>
@@ -164,7 +164,7 @@ $timeline_steps = array_reverse($timeline_steps, true);
                  <!-- Informations de Stage -->
                 <?php if (!empty($studentFile['stage'])): ?>
                 <div class="bg-white rounded-2xl shadow-sm p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-briefcase mr-3 text-blue-500"></i>Informations du Stage</h3>
+
                     <dl class="text-sm space-y-2">
                         <div class="flex"><dt class="font-medium text-gray-500 w-32">Entreprise</dt><dd class="text-gray-900"><?php echo htmlspecialchars($studentFile['stage']['lib_entreprise'] ?? 'N/A'); ?></dd></div>
                         <div class="flex"><dt class="font-medium text-gray-500 w-32">Maître de stage</dt><dd class="text-gray-900"><?php echo htmlspecialchars($studentFile['stage']['encadrant_entreprise'] ?? 'N/A'); ?></dd></div>
@@ -178,7 +178,7 @@ $timeline_steps = array_reverse($timeline_steps, true);
                 <!-- Soutenance -->
                 <?php if (!empty($studentFile['soutenance'])): ?>
                 <div class="bg-white rounded-2xl shadow-sm p-6">
-                     <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-graduation-cap mr-3 text-blue-500"></i>Soutenance</h3>
+
                     <dl class="text-sm space-y-2">
                          <?php
                             $rawDateSout = $studentFile['soutenance']['date_soutenance'] ?? null;
@@ -195,7 +195,7 @@ $timeline_steps = array_reverse($timeline_steps, true);
                 <!-- Jury Composition -->
                 <?php if (!empty($studentFile['soutenance']['jury_members'])): ?>
                 <div class="bg-white rounded-2xl shadow-sm p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-users mr-3 text-blue-500"></i>Composition du Jury</h3>
+
                     <dl class="text-sm space-y-2">
                         <?php
                         $juryMembers = explode('|', $studentFile['soutenance']['jury_members']);
@@ -215,7 +215,7 @@ $timeline_steps = array_reverse($timeline_steps, true);
 
         <!-- Relevé de notes -->
         <div class="bg-white rounded-2xl shadow-sm p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-poll-h mr-3 text-blue-500"></i>Relevé de notes</h3>
+
             <div class="space-y-4">
                 <div class="grid grid-cols-3 items-center gap-4">
                     <span class="text-sm font-medium text-gray-600">Moyenne Master 1 (Annexe 3)</span>
@@ -243,7 +243,7 @@ $timeline_steps = array_reverse($timeline_steps, true);
         <!-- Notes Détaillées -->
         <?php if (!empty($studentFile['soutenance']['notes'])): ?>
         <div class="bg-white rounded-2xl shadow-sm p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-clipboard-list mr-3 text-blue-500"></i>Notes Détaillées de la Soutenance</h3>
+
             <div class="cm-table-wrapper border rounded-lg">
                 <table class="min-w-full text-sm">
                     <thead class="bg-gray-50">
@@ -270,13 +270,13 @@ $timeline_steps = array_reverse($timeline_steps, true);
         <!-- Formulaire de modification -->
         <?php if (canEdit()): ?>
         <form method="POST" action="?page=admin_historique&action=update_student" class="bg-white rounded-2xl shadow-sm p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-edit mr-3 text-blue-500"></i>Champs Éditables</h3>
+
             <input type="hidden" name="num_etu" value="<?php echo htmlspecialchars($studentFile['num_etu']); ?>">
 
             <div class="space-y-6">
                  <!-- Informations Personnelles -->
                 <div class="space-y-4">
-                    <h4 class="font-semibold text-gray-700">Informations Personnelles</h4>
+
                     <div>
                         <label for="nom_etu" class="block text-sm font-medium text-gray-700">Nom & Prénoms</label>
                         <div class="mt-1 flex gap-2">
@@ -293,7 +293,7 @@ $timeline_steps = array_reverse($timeline_steps, true);
                  <!-- Thème et validation -->
                 <?php if (!empty($studentFile['rapport'])): ?>
                 <div class="space-y-4 border-t border-gray-200 pt-6">
-                     <h4 class="font-semibold text-gray-700">Thème et Validation</h4>
+
                      <div>
                         <label for="theme_rapport" class="block text-sm font-medium text-gray-700">Thème du mémoire</label>
                         <input type="text" name="theme_rapport" value="<?php echo htmlspecialchars($studentFile['rapport']['theme_rapport'] ?? ''); ?>" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm sm:text-sm">

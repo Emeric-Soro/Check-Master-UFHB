@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/../../../app/utils/FormHelper.php';
 
 if (!function_exists('cm_form_old_value')) {
     /**

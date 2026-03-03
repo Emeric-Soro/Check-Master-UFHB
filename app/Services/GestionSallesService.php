@@ -49,11 +49,11 @@ class GestionSallesService
 
     private function getProgrammationTable()
     {
-        if ($this->tableExists('programmer')) {
-            return 'programmer';
-        }
         if ($this->tableExists('programmer_soutenance')) {
             return 'programmer_soutenance';
+        }
+        if ($this->tableExists('programmer')) {
+            return 'programmer';
         }
         return null;
     }

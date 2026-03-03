@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/GestionEtudiantService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 require_once __DIR__ . '/../Core/Autoload.php';
 
 use CheckMaster\Core\Session;
@@ -25,9 +26,9 @@ class GestionEtudiantController
     {
         try {
             $currentPage = isset($_GET['p']) ? (int) $_GET['p'] : 1;
-            $itemsPerPage = isset($_GET['limit']) ? (int) $_GET['limit'] : 2;
+            $itemsPerPage = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
             if (!in_array($itemsPerPage, [2, 5, 10, 25, 50, 100])) {
-                $itemsPerPage = 2; // Valeur par défaut si invalide
+                $itemsPerPage = 10; // Valeur par défaut si invalide
             }
             $etudiant_a_modifier = null;
             $modalAction = '';
@@ -80,6 +81,17 @@ class GestionEtudiantController
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Ajout d'un nouvel étudiant
                 if (isset($_POST['submit_add_etudiant'])) {
+                    if (!canCreate()) {
+                        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                            http_response_code(403);
+                            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                            exit;
+                        }
+                        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error_type'] = 'permission_denied';
+                        header('Location: layout.php?page=access_denied');
+                        exit;
+                    }
                     $result = $this->service->ajouterEtudiant($_POST, $_SESSION['id_utilisateur']);
                     if ($result['success']) {
                         $GLOBALS['messageSuccess'] = $result['message'];
@@ -98,6 +110,17 @@ class GestionEtudiantController
 
                 // Modification d'un étudiant
                 if (isset($_POST['submit_modifier_etudiant'])) {
+                    if (!canEdit()) {
+                        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                            http_response_code(403);
+                            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                            exit;
+                        }
+                        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error_type'] = 'permission_denied';
+                        header('Location: layout.php?page=access_denied');
+                        exit;
+                    }
                     $result = $this->service->modifierEtudiant($_POST, $_SESSION['id_utilisateur']);
                     if ($result['success']) {
                         $GLOBALS['messageSuccess'] = $result['message'];
@@ -116,6 +139,17 @@ class GestionEtudiantController
 
                 // Suppression d'étudiants
                 if (isset($_POST['selected_ids']) && !empty($_POST['selected_ids'])) {
+                    if (!canDelete()) {
+                        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                            http_response_code(403);
+                            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                            exit;
+                        }
+                        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error_type'] = 'permission_denied';
+                        header('Location: layout.php?page=access_denied');
+                        exit;
+                    }
                     $result = $this->service->supprimerEtudiants($_POST['selected_ids'], $_SESSION['id_utilisateur']);
                     if ($result['success']) {
                         $GLOBALS['messageSuccess'] = $result['message'];

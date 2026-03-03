@@ -59,7 +59,7 @@ class RedactionCompteRenduController {
             $contenu = $_POST['contenu_CR'] ?? '';
             $nom_CR  = $_POST['nom_CR'] ?? 'compte_rendu';
 
-            $result  = $this->service->exporterPDF($contenu, $nom_CR);
+            $result  = $this->service->exporterPdf($contenu, $nom_CR);
 
             header('Content-Type: application/pdf');
             header('Content-Disposition: inline; filename="' . $result['filename'] . '"');

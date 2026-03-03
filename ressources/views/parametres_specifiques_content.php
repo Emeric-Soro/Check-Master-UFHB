@@ -1,4 +1,8 @@
 <?php
+if (!function_exists('canView')) {
+    require_once __DIR__ . '/../../app/utils/permissions_helper.php';
+}
+
 $cards = isset($cardPSpecifiques) && is_array($cardPSpecifiques) ? $cardPSpecifiques : [];
 
 $filteredCards = array_values(array_filter($cards, static function ($card): bool {
@@ -52,6 +56,11 @@ $resolveIcon = static function (array $card) use ($iconByTitle): string {
 
 ob_start();
 foreach ($filteredCards as $card) {
+    // Check if user can view this section
+    if (!canView()) {
+        continue;  // Skip this card if user cannot view
+    }
+
     $title = (string) ($card['title'] ?? 'Paramètre');
     $desc = (string) ($card['description'] ?? '');
     $href = (string) ($card['link'] ?? '#');

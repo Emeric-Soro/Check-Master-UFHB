@@ -1,6 +1,10 @@
 <?php
-$yearLabel = date('Y') . '-' . (date('Y') + 1);
-$filtreAnneeAdmin = isset($_GET['id_annee_acad']) && $_GET['id_annee_acad'] !== '' ? (int) $_GET['id_annee_acad'] : null;
+$yearLabel = \AcademicYear::getSelectedLabelFromSession();
+if ($yearLabel === '') {
+    $yearLabel = date('Y') . '-' . (date('Y') + 1);
+}
+$allYearsSelected = \AcademicYear::isAllSelectedFromSession();
+$filtreAnneeAdmin = isset($_GET['id_annee_acad']) && $_GET['id_annee_acad'] !== '' ? (int) $_GET['id_annee_acad'] : \AcademicYear::getSelectedIdFromSession();
 $filtreSessionAdmin = isset($_GET['id_session']) && $_GET['id_session'] !== '' ? (int) $_GET['id_session'] : null;
 $pageNumAdmin = max(1, (int) ($_GET['page_num'] ?? 1));
 $perPageAdmin = 20;
@@ -15,8 +19,10 @@ try {
     $anneeModel = new AnneeAcademique(Database::getConnection());
     $anneeActive = $anneeModel->getAnneeAcademiqueActive();
     if ($anneeActive && is_object($anneeActive) && !empty($anneeActive->date_deb) && !empty($anneeActive->date_fin)) {
-        $yearLabel = date('Y', strtotime((string) $anneeActive->date_deb)) . '-' . date('Y', strtotime((string) $anneeActive->date_fin));
-        if ($filtreAnneeAdmin === null) {
+        if ($yearLabel === '') {
+            $yearLabel = date('Y', strtotime((string) $anneeActive->date_deb)) . '-' . date('Y', strtotime((string) $anneeActive->date_fin));
+        }
+        if ($filtreAnneeAdmin === null && !$allYearsSelected) {
             $filtreAnneeAdmin = (int) ($anneeActive->id_annee_acad ?? 0);
         }
     }
@@ -38,7 +44,7 @@ $errors24h = 0;
 $distribution = [
     'Administrateurs' => 0,
     'Enseignants' => 0,
-    'Etudiants' => 0,
+    'Étudiants' => 0,
 ];
 $recentActivityItems = [];
 
@@ -70,7 +76,7 @@ try {
     if (is_array($rowDistribution)) {
         $distribution['Administrateurs'] = (int) ($rowDistribution['admins'] ?? 0);
         $distribution['Enseignants'] = (int) ($rowDistribution['enseignants'] ?? 0);
-        $distribution['Etudiants'] = (int) ($rowDistribution['etudiants'] ?? 0);
+        $distribution['Étudiants'] = (int) ($rowDistribution['etudiants'] ?? 0);
     }
 
     $sqlRecentLogins = "SELECT
@@ -191,17 +197,6 @@ try {
 ?>
 
 <section class="cm-prd3-screen">
-    <header class="cm-flex-between cm-mb-md">
-        <div>
-            <h2 class="cm-m-0 cm-text-xl cm-text-bold cm-text-primary">Dashboard Administrateur</h2>
-            <p class="cm-m-0 cm-text-muted">Vue globale du systeme et des activites recentes.</p>
-        </div>
-        <span class="cm-toolbar-year">
-            <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-            <?= htmlspecialchars($yearLabel, ENT_QUOTES, 'UTF-8') ?>
-        </span>
-    </header>
-
     <div class="cm-grid cm-dashboard-stats-grid-5">
         <div>
             <?php cm_component('dashboard/stat-widget', ['value' => number_format($activeUsers, 0, ',', ' '), 'label' => 'Utilisateurs actifs', 'icon' => 'fa-user-check', 'color' => 'primary']); ?>
@@ -224,7 +219,7 @@ try {
         <?php
         cm_component('dashboard/chart-container', [
             'chart_id' => 'cmAdminRoleDistribution',
-            'title' => 'Repartition des profils',
+            'title' => '',
             'subtitle' => 'Administrateurs / Enseignants / Etudiants',
             'type' => 'doughnut',
             'height' => 'lg',
@@ -254,12 +249,12 @@ try {
         ]);
         ?>
 
-        <?php cm_component('dashboard/activity-list', ['title' => 'Dernieres connexions', 'items' => $recentActivityItems]); ?>
+        <?php cm_component('dashboard/activity-list', ['title' => '', 'items' => $recentActivityItems]); ?>
     </div>
 
     <div class="cm-chart-container cm-mt-md">
         <div class="cm-chart-container__header">
-            <h3 class="cm-chart-container__title">Actions rapides</h3>
+
             <p class="cm-chart-container__subtitle">Navigation directe</p>
         </div>
         <div class="cm-chart-container__body">
@@ -276,35 +271,32 @@ try {
                     <i class="fas fa-sliders" aria-hidden="true"></i>
                     Parametrage
                 </a>
+                <a class="cm-btn is-warning" href="?page=enseignants_jury" data-cm-ajax-link="true">
+                    <i class="fas fa-users" aria-hidden="true"></i>
+                    Enseignants Jury
+                </a>
             </div>
         </div>
     </div>
 
     <div class="cm-card cm-mt-md">
-        <div class="cm-card__header">
-            <h3 class="cm-card__title">
-                <i class="fas fa-users cm-mr-sm"></i>
-                Enseignants - Participation aux jurys
-            </h3>
+        <div class="cm-card__header cm-flex-between">
+
+            <a href="?page=enseignants_jury" class="cm-btn cm-btn--primary cm-btn--sm" data-cm-ajax-link="true">
+                <i class="fas fa-external-link-alt cm-mr-sm"></i> Voir tout
+            </a>
         </div>
         <div class="cm-card__body">
             <form method="GET" class="cm-grid-3 cm-mb-md" style="align-items: end;">
                 <input type="hidden" name="page" value="dashboard">
 
-                <?= cm_component('form/select', [
-                    'name' => 'id_annee_acad',
-                    'label' => 'Annee academique',
-                    'options' => $anneeOptionsAdmin,
-                    'selected' => (string)($filtreAnneeAdmin ?? ''),
-                    'placeholder' => 'Toutes les annees'
-                ]) ?>
-
+                <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars((string) (\AcademicYear::getWritableIdFromSession() ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                 <?= cm_component('form/select', [
                     'name' => 'id_session',
-                    'label' => 'Periode',
+                    'label' => 'Période',
                     'options' => $sessionOptionsAdmin,
                     'selected' => (string)($filtreSessionAdmin ?? ''),
-                    'placeholder' => 'Toutes les periodes'
+                    'placeholder' => 'Toutes les périodes'
                 ]) ?>
 
                 <div class="cm-flex cm-flex-gap-sm">
@@ -312,7 +304,7 @@ try {
                         <i class="fas fa-filter cm-mr-sm"></i> Filtrer
                     </button>
                     <a href="?page=dashboard" class="cm-btn cm-btn--outline">
-                        Reinitialiser
+                        Réinitialiser
                     </a>
                 </div>
             </form>
@@ -322,7 +314,7 @@ try {
                     <tr>
                         <th>ID</th>
                         <th>Nom</th>
-                        <th>Prenom</th>
+                        <th>Prénom</th>
                         <th class="cm-text-center">Jurys</th>
                         <th class="cm-text-center">Encadrees</th>
                         <th class="cm-text-center">Dirigees</th>
@@ -333,8 +325,8 @@ try {
                         <tr>
                             <td colspan="6">
                                 <?= cm_component('ui/empty-state', [
-                                    'title' => 'Aucun enseignant',
-                                    'message' => 'Aucun enseignant n a participe a un jury pour les criteres selectionnes.',
+                                    'title' => '',
+                                    'message' => 'Aucun enseignant n a participe a un jury pour les critères sélectionnés.',
                                     'icon' => 'fa-users',
                                     'in_table' => true,
                                     'colspan' => 6

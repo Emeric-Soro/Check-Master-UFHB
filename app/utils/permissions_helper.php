@@ -9,8 +9,9 @@
  * @param string $codeFonctionnalite
  * @return bool
  */
-function canView($codeFonctionnalite = null)
-{
+if (!function_exists('canView')) {
+    function canView($codeFonctionnalite = null)
+    {
     if (!isset($_SESSION['id_GU'])) {
         return false;
     }
@@ -33,7 +34,8 @@ function canView($codeFonctionnalite = null)
         $permissionMiddleware = new PermissionMiddleware();
     }
 
-    return $permissionMiddleware->checkPageAccess($codeFonctionnalite, $_SESSION['id_GU'], 'voir');
+        return $permissionMiddleware->checkPageAccess($codeFonctionnalite, $_SESSION['id_GU'], 'voir');
+    }
 }
 
 /**
@@ -41,8 +43,9 @@ function canView($codeFonctionnalite = null)
  * @param string $codeFonctionnalite
  * @return bool
  */
-function canCreate($codeFonctionnalite = null)
-{
+if (!function_exists('canCreate')) {
+    function canCreate($codeFonctionnalite = null)
+    {
     if (!isset($_SESSION['id_GU'])) {
         return false;
     }
@@ -65,7 +68,8 @@ function canCreate($codeFonctionnalite = null)
         $permissionMiddleware = new PermissionMiddleware();
     }
 
-    return $permissionMiddleware->checkPageAccess($codeFonctionnalite, $_SESSION['id_GU'], 'creer');
+        return $permissionMiddleware->checkPageAccess($codeFonctionnalite, $_SESSION['id_GU'], 'creer');
+    }
 }
 
 /**
@@ -73,8 +77,9 @@ function canCreate($codeFonctionnalite = null)
  * @param string $codeFonctionnalite
  * @return bool
  */
-function canEdit($codeFonctionnalite = null)
-{
+if (!function_exists('canEdit')) {
+    function canEdit($codeFonctionnalite = null)
+    {
     if (!isset($_SESSION['id_GU'])) {
         return false;
     }
@@ -97,7 +102,8 @@ function canEdit($codeFonctionnalite = null)
         $permissionMiddleware = new PermissionMiddleware();
     }
 
-    return $permissionMiddleware->checkPageAccess($codeFonctionnalite, $_SESSION['id_GU'], 'modifier');
+        return $permissionMiddleware->checkPageAccess($codeFonctionnalite, $_SESSION['id_GU'], 'modifier');
+    }
 }
 
 /**
@@ -105,8 +111,9 @@ function canEdit($codeFonctionnalite = null)
  * @param string $codeFonctionnalite
  * @return bool
  */
-function canDelete($codeFonctionnalite = null)
-{
+if (!function_exists('canDelete')) {
+    function canDelete($codeFonctionnalite = null)
+    {
     if (!isset($_SESSION['id_GU'])) {
         return false;
     }
@@ -129,7 +136,8 @@ function canDelete($codeFonctionnalite = null)
         $permissionMiddleware = new PermissionMiddleware();
     }
 
-    return $permissionMiddleware->checkPageAccess($codeFonctionnalite, $_SESSION['id_GU'], 'supprimer');
+        return $permissionMiddleware->checkPageAccess($codeFonctionnalite, $_SESSION['id_GU'], 'supprimer');
+    }
 }
 
 /**
@@ -139,8 +147,9 @@ function canDelete($codeFonctionnalite = null)
  * @param string $codeFonctionnalite - Code de la fonctionnalité (optionnel)
  * @return string
  */
-function showIfCan($action, $buttonHtml, $codeFonctionnalite = null)
-{
+if (!function_exists('showIfCan')) {
+    function showIfCan($action, $buttonHtml, $codeFonctionnalite = null)
+    {
     $canPerformAction = false;
 
     switch ($action) {
@@ -162,7 +171,8 @@ function showIfCan($action, $buttonHtml, $codeFonctionnalite = null)
             break;
     }
 
-    return $canPerformAction ? $buttonHtml : '';
+        return $canPerformAction ? $buttonHtml : '';
+    }
 }
 
 /**
@@ -171,8 +181,9 @@ function showIfCan($action, $buttonHtml, $codeFonctionnalite = null)
  * @param string $codeFonctionnalite
  * @return string
  */
-function showNoPermissionMessage($action = 'voir', $codeFonctionnalite = null)
-{
+if (!function_exists('showNoPermissionMessage')) {
+    function showNoPermissionMessage($action = 'voir', $codeFonctionnalite = null)
+    {
     $messages = [
         'voir' => 'Vous n\'avez pas l\'autorisation d\'accéder à cette page.',
         'creer' => 'Vous n\'avez pas l\'autorisation de créer des éléments.',
@@ -192,6 +203,7 @@ function showNoPermissionMessage($action = 'voir', $codeFonctionnalite = null)
                     </div>
                 </div>
             </div>';
+    }
 }
 
 /**
@@ -199,8 +211,9 @@ function showNoPermissionMessage($action = 'voir', $codeFonctionnalite = null)
  * @param string $codeFonctionnalite
  * @return array ['peut_voir', 'peut_creer', 'peut_modifier', 'peut_supprimer']
  */
-function getCurrentPermissions($codeFonctionnalite = null)
-{
+if (!function_exists('getCurrentPermissions')) {
+    function getCurrentPermissions($codeFonctionnalite = null)
+    {
     if ($codeFonctionnalite === null) {
         $codeFonctionnalite = $_GET['page'] ?? '';
         if ($codeFonctionnalite !== '' && isset($_GET['action']) && is_string($_GET['action']) && $_GET['action'] !== '') {
@@ -213,18 +226,21 @@ function getCurrentPermissions($codeFonctionnalite = null)
         'peut_creer' => canCreate($codeFonctionnalite),
         'peut_modifier' => canEdit($codeFonctionnalite),
         'peut_supprimer' => canDelete($codeFonctionnalite)
-    ];
+        ];
+    }
 }
 
 /**
  * Vérifie si l'utilisateur est administrateur
  * @return bool
  */
-function isAdmin()
-{
+if (!function_exists('isAdmin')) {
+    function isAdmin()
+    {
     if (!isset($_SESSION['lib_GU']) || !is_string($_SESSION['lib_GU'])) {
         return false;
     }
     $lib = strtolower(trim($_SESSION['lib_GU']));
-    return $lib === 'administrateur' || $lib === 'admin';
+        return $lib === 'administrateur' || $lib === 'admin';
+    }
 }

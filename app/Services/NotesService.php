@@ -7,6 +7,7 @@ require_once __DIR__ . '/../models/Note.php';
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/NiveauEtude.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use Note;
 use Etudiant;
@@ -76,7 +77,9 @@ class NotesService
     public function getIndexData(array $queryParams): array
     {
         $selectedNiveau = isset($queryParams['niveau']) ? (int) $queryParams['niveau'] : null;
-        $selectedAnneeAcad = isset($queryParams['annee']) ? (int) $queryParams['annee'] : null;
+        $selectedAnneeAcad = isset($queryParams['annee']) && is_numeric($queryParams['annee'])
+            ? (int) $queryParams['annee']
+            : \AcademicYear::getSelectedIdFromSession();
         $selectedStudentId = $queryParams['student'] ?? null;
 
         if (!$selectedNiveau && !empty($selectedStudentId)) {
@@ -88,7 +91,9 @@ class NotesService
         $data = [
             'niveaux'           => $this->niveauModel->getAllNiveauxEtudes(),
             'anneesAcademiques' => $this->anneeAcadModel->getAllAnneeAcademiques(),
-            'etudiants'         => $selectedNiveau ? $this->etudiantModel->getEtudiantsByNiveau($selectedNiveau) : $this->etudiantModel->getAllEtudiants(),
+            'etudiants'         => $selectedNiveau
+                ? $this->etudiantModel->getEtudiantsByNiveau($selectedNiveau, $selectedAnneeAcad)
+                : $this->etudiantModel->getAllEtudiants($selectedAnneeAcad),
             'selectedNiveau'    => $selectedNiveau,
             'selectedAnneeAcad' => $selectedAnneeAcad,
             'niveau'            => $selectedNiveau ? $this->niveauModel->getNiveauEtudeById($selectedNiveau) : null,
@@ -123,6 +128,11 @@ class NotesService
         // Validation: grades must be between 0 and 20
         if ($moyenneM1 < 0 || $moyenneM1 > 20 || $moyenneM2 < 0 || $moyenneM2 > 20) {
             return ['success' => false, 'message' => 'Les moyennes doivent être comprises entre 0 et 20.'];
+        }
+
+        $writeGuard = \AcademicYear::ensureWritableYear($this->db, $anneeAcadId, 'des notes');
+        if (!$writeGuard['success']) {
+            return ['success' => false, 'message' => $writeGuard['message']];
         }
 
         try {

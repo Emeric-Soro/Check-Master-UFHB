@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/GestionRhService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\GestionRhService;
 class GestionRhController
@@ -22,6 +23,17 @@ class GestionRhController
         if (isset($_GET['tab']) && $_GET['tab'] === 'enseignant') {
             // Ajout ou modification d'un enseignant
             if (isset($_POST['btn_add_enseignant']) || isset($_POST['btn_modifier_enseignant'])) {
+                if (!canCreate() && !canEdit()) {
+                    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                        http_response_code(403);
+                        echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                        exit;
+                    }
+                    $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                    $_SESSION['error_type'] = 'permission_denied';
+                    header('Location: layout.php?page=access_denied');
+                    exit;
+                }
                 $result = $this->service->saveEnseignant($_POST, $_SESSION['id_utilisateur']);
                 if ($result['success']) {
                     $messageSuccess = $result['message'];
@@ -32,6 +44,17 @@ class GestionRhController
 
             // Suppression multiple
             if (isset($_POST['submit_delete_multiple']) && isset($_POST['selected_ids'])) {
+                if (!canDelete()) {
+                    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                        http_response_code(403);
+                        echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                        exit;
+                    }
+                    $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                    $_SESSION['error_type'] = 'permission_denied';
+                    header('Location: layout.php?page=access_denied');
+                    exit;
+                }
                 $result = $this->service->deleteMultipleEnseignants($_POST['selected_ids'], $_SESSION['id_utilisateur']);
                 if ($result['success']) {
                     $messageSuccess = $result['message'];
@@ -50,6 +73,17 @@ class GestionRhController
         else if (isset($_GET['tab']) && $_GET['tab'] === 'pers_admin') {
             // Ajout ou modification d'un membre du personnel
             if (isset($_POST['btn_add_pers_admin']) || isset($_POST['btn_modifier_pers_admin'])) {
+                if (!canCreate() && !canEdit()) {
+                    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                        http_response_code(403);
+                        echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                        exit;
+                    }
+                    $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                    $_SESSION['error_type'] = 'permission_denied';
+                    header('Location: layout.php?page=access_denied');
+                    exit;
+                }
                 $result = $this->service->savePersAdmin($_POST, $_SESSION['id_utilisateur']);
                 if ($result['success']) {
                     $messageSuccess = $result['message'];
@@ -60,6 +94,17 @@ class GestionRhController
 
             // Suppression multiple
             if (isset($_POST['submit_delete_multiple']) && isset($_POST['selected_ids'])) {
+                if (!canDelete()) {
+                    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                        http_response_code(403);
+                        echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                        exit;
+                    }
+                    $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                    $_SESSION['error_type'] = 'permission_denied';
+                    header('Location: layout.php?page=access_denied');
+                    exit;
+                }
                 $result = $this->service->deleteMultiplePersAdmin($_POST['selected_ids'], $_SESSION['id_utilisateur']);
                 if ($result['success']) {
                     $messageSuccess = $result['message'];

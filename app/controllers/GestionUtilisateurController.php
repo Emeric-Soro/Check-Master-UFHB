@@ -3,9 +3,9 @@
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/GestionUtilisateurService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\GestionUtilisateurService;
-use PHPMailer\PHPMailer\Exception;
 
 class GestionUtilisateurController
 {
@@ -47,6 +47,7 @@ class GestionUtilisateurController
         $utilisateur_a_modifier = null;
         $messageErreur = '';
         $messageSuccess = '';
+        $messageSuccessType = 'success';
         $action = $_GET['action'] ?? '';
 
         try {
@@ -79,9 +80,21 @@ class GestionUtilisateurController
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Ajout d'un nouvel utilisateur
                 if (isset($_POST['btn_add_utilisateur'])) {
+                    if (!canCreate()) {
+                        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                            http_response_code(403);
+                            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                            exit;
+                        }
+                        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error_type'] = 'permission_denied';
+                        header('Location: layout.php?page=access_denied');
+                        exit;
+                    }
                     $result = $this->service->addUtilisateur($_POST, $_SESSION['id_utilisateur']);
                     if ($result['success']) {
                         $messageSuccess = $result['message'];
+                        $messageSuccessType = (string) ($result['feedback_type'] ?? 'success');
                     } else {
                         $messageErreur = $result['message'];
                     }
@@ -89,6 +102,17 @@ class GestionUtilisateurController
 
                 // Traitement de l'ajout en masse
                 if (isset($_POST['btn_add_multiple']) && !empty($_POST['selected_persons'])) {
+                    if (!canCreate()) {
+                        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                            http_response_code(403);
+                            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                            exit;
+                        }
+                        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error_type'] = 'permission_denied';
+                        header('Location: layout.php?page=access_denied');
+                        exit;
+                    }
                     $commonData = [
                         'id_type_utilisateur' => $_POST['id_type_utilisateur'],
                         'id_GU' => $_POST['id_GU'],
@@ -102,6 +126,7 @@ class GestionUtilisateurController
                     );
                     if ($result['success']) {
                         $messageSuccess = $result['message'];
+                        $messageSuccessType = (string) ($result['feedback_type'] ?? 'success');
                     } else {
                         $messageErreur = $result['message'];
                     }
@@ -109,9 +134,21 @@ class GestionUtilisateurController
 
                 // Modification d'un utilisateur
                 if (isset($_POST['btn_modifier_utilisateur'])) {
+                    if (!canEdit()) {
+                        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                            http_response_code(403);
+                            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                            exit;
+                        }
+                        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error_type'] = 'permission_denied';
+                        header('Location: layout.php?page=access_denied');
+                        exit;
+                    }
                     $result = $this->service->updateUtilisateur($_POST, $_SESSION['id_utilisateur']);
                     if ($result['success']) {
                         $messageSuccess = $result['message'];
+                        $messageSuccessType = (string) ($result['feedback_type'] ?? 'success');
                     } else {
                         $messageErreur = $result['message'];
                     }
@@ -120,36 +157,73 @@ class GestionUtilisateurController
                 // Activation ou désactivation d'utilisateurs
                 if (isset($_POST['selected_ids'])) {
                     if (isset($_POST['submit_enable_multiple']) && $_POST['submit_enable_multiple'] == 3) {
+                        if (!canEdit()) {
+                            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                                http_response_code(403);
+                                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                                exit;
+                            }
+                            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                            $_SESSION['error_type'] = 'permission_denied';
+                            header('Location: layout.php?page=access_denied');
+                            exit;
+                        }
                         $result = $this->service->enableMultipleUtilisateurs($_POST['selected_ids'], $_SESSION['id_utilisateur']);
                         if ($result['success']) {
                             $messageSuccess = $result['message'];
+                            $messageSuccessType = (string) ($result['feedback_type'] ?? 'success');
                         } else {
                             $messageErreur = $result['message'];
                         }
                     } elseif (isset($_POST['submit_disable_multiple']) && $_POST['submit_disable_multiple'] == 2) {
+                        if (!canEdit()) {
+                            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                                http_response_code(403);
+                                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                                exit;
+                            }
+                            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                            $_SESSION['error_type'] = 'permission_denied';
+                            header('Location: layout.php?page=access_denied');
+                            exit;
+                        }
                         $result = $this->service->disableMultipleUtilisateurs($_POST['selected_ids'], $_SESSION['id_utilisateur']);
                         if ($result['success']) {
                             $messageSuccess = $result['message'];
+                            $messageSuccessType = (string) ($result['feedback_type'] ?? 'success');
                         } else {
                             $messageErreur = $result['message'];
                         }
                     } elseif (isset($_POST['submit_send_access']) && $_POST['submit_send_access'] == 4) {
+                        if (!canEdit()) {
+                            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                                http_response_code(403);
+                                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                                exit;
+                            }
+                            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                            $_SESSION['error_type'] = 'permission_denied';
+                            header('Location: layout.php?page=access_denied');
+                            exit;
+                        }
                         $result = $this->service->sendAccessToMultipleUtilisateurs($_POST['selected_ids'], $_SESSION['id_utilisateur']);
                         if ($result['success']) {
                             $messageSuccess = $result['message'];
+                            $messageSuccessType = (string) ($result['feedback_type'] ?? 'success');
                         } else {
                             $messageErreur = $result['message'];
                         }
                     }
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             $messageErreur = "Erreur : " . $e->getMessage();
         }
 
         // Préparation des données pour la vue
         $GLOBALS['messageErreur'] = $messageErreur;
         $GLOBALS['messageSuccess'] = $messageSuccess;
+        $GLOBALS['messageSuccessType'] = $messageSuccessType;
         $GLOBALS['utilisateur_a_modifier'] = $utilisateur_a_modifier;
         $GLOBALS['action'] = $action;
         $GLOBALS['enseignantsNonUtilisateurs'] = $enseignantsNonUtilisateurs;

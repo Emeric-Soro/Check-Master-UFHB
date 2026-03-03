@@ -2,8 +2,15 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/CritereEvaluation.php';
 require_once __DIR__ . '/../Services/EvaluationSoutenanceService.php';
+require_once __DIR__ . '/../Support/Database.php';
+require_once __DIR__ . '/../Services/Document/PvFinalGeneratorService.php';
+require_once __DIR__ . '/../Utils/PlanningDataUtils.php';
+require_once __DIR__ . '/../models/CritereEvaluation.php';
+require_once __DIR__ . '/../Services/EvaluationSoutenanceService.php';
 
 use CheckMaster\Services\EvaluationSoutenanceService;
+use App\Services\Document\PvFinalGeneratorService;
+use App\Utils\PlanningDataUtils;
 
 class EvaluationSoutenanceController
 {
@@ -119,99 +126,54 @@ class EvaluationSoutenanceController
     /**
      * Imprimer les procès-verbaux (PV) de soutenance en PDF - Les 3 annexes dans un seul document
      */
+    /**
+     * Imprimer les procès-verbaux (PV) de soutenance en PDF - Les 3 annexes dans un seul document
+     */
     public function imprimerPV()
     {
         try {
-            require_once __DIR__ . '/../../vendor/autoload.php';
-
             $numEtu = $_GET['num_etu'] ?? null;
-            // Moyenne M1 récupérée automatiquement depuis le système (dossier académique).
-            $moyenneMaster1Float = null;
-
-            // Fetch all data from the service
-            $pvData = $this->service->getDonneesPV($numEtu ?? '', $moyenneMaster1Float);
-
-            $dataAnnexe1 = $pvData['annexe1'];
-            $dataAnnexe2 = $pvData['annexe2'];
-            $dataAnnexe3 = $pvData['annexe3'];
-
-            // ========== ANNEXE 1 - Soutenance de Mémoire ==========
-            ob_start();
-            $data = $dataAnnexe1; // Pour les templates
-            include __DIR__ . '/../../ressources/views/pv_soutenance/annexe1.php';
-            $htmlAnnexe1 = ob_get_clean();
-
-            // ========== ANNEXE 2 - PV Jury ==========
-            ob_start();
-            $data = $dataAnnexe2; // Pour les templates
-            include __DIR__ . '/../../ressources/views/pv_soutenance/annexe2.php';
-            $htmlAnnexe2 = ob_get_clean();
-
-            // ========== ANNEXE 3 - PV Jury FC ==========
-            ob_start();
-            $data = $dataAnnexe3; // Pour les templates
-            include __DIR__ . '/../../ressources/views/pv_soutenance/annexe3.php';
-            $htmlAnnexe3 = ob_get_clean();
-
-            // ========== COMBINER LES 3 ANNEXES DANS UN SEUL PDF ==========
-            // Structure HTML unique avec sauts de page CSS
-            $htmlComplet = '<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>PV Soutenance</title>
-    <style>
-        @page {
-            size: A4;
-            margin: 20mm 25mm;
-        }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: "Times New Roman", Times, serif;
-            font-size: 12pt;
-            line-height: 1.4;
-            color: #000;
-            background-color: #fff;
-            padding: 0 15px;
-        }
-        .page-break {
-            page-break-after: always;
-        }
-    </style>
-</head>
-<body>
-' . $htmlAnnexe1 . '
-<div class="page-break"></div>
-' . $htmlAnnexe2 . '
-<div class="page-break"></div>
-' . $htmlAnnexe3 . '
-</body>
-</html>';
-
-            // Générer le PDF
-            $options = new \Dompdf\Options();
-            $options->set('isHtml5ParserEnabled', true);
-            $options->set('isRemoteEnabled', true);
-            $options->set('defaultFont', 'DejaVu Sans');
-            $options->set('enable_font_subsetting', true);
-            // Disable image loading to avoid GD requirement
-            $options->set('enablePhp', false);
-
-            $dompdf = new \Dompdf\Dompdf($options);
-            $dompdf->loadHtml($htmlComplet);
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-
+            
+            if (!$numEtu) {
+                throw new Exception('Numéro étudiant requis');
+            }
+            
+            // Initialiser les services
+            $db = new \App\Support\Database();
+            $dataUtils = new PlanningDataUtils($db);
+            $pdfGenerator = new \App\Services\Document\PdfGeneratorService(
+                __DIR__ . '/../../storage',
+                __DIR__ . '/../../public/assets/img/logo.png'
+            );
+            $pvService = new PvFinalGeneratorService($pdfGenerator, $dataUtils);
+            
+            // Récupérer l'ID de soutenance à partir du numéro étudiant
+            $soutenanceId = $this->service->getSoutenanceIdByNumEtu($numEtu);
+            if (!$soutenanceId) {
+                throw new Exception('Soutenance non trouvée pour cet étudiant');
+            }
+            
+            // Générer le PDF via le service
+            $userId = $_SESSION['id_utilisateur'] ?? 0;
+            $result = $pvService->generate($soutenanceId, $userId);
+            
+            if (!$result['success']) {
+                throw new Exception($result['error'] ?? 'Erreur lors de la génération du PDF');
+            }
+            
+            // Le fichier a été généré, on le télécharge
+            $pdfPath = $result['path'];
+            if (!file_exists($pdfPath)) {
+                throw new Exception('Fichier PDF non trouvé: ' . $pdfPath);
+            }
+            
+            // Télécharger le fichier
             $pdfFilename = 'PV_Soutenance_' . $numEtu . '_' . date('Y-m-d') . '.pdf';
-
             header('Content-Type: application/pdf');
             header('Content-Disposition: inline; filename="' . $pdfFilename . '"');
-            echo $dompdf->output();
-
+            header('Content-Length: ' . filesize($pdfPath));
+            readfile($pdfPath);
+            
         } catch (Exception $e) {
             error_log('Erreur imprimerPV: ' . $e->getMessage());
             echo '<h3>Erreur lors de la génération du PDF : ' . htmlspecialchars($e->getMessage()) . '</h3>';

@@ -2,6 +2,9 @@
 $title = (string) ($title ?? '');
 $subtitle = (string) ($subtitle ?? '');
 $annee = (string) ($annee ?? '');
+if ($annee === '' && session_status() === PHP_SESSION_ACTIVE) {
+    $annee = trim((string) ($_SESSION['global_annee_selected'] ?? ''));
+}
 $breadcrumbs = is_array($breadcrumbs ?? null) ? $breadcrumbs : [];
 $icon = (string) ($icon ?? '');
 $show_title = !isset($show_title_group) || (bool) $show_title_group;

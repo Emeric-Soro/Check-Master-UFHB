@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/ParametreService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\ParametreService;
 
@@ -16,6 +17,17 @@ class ParametreController
     //=============================GESTION ANNEE ACADEMIQUE=============================
     public function gestionAnnees()
     {
+if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionAnnees($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -27,6 +39,17 @@ class ParametreController
     //=============================GESTION GRADES=============================
     public function gestionGrade()
     {
+if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionGrade($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -40,6 +63,17 @@ class ParametreController
     public function gestionFonctionUtilisateur()
     {
         $result = $this->service->gestionFonctionUtilisateur($_POST, $_GET, $_SESSION['id_utilisateur']);
+if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
         }
@@ -50,6 +84,17 @@ class ParametreController
     //=============================GESTION SPECIALITE=============================
     public function gestionSpecialite()
     {
+if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionSpecialite($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -62,6 +107,17 @@ class ParametreController
     public function gestionNiveauEtude()
     {
         $result = $this->service->gestionNiveauEtude($_POST, $_GET, $_SESSION['id_utilisateur']);
+if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
         }
@@ -72,6 +128,17 @@ class ParametreController
     //=============================GESTION UE=============================
     public function gestionUe()
     {
+if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionUe($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -83,6 +150,17 @@ class ParametreController
     //=============================GESTION ECUE=============================
     public function gestionEcue()
     {
+        if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionEcue($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -94,6 +172,17 @@ class ParametreController
     //=============================GESTION STATUT JURY=============================
     public function gestionStatutJury()
     {
+        if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionStatutJury($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -105,6 +194,17 @@ class ParametreController
     //=============================GESTION NIVEAU APPROBATION=============================
     public function gestionNiveauApprobation()
     {
+        if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionNiveauApprobation($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -116,6 +216,17 @@ class ParametreController
     //=============================GESTION SEMESTRE=============================
     public function gestionSemestre()
     {
+        if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionSemestre($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -127,6 +238,17 @@ class ParametreController
     //=============================GESTION NIVEAU ACCES DONNEES=============================
     public function gestionNiveauAccesDonnees()
     {
+        if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionNiveauAccesDonnees($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -138,6 +260,17 @@ class ParametreController
     //=============================GESTION TRAITEMENT=============================
     public function gestionTraitement()
     {
+        if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionTraitement($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -149,6 +282,17 @@ class ParametreController
     //=============================GESTION ENTREPRISE=============================
     public function gestionEntreprise()
     {
+        if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionEntreprise($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -160,6 +304,17 @@ class ParametreController
     //=============================GESTION ACTION=============================
     public function gestionAction()
     {
+        if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionAction($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -171,6 +326,17 @@ class ParametreController
     //=============================GESTION FONCTION=============================
     public function gestionFonction()
     {
+        if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionFonction($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -182,6 +348,17 @@ class ParametreController
     //=============================GESTION MESSAGERIE=============================
     public function gestionMessagerie()
     {
+        if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionMessagerie($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -193,6 +370,17 @@ class ParametreController
     //============================GESTION ATTRIBUTION==================================
     public function gestionAttribution()
     {
+        if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionAttribution(
             $_POST,
             $_GET,
@@ -209,6 +397,17 @@ class ParametreController
     //============================GESTION MENUS==================================
     public function gestionMenus()
     {
+        if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $result = $this->service->gestionMenus($_POST, $_GET);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
@@ -220,6 +419,17 @@ class ParametreController
     //==============================GESTION SALLES==============================
     public function gestionSalles()
     {
+        if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         // Cette méthode ne fait rien de spécial car la logique
         // est directement dans la vue salles.php pour simplifier
         // On laisse juste la vue se charger

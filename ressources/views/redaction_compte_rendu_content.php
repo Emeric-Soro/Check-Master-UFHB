@@ -1,6 +1,12 @@
 <?php
 $rapportsValides = is_array($GLOBALS['rapports_valides'] ?? null) ? $GLOBALS['rapports_valides'] : [];
 $enseignantsRaw = is_array($GLOBALS['enseignants'] ?? null) ? $GLOBALS['enseignants'] : [];
+$allYearsSelected = \AcademicYear::isAllSelectedFromSession();
+$writableYearLabel = \AcademicYear::getWritableLabelFromSession();
+$academicYearLabels = [];
+foreach (\AcademicYear::fetchAll(Database::getConnection()) as $academicYear) {
+    $academicYearLabels[(int) ($academicYear['id'] ?? 0)] = (string) ($academicYear['label'] ?? '');
+}
 
 $enseignantOptions = [];
 foreach ($enseignantsRaw as $enseignant) {
@@ -33,9 +39,22 @@ foreach ($rapportsValides as $rapport) {
         'theme_rapport' => $theme,
         'student' => $studentName,
         'decision' => $decision,
+        'promotion' => trim((string) ($rapport['promotion_etu'] ?? '')),
     ];
 
-    $reportSelectOptions[$idRapport] = '#' . $idRapport . ' - ' . $theme . ' (' . $studentName . ')';
+    $reportOptionLabel = '#' . $idRapport . ' - ' . $theme . ' (' . $studentName . ')';
+    if ($allYearsSelected) {
+        $promotionLabel = trim((string) ($rapport['promotion_etu'] ?? ''));
+        if ($promotionLabel === '' && !empty($rapport['id_annee_acad'])) {
+            $promotionLabel = $academicYearLabels[(int) $rapport['id_annee_acad']] ?? '';
+        }
+        if ($promotionLabel !== '') {
+            $reportOptionLabel .= ' - ' . $promotionLabel;
+            $reportsById[$idRapport]['promotion'] = $promotionLabel;
+        }
+    }
+
+    $reportSelectOptions[$idRapport] = $reportOptionLabel;
 }
 
 $generatedCrName = 'CR_' . date('Y-m-d');
@@ -89,14 +108,14 @@ $legacyTemplateHtml = <<<HTML
     <tr>
         <td style="width:15%; text-align:left; vertical-align:middle;">%LOGO_LEFT%</td>
         <td style="width:70%; text-align:center; vertical-align:middle;">
-            <div style="font-size:11pt; font-weight:bold; letter-spacing:0.5px;">Proces-Verbal de seance de validation de themes</div>
+            <div style="font-size:11pt; font-weight:bold; letter-spacing:0.5px;">Proces-Verbal de séance de validation de themes</div>
         </td>
         <td style="width:15%; text-align:right; vertical-align:middle;">%LOGO_RIGHT%</td>
     </tr>
 </table>
 <hr style="border: 1px solid #C4A000; margin: 10px 0;">
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
-    Lieu de reunion : [], le [DATE] s'est tenue de 11 h 00 a 12 h 30 une seance de validation de themes de soutenance des etudiants en fin de cycle de la filiere MIAGE-GI.
+    Lieu de réunion : [], le [DATE] s'est tenue de 11 h 00 a 12 h 30 une séance de validation de themes de soutenance des étudiants en fin de cycle de la filiere MIAGE-GI.
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
     La reunion etait animee par Prof KOUA Brou le responsable de ladite filiere. Les membres de la commission de validation ont examine [N] dossiers.
@@ -113,10 +132,10 @@ $legacyTemplateHtml = <<<HTML
     1. Informations
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
-    Le responsable de la filiere a expose sur l'interet des seances de validation. Il a donne des informations sur le choix des themes niveau ingenieur et la tenue mensuelle des seances de validation.
+    Le responsable de la filiere a expose sur l'interet des séances de validation. Il a donne des informations sur le choix des themes niveau ingenieur et la tenue mensuelle des séances de validation.
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
-    L'organisation des seances de validation permet de faire le point des encadrements, le contenu potentiel de themes, et le suivi des memoires par des encadreurs pedagogiques.
+    L'organisation des séances de validation permet de faire le point des encadrements, le contenu potentiel de thèmes, et le suivi des mémoires par des encadreurs pédagogiques.
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; font-weight:bold; margin-top:20px; margin-bottom:10px;">
     2. Validation de themes
@@ -155,21 +174,24 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $_SESSION['error']]); ?>
         <?php unset($_SESSION['error']); ?>
     <?php endif; ?>
+    <?php if ($allYearsSelected): ?>
+        <?php cm_component('ui/alert-box', [
+            'type' => 'info',
+            'message' => "Affichage global sur toutes les années. La rédaction et l'enregistrement restent limités à l'année active {$writableYearLabel}.",
+        ]); ?>
+    <?php endif; ?>
 
     <div class="cm-crud-wrapper">
         <div class="cm-pole-inferieur cm-cr-workspace">
             <div class="cm-grid-2 cm-cr-workspace-grid">
                 <div class="cm-card cm-p-md cm-cr-workspace-panel">
-                    <h3 class="cm-text-lg cm-text-semibold cm-m-0 cm-mb-sm">
-                        <i class="fas fa-list-check" aria-hidden="true"></i>
-                        Selection des rapports
-                    </h3>
+
 
                     <div class="cm-form-group">
                         <label class="cm-form-label" for="cmCrReportPicker">Ajouter un rapport</label>
                         <div style="display:flex; gap:0.5rem;">
                             <select id="cmCrReportPicker" class="cm-form-control cm-form-select" style="flex:1;">
-                                <option value="">-- Selectionner un rapport --</option>
+                                <option value="">-- Sélectionner un rapport --</option>
                                 <?php foreach ($reportSelectOptions as $id => $label): ?>
                                     <option value="<?php echo (int) $id; ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php endforeach; ?>
@@ -204,10 +226,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                 </div>
 
                 <div class="cm-card cm-p-md cm-cr-workspace-panel">
-                    <h3 class="cm-text-lg cm-text-semibold cm-m-0 cm-mb-sm">
-                        <i class="fas fa-pen-to-square" aria-hidden="true"></i>
-                        Editeur - compte rendu
-                    </h3>
+
 
                     <form id="cmCompteRenduForm" method="POST" action="?page=redaction_compte_rendu" data-cm-ajax-form="true">
                         <?php cm_component('form/csrf-token'); ?>
@@ -305,10 +324,10 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
             const dirSelect = document.getElementById('cmCrDir_' + id);
             const encText = encSelect && encSelect.selectedOptions && encSelect.selectedOptions[0]
                 ? encSelect.selectedOptions[0].text
-                : '[Non attribue]';
+                : '[Non attribué]';
             const dirText = dirSelect && dirSelect.selectedOptions && dirSelect.selectedOptions[0]
                 ? dirSelect.selectedOptions[0].text
-                : '[Non attribue]';
+                : '[Non attribué]';
 
             html += '' +
                 '<div style="text-align:center; margin:15px 0;"><div style="border:1px solid #000; padding:8px 15px; display:inline-block;">Cas ' + (index + 1) + '</div></div>' +
@@ -317,12 +336,12 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                 '<p style="text-indent:0;"><strong>Theme :</strong> ' + String(report.theme_rapport || '').replace(/[<>]/g, '') + '</p>' +
                 '<p style="text-indent:0; font-weight:bold;">Recommandations de la commission :</p>' +
                 '<ul style="list-style-type:none; margin-left:1em;">' +
-                '<li>- theme valide ;</li>' +
+                '<li>- thème validé ;</li>' +
                 '<li>- bien decrire le processus ;</li>' +
                 '<li>- decrire exactement le contexte.</li>' +
                 '</ul>' +
-                '<p style="text-indent:0; margin-top:15px;"><strong>Directeur de memoire :</strong> ' + String(dirText || '[Non attribue]').replace(/[<>]/g, '') + '</p>' +
-                '<p style="text-indent:0;"><strong>Encadreur pedagogique :</strong> ' + String(encText || '[Non attribue]').replace(/[<>]/g, '') + '</p>' +
+                '<p style="text-indent:0; margin-top:15px;"><strong>Directeur de memoire :</strong> ' + String(dirText || '[Non attribué]').replace(/[<>]/g, '') + '</p>' +
+                '<p style="text-indent:0;"><strong>Encadreur pédagogique :</strong> ' + String(encText || '[Non attribué]').replace(/[<>]/g, '') + '</p>' +
                 '</div>';
         });
         return html;
@@ -344,7 +363,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     }
 
     function formatOptionHtml(selectedValue) {
-        let html = '<option value=\"\">-- Selectionner --</option>';
+        let html = '<option value=\"\">-- Sélectionner --</option>';
         Object.keys(enseignantOptions).forEach(function (id) {
             const label = String(enseignantOptions[id] || '');
             const selected = String(selectedValue || '') === String(id) ? ' selected' : '';
@@ -375,7 +394,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
             return;
         }
         const r = reports[selectedIds[0]];
-        const status = r && r.decision === 'valider' ? 'Valide' : 'Rejete';
+        const status = r && r.decision === 'valider' ? 'Validé' : 'Rejeté';
         reportInfo.innerHTML = '<div class=\"cm-text-sm\"><strong>Theme:</strong> ' + (r ? r.theme_rapport : '-') + '</div>' +
             '<div class=\"cm-text-sm\"><strong>Etudiant:</strong> ' + (r ? r.student : '-') + '</div>' +
             '<div class=\"cm-text-sm\"><strong>Statut:</strong> ' + status + '</div>';
@@ -405,7 +424,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
             block.className = 'cm-card cm-p-sm';
             block.innerHTML = '<div class=\"cm-text-sm cm-text-semibold cm-mb-sm\">Rapport #' + id + '</div>' +
                 '<div class=\"cm-grid-2\">' +
-                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrEnc_' + id + '\">Encadrant pedagogique</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrEnc_' + id + '\" name=\"encadrant_pedagogique[' + id + ']\">' + formatOptionHtml(draftState['enc_' + id] || '') + '</select></div>' +
+                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrEnc_' + id + '\">Encadrant pédagogique</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrEnc_' + id + '\" name=\"encadrant_pédagogique[' + id + ']\">' + formatOptionHtml(draftState['enc_' + id] || '') + '</select></div>' +
                     '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrDir_' + id + '\">Directeur memoire</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrDir_' + id + '\" name=\"directeur_memoire[' + id + ']\">' + formatOptionHtml(draftState['dir_' + id] || '') + '</select></div>' +
                 '</div>';
             assignmentsContainer.appendChild(block);
@@ -572,7 +591,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         form.addEventListener('submit', function (event) {
             if (selectedIds.length === 0) {
                 event.preventDefault();
-                window.alert('Selectionnez au moins un rapport.');
+                window.alert('Sélectionnez au moins un rapport.');
                 return;
             }
             if ((editorInput.value || '').trim() === '') {

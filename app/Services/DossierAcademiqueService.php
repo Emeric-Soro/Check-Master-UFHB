@@ -4,6 +4,7 @@ namespace CheckMaster\Services;
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/DossierAcademique.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use DossierAcademique;
 use AuditLog;
@@ -30,6 +31,22 @@ class DossierAcademiqueService
      */
     public function saveOrUpdate(array $data, int $idUtilisateur): bool
     {
+        $numEtu = (string) ($data['num_etu'] ?? '');
+        if ($numEtu !== '') {
+            try {
+                $stmt = $this->db->prepare('SELECT id_annee_acad FROM etudiants WHERE num_carte_etud = ? LIMIT 1');
+                $stmt->execute([$numEtu]);
+                $yearId = $stmt->fetchColumn();
+                $writeGuard = \AcademicYear::ensureWritableYear($this->db, $yearId, 'un dossier academique');
+                if (!$writeGuard['success']) {
+                    return false;
+                }
+            } catch (\Throwable $e) {
+                error_log('Erreur saveOrUpdate dossier guard: ' . $e->getMessage());
+                return false;
+            }
+        }
+
         $success = $this->model->saveOrUpdate($data);
 
         if ($success) {

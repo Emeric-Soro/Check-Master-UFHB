@@ -16,11 +16,11 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
                     'placeholder' => 'Ex: Qualite de la presentation',
                 ]); ?>
                 <div class="cm-form-group">
-                    <label class="cm-form-label">Baremes par annee</label>
+                    <label class="cm-form-label">Barèmes par année</label>
                     <div id="cmBaremesRows"></div>
                     <button type="button" class="cm-btn is-light is-sm" id="cmAddBaremeRow">
                         <i class="fas fa-plus" aria-hidden="true"></i>
-                        <span>Ajouter une annee</span>
+                        <span>Ajouter une année</span>
                     </button>
                 </div>
             </div>
@@ -30,7 +30,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
                     [
                         'tag' => 'button',
                         'type' => 'button',
-                        'label' => 'Reinitialiser',
+                        'label' => 'Réinitialiser',
                         'icon' => 'fa-rotate-left',
                         'class' => 'cm-btn is-light',
                         'attrs' => ['id' => 'cmResetCritereForm'],
@@ -49,7 +49,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
         </form>
         <?php
         cm_component('crud/form-pole', [
-            'title' => 'Criteres evaluation',
+            'title' => '',
             'icon' => 'fa-list-ol',
             'content' => (string) ob_get_clean(),
         ]);
@@ -120,7 +120,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
 <template id="cmBaremeRowTpl">
     <div class="cm-grid-2 cm-bareme-row">
         <select class="cm-form-control js-bareme-year">
-            <option value="">-- Selectionner annee --</option>
+            <option value="">-- Sélectionner année --</option>
         </select>
         <div class="cm-bareme-row__value-wrap">
             <input type="number" min="0" max="20" class="cm-form-control js-bareme-value" placeholder="Bareme">
@@ -163,7 +163,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
     }
 
     function makeYearOptions(selected) {
-        let html = '<option value="">-- Selectionner annee --</option>';
+        let html = '<option value="">-- Sélectionner année --</option>';
         annees.forEach(function (annee) {
             const value = String(annee.id || '');
             const isSel = String(selected || '') === value ? ' selected' : '';
@@ -255,7 +255,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 if (!res.success) {
-                    throw new Error(res.message || 'Erreur chargement annees');
+                    throw new Error(res.message || 'Erreur chargement années');
                 }
                 annees = Array.isArray(res.data) ? res.data : [];
                 yearsFilter.innerHTML = '<option value="">Toutes</option>' + annees.map(function (a) {
@@ -399,7 +399,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
     });
 
     document.getElementById('cmCritExport').addEventListener('click', function () {
-        const rows = [['Critere', 'Annee', 'Bareme']];
+        const rows = [['Critere', 'Année', 'Bareme']];
         filterData().forEach(function (c) {
             (c.baremes || []).forEach(function (b) {
                 rows.push([c.libelle || '', b.annee_lib || b.annee_id || '', String(b.bareme || '')]);

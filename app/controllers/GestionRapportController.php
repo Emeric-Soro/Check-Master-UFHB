@@ -7,6 +7,10 @@ require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../models/InfoStage.php';
 require_once __DIR__ . '/../models/Entreprise.php';
 require_once __DIR__ . '/../Services/GestionRapportService.php';
+require_once __DIR__ . '/../Support/Database.php';
+require_once __DIR__ . '/../Services/Document/RapportPdfGeneratorService.php';
+require_once __DIR__ . '/../Utils/PlanningDataUtils.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 
 class GestionRapportController
@@ -93,12 +97,16 @@ class GestionRapportController
             $rapport = null;
             $isEditMode = false;
             $contenuRapport = '';
+            $stage_info = null;
 
-            // Récupérer les informations de stage de l'étudiant
-            $stage_info = $this->service->getStageInfo($_SESSION['num_etu']);
+            if ($this->isEtudiant()) {
+                $numEtu = $_SESSION['num_etu'] ?? null;
+                if ($numEtu !== null && $numEtu !== '') {
+                    $stage_info = $this->service->getStageInfo($numEtu);
+                }
+            }
 
             if ($stage_info) {
-                // Rendre disponible pour la vue
                 $GLOBALS['stage_info'] = $stage_info;
             }
 
@@ -143,6 +151,18 @@ class GestionRapportController
 
     public function traiterCreationRapport()
     {
+        if (!canCreate() && !canEdit() && !canDelete()) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
+
         try {
             $action = $_POST['action'] ?? '';
             $auditLog = $this->service->getAuditLog();
@@ -225,21 +245,45 @@ class GestionRapportController
                 throw new Exception('Accès non autorisé. Seuls les étudiants peuvent exporter leurs rapports.');
             }
 
-            $contenu_rapport = $_POST['contenu_rapport'] ?? '';
-            $nom_rapport = $_POST['nom_rapport'] ?? 'rapport';
             $edit_id = $_POST['edit_id'] ?? null;
+            if (!$edit_id) {
+                throw new Exception('ID du rapport manquant.');
+            }
 
-            // Déléguer la génération du PDF au service
-            $pdfResult = $this->service->genererPdf($contenu_rapport, $nom_rapport, $edit_id, $_SESSION['num_etu']);
+            // Initialiser les services
+            $db = new \App\Support\Database();
+            $dataUtils = new \App\Utils\PlanningDataUtils($db);
+            $pdfGenerator = new \App\Services\Document\PdfGeneratorService(
+                __DIR__ . '/../../storage',
+                __DIR__ . '/../../public/assets/img/logo.png'
+            );
+            $rapportService = new \App\Services\Document\RapportPdfGeneratorService($pdfGenerator, $dataUtils);
+
+            // Générer le PDF via le service
+            $userId = $_SESSION['id_utilisateur'] ?? 0;
+            $result = $rapportService->generate((int)$edit_id, (int)$userId);
+
+            if (!$result['success']) {
+                throw new Exception($result['error'] ?? 'Erreur lors de la génération du PDF');
+            }
+
+            // Le fichier a été généré, on le télécharge
+            $pdfPath = $result['path'];
+            if (!file_exists($pdfPath)) {
+                throw new Exception('Fichier PDF non trouvé: ' . $pdfPath);
+            }
 
             // Définir les headers pour le téléchargement
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
             header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="' . $pdfResult['pdf_name'] . '"');
+            header('Content-Disposition: attachment; filename="' . basename($pdfPath) . '"');
             header('Cache-Control: private, max-age=0, must-revalidate');
             header('Pragma: public');
-            header('Content-Length: ' . strlen($pdfResult['pdf_output']));
+            header('Content-Length: ' . filesize($pdfPath));
 
-            echo $pdfResult['pdf_output'];
+            readfile($pdfPath);
             exit;
 
         } catch (Exception $e) {
@@ -340,6 +384,12 @@ class GestionRapportController
     //=============================ACTIONS AJAX=============================
     public function deleteRapportAjax()
     {
+        if (!canDelete()) {
+            http_response_code(403);
+            $this->sendJsonResponse(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+            return;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->sendJsonResponse(['success' => false, 'message' => 'Méthode non autorisée']);
             return;
@@ -463,6 +513,13 @@ class GestionRapportController
      */
     public function supprimer_rapport()
     {
+        if (!canDelete()) {
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
+
         // Vérifier que c'est bien un POST
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             return; // Ne rien faire si ce n'est pas un POST

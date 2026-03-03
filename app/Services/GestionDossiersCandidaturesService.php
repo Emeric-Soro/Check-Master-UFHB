@@ -8,6 +8,7 @@ require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use RapportEtudiant;
 use Etudiant;
@@ -97,6 +98,19 @@ class GestionDossiersCandidaturesService
         return $exists;
     }
 
+    private function yearCondition(string $alias = 'e'): array
+    {
+        $selectedYearId = \AcademicYear::getSelectedIdFromSession();
+        if ($selectedYearId === null || $selectedYearId <= 0) {
+            return ['sql' => '', 'params' => []];
+        }
+
+        return [
+            'sql' => " AND {$alias}.id_annee_acad = :id_annee_acad",
+            'params' => [':id_annee_acad' => $selectedYearId],
+        ];
+    }
+
     /**
      * Récupère les rapports vérifiés (approuvés ou désapprouvés)
      * @return array
@@ -107,6 +121,7 @@ class GestionDossiersCandidaturesService
         $dateColumn = $this->columnExists('rapport_etudiants', 'date_rapport')
             ? 'r.date_rapport'
             : ($this->columnExists('rapport_etudiants', 'date_redaction_rapport') ? 'r.date_redaction_rapport' : 'NULL');
+        $yearFilter = $this->yearCondition('e');
 
         if ($this->tableExists('approuver')) {
             $sql = "
@@ -120,6 +135,8 @@ class GestionDossiersCandidaturesService
                     e.nom_etu,
                     e.prenom_etu,
                     e.email_etu,
+                    e.id_annee_acad AS id_annee_acad,
+                    e.promotion_etu,
                     a.date_approv as date_approbation,
                     a.commentaire_approv as commentaire,
                     a.decision as statut_approbation,
@@ -130,6 +147,7 @@ class GestionDossiersCandidaturesService
                 INNER JOIN approuver a ON r.id_rapport = a.id_rapport
                 LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
                 WHERE a.decision IN ('approuve', 'desapprouve')
+                {$yearFilter['sql']}
                 ORDER BY a.date_approv DESC
             ";
         } elseif ($this->tableExists('valider')) {
@@ -144,6 +162,8 @@ class GestionDossiersCandidaturesService
                     e.nom_etu,
                     e.prenom_etu,
                     e.email_etu,
+                    e.id_annee_acad AS id_annee_acad,
+                    e.promotion_etu,
                     v.date_validation as date_approbation,
                     v.commentaire_validation as commentaire,
                     CASE 
@@ -158,6 +178,7 @@ class GestionDossiersCandidaturesService
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 LEFT JOIN enseignants en ON v.id_enseignant = en.id_enseignant
                 WHERE v.decision_validation IN ('valider', 'rejeter')
+                {$yearFilter['sql']}
                 ORDER BY v.date_validation DESC
             ";
         } else {
@@ -165,7 +186,7 @@ class GestionDossiersCandidaturesService
         }
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute();
+        $stmt->execute($yearFilter['params']);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -175,68 +196,81 @@ class GestionDossiersCandidaturesService
      */
     public function getStatistiques()
     {
+        $yearFilter = $this->yearCondition('e');
         if ($this->tableExists('approuver')) {
             // Total des rapports vérifiés
             $sql = "
                 SELECT COUNT(*) as total
                 FROM rapport_etudiants r
+                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 INNER JOIN approuver a ON r.id_rapport = a.id_rapport
                 WHERE a.decision IN ('approuve', 'desapprouve')
+                {$yearFilter['sql']}
             ";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute();
+            $stmt->execute($yearFilter['params']);
             $total = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
 
             // Rapports approuvés
             $sql = "
                 SELECT COUNT(*) as approuves
                 FROM rapport_etudiants r
+                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 INNER JOIN approuver a ON r.id_rapport = a.id_rapport
                 WHERE a.decision = 'approuve'
+                {$yearFilter['sql']}
             ";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute();
+            $stmt->execute($yearFilter['params']);
             $approuves = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['approuves'] ?? 0);
 
             // Rapports désapprouvés
             $sql = "
                 SELECT COUNT(*) as desapprouves
                 FROM rapport_etudiants r
+                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 INNER JOIN approuver a ON r.id_rapport = a.id_rapport
                 WHERE a.decision = 'desapprouve'
+                {$yearFilter['sql']}
             ";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute();
+            $stmt->execute($yearFilter['params']);
             $desapprouves = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['desapprouves'] ?? 0);
         } elseif ($this->tableExists('valider')) {
             $sql = "
                 SELECT COUNT(*) as total
                 FROM rapport_etudiants r
+                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 WHERE v.decision_validation IN ('valider', 'rejeter')
+                {$yearFilter['sql']}
             ";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute();
+            $stmt->execute($yearFilter['params']);
             $total = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
 
             $sql = "
                 SELECT COUNT(*) as approuves
                 FROM rapport_etudiants r
+                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 WHERE v.decision_validation = 'valider'
+                {$yearFilter['sql']}
             ";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute();
+            $stmt->execute($yearFilter['params']);
             $approuves = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['approuves'] ?? 0);
 
             $sql = "
                 SELECT COUNT(*) as desapprouves
                 FROM rapport_etudiants r
+                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 WHERE v.decision_validation = 'rejeter'
+                {$yearFilter['sql']}
             ";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute();
+            $stmt->execute($yearFilter['params']);
             $desapprouves = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['desapprouves'] ?? 0);
         } else {
             $total = 0;
@@ -262,6 +296,7 @@ class GestionDossiersCandidaturesService
         $dateColumn = $this->columnExists('rapport_etudiants', 'date_rapport')
             ? 'r.date_rapport'
             : ($this->columnExists('rapport_etudiants', 'date_redaction_rapport') ? 'r.date_redaction_rapport' : 'NULL');
+        $yearFilter = $this->yearCondition('e');
 
         if ($this->tableExists('approuver')) {
             $sql = "
@@ -281,7 +316,8 @@ class GestionDossiersCandidaturesService
                 INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 INNER JOIN approuver a ON r.id_rapport = a.id_rapport
                 LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
-                WHERE r.id_rapport = ?
+                WHERE r.id_rapport = :id_rapport
+                {$yearFilter['sql']}
             ";
         } elseif ($this->tableExists('valider')) {
             $sql = "
@@ -305,14 +341,15 @@ class GestionDossiersCandidaturesService
                 INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 LEFT JOIN enseignants en ON v.id_enseignant = en.id_enseignant
-                WHERE r.id_rapport = ?
+                WHERE r.id_rapport = :id_rapport
+                {$yearFilter['sql']}
             ";
         } else {
             return null;
         }
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$id_rapport]);
+        $stmt->execute(array_merge([':id_rapport' => $id_rapport], $yearFilter['params']));
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 

@@ -20,7 +20,7 @@ $messageErreur = (string) ($GLOBALS['messageErreur'] ?? '');
 $studentsPager = cm_paginate(max(count($students), $totalPages * 20), 20, $currentPage);
 $studentsPager['last'] = $totalPages;
 $studentsPagerBase = '?page=admin_historique&tab=students&' . http_build_query(array_filter([
-    'annee' => $filters['annee'] ?? '',
+    'annee' => $_SESSION['global_annee_selected'] ?? '',
     'statut' => $filters['statut'] ?? '',
     'search' => $filters['search'] ?? '',
 ], static function ($value) { return $value !== ''; }));
@@ -62,7 +62,7 @@ $studentsPagerBase = '?page=admin_historique&tab=students&' . http_build_query(a
         </div>
         <?php
         cm_component('crud/form-pole', [
-            'title' => 'Historique et archivage',
+            'title' => '',
             'icon' => 'fa-archive',
             'content' => (string) ob_get_clean(),
         ]);
@@ -94,17 +94,7 @@ $studentsPagerBase = '?page=admin_historique&tab=students&' . http_build_query(a
                     <?php
                     ob_start();
                     ?>
-                    <label class="cm-toolbar__control">
-                        <span>Annee:</span>
-                        <select class="cm-form-control cm-toolbar__select" name="annee">
-                            <option value="">Toutes</option>
-                            <?php foreach ($academicYears as $year): ?>
-                            <option value="<?= htmlspecialchars((string) $year, ENT_QUOTES, 'UTF-8') ?>" <?= ((string) ($filters['annee'] ?? '') === (string) $year) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars((string) $year, ENT_QUOTES, 'UTF-8') ?>
-                            </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
+                    <input type="hidden" name="annee" value="<?= htmlspecialchars($_SESSION['global_annee_selected'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                     <label class="cm-toolbar__control">
                         <span>Statut:</span>
                         <select class="cm-form-control cm-toolbar__select" name="statut">
@@ -149,7 +139,7 @@ $studentsPagerBase = '?page=admin_historique&tab=students&' . http_build_query(a
                         </thead>
                         <tbody>
                             <?php if (empty($students)): ?>
-                            <tr><td colspan="6" class="cm-data-table__td is-center">Aucun etudiant trouve.</td></tr>
+                            <tr><td colspan="6" class="cm-data-table__td is-center">Aucun étudiant trouve.</td></tr>
                             <?php else: ?>
                                 <?php foreach ($students as $student): ?>
                                 <?php

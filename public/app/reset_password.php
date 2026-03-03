@@ -9,7 +9,7 @@ Session::start();
 
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/models/Utilisateur.php';
-require_once __DIR__ . '/../../app/utils/EmailService.php';
+// EmailService : autoloadé par Composer classmap
 
 use CheckMaster\Core\Csrf;
 use CheckMaster\Security\DbRateLimiter;

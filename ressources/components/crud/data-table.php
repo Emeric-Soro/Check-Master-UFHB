@@ -1,7 +1,5 @@
 <?php
-if (!function_exists('cm_column')) {
-    require_once __DIR__ . '/../../../app/utils/TableHelper.php';
-}
+// TableHelper déjà inclus par layout.php
 
 $id = (string) ($id ?? 'cmDataTable');
 $headers = is_array($headers ?? null) ? $headers : [];
@@ -27,7 +25,7 @@ if (empty($columns) && !empty($headers)) {
             <tr>
                 <?php if ($selectable): ?>
                 <th class="cm-data-table__th cm-data-table__th--check">
-                    <input type="checkbox" class="cm-table-check-all" aria-label="Tout selectionner">
+                    <input type="checkbox" class="cm-table-check-all" aria-label="Tout sélectionner">
                 </th>
                 <?php endif; ?>
 
@@ -85,6 +83,8 @@ if (empty($columns) && !empty($headers)) {
 
                     if (is_callable($format)) {
                         $rendered = (string) $format($value, $rowData);
+                    } elseif ($type === 'badge') {
+                        $rendered = is_array($value) ? (string) ($value['label'] ?? '') : (string) $value;
                     } elseif ($type === 'number') {
                         $rendered = number_format((float) $value, 0, ',', ' ');
                     } else {

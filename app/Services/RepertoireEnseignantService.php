@@ -5,6 +5,7 @@ use Exception;
 use PDO;
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../utils/AcademicYear.php';
 
 class RepertoireEnseignantService
 {
@@ -35,26 +36,26 @@ class RepertoireEnseignantService
 
     private function getProgrammationTable(): string
     {
-        if ($this->tableExists('programmer')) {
-            return 'programmer';
+        if ($this->tableExists('programmer_soutenance')) {
+            return 'programmer_soutenance';
         }
-        return 'programmer_soutenance';
+        return 'programmer';
     }
 
     private function getJuryTable(): string
     {
-        if ($this->tableExists('composer_jury')) {
-            return 'composer_jury';
+        if ($this->tableExists('enseignant_jury')) {
+            return 'enseignant_jury';
         }
-        return 'enseignant_jury';
+        return 'composer_jury';
     }
 
     private function getRolesTable(): string
     {
-        if ($this->tableExists('roles_jury')) {
-            return 'roles_jury';
+        if ($this->tableExists('qualite_jury')) {
+            return 'qualite_jury';
         }
-        return 'qualite_jury';
+        return 'roles_jury';
     }
 
     private function getJuryRefColumn(string $juryTable): string
@@ -89,8 +90,11 @@ class RepertoireEnseignantService
             $tab = $_GET['tab'] ?? 'rapports';
             $pageNum = max(1, (int) ($_GET['page_num'] ?? 1));
             $perPage = 15;
+            $selectedYearId = \AcademicYear::getSelectedIdFromSession();
 
-            $filtreAnnee = isset($_GET['id_annee_acad']) && $_GET['id_annee_acad'] !== '' ? (int) $_GET['id_annee_acad'] : $this->getCurrentAnneeAcademique();
+            $filtreAnnee = isset($_GET['id_annee_acad']) && $_GET['id_annee_acad'] !== ''
+                ? (int) $_GET['id_annee_acad']
+                : (\AcademicYear::isAllSelectedFromSession() ? null : ($selectedYearId ?? $this->getCurrentAnneeAcademique()));
             $filtreSession = isset($_GET['id_session']) && $_GET['id_session'] !== '' ? (int) $_GET['id_session'] : null;
             $search = isset($_GET['search']) && $_GET['search'] !== '' ? trim($_GET['search']) : null;
 

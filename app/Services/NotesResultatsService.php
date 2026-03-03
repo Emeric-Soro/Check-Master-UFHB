@@ -190,12 +190,16 @@ class NotesResultatsService
         include __DIR__ . '/../../ressources/views/releve_notes.php';
         $html = ob_get_clean();
 
-        // Générer le PDF avec Dompdf
-        $dompdf = new \Dompdf\Dompdf();
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-        $dompdf->stream('releve-notes.pdf', ['Attachment' => true]);
+        // Générer le PDF avec PdfGeneratorService (TCPDF)
+        require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
+        $pdfGen = new \App\Services\Document\PdfGeneratorService(
+            __DIR__ . '/../../storage',
+            __DIR__ . '/../../public/assets/img/logo.png'
+        );
+        $pdf = $pdfGen->createDocument('P', 'A4', 'Relevé de notes');
+        $pdf->AddPage();
+        $pdfGen->writeHtml($pdf, $html);
+        $pdf->Output('releve-notes.pdf', 'D');
         exit;
     }
 }

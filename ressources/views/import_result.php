@@ -27,7 +27,7 @@ $hasErrors = ($importSummary['total_errors'] ?? 0) > 0;
 
         <!-- Summary -->
         <div class="bg-white rounded-2xl shadow-sm p-6 mb-8">
-            <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-3">📋 Résumé de l'importation</h3>
+
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                 <div>
                     <div class="text-3xl font-bold text-blue-600"><?php echo count($importSummary['successes']) + count($importSummary['errors']); ?></div>
@@ -52,8 +52,10 @@ $hasErrors = ($importSummary['total_errors'] ?? 0) > 0;
         <?php if ($hasErrors): ?>
         <div class="bg-white rounded-2xl shadow-sm p-6 mb-8">
             <div class="flex justify-between items-center mb-4 border-b pb-3">
-                 <h3 class="text-lg font-bold text-gray-800">❌ Lignes en erreur (<?php echo $importSummary['total_errors'] ?? 0; ?>)</h3>
+
+                 <?php if (canView()): ?>
                  <button class="text-sm text-blue-600 hover:underline"><i class="fas fa-download mr-2"></i>Exporter les erreurs</button>
+                 <?php endif; ?>
             </div>
            
             <div class="cm-table-wrapper max-h-60 pr-2">
@@ -80,7 +82,7 @@ $hasErrors = ($importSummary['total_errors'] ?? 0) > 0;
          <!-- Successes -->
         <?php if (!empty($importSummary['successes'])): ?>
         <div class="bg-white rounded-2xl shadow-sm p-6">
-             <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-3">✅ Lignes importées avec succès (<?php echo $importSummary['total_success'] ?? 0; ?>)</h3>
+
             <div class="max-h-48 overflow-y-auto pr-2 text-sm text-gray-600 space-y-2">
                 <?php foreach ($importSummary['successes'] as $success): ?>
                 <div class="bg-green-50 p-2 rounded-md flex items-center">

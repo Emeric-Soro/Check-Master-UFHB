@@ -80,7 +80,7 @@ $isEditable = function_exists('canEdit') ? (bool) canEdit() : true;
             <div class="cm-form-group">
                 <label class="cm-form-label" for="cmAttribGroup">Groupe utilisateur</label>
                 <select id="cmAttribGroup" class="cm-form-control">
-                    <option value="">-- Selectionner un groupe --</option>
+                    <option value="">-- Sélectionner un groupe --</option>
                     <?php foreach ($listeGroupes as $groupe): ?>
                         <?php $groupeId = (string) ($groupe->id_GU ?? ''); ?>
                         <?php if ($groupeId === '') {
@@ -95,7 +95,7 @@ $isEditable = function_exists('canEdit') ? (bool) canEdit() : true;
         </div>
         <?php
         cm_component('crud/form-pole', [
-            'title' => 'Gestion des attributions',
+            'title' => '',
             'icon' => 'fa-user-shield',
             'content' => (string) ob_get_clean(),
         ]);
@@ -130,8 +130,8 @@ $isEditable = function_exists('canEdit') ? (bool) canEdit() : true;
         <div class="cm-pole-inferieur">
             <?php if ($selectedGroupeId === '' || !$selectedGroupe): ?>
                 <?php cm_component('ui/empty-state', [
-                    'title' => 'Aucun groupe selectionne',
-                    'message' => 'Selectionnez un type puis un groupe pour modifier les permissions.',
+                    'title' => '',
+                    'message' => 'Sélectionnez un type puis un groupe pour modifier les permissions.',
                 ]); ?>
             <?php else: ?>
             <form id="cmAttribForm" method="POST" action="<?= htmlspecialchars($baseActionUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-table-form" data-cm-ajax-form="true">

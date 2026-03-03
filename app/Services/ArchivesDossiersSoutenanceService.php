@@ -47,8 +47,14 @@ class ArchivesDossiersSoutenanceService
 
             // Filtre par année
             if (!empty($filtres['annee'])) {
-                $whereConditions[] = "YEAR(v.date_validation) = :annee";
-                $params['annee'] = (int) $filtres['annee'];
+                $anneeFiltre = trim((string) $filtres['annee']);
+                if (strpos($anneeFiltre, '-') !== false) {
+                    $whereConditions[] = "e.promotion_etu = :annee";
+                    $params['annee'] = $anneeFiltre;
+                } else {
+                    $whereConditions[] = "YEAR(v.date_validation) = :annee";
+                    $params['annee'] = (int) $anneeFiltre;
+                }
             }
 
             // Filtre par étudiant

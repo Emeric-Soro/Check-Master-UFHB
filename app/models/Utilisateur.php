@@ -650,7 +650,12 @@ class Utilisateur
         $stmt->execute(['part1' => $part1, 'part2' => $part2]);
         $result = $stmt->fetch(PDO::FETCH_OBJ);
 
-        return $result ? $result->email : null;
+        if (!$result) {
+            return null;
+        }
+
+        $email = trim((string) ($result->email ?? ''));
+        return $email !== '' ? $email : null;
     }
 
 
