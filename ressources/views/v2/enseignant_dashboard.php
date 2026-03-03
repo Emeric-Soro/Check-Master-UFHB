@@ -161,8 +161,8 @@ try {
 
         $sqlEtudiants = "SELECT DISTINCT
                             e.num_carte_etud,
-                            e.nom_etud,
-                            e.prenom_etud,
+                            e.nom_etu AS nom_etud,
+                            e.prenom_etu AS prenom_etud,
                             ps.theme_soutenance,
                             ps.num_soutenance,
                             (SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ')
@@ -189,7 +189,7 @@ try {
                         JOIN {$progTable} ps ON ps.num_soutenance = ej_main.num_soutenance
                         JOIN etudiants e ON e.num_carte_etud = ps.num_etud
                         WHERE {$whereEtudiantsClause}
-                        ORDER BY e.nom_etud, e.prenom_etud";
+                        ORDER BY e.nom_etu, e.prenom_etu";
         
         $stmtEtudiants = $pdo->prepare($sqlEtudiants);
         $stmtEtudiants->execute($paramsEtudiants);
@@ -215,11 +215,11 @@ try {
                             ps.date_soutenance,
                             ps.heure_soutenance,
                             e.num_carte_etud,
-                            CONCAT(e.nom_etud, ' ', e.prenom_etud) AS nom_complet_etudiant,
+                            CONCAT(e.nom_etu, ' ', e.prenom_etu) AS nom_complet_etudiant,
                             ps.theme_soutenance,
                             qj.lib_role,
                             qj.code_qltjury,
-                            s.nom_salle
+                            s.lib_salle AS nom_salle
                         FROM {$juryTable} ej
                         JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance
                         JOIN etudiants e ON e.num_carte_etud = ps.num_etud

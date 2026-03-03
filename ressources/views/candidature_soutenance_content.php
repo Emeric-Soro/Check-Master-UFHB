@@ -8,12 +8,9 @@ $entrepriseValue = (string) ($stage_info['nom_entreprise'] ?? '');
 $dateDebutValue = (string) ($stage_info['date_debut_stage'] ?? '');
 $dateFinValue = (string) ($stage_info['date_fin_stage'] ?? '');
 $sujetValue = (string) ($stage_info['sujet_stage'] ?? '');
-// Construire le nom complet du maitre de stage
-$encadrantNom = (string) ($stage_info['encadrant_nom'] ?? '');
-$encadrantPrenom = (string) ($stage_info['encadrant_prenom'] ?? '');
-$encadrantValue = trim($encadrantNom . ' ' . $encadrantPrenom);
-$emailEncadrantValue = (string) ($stage_info['encadrant_email'] ?? '');
-$telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
+$encadrantValue = (string) ($stage_info['encadrant_entreprise'] ?? '');
+$emailEncadrantValue = (string) ($stage_info['email_encadrant'] ?? '');
+$telephoneEncadrantValue = (string) ($stage_info['telephone_encadrant'] ?? '');
 ?>
 <div class="cm-etu-screen">
     <section class="cm-etu-panel">
@@ -31,81 +28,77 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
             <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $errorMessage]); ?>
         <?php endif; ?>
         <form id="stageInfoForm" method="POST" action="?page=candidature_soutenance&action=info_stage"
-            class="cm-etu-form" novalidate>
+              class="cm-etu-form" novalidate>
             <div class="cm-etu-grid cm-etu-grid--2">
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="entreprise">Entreprise <span
-                            class="cm-required-star">*</span></label>
+                                class="cm-required-star">*</span></label>
                     <p class="cm-etu-help">Choisissez ou tapez pour ajouter</p>
                     <div class="cm-etu-autocomplete">
-                        <input type="text" id="entreprise" name="entreprise" class="cm-etu-input cm-field-lg"
-                            autocomplete="off" required
-                            value="<?= htmlspecialchars($entrepriseValue, ENT_QUOTES, 'UTF-8') ?>"
-                            placeholder="Ex: Orange Côte d'Ivoire">
+                        <input type="text" id="entreprise" name="entreprise" class="cm-etu-input cm-field-lg" autocomplete="off"
+                               required value="<?= htmlspecialchars($entrepriseValue, ENT_QUOTES, 'UTF-8') ?>"
+                               placeholder="Ex: Orange Côte d'Ivoire">
                         <div id="entrepriseSuggestions" class="cm-etu-autocomplete__list" aria-live="polite"></div>
                     </div>
                 </div>
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="encadrant">Nom du maître de stage <span
-                            class="cm-required-star">*</span></label>
+                                class="cm-required-star">*</span></label>
                     <p class="cm-etu-help">Sélectionnez d'abord une entreprise, puis choisissez ou ajoutez</p>
                     <div class="cm-etu-autocomplete">
-                        <input type="text" id="encadrant" name="encadrant" class="cm-etu-input cm-field-lg"
-                            autocomplete="off" required
-                            value="<?= htmlspecialchars($encadrantValue, ENT_QUOTES, 'UTF-8') ?>"
-                            placeholder="Ex: Koné Seydou">
+                        <input type="text" id="encadrant" name="encadrant" class="cm-etu-input cm-field-lg" autocomplete="off"
+                               required value="<?= htmlspecialchars($encadrantValue, ENT_QUOTES, 'UTF-8') ?>"
+                               placeholder="Ex: Koné Seydou">
                         <div id="encadrantSuggestions" class="cm-etu-autocomplete__list" aria-live="polite"></div>
                     </div>
                 </div>
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="date_debut">Date de début <span
-                            class="cm-required-star">*</span></label>
+                                class="cm-required-star">*</span></label>
                     <input type="date" id="date_debut" name="date_debut" class="cm-etu-input cm-field-sm" required
-                        max="<?= date('Y-m-d') ?>"
-                        value="<?= htmlspecialchars($dateDebutValue, ENT_QUOTES, 'UTF-8') ?>">
+                           max="<?= date('Y-m-d') ?>"
+                           value="<?= htmlspecialchars($dateDebutValue, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="date_fin">Date de fin <span
-                            class="cm-required-star">*</span></label>
+                                class="cm-required-star">*</span></label>
                     <input type="date" id="date_fin" name="date_fin" class="cm-etu-input cm-field-sm" required
-                        max="<?= date('Y-m-d') ?>" value="<?= htmlspecialchars($dateFinValue, ENT_QUOTES, 'UTF-8') ?>">
+                           max="<?= date('Y-m-d') ?>" value="<?= htmlspecialchars($dateFinValue, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="sujet">Thème du rapport <span
-                            class="cm-required-star">*</span></label>
-                    <textarea id="sujet" name="sujet" class="cm-etu-input cm-field-xl" required maxlength="150"
-                        value="<?= htmlspecialchars($sujetValue, ENT_QUOTES, 'UTF-8') ?>"
-                        placeholder="Ex: Mise en place d'une API REST sécurisée">
-                        </textarea>
+                                class="cm-required-star">*</span></label>
+                    <input type="text" id="sujet" name="sujet" class="cm-etu-input cm-field-xl" required maxlength="150"
+                           value="<?= htmlspecialchars($sujetValue, ENT_QUOTES, 'UTF-8') ?>"
+                           placeholder="Ex: Mise en place d'une API REST sécurisée">
                 </div>
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="email_encadrant">Email Maître de Stage <span
-                            class="cm-required-star">*</span></label>
-                    <input type="email" id="email_encadrant" name="email_encadrant" class="cm-etu-input cm-field-lg"
-                        required value="<?= htmlspecialchars($emailEncadrantValue, ENT_QUOTES, 'UTF-8') ?>"
-                        placeholder="email@entreprise.ci">
+                                class="cm-required-star">*</span></label>
+                    <input type="email" id="email_encadrant" name="email_encadrant" class="cm-etu-input cm-field-lg" required
+                           value="<?= htmlspecialchars($emailEncadrantValue, ENT_QUOTES, 'UTF-8') ?>"
+                           placeholder="email@entreprise.ci">
                 </div>
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="telephone_encadrant">Téléphone Maître de Stage <span
-                            class="cm-required-star">*</span></label>
-                    <input type="tel" id="telephone_encadrant" name="telephone_encadrant"
-                        class="cm-etu-input cm-field-md" required
-                        value="<?= htmlspecialchars($telephoneEncadrantValue, ENT_QUOTES, 'UTF-8') ?>"
-                        placeholder="+225 07 00 00 00 00">
+                                class="cm-required-star">*</span></label>
+                    <input type="tel" id="telephone_encadrant" name="telephone_encadrant" class="cm-etu-input cm-field-md" required
+                           value="<?= htmlspecialchars($telephoneEncadrantValue, ENT_QUOTES, 'UTF-8') ?>"
+                           placeholder="+225 07 00 00 00 00">
                 </div>
             </div>
             <p id="stageDateError" class="cm-etu-error" aria-live="assertive"></p>
             <div class="cm-etu-actions">
                 <?php if (canEdit()): ?>
-                    <button type="submit" name="btn_enregistrer" value="1" class="cm-btn is-success">
-                        <i class="fas fa-pen" aria-hidden="true"></i>
-                        <span>Rédiger mon rapport</span>
-                    </button>
+                <button type="submit" name="btn_enregistrer" value="1" class="cm-btn is-success">
+                    <i class="fas fa-pen" aria-hidden="true"></i>
+                    <span>Rédiger mon rapport</span>
+                </button>
                 <?php else: ?>
-                    <div class="cm-etu-alert cm-etu-alert--info">
-                        <i class="fas fa-lock"></i>
-                        <span>Vous n'avez pas la permission de modifier ce formulaire</span>
-                    </div>
+                <div class="cm-etu-alert cm-etu-alert--info">
+                    <i class="fas fa-lock"></i>
+                    <span>Vous n'avez pas la permission de modifier ce formulaire</span>
+                </div>
                 <?php endif; ?>
             </div>
         </form>
@@ -118,10 +111,10 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
             $nomCourt = (string) ($entreprise->lib_court_en ?? '');
             $nomAffiche = $nomCourt ? "$nomLong ($nomCourt)" : $nomLong;
             return [
-                'id' => (int) ($entreprise->id_entreprise ?? 0),
-                'nom' => $nomAffiche,
-                'nom_long' => $nomLong,
-                'nom_court' => $nomCourt
+                    'id' => (int) ($entreprise->id_entreprise ?? 0),
+                    'nom' => $nomAffiche,
+                    'nom_long' => $nomLong,
+                    'nom_court' => $nomCourt
             ];
         }, $entreprises), JSON_UNESCAPED_UNICODE) ?>;
         const entreprises = entreprisesData.map(e => e.nom);
@@ -130,11 +123,11 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
             $nomCourt = (string) ($maitre->lib_court_en ?? '');
             $nomEntreprise = $nomCourt ? "$nomLong ($nomCourt)" : $nomLong;
             return [
-                'nom_complet' => trim(($maitre->Nom ?? '') . ' ' . ($maitre->prenom ?? '')),
-                'email' => (string) ($maitre->email ?? ''),
-                'telephone' => (string) ($maitre->telephone ?? ''),
-                'id_entreprise' => (int) ($maitre->id_entreprise ?? 0),
-                'entreprise' => $nomEntreprise
+                    'nom_complet' => trim(($maitre->Nom ?? '') . ' ' . ($maitre->prenom ?? '')),
+                    'email' => (string) ($maitre->email ?? ''),
+                    'telephone' => (string) ($maitre->telephone ?? ''),
+                    'id_entreprise' => (int) ($maitre->id_entreprise ?? 0),
+                    'entreprise' => $nomEntreprise
             ];
         }, $maitres_de_stage), JSON_UNESCAPED_UNICODE) ?>;
         let selectedEntrepriseId = null;
