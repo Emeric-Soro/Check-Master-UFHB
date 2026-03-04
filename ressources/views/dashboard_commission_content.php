@@ -8,11 +8,15 @@ if (!is_array($stats ?? null)) {
         $stats = [];
     }
 }
+
 $dashboardData = is_array($stats ?? null) ? $stats : [];
+$anneeAcademique = $dashboardData['annee_academique'] ?? null;
 $enAttente = (int) ($dashboardData['en_attente'] ?? 0);
+$rapportsRejetes = (int) ($dashboardData['rapports_rejetes'] ?? 0);
 $repartition = is_array($dashboardData['repartition_statuts'] ?? null) ? $dashboardData['repartition_statuts'] : [];
 $activites = is_array($dashboardData['activites_recentes'] ?? null) ? $dashboardData['activites_recentes'] : [];
 $rapportsDetails = is_array($dashboardData['rapports_details'] ?? null) ? $dashboardData['rapports_details'] : [];
+
 $countByStatut = static function (array $rows, string $needle): int {
     $count = 0;
     foreach ($rows as $row) {
@@ -22,120 +26,234 @@ $countByStatut = static function (array $rows, string $needle): int {
     }
     return $count;
 };
+
 $valides = $countByStatut($repartition, 'valider');
-$rejetes = $countByStatut($repartition, 'rejeter');
+$rejetes = $rapportsRejetes;
 $crRediges = count($rapportsDetails);
 $totalRapports = max(1, $enAttente + $valides + $rejetes);
 $pctValides = (int) round(($valides / $totalRapports) * 100);
 $pctAttente = (int) round(($enAttente / $totalRapports) * 100);
 $pctRejetes = (int) round(($rejetes / $totalRapports) * 100);
-$activityLines = [];
-foreach (array_slice($activites, 0, 5) as $activite) {
+
+// Préparer les activités récentes pour le format attendu
+$activityItems = [];
+foreach (array_slice($activites, 0, 8) as $activite) {
     $titre = trim((string) ($activite['titre'] ?? 'Rapport'));
     $etudiant = trim((string) ($activite['prenom_etudiant'] ?? '') . ' ' . (string) ($activite['nom_etudiant'] ?? ''));
     $date = !empty($activite['date_validation'])
         ? date('d/m/Y', strtotime((string) $activite['date_validation']))
         : '';
-    $line = $titre;
+
+    $text = $titre;
     if ($etudiant !== '') {
-        $line .= ' - ' . $etudiant;
+        $text .= ' - ' . $etudiant;
     }
-    if ($date !== '') {
-        $line .= ' (' . $date . ')';
+
+    $statut = strtolower((string) ($activite['statut'] ?? ''));
+    $type = 'info';
+    $icon = 'fa-file-lines';
+
+    if ($statut === 'valider') {
+        $type = 'success';
+        $icon = 'fa-circle-check';
+    } elseif ($statut === 'rejeter') {
+        $type = 'danger';
+        $icon = 'fa-circle-xmark';
     }
-    $activityLines[] = $line;
+
+    $activityItems[] = [
+        'type' => $type,
+        'icon' => $icon,
+        'text' => $text,
+        'time' => $date,
+    ];
+}
+
+// Année académique pour l'affichage
+$yearLabel = '';
+if ($anneeAcademique && is_array($anneeAcademique)) {
+    $dateDeb = date('Y', strtotime($anneeAcademique['date_deb']));
+    $dateFin = date('Y', strtotime($anneeAcademique['date_fin']));
+    $yearLabel = $dateDeb . '-' . $dateFin;
 }
 ?>
-<div class="cm-prd3-screen cm-prd3-crud-screen">
-    <div class="cm-crud-wrapper">
-        <div class="cm-pole-superieur">
-            <div class="">
-            </div>
-            <div class="cm-grid-4">
-                <div class="cm-card cm-p-md">
-                    <div class="cm-text-sm cm-text-semibold cm-text-primary cm-mb-sm">
-                        <i class="fas fa-clipboard-list" aria-hidden="true"></i>
-                        EN ATTENTE
-                    </div>
-                    <div style="font-size:1.85rem;font-weight:700;line-height:1.1;"><?php echo $enAttente; ?></div>
-                    <div class="cm-mt-md">
-                        <?php if (canView()): ?>
-                        <a class="cm-btn is-info is-sm" href="?page=reception_rapport_com">Voir</a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <div class="cm-card cm-p-md">
-                    <div class="cm-text-sm cm-text-semibold cm-text-primary cm-mb-sm">
-                        <i class="fas fa-circle-check" aria-hidden="true"></i>
-                        VALIDÉS
-                    </div>
-                    <div style="font-size:1.85rem;font-weight:700;line-height:1.1;"><?php echo $valides; ?></div>
-                    <div class="cm-mt-md">
-                        <?php if (canView()): ?>
-                        <a class="cm-btn is-info is-sm" href="?page=processus_validation">Voir</a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <div class="cm-card cm-p-md">
-                    <div class="cm-text-sm cm-text-semibold cm-text-primary cm-mb-sm">
-                        <i class="fas fa-circle-xmark" aria-hidden="true"></i>
-                        REJETÉS
-                    </div>
-                    <div style="font-size:1.85rem;font-weight:700;line-height:1.1;"><?php echo $rejetes; ?></div>
-                    <div class="cm-mt-md">
-                        <?php if (canView()): ?>
-                        <a class="cm-btn is-info is-sm" href="?page=processus_validation&status=rejete">Voir</a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <div class="cm-card cm-p-md">
-                    <div class="cm-text-sm cm-text-semibold cm-text-primary cm-mb-sm">
-                        <i class="fas fa-file-signature" aria-hidden="true"></i>
-                        CR RÉDIGÉS
-                    </div>
-                    <div style="font-size:1.85rem;font-weight:700;line-height:1.1;"><?php echo $crRediges; ?></div>
-                    <div class="cm-mt-md">
-                        <?php if (canCreate()): ?>
-                        <a class="cm-btn is-info is-sm" href="?page=redaction_compte_rendu&cr_view=redaction">Rédiger</a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-            <div class="cm-grid-2">
-                <div class="cm-card cm-p-md">
 
+<section class="cm-prd3-screen">
+
+    <!-- Statistiques principales -->
+    <div class="cm-grid-4">
+        <div>
+            <?php cm_component('dashboard/stat-widget', [
+                'value' => number_format($enAttente, 0, ',', ' '),
+                'label' => 'En attente',
+                'icon' => 'fa-clipboard-list',
+                'color' => 'info'
+            ]); ?>
+            <?php if (canView()): ?>
+                <a class="cm-stat-card__link" href="?page=reception_rapport_com" data-cm-ajax-link="true">Voir ▸</a>
+            <?php endif; ?>
+        </div>
+
+        <div>
+            <?php cm_component('dashboard/stat-widget', [
+                'value' => number_format($valides, 0, ',', ' '),
+                'label' => 'Validés',
+                'icon' => 'fa-circle-check',
+                'color' => 'success'
+            ]); ?>
+            <?php if (canView()): ?>
+                <a class="cm-stat-card__link" href="?page=processus_validation" data-cm-ajax-link="true">Voir ▸</a>
+            <?php endif; ?>
+        </div>
+
+        <div>
+            <?php cm_component('dashboard/stat-widget', [
+                'value' => number_format($rejetes, 0, ',', ' '),
+                'label' => 'Rejetés',
+                'icon' => 'fa-circle-xmark',
+                'color' => 'danger'
+            ]); ?>
+            <?php if (canView()): ?>
+                <a class="cm-stat-card__link" href="?page=processus_validation&status=rejete" data-cm-ajax-link="true">Voir
+                    ▸</a>
+            <?php endif; ?>
+        </div>
+
+        <div>
+            <?php cm_component('dashboard/stat-widget', [
+                'value' => number_format($crRediges, 0, ',', ' '),
+                'label' => 'CR rédigés',
+                'icon' => 'fa-file-signature',
+                'color' => 'primary'
+            ]); ?>
+            <?php if (canCreate()): ?>
+                <a class="cm-stat-card__link" href="?page=redaction_compte_rendu&cr_view=redaction"
+                    data-cm-ajax-link="true">Rédiger ▸</a>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Graphique de répartition -->
+    <div class="cm-card cm-mt-md">
+        <div class="cm-card__header">
+            <h3 class="cm-card__title">Répartition des rapports</h3>
+        </div>
+        <div class="cm-card__body">
+            <div class="cm-grid-2" style="align-items: center;">
+                <!-- Diagramme circulaire -->
+                <div style="position: relative; height: 300px; max-width: 400px; margin: 0 auto;">
+                    <canvas id="chartRepartitionRapports"></canvas>
+                </div>
+
+                <!-- Légende avec barres de progression -->
+                <div>
                     <?php
                     $progressRows = [
-                        ['label' => 'Validés', 'count' => $valides, 'pct' => $pctValides, 'color' => '#1a5276'],
-                        ['label' => 'En attente', 'count' => $enAttente, 'pct' => $pctAttente, 'color' => '#3498db'],
-                        ['label' => 'Rejetés', 'count' => $rejetes, 'pct' => $pctRejetes, 'color' => '#e74c3c'],
+                        ['label' => 'Validés', 'count' => $valides, 'pct' => $pctValides, 'color' => '#10b981'],
+                        ['label' => 'En attente', 'count' => $enAttente, 'pct' => $pctAttente, 'color' => '#3b82f6'],
+                        ['label' => 'Rejetés', 'count' => $rejetes, 'pct' => $pctRejetes, 'color' => '#ef4444'],
                     ];
                     foreach ($progressRows as $row):
-                    ?>
-                        <div class="cm-mb-sm">
+                        ?>
+                        <div class="cm-mb-md">
                             <div class="cm-flex-between cm-text-sm cm-mb-sm">
-                                <span><?php echo htmlspecialchars($row['label'], ENT_QUOTES, 'UTF-8'); ?> (<?php echo (int) $row['count']; ?>)</span>
+                                <span style="font-weight: 500;">
+                                    <span
+                                        style="display: inline-block; width: 12px; height: 12px; background: <?php echo htmlspecialchars($row['color'], ENT_QUOTES, 'UTF-8'); ?>; border-radius: 3px; margin-right: 8px;"></span>
+                                    <?php echo htmlspecialchars($row['label'], ENT_QUOTES, 'UTF-8'); ?>
+                                    (<?php echo (int) $row['count']; ?>)
+                                </span>
                                 <strong><?php echo (int) $row['pct']; ?>%</strong>
                             </div>
-                            <div style="height:8px;background:#cfe7f7;border-radius:999px;overflow:hidden;">
-                                <span style="display:block;height:100%;width:<?php echo (int) $row['pct']; ?>%;background:<?php echo htmlspecialchars($row['color'], ENT_QUOTES, 'UTF-8'); ?>;"></span>
+                            <div style="height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden;">
+                                <span
+                                    style="display:block;height:100%;width:<?php echo (int) $row['pct']; ?>%;background:<?php echo htmlspecialchars($row['color'], ENT_QUOTES, 'UTF-8'); ?>;transition:width 0.3s ease;"></span>
                             </div>
                         </div>
                     <?php endforeach; ?>
                 </div>
-                <div class="cm-card cm-p-md">
+            </div>
+        </div>
+    </div>
 
-                    <?php if (empty($activityLines)): ?>
-                        <p class="cm-text-sm cm-text-muted cm-m-0">Aucune activité récente.</p>
-                    <?php else: ?>
-                        <ul class="cm-m-0" style="padding-left:1.1rem; display:grid; gap:0.45rem;">
-                            <?php foreach ($activityLines as $line): ?>
-                                <li class="cm-text-sm"><?php echo htmlspecialchars($line, ENT_QUOTES, 'UTF-8'); ?></li>
-                            <?php endforeach; ?>
-                        </ul>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const ctx = document.getElementById('chartRepartitionRapports');
+            if (ctx && typeof Chart !== 'undefined') {
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Validés', 'En attente', 'Rejetés'],
+                        datasets: [{
+                            data: [<?php echo $valides; ?>, <?php echo $enAttente; ?>, <?php echo $rejetes; ?>],
+                            backgroundColor: ['#10b981', '#3b82f6', '#ef4444'],
+                            borderColor: ['#059669', '#2563eb', '#dc2626'],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed || 0;
+                                        const total = <?php echo $totalRapports; ?>;
+                                        const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                        return label + ': ' + value + ' (' + percentage + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- Activités récentes et actions rapides -->
+    <div class="cm-grid-2 cm-mt-md">
+        <?php cm_component('dashboard/activity-list', [
+            'title' => 'Activités récentes',
+            'items' => $activityItems
+        ]); ?>
+
+        <div class="cm-chart-container">
+            <div class="cm-chart-container__header">
+                <h3 class="cm-chart-container__title">Actions rapides</h3>
+                <p class="cm-chart-container__subtitle">Navigation directe</p>
+            </div>
+            <div class="cm-chart-container__body">
+                <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
+                    <?php if (canView()): ?>
+                        <a class="cm-btn is-info" href="?page=reception_rapport_com" data-cm-ajax-link="true">
+                            <i class="fas fa-inbox" aria-hidden="true"></i>
+                            Réception rapports
+                        </a>
+                        <a class="cm-btn is-primary" href="?page=processus_validation" data-cm-ajax-link="true">
+                            <i class="fas fa-check-double" aria-hidden="true"></i>
+                            Processus validation
+                        </a>
+                    <?php endif; ?>
+                    <?php if (canCreate()): ?>
+                        <a class="cm-btn is-success" href="?page=redaction_compte_rendu" data-cm-ajax-link="true">
+                            <i class="fas fa-pen-to-square" aria-hidden="true"></i>
+                            Rédaction CR
+                        </a>
+                    <?php endif; ?>
+                    <?php if (canView()): ?>
+                        <a class="cm-btn is-warning" href="?page=programmation_soutenance" data-cm-ajax-link="true">
+                            <i class="fas fa-calendar-days" aria-hidden="true"></i>
+                            Soutenances
+                        </a>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>

@@ -105,6 +105,64 @@ class DashboardCommissionService
     }
 
     /**
+     * Récupère l'année académique active (celle dont la date actuelle est comprise entre date_deb et date_fin)
+     *
+     * @return array|null
+     */
+    public function getAnneeAcademiqueActive()
+    {
+        try {
+            if (!$this->tableExists('annee_academique')) {
+                return null;
+            }
+            $query = "SELECT id_annee_acad, date_deb, date_fin 
+                      FROM annee_academique 
+                      WHERE CURDATE() BETWEEN date_deb AND date_fin 
+                      LIMIT 1";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$result) {
+                // Si aucune année trouvée avec la date actuelle, retourner la plus récente
+                $query = "SELECT id_annee_acad, date_deb, date_fin 
+                          FROM annee_academique 
+                          ORDER BY date_deb DESC 
+                          LIMIT 1";
+                $stmt = $this->db->prepare($query);
+                $stmt->execute();
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+
+            return $result ?: null;
+        } catch (Exception $e) {
+            error_log("Erreur getAnneeAcademiqueActive: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Récupère le nombre de rapports rejetés
+     *
+     * @return int
+     */
+    public function getNombreRapportsRejetes()
+    {
+        try {
+            $query = "SELECT COUNT(DISTINCT id_rapport) as rejetes
+                      FROM valider
+                      WHERE decision_validation = 'rejeter'";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['rejetes'] ?? 0;
+        } catch (Exception $e) {
+            error_log("Erreur getNombreRapportsRejetes: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
      * Récupère toutes les données pour le tableau de bord de la commission
      *
      * @return array Les données du tableau de bord
@@ -112,10 +170,12 @@ class DashboardCommissionService
     public function getDashboardData()
     {
         $stats = [
+            'annee_academique' => null,
             'total_rapports' => 0,
             'taux_validation' => 0,
             'temps_moyen' => 0,
             'en_attente' => 0,
+            'rapports_rejetes' => 0,
             'evolution_mensuelle' => [],
             'repartition_statuts' => [],
             'performance_categories' => [],
@@ -125,10 +185,12 @@ class DashboardCommissionService
         ];
 
         try {
+            $stats['annee_academique'] = $this->getAnneeAcademiqueActive();
             $stats['total_rapports'] = $this->getTotalRapports();
             $stats['taux_validation'] = $this->getTauxValidation();
             $stats['temps_moyen'] = $this->getTempsMoyenTraitement();
             $stats['en_attente'] = $this->getRapportsEnAttente();
+            $stats['rapports_rejetes'] = $this->getNombreRapportsRejetes();
             $stats['evolution_mensuelle'] = $this->getEvolutionMensuelle();
             $stats['repartition_statuts'] = $this->getRepartitionStatuts();
             $stats['performance_categories'] = $this->getPerformanceCategories();
@@ -448,10 +510,12 @@ class DashboardCommissionService
     public function getDefaultDashboardData()
     {
         return [
+            'annee_academique' => null,
             'total_rapports' => 0,
             'taux_validation' => 0,
             'temps_moyen' => 0,
             'en_attente' => 0,
+            'rapports_rejetes' => 0,
             'evolution_mensuelle' => [],
             'repartition_statuts' => [],
             'performance_categories' => [],
