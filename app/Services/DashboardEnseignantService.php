@@ -4,15 +4,11 @@ namespace CheckMaster\Services;
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . "/../models/Enseignant.php";
 require_once __DIR__ . "/../models/Etudiant.php";
-require_once __DIR__ . "/../models/Ue.php";
-require_once __DIR__ . "/../models/Ecue.php";
 require_once __DIR__ . "/../models/NiveauEtude.php";
 require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use Enseignant;
 use Etudiant;
-use Ue;
-use Ecue;
 use NiveauEtude;
 use PDO;
 
@@ -20,9 +16,8 @@ use PDO;
  * Service métier du tableau de bord enseignant
  *
  * Contient toute la logique métier pour le tableau de bord enseignant :
- * - Statistiques des cours enseignés (UE/ECUE)
+ * - Statistiques des niveaux d'étude gérés
  * - Statistiques des étudiants encadrés
- * - Données des cours pour l'affichage
  */
 class DashboardEnseignantService
 {
@@ -34,12 +29,6 @@ class DashboardEnseignantService
 
     /** @var Etudiant */
     private $etudiant;
-
-    /** @var Ue */
-    private $ue;
-
-    /** @var Ecue */
-    private $ecue;
 
     /** @var NiveauEtude */
     private $niveauEtude;
@@ -54,8 +43,6 @@ class DashboardEnseignantService
         $this->db = $db;
         $this->enseignant = new Enseignant($db);
         $this->etudiant = new Etudiant($db);
-        $this->ue = new Ue($db);
-        $this->ecue = new Ecue($db);
         $this->niveauEtude = new NiveauEtude($db);
     }
 
@@ -67,50 +54,60 @@ class DashboardEnseignantService
      */
     public function getGlobalStats($loginUtilisateur)
     {
-        $enseignantId = $this->enseignant->getEnseignantByLogin($loginUtilisateur)->id_enseignant;
+        $enseignantData = $this->enseignant->getEnseignantByLogin($loginUtilisateur);
+        if (!$enseignantData) {
+            return [
+                'total_etudiants' => 0,
+                'total_niveaux' => 0,
+                'mes_niveaux' => [],
+            ];
+        }
 
-        // UE et ECUE pris en charge par l'enseignant
-        $ues = $this->ue->getUesByEnseignant($enseignantId);
-        $ecues = $this->ecue->getEcuesByEnseignant($enseignantId);
+        $enseignantId = $enseignantData->id_enseignant;
 
-        // Récupérer tous les niveaux concernés par les UE/ECUE pris en charge
-        $niveauIds = $this->extractNiveauIds($ues, $ecues);
+        // Niveaux d'étude pris en charge par l'enseignant (Responsable de niveau)
+        $niveaux = $this->getNiveauxByEnseignant($enseignantId);
+        $niveauIds = array_map(function($n) { return $n->id_niv_etude; }, $niveaux);
 
-        // Étudiants inscrits dans ces niveaux (sans doublons)
+        // Étudiants inscrits dans ces niveaux
         $etudiantsSuivantCours = $this->getEtudiantsByNiveaux($niveauIds);
 
-        // Construire la liste des cours
-        $mesCours = $this->buildMesCours($ues, $ecues, $etudiantsSuivantCours);
+        // Construire la liste des niveaux avec statistiques
+        $mesNiveaux = $this->buildMesNiveauxStats($niveaux, $etudiantsSuivantCours);
 
         return [
             'total_etudiants' => count($etudiantsSuivantCours),
-            'total_ues' => count($ues),
-            'total_ecues' => count($ecues),
-            'mes_cours' => $mesCours,
+            'total_niveaux' => count($niveaux),
+            'mes_cours' => $mesNiveaux, // Garder le nom pour compatibilité vue
         ];
     }
 
     /**
-     * Extrait les identifiants de niveaux d'étude à partir des UE et ECUE
-     *
-     * @param array $ues Liste des UE
-     * @param array $ecues Liste des ECUE
-     * @return array Liste d'identifiants de niveaux (sans doublons)
+     * Récupère les niveaux d'étude gérés par un enseignant
      */
-    private function extractNiveauIds(array $ues, array $ecues)
+    private function getNiveauxByEnseignant($enseignantId) {
+        $sql = "SELECT * FROM niveau_etude WHERE id_enseignant = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$enseignantId]);
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+
+    /**
+     * Construit les stats par niveau
+     */
+    private function buildMesNiveauxStats(array $niveaux, array $etudiantsSuivantCours)
     {
-        $niveauIds = [];
-        foreach ($ues as $ue) {
-            if (isset($ue->id_niveau_etude) && !in_array($ue->id_niveau_etude, $niveauIds)) {
-                $niveauIds[] = $ue->id_niveau_etude;
-            }
+        $mesCours = [];
+        foreach ($niveaux as $niveau) {
+            $mesCours[] = [
+                'nom' => $niveau->lib_niv_etude,
+                'niveau' => $niveau->lib_niv_etude,
+                'nombre_etudiants' => array_reduce($etudiantsSuivantCours, function ($carry, $etu) use ($niveau) {
+                    return $carry + ($etu->id_niv_etude == $niveau->id_niv_etude ? 1 : 0);
+                }, 0)
+            ];
         }
-        foreach ($ecues as $ecue) {
-            if (isset($ecue->id_niveau_etude) && !in_array($ecue->id_niveau_etude, $niveauIds)) {
-                $niveauIds[] = $ecue->id_niveau_etude;
-            }
-        }
-        return $niveauIds;
+        return $mesCours;
     }
 
     /**
@@ -121,6 +118,8 @@ class DashboardEnseignantService
      */
     private function getEtudiantsByNiveaux(array $niveauIds)
     {
+        if (empty($niveauIds)) return [];
+        
         $selectedYearId = \AcademicYear::getSelectedIdFromSession();
         $etudiants = $this->etudiant->getAllListeEtudiants($selectedYearId);
         $etudiantsSuivantCours = [];
@@ -137,38 +136,6 @@ class DashboardEnseignantService
     }
 
     /**
-     * Construit la liste des cours (UE + ECUE) avec le nombre d'étudiants par cours
-     *
-     * @param array $ues Liste des UE
-     * @param array $ecues Liste des ECUE
-     * @param array $etudiantsSuivantCours Étudiants indexés par num_etu
-     * @return array Liste des cours avec nom, niveau et nombre d'étudiants
-     */
-    private function buildMesCours(array $ues, array $ecues, array $etudiantsSuivantCours)
-    {
-        $mesCours = [];
-        foreach ($ues as $ue) {
-            $mesCours[] = [
-                'nom' => $ue->lib_ue,
-                'niveau' => $ue->lib_niv_etude,
-                'nombre_etudiants' => array_reduce($etudiantsSuivantCours, function ($carry, $etu) use ($ue) {
-                    return $carry + ((isset($ue->id_niveau_etude) && $etu->id_niv_etude == $ue->id_niveau_etude) ? 1 : 0);
-                }, 0)
-            ];
-        }
-        foreach ($ecues as $ecue) {
-            $mesCours[] = [
-                'nom' => $ecue->lib_ecue,
-                'niveau' => $ecue->lib_niv_etude,
-                'nombre_etudiants' => array_reduce($etudiantsSuivantCours, function ($carry, $etu) use ($ecue) {
-                    return $carry + ((isset($ecue->id_niveau_etude) && $etu->id_niv_etude == $ecue->id_niveau_etude) ? 1 : 0);
-                }, 0)
-            ];
-        }
-        return $mesCours;
-    }
-
-    /**
      * Récupère toutes les données du tableau de bord et les assigne aux \$GLOBALS
      *
      * Méthode de convenance pour la compatibilité avec les vues existantes.
@@ -179,9 +146,9 @@ class DashboardEnseignantService
     {
         $stats = $this->getGlobalStats($loginUtilisateur);
 
-        $GLOBALS['total_etudiants'] = $stats['total_etudiants'];
-        $GLOBALS['total_ues'] = $stats['total_ues'];
-        $GLOBALS['total_ecues'] = $stats['total_ecues'];
-        $GLOBALS['mes_cours'] = $stats['mes_cours'];
+        $GLOBALS['total_etudiants'] = (int) ($stats['total_etudiants'] ?? 0);
+        $GLOBALS['total_ues'] = (int) ($stats['total_ues'] ?? ($stats['total_niveaux'] ?? 0));
+        $GLOBALS['total_ecues'] = (int) ($stats['total_ecues'] ?? 0);
+        $GLOBALS['mes_cours'] = $stats['mes_cours'] ?? ($stats['mes_niveaux'] ?? []);
     }
 }

@@ -40,13 +40,13 @@ class CriteresEvaluationService
             SELECT 
                 ce.id_critere as id,
                 ce.lib_critere as libelle,
-                c.id_annee_acad as annee_id,
+                bc.id_annee_acad as annee_id,
                 CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) as annee_lib,
-                c.bareme
+                bc.bareme
             FROM critere_evaluation ce
-            LEFT JOIN correspondre c ON ce.id_critere = c.id_critere
-            LEFT JOIN annee_academique aa ON c.id_annee_acad = aa.id_annee_acad
-            ORDER BY ce.id_critere, c.id_annee_acad DESC
+            LEFT JOIN bareme_critere bc ON ce.id_critere = bc.id_critere
+            LEFT JOIN annee_academique aa ON bc.id_annee_acad = aa.id_annee_acad
+            ORDER BY ce.id_critere, bc.id_annee_acad DESC
         ");
         $stmt->execute();
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -107,10 +107,14 @@ class CriteresEvaluationService
             $critereId = $this->db->lastInsertId();
 
             // Insérer les barèmes
-            $stmtBareme = $this->db->prepare("INSERT INTO correspondre (id_critere, id_annee_acad, bareme) VALUES (?, ?, ?)");
+            $stmtBareme = $this->db->prepare("INSERT INTO bareme_critere (id_critere, id_annee_acad, bareme) VALUES (?, ?, ?)");
 
             foreach ($input['baremes'] as $bareme) {
-                if (!empty($bareme['annee_id']) && !empty($bareme['bareme'])) {
+                if (
+                    isset($bareme['annee_id'], $bareme['bareme']) &&
+                    $bareme['annee_id'] !== '' &&
+                    $bareme['bareme'] !== ''
+                ) {
                     $stmtBareme->execute([
                         $critereId,
                         $bareme['annee_id'],
@@ -159,14 +163,18 @@ class CriteresEvaluationService
             }
 
             // Supprimer les anciens barèmes
-            $stmtDelete = $this->db->prepare("DELETE FROM correspondre WHERE id_critere = ?");
+            $stmtDelete = $this->db->prepare("DELETE FROM bareme_critere WHERE id_critere = ?");
             $stmtDelete->execute([$input['id']]);
 
             // Insérer les nouveaux barèmes
-            $stmtBareme = $this->db->prepare("INSERT INTO correspondre (id_critere, id_annee_acad, bareme) VALUES (?, ?, ?)");
+            $stmtBareme = $this->db->prepare("INSERT INTO bareme_critere (id_critere, id_annee_acad, bareme) VALUES (?, ?, ?)");
 
             foreach ($input['baremes'] as $bareme) {
-                if (!empty($bareme['annee_id']) && !empty($bareme['bareme'])) {
+                if (
+                    isset($bareme['annee_id'], $bareme['bareme']) &&
+                    $bareme['annee_id'] !== '' &&
+                    $bareme['bareme'] !== ''
+                ) {
                     $stmtBareme->execute([
                         $input['id'],
                         $bareme['annee_id'],
@@ -203,7 +211,7 @@ class CriteresEvaluationService
             }
 
             // Supprimer les barèmes associés
-            $stmtBaremes = $this->db->prepare("DELETE FROM correspondre WHERE id_critere = ?");
+            $stmtBaremes = $this->db->prepare("DELETE FROM bareme_critere WHERE id_critere = ?");
             $stmtBaremes->execute([$input['id']]);
 
             // Supprimer le critère via le modèle
@@ -227,16 +235,14 @@ class CriteresEvaluationService
     private function validateBaremesTotaux(array $nouveauxBaremes, ?int $critereIdExclure = null): void
     {
         // Récupérer les totaux actuels par année (en excluant le critère en cours de modification si applicable)
-        $sqlExclusion = $critereIdExclure ? "AND ce.id_critere != ?" : "";
+        $sqlExclusion = $critereIdExclure ? " AND bc.id_critere != ?" : "";
         $sql = "
             SELECT 
                 aa.id_annee_acad,
                 CONCAT(aa.date_deb, ' - ', aa.date_fin) as lib_annee,
-                COALESCE(SUM(c.bareme), 0) as total_actuel
+                COALESCE(SUM(bc.bareme), 0) as total_actuel
             FROM annee_academique aa
-            LEFT JOIN correspondre c ON aa.id_annee_acad = c.id_annee_acad
-            LEFT JOIN critere_evaluation ce ON c.id_critere = ce.id_critere
-            WHERE 1=1 $sqlExclusion
+            LEFT JOIN bareme_critere bc ON aa.id_annee_acad = bc.id_annee_acad{$sqlExclusion}
             GROUP BY aa.id_annee_acad, aa.date_deb, aa.date_fin
             ORDER BY aa.date_deb DESC
         ";
@@ -257,7 +263,11 @@ class CriteresEvaluationService
 
         // Calculer les nouveaux totaux avec les barèmes proposés
         foreach ($nouveauxBaremes as $bareme) {
-            if (!empty($bareme['annee_id']) && !empty($bareme['bareme'])) {
+            if (
+                isset($bareme['annee_id'], $bareme['bareme']) &&
+                $bareme['annee_id'] !== '' &&
+                $bareme['bareme'] !== ''
+            ) {
                 $anneeId = $bareme['annee_id'];
                 $points = (float) $bareme['bareme'];
 

@@ -177,37 +177,15 @@ foreach ($membresCommission as $membre) {
                 ?>
             </div>
         </div>
-        <div class="cm-barre-intermediaire">
-            <div class="cm-toolbar">
-                <div class="cm-toolbar-left">
-                    <label for="cmProcessLimit"><strong>Afficher:</strong></label>
-                    <select id="cmProcessLimit"
-                            class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
-                            data-cm-ajax-param="limit_processus"
-                            data-cm-ajax-reset-param="page_processus"
-                            data-cm-ajax-reset-value="1">
-                        <?php foreach ($allowedLimits as $limit): ?>
-                            <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
-                                <?php echo $limit; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="cm-toolbar-center">
-                    <input type="text" id="cmProcessSearch" class="cm-form-control" placeholder="Rechercher un rapport ou étudiant...">
-                </div>
-                <div class="cm-toolbar-right">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmProcessExport">
-                        <i class="fas fa-file-export" aria-hidden="true"></i>
-                        Exporter
-                    </button>
-                    <button type="button" class="cm-btn is-info is-sm" id="cmProcessPrint">
-                        <i class="fas fa-print" aria-hidden="true"></i>
-                        Imprimer
-                    </button>
-                </div>
-            </div>
-        </div>
+        <?php cm_toolbar([
+            'screen' => 'processus_validation',
+            'id_prefix' => 'cmProcess',
+            'search_value' => $_GET['search'] ?? '',
+            'limit' => $perPage,
+            'allowed_limits' => $allowedLimits,
+            'can_delete' => canDelete(),
+            'can_view' => canView(),
+        ]); ?>
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
                 <table class="cm-data-table" id="cmProcessTable">

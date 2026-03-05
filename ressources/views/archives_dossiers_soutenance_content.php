@@ -145,6 +145,39 @@ function getTimeAgo($date)
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, .15)
         }
+
+        .filter-section form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 14rem));
+            gap: 0.75rem;
+            align-items: end;
+        }
+
+        .filter-section label {
+            margin-bottom: 0.25rem;
+            font-size: 0.78rem;
+        }
+
+        .filter-section input,
+        .filter-section select {
+            min-height: 34px;
+            padding: 0.4rem 0.65rem;
+            font-size: 0.84rem;
+            border-radius: 10px;
+        }
+
+        .filter-section form .xl\:col-span-6 {
+            grid-column: 1 / -1;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+        }
+
+        .filter-section button,
+        .filter-section a {
+            padding: 0.55rem 1rem;
+            font-size: 0.84rem;
+        }
     </style>
 </head>
 
@@ -260,78 +293,14 @@ function getTimeAgo($date)
                 </div>
             </div>
 
-            <div class="filter-section rounded-lg p-6 mb-8 fade-in">
-
-                <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-                        <select name="statut"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-                            <option value="">Tous les statuts</option>
-                            <option value="valider" <?php echo ($filtres['statut'] ?? '') === 'valider' ? 'selected' : ''; ?>>Validés
-                            </option>
-                            <option value="rejeter" <?php echo ($filtres['statut'] ?? '') === 'rejeter' ? 'selected' : ''; ?>>Rejetés
-                            </option>
-                        </select>
-                    </div>
-
-                    <input type="hidden" name="annee" value="<?php echo htmlspecialchars($_SESSION['global_annee_selected'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Enseignant</label>
-                        <input type="text" name="enseignant"
-                            value="<?php echo htmlspecialchars($filtres['enseignant'] ?? ''); ?>"
-                            placeholder="Nom ou prénom"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Étudiant</label>
-                        <input type="text" name="etudiant"
-                            value="<?php echo htmlspecialchars($filtres['etudiant'] ?? ''); ?>"
-                            placeholder="Nom ou prénom"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date début</label>
-                        <input type="date" name="date_debut" value="<?php echo $filtres['date_debut'] ?? ''; ?>"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date fin</label>
-                        <input type="date" name="date_fin" value="<?php echo $filtres['date_fin'] ?? ''; ?>"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-                    </div>
-
-                    <div class="xl:col-span-6 flex justify-end space-x-4">
-                        <button type="submit"
-                            class="flex items-center bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-search mr-2"></i>
-                            Rechercher
-                        </button>
-                        <a href="?page=archives_dossiers_soutenance"
-                            class="flex items-center bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-times mr-2"></i>
-                            Réinitialiser
-                        </a>
-                    </div>
-                </form>
-            </div>
-
-            <div class="mb-6">
-                <div class="flex justify-between items-center">
-
-                    <div class="flex items-center space-x-2">
-                        <span class="text-sm text-gray-600">Affichage :</span>
-                        <select id="displayMode" class="px-3 py-1 border border-gray-300 rounded-md text-sm">
-                            <option value="cards">Cartes</option>
-                            <option value="table">Tableau</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
+        <?php cm_toolbar([
+            'screen' => 'archives_dossiers_soutenance',
+            'id_prefix' => 'archives',
+            'search_value' => $_GET['search'] ?? '',
+            'limit' => 10,
+            'can_delete' => canDelete(),
+            'can_view' => canView(),
+        ]); ?>
 
             <div id="cardsView" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 <?php if (!empty($rapportsArchives)): ?>

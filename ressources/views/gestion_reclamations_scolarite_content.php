@@ -149,59 +149,15 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             </div>
         </form>
     </div>
-    <div class="cm-barre-intermediaire">
-        <div class="cm-toolbar">
-            <div class="cm-toolbar-left">
-                <label for="cmReclamationsLimit"><strong>Afficher:</strong></label>
-                <select id="cmReclamationsLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
-                    <?php foreach ($allowedLimits as $limit): ?>
-                        <option value="<?php echo $limit; ?>" <?php echo $limit === $reclamationsPerPage ? 'selected' : ''; ?>>
-                            <?php echo $limit; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <label for="cmFilterStatutRec"><strong>Statut:</strong></label>
-                <select id="cmFilterStatutRec" class="cm-form-control cm-form-select is-sm cm-toolbar-field-md">
-                    <option value="">Tous</option>
-                    <option value="en attente">En attente</option>
-                    <option value="en cours">En cours</option>
-                    <option value="résolue">Résolue</option>
-                    <option value="rejetée">Rejetée</option>
-                </select>
-                <label for="cmFilterDateRec"><strong>Date:</strong></label>
-                <input type="date" id="cmFilterDateRec" class="cm-form-control is-sm cm-toolbar-field-lg">
-            </div>
-            <div class="cm-toolbar-center">
-                <input type="text" id="cmSearchReclamation" class="cm-form-control" placeholder="Rechercher (étudiant, objet, numéro)...">
-            </div>
-            <div class="cm-toolbar-right">
-                <button type="button" class="cm-btn is-info is-sm" id="cmSelectAllReclamationsBtn">
-                    <i class="fas fa-check-square" aria-hidden="true"></i>
-                    Tout sélectionner
-                </button>
-                <button type="button" class="cm-btn is-light is-sm" id="cmDeselectAllReclamationsBtn">
-                    <i class="fas fa-square" aria-hidden="true"></i>
-                    Deselectionner
-                </button>
-                <?php if (canDelete()): ?>
-                <button type="button" class="cm-btn is-info is-sm" id="cmDeleteReclamationsBtn" disabled>
-                    <i class="fas fa-trash" aria-hidden="true"></i>
-                    Supprimer (<span id="cmSelectedReclamationsCount">0</span>)
-                </button>
-                <?php endif; ?>
-                <?php if (canView()): ?>
-                <button type="button" class="cm-btn is-info is-sm" id="cmExportReclamation">
-                    <i class="fas fa-file-export" aria-hidden="true"></i>
-                    Exporter
-                </button>
-                <button type="button" class="cm-btn is-info is-sm" id="cmPrintReclamation">
-                    <i class="fas fa-print" aria-hidden="true"></i>
-                    Imprimer
-                </button>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
+    <?php cm_toolbar([
+        'screen' => 'gestion_reclamations_scolarite',
+        'id_prefix' => 'cmReclamations',
+        'search_value' => $_GET['search'] ?? '',
+        'limit' => $reclamationsPerPage,
+        'allowed_limits' => $allowedLimits,
+        'can_delete' => canDelete(),
+        'can_view' => canView(),
+    ]); ?>
     <div class="cm-pole-inferieur">
         <div class="cm-table-wrapper">
             <table class="cm-data-table" id="cmReclamationsTable">

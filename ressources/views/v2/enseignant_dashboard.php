@@ -372,19 +372,6 @@ if ((int) $stats['etudiants_encadres'] === 0) {
     $stats['etudiants_encadres'] = (int) ($GLOBALS['total_etudiants'] ?? 0);
 }
 
-if (empty($activityItems)) {
-    $mesCours = is_array($GLOBALS['mes_cours'] ?? null) ? $GLOBALS['mes_cours'] : [];
-    foreach (array_slice($mesCours, 0, 6) as $cours) {
-        $course = is_array($cours) ? $cours : (array) $cours;
-        $activityItems[] = [
-            'type' => 'info',
-            'icon' => 'fa-book-open',
-            'text' => 'Cours assigne: ' . (string) ($course['nom'] ?? 'Cours'),
-            'time' => '',
-        ];
-    }
-}
-
 // Mapping des icones et couleurs pour les qualites de jury
 $roleIcons = [
     'President' => ['icon' => 'fa-gavel', 'color' => 'primary'],

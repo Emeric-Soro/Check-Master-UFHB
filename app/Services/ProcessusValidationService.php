@@ -103,9 +103,23 @@ class ProcessusValidationService
             return ['sql' => '', 'params' => []];
         }
 
+        if ($this->columnExists('inscriptions', 'id_etudiant') && $this->columnExists('inscriptions', 'id_annee_acad')) {
+            return [
+                'sql' => " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = {$alias}.num_carte_etud AND i.id_annee_acad = :id_annee_acad)",
+                'params' => [':id_annee_acad' => $selectedYearId],
+            ];
+        }
+
+        if ($this->columnExists('etudiants', 'id_annee_acad')) {
+            return [
+                'sql' => " AND {$alias}.id_annee_acad = :id_annee_acad",
+                'params' => [':id_annee_acad' => $selectedYearId],
+            ];
+        }
+
         return [
-            'sql' => " AND {$alias}.id_annee_acad = :id_annee_acad",
-            'params' => [':id_annee_acad' => $selectedYearId],
+            'sql' => '',
+            'params' => [],
         ];
     }
 

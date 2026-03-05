@@ -192,6 +192,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'options' => $niveauxOptions,
                     'selected' => '',
                     'required' => true,
+                    'control_class' => 'cm-field-md',
                 ]);
                 ?>
                 <input type="hidden" name="annee_academique" id="cmAnneeAcademique" value="<?= htmlspecialchars((string) $anneeEcritureId, ENT_QUOTES, 'UTF-8') ?>">
@@ -202,6 +203,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'label' => 'Frais',
                     'readonly' => true,
                     'value' => '',
+                    'control_class' => 'cm-field-md',
                 ]);
                 ?>
             </div>
@@ -224,12 +226,14 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'id' => 'cmIdentifiantDisplay',
                     'label' => 'Identifiant',
                     'readonly' => true,
+                    'control_class' => 'cm-field-md',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'num_carte_display',
                     'id' => 'cmNumCarteDisplay',
                     'label' => 'N° Carte',
                     'readonly' => true,
+                    'control_class' => 'cm-field-md',
                 ]);
                 ?>
             </div>
@@ -241,6 +245,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'id' => 'cmNumVersement',
                     'label' => 'N° Vers.',
                     'readonly' => true,
+                    'control_class' => 'cm-field-sm',
                 ]);
                 cm_component('form/input-date', [
                     'name' => 'date_versement_display',
@@ -248,6 +253,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'label' => 'Date',
                     'value' => date('Y-m-d'),
                     'required' => true,
+                    'control_class' => 'cm-field-sm',
                 ]);
                 cm_component('form/input-number', [
                     'name' => 'montant_versement',
@@ -255,6 +261,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'label' => 'Montant',
                     'required' => true,
                     'min' => 1,
+                    'control_class' => 'cm-field-md',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'reste_a_payer_display',
@@ -262,6 +269,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'label' => 'Reste',
                     'readonly' => true,
                     'value' => '',
+                    'control_class' => 'cm-field-md',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'solde_display',
@@ -269,6 +277,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'label' => 'Solde',
                     'readonly' => true,
                     'value' => '',
+                    'control_class' => 'cm-field-md',
                 ]);
                 cm_component('form/select', [
                     'name' => 'methode_paiement',
@@ -282,12 +291,14 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                         'Mobile Money' => 'Mobile Money',
                         'Wave' => 'Wave',
                     ],
+                    'control_class' => 'cm-field-md',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'num_piece',
                     'id' => 'cmNumPiece',
                     'label' => 'N° M.P',
                     'maxlength' => 30,
+                    'control_class' => 'cm-field-md',
                 ]);
                 ?>
             </div>
@@ -406,7 +417,20 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                         $mode = (string) ($versement['methode_paiement'] ?? '');
                         $numPiece = (string) ($versement['num_piece_mp'] ?? '');
                         $niveauLib = strtolower((string) ($versement['lib_niv_etude'] ?? ''));
+                        $niveauId = (string) ($versement['id_niv_etude'] ?? $versement['id_niveau'] ?? '');
                         $statutPaiement = $soldeVersement <= 0 ? 'solde' : 'partiel';
+                        $modeNormalized = strtolower(trim($mode));
+                        $modeFilterKey = '';
+                        if (strpos($modeNormalized, 'espe') !== false) {
+                            $modeFilterKey = 'especes';
+                        } elseif (strpos($modeNormalized, 'cheq') !== false) {
+                            $modeFilterKey = 'cheque';
+                        } elseif (strpos($modeNormalized, 'vir') !== false) {
+                            $modeFilterKey = 'virement';
+                        } elseif (strpos($modeNormalized, 'mobile') !== false || strpos($modeNormalized, 'wave') !== false) {
+                            $modeFilterKey = 'mobile';
+                        }
+                        $dateVersementRaw = !empty($versement['date_versement']) ? date('Y-m-d', strtotime((string) $versement['date_versement'])) : '';
                         ?>
                         <tr class="cm-data-table__row"
                             data-search="<?php echo htmlspecialchars(strtolower($numEtu . ' ' . $nomPrenom . ' ' . $mode . ' ' . $numPiece), ENT_QUOTES, 'UTF-8'); ?>"
@@ -677,10 +701,14 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             }
         });
     }
-    const searchInput = document.getElementById('cmSearchVersement');
-    const limitSelect = document.getElementById('cmVersementsLimit');
-    const filterNiveau = document.getElementById('cmFiltreNiveau');
-    const filterStatut = document.getElementById('cmFiltreStatut');
+    const toolbarId = 'cmScolarite_toolbar';
+    const searchInput = document.getElementById('cmScolarite_search');
+    const limitSelect = document.getElementById('cmScolarite_limit');
+    const filterNiveau = document.getElementById('cmScolarite_filter_niveau');
+    const filterStatut = document.getElementById('cmScolarite_filter_statut_paiement');
+    const filterMode = document.getElementById('cmScolarite_filter_mode_paiement');
+    const filterDateStart = document.getElementById('cmScolarite_filter_date_versement_debut');
+    const filterDateEnd = document.getElementById('cmScolarite_filter_date_versement_fin');
     const selectAllRowsBtn = document.getElementById('cmSelectAllVersements');
     const deselectAllRowsBtn = document.getElementById('cmDeselectAllVersements');
     const deleteRowsBtn = document.getElementById('cmDeleteVersements');
@@ -704,13 +732,20 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
     };
     const applyFilters = function () {
         const term = (searchInput ? searchInput.value : '').trim().toLowerCase();
-        const niveau = (filterNiveau ? filterNiveau.value : '').trim().toLowerCase();
+        const niveau = (filterNiveau ? filterNiveau.value : '').trim();
         const statut = (filterStatut ? filterStatut.value : '').trim().toLowerCase();
+        const mode = (filterMode ? filterMode.value : '').trim().toLowerCase();
+        const dateStart = (filterDateStart ? filterDateStart.value : '').trim();
+        const dateEnd = (filterDateEnd ? filterDateEnd.value : '').trim();
         rows().forEach(function (row) {
             const matchSearch = term === '' || (row.getAttribute('data-search') || '').indexOf(term) !== -1;
-            const matchNiveau = niveau === '' || (row.getAttribute('data-niveau') || '') === niveau;
+            const matchNiveau = niveau === '' || (row.getAttribute('data-niveau-id') || '') === niveau;
             const matchStatut = statut === '' || (row.getAttribute('data-statut') || '') === statut;
-            row.style.display = matchSearch && matchNiveau && matchStatut ? '' : 'none';
+            const matchMode = mode === '' || (row.getAttribute('data-mode') || '') === mode;
+            const rowDate = row.getAttribute('data-date') || '';
+            const matchDateStart = dateStart === '' || (rowDate !== '' && rowDate >= dateStart);
+            const matchDateEnd = dateEnd === '' || (rowDate !== '' && rowDate <= dateEnd);
+            row.style.display = matchSearch && matchNiveau && matchStatut && matchMode && matchDateStart && matchDateEnd ? '' : 'none';
         });
     };
     if (searchInput) {
@@ -722,14 +757,55 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
     if (filterStatut) {
         filterStatut.addEventListener('change', applyFilters);
     }
-    if (limitSelect) {
-        limitSelect.addEventListener('change', function () {
-            const url = new URL(window.location.href);
-            url.searchParams.set('limit_versements', String(limitSelect.value));
-            url.searchParams.set('page_versements', '1');
-            navigate(url.toString());
-        });
+    if (filterMode) {
+        filterMode.addEventListener('change', applyFilters);
     }
+    if (filterDateStart) {
+        filterDateStart.addEventListener('change', applyFilters);
+    }
+    if (filterDateEnd) {
+        filterDateEnd.addEventListener('change', applyFilters);
+    }
+
+    const isThisToolbarEvent = function (event) {
+        return !!(event && event.detail && event.detail.toolbar && event.detail.toolbar.id === toolbarId);
+    };
+
+    document.addEventListener('cm:toolbar:search', function (event) {
+        if (!isThisToolbarEvent(event)) {
+            return;
+        }
+        event.preventDefault();
+        applyFilters();
+    });
+
+    document.addEventListener('cm:toolbar:filter:apply', function (event) {
+        if (!isThisToolbarEvent(event)) {
+            return;
+        }
+        event.preventDefault();
+        applyFilters();
+    });
+
+    document.addEventListener('cm:toolbar:filter:reset', function (event) {
+        if (!isThisToolbarEvent(event)) {
+            return;
+        }
+        event.preventDefault();
+        applyFilters();
+    });
+
+    document.addEventListener('cm:toolbar:limit:change', function (event) {
+        if (!isThisToolbarEvent(event)) {
+            return;
+        }
+        event.preventDefault();
+        const selectedLimit = event.detail && event.detail.limit ? String(event.detail.limit) : (limitSelect ? String(limitSelect.value) : '10');
+        const url = new URL(window.location.href);
+        url.searchParams.set('limit_versements', selectedLimit);
+        url.searchParams.set('page_versements', '1');
+        navigate(url.toString());
+    });
     const checkAllRows = document.getElementById('cmCheckAllVersements');
     if (checkAllRows) {
         checkAllRows.addEventListener('change', function () {
@@ -796,5 +872,6 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
     }
     syncByStudent();
     updateSelectionState();
+    applyFilters();
 })();
 </script>

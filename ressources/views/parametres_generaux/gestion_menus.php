@@ -192,18 +192,17 @@ function isChecked($v): string
         ?>
 
         <!-- â”€â”€ Barre intermédiaire â”€â”€ -->
-        <?php
-        ob_start();
-        ?>
-        <?php if (!$isEditable): ?>
-            <span class="cm-badge is-light"><i class="fas fa-lock" aria-hidden="true"></i> Lecture seule</span>
-        <?php endif; ?>
-        <?php
-        cm_component('crud/toolbar', [
-                'left_html' => '<span class="cm-text-muted">(Parent: <code>est_sous_page=0</code>, Enfant: <code>est_sous_page=1</code> + <code>page_parente</code>)</span>',
-                'right_html' => (string) ob_get_clean(),
-        ]);
-        ?>
+        <div class="cm-text-muted cm-mb-sm">(Parent: <code>est_sous_page=0</code>, Enfant: <code>est_sous_page=1</code> + <code>page_parente</code>)</div>
+        <?php cm_toolbar([
+            'screen' => 'gestion_menus',
+            'id_prefix' => 'cmMenuToolbar',
+            'search_placeholder' => 'Rechercher un menu, code, libellé...',
+            'show_actions' => false,
+            'show_filters' => false,
+            'custom_actions' => !$isEditable ? [
+                ['tag' => 'button', 'type' => 'button', 'label' => 'Lecture seule', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['disabled' => 'disabled']],
+            ] : [],
+        ]); ?>
 
         <!-- â”€â”€ Pôle inférieur : Table hiérarchique â”€â”€ -->
         <div class="cm-pole-inferieur">

@@ -1,11 +1,24 @@
 <?php
 $actions = is_array($actions ?? null) ? $actions : [];
+$class = trim((string) ($class ?? ''));
+$align = trim((string) ($align ?? ''));
+$dense = !empty($dense);
+$wrapperClass = 'cm-form-buttons';
+if ($dense) {
+    $wrapperClass .= ' is-dense';
+}
+if ($align !== '') {
+    $wrapperClass .= ' is-' . $align;
+}
+if ($class !== '') {
+    $wrapperClass .= ' ' . $class;
+}
 ?>
-<div class="cm-form-buttons">
+<div class="<?= htmlspecialchars($wrapperClass, ENT_QUOTES, 'UTF-8') ?>">
     <?php foreach ($actions as $action): ?>
         <?php
         $tag = strtolower((string) ($action['tag'] ?? 'button'));
-        $class = (string) ($action['class'] ?? 'cm-btn is-info');
+        $actionClass = (string) ($action['class'] ?? 'cm-btn is-info is-sm');
         $label = (string) ($action['label'] ?? 'Action');
         $icon = (string) ($action['icon'] ?? '');
         $type = (string) ($action['type'] ?? 'button');
@@ -14,12 +27,12 @@ $actions = is_array($actions ?? null) ? $actions : [];
         $attrsString = function_exists('cm_form_attr_string') ? cm_form_attr_string($attrs) : '';
         ?>
         <?php if ($tag === 'a'): ?>
-        <a class="<?= htmlspecialchars($class, ENT_QUOTES, 'UTF-8') ?>" href="<?= htmlspecialchars($href, ENT_QUOTES, 'UTF-8') ?>"<?= $attrsString ?>>
+        <a class="<?= htmlspecialchars($actionClass, ENT_QUOTES, 'UTF-8') ?>" href="<?= htmlspecialchars($href, ENT_QUOTES, 'UTF-8') ?>"<?= $attrsString ?>>
             <?php if ($icon !== ''): ?><i class="fas <?= htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i><?php endif; ?>
             <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
         </a>
         <?php else: ?>
-        <button class="<?= htmlspecialchars($class, ENT_QUOTES, 'UTF-8') ?>" type="<?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?>"<?= $attrsString ?>>
+        <button class="<?= htmlspecialchars($actionClass, ENT_QUOTES, 'UTF-8') ?>" type="<?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?>"<?= $attrsString ?>>
             <?php if ($icon !== ''): ?><i class="fas <?= htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i><?php endif; ?>
             <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
         </button>

@@ -83,28 +83,6 @@ include_once __DIR__ . '/../app/utils/PaginationHelper.php';
 
 use CheckMaster\Security\RoutePermissionService;
 
-include __DIR__ . '/menu.php';
-include __DIR__ . '/../ressources/routes/gestionUtilisateurRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionRhRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionDashboardRoutes.php';
-include __DIR__ . '/../ressources/routes/dashboardEnseignantRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionScolariteRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionNotesRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionCandidaturesRoutes.php';
-include __DIR__ . '/../ressources/routes/listeEtudiantsRoutes.php';
-include __DIR__ . '/../ressources/routes/dossierAcademiqueRoutes.php';
-include __DIR__ . '/../ressources/routes/verificationRapportsRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionReclamationsScolariteRoutes.php';
-include __DIR__ . '/../ressources/routes/evaluationDossiersRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionDossiersCandidaturesRoutes.php';
-include __DIR__ . '/../ressources/routes/sauvegardeRestaurationRoutes.php';
-include __DIR__ . '/../ressources/routes/notesResultatsRoutes.php';
-include __DIR__ . '/../ressources/routes/archivesDossiersSoutenanceRoutes.php';
-include __DIR__ . '/../ressources/routes/auditRoutes.php';
-include __DIR__ . '/../ressources/routes/criteresEvaluationRoutes.php';
-include __DIR__ . '/../ressources/routes/redactionCompteRenduRoutes.php';
-include __DIR__ . '/../ressources/routes/archivesCompteRenduRoutes.php';
-include __DIR__ . '/../ressources/routes/archiveHistoryRoutes.php';
 if (!isset($_SESSION['id_utilisateur'])) {
     header('Location: page_connexion.php');
     exit;
@@ -158,6 +136,31 @@ if (!isset($_SESSION['id_utilisateur'])) {
             exit;
         }
     }
+}
+
+include __DIR__ . '/menu.php';
+include __DIR__ . '/../ressources/routes/gestionUtilisateurRoutes.php';
+include __DIR__ . '/../ressources/routes/gestionRhRoutes.php';
+include __DIR__ . '/../ressources/routes/gestionDashboardRoutes.php';
+include __DIR__ . '/../ressources/routes/dashboardEnseignantRoutes.php';
+include __DIR__ . '/../ressources/routes/gestionScolariteRoutes.php';
+include __DIR__ . '/../ressources/routes/gestionNotesRoutes.php';
+include __DIR__ . '/../ressources/routes/gestionCandidaturesRoutes.php';
+include __DIR__ . '/../ressources/routes/listeEtudiantsRoutes.php';
+include __DIR__ . '/../ressources/routes/dossierAcademiqueRoutes.php';
+include __DIR__ . '/../ressources/routes/verificationRapportsRoutes.php';
+include __DIR__ . '/../ressources/routes/gestionReclamationsScolariteRoutes.php';
+include __DIR__ . '/../ressources/routes/evaluationDossiersRoutes.php';
+include __DIR__ . '/../ressources/routes/gestionDossiersCandidaturesRoutes.php';
+include __DIR__ . '/../ressources/routes/sauvegardeRestaurationRoutes.php';
+include __DIR__ . '/../ressources/routes/notesResultatsRoutes.php';
+include __DIR__ . '/../ressources/routes/archivesDossiersSoutenanceRoutes.php';
+include __DIR__ . '/../ressources/routes/auditRoutes.php';
+include __DIR__ . '/../ressources/routes/criteresEvaluationRoutes.php';
+include __DIR__ . '/../ressources/routes/redactionCompteRenduRoutes.php';
+include __DIR__ . '/../ressources/routes/archivesCompteRenduRoutes.php';
+include __DIR__ . '/../ressources/routes/archiveHistoryRoutes.php';
+include __DIR__ . '/../ressources/routes/archiveRoutes.php';
 
     $menuController = new MenuController();
 
@@ -239,6 +242,16 @@ if (!isset($_SESSION['id_utilisateur'])) {
                 // Cela remplace le routeur s'il fait défaut
                 $actionsPédagogiques = [
                         'annees_academiques' => 'gestionAnnees',
+                        'app_settings' => 'gestionReferentielSimple',
+                        'genre' => 'gestionReferentielSimple',
+                        'decisions_jury' => 'gestionReferentielSimple',
+                        'etablissement_origine' => 'gestionReferentielSimple',
+                        'session' => 'gestionReferentielSimple',
+                        'mode_paiement' => 'gestionReferentielSimple',
+                        'statut_reclamation' => 'gestionReferentielSimple',
+                        'domaine' => 'gestionReferentielSimple',
+                        'mentions' => 'gestionReferentielSimple',
+                        'filieres' => 'gestionReferentielSimple',
                         'grades' => 'gestionGrade',
                         'fonctions' => 'gestionFonction',
                         'fonction_utilisateur' => 'gestionFonctionUtilisateur',
@@ -247,9 +260,13 @@ if (!isset($_SESSION['id_utilisateur'])) {
                         'ue' => 'gestionUe',
                         'ecue' => 'gestionEcue',
                         'statut_jury' => 'gestionStatutJury',
+                        'qualite_jury' => 'gestionReferentielSimple',
                         'niveaux_approbation' => 'gestionNiveauApprobation',
                         'semestres' => 'gestionSemestre',
                         'niveaux_acces' => 'gestionNiveauAccesDonnees',
+                        'bareme_critere' => 'gestionBaremeCritere',
+                        'maitre_stage' => 'gestionReferentielSimple',
+                        'type_enseignant' => 'gestionReferentielSimple',
                         'traitements' => 'gestionTraitement',
                         'entreprises' => 'gestionEntreprise',
                         'actions' => 'gestionAction',
@@ -525,6 +542,37 @@ if (!isset($_SESSION['id_utilisateur'])) {
             $contentFile = $partialsBasePath . 'redaction_compte_rendu/archives_compte_rendu_content.php';
             $currentPageLabel = 'Archives des comptes rendus';
             break;
+        case 'hub_historique':
+            $currentPageLabel = 'Historique et Archivage';
+            $contentFile = $partialsBasePath . 'v2/archives/hub_historique.php';
+            break;
+        case 'archives_etudiants':
+            $contentFile = $partialsBasePath . 'v2/archives/archives_etudiants.php';
+            break;
+        case 'fiche_etudiant_archive':
+            $contentFile = $partialsBasePath . 'v2/archives/fiche_etudiant_archive.php';
+            break;
+        case 'parcours_etudiant':
+            $contentFile = $partialsBasePath . 'v2/archives/parcours_etudiant.php';
+            break;
+        case 'archives_soutenances':
+            $contentFile = $partialsBasePath . 'v2/archives/archives_soutenances.php';
+            break;
+        case 'fiche_soutenance':
+            $contentFile = $partialsBasePath . 'v2/archives/fiche_soutenance.php';
+            break;
+        case 'archives_jurys':
+            $contentFile = $partialsBasePath . 'v2/archives/archives_jurys.php';
+            break;
+        case 'archives_documents':
+            $contentFile = $partialsBasePath . 'v2/archives/archives_documents.php';
+            break;
+        case 'archives_candidatures':
+            $contentFile = $partialsBasePath . 'v2/archives/archives_candidatures.php';
+            break;
+        case 'archives_reclamations':
+            $contentFile = $partialsBasePath . 'v2/archives/archives_reclamations.php';
+            break;
         case 'admin_historique':
             $action = $_GET['action'] ?? 'index';
             $currentPageLabel = 'Historique et Archivage';
@@ -535,7 +583,12 @@ if (!isset($_SESSION['id_utilisateur'])) {
                 $currentPageLabel = "Résultat de l'import";
                 $contentFile = $partialsBasePath . 'import_result.php';
             } else {
-                $contentFile = $partialsBasePath . 'admin_historique.php';
+                if (!class_exists('ArchiveHubController')) {
+                    require_once __DIR__ . '/../app/controllers/ArchiveHubController.php';
+                }
+                $archiveHubController = new ArchiveHubController();
+                $data = $archiveHubController->index();
+                $contentFile = $partialsBasePath . 'v2/archives/hub_historique.php';
             }
             break;
         case 'repertoire_enseignant':
@@ -581,113 +634,191 @@ if (!isset($_SESSION['id_utilisateur'])) {
         error_log('PAGE DEMANDEE : ' . $_GET['page']);
     }
 
-    // 1. Paramètres GÉNÉRAUX (Structurels)
+    // 1. Paramètres GÉNÉRAUX
     $cardPGeneraux = [
             [
                     'title' => 'Années Académiques',
                     'description' => 'Gestion des périodes.',
                     'link' => '?page=parametres_generaux&action=annees_academiques',
-                    'icon' => './images/date-du-calendrier.png'
+                    'icon' => 'fa-calendar-alt'
+            ],
+            [
+                    'title' => 'App Settings',
+                    'description' => 'Configuration applicative.',
+                    'link' => '?page=parametres_generaux&action=app_settings',
+                    'icon' => 'fa-sliders'
             ],
             [
                     'title' => 'Niveaux d\'Étude',
-                    'description' => 'L1, L2, M1, M2...',
+                    'description' => 'L1, L2, M1, M2.',
                     'link' => '?page=parametres_generaux&action=niveaux_etude',
-                    'icon' => './images/livre.png'
+                    'icon' => 'fa-layer-group'
             ],
             [
                     'title' => 'Semestres',
                     'description' => 'S1, S2...',
                     'link' => '?page=parametres_generaux&action=semestres',
-                    'icon' => './images/diplome.png'
+                    'icon' => 'fa-calendar-check'
             ],
             [
-                    'title' => 'Spécialités',
-                    'description' => 'Filières.',
-                    'link' => '?page=parametres_generaux&action=specialites',
-                    'icon' => './images/marche-de-niche.png'
+                    'title' => 'Genre',
+                    'description' => 'Référentiel des genres.',
+                    'link' => '?page=parametres_generaux&action=genre',
+                    'icon' => 'fa-venus-mars'
+            ],
+            [
+                    'title' => 'Décisions Jury',
+                    'description' => 'Décisions de validation.',
+                    'link' => '?page=parametres_generaux&action=decisions_jury',
+                    'icon' => 'fa-gavel'
+            ],
+            [
+                    'title' => 'Établissement Origine',
+                    'description' => 'Écoles et universités.',
+                    'link' => '?page=parametres_generaux&action=etablissement_origine',
+                    'icon' => 'fa-school'
+            ],
+            [
+                    'title' => 'Session',
+                    'description' => 'Sessions académiques.',
+                    'link' => '?page=parametres_generaux&action=session',
+                    'icon' => 'fa-clock'
+            ],
+            [
+                    'title' => 'Mode Paiement',
+                    'description' => 'Moyens de règlement.',
+                    'link' => '?page=parametres_generaux&action=mode_paiement',
+                    'icon' => 'fa-credit-card'
+            ],
+            [
+                    'title' => 'Statut Réclamation',
+                    'description' => 'États des réclamations.',
+                    'link' => '?page=parametres_generaux&action=statut_reclamation',
+                    'icon' => 'fa-triangle-exclamation'
+            ],
+            [
+                    'title' => 'Domaine',
+                    'description' => 'Domaines de soutenance.',
+                    'link' => '?page=parametres_generaux&action=domaine',
+                    'icon' => 'fa-diagram-project'
+            ],
+            [
+                    'title' => 'Mentions',
+                    'description' => 'Mentions académiques.',
+                    'link' => '?page=parametres_generaux&action=mentions',
+                    'icon' => 'fa-award'
+            ],
+            [
+                    'title' => 'Filières',
+                    'description' => 'Référentiel des filières.',
+                    'link' => '?page=parametres_generaux&action=filieres',
+                    'icon' => 'fa-graduation-cap'
             ],
             [
                     'title' => 'Grades',
                     'description' => 'Grades enseignants.',
                     'link' => '?page=parametres_generaux&action=grades',
-                    'icon' => './images/diplome.png'
+                    'icon' => 'fa-medal'
             ],
             [
-                    'title' => 'Fonctions Personnel',
-                    'description' => 'Rôles administratifs.',
+                    'title' => 'Fonction',
+                    'description' => 'Fonctions du personnel.',
                     'link' => '?page=parametres_generaux&action=fonctions',
-                    'icon' => './images/valise.png'
+                    'icon' => 'fa-briefcase'
             ],
             [
                     'title' => 'Fonctions Utilisateurs',
                     'description' => 'Groupes et types.',
                     'link' => '?page=parametres_generaux&action=fonction_utilisateur&tab=groupes',
-                    'icon' => './images/equipe.png'
+                    'icon' => 'fa-users-cog'
             ],
             [
                     'title' => 'Niveaux d\'Accès',
                     'description' => 'Lecture/Écriture.',
                     'link' => '?page=parametres_generaux&action=niveaux_acces',
-                    'icon' => './images/check.png'
+                    'icon' => 'fa-lock'
             ],
             [
                     'title' => 'Niveaux d\'Approbation',
-                    'description' => 'Workflow.',
+                    'description' => 'Workflow de validation.',
                     'link' => '?page=parametres_generaux&action=niveaux_approbation',
-                    'icon' => './images/check.png'
+                    'icon' => 'fa-sitemap'
             ],
             [
-                    'title' => 'Statuts du Jury',
-                    'description' => 'Rôles jury.',
-                    'link' => '?page=parametres_generaux&action=statut_jury',
-                    'icon' => './images/droit.png'
+                    'title' => 'Qualité Jury',
+                    'description' => 'Rôles et qualité du jury.',
+                    'link' => '?page=parametres_generaux&action=qualite_jury',
+                    'icon' => 'fa-user-shield'
             ]
     ];
 
-    // 2. Paramètres SPÉCIFIQUES (Opérationnels + Menus)
+    // 2. Paramètres SPÉCIFIQUES
     $cardPSpecifiques = [
             [
-                    'title' => 'Critères Évaluation',
-                    'description' => 'Barèmes de soutenance.',
+                    'title' => 'Critères',
+                    'description' => 'Critères d\'évaluation.',
                     'link' => '?page=parametres_specifiques&action=criteres_evaluation',
-                    'icon' => 'fas fa-list-ol'
+                    'icon' => 'fa-list-check'
+            ],
+            [
+                    'title' => 'Barème Critère',
+                    'description' => 'Barèmes par année et critère.',
+                    'link' => '?page=parametres_specifiques&action=bareme_critere',
+                    'icon' => 'fa-scale-balanced'
             ],
             [
                     'title' => 'Salles',
                     'description' => 'Lieux de soutenance.',
                     'link' => '?page=parametres_specifiques&action=salles',
-                    'icon' => './images/door-open.png'
+                    'icon' => 'fa-door-open'
             ],
             [
                     'title' => 'Entreprises',
                     'description' => 'Partenaires de stage.',
                     'link' => '?page=parametres_specifiques&action=entreprises',
-                    'icon' => './images/valise.png'
+                    'icon' => 'fa-building'
+            ],
+            [
+                    'title' => 'Spécialités',
+                    'description' => 'Options et spécialités.',
+                    'link' => '?page=parametres_specifiques&action=specialites',
+                    'icon' => 'fa-user-graduate'
+            ],
+            [
+                    'title' => 'Maître de stage',
+                    'description' => 'Référentiel des maîtres de stage.',
+                    'link' => '?page=parametres_specifiques&action=maitre_stage',
+                    'icon' => 'fa-user-tie'
+            ],
+            [
+                    'title' => 'Type Enseignant',
+                    'description' => 'Types d\'enseignants.',
+                    'link' => '?page=parametres_specifiques&action=type_enseignant',
+                    'icon' => 'fa-chalkboard-user'
             ],
             [
                     'title' => 'Gestion des Menus',
                     'description' => 'Structure de navigation.',
                     'link' => '?page=parametres_specifiques&action=gestion_menus',
-                    'icon' => './images/bd.png'
+                    'icon' => 'fa-sitemap'
             ],
             [
-                    'title' => 'Habilitations (Attributions)',
+                    'title' => 'Habilitations',
                     'description' => 'Droits par groupe.',
                     'link' => '?page=parametres_specifiques&action=gestion_attribution',
-                    'icon' => './images/attribution.png'
+                    'icon' => 'fa-key'
             ],
             [
                     'title' => 'Traitements',
                     'description' => 'Actions techniques.',
                     'link' => '?page=parametres_specifiques&action=traitements',
-                    'icon' => './images/bd.png'
+                    'icon' => 'fa-clipboard-list'
             ],
             [
                     'title' => 'Messages Système',
                     'description' => 'Libellés d\'erreurs.',
                     'link' => '?page=parametres_specifiques&action=messages',
-                    'icon' => './images/enveloppe.png'
+                    'icon' => 'fa-envelope'
             ]
     ];
     $cardReclamation = [
@@ -745,7 +876,7 @@ if (!isset($_SESSION['id_utilisateur'])) {
             || $isAdminParamCrud;
     $scriptPath = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
     $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
-}
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -765,6 +896,436 @@ if (!isset($_SESSION['id_utilisateur'])) {
     <link rel="shortcut icon" href="<?php echo htmlspecialchars($publicPrefix . 'image/logo_cm_sbg.png', ENT_QUOTES, 'UTF-8'); ?>" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" rel="stylesheet">
+    <style>
+        .cm-content-area .cm-form-group {
+            min-width: 0;
+        }
+
+        .cm-content-area .cm-form-label {
+            margin-bottom: 0.24rem;
+            line-height: 1.25;
+        }
+
+        .cm-content-area .cm-form-group.cm-field--date,
+        .cm-content-area .cm-form-group.cm-field--select,
+        .cm-content-area .cm-form-group.cm-field--number {
+            max-width: 14rem;
+        }
+
+        .cm-content-area .cm-form-group.cm-field--text {
+            max-width: 18rem;
+        }
+
+        .cm-content-area .cm-form-group.cm-field--email,
+        .cm-content-area .cm-form-group.cm-field--password {
+            max-width: 20rem;
+        }
+
+        .cm-content-area .cm-form-group.cm-field--textarea,
+        .cm-content-area .cm-form-group.cm-field--file,
+        .cm-content-area .cm-form-group.cm-field--select-search {
+            max-width: none;
+        }
+
+        .cm-content-area .cm-crud-wrapper form .cm-grid-2,
+        .cm-content-area .cm-crud-wrapper form .cm-grid-3,
+        .cm-content-area .cm-crud-wrapper form .cm-grid-4,
+        .cm-content-area .cm-crud-wrapper form .cm-grid-5,
+        .cm-content-area .cm-crud-wrapper form .cm-grid-auto,
+        .cm-content-area .cm-pole-superieur form .cm-grid-2,
+        .cm-content-area .cm-pole-superieur form .cm-grid-3,
+        .cm-content-area .cm-pole-superieur form .cm-grid-4,
+        .cm-content-area .cm-pole-superieur form .cm-grid-5,
+        .cm-content-area .cm-pole-superieur form .cm-grid-auto {
+            justify-content: start;
+            gap: 0.55rem 0.75rem;
+        }
+
+        .cm-content-area form .cm-form-control:not(textarea),
+        .cm-content-area form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not(.cm-etu-input):not(.search-input),
+        .cm-content-area form select:not(.cm-etu-select) {
+            min-height: 32px;
+            padding-top: 0.28rem;
+            padding-bottom: 0.28rem;
+            font-size: 0.84rem;
+        }
+
+        .cm-content-area form textarea.cm-form-control,
+        .cm-content-area form textarea:not(.cm-etu-textarea):not(.verification-comment) {
+            min-height: 70px;
+            padding: 0.4rem 0.55rem;
+            font-size: 0.84rem;
+        }
+
+        .cm-content-area form input[type="date"]:not(.cm-etu-input),
+        .cm-content-area form select:not(.cm-etu-select) {
+            max-width: 15rem;
+        }
+
+        .cm-content-area form input[type="number"]:not(.cm-etu-input) {
+            max-width: 11rem;
+        }
+
+        /* Champs compacts pour l'historique/archives */
+        .cm-content-area .cm-prd6-admin-screen form .cm-form-group,
+        .cm-content-area .cm-archive-etudiants form .cm-form-group,
+        .cm-content-area .cm-archive-soutenances form .cm-form-group,
+        .cm-content-area .cm-archives-jurys form .cm-form-group,
+        .cm-content-area .cm-archives-documents form .cm-form-group,
+        .cm-content-area .cm-archives-candidatures form .cm-form-group,
+        .cm-content-area .cm-archives-reclamations form .cm-form-group {
+            width: auto;
+        }
+
+        .cm-content-area .cm-prd6-admin-screen form .cm-form-control:not(textarea),
+        .cm-content-area .cm-prd6-admin-screen form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
+        .cm-content-area .cm-prd6-admin-screen form select,
+        .cm-content-area .cm-archive-etudiants form .cm-form-control:not(textarea),
+        .cm-content-area .cm-archive-etudiants form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
+        .cm-content-area .cm-archive-etudiants form select,
+        .cm-content-area .cm-archive-soutenances form .cm-form-control:not(textarea),
+        .cm-content-area .cm-archive-soutenances form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
+        .cm-content-area .cm-archive-soutenances form select {
+            width: auto;
+            min-width: 10ch;
+            max-width: 24ch;
+        }
+
+        .cm-content-area .cm-prd6-admin-screen .cm-toolbar .cm-toolbar-field-lg {
+            width: auto;
+            min-width: 14ch;
+            max-width: 24ch;
+        }
+
+        .cm-content-area .cm-prd6-admin-screen .cm-toolbar .cm-toolbar-field-md,
+        .cm-content-area .cm-prd6-admin-screen .cm-toolbar .cm-toolbar-field-sm,
+        .cm-content-area .cm-prd6-admin-screen .cm-toolbar .cm-toolbar-field-xs {
+            width: auto;
+            min-width: 8ch;
+            max-width: 14ch;
+        }
+
+        .cm-content-area .cm-prd6-admin-screen form select[name*="niveau"],
+        .cm-content-area .cm-prd6-admin-screen form input[name*="niveau"],
+        .cm-content-area .cm-archive-etudiants form select[name*="niveau"],
+        .cm-content-area .cm-archive-etudiants form input[name*="niveau"],
+        .cm-content-area .cm-archive-soutenances form select[name*="niveau"],
+        .cm-content-area .cm-archive-soutenances form input[name*="niveau"] {
+            min-width: 7ch;
+            max-width: 9ch;
+        }
+
+        /* ── ÉCRAN ÉVALUATION SOUTENANCE ── */
+
+        /* Layout twin: grille à gauche, jury à droite */
+        .cm-eval-twin-panel {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 12.5rem;
+            gap: 0.85rem;
+            align-items: start;
+            margin-top: 0.45rem;
+            margin-bottom: 0.45rem;
+        }
+
+        .cm-eval-criteria-col {
+            min-width: 0;
+        }
+
+        /* Ligne minimale : Soutenance + Salle + Date/heure */
+        .cm-eval-top-row {
+            display: grid;
+            grid-template-columns: minmax(14rem, 1fr) 8.2rem 10.5rem;
+            gap: 0.45rem;
+            align-items: end;
+            margin-bottom: 0.2rem;
+        }
+
+        .cm-eval-top-row .cm-form-group {
+            margin-bottom: 0;
+            max-width: none;
+        }
+
+        .cm-eval-top-row .cm-form-label {
+            font-size: 0.72rem;
+            margin-bottom: 0.1rem;
+        }
+
+        .cm-eval-top-row .cm-form-control,
+        .cm-eval-top-row select,
+        .cm-eval-top-row input[type="text"] {
+            min-height: 28px;
+            height: 28px;
+            padding: 0.18rem 0.4rem;
+            font-size: 0.8rem;
+        }
+
+        .cm-eval-jury-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            width: 100%;
+        }
+
+        /* Encadré grille */
+        .cm-eval-grille-box {
+            border: 1px solid var(--cm-color-border, #d1d5db);
+            border-radius: 6px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .cm-eval-grille-header {
+            background: var(--cm-color-bg-secondary, #f3f4f6);
+            border-bottom: 1px solid var(--cm-color-border, #d1d5db);
+            padding: 0.28rem 0.5rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: var(--cm-color-text, #111827);
+        }
+
+        /* Table critères */
+        .cm-eval-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .cm-eval-table thead tr {
+            background: var(--cm-color-bg-secondary, #f9fafb);
+        }
+
+        .cm-eval-table th,
+        .cm-eval-table td {
+            padding: 0.22rem 0.4rem;
+            border-bottom: 1px solid var(--cm-color-border, #e5e7eb);
+            vertical-align: middle;
+        }
+
+        .cm-eval-table th {
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: var(--cm-color-text-muted, #6b7280);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+        }
+
+        .cm-eval-th--critere { width: 60%; text-align: left; }
+        .cm-eval-th--bareme  { width: 15%; text-align: center; }
+        .cm-eval-th--note    { width: 25%; text-align: left; }
+
+        .cm-eval-td--critere { color: var(--cm-color-text, #111827); }
+        .cm-eval-td--bareme  { text-align: center; color: var(--cm-color-text-muted, #6b7280); }
+        .cm-eval-td--note    { white-space: nowrap; }
+
+        /* Input note dans la table */
+        .cm-eval-note-input {
+            width: 2rem;
+            min-width: 2rem;
+            padding: 0.06rem 0.2rem;
+            font-size: 0.72rem;
+            border: 1px solid var(--cm-color-border, #d1d5db);
+            border-radius: 4px;
+            text-align: right;
+            background: #fff;
+        }
+
+        .cm-eval-note-input.is-invalid {
+            border-color: var(--cm-color-danger, #ef4444);
+            background: #fef2f2;
+        }
+
+        .cm-eval-note-max {
+            margin-left: 0.2rem;
+            font-size: 0.72rem;
+            color: var(--cm-color-text-muted, #6b7280);
+        }
+
+        /* Ligne MOYENNE PONDÉRÉE (tfoot) */
+        .cm-eval-moyenne-row td {
+            background: var(--cm-color-bg-secondary, #f3f4f6);
+            font-size: 0.82rem;
+            border-top: 2px solid var(--cm-color-border, #d1d5db);
+        }
+
+        .cm-eval-moyenne-input {
+            width: 3.1rem;
+            padding: 0.12rem 0.25rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            border: 1px solid var(--cm-color-border, #d1d5db);
+            border-radius: 4px;
+            text-align: right;
+            background: var(--cm-color-bg-secondary, #f3f4f6);
+            color: var(--cm-color-text, #111827);
+        }
+
+        /* Zone sous la table (décision + commentaire + boutons) */
+        .cm-eval-below-table {
+            padding: 0.4rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .cm-eval-decision-row .cm-form-group {
+            margin-bottom: 0;
+            max-width: 9rem;
+        }
+
+        .cm-eval-below-table .cm-form-group {
+            margin-bottom: 0;
+        }
+
+        .cm-eval-below-table .cm-form-buttons {
+            margin-top: 0.1rem;
+            justify-content: flex-end;
+        }
+
+        /* Jury : champs ultra-compacts empilés */
+        .cm-eval-section-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--cm-color-text-muted, #6b7280);
+            margin: 0 0 0.2rem;
+            padding-bottom: 0.12rem;
+            border-bottom: 1px solid var(--cm-color-border, #e5e7eb);
+        }
+
+        .cm-eval-jury-col .cm-form-group {
+            margin-bottom: 0;
+            max-width: none;
+        }
+
+        .cm-eval-jury-col .cm-form-label {
+            font-size: 0.66rem;
+            margin-bottom: 0.1rem;
+            color: var(--cm-color-text-muted, #6b7280);
+        }
+
+        .cm-eval-jury-col .cm-form-control,
+        .cm-eval-jury-col input[type="text"] {
+            width: 100%;
+            font-size: 0.74rem;
+            padding: 0.12rem 0.3rem;
+            min-height: 24px;
+            height: 24px;
+            background: var(--cm-color-bg-secondary, #f9fafb);
+        }
+
+        @media (max-width: 860px) {
+            .cm-eval-twin-panel {
+                grid-template-columns: 1fr;
+            }
+            .cm-eval-top-row {
+                grid-template-columns: repeat(2, minmax(10rem, 1fr));
+            }
+            .cm-eval-top-row .cm-form-group:first-child {
+                grid-column: 1 / -1;
+            }
+            .cm-eval-jury-col {
+                width: 100%;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.35rem 0.55rem;
+            }
+            .cm-eval-jury-col .cm-eval-section-label {
+                grid-column: 1 / -1;
+            }
+        }
+
+        /* Formulaire ajout étudiant : disposition et tailles */
+        .cm-content-area .cm-ajout-etudiant-form {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        /* Ligne 1 : Niveau + Promotion alignés côte à côte, taille fixe */
+        .cm-content-area .cm-ajout-etudiant-form .cm-grid-3 {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 0.75rem 1rem;
+        }
+
+        /* Ligne 2 : 4 champs égaux sur une rangée */
+        .cm-content-area .cm-ajout-etudiant-form .cm-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem 1rem;
+            align-items: end;
+        }
+
+        /* Taille confortable pour tous les champs */
+        .cm-content-area .cm-ajout-etudiant-form .cm-form-control:not(textarea),
+        .cm-content-area .cm-ajout-etudiant-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
+        .cm-content-area .cm-ajout-etudiant-form select {
+            width: 100%;
+            min-height: 36px;
+            font-size: 0.9rem;
+            padding: 0.35rem 0.6rem;
+        }
+
+        /* Niveau : largeur calée sur son contenu */
+        .cm-content-area .cm-ajout-etudiant-form .cm-form-group:has(select[name="id_niveau"]) {
+            width: 9rem;
+            flex-shrink: 0;
+        }
+
+        /* Promotion : un peu plus large */
+        .cm-content-area .cm-ajout-etudiant-form .cm-form-group:has(select[name="promotion_etu"]) {
+            width: 11rem;
+            flex-shrink: 0;
+        }
+
+        /* Date naissance : largeur fixe lisible */
+        .cm-content-area .cm-ajout-etudiant-form .cm-form-group:has(input[name="date_naiss_etu"]) {
+            width: 13rem;
+            flex-shrink: 0;
+        }
+
+        /* Genre : compact */
+        .cm-content-area .cm-ajout-etudiant-form .cm-form-group:has(select[name="genre_etu"]) {
+            width: 11rem;
+            flex-shrink: 0;
+        }
+
+        /* Email : prend le reste */
+        .cm-content-area .cm-ajout-etudiant-form .cm-form-group:has(input[name="email_etu"]) {
+            flex: 1 1 16rem;
+            min-width: 16rem;
+        }
+
+        /* Ligne 3 reprend le même modèle flex */
+        .cm-content-area .cm-ajout-etudiant-form .cm-grid-3 .cm-form-group {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 900px) {
+            .cm-content-area .cm-ajout-etudiant-form .cm-grid-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 560px) {
+            .cm-content-area .cm-ajout-etudiant-form .cm-grid-3,
+            .cm-content-area .cm-ajout-etudiant-form .cm-grid-4 {
+                flex-direction: column;
+                grid-template-columns: 1fr;
+            }
+            .cm-content-area .cm-ajout-etudiant-form .cm-form-group,
+            .cm-content-area .cm-ajout-etudiant-form .cm-form-group:has(select[name="id_niveau"]),
+            .cm-content-area .cm-ajout-etudiant-form .cm-form-group:has(select[name="promotion_etu"]),
+            .cm-content-area .cm-ajout-etudiant-form .cm-form-group:has(input[name="date_naiss_etu"]),
+            .cm-content-area .cm-ajout-etudiant-form .cm-form-group:has(select[name="genre_etu"]) {
+                width: 100%;
+            }
+        }
+    </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/fr.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.12.0/cdn.min.js" defer></script>
@@ -948,4 +1509,3 @@ function injectCsrfIntoPostForms(string $html): string
 
 $__out = ob_get_clean();
 echo injectCsrfIntoPostForms($__out);
-?>

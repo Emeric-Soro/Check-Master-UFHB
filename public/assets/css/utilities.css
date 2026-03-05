@@ -73,6 +73,16 @@
 .cm-relative { position: relative; }
 .cm-absolute { position: absolute; }
 
+/* Field width variable helpers */
+.cm-field-auto { --cm-field-width: auto; --cm-field-min-width: auto; --cm-field-max-width: none; }
+.cm-field-full { --cm-field-width: 100%; --cm-field-min-width: 0; --cm-field-max-width: 100%; }
+.cm-field-unbounded { --cm-field-max-width: none; }
+.cm-field-xs { --cm-field-width: var(--cm-field-width-xs); --cm-field-min-width: var(--cm-field-width-xs); --cm-field-max-width: var(--cm-field-width-xs); }
+.cm-field-sm { --cm-field-width: var(--cm-field-width-sm); --cm-field-min-width: var(--cm-field-width-sm); --cm-field-max-width: var(--cm-field-width-sm); }
+.cm-field-md { --cm-field-width: var(--cm-field-width-md); --cm-field-min-width: var(--cm-field-width-md); --cm-field-max-width: var(--cm-field-width-md); }
+.cm-field-lg { --cm-field-width: var(--cm-field-width-fluid); --cm-field-max-width: var(--cm-field-width-fluid); }
+.cm-field-xl { --cm-field-width: var(--cm-field-width-fluid-wide); --cm-field-max-width: var(--cm-field-width-fluid-wide); }
+
 /* Theme helpers */
 .cm-card {
     border: 1px solid var(--cm-card-border);

@@ -3,6 +3,7 @@
 class Scolarite
 {
     private $db;
+    private $columnExistsCache = [];
 
     public function __construct($db)
     {
@@ -16,6 +17,25 @@ class Scolarite
             $stmt->execute([$tableName]);
             return (bool) $stmt->fetchColumn();
         } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    private function columnExists($tableName, $columnName): bool
+    {
+        $key = strtolower((string) $tableName . '.' . (string) $columnName);
+        if (array_key_exists($key, $this->columnExistsCache)) {
+            return $this->columnExistsCache[$key];
+        }
+
+        try {
+            $stmt = $this->db->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
+            $stmt->execute([(string) $columnName]);
+            $exists = (bool) $stmt->fetchColumn();
+            $this->columnExistsCache[$key] = $exists;
+            return $exists;
+        } catch (Throwable $e) {
+            $this->columnExistsCache[$key] = false;
             return false;
         }
     }
@@ -39,29 +59,40 @@ class Scolarite
 
     private function synchronizeStudentAcademicContext($id_etudiant, $id_niveau, $id_annee_acad): void
     {
-        $yearLabel = $this->getAcademicYearLabelById($id_annee_acad);
+        if (!$this->tableExists('etudiants')) {
+            return;
+        }
+
+        $setParts = [];
+        $params = [':id_etudiant' => (string) $id_etudiant];
+
+        if ($this->columnExists('etudiants', 'id_niveau')) {
+            $setParts[] = "id_niveau = :id_niveau";
+            $params[':id_niveau'] = ($id_niveau === null || (int) $id_niveau <= 0) ? null : (int) $id_niveau;
+        }
+
+        if ($this->columnExists('etudiants', 'id_annee_acad')) {
+            $setParts[] = "id_annee_acad = :id_annee_acad";
+            $params[':id_annee_acad'] = ($id_annee_acad === null || (int) $id_annee_acad <= 0) ? null : (int) $id_annee_acad;
+        }
+
+        if ($this->columnExists('etudiants', 'promotion_etu')) {
+            $setParts[] = "promotion_etu = COALESCE(:promotion_etu, promotion_etu)";
+            $yearLabel = $this->getAcademicYearLabelById($id_annee_acad);
+            $params[':promotion_etu'] = $yearLabel !== '' ? $yearLabel : null;
+        }
+
+        if ($setParts === []) {
+            return;
+        }
+
         $sql = "
             UPDATE etudiants
-            SET id_niveau = :id_niveau,
-                id_annee_acad = :id_annee_acad,
-                promotion_etu = COALESCE(:promotion_etu, promotion_etu)
+            SET " . implode(', ', $setParts) . "
             WHERE num_carte_etud = :id_etudiant
         ";
-
         $stmt = $this->db->prepare($sql);
-        if ($id_niveau === null || (int) $id_niveau <= 0) {
-            $stmt->bindValue(':id_niveau', null, PDO::PARAM_NULL);
-        } else {
-            $stmt->bindValue(':id_niveau', (int) $id_niveau, PDO::PARAM_INT);
-        }
-        if ($id_annee_acad === null || (int) $id_annee_acad <= 0) {
-            $stmt->bindValue(':id_annee_acad', null, PDO::PARAM_NULL);
-        } else {
-            $stmt->bindValue(':id_annee_acad', (int) $id_annee_acad, PDO::PARAM_INT);
-        }
-        $stmt->bindValue(':promotion_etu', $yearLabel !== '' ? $yearLabel : null, $yearLabel !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
-        $stmt->bindValue(':id_etudiant', (string) $id_etudiant, PDO::PARAM_STR);
-        $stmt->execute();
+        $stmt->execute($params);
     }
 
     private function refreshStudentYearBalances($id_etudiant, $id_annee_acad, $id_niveau = null): void

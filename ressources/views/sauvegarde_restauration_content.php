@@ -28,9 +28,14 @@ foreach ($backups as $backup) {
     <?php endif; ?>
 
     <div class="cm-crud-wrapper">
-        <?php
-        ob_start();
-        ?>
+        <?php cm_toolbar([
+            'screen' => 'sauvegarde_restauration',
+            'id_prefix' => 'backupTop',
+            'search_value' => $_GET['search'] ?? '',
+            'limit' => 10,
+            'can_delete' => canDelete(),
+            'can_view' => canView(),
+        ]); ?>
         <?php if (canCreate()): ?>
         <form method="POST" action="?page=sauvegarde_restauration&action=create" data-cm-ajax-form="true">
             <?php cm_component('form/csrf-token'); ?>
@@ -62,18 +67,14 @@ foreach ($backups as $backup) {
         ]);
         ?>
 
-        <?php
-        ob_start();
-        ?>
-        <div class="cm-toolbar__actions">
-            <span class="cm-text-muted">Fichiers: <?= count($rows) ?></span>
-        </div>
-        <?php
-        cm_component('crud/toolbar', [
-            'left_html' => '<span class="cm-text-muted">Historique des sauvegardes SQL</span>',
-            'right_html' => (string) ob_get_clean(),
-        ]);
-        ?>
+        <?php cm_toolbar([
+            'screen' => 'sauvegarde_restauration',
+            'id_prefix' => 'backup',
+            'search_value' => $_GET['search'] ?? '',
+            'limit' => 10,
+            'can_delete' => canDelete(),
+            'can_view' => canView(),
+        ]); ?>
 
         <div class="cm-pole-inferieur">
             <?php

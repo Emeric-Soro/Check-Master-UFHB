@@ -7,14 +7,14 @@ $selectedNiveau = !empty($GLOBALS['selectedNiveau']) ? (int) $GLOBALS['selectedN
 $selectedAnneeAcad = !empty($GLOBALS['selectedAnneeAcad']) ? (int) $GLOBALS['selectedAnneeAcad'] : null;
 $selectedStudent = is_object($GLOBALS['selectedStudent'] ?? null) ? $GLOBALS['selectedStudent'] : null;
 $studentNote = is_object($GLOBALS['studentNote'] ?? null) ? $GLOBALS['studentNote'] : null;
-$activeAnneeId = \AcademicYear::getActiveIdFromSession();
-$activeAnneeLabel = \AcademicYear::getActiveLabelFromSession();
-$selectedAnneeLabel = \AcademicYear::getSelectedLabelFromSession();
-$allYearsSelected = \AcademicYear::isAllSelectedFromSession();
-$globalSelectedAnneeId = \AcademicYear::getSelectedIdFromSession();
-$writableAnneeId = \AcademicYear::getWritableIdFromSession();
-$writableAnneeLabel = \AcademicYear::getWritableLabelFromSession();
-$ecritureAutorisee = \AcademicYear::isWriteAllowedFromSession();
+$activeAnneeId = AcademicYear::getActiveIdFromSession();
+$activeAnneeLabel = AcademicYear::getActiveLabelFromSession();
+$selectedAnneeLabel = AcademicYear::getSelectedLabelFromSession();
+$allYearsSelected = AcademicYear::isAllSelectedFromSession();
+$globalSelectedAnneeId = AcademicYear::getSelectedIdFromSession();
+$writableAnneeId = AcademicYear::getWritableIdFromSession();
+$writableAnneeLabel = AcademicYear::getWritableLabelFromSession();
+$ecritureAutorisee = AcademicYear::isWriteAllowedFromSession();
 $today = date('Y-m-d');
 if ($activeAnneeId === null || $activeAnneeLabel === '') {
     $activeAnneeLabel = date('Y') . '-' . (date('Y') + 1);
@@ -40,7 +40,7 @@ if ($selectedAnneeAcad) {
 }
 if ($displayAnneeLabel === '') {
     $displayAnneeLabel = $allYearsSelected
-        ? \AcademicYear::getAllLabel()
+        ? AcademicYear::getAllLabel()
         : ($writableAnneeLabel !== '' ? $writableAnneeLabel : $activeAnneeLabel);
 }
 $notesList = [];
@@ -77,8 +77,8 @@ foreach ($etudiants as $etu) {
     ];
 }
 $selectedStudentId = $selectedStudent ? (string) ($selectedStudent->num_carte_etud ?? '') : '';
-$m1Value = $studentNote ? (string) ($studentNote->moyenne_M1 ?? '') : '';
-$m2Value = $studentNote ? (string) ($studentNote->moyenne_M2 ?? '') : '';
+$m1Value = $studentNote ? (string) ($studentNote->moyenne_M1 ?? $studentNote->moyenne_m1 ?? '') : '';
+$m2Value = $studentNote ? (string) ($studentNote->moyenne_M2 ?? $studentNote->moyenne_m2 ?? '') : '';
 $formAction = '?page=gestion_notes_evaluations&action=enregistrer_notes';
 if ($selectedNiveau) {
     $formAction .= '&niveau=' . urlencode((string) $selectedNiveau);
@@ -161,6 +161,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                 'label' => 'Niveau',
                 'options' => $niveauOptions,
                 'selected' => (string) ($selectedNiveau ?? ''),
+                'control_class' => 'cm-field-md',
             ]);
             echo '<input type="hidden" name="cm_annee_filter" id="cmAnneeFilter" value="' . htmlspecialchars((string) ($effectiveAnneeId ?? ''), ENT_QUOTES, 'UTF-8') . '">';
             ?>
@@ -179,6 +180,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                     'selected' => $selectedStudentId,
                     'required' => true,
                     'placeholder' => '-- Sélectionner un étudiant --',
+                    'control_class' => 'cm-field-lg',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'num_etu_display',
@@ -186,6 +188,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                     'label' => 'N° Carte',
                     'readonly' => true,
                     'value' => (string) ($selectedStudent->num_carte_etud ?? ''),
+                    'control_class' => 'cm-field-md',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'nom_display',
@@ -193,6 +196,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                     'label' => 'Nom',
                     'readonly' => true,
                     'value' => (string) ($selectedStudent->nom_etu ?? ''),
+                    'control_class' => 'cm-field-lg',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'prenom_display',
@@ -200,6 +204,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                     'label' => 'Prénom',
                     'readonly' => true,
                     'value' => (string) ($selectedStudent->prenom_etu ?? ''),
+                    'control_class' => 'cm-field-lg',
                 ]);
                 cm_component('form/input-number', [
                     'name' => 'moyenne_M1',
@@ -210,6 +215,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                     'max' => 20,
                     'step' => '0.01',
                     'value' => $m1Value,
+                    'control_class' => 'cm-field-xs',
                 ]);
                 cm_component('form/input-number', [
                     'name' => 'moyenne_M2',
@@ -220,6 +226,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                     'max' => 20,
                     'step' => '0.01',
                     'value' => $m2Value,
+                    'control_class' => 'cm-field-xs',
                 ]);
                 ?>
             </div>
@@ -237,45 +244,15 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
             </div>
         </form>
     </div>
-    <div class="cm-barre-intermediaire">
-        <div class="cm-toolbar">
-            <div class="cm-toolbar-left">
-                <label for="cmNotesLimit"><strong>Afficher:</strong></label>
-                <select id="cmNotesLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
-                    <?php foreach ($allowedLimits as $limit): ?>
-                        <option value="<?php echo $limit; ?>" <?php echo $limit === $notesPerPage ? 'selected' : ''; ?>>
-                            <?php echo $limit; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="cm-toolbar-center">
-                <input type="text" id="cmSearchNotes" class="cm-form-control" placeholder="Rechercher un étudiant...">
-            </div>
-            <div class="cm-toolbar-right">
-                <button type="button" class="cm-btn is-info is-sm" id="cmSelectAllNotes">
-                    <i class="fas fa-check-square" aria-hidden="true"></i>
-                    Tout sélectionner
-                </button>
-                <button type="button" class="cm-btn is-light is-sm" id="cmDeselectAllNotes">
-                    <i class="fas fa-square" aria-hidden="true"></i>
-                    Deselectionner
-                </button>
-                <button type="button" class="cm-btn is-info is-sm" id="cmDeleteNotes" disabled>
-                    <i class="fas fa-trash" aria-hidden="true"></i>
-                    Supprimer (<span id="cmSelectedNotesCount">0</span>)
-                </button>
-                <button type="button" class="cm-btn is-info is-sm" id="cmExportNotes">
-                    <i class="fas fa-file-export" aria-hidden="true"></i>
-                    Exporter
-                </button>
-                <button type="button" class="cm-btn is-info is-sm" id="cmPrintNotes">
-                    <i class="fas fa-print" aria-hidden="true"></i>
-                    Imprimer
-                </button>
-            </div>
-        </div>
-    </div>
+    <?php cm_toolbar([
+        'screen' => 'gestion_notes_evaluations',
+        'id_prefix' => 'cmNotes',
+        'search_value' => $_GET['search'] ?? '',
+        'limit' => $notesPerPage,
+        'allowed_limits' => $allowedLimits,
+        'can_delete' => canDelete(),
+        'can_view' => canView(),
+    ]); ?>
     <div class="cm-pole-inferieur">
         <div class="cm-table-wrapper">
             <table class="cm-data-table" id="cmNotesTable">
@@ -308,8 +285,8 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                         $numEtu = (string) ($note->num_carte_etud ?? $note->num_etu ?? '');
                         $nom = (string) ($note->nom_etu ?? '');
                         $prenom = (string) ($note->prenom_etu ?? '');
-                        $m1 = (string) ($note->moyenne_M1 ?? '');
-                        $m2 = (string) ($note->moyenne_M2 ?? '');
+                        $m1 = (string) ($note->moyenne_M1 ?? $note->moyenne_m1 ?? '');
+                        $m2 = (string) ($note->moyenne_M2 ?? $note->moyenne_m2 ?? '');
                         $anneeNoteId = !empty($note->id_annee_acad) ? (int) $note->id_annee_acad : null;
                         $anneeNote = (!empty($note->date_deb) && !empty($note->date_fin))
                             ? date('Y', strtotime((string) $note->date_deb)) . '-' . date('Y', strtotime((string) $note->date_fin))
@@ -464,11 +441,34 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
     }
     window.cmEditNote = function (num, nom, prenom, m1, m2, anneeId, anneeLabel) {
         if (allYearsSelected && anneeId && writableAnneeId && Number(anneeId) !== Number(writableAnneeId)) {
-            window.alert('En mode toutes les années, seules les notes de l\\'année académique active ' + writableAnneeLabel + ' peuvent être modifiées.');
+            window.alert("En mode toutes les années, seules les notes de l'année académique active " + writableAnneeLabel + " peuvent être modifiées.");
             return;
         }
         if (studentHidden) {
             studentHidden.value = num;
+        }
+        const studentWrapper = document.getElementById('cmStudentPicker_wrapper');
+        if (studentWrapper) {
+            const selectedLabel = studentWrapper.querySelector('#cmStudentPicker_selected_label');
+            const options = studentWrapper.querySelectorAll('.cm-select-search__option');
+            let labelText = '';
+            options.forEach(function (opt) {
+                if (opt.dataset.value === num) {
+                    opt.classList.add('is-selected');
+                    opt.setAttribute('aria-selected', 'true');
+                    labelText = opt.dataset.label || '';
+                } else {
+                    opt.classList.remove('is-selected');
+                    opt.setAttribute('aria-selected', 'false');
+                }
+            });
+            if (selectedLabel && labelText) {
+                selectedLabel.textContent = labelText;
+            }
+            const searchInput = studentWrapper.querySelector('.cm-select-search__input');
+            if (searchInput) {
+                searchInput.value = labelText;
+            }
         }
         if (anneeHiddenInput) {
             anneeHiddenInput.value = anneeId || initialFormAnneeId || '';

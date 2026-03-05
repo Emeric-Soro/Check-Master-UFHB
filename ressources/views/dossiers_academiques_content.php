@@ -49,6 +49,37 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Liste des dossiers académiques</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .cm-dossier-filters {
+            gap: 0.65rem;
+        }
+
+        .cm-dossier-filters .cm-form-control,
+        .cm-dossier-grid .cm-form-control {
+            min-height: 32px;
+            padding: 0.3rem 0.55rem;
+            font-size: 0.84rem;
+        }
+
+        .cm-dossier-filters .cm-form-control {
+            max-width: 18rem;
+        }
+
+        .cm-dossier-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 17rem));
+            gap: 0.75rem;
+            align-items: end;
+        }
+
+        .cm-dossier-grid > div {
+            min-width: 0;
+        }
+
+        .cm-dossier-grid input[type="number"] {
+            max-width: 10rem;
+        }
+    </style>
 </head>
 <body class="min-h-screen font-sans" style="background: linear-gradient(135deg, #DFF2FF 0%, #C8E8FF 100%);">
     <div class="max-w-5xl mx-auto py-10 ">
@@ -84,25 +115,14 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                 </div>
             </div>
         <?php endif; ?>
-        <div class="mb-6 flex flex-col md:flex-row md:items-center gap-4">
-            <form method="get" class="flex flex-wrap items-end gap-3 w-full">
-                <input type="hidden" name="page" value="dossiers_academiques">
-                <input type="text" name="search" id="searchInput" style="outline: none;"
-                    placeholder="Rechercher par nom, email, niveau..."
-                    value="<?= htmlspecialchars($_GET['search'] ?? '') ?>"
-                    class="cm-form-control w-full md:w-80">
-                <select name="niveau" style="outline: none;"
-                    class="cm-form-control w-full md:w-64">
-                    <option value="">Tous les niveaux</option>
-                    <?php foreach ($niveaux as $niv): ?>
-                        <option value="<?= htmlspecialchars($niv->id_niv_etude) ?>" <?= $niveauFiltre == $niv->id_niv_etude ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($niv->lib_niv_etude) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="submit" class="cm-btn cm-btn--primary">Filtrer</button>
-            </form>
-        </div>
+        <?php cm_toolbar([
+            'screen' => 'dossiers_academiques',
+            'id_prefix' => 'dossiers',
+            'search_value' => $searchFiltre,
+            'limit' => $itemsPerPage,
+            'can_delete' => canDelete(),
+            'can_view' => canView(),
+        ]); ?>
         <div class="bg-white rounded-xl shadow-lg cm-table-wrapper">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-green-50">
@@ -253,7 +273,7 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                 <!-- Informations personnelles -->
                 <div class="mb-6">
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="cm-dossier-grid grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-gray-700">Adresse</label>
                             <input type="text" name="adresse" id="modalAdresse"
@@ -284,7 +304,7 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                 <!-- Informations académiques -->
                 <div class="mb-6">
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="cm-dossier-grid grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-gray-700">Dernier diplôme</label>
                             <input type="text" name="dernier_diplome" id="modalDernierDiplome"

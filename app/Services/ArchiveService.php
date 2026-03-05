@@ -50,7 +50,7 @@ class ArchiveService
      * }
      */
     public function getIndexData(
-        string $tab = 'students',
+        string $tab = 'vue_ensemble',
         ?string $anneeAcad = null,
         ?string $statut = null,
         ?string $search = null,
@@ -60,7 +60,16 @@ class ArchiveService
         $offset = ($page - 1) * $perPage;
         $data = [];
 
-        if ($tab === 'students') {
+        if ($tab === 'vue_ensemble') {
+            $data['quick_stats'] = [
+                'taux_reussite' => $this->archive->getTauxReussite($anneeAcad),
+                'moyenne_generale' => $this->archive->getMoyenneGenerale($anneeAcad),
+                'jours_soutenance' => $this->archive->getJoursSoutenance($anneeAcad),
+                'total_etudiants' => $this->archive->countStudents($anneeAcad),
+            ];
+            $data['timeline'] = $this->archive->getTimeline($anneeAcad);
+            $data['derniers_etudiants'] = $this->archive->getStudentHistory($anneeAcad, null, null, 5, 0);
+        } elseif ($tab === 'students') {
             $data['students']    = $this->archive->getStudentHistory($anneeAcad, $statut, $search, $perPage, $offset);
             $totalStudents       = $this->archive->countStudents($anneeAcad, $statut, $search);
             $data['totalPages']  = (int) ceil($totalStudents / $perPage);

@@ -163,7 +163,7 @@ class RepertoireEnseignantService
         try {
             $offset = ($page - 1) * $perPage;
 
-            $whereConditions = ["CAST(a.id_enseignant AS CHAR) = :id_enseignant"];
+            $whereConditions = ["a.id_enseignant = :id_enseignant"];
             $params = [':id_enseignant' => $idEnseignant];
 
             if ($annee !== null) {
@@ -251,7 +251,7 @@ class RepertoireEnseignantService
         try {
             $offset = ($page - 1) * $perPage;
 
-            $whereConditions = ["(CAST(a.id_enseignant AS CHAR) = :id_enseignant OR CAST(rd.id_enseignant AS CHAR) = :id_enseignant)"];
+            $whereConditions = ["(a.id_enseignant = :id_enseignant OR rd.id_enseignant = :id_enseignant)"];
             $params = [':id_enseignant' => $idEnseignant];
 
             if ($annee !== null) {
@@ -346,12 +346,12 @@ class RepertoireEnseignantService
 
             $juryExistsSql = "SELECT 1 FROM {$this->getJuryTable()} ej 
                               WHERE ej.num_soutenance = ps.num_soutenance 
-                              AND CAST(ej.id_enseignant AS CHAR) = :id_enseignant";
+                              AND ej.id_enseignant = :id_enseignant";
 
             $affecterExistsSql = "SELECT 1 FROM rapport_etudiants r 
                                   JOIN affecter a ON a.id_rapport = r.id_rapport 
                                   WHERE r.num_etu = ps.num_etud 
-                                  AND CAST(a.id_enseignant AS CHAR) = :id_enseignant 
+                                  AND a.id_enseignant = :id_enseignant 
                                   AND a.role IN ('encadrant', 'directeur')";
 
             $whereConditions[] = "EXISTS ({$juryExistsSql}) OR EXISTS ({$affecterExistsSql})";
@@ -443,7 +443,7 @@ class RepertoireEnseignantService
             $rolesTable = $this->getRolesTable();
             $progTable = $this->getProgrammationTable();
 
-            $whereConditions = ["CAST(ej.id_enseignant AS CHAR) = :id_enseignant"];
+            $whereConditions = ["ej.id_enseignant = :id_enseignant"];
             $params = [':id_enseignant' => $idEnseignant];
 
             if ($annee !== null) {
@@ -503,8 +503,8 @@ class RepertoireEnseignantService
             $countSql = "SELECT COUNT(*) FROM (
                              SELECT ens.id_enseignant
                              FROM enseignants ens
-                             JOIN {$juryTable} ej ON CAST(ej.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
-                             LEFT JOIN affecter a ON CAST(a.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
+                             JOIN {$juryTable} ej ON ej.id_enseignant = ens.id_enseignant
+                             LEFT JOIN affecter a ON a.id_enseignant = ens.id_enseignant
                              LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
                              LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
                              LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
@@ -525,8 +525,8 @@ class RepertoireEnseignantService
                         COUNT(DISTINCT CASE WHEN a.role = 'encadrant' THEN ps2.num_soutenance END) AS nb_soutenances_encadrees,
                         COUNT(DISTINCT CASE WHEN a.role = 'directeur' THEN ps2.num_soutenance END) AS nb_soutenances_dirigees
                     FROM enseignants ens
-                    JOIN {$juryTable} ej ON CAST(ej.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
-                    LEFT JOIN affecter a ON CAST(a.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
+                    JOIN {$juryTable} ej ON ej.id_enseignant = ens.id_enseignant
+                    LEFT JOIN affecter a ON a.id_enseignant = ens.id_enseignant
                     LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
                     LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
                     LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
@@ -639,7 +639,7 @@ class RepertoireEnseignantService
 
         try {
             // --- Rapports ---
-            $w = ["CAST(a.id_enseignant AS CHAR) = :id_enseignant"];
+            $w = ["a.id_enseignant = :id_enseignant"];
             $p = [':id_enseignant' => $idEnseignant];
             if ($annee !== null) { $w[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)"; $p[':id_annee_acad'] = $annee; }
             if ($session !== null) { $w[] = "ps.id_session = :id_session"; $p[':id_session'] = $session; }
@@ -650,7 +650,7 @@ class RepertoireEnseignantService
             $counts['rapports'] = (int) $stmt->fetchColumn();
 
             // --- Comptes-rendus ---
-            $w = ["(CAST(a.id_enseignant AS CHAR) = :id_enseignant OR CAST(rd.id_enseignant AS CHAR) = :id_enseignant)"];
+            $w = ["(a.id_enseignant = :id_enseignant OR rd.id_enseignant = :id_enseignant)"];
             $p = [':id_enseignant' => $idEnseignant];
             if ($annee !== null) { $w[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)"; $p[':id_annee_acad'] = $annee; }
             if ($session !== null) { $w[] = "ps.id_session = :id_session"; $p[':id_session'] = $session; }
@@ -663,8 +663,8 @@ class RepertoireEnseignantService
             // --- Memoires ---
             $progTable = $this->getProgrammationTable();
             $juryTable = $this->getJuryTable();
-            $juryExists = "SELECT 1 FROM {$juryTable} ej WHERE ej.num_soutenance = ps.num_soutenance AND CAST(ej.id_enseignant AS CHAR) = :id_enseignant";
-            $affecterExists = "SELECT 1 FROM rapport_etudiants r JOIN affecter a ON a.id_rapport = r.id_rapport WHERE r.num_etu = ps.num_etud AND CAST(a.id_enseignant AS CHAR) = :id_enseignant AND a.role IN ('encadrant', 'directeur')";
+            $juryExists = "SELECT 1 FROM {$juryTable} ej WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_enseignant = :id_enseignant";
+            $affecterExists = "SELECT 1 FROM rapport_etudiants r JOIN affecter a ON a.id_rapport = r.id_rapport WHERE r.num_etu = ps.num_etud AND a.id_enseignant = :id_enseignant AND a.role IN ('encadrant', 'directeur')";
             $w = ["EXISTS ({$juryExists}) OR EXISTS ({$affecterExists})"];
             $p = [':id_enseignant' => $idEnseignant];
             if ($annee !== null) { $w[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)"; $p[':id_annee_acad'] = $annee; }

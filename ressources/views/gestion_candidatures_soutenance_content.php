@@ -14,7 +14,7 @@ $writableYearLabel = \AcademicYear::getWritableLabelFromSession();
 $writableYearId = \AcademicYear::getWritableIdFromSession();
 $academicYearLabels = [];
 foreach (\AcademicYear::fetchAll(Database::getConnection()) as $academicYear) {
-    $academicYearLabels[(int) ($academicYear['id'] ?? 0)] = (string) ($academicYear['label'] ?? '');
+    $academicYearLabels[(int)($academicYear['id'] ?? 0)] = (string)($academicYear['label'] ?? '');
 }
 
 $statutFiltre = $_GET['statut'] ?? 'all';
@@ -38,33 +38,36 @@ foreach ($candidatures as $c) {
 /**
  * Helper: map statut_candidature (FR) to BEM modifier for cm-cand-status-badge
  */
-function cmCandStatusModifier(string $statut): string {
+function cmCandStatusModifier(string $statut): string
+{
     return match ($statut) {
-        'En attente' => 'is-pending',
-        'Validée', 'validée' => 'is-validated',
-        'Rejetée', 'rejetée' => 'is-rejected',
-        default => 'is-pending',
-    };
+            'En attente' => 'is-pending',
+            'Validée', 'validée' => 'is-validated',
+            'Rejetée', 'rejetée' => 'is-rejected',
+            default => 'is-pending',
+        };
 }
 
 /**
  * Helper: map validation result (FR) to BEM modifier for cm-cand-badge / cm-cand-etape-resume
  */
-function cmCandBadgeModifier(string $validation): string {
+function cmCandBadgeModifier(string $validation): string
+{
     return match ($validation) {
-        'validé' => 'is-validated',
-        'rejeté' => 'is-rejected',
-        default => 'is-pending',
-    };
+            'validé' => 'is-validated',
+            'rejeté' => 'is-rejected',
+            default => 'is-pending',
+        };
 }
 
-function cmCandPromotionLabel(array $candidature, array $academicYearLabels): string {
-    $label = trim((string) ($candidature['promotion_etu'] ?? ''));
+function cmCandPromotionLabel(array $candidature, array $academicYearLabels): string
+{
+    $label = trim((string)($candidature['promotion_etu'] ?? ''));
     if ($label !== '') {
         return $label;
     }
     if (!empty($candidature['id_annee_acad'])) {
-        return $academicYearLabels[(int) $candidature['id_annee_acad']] ?? '-';
+        return $academicYearLabels[(int)$candidature['id_annee_acad']] ?? '-';
     }
     return '-';
 }
@@ -78,7 +81,8 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
             examiné tant qu'il n'a pas complété cette étape.
         </div>
     </div>
-<?php endif; ?>
+<?php
+endif; ?>
 <?php if ($allYearsSelected): ?>
     <div class="cm-alert is-info">
         <div class="cm-alert__content">
@@ -86,7 +90,8 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
             <strong><?php echo htmlspecialchars($writableYearLabel, ENT_QUOTES, 'UTF-8'); ?></strong>.
         </div>
     </div>
-<?php endif; ?>
+<?php
+endif; ?>
 
 <!-- Filtres -->
 <div class="cm-cand-filters">
@@ -99,16 +104,16 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
         <select name="statut" id="statusFilter"
             onchange="document.getElementById('filterForm').submit()">
             <option value="all" <?php if (($_GET['statut'] ?? 'all') === 'all')
-                echo 'selected'; ?>>Tous les
+    echo 'selected'; ?>>Tous les
                 statuts</option>
             <option value="En attente" <?php if (($_GET['statut'] ?? '') === 'En attente')
-                echo 'selected'; ?>>
+    echo 'selected'; ?>>
                 En attente</option>
             <option value="Validée" <?php if (($_GET['statut'] ?? '') === 'Validée')
-                echo 'selected'; ?>>
+    echo 'selected'; ?>>
                 Validée</option>
             <option value="Rejetée" <?php if (($_GET['statut'] ?? '') === 'Rejetée')
-                echo 'selected'; ?>>
+    echo 'selected'; ?>>
                 Rejetée</option>
         </select>
     </form>
@@ -120,7 +125,8 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
         <div class="cm-alert is-info">
             <div class="cm-alert__content">Aucune candidature à afficher</div>
         </div>
-    <?php else: ?>
+    <?php
+else: ?>
         <?php foreach ($candidatures as $candidature): ?>
             <div class="cm-cand-item" data-status="<?php echo $candidature['statut_candidature']; ?>">
                 <div class="cm-cand-info">
@@ -133,112 +139,38 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
                         </span></p>
                 </div>
                 <?php if ($candidature['statut_candidature'] === 'En attente'): ?>
-                    <?php $canExamine = !$allYearsSelected || ((int) ($candidature['id_annee_acad'] ?? 0) === (int) $writableYearId); ?>
+                    <?php $canExamine = !$allYearsSelected || ((int)($candidature['id_annee_acad'] ?? 0) === (int)$writableYearId); ?>
                     <?php if (canEdit() && $canExamine): ?>
                     <button class="cm-cand-btn-examine"
                         onclick="window.location.href='?page=gestion_candidatures_soutenance&examiner=<?php echo $candidature['num_etu']; ?>&etape=1'">
                         Examiner
                     </button>
-                    <?php elseif (canEdit()): ?>
+                    <?php
+            elseif (canEdit()): ?>
                     <button class="cm-cand-btn-examine" type="button" disabled title="Seule l'année active accepte des écritures">
                         Examiner
                     </button>
-                    <?php endif; ?>
-                <?php endif; ?>
+                    <?php
+            endif; ?>
+                <?php
+        endif; ?>
             </div>
-        <?php endforeach; ?>
-    <?php endif; ?>
+        <?php
+    endforeach; ?>
+    <?php
+endif; ?>
 </div>
 
 <!-- Table d'historique des candidatures examinées -->
 <div class="cm-table-wrapper cm-cand-history">
-    <div class="cm-cand-toolbar">
-        <div class="cm-cand-toolbar__actions">
-            <input type="text" id="searchHistoriqueInput" class="cm-cand-toolbar__search"
-                placeholder="Rechercher dans l'historique...">
-            <button class="cm-btn is-light" onclick="printHistoriqueTable()"><i class="fas fa-print"></i>
-                Imprimer</button>
-            <button class="cm-btn is-primary" onclick="exportHistoriqueCSV()"><i class="fas fa-file-csv"></i>
-                Exporter</button>
-        </div>
-    </div>
-    <table class="cm-data-table" id="historiqueCandidaturesTable">
-        <thead>
-            <tr>
-                <th class="cm-data-table__th">Étudiant</th>
-                <th class="cm-data-table__th">Promotion</th>
-                <th class="cm-data-table__th">Statut</th>
-                <th class="cm-data-table__th">Date</th>
-                <th class="cm-data-table__th">Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($candidatures as $candidature): ?>
-                <?php if ($candidature['statut_candidature'] !== 'En attente'): ?>
-                    <tr class="cm-data-table__row">
-                        <td class="cm-data-table__td"><?php echo htmlspecialchars($candidature['nom_etu'] . ' ' . $candidature['prenom_etu']); ?>
-                        </td>
-                        <td class="cm-data-table__td"><?php echo htmlspecialchars(cmCandPromotionLabel($candidature, $academicYearLabels)); ?></td>
-                        <td class="cm-data-table__td"><span
-                                class="cm-cand-status-badge <?php echo cmCandStatusModifier($candidature['statut_candidature']); ?>"><?php echo ucfirst($candidature['statut_candidature']); ?></span>
-                        </td>
-                        <td class="cm-data-table__td"><?php echo date('d/m/Y', strtotime($candidature['date_traitement'] ?? $candidature['date_candidature'])); ?>
-                        </td>
-                        <td class="cm-data-table__td">
-                            <button class="cm-btn is-primary btn-details"
-                                data-idcandidature="<?php echo $candidature['id_candidature']; ?>">Voir
-                                détails</button>
-                            <div id="resume-candidature-<?php echo $candidature['id_candidature']; ?>"
-                                class="cm-hidden">
-                                <?php if (!empty($resumes_candidatures[$candidature['id_candidature']])):
-                                    $resume = $resumes_candidatures[$candidature['id_candidature']]; ?>
-                                    <div class="cm-cand-resume">
-                                        <div
-                                            class="cm-cand-decision <?php echo $resume['decision'] === 'Validée' ? 'is-validated' : 'is-rejected'; ?>">
-
-                                            <p>Date de traitement : <?php echo $resume['date_enregistrement']; ?></p>
-                                            <?php if ($resume['decision'] === 'Validée'): ?>
-                                                <p>🎉 Félicitations ! Candidature validée.</p>
-                                            <?php else: ?>
-                                                <p>❌ Candidature rejetée. Voir détails ci-dessous.</p>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="cm-cand-resume-etapes">
-
-                                            <?php $r = $resume['resume_json']; ?>
-                                            <?php if (!empty($r['scolarite'])): ?>
-                                                <div class="cm-cand-etape-resume <?php echo cmCandBadgeModifier($r['scolarite']['validation']); ?>">
-                                                    <p><strong>Validation :</strong> <span
-                                                            class="cm-cand-badge <?php echo cmCandBadgeModifier($r['scolarite']['validation']); ?>"><?php echo strtoupper($r['scolarite']['validation']); ?></span>
-                                                    </p>
-                                                </div>
-                                            <?php endif; ?>
-                                            <?php if (!empty($r['stage'])): ?>
-                                                <div class="cm-cand-etape-resume <?php echo cmCandBadgeModifier($r['stage']['validation']); ?>">
-                                                    <p><strong>Validation :</strong> <span
-                                                            class="cm-cand-badge <?php echo cmCandBadgeModifier($r['stage']['validation']); ?>"><?php echo strtoupper($r['stage']['validation']); ?></span>
-                                                    </p>
-                                                </div>
-                                            <?php endif; ?>
-                                            <?php if (!empty($r['semestre'])): ?>
-                                                <div class="cm-cand-etape-resume <?php echo cmCandBadgeModifier($r['semestre']['validation']); ?>">
-                                                    <p><strong>Validation :</strong> <span
-                                                            class="cm-cand-badge <?php echo cmCandBadgeModifier($r['semestre']['validation']); ?>"><?php echo strtoupper($r['semestre']['validation']); ?></span>
-                                                    </p>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                <?php else: ?>
-                                    <p>Aucun résumé trouvé pour cet étudiant.</p>
-                                <?php endif; ?>
-                            </div>
-                        </td>
-                    </tr>
-                <?php endif; ?>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
+    <?php cm_toolbar([
+    'screen' => 'gestion_candidatures',
+    'id_prefix' => 'cand_hist',
+    'search_value' => $_GET['search'] ?? '',
+    'limit' => 10,
+    'can_delete' => canDelete(),
+    'can_view' => canView(),
+]); ?>
 </div>
 
 <!-- Modal détails historique -->
@@ -260,10 +192,12 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
 <!-- Modal d'examen -->
 <?php if ($examiner && $etudiantData): ?>
     <div id="examinationModal" class="cm-modal-overlay is-open">
-<?php else: ?>
+<?php
+else: ?>
     <div id="examinationModal" class="cm-modal-overlay">
-<?php endif; ?>
-        <div class="cm-modal<?php echo ($etape == 4 ? ' is-resume-step' : ''); ?>">
+<?php
+endif; ?>
+        <div class="cm-modal<?php echo($etape == 4 ? ' is-resume-step' : ''); ?>">
             <div class="cm-modal__header">
                 <h3 class="cm-modal__title">Examen de candidature</h3>
                 <a href="?page=gestion_candidatures_soutenance" class="cm-modal__close">&times;</a>
@@ -304,39 +238,41 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
                 <?php if ($etapeData): ?>
                     <div class="cm-cand-step-content is-active
                     <?php
-                    if ($etape == 1)
-                        echo 'is-scolarite';
-                    elseif ($etape == 2)
-                        echo 'is-stage';
-                    elseif ($etape == 3)
-                        echo 'is-semestre';
-                    elseif ($etape == 4)
-                        echo 'is-resume';
-                    ?>">
+    if ($etape == 1)
+        echo 'is-scolarite';
+    elseif ($etape == 2)
+        echo 'is-stage';
+    elseif ($etape == 3)
+        echo 'is-semestre';
+    elseif ($etape == 4)
+        echo 'is-resume';
+?>">
                         <div class="cm-cand-info-section">
                             <?php if ($etape == 4): ?>
                                 <!-- Résumé final -->
 
                                 <div class="cm-cand-resume">
                                     <?php
-                                    $decision = 'Validée';
-                                    $rejets = 0;
-                                    foreach ($etapeData as $key => $data) {
-                                        if ($data['validation'] === 'rejeté') {
-                                            $rejets++;
-                                            $decision = 'Rejetée';
-                                        }
-                                    }
-                                    ?>
+        $decision = 'Validée';
+        $rejets = 0;
+        foreach ($etapeData as $key => $data) {
+            if ($data['validation'] === 'rejeté') {
+                $rejets++;
+                $decision = 'Rejetée';
+            }
+        }
+?>
                                     <div class="cm-cand-decision <?php echo $decision === 'Validée' ? 'is-validated' : 'is-rejected'; ?>">
 
                                         <?php if ($decision === 'Validée'): ?>
                                             <p>🎉 Félicitations ! Votre candidature a été validée. Vous pouvez procéder à votre
                                                 soutenance.</p>
-                                        <?php else: ?>
+                                        <?php
+        else: ?>
                                             <p>❌ Votre candidature a été rejetée. Veuillez corriger les problèmes identifiés
                                                 ci-dessous.</p>
-                                        <?php endif; ?>
+                                        <?php
+        endif; ?>
                                     </div>
 
                                     <div class="cm-cand-resume-etapes">
@@ -383,14 +319,17 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
                                             <p><i class="fas fa-check-circle"></i> <strong>Email envoyé avec succès !</strong> Les
                                                 résultats ont été envoyés à l'étudiant.</p>
                                         </div>
-                                    <?php else: ?>
+                                    <?php
+        else: ?>
                                         <div class="cm-cand-email-notice is-info">
                                             <p><i class="fas fa-envelope"></i> Cliquez sur "Envoyer les résultats" pour notifier
                                                 l'étudiant de la décision finale.</p>
                                         </div>
-                                    <?php endif; ?>
+                                    <?php
+        endif; ?>
                                 </div>
-                            <?php else: ?>
+                            <?php
+    else: ?>
                                 <!-- Contenu normal des étapes -->
 
                                 <?php if ($etape == 1): ?>
@@ -410,7 +349,8 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
                                         <strong>Dernier paiement:</strong>
                                         <span><?php echo htmlspecialchars($etapeData['dernierPaiement']); ?></span>
                                     </div>
-                                <?php elseif ($etape == 2): ?>
+                                <?php
+        elseif ($etape == 2): ?>
                                     <div class="cm-cand-info-item">
                                         <strong>Entreprise :</strong>
                                         <span><?php echo htmlspecialchars($etapeData['entreprise']); ?></span>
@@ -427,7 +367,8 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
                                         <strong>Encadrant :</strong>
                                         <span><?php echo htmlspecialchars($etapeData['encadrant']); ?></span>
                                     </div>
-                                <?php elseif ($etape == 3): ?>
+                                <?php
+        elseif ($etape == 3): ?>
                                     <div class="cm-cand-info-item">
                                         <strong>Semestre actuel:</strong>
                                         <span><?php echo htmlspecialchars($etapeData['semestre']); ?></span>
@@ -445,11 +386,14 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
                                             <i class="fas fa-exclamation-triangle"></i>
                                             <strong>Note :</strong> Aucune note n'a été trouvée pour cet étudiant.
                                         </div>
-                                    <?php endif; ?>
-                                <?php endif; ?>
+                                    <?php
+            endif; ?>
+                                <?php
+        endif; ?>
                             </div>
                         </div>
-                    <?php endif; ?>
+                    <?php
+    endif; ?>
             </div>
 
             <div class="cm-modal__footer">
@@ -459,14 +403,16 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
                             class="cm-btn is-light">
                             Précédent
                         </a>
-                    <?php endif; ?>
+                    <?php
+    endif; ?>
 
                     <?php if ($etape < 4): ?>
                         <a href="?page=gestion_candidatures_soutenance&examiner=<?php echo $examiner; ?>&etape=<?php echo $etape + 1; ?>"
                             class="cm-btn is-primary">
                             Suivant
                         </a>
-                    <?php endif; ?>
+                    <?php
+    endif; ?>
                 </div>
                 <div>
                     <?php if ($etape < 4): ?>
@@ -484,7 +430,8 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
                                 <?php echo $etape == 3 ? 'Terminer l\'évaluation' : 'Valider'; ?>
                             </button>
                         </form>
-                    <?php endif; ?>
+                    <?php
+    endif; ?>
                     <?php if ($etape == 4): ?>
                         <form method="post"
                             action="?page=gestion_candidatures_soutenance&action=envoyer_resultats&examiner=<?php echo $examiner; ?>"
@@ -493,8 +440,10 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
                                 <i class="fas fa-envelope"></i> Envoyer les résultats
                             </button>
                         </form>
-                    <?php endif; ?>
-                <?php endif; ?>
+                    <?php
+    endif; ?>
+                <?php
+endif; ?>
                 </div>
             </div>
         </div>
@@ -620,5 +569,5 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
             document.getElementById('stepResume').classList.add('is-resume');
         }
     }
-    highlightActiveStep(<?php echo (int) $etape; ?>);
+    highlightActiveStep(<?php echo (int)$etape; ?>);
 </script>

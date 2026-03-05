@@ -2,6 +2,10 @@
 
 require_once __DIR__ . '/../Services/ProgrammationSoutenanceService.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
+require_once __DIR__ . '/../Services/Document/PlanningGeneratorService.php';
+require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
+require_once __DIR__ . '/../utils/PlanningDataUtils.php';
+require_once __DIR__ . '/../Support/Database.php';
 
 use CheckMaster\Services\ProgrammationSoutenanceService;
 
@@ -75,7 +79,8 @@ class ProgrammationSoutenanceController
                 'success' => true,
                 'data' => $etudiants
             ]);
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(500);
             echo json_encode([
@@ -98,7 +103,8 @@ class ProgrammationSoutenanceController
                 'success' => true,
                 'data' => $enseignants
             ]);
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(500);
             echo json_encode([
@@ -121,7 +127,8 @@ class ProgrammationSoutenanceController
                 'success' => true,
                 'data' => $professeurs
             ]);
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(500);
             echo json_encode([
@@ -144,7 +151,8 @@ class ProgrammationSoutenanceController
                 'success' => true,
                 'data' => $salles
             ]);
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(500);
             echo json_encode([
@@ -167,7 +175,8 @@ class ProgrammationSoutenanceController
                 'success' => true,
                 'data' => $attributions
             ]);
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(500);
             echo json_encode([
@@ -202,7 +211,8 @@ class ProgrammationSoutenanceController
 
             header('Content-Type: application/json');
             echo json_encode($result);
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(400);
             echo json_encode([
@@ -237,7 +247,8 @@ class ProgrammationSoutenanceController
 
             header('Content-Type: application/json');
             echo json_encode($result);
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(400);
             echo json_encode([
@@ -272,7 +283,8 @@ class ProgrammationSoutenanceController
 
             header('Content-Type: application/json');
             echo json_encode($result);
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(400);
             echo json_encode([

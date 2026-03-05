@@ -208,54 +208,15 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
             </div>
         </form>
     </div>
-    <div class="cm-barre-intermediaire">
-        <div class="cm-toolbar">
-            <div class="cm-toolbar-left">
-                <label for="cmCandidaturesLimit"><strong>Afficher:</strong></label>
-                <select id="cmCandidaturesLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
-                    <?php foreach ($allowedLimits as $limit): ?>
-                        <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
-                            <?php echo $limit; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <label for="cmFilterCandStatus"><strong>Statut:</strong></label>
-                <select id="cmFilterCandStatus" class="cm-form-control cm-form-select is-sm cm-toolbar-field-sm">
-                    <option value="">Tous</option>
-                    <option value="en attente">En attente</option>
-                    <option value="validée">Validée</option>
-                    <option value="rejetée">Rejetée</option>
-                </select>
-                <label for="cmFilterCandDate"><strong>Date:</strong></label>
-                <input type="date" id="cmFilterCandDate" class="cm-form-control is-sm cm-toolbar-field-lg">
-            </div>
-            <div class="cm-toolbar-center">
-                <input type="text" id="cmSearchCandidature" class="cm-form-control" placeholder="Rechercher (étudiant, numéro, titre)...">
-            </div>
-            <div class="cm-toolbar-right">
-                <button type="button" class="cm-btn is-info is-sm" id="cmSelectAllCandidatures">
-                    <i class="fas fa-check-square" aria-hidden="true"></i>
-                    Tout sélectionner
-                </button>
-                <button type="button" class="cm-btn is-light is-sm" id="cmDeselectAllCandidatures">
-                    <i class="fas fa-square" aria-hidden="true"></i>
-                    Deselectionner
-                </button>
-                <button type="button" class="cm-btn is-info is-sm" id="cmDeleteCandidatures" disabled>
-                    <i class="fas fa-trash" aria-hidden="true"></i>
-                    Supprimer (<span id="cmSelectedCandidaturesCount">0</span>)
-                </button>
-                <button type="button" class="cm-btn is-info is-sm" id="cmExportCandidatures">
-                    <i class="fas fa-file-export" aria-hidden="true"></i>
-                    Exporter
-                </button>
-                <button type="button" class="cm-btn is-info is-sm" id="cmPrintCandidatures">
-                    <i class="fas fa-print" aria-hidden="true"></i>
-                    Imprimer
-                </button>
-            </div>
-        </div>
-    </div>
+    <?php cm_toolbar([
+        'screen' => 'gestion_dossiers_candidatures',
+        'id_prefix' => 'cmCandidatures',
+        'search_value' => $_GET['search'] ?? '',
+        'limit' => $perPage,
+        'allowed_limits' => $allowedLimits,
+        'can_delete' => canDelete(),
+        'can_view' => canView(),
+    ]); ?>
     <div class="cm-pole-inferieur">
         <div class="cm-table-wrapper">
             <table class="cm-data-table" id="cmCandidaturesTable">
