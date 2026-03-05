@@ -220,7 +220,6 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     'dense' => true,
                     'size' => 'sm',
                     'show_selected_label' => false,
-                    'control_class' => 'cm-field-lg',
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'identifiant_display',
@@ -319,32 +318,62 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             </div>
         </form>
     </div>
-    <?php
-    // Préparer les options de filtres dynamiques
-    $niveauxFilterOptions = ['' => 'Tous'];
-    foreach ($niveauxOptions as $idNiveau => $libelle) {
-        $niveauxFilterOptions[$idNiveau] = $libelle;
-    }
-
-    cm_toolbar([
-        'screen' => 'gestion_scolarite',
-        'id_prefix' => 'cmScolarite',
-        'search_name' => 'search',
-        'search_value' => $_GET['search'] ?? '',
-        'search_placeholder' => 'Rechercher (étudiant, numero, mode)...',
-        'limit' => $versementsParPage,
-        'limit_options' => $allowedLimits,
-        'limit_name' => 'limit_versements',
-        'can_delete' => canDelete(),
-        'can_view' => canView(),
-        'filters' => [
-            ['type' => 'select', 'name' => 'niveau', 'label' => 'Niveau', 'options' => $niveauxFilterOptions],
-            ['type' => 'select', 'name' => 'statut_paiement', 'label' => 'Statut paiement', 'options' => ['' => 'Tous', 'solde' => 'Soldé', 'partiel' => 'Partiel', 'non_solde' => 'Non soldé']],
-            ['type' => 'select', 'name' => 'mode_paiement', 'label' => 'Mode paiement', 'options' => ['' => 'Tous', 'especes' => 'Espèces', 'cheque' => 'Chèque', 'virement' => 'Virement', 'mobile' => 'Mobile Money']],
-            ['type' => 'date_range', 'name' => 'date_versement', 'label' => 'Date de versement'],
-        ],
-    ]);
-    ?>
+    <div class="cm-barre-intermediaire">
+        <div class="cm-toolbar">
+            <div class="cm-toolbar-left">
+                <label for="cmVersementsLimit"><strong>Afficher:</strong></label>
+                <select id="cmVersementsLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
+                    <?php foreach ($allowedLimits as $limit): ?>
+                        <option value="<?php echo $limit; ?>" <?php echo $limit === $versementsParPage ? 'selected' : ''; ?>>
+                            <?php echo $limit; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <label for="cmFiltreNiveau"><strong>Niveau:</strong></label>
+                <select id="cmFiltreNiveau" class="cm-form-control cm-form-select is-sm cm-toolbar-field-md">
+                    <option value="">Tous</option>
+                    <?php foreach ($niveauxOptions as $libelle): ?>
+                        <option value="<?php echo htmlspecialchars(strtolower((string) $libelle), ENT_QUOTES, 'UTF-8'); ?>">
+                            <?php echo htmlspecialchars((string) $libelle, ENT_QUOTES, 'UTF-8'); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <label for="cmFiltreStatut"><strong>Statut:</strong></label>
+                <select id="cmFiltreStatut" class="cm-form-control cm-form-select is-sm cm-toolbar-field-sm">
+                    <option value="">Tous</option>
+                    <option value="solde">Solde</option>
+                    <option value="partiel">Partiel</option>
+                </select>
+            </div>
+            <div class="cm-toolbar-center">
+                <input type="text" id="cmSearchVersement" class="cm-form-control is-sm cm-toolbar-field-lg" placeholder="Rechercher (étudiant, numero, mode)...">
+            </div>
+            <div class="cm-toolbar-right">
+                <button type="button" class="cm-btn is-info is-sm" id="cmSelectAllVersements">
+                    <i class="fas fa-check-square" aria-hidden="true"></i>
+                    Tout sélectionner
+                </button>
+                <button type="button" class="cm-btn is-light is-sm" id="cmDeselectAllVersements">
+                    <i class="fas fa-square" aria-hidden="true"></i>
+                    Deselectionner
+                </button>
+                <button type="button" class="cm-btn is-info is-sm" id="cmDeleteVersements" disabled>
+                    <i class="fas fa-trash" aria-hidden="true"></i>
+                    Supprimer (<span id="cmSelectedVersementsCount">0</span>)
+                </button>
+                <?php if (canView()): ?>
+                <button type="button" class="cm-btn is-info is-sm" id="cmPrintVersements">
+                    <i class="fas fa-print" aria-hidden="true"></i>
+                    Imprimer
+                </button>
+                <button type="button" class="cm-btn is-info is-sm" id="cmExportVersements">
+                    <i class="fas fa-file-export" aria-hidden="true"></i>
+                    Exporter
+                </button>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
     <div class="cm-pole-inferieur">
         <div class="cm-table-wrapper">
             <table class="cm-data-table cm-data-table--compact" id="cmVersementsTable">
@@ -406,10 +435,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                         <tr class="cm-data-table__row"
                             data-search="<?php echo htmlspecialchars(strtolower($numEtu . ' ' . $nomPrenom . ' ' . $mode . ' ' . $numPiece), ENT_QUOTES, 'UTF-8'); ?>"
                             data-niveau="<?php echo htmlspecialchars($niveauLib, ENT_QUOTES, 'UTF-8'); ?>"
-                            data-niveau-id="<?php echo htmlspecialchars($niveauId, ENT_QUOTES, 'UTF-8'); ?>"
-                            data-statut="<?php echo htmlspecialchars($statutPaiement, ENT_QUOTES, 'UTF-8'); ?>"
-                            data-mode="<?php echo htmlspecialchars($modeFilterKey, ENT_QUOTES, 'UTF-8'); ?>"
-                            data-date="<?php echo htmlspecialchars($dateVersementRaw, ENT_QUOTES, 'UTF-8'); ?>">
+                            data-statut="<?php echo htmlspecialchars($statutPaiement, ENT_QUOTES, 'UTF-8'); ?>">
                             <td class="cm-data-table__td cm-data-table__td--check">
                                 <input type="checkbox" class="cm-checkbox cm-row-checkbox">
                             </td>

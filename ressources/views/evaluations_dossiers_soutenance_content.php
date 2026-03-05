@@ -209,15 +209,55 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                 </div>
             </form>
         </div>
-        <?php cm_toolbar([
-            'screen' => 'evaluation_dossiers',
-            'id_prefix' => 'cmEval',
-            'search_value' => $_GET['search'] ?? '',
-            'limit' => $perPage,
-            'allowed_limits' => $allowedLimits,
-            'can_delete' => canDelete(),
-            'can_view' => canView(),
-        ]); ?>
+        <div class="cm-barre-intermediaire">
+            <div class="cm-toolbar">
+                <div class="cm-toolbar-left">
+                    <label for="cmEvalLimit"><strong>Afficher:</strong></label>
+                    <select id="cmEvalLimit"
+                            class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
+                            data-cm-ajax-param="limit_eval_dossiers"
+                            data-cm-ajax-reset-param="page_eval_dossiers"
+                            data-cm-ajax-reset-value="1">
+                        <?php foreach ($allowedLimits as $limit): ?>
+                            <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
+                                <?php echo $limit; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <input type="text" id="cmEvalSearch" class="cm-form-control is-sm cm-toolbar-field-lg" placeholder="Rechercher un dossier...">
+                </div>
+                <div class="cm-toolbar-center">
+                    <button type="button" class="cm-btn is-info is-sm" id="cmEvalSelectAllBtn">
+                        <i class="fas fa-square-check" aria-hidden="true"></i>
+                        Select. tout
+                    </button>
+                    <button type="button" class="cm-btn is-light is-sm" id="cmEvalDeselectBtn">
+                        <i class="fas fa-square" aria-hidden="true"></i>
+                        Deselect.
+                    </button>
+                    <?php if (function_exists('canDelete') ? canDelete() : true): ?>
+                    <button type="button" class="cm-btn is-danger is-sm" id="cmEvalDeleteBtn" disabled>
+                        <i class="fas fa-trash" aria-hidden="true"></i>
+                        Supprimer (0)
+                    </button>
+                    <?php endif; ?>
+                </div>
+                <div class="cm-toolbar-right">
+                    <?php if (function_exists('canView') ? canView() : true): ?>
+                    <button type="button" class="cm-btn is-light is-sm" id="cmEvalExport">
+                        <i class="fas fa-file-export" aria-hidden="true"></i>
+                        Export
+                    </button>
+                    <?php endif; ?>
+                    <?php if (function_exists('canView') ? canView() : true): ?>
+                    <button type="button" class="cm-btn is-light is-sm" id="cmEvalPrint">
+                        <i class="fas fa-print" aria-hidden="true"></i>
+                        Impr.
+                    </button>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
                 <table class="cm-data-table cm-data-table--compact" id="cmEvaluationDossiersTable">

@@ -75,11 +75,11 @@ try {
                         ps.date_soutenance,
                         ps.heure_soutenance,
                         e.num_carte_etud,
-                        CONCAT(e.nom_etu, ' ', e.prenom_etu) AS nom_complet_etudiant,
+                        CONCAT(e.nom_etud, ' ', e.prenom_etud) AS nom_complet_etudiant,
                         ps.theme_soutenance,
                         qj.lib_role,
                         qj.code_qltjury,
-                        s.lib_salle AS nom_salle,
+                        s.nom_salle,
                         sess.lib_session
                     FROM {$juryTable} ej
                     JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance
