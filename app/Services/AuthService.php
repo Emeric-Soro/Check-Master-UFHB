@@ -44,7 +44,7 @@ class AuthService
             $identifier = '-';
         }
         $limiter = new DbRateLimiter($this->db);
-        
+
         if (!$limiter->isAllowed('login', $ip, $identifier)) {
             return ['success' => false, 'message' => 'Trop de tentatives. Veuillez patienter avant de réessayer.'];
         }
@@ -90,12 +90,14 @@ class AuthService
                 $etudiant = $this->etudiantModel->getEtudiantByLogin($infoUtilisateur['nom_utilisateur']);
                 if ($etudiant) {
                     $_SESSION['num_etu'] = $etudiant->num_carte_etud;
+                    $_SESSION['nom_etu'] = $etudiant->nom_etu;
+                    $_SESSION['prenom_etu'] = $etudiant->prenom_etu;
                 }
             }
 
             $this->auditLog->logConnexion($infoUtilisateur['id_utilisateur'], 'utilisateur', 'Succès');
             $limiter->reset('login', $ip, $identifier);
-            
+
             return ['success' => true];
         }
 

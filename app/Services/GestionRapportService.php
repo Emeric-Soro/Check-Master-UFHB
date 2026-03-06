@@ -249,16 +249,24 @@ class GestionRapportService
             return null;
         }
 
-        $entreprise = $this->entrepriseModel->getEntrepriseById($stage_info_raw->nom_entreprise);
+        $entreprise = $this->entrepriseModel->getEntrepriseById($stage_info_raw['id_entreprise']);
+
+        // Construire le nom complet du maître de stage depuis les nouvelles colonnes
+        $encadrantNom = $stage_info_raw['encadrant_nom'] ?? '';
+        $encadrantPrenom = $stage_info_raw['encadrant_prenom'] ?? '';
+        $encadrantComplet = trim($encadrantNom . ' ' . $encadrantPrenom);
+
         return [
-            'nom_entreprise' => $entreprise ? $entreprise->lib_long_entreprise : '',
+            'nom_entreprise' => $stage_info_raw['nom_entreprise'] ?? ($entreprise ? $entreprise->lib_long_entreprise : ''),
             'logo_entreprise' => $entreprise ? ((string) ($entreprise->logo ?? '')) : '',
-            'date_debut_stage' => $stage_info_raw->date_debut_stage,
-            'date_fin_stage' => $stage_info_raw->date_fin_stage,
-            'sujet_stage' => $stage_info_raw->sujet_stage,
-            'encadrant_entreprise' => $stage_info_raw->encadrant_entreprise,
-            'email_encadrant' => $stage_info_raw->email_encadrant,
-            'telephone_encadrant' => $stage_info_raw->telephone_encadrant
+            'date_debut_stage' => $stage_info_raw['date_debut_stage'] ?? '',
+            'date_fin_stage' => $stage_info_raw['date_fin_stage'] ?? '',
+            'sujet_stage' => $stage_info_raw['sujet_stage'] ?? '',
+            'encadrant_nom' => $encadrantNom,
+            'encadrant_prenom' => $encadrantPrenom,
+            'encadrant_entreprise' => $encadrantComplet, // Pour compatibilité avec les vues existantes
+            'encadrant_email' => $stage_info_raw['encadrant_email'] ?? '',
+            'encadrant_telephone' => $stage_info_raw['encadrant_telephone'] ?? ''
         ];
     }
 

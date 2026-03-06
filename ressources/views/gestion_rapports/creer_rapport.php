@@ -9,6 +9,26 @@ $isReadOnly = !empty($GLOBALS['rapportDejaDepose']);
 $numEtu = $_SESSION['num_etu'] ?? '';
 $nomEtu = $_SESSION['nom_etu'] ?? '';
 $prenomEtu = $_SESSION['prenom_etu'] ?? '';
+
+// Fallback : si nom et prénom pas en session, les récupérer depuis la BDD
+if (($nomEtu === '' || $prenomEtu === '') && $numEtu !== '') {
+    try {
+        $db = Database::getConnection();
+        $stmt = $db->prepare("SELECT nom_etu, prenom_etu FROM etudiants WHERE num_carte_etud = :num_etu LIMIT 1");
+        $stmt->execute(['num_etu' => $numEtu]);
+        $etudiantInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($etudiantInfo) {
+            $nomEtu = $etudiantInfo['nom_etu'] ?? '';
+            $prenomEtu = $etudiantInfo['prenom_etu'] ?? '';
+            // Mettre à jour la session pour les prochaines fois
+            $_SESSION['nom_etu'] = $nomEtu;
+            $_SESSION['prenom_etu'] = $prenomEtu;
+        }
+    } catch (Exception $e) {
+        error_log("Erreur récupération nom étudiant : " . $e->getMessage());
+    }
+}
+
 $nomCompletEtu = trim($nomEtu . ' ' . $prenomEtu);
 
 // Infos stage
@@ -25,7 +45,10 @@ if ($themeRapportInitial === '' && isset($stageInfo['sujet_stage'])) {
 }
 
 $nomEntreprise       = (string) ($stageInfo['nom_entreprise'] ?? '');
-$encadrantEntreprise = (string) ($stageInfo['encadrant_entreprise'] ?? '');
+// Construire le nom complet du maitre de stage depuis les nouvelles colonnes
+$encadrantNom = (string) ($stageInfo['encadrant_nom'] ?? '');
+$encadrantPrenom = (string) ($stageInfo['encadrant_prenom'] ?? '');
+$encadrantEntreprise = trim($encadrantNom . ' ' . $encadrantPrenom);
 
 // Année académique
 $anneeAcademique = '';
@@ -358,10 +381,9 @@ if (!function_exists('cm_etu_escape')) {
                         <!-- Theme -->
                         <div class="cm-etu-field">
                             <label class="cm-etu-label" for="titre_theme">Titre du theme <span class="cm-required-star">*</span></label>
-                            <input type="text" id="titre_theme" class="cm-etu-input"
-                                   value="<?= cm_etu_escape($themeRapportInitial) ?>"
+                            <textarea id="titre_theme" class="cm-etu-input" rows="3"
                                    placeholder="Ex: MISE EN PLACE D'UN MODULE D'INTEGRATION..."
-                                    <?= $isReadOnly ? 'readonly' : '' ?> required>
+                                    <?= $isReadOnly ? 'readonly' : '' ?> required><?= cm_etu_escape($themeRapportInitial) ?></textarea>
                         </div>
 
                         <div class="cm-etu-field">
@@ -592,15 +614,11 @@ if (!function_exists('cm_etu_escape')) {
                 (data.sousTitre ? '<p style="font-size: 12pt; font-weight: bold; text-transform: uppercase; margin: 8px 0 0 0; text-align: center;">' + escapeHtml(data.sousTitre).toUpperCase() + '</p>' : '') +
                 '</div>' +
                 '</div>' +
-                '<div style="text-align: center; margin: 30px 0 25px 0;">' +
-                '<p style="font-size: 11pt; margin: 0 0 10px 0;">PRESENTE PAR :</p>' +
-                '<p style="font-size: 11pt; font-weight: bold; margin: 0;">' + escapeHtml(data.civilite) + ' ' + escapeHtml(data.nomEtudiant).toUpperCase() + '</p>' +
-                '</div>' +
                 '<table style="width: 100%; border-collapse: collapse; margin-top: 30px;">' +
                 '<tr>' +
                 '<td style="width: 50%; padding: 20px; border: 2px solid #000; text-align: center; vertical-align: top;">' +
-                '<p style="font-size: 11pt; font-weight: bold; margin: 0 0 15px 0; text-align: center;">ENCADREUR</p>' +
-                '<p style="font-size: 10pt; margin: 0; text-align: center;">' + (escapeHtml(data.encadreur) || '') + '</p>' +
+                '<p style="font-size: 11pt; margin: 0 0 10px 0;">SOUTENU PAR :</p>' +
+                '<p style="font-size: 11pt; font-weight: bold; margin: 0;">' + escapeHtml(data.civilite) + ' ' + escapeHtml(data.nomEtudiant).toUpperCase() + '</p>' +
                 '</td>' +
                 '<td style="width: 50%; padding: 20px; border: 2px solid #000; text-align: center; vertical-align: top;">' +
                 '<p style="font-size: 11pt; font-weight: bold; margin: 0 0 15px 0; text-align: center;">MAITRE DE STAGE</p>' +

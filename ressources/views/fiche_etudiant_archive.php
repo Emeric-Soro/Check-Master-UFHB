@@ -13,12 +13,18 @@ if (!$studentFile) {
 }
 
 // Helper pour les mentions
-function getMention($note) {
-    if ($note === null) return null;
-    if ($note >= 16) return ['text' => 'Très Bien', 'class' => 'cm-badge-purple'];
-    if ($note >= 14) return ['text' => 'Bien', 'class' => 'cm-badge-info'];
-    if ($note >= 12) return ['text' => 'Assez Bien', 'class' => 'cm-badge-success'];
-    if ($note >= 10) return ['text' => 'Passable', 'class' => 'cm-badge-warning'];
+function getMention($note)
+{
+    if ($note === null)
+        return null;
+    if ($note >= 16)
+        return ['text' => 'Très Bien', 'class' => 'cm-badge-purple'];
+    if ($note >= 14)
+        return ['text' => 'Bien', 'class' => 'cm-badge-info'];
+    if ($note >= 12)
+        return ['text' => 'Assez Bien', 'class' => 'cm-badge-success'];
+    if ($note >= 10)
+        return ['text' => 'Passable', 'class' => 'cm-badge-warning'];
     return ['text' => 'Ajourné', 'class' => 'cm-badge-danger'];
 }
 
@@ -83,14 +89,16 @@ foreach ($timeline_steps as $i => $step) {
                     <?php echo htmlspecialchars($studentFile['nom_etu'] . ' ' . $studentFile['prenom_etu']); ?>
                 </h1>
                 <p class="cm-text-gray-500 cm-mt-1">
-                    Matricule: <span class="cm-font-medium"><?php echo htmlspecialchars($studentFile['num_etu']); ?></span>
+                    Matricule: <span
+                        class="cm-font-medium"><?php echo htmlspecialchars($studentFile['num_etu']); ?></span>
                 </p>
                 <p class="cm-text-gray-500">
-                    Année: <span class="cm-font-medium"><?php echo htmlspecialchars($studentFile['soutenance']['annee_academique'] ?? $studentFile['annee_academique'] ?? 'N/A'); ?></span>
+                    Année: <span
+                        class="cm-font-medium"><?php echo htmlspecialchars($studentFile['soutenance']['annee_academique'] ?? $studentFile['annee_academique'] ?? 'N/A'); ?></span>
                 </p>
             </div>
             <div class="cm-text-right">
-                <?php if($mention): ?>
+                <?php if ($mention): ?>
                     <div class="cm-badge <?php echo $mention['class']; ?> cm-text-lg">
                         <i class="fas fa-check-circle cm-mr-1"></i>
                         Diplômé - <?php echo $mention['text']; ?> (<?php echo number_format($soutenanceNote, 2); ?>/20)
@@ -113,10 +121,10 @@ foreach ($timeline_steps as $i => $step) {
         <!-- Timeline -->
         <?php ob_start(); ?>
         <div class="cm-timeline-vertical">
-            <?php foreach($timeline_steps as $i => $step): 
+            <?php foreach ($timeline_steps as $i => $step):
                 $isCompleted = $i <= $lastCompletedIndex;
                 $hasDate = !empty($step['date']) && !str_starts_with($step['date'], '0000-00-00');
-            ?>
+                ?>
                 <div class="cm-timeline-item <?php echo $isCompleted ? 'cm-timeline-completed' : 'cm-timeline-pending'; ?>">
                     <div class="cm-timeline-marker">
                         <i class="fas <?php echo $step['icon']; ?>"></i>
@@ -124,14 +132,14 @@ foreach ($timeline_steps as $i => $step) {
                     <div class="cm-timeline-content">
                         <h4 class="cm-timeline-title">
                             <?php echo htmlspecialchars($step['title']); ?>
-                            <?php if($isCompleted): ?>
+                            <?php if ($isCompleted): ?>
                                 <span class="cm-badge cm-badge-success cm-ml-2">Terminé</span>
                             <?php else: ?>
                                 <span class="cm-badge cm-badge-secondary cm-ml-2">En attente</span>
                             <?php endif; ?>
                         </h4>
                         <p class="cm-timeline-date">
-                            <?php if($hasDate): ?>
+                            <?php if ($hasDate): ?>
                                 <i class="far fa-calendar-alt cm-mr-1"></i>
                                 <?php echo date('d/m/Y', strtotime($step['date'])); ?>
                             <?php else: ?>
@@ -158,16 +166,18 @@ foreach ($timeline_steps as $i => $step) {
                 <?php if (!empty($studentFile['encadrement']['directeur']) || !empty($studentFile['encadrement']['encadrant'])): ?>
                     <?php ob_start(); ?>
                     <dl class="cm-dl">
-                        <?php if(!empty($studentFile['encadrement']['directeur'])): ?>
+                        <?php if (!empty($studentFile['encadrement']['directeur'])): ?>
                             <div class="cm-dl-item">
                                 <dt>Directeur</dt>
-                                <dd><?php echo htmlspecialchars($studentFile['encadrement']['directeur']['nom_enseignant'] . ' ' . $studentFile['encadrement']['directeur']['prenom_enseignant']); ?></dd>
+                                <dd><?php echo htmlspecialchars($studentFile['encadrement']['directeur']['nom_enseignant'] . ' ' . $studentFile['encadrement']['directeur']['prenom_enseignant']); ?>
+                                </dd>
                             </div>
                         <?php endif; ?>
-                        <?php if(!empty($studentFile['encadrement']['encadrant'])): ?>
+                        <?php if (!empty($studentFile['encadrement']['encadrant'])): ?>
                             <div class="cm-dl-item">
                                 <dt>Encadrant</dt>
-                                <dd><?php echo htmlspecialchars($studentFile['encadrement']['encadrant']['nom_enseignant'] . ' ' . $studentFile['encadrement']['encadrant']['prenom_enseignant']); ?></dd>
+                                <dd><?php echo htmlspecialchars($studentFile['encadrement']['encadrant']['nom_enseignant'] . ' ' . $studentFile['encadrement']['encadrant']['prenom_enseignant']); ?>
+                                </dd>
                             </div>
                         <?php endif; ?>
                     </dl>
@@ -190,12 +200,17 @@ foreach ($timeline_steps as $i => $step) {
                         </div>
                         <div class="cm-dl-item">
                             <dt>Maître de stage</dt>
-                            <dd><?php echo htmlspecialchars($studentFile['stage']['encadrant_entreprise'] ?? 'N/A'); ?></dd>
+                            <dd><?php
+                            $maitreNom = $studentFile['stage']['encadrant_nom'] ?? '';
+                            $maitrePrenom = $studentFile['stage']['encadrant_prenom'] ?? '';
+                            $maitreComplet = trim($maitreNom . ' ' . $maitrePrenom);
+                            echo htmlspecialchars($maitreComplet !== '' ? $maitreComplet : 'N/A');
+                            ?></dd>
                         </div>
                         <div class="cm-dl-item">
                             <dt>Période</dt>
                             <dd>
-                                <?php 
+                                <?php
                                 $debut = $studentFile['stage']['date_debut_stage'] ?? null;
                                 $fin = $studentFile['stage']['date_fin_stage'] ?? null;
                                 if ($debut && !str_starts_with($debut, '0000-00-00')) {
@@ -261,11 +276,12 @@ foreach ($timeline_steps as $i => $step) {
                         <?php
                         $juryMembers = explode('|', $studentFile['soutenance']['jury_members']);
                         foreach ($juryMembers as $member):
-                            if (empty(trim($member))) continue;
+                            if (empty(trim($member)))
+                                continue;
                             $parts = explode(':', $member);
                             $name = trim($parts[0] ?? 'N/A');
                             $role = trim($parts[1] ?? 'N/A');
-                        ?>
+                            ?>
                             <div class="cm-dl-item">
                                 <dt><?php echo htmlspecialchars($role); ?></dt>
                                 <dd><?php echo htmlspecialchars($name); ?></dd>
@@ -293,8 +309,8 @@ foreach ($timeline_steps as $i => $step) {
                     <span class="cm-progress-value"><?php echo $m1_avg ? number_format($m1_avg, 2) : 'N/A'; ?></span>
                 </div>
                 <div class="cm-progress-bar">
-                    <div class="cm-progress-fill <?php echo getMention($m1_avg)['class'] ?? 'cm-bg-gray'; ?>" 
-                         style="width: <?php echo $m1_avg ? ($m1_avg/20)*100 : 0; ?>%"></div>
+                    <div class="cm-progress-fill <?php echo getMention($m1_avg)['class'] ?? 'cm-bg-gray'; ?>"
+                        style="width: <?php echo $m1_avg ? ($m1_avg / 20) * 100 : 0; ?>%"></div>
                 </div>
             </div>
 
@@ -302,11 +318,12 @@ foreach ($timeline_steps as $i => $step) {
             <div class="cm-progress-row">
                 <div class="cm-progress-label">
                     <span>Moyenne Master 2 - S1 (Annexe 2)</span>
-                    <span class="cm-progress-value"><?php echo $m2_s1_avg ? number_format($m2_s1_avg, 2) : 'N/A'; ?></span>
+                    <span
+                        class="cm-progress-value"><?php echo $m2_s1_avg ? number_format($m2_s1_avg, 2) : 'N/A'; ?></span>
                 </div>
                 <div class="cm-progress-bar">
-                    <div class="cm-progress-fill <?php echo getMention($m2_s1_avg)['class'] ?? 'cm-bg-gray'; ?>" 
-                         style="width: <?php echo $m2_s1_avg ? ($m2_s1_avg/20)*100 : 0; ?>%"></div>
+                    <div class="cm-progress-fill <?php echo getMention($m2_s1_avg)['class'] ?? 'cm-bg-gray'; ?>"
+                        style="width: <?php echo $m2_s1_avg ? ($m2_s1_avg / 20) * 100 : 0; ?>%"></div>
                 </div>
             </div>
 
@@ -314,11 +331,12 @@ foreach ($timeline_steps as $i => $step) {
             <div class="cm-progress-row">
                 <div class="cm-progress-label">
                     <span>Note du Mémoire / Soutenance</span>
-                    <span class="cm-progress-value"><?php echo $memo_avg ? number_format($memo_avg, 2) : 'N/A'; ?></span>
+                    <span
+                        class="cm-progress-value"><?php echo $memo_avg ? number_format($memo_avg, 2) : 'N/A'; ?></span>
                 </div>
                 <div class="cm-progress-bar">
-                    <div class="cm-progress-fill <?php echo getMention($memo_avg)['class'] ?? 'cm-bg-gray'; ?>" 
-                         style="width: <?php echo $memo_avg ? ($memo_avg/20)*100 : 0; ?>%"></div>
+                    <div class="cm-progress-fill <?php echo getMention($memo_avg)['class'] ?? 'cm-bg-gray'; ?>"
+                        style="width: <?php echo $memo_avg ? ($memo_avg / 20) * 100 : 0; ?>%"></div>
                 </div>
             </div>
 
@@ -329,13 +347,14 @@ foreach ($timeline_steps as $i => $step) {
             <div class="cm-progress-row cm-progress-row-highlight">
                 <div class="cm-progress-label">
                     <span class="cm-font-bold">MOYENNE GÉNÉRALE</span>
-                    <span class="cm-progress-value cm-text-xl <?php echo $general_mention['class'] ? str_replace('cm-badge-', 'cm-text-', $general_mention['class']) : 'cm-text-gray'; ?>">
+                    <span
+                        class="cm-progress-value cm-text-xl <?php echo $general_mention['class'] ? str_replace('cm-badge-', 'cm-text-', $general_mention['class']) : 'cm-text-gray'; ?>">
                         <?php echo $general_avg ? number_format($general_avg, 2) : 'N/A'; ?>
                     </span>
                 </div>
                 <div class="cm-progress-bar cm-progress-bar-lg">
-                    <div class="cm-progress-fill <?php echo $general_mention['class'] ?? 'cm-bg-gray'; ?>" 
-                         style="width: <?php echo $general_avg ? ($general_avg/20)*100 : 0; ?>%"></div>
+                    <div class="cm-progress-fill <?php echo $general_mention['class'] ?? 'cm-bg-gray'; ?>"
+                        style="width: <?php echo $general_avg ? ($general_avg / 20) * 100 : 0; ?>%"></div>
                 </div>
             </div>
         </div>
@@ -362,7 +381,8 @@ foreach ($timeline_steps as $i => $step) {
                     <tbody>
                         <?php foreach ($studentFile['soutenance']['notes'] as $note): ?>
                             <tr class="cm-data-table__row">
-                                <td class="cm-data-table__td"><?php echo htmlspecialchars($note['lib_critere'] ?? 'N/A'); ?></td>
+                                <td class="cm-data-table__td"><?php echo htmlspecialchars($note['lib_critere'] ?? 'N/A'); ?>
+                                </td>
                                 <td class="cm-data-table__td cm-font-semibold">
                                     <?php echo htmlspecialchars($note['note']); ?>/20
                                 </td>
@@ -393,23 +413,28 @@ foreach ($timeline_steps as $i => $step) {
                 <div class="cm-grid-2 cm-gap-4">
                     <div class="cm-form-group">
                         <label class="cm-form-label">Nom</label>
-                        <input type="text" name="nom_etu" value="<?php echo htmlspecialchars($studentFile['nom_etu']); ?>" class="cm-input">
+                        <input type="text" name="nom_etu" value="<?php echo htmlspecialchars($studentFile['nom_etu']); ?>"
+                            class="cm-input">
                     </div>
                     <div class="cm-form-group">
                         <label class="cm-form-label">Prénom</label>
-                        <input type="text" name="prenom_etu" value="<?php echo htmlspecialchars($studentFile['prenom_etu']); ?>" class="cm-input">
+                        <input type="text" name="prenom_etu"
+                            value="<?php echo htmlspecialchars($studentFile['prenom_etu']); ?>" class="cm-input">
                     </div>
                 </div>
 
                 <div class="cm-form-group cm-mt-3">
                     <label class="cm-form-label">Email</label>
-                    <input type="email" name="email_etu" value="<?php echo htmlspecialchars($studentFile['email_etu']); ?>" class="cm-input">
+                    <input type="email" name="email_etu" value="<?php echo htmlspecialchars($studentFile['email_etu']); ?>"
+                        class="cm-input">
                 </div>
 
                 <?php if (!empty($studentFile['rapport'])): ?>
                     <div class="cm-form-group cm-mt-3">
                         <label class="cm-form-label">Thème du mémoire</label>
-                        <input type="text" name="theme_rapport" value="<?php echo htmlspecialchars($studentFile['rapport']['theme_rapport'] ?? ''); ?>" class="cm-input">
+                        <input type="text" name="theme_rapport"
+                            value="<?php echo htmlspecialchars($studentFile['rapport']['theme_rapport'] ?? ''); ?>"
+                            class="cm-input">
                     </div>
                     <div class="cm-form-group cm-mt-3">
                         <label class="cm-form-label">Statut de validation</label>
@@ -442,118 +467,135 @@ foreach ($timeline_steps as $i => $step) {
 </div>
 
 <style>
-/* Timeline Design System */
-.cm-timeline-vertical {
-    position: relative;
-    padding-left: var(--cm-space-8);
-}
-.cm-timeline-vertical::before {
-    content: '';
-    position: absolute;
-    left: calc(var(--cm-space-4) - 1px);
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: var(--cm-border);
-}
-.cm-timeline-item {
-    position: relative;
-    padding-bottom: var(--cm-space-6);
-}
-.cm-timeline-marker {
-    position: absolute;
-    left: calc(var(--cm-space-4) * -1 - var(--cm-space-4));
-    width: var(--cm-space-8);
-    height: var(--cm-space-8);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--cm-bg-white);
-    border: 2px solid var(--cm-border);
-    font-size: var(--cm-text-sm);
-}
-.cm-timeline-completed .cm-timeline-marker {
-    border-color: var(--cm-success);
-    color: var(--cm-success);
-    background: var(--cm-success-light);
-}
-.cm-timeline-pending .cm-timeline-marker {
-    border-color: var(--cm-gray-300);
-    color: var(--cm-gray-400);
-}
-.cm-timeline-content {
-    padding-left: var(--cm-space-4);
-}
-.cm-timeline-title {
-    font-weight: 600;
-    margin-bottom: var(--cm-space-1);
-}
-.cm-timeline-date {
-    font-size: var(--cm-text-sm);
-    color: var(--cm-text-muted);
-}
+    /* Timeline Design System */
+    .cm-timeline-vertical {
+        position: relative;
+        padding-left: var(--cm-space-8);
+    }
 
-/* Description List */
-.cm-dl {
-    display: flex;
-    flex-direction: column;
-    gap: var(--cm-space-3);
-}
-.cm-dl-item {
-    display: flex;
-    gap: var(--cm-space-4);
-}
-.cm-dl-item dt {
-    font-weight: 500;
-    color: var(--cm-text-muted);
-    min-width: 120px;
-}
-.cm-dl-item dd {
-    color: var(--cm-text);
-}
+    .cm-timeline-vertical::before {
+        content: '';
+        position: absolute;
+        left: calc(var(--cm-space-4) - 1px);
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--cm-border);
+    }
 
-/* Progress Bars */
-.cm-progress-row {
-    display: flex;
-    flex-direction: column;
-    gap: var(--cm-space-2);
-}
-.cm-progress-label {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.cm-progress-value {
-    font-weight: 600;
-}
-.cm-progress-bar {
-    height: 8px;
-    background: var(--cm-gray-200);
-    border-radius: var(--cm-radius-full);
-    overflow: hidden;
-}
-.cm-progress-bar-lg {
-    height: 12px;
-}
-.cm-progress-fill {
-    height: 100%;
-    border-radius: var(--cm-radius-full);
-    transition: width 0.3s ease;
-}
-.cm-progress-row-highlight {
-    padding-top: var(--cm-space-4);
-    border-top: 1px solid var(--cm-border);
-}
+    .cm-timeline-item {
+        position: relative;
+        padding-bottom: var(--cm-space-6);
+    }
 
-/* Additional badge colors */
-.cm-badge-purple {
-    background: #9333ea;
-    color: white;
-}
+    .cm-timeline-marker {
+        position: absolute;
+        left: calc(var(--cm-space-4) * -1 - var(--cm-space-4));
+        width: var(--cm-space-8);
+        height: var(--cm-space-8);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--cm-bg-white);
+        border: 2px solid var(--cm-border);
+        font-size: var(--cm-text-sm);
+    }
 
-/* Background colors for progress */
-.cm-bg-gray {
-    background: var(--cm-gray-300);
-}
+    .cm-timeline-completed .cm-timeline-marker {
+        border-color: var(--cm-success);
+        color: var(--cm-success);
+        background: var(--cm-success-light);
+    }
+
+    .cm-timeline-pending .cm-timeline-marker {
+        border-color: var(--cm-gray-300);
+        color: var(--cm-gray-400);
+    }
+
+    .cm-timeline-content {
+        padding-left: var(--cm-space-4);
+    }
+
+    .cm-timeline-title {
+        font-weight: 600;
+        margin-bottom: var(--cm-space-1);
+    }
+
+    .cm-timeline-date {
+        font-size: var(--cm-text-sm);
+        color: var(--cm-text-muted);
+    }
+
+    /* Description List */
+    .cm-dl {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cm-space-3);
+    }
+
+    .cm-dl-item {
+        display: flex;
+        gap: var(--cm-space-4);
+    }
+
+    .cm-dl-item dt {
+        font-weight: 500;
+        color: var(--cm-text-muted);
+        min-width: 120px;
+    }
+
+    .cm-dl-item dd {
+        color: var(--cm-text);
+    }
+
+    /* Progress Bars */
+    .cm-progress-row {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cm-space-2);
+    }
+
+    .cm-progress-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .cm-progress-value {
+        font-weight: 600;
+    }
+
+    .cm-progress-bar {
+        height: 8px;
+        background: var(--cm-gray-200);
+        border-radius: var(--cm-radius-full);
+        overflow: hidden;
+    }
+
+    .cm-progress-bar-lg {
+        height: 12px;
+    }
+
+    .cm-progress-fill {
+        height: 100%;
+        border-radius: var(--cm-radius-full);
+        transition: width 0.3s ease;
+    }
+
+    .cm-progress-row-highlight {
+        padding-top: var(--cm-space-4);
+        border-top: 1px solid var(--cm-border);
+    }
+
+    /* Additional badge colors */
+    .cm-badge-purple {
+        background: #9333ea;
+        color: white;
+    }
+
+    /* Background colors for progress */
+    .cm-bg-gray {
+        background: var(--cm-gray-300);
+    }
 </style>

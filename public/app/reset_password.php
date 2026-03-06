@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../app/Core/Autoload.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 use CheckMaster\Core\Session;
 use CheckMaster\Core\Bootstrap;
@@ -186,7 +187,8 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
             <div class="cm-login-card__header">
                 <img src="../image/logo_cm_sbg.png" alt="Logo CheckMaster">
                 <h2>Réinitialisation</h2>
-                <p><?php echo $showResetForm ? 'Définissez votre nouveau mot de passe' : 'Entrez votre email pour recevoir le lien'; ?></p>
+                <p><?php echo $showResetForm ? 'Définissez votre nouveau mot de passe' : 'Entrez votre email pour recevoir le lien'; ?>
+                </p>
             </div>
 
             <?php if ($success !== ''): ?>
@@ -207,21 +209,27 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
 
             <?php if ($showResetForm): ?>
                 <form method="POST" class="cm-login-form" autocomplete="off">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8'); ?>">
-                    <input type="hidden" name="token" value="<?php echo htmlspecialchars($_GET['token'], ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="csrf_token"
+                        value="<?php echo htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="token"
+                        value="<?php echo htmlspecialchars($_GET['token'], ENT_QUOTES, 'UTF-8'); ?>">
 
                     <div class="cm-form-group is-required">
-                        <label for="newPassword" class="cm-form-label">Nouveau mot de passe <span class="cm-required-star">*</span></label>
+                        <label for="newPassword" class="cm-form-label">Nouveau mot de passe <span
+                                class="cm-required-star">*</span></label>
                         <div class="cm-login-input-icon">
-                            <input id="newPassword" name="newPassword" type="password" required class="cm-form-control" placeholder="Votre nouveau mot de passe">
+                            <input id="newPassword" name="newPassword" type="password" required class="cm-form-control"
+                                placeholder="Votre nouveau mot de passe">
                             <i class="fas fa-lock" aria-hidden="true"></i>
                         </div>
                     </div>
 
                     <div class="cm-form-group is-required">
-                        <label for="confirmPassword" class="cm-form-label">Confirmer le mot de passe <span class="cm-required-star">*</span></label>
+                        <label for="confirmPassword" class="cm-form-label">Confirmer le mot de passe <span
+                                class="cm-required-star">*</span></label>
                         <div class="cm-login-input-icon">
-                            <input id="confirmPassword" name="confirmPassword" type="password" required class="cm-form-control" placeholder="Confirmez le mot de passe">
+                            <input id="confirmPassword" name="confirmPassword" type="password" required
+                                class="cm-form-control" placeholder="Confirmez le mot de passe">
                             <i class="fas fa-check" aria-hidden="true"></i>
                         </div>
                     </div>
@@ -230,12 +238,15 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
                 </form>
             <?php elseif ($success === ''): ?>
                 <form method="POST" class="cm-login-form" autocomplete="off">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="csrf_token"
+                        value="<?php echo htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8'); ?>">
 
                     <div class="cm-form-group is-required">
-                        <label for="email" class="cm-form-label">Adresse e-mail <span class="cm-required-star">*</span></label>
+                        <label for="email" class="cm-form-label">Adresse e-mail <span
+                                class="cm-required-star">*</span></label>
                         <div class="cm-login-input-icon">
-                            <input id="email" name="email" type="email" required class="cm-form-control" placeholder="login@exemple.com">
+                            <input id="email" name="email" type="email" required class="cm-form-control"
+                                placeholder="login@exemple.com">
                             <i class="fas fa-envelope" aria-hidden="true"></i>
                         </div>
                     </div>
