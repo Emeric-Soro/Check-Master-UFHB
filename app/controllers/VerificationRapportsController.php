@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/VerificationRapportsService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 class VerificationRapportsController
 {
@@ -38,6 +39,9 @@ class VerificationRapportsController
      */
     public function validerRapport()
     {
+        if (!canEdit('verification_candidatures_soutenance')) {
+            return ['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."];
+        }
         $id_rapport = $_POST['id_rapport'] ?? 0;
         $commentaire = $_POST['commentaire'] ?? '';
 
@@ -49,6 +53,9 @@ class VerificationRapportsController
      */
     public function rejeterRapport()
     {
+        if (!canEdit('verification_candidatures_soutenance')) {
+            return ['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."];
+        }
         $id_rapport = $_POST['id_rapport'] ?? 0;
         $commentaire = $_POST['commentaire'] ?? '';
 

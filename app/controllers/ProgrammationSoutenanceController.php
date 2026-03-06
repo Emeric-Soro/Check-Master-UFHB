@@ -192,7 +192,7 @@ class ProgrammationSoutenanceController
     public function createAttribution()
     {
         try {
-            if (!canCreate()) {
+            if (!canCreate('programmation_soutenance')) {
                 if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                     http_response_code(403);
                     echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -228,7 +228,7 @@ class ProgrammationSoutenanceController
     public function updateAttribution()
     {
         try {
-            if (!canEdit()) {
+            if (!canEdit('programmation_soutenance')) {
                 if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                     http_response_code(403);
                     echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -264,7 +264,7 @@ class ProgrammationSoutenanceController
     public function deleteAttribution()
     {
         try {
-            if (!canDelete()) {
+            if (!canDelete('programmation_soutenance')) {
                 if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                     http_response_code(403);
                     echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);

@@ -228,19 +228,6 @@ if (!function_exists('cm_etu_escape')) {
 <div class="cm-etu-screen cm-etu-editor-screen">
     <section class="cm-etu-panel">
         <!-- Header -->
-        <header class="cm-etu-editor-header">
-            <div>
-                
-                <p class="cm-etu-panel__subtitle">
-                    <?php if ($isEditingExisting): ?>
-                        Mode edition : <?= cm_etu_escape(isset($rapport['nom_rapport']) ? $rapport['nom_rapport'] : 'Rapport') ?>
-                    <?php else: ?>
-                        Approche hybride : Template fixe + Editeur Jodit
-                    <?php endif; ?>
-                </p>
-            </div>
-            <span class="cm-etu-count-badge">Année A.: <?= cm_etu_escape($anneeAcademique) ?></span>
-        </header>
 
         <!-- Top Actions -->
         <div class="cm-etu-actions" style="justify-content: flex-start;">
@@ -466,7 +453,7 @@ if (!function_exists('cm_etu_escape')) {
 </div>
 
 <!-- Preview Modal -->
-<div id="previewModal" class="cm-etu-preview-modal">
+<div id="previewModal" class="cm-legacy-panel cm-etu-preview-modal">
     <div class="cm-etu-preview-modal__dialog">
         <div class="cm-etu-preview-modal__header">
             
@@ -493,7 +480,6 @@ if (!function_exists('cm_etu_escape')) {
         var logoCiv = '<?= $logoCiv ?>';
         var isReadOnly = <?= $isReadOnly ? 'true' : 'false' ?>;
         var isEditMode = <?= $isEditingExisting ? 'true' : 'false' ?>;
-        var minWords = 5000;
 
         var tabBtns         = document.querySelectorAll('.cm-etu-tab-btn');
         var tabPanes        = document.querySelectorAll('.cm-etu-tab-pane');
@@ -834,45 +820,103 @@ if (!function_exists('cm_etu_escape')) {
             pdfLoading.classList.add('is-visible');
             exportBtn.disabled = true;
 
-            var formData = new FormData();
-            formData.append('action', 'export_pdf');
-            formData.append('contenu_rapport', fullContent);
-            formData.append('nom_rapport', nomRapport);
-            formData.append('theme_rapport', document.getElementById('titre_theme').value || 'Theme du rapport');
+            var csrfInput = rapportForm.querySelector('input[name="csrf_token"]');
+            var csrfToken = csrfInput ? csrfInput.value : '';
 
-            fetch(window.location.href, {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-                .then(function (response) {
-                    if (!response.ok) throw new Error('Erreur HTTP: ' + response.status);
-                    var contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/pdf')) {
-                        return response.blob();
-                    } else {
+            // Récupérer l'ID du rapport (depuis URL ou champ caché)
+            function getEditId() {
+                var urlParams = new URLSearchParams(window.location.search);
+                var fromUrl = urlParams.get('edit');
+                if (fromUrl && fromUrl !== '0') return fromUrl;
+                var editIdField = rapportForm.querySelector('input[name="edit_id"]');
+                if (editIdField && editIdField.value && editIdField.value !== '0') return editIdField.value;
+                var payloadField = document.getElementById('payloadReportId');
+                if (payloadField && payloadField.value && payloadField.value !== '0') return payloadField.value;
+                return null;
+            }
+
+            // Lancer l'export PDF avec l'ID connu
+            function doExport(editId) {
+                var formData = new FormData();
+                formData.append('action', 'export_pdf');
+                formData.append('edit_id', editId);
+                formData.append('contenu_rapport', fullContent);
+                formData.append('nom_rapport', nomRapport);
+                formData.append('theme_rapport', document.getElementById('titre_theme').value || 'Theme du rapport');
+                if (csrfToken) { formData.append('csrf_token', csrfToken); }
+
+                return fetch(window.location.href, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(function (response) {
+                        if (!response.ok) throw new Error('Erreur HTTP: ' + response.status);
+                        var contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/pdf')) {
+                            return response.blob();
+                        }
                         return response.text().then(function (text) {
-                            try {
-                                var data = JSON.parse(text);
-                                throw new Error(data.message || 'Erreur lors de la generation du PDF');
-                            } catch (e) {
-                                throw new Error('Erreur serveur: ' + text.substring(0, 200));
-                            }
+                            var data = {};
+                            try { data = JSON.parse(text); } catch (e) {}
+                            throw new Error(data.message || ('Erreur serveur: ' + text.substring(0, 200)));
                         });
-                    }
+                    })
+                    .then(function (blob) {
+                        if (blob.size === 0) throw new Error('Le PDF genere est vide');
+                        var url = window.URL.createObjectURL(blob);
+                        var link = document.createElement('a');
+                        link.href = url;
+                        link.download = nomRapport.replace(/\s+/g, '_') + '.pdf';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(url);
+                        showNotification('success', 'Rapport exporte en PDF avec succes!');
+                    });
+            }
+
+            // Auto-sauvegarder si le rapport n'a pas encore d'ID, puis exporter
+            function saveFirst() {
+                document.getElementById('contenu_rapport').value = fullContent;
+                document.getElementById('cover_data').value = JSON.stringify(getCoverData());
+                document.getElementById('nom_rapport_hidden').value = nomRapport;
+                document.getElementById('theme_rapport_hidden').value = document.getElementById('titre_theme').value || '';
+
+                var saveData = new FormData(rapportForm);
+                saveData.set('action', 'save_rapport');
+
+                return fetch(window.location.href, {
+                    method: 'POST',
+                    body: saveData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 })
-                .then(function (blob) {
-                    if (blob.size === 0) throw new Error('Le PDF genere est vide');
-                    var url = window.URL.createObjectURL(blob);
-                    var link = document.createElement('a');
-                    link.href = url;
-                    link.download = nomRapport.replace(/\s+/g, '_') + '.pdf';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(url);
-                    showNotification('success', 'Rapport exporte en PDF avec succes!');
-                })
+                    .then(function (r) { return r.json(); })
+                    .then(function (result) {
+                        if (!result.success) throw new Error(result.message || 'Echec de la sauvegarde avant export');
+                        var reportId = String(result.rapport_id || '');
+                        if (!reportId || reportId === '0') throw new Error('Impossible de récupérer l\'ID du rapport après sauvegarde.');
+                        // Mettre à jour les champs et l'URL
+                        var editIdField = rapportForm.querySelector('input[name="edit_id"]');
+                        if (editIdField) { editIdField.value = reportId; } else {
+                            var h = document.createElement('input');
+                            h.type = 'hidden'; h.name = 'edit_id'; h.value = reportId;
+                            rapportForm.appendChild(h);
+                        }
+                        document.getElementById('payloadReportId').value = reportId;
+                        var currentUrl = new URL(window.location.href);
+                        currentUrl.searchParams.set('edit', reportId);
+                        window.history.replaceState({}, '', currentUrl.toString());
+                        autosaveStatus.textContent = 'Sauvegardé avant export';
+                        lastSnapshot = snapshot();
+                        return reportId;
+                    });
+            }
+
+            var editId = getEditId();
+            var exportPromise = editId ? doExport(editId) : saveFirst().then(function (id) { return doExport(id); });
+
+            exportPromise
                 .catch(function (error) {
                     console.error('Erreur export PDF:', error);
                     showNotification('error', error.message || 'Erreur lors de l\'export PDF');
@@ -885,14 +929,20 @@ if (!function_exists('cm_etu_escape')) {
 
         // Deposer button
         if (deposerBtn) {
-            deposerBtn.addEventListener('click', function (e) {
+            deposerBtn.addEventListener('click', async function (e) {
                 e.preventDefault();
                 if (isReadOnly) {
                     showNotification('warning', 'Ce rapport a deja ete depose');
                     return;
                 }
 
-                if (!confirm('Etes-vous sur de vouloir deposer ce rapport ? Cette action est irreversible.')) {
+                const confirmed = await window.CM.confirm({
+                    title: 'Confirmation',
+                    message: 'Etes-vous sur de vouloir deposer ce rapport ? Cette action est irreversible.',
+                    type: 'warning',
+                    confirmText: 'Deposer',
+                });
+                if (!confirmed) {
                     return;
                 }
 

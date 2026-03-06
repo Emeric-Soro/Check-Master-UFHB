@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/NotesService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\NotesService;
 
@@ -47,6 +48,11 @@ class NotesController
     public function enregistrerNotes()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_enregistrer_notes'])) {
+            if (!canCreate('gestion_notes_evaluations') && !canEdit('gestion_notes_evaluations')) {
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'enregistrer des notes.";
+                $this->redirectBack();
+                return;
+            }
             $studentId = $_GET['student'] ?? ($_POST['student'] ?? ($_POST['student_picker'] ?? null));
             $studentId = is_string($studentId) ? trim($studentId) : $studentId;
             $anneeAcadId = $_POST['id_annee_acad'] ?? null;
@@ -104,6 +110,12 @@ class NotesController
 
     public function getNotesByEtudiant()
     {
+        if (!canView('gestion_notes_evaluations')) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => "Accès non autorisé."]);
+            exit;
+        }
         if (isset($_GET['student_id'])) {
             $anneeAcadId = isset($_GET['annee_acad_id']) ? (int) $_GET['annee_acad_id'] : null;
             $notes = $this->service->getNotesByEtudiant($_GET['student_id'], $anneeAcadId);

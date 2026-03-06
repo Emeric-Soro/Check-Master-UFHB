@@ -357,7 +357,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
         renderTable();
     });
 
-    tableBody.addEventListener('click', function (event) {
+    tableBody.addEventListener('click', async function (event) {
         const editBtn = event.target.closest('.js-edit');
         if (editBtn) {
             const id = Number(editBtn.getAttribute('data-id') || '0');
@@ -384,7 +384,13 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
             if (!id) {
                 return;
             }
-            if (!window.confirm('Supprimer ce critère ?')) {
+            const confirmed = await window.CM.confirm({
+                title: 'Suppression',
+                message: 'Supprimer ce critère ?',
+                type: 'danger',
+                confirmText: 'Supprimer',
+            });
+            if (!confirmed) {
                 return;
             }
             deleteCritere(id).then(function (res) {
@@ -444,5 +450,4 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
     });
 })();
 </script>
-
 

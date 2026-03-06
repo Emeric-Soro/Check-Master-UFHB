@@ -143,7 +143,7 @@ $filterSearch = (string) ($_GET['search'] ?? '');
 </div>
 
 <!-- Modal commentaires -->
-<div id="commentsDetailModal" class="cm-etu-modal" hidden>
+<div id="commentsDetailModal" class="cm-legacy-panel cm-etu-modal" hidden>
     <div class="cm-etu-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="commentsDetailTitle" style="width: min(680px, 100%); max-height: 90vh; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
 

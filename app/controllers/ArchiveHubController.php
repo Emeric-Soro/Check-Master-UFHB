@@ -26,7 +26,7 @@ class ArchiveHubController
      */
     public function index()
     {
-        if (!canView()) {
+        if (!canView('admin_historique')) {
             $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'accéder aux archives.";
             header('Location: layout.php?page=access_denied');
             exit;

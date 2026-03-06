@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/CriteresEvaluationService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\CriteresEvaluationService;
 
@@ -73,6 +74,13 @@ class CriteresEvaluationController
      */
     public function createCritere()
     {
+        if (!canCreate('criteres_evaluation')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+            exit;
+        }
+
         try {
             $input = json_decode(file_get_contents('php://input'), true);
 
@@ -102,6 +110,13 @@ class CriteresEvaluationController
      */
     public function updateCritere()
     {
+        if (!canEdit('criteres_evaluation')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+            exit;
+        }
+
         try {
             // Lire les données depuis POST ou JSON selon le Content-Type
             $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
@@ -133,6 +148,13 @@ class CriteresEvaluationController
      */
     public function deleteCritere()
     {
+        if (!canDelete('criteres_evaluation')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+            exit;
+        }
+
         try {
             // Lire les données depuis POST ou JSON selon le Content-Type
             $contentType = $_SERVER['CONTENT_TYPE'] ?? '';

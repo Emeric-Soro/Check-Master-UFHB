@@ -17,7 +17,7 @@ class ParametreController
     //=============================GESTION ANNEE ACADEMIQUE=============================
     public function gestionAnnees()
     {
-if (!canCreate() && !canEdit() && !canDelete()) {
+if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -39,7 +39,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //=============================GESTION GRADES=============================
     public function gestionGrade()
     {
-if (!canCreate() && !canEdit() && !canDelete()) {
+if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -63,7 +63,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     public function gestionFonctionUtilisateur()
     {
         $result = $this->service->gestionFonctionUtilisateur($_POST, $_GET, $_SESSION['id_utilisateur']);
-if (!canCreate() && !canEdit() && !canDelete()) {
+if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -84,7 +84,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //=============================GESTION SPECIALITE=============================
     public function gestionSpecialite()
     {
-if (!canCreate() && !canEdit() && !canDelete()) {
+if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -107,7 +107,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     public function gestionNiveauEtude()
     {
         $result = $this->service->gestionNiveauEtude($_POST, $_GET, $_SESSION['id_utilisateur']);
-if (!canCreate() && !canEdit() && !canDelete()) {
+if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -128,7 +128,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //=============================GESTION STATUT JURY=============================
     public function gestionStatutJury()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -150,7 +150,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //=============================GESTION NIVEAU APPROBATION=============================
     public function gestionNiveauApprobation()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -172,7 +172,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //=============================GESTION SEMESTRE=============================
     public function gestionSemestre()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -194,7 +194,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //=============================GESTION NIVEAU ACCES DONNEES=============================
     public function gestionNiveauAccesDonnees()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -216,7 +216,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //=============================GESTION TRAITEMENT=============================
     public function gestionTraitement()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -238,7 +238,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //=============================GESTION ENTREPRISE=============================
     public function gestionEntreprise()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -260,7 +260,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //=============================GESTION ACTION=============================
     public function gestionAction()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -282,7 +282,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //=============================GESTION FONCTION=============================
     public function gestionFonction()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -304,7 +304,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //=============================GESTION MESSAGERIE=============================
     public function gestionMessagerie()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -326,7 +326,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //============================GESTION ATTRIBUTION==================================
     public function gestionAttribution()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -353,7 +353,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //============================GESTION MENUS==================================
     public function gestionMenus()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -374,7 +374,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //============================GESTION REFERENTIEL SIMPLE==================================
     public function gestionReferentielSimple()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -396,7 +396,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //============================GESTION BAREME CRITERE==================================
     public function gestionBaremeCritere()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -419,7 +419,7 @@ if (!canCreate() && !canEdit() && !canDelete()) {
     //==============================GESTION SALLES==============================
     public function gestionSalles()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);

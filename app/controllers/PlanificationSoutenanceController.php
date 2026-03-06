@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../Services/PlanificationSoutenanceService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\PlanificationSoutenanceService;
 
@@ -50,6 +51,13 @@ class PlanificationSoutenanceController
      */
     public function planifierSoutenance()
     {
+        if (!canCreate('plannification_soutenance') && !canEdit('plannification_soutenance')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+            exit;
+        }
+
         $idProgrammation = $_POST['id_programmation'] ?? null;
         $idSalle = $_POST['id_salle'] ?? null;
         $dateSoutenance = $_POST['date_soutenance'] ?? null;
@@ -64,6 +72,13 @@ class PlanificationSoutenanceController
      */
     public function supprimerPlanification()
     {
+        if (!canDelete('plannification_soutenance')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+            exit;
+        }
+
         $id = $_POST['id_programmation'] ?? null;
 
         return $this->service->supprimer($id);

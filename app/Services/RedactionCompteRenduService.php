@@ -74,7 +74,7 @@ class RedactionCompteRenduService
 
         return [
             'rapports_valides' => $rapportsValides,
-            'enseignants'      => $enseignants,
+            'enseignants' => $enseignants,
         ];
     }
 
@@ -87,11 +87,11 @@ class RedactionCompteRenduService
      */
     public function enregistrer(array $data): array
     {
-        $num_etu   = $data['num_etu'] ?? null;
-        $nom_CR    = $data['nom_CR'] ?? '';
+        $num_etu = $data['num_etu'] ?? null;
+        $nom_CR = $data['nom_CR'] ?? '';
         $contenu_CR = $data['contenu_CR'] ?? '';
-        $rapports  = $data['rapports'] ?? [];
-        $date_CR   = date('Y-m-d H:i:s');
+        $rapports = $data['rapports'] ?? [];
+        $date_CR = date('Y-m-d H:i:s');
         $encadrants = $data['encadrant_pedagogique'] ?? [];
         $directeurs = $data['directeur_memoire'] ?? [];
 
@@ -120,8 +120,8 @@ class RedactionCompteRenduService
         if (!is_dir($pdf_dir)) {
             mkdir($pdf_dir, 0777, true);
         }
-        $pdf_name  = 'CR_' . date('Ymd_His') . '.pdf';
-        $pdf_path  = $pdf_dir . $pdf_name;
+        $pdf_name = 'CR_' . date('Ymd_His') . '.pdf';
+        $pdf_path = $pdf_dir . $pdf_name;
         file_put_contents($pdf_path, $output);
         $chemin_pdf = 'ressources/uploads/comptes_rendus/' . $pdf_name;
 
@@ -131,8 +131,6 @@ class RedactionCompteRenduService
         if (!$id_CR) {
             return ['success' => false, 'message' => "Erreur lors de l'enregistrement du compte rendu."];
         }
-
-        // Affectations encadrant / directeur
         $this->saveAffectations($rapports, $encadrants, $directeurs);
 
         // Envoi des emails
@@ -145,7 +143,7 @@ class RedactionCompteRenduService
      * Exporter un contenu en PDF et retourner les données brutes.
      *
      * @param string $contenu_CR Contenu HTML
-     * @param string $nom_CR     Nom du compte rendu
+     * @param string $nom_CR Nom du compte rendu
      * @return array ['pdf' => string, 'filename' => string]
      * @throws \Exception Si le contenu est vide ou si Dompdf est indisponible
      */
@@ -212,13 +210,23 @@ class RedactionCompteRenduService
         foreach ($rapports as $id_rapport) {
             $rapport = $rapportModel->getRapportById($id_rapport);
             if ($rapport && !empty($rapport['email_etu'])) {
-                $to   = $rapport['email_etu'];
-                $nom  = $rapport['prenom_etu'] . ' ' . $rapport['nom_etu'];
-                $subject = "Notification de compte rendu de soutenance";
-                $message = "Bonjour $nom,<br><br>Votre rapport (« " . htmlspecialchars($rapport['nom_rapport']) . " ») a été inclus dans le compte rendu « " . htmlspecialchars($nom_CR) . " » le " . date('d/m/Y H:i') . ".<br><br>Vous trouverez en pièce jointe le compte rendu complet de la séance d'évaluation.<br><br>Cordialement,<br>L'équipe pédagogique";
+                $to = $rapport['email_etu'];
+                $nom = $rapport['prenom_etu'] . ' ' . $rapport['nom_etu'];
+
+                $data = [
+                    'nom' => htmlspecialchars($nom),
+                    'nom_rapport' => htmlspecialchars($rapport['nom_rapport'] ?? 'Sans titre'),
+                    'nom_CR' => htmlspecialchars($nom_CR),
+                    'date_CR' => date('d/m/Y H:i')
+                ];
 
                 $attachmentName = 'Compte_rendu_' . date('Y-m-d') . '.pdf';
-                $emailService->sendEmailWithAttachment($to, $subject, $message, $pdf_path, $attachmentName, true);
+                $attachments = [
+                    'path' => $pdf_path,
+                    'name' => $attachmentName
+                ];
+
+                $emailService->sendTemplate('REPORT_NOTIFICATION', $to, $data, $attachments);
             }
         }
     }

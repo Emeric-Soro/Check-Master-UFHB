@@ -1388,6 +1388,7 @@ include __DIR__ . '/../ressources/routes/archiveRoutes.php';
           data-page="<?php echo htmlspecialchars((string) $currentMenuSlug, ENT_QUOTES, 'UTF-8'); ?>"
           data-action="<?php echo htmlspecialchars((string) ($currentAction ?? ($_GET['action'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
         <?php cm_component('ui/toast'); ?>
+        <script src="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('js/components/confirm-modal.js') : 'assets/js/components/confirm-modal.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 
         <?php // Les variables $globalAcademicYears, $currentGlobalYear, $currentGlobalYearId
               // sont calculées en haut du fichier (après database.php) et $_SESSION['global_annee_id'] est déjà défini. ?>
@@ -1453,6 +1454,8 @@ include __DIR__ . '/../ressources/routes/archiveRoutes.php';
     </main>
 </div>
 
+<?php cm_component('ui/confirm-modal'); ?>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         var toggle  = document.getElementById('sidebarToggle');
@@ -1478,6 +1481,82 @@ include __DIR__ . '/../ressources/routes/archiveRoutes.php';
                 !sidebar.contains(e.target) && !toggle.contains(e.target)) {
                 sidebar.classList.remove('is-open');
             }
+        });
+    });
+</script>
+<script>
+    document.addEventListener('submit', function (event) {
+        var form = event.target;
+        if (!form || typeof form.getAttribute !== 'function') {
+            return;
+        }
+
+        var confirmMessage = form.getAttribute('data-cm-confirm-message');
+        if (!confirmMessage) {
+            return;
+        }
+
+        event.preventDefault();
+        var confirmType = form.getAttribute('data-cm-confirm-type') || 'warning';
+        var confirmText = form.getAttribute('data-cm-confirm-text') || 'Confirmer';
+
+        if (window.CM && typeof window.CM.confirm === 'function') {
+            window.CM.confirm({
+                title: 'Confirmation',
+                message: confirmMessage,
+                type: confirmType,
+                confirmText: confirmText,
+            }).then(function (confirmed) {
+                if (confirmed) {
+                    form.submit();
+                }
+            });
+            return;
+        }
+
+        if (window.confirm(confirmMessage)) {
+            form.submit();
+        }
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var gridMap = {
+            'cm-grid-2': 2,
+            'cm-grid-3': 3,
+            'cm-grid-4': 4,
+            'cm-grid-5': 5,
+            'cm-grid-6': 6
+        };
+
+        Object.keys(gridMap).forEach(function (legacyClass) {
+            document.querySelectorAll('.' + legacyClass).forEach(function (grid) {
+                grid.classList.add('cm-form-grid', 'cm-form-grid--' + gridMap[legacyClass]);
+            });
+        });
+
+        document.querySelectorAll('input[type="date"]').forEach(function (field) {
+            field.classList.add('cm-field--date');
+        });
+
+        document.querySelectorAll('input[type="email"]').forEach(function (field) {
+            field.classList.add('cm-field--lg');
+        });
+
+        document.querySelectorAll('textarea').forEach(function (field) {
+            field.classList.add('cm-field--full');
+        });
+
+        document.querySelectorAll('.cm-modal-overlay, .cm-etu-modal, .cm-etu-preview-modal, [id$="Modal"]').forEach(function (panel) {
+            if (!panel || panel.id === 'cm-confirm-modal') {
+                return;
+            }
+            if (!/^(DIV|SECTION|ASIDE|DIALOG)$/i.test(panel.tagName)) {
+                return;
+            }
+            panel.classList.add('cm-legacy-panel');
+            panel.classList.remove('cm-modal-overlay');
+            panel.setAttribute('data-cm-legacy-modal', '1');
         });
     });
 </script>

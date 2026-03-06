@@ -20,7 +20,7 @@ class ArchiveAdminController
      */
     public function candidatures()
     {
-        if (!canView()) {
+        if (!canView('admin_historique')) {
             $_SESSION['error_message'] = "Accès refusé.";
             header('Location: layout.php?page=access_denied');
             exit;
@@ -42,7 +42,7 @@ class ArchiveAdminController
      */
     public function reclamations()
     {
-        if (!canView()) {
+        if (!canView('admin_historique')) {
             $_SESSION['error_message'] = "Accès refusé.";
             header('Location: layout.php?page=access_denied');
             exit;

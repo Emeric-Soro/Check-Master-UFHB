@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/GestionScolariteService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\GestionScolariteService;
 
@@ -63,6 +64,10 @@ class GestionScolariteController
 
     public function enregistrerVersement()
     {
+        if (!canCreate('gestion_scolarite') && !canEdit('gestion_scolarite')) {
+            $GLOBALS['messageErreur'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            return;
+        }
         $result = $this->service->enregistrerVersement($_POST, $_SESSION['id_utilisateur']);
 
         if ($result['success']) {
@@ -79,6 +84,10 @@ class GestionScolariteController
 
     public function mettreAJourVersement()
     {
+        if (!canEdit('gestion_scolarite')) {
+            $GLOBALS['messageErreur'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            return;
+        }
         $result = $this->service->mettreAJourVersement($_POST, $_SESSION['id_utilisateur']);
 
         if ($result['success']) {
@@ -95,6 +104,10 @@ class GestionScolariteController
 
     public function enregistrerPaiement()
     {
+        if (!canCreate('gestion_scolarite') && !canEdit('gestion_scolarite')) {
+            $GLOBALS['messageErreur'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            return;
+        }
         $result = $this->service->enregistrerPaiement($_POST, $_SESSION['id_utilisateur']);
 
         if ($result['success']) {
@@ -114,7 +127,11 @@ class GestionScolariteController
     public function uploadFicheInscription()
     {
         header('Content-Type: application/json');
-
+        if (!canCreate('gestion_scolarite') && !canEdit('gestion_scolarite')) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+            exit;
+        }
         $result = $this->service->uploadFicheInscription($_POST, $_FILES, $_SESSION['id_utilisateur']);
 
         echo json_encode($result);

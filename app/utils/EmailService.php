@@ -91,153 +91,135 @@ class EmailService
         }
     }
 
-    public function sendResultEmail($studentEmail, $studentName, $resume, $decision)
+    public function sendTemplate($templateKey, $to, $data = [], $attachments = [])
     {
-        $subject = "Résultat de votre candidature à la soutenance";
+        $templatesConfig = require __DIR__ . '/../config/email_templates.php';
 
-        // Message HTML
-        $htmlMessage = $this->generateHTMLResultMessage($studentName, $resume, $decision);
-
-        // Message texte simple
-        $textMessage = $this->generateTextResultMessage($studentName, $resume, $decision);
-
-        // Envoyer en HTML
-        $success = $this->sendEmail($studentEmail, $subject, $htmlMessage, true);
-
-        if (!$success) {
-            // Si l'envoi HTML échoue, essayer en texte simple
-            return $this->sendEmail($studentEmail, $subject, $textMessage, false);
+        if (!isset($templatesConfig['TEMPLATES'][$templateKey])) {
+            error_log("Template email non trouvé: " . $templateKey);
+            return false;
         }
 
-        return $success;
-    }
+        $template = $templatesConfig['TEMPLATES'][$templateKey];
+        $layout = $templatesConfig['LAYOUT'];
 
-    private function generateHTMLResultMessage($studentName, $resume, $decision)
-    {
-        $statusColor = ($decision === 'Validée') ? '#10B981' : '#EF4444';
-        $statusIcon = ($decision === 'Validée') ? '🎉' : '❌';
+        // Injecter les variables dans le sujet
+        $subject = $template['subject'];
+        foreach ($data as $key => $value) {
+            $subject = str_replace('{{' . $key . '}}', $value, $subject);
+        }
 
-        $html = "
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset='UTF-8'>
-            <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-                .status { background-color: {$statusColor}; color: white; padding: 10px 20px; border-radius: 5px; display: inline-block; }
-                .step { margin: 15px 0; padding: 15px; border-left: 4px solid #ddd; }
-                .step.validé { border-left-color: #10B981; background-color: #f0fdf4; }
-                .step.rejeté { border-left-color: #EF4444; background-color: #fef2f2; }
-                .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-                .badge.validé { background-color: #10B981; color: white; }
-                .badge.rejeté { background-color: #EF4444; color: white; }
-                .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 14px; color: #666; }
-            </style>
-        </head>
-        <body>
-            <div class='container'>
-                <div class='header'>
-                    <h2>Résultat de votre candidature à la soutenance</h2>
-                    <p>Bonjour {$studentName},</p>
-                    <p>L'évaluation de votre candidature à la soutenance est terminée.</p>
-                </div>
-                
-                <div class='status'>
-                    <h3>{$statusIcon} Décision finale : {$decision}</h3>
-                </div>
-                
-                <h4>Résumé détaillé de l'évaluation :</h4>";
+        // Injecter les variables dans le corps
+        $body = $template['body'];
+        foreach ($data as $key => $value) {
+            $body = str_replace('{{' . $key . '}}', $value, $body);
+        }
 
-        foreach ($resume as $etape => $data) {
-            $etapeName = ucfirst($etape);
-            $validation = $data['validation'];
-            $badgeClass = ($validation === 'validé') ? 'validé' : 'rejeté';
-            $stepClass = ($validation === 'validé') ? 'validé' : 'rejeté';
+        // Insérer le corps dans le layout (et le sujet pour la balise <title>)
+        $htmlMessage = str_replace(['{{body}}', '{{subject}}'], [$body, $subject], $layout);
 
-            $html .= "
-                <div class='step {$stepClass}'>
-                    <h5>{$etapeName}</h5>
-                    <p><strong>Validation :</strong> <span class='badge {$badgeClass}'>" . strtoupper($validation) . "</span></p>";
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->clearAttachments();
+            $this->mailer->addAddress($to);
+            $this->mailer->Subject = $subject;
+            $this->mailer->isHTML(true);
 
-            // Ajouter les détails spécifiques à chaque étape
-            if ($etape === 'scolarite') {
-                $html .= "<p><strong>Statut :</strong> {$data['statut']}</p>";
-                $html .= "<p><strong>Montant total :</strong> {$data['montant_total']}</p>";
-                $html .= "<p><strong>Montant payé :</strong> {$data['montant_paye']}</p>";
-            } elseif ($etape === 'stage') {
-                $html .= "<p><strong>Entreprise :</strong> {$data['entreprise']}</p>";
-                $html .= "<p><strong>Sujet :</strong> {$data['sujet']}</p>";
-                $html .= "<p><strong>Période :</strong> {$data['periode']}</p>";
-            } elseif ($etape === 'semestre') {
-                $html .= "<p><strong>Semestre :</strong> {$data['semestre']}</p>";
-                $html .= "<p><strong>Moyenne :</strong> {$data['moyenne']}</p>";
-                $html .= "<p><strong>Unités validées :</strong> {$data['unites']}</p>";
+            // Gestion du logo incrusté (CID) pour affichage garanti
+            $logoPath = __DIR__ . '/../../public/image/logo_simple_cm.png';
+            if (file_exists($logoPath)) {
+                $this->mailer->addEmbeddedImage($logoPath, 'logo_cm');
+                $htmlMessage = str_replace('{{logo_src}}', 'cid:logo_cm', $htmlMessage);
+            } else {
+                // Fallback basique
+                $htmlMessage = str_replace('{{logo_src}}', '', $htmlMessage);
             }
 
-            $html .= "</div>";
+            $this->mailer->Body = $htmlMessage;
+            
+            // Un peu de formatage pour la version texte
+            $altBody = str_ireplace(['<br>', '<br/>', '<br />', '</p>', '</tr>'], "\n", $htmlMessage);
+            $altBody = strip_tags($altBody);
+            $this->mailer->AltBody = trim($altBody);
+
+            // Déterminer s'il y a des pièces jointes
+            if (!empty($attachments)) {
+                $attachment = is_array($attachments) && isset($attachments['path']) ? $attachments : $attachments[0];
+                if (file_exists($attachment['path'])) {
+                    $this->mailer->addAttachment($attachment['path'], $attachment['name'] ?? null);
+                } else {
+                    error_log("Fichier pièce jointe non trouvé: " . $attachment['path']);
+                }
+            }
+
+            return $this->mailer->send();
+        } catch (\Exception $e) {
+            error_log("Erreur d'envoi d'email template: " . $e->getMessage());
+            return false;
         }
-
-        if ($decision === 'Validée') {
-            $html .= "
-                <div style='background-color: #f0fdf4; padding: 15px; border-radius: 5px; margin: 20px 0;'>
-                    <p><strong>🎉 Félicitations !</strong> Votre candidature a été validée. Vous pouvez maintenant procéder à la rédaction de votre rapport.</p>
-                </div>";
-        } else {
-            $html .= "
-                <div style='background-color: #fef2f2; padding: 15px; border-radius: 5px; margin: 20px 0;'>
-                    <p><strong>❌ Votre candidature a été rejetée.</strong></p>
-                    <p>Veuillez corriger les problèmes identifiés et soumettre une nouvelle candidature.</p>
-                    <p>Pour toute question, contactez le service pédagogique.</p>
-                </div>";
-        }
-
-        $html .= "
-                <div class='footer'>
-                    <p>Cordialement,<br>L'équipe pédagogique</p>
-                </div>
-            </div>
-        </body>
-        </html>";
-
-        return $html;
     }
-
-    private function generateTextResultMessage($studentName, $resume, $decision)
+    public function sendResultEmail($studentEmail, $studentName, $resume, $decision)
     {
-        $message = "Bonjour {$studentName},\n\n";
-        $message .= "L'évaluation de votre candidature à la soutenance est terminée.\n\n";
-
-        if ($decision === 'Validée') {
-            $message .= "🎉 FÉLICITATIONS ! Votre candidature a été VALIDÉE.\n\n";
-        } else {
-            $message .= "❌ Votre candidature a été REJETÉE.\n\n";
-        }
-
-        $message .= "RÉSUMÉ DÉTAILLÉ DE L'ÉVALUATION :\n";
-        $message .= "==================================\n\n";
-
+        $statusColor = ($decision === 'Validée') ? '#10b981' : '#ef4444';
+        $statusIcon = ($decision === 'Validée') ? '🎉' : '❌';
+        $statusBgColor = ($decision === 'Validée') ? '#f0fdf4' : '#fef2f2';
+        $statusBorderColor = ($decision === 'Validée') ? '#bbf7d0' : '#fecaca';
+        
+        $details_html = '';
         foreach ($resume as $etape => $data) {
             $etapeName = ucfirst($etape);
             $validation = $data['validation'];
-            $status = ($validation === 'validé') ? '✅' : '❌';
+            $badgeColor = ($validation === 'validé') ? '#10b981' : '#ef4444';
 
-            $message .= "{$status} {$etapeName} : " . strtoupper($validation) . "\n";
+            $details_html .= "
+                <div class='box' style='border-left: 4px solid {$badgeColor};'>
+                    <h4 style='margin-top: 0;'>{$etapeName}</h4>
+                    <p><strong>Validation :</strong> <span style='background-color: {$badgeColor}; color: white; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;'>" . strtoupper($validation) . "</span></p>
+            ";
+
+            if ($etape === 'scolarite') {
+                $details_html .= "<p style='margin-bottom: 5px;'><strong>Statut :</strong> {$data['statut']}</p>";
+                $details_html .= "<p style='margin-bottom: 5px;'><strong>Montant total :</strong> {$data['montant_total']}</p>";
+                $details_html .= "<p style='margin-bottom: 0;'><strong>Montant payé :</strong> {$data['montant_paye']}</p>";
+            } elseif ($etape === 'stage') {
+                $details_html .= "<p style='margin-bottom: 5px;'><strong>Entreprise :</strong> {$data['entreprise']}</p>";
+                $details_html .= "<p style='margin-bottom: 5px;'><strong>Sujet :</strong> {$data['sujet']}</p>";
+                $details_html .= "<p style='margin-bottom: 0;'><strong>Période :</strong> {$data['periode']}</p>";
+            } elseif ($etape === 'semestre') {
+                $details_html .= "<p style='margin-bottom: 5px;'><strong>Semestre :</strong> {$data['semestre']}</p>";
+                $details_html .= "<p style='margin-bottom: 5px;'><strong>Moyenne :</strong> {$data['moyenne']}</p>";
+                $details_html .= "<p style='margin-bottom: 0;'><strong>Unités validées :</strong> {$data['unites']}</p>";
+            }
+            $details_html .= "</div>";
         }
 
-        $message .= "\n";
-
+        $action_message = '';
         if ($decision === 'Validée') {
-            $message .= "Vous pouvez maintenant procéder à votre soutenance.\n";
-            $message .= "Vous recevrez bientôt les détails de l'organisation.\n";
+            $action_message = '
+                <div class="box text-center" style="background-color: #f0fdf4; border: 1px dashed #10b981;">
+                    <p style="margin: 0; color: #065f46;"><strong>Félicitations !</strong> Votre candidature a été validée. Vous pouvez maintenant procéder à la rédaction de votre rapport.</p>
+                </div>
+            ';
         } else {
-            $message .= "Veuillez corriger les problèmes identifiés et soumettre une nouvelle candidature.\n";
-            $message .= "Pour toute question, contactez le service pédagogique.\n";
+            $action_message = '
+                <div class="box text-center" style="background-color: #fef2f2; border: 1px dashed #ef4444;">
+                    <p style="margin-bottom: 10px; color: #991b1b;"><strong>Votre candidature a été rejetée.</strong></p>
+                    <p style="margin: 0; font-size: 14px;">Veuillez corriger les problèmes identifiés et soumettre une nouvelle candidature.</p>
+                </div>
+            ';
         }
 
-        $message .= "\nCordialement,\nL'équipe pédagogique";
+        $templateData = [
+            'nom' => htmlspecialchars($studentName),
+            'decision' => htmlspecialchars($decision),
+            'status_icon' => $statusIcon,
+            'status_text_color' => $statusColor,
+            'status_bg_color' => $statusBgColor,
+            'status_border_color' => $statusBorderColor,
+            'details_html' => $details_html,
+            'action_message' => $action_message
+        ];
 
-        return $message;
+        return $this->sendTemplate('CANDIDATURE_RESULT', $studentEmail, $templateData);
     }
 }

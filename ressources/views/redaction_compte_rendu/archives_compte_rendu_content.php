@@ -192,9 +192,18 @@ $baseUrl = '?page=archive_comptes_rendus'
         }).then(function (response) { return response.json(); });
     }
     document.querySelectorAll('.cm-archive-delete-one').forEach(function (button) {
-        button.addEventListener('click', function () {
+        button.addEventListener('click', async function () {
             const id = button.getAttribute('data-id') || '';
-            if (!id || !window.confirm('Supprimer cette archive ?')) {
+            if (!id) {
+                return;
+            }
+            const confirmed = await window.CM.confirm({
+                title: 'Suppression',
+                message: 'Supprimer cette archive ?',
+                type: 'danger',
+                confirmText: 'Supprimer',
+            });
+            if (!confirmed) {
                 return;
             }
             deleteArchive(id).then(function (payload) {
@@ -212,9 +221,18 @@ $baseUrl = '?page=archive_comptes_rendus'
         });
     });
     if (deleteBtn) {
-        deleteBtn.addEventListener('click', function () {
+        deleteBtn.addEventListener('click', async function () {
             const checked = getCheckedRows();
-            if (checked.length === 0 || !window.confirm('Supprimer ' + checked.length + ' archive(s) ?')) {
+            if (checked.length === 0) {
+                return;
+            }
+            const confirmed = await window.CM.confirm({
+                title: 'Suppression multiple',
+                message: 'Supprimer ' + checked.length + ' archive(s) ?',
+                type: 'danger',
+                confirmText: 'Supprimer',
+            });
+            if (!confirmed) {
                 return;
             }
             Promise.all(checked.map(function (row) {

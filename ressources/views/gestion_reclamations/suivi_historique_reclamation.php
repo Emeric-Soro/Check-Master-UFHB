@@ -196,7 +196,7 @@ $totalPages = (int) ($totalPages ?? 1);
 </div>
 
 <!-- Modal détails réclamation -->
-<div id="recDetailModal" class="cm-etu-modal" hidden>
+<div id="recDetailModal" class="cm-legacy-panel cm-etu-modal" hidden>
     <div class="cm-etu-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="recDetailTitle" style="width: min(680px, 100%); max-height: 90vh; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
 

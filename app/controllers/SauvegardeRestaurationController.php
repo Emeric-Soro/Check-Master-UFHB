@@ -43,7 +43,7 @@ class SauvegardeRestaurationController {
     public function createBackup() {
         $this->requireAdmin();
         $this->requireCsrf();
-if (!canCreate()) {
+if (!canCreate('sauvegarde_restauration')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -71,7 +71,7 @@ if (!canCreate()) {
     public function restoreBackup() {
         $this->requireAdmin();
         $this->requireCsrf();
-if (!canEdit()) {
+if (!canEdit('sauvegarde_restauration')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -121,7 +121,7 @@ if (!canEdit()) {
     public function deleteBackup() {
         $this->requireAdmin();
         $this->requireCsrf();
-if (!canDelete()) {
+if (!canDelete('sauvegarde_restauration')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);

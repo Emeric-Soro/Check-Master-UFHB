@@ -174,7 +174,7 @@ endif; ?>
 </div>
 
 <!-- Modal détails historique -->
-<div id="historiqueDetailsModal" class="cm-modal-overlay">
+<div id="historiqueDetailsModal" class="cm-legacy-panel">
     <div class="cm-modal">
         <div class="cm-modal__header">
             <h3 class="cm-modal__title">Détails de la candidature</h3>
@@ -191,10 +191,10 @@ endif; ?>
 
 <!-- Modal d'examen -->
 <?php if ($examiner && $etudiantData): ?>
-    <div id="examinationModal" class="cm-modal-overlay is-open">
+    <div id="examinationModal" class="cm-legacy-panel is-open">
 <?php
 else: ?>
-    <div id="examinationModal" class="cm-modal-overlay">
+    <div id="examinationModal" class="cm-legacy-panel">
 <?php
 endif; ?>
         <div class="cm-modal<?php echo($etape == 4 ? ' is-resume-step' : ''); ?>">

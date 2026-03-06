@@ -81,6 +81,11 @@ if (isset($_GET['page']) && $_GET['page'] === 'verification_candidatures_soutena
                 exit;
 
             case 'detail':
+                if (!canView('verification_candidatures_soutenance')) {
+                    http_response_code(403);
+                    echo '<div class="text-red-500 text-center py-8">Accès refusé.</div>';
+                    exit;
+                }
                 $id = $_GET['id'] ?? 0;
                 if ($id) {
                     $rapport = $controller->getRapportDetail($id);
@@ -199,6 +204,11 @@ if (isset($_GET['page']) && $_GET['page'] === 'verification_candidatures_soutena
                 exit;
 
             case 'telecharger_pdf':
+                if (!canView('verification_candidatures_soutenance')) {
+                    http_response_code(403);
+                    echo '<div style="text-align:center;padding:50px;font-family:Arial,sans-serif;"><h2 style="color:#e74c3c;">Accès refusé</h2><p>Vous n\'avez pas l\'autorisation d\'accéder à ce fichier.</p></div>';
+                    exit;
+                }
                 $id = $_GET['id'] ?? 0;
                 if ($id) {
                     $rapport = $controller->getRapportDetail($id);

@@ -464,11 +464,19 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
     const sendBtn = document.getElementById('cmUsersSendAccess');
     const printBtn = document.getElementById('cmUsersPrint');
     const exportBtn = document.getElementById('cmUsersExport');
+    const confirmBulkAction = function (message) {
+        return window.CM.confirm({
+            title: 'Confirmation',
+            message: message,
+            type: 'warning',
+            confirmText: 'Confirmer',
+        });
+    };
     if (selectAllBtn) selectAllBtn.addEventListener('click', () => rowChecks().forEach(cb => cb.checked = true));
     if (deselectAllBtn) deselectAllBtn.addEventListener('click', () => rowChecks().forEach(cb => cb.checked = false));
-    if (disableBtn) disableBtn.addEventListener('click', () => { if (window.confirm('Desactiver les utilisateurs selectionnes ?')) submitBulk('disable'); });
-    if (enableBtn) enableBtn.addEventListener('click', () => { if (window.confirm('Activer les utilisateurs selectionnes ?')) submitBulk('enable'); });
-    if (sendBtn) sendBtn.addEventListener('click', () => { if (window.confirm('Envoyer les acces par email aux utilisateurs selectionnes ?')) submitBulk('send'); });
+    if (disableBtn) disableBtn.addEventListener('click', async () => { if (await confirmBulkAction('Desactiver les utilisateurs selectionnes ?')) submitBulk('disable'); });
+    if (enableBtn) enableBtn.addEventListener('click', async () => { if (await confirmBulkAction('Activer les utilisateurs selectionnes ?')) submitBulk('enable'); });
+    if (sendBtn) sendBtn.addEventListener('click', async () => { if (await confirmBulkAction('Envoyer les acces par email aux utilisateurs selectionnes ?')) submitBulk('send'); });
     if (printBtn) printBtn.addEventListener('click', function () {
         if (!table) return;
         const w = window.open('', '_blank'); if (!w) return;

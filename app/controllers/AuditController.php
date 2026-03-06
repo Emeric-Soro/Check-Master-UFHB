@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/AuditService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\AuditService;
 
@@ -70,6 +71,12 @@ class AuditController {
     }
 
     public function exportAuditLog() {
+        if (!canView('piste_audit')) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => "Accès non autorisé."]);
+            exit;
+        }
         $filters = $this->service->extractFilters($_GET);
 
         // Définir les en-têtes pour le téléchargement
@@ -92,7 +99,11 @@ class AuditController {
             header('Location: ?page=piste_audit&error=invalid_method');
             exit;
         }
-
+        if (!canDelete('piste_audit')) {
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            header('Location: ?page=piste_audit&error=permission_denied');
+            exit;
+        }
         $days = isset($_POST['days']) ? intval($_POST['days']) : 30;
 
         try {
@@ -117,7 +128,11 @@ class AuditController {
             header('Location: ?page=piste_audit&error=invalid_method');
             exit;
         }
-
+        if (!canDelete('piste_audit')) {
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            header('Location: ?page=piste_audit&error=permission_denied');
+            exit;
+        }
         $logId = isset($_POST['log_id']) ? intval($_POST['log_id']) : 0;
 
         try {

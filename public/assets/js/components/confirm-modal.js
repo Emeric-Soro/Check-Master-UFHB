@@ -1,83 +1,98 @@
-/* CheckMaster UFRMI - Confirm Modal (IIFE) */
+/* CheckMaster UFRMI - Confirm Modal (Promise-based) */
 (function (window, document) {
   'use strict';
   window.CM = window.CM || {};
-  var module = (function () {
-    let initDone = false;
-    function init() {
-      if (initDone) return; initDone = true;
-      document.addEventListener('click', function (e) {
-        let btn = e.target.closest('[data-action="confirm"]');
-        if (!btn) return;
-        let title = btn.getAttribute('data-confirm-title') || '';
-        let message = btn.getAttribute('data-confirm-message') || '';
-        let url = btn.getAttribute('data-confirm-url');
-        let method = (btn.getAttribute('data-confirm-method') || 'POST').toUpperCase();
-        // Inject dans modal
-        let modal = document.querySelector('.cm-modal');
-        if (modal) {
-          let titleEl = modal.querySelector('.cm-modal-title');
-          let bodyEl = modal.querySelector('.cm-modal-body');
-          if (titleEl) titleEl.textContent = title;
-          if (bodyEl) bodyEl.textContent = message;
-          modal.setAttribute('data-confirm-url', url || '');
-          modal.setAttribute('data-confirm-method', method);
-          modal.classList.add('is-active');
-          let overlay = document.querySelector('.cm-modal-overlay');
-          if (overlay) overlay.classList.add('is-active');
-        }
-      });
-      // Close
-      document.addEventListener('click', function (e) {
-        let close = e.target.closest('.cm-modal-close');
-        let overlay = e.target.closest('.cm-modal-overlay');
-        if (close || overlay) {
-          let modal = document.querySelector('.cm-modal');
-          if (modal) modal.classList.remove('is-active');
-          if (overlay) overlay.classList.remove('is-active');
-        }
-      });
-      // Confirmer
-      document.addEventListener('click', function (e) {
-        let confirmBtn = e.target.closest('.cm-modal-confirm');
-        if (!confirmBtn) return;
-        let modal = document.querySelector('.cm-modal');
-        if (!modal) return;
-        let url = modal.getAttribute('data-confirm-url');
-        let method = (modal.getAttribute('data-confirm-method') || 'POST').toUpperCase();
-        if (!url) return;
-        // CSRF token
-        let token = '';
-        let m = document.querySelector('meta[name="csrf-token"]');
-        if (m) token = m.getAttribute('content');
-        if (token) {
-          // Requête fetch
-          fetch(url, {
-            method: method,
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-Token': token
-            },
-            credentials: 'same-origin'
-          }).then(function (r) {
-            if (r.ok) {
-              window.location.reload();
-            } else {
-              r.text().then(function (t) {
-                if (window.CM && window.CM.toast) window.CM.toast.show('Échec de l’action: ' + t, 'error');
-              });
-            }
-          }).catch(function () {
-            if (window.CM && window.CM.toast) window.CM.toast.show('Erreur réseau', 'error');
-          });
-        }
-      });
-    }
-    return { init: init };
-  })();
-  window.CM.confirmModal = module;
-})(window, document);
+  var CM = window.CM;
 
-document.addEventListener('DOMContentLoaded', function () {
-  if (window.CM.confirmModal && typeof window.CM.confirmModal.init === 'function') window.CM.confirmModal.init();
-});
+  /**
+   * SYSTÈME DE CONFIRMATION UNIQUE
+   *
+   * Remplace tous les window.confirm() et modals existants.
+   *
+   * Usage:
+   *   const ok = await CM.confirm('Supprimer ?');
+   *   const ok = await CM.confirm({ title: '...', message: '...', type: 'danger' });
+   *
+   * @param {string|object} options
+   * @returns {Promise<boolean>}
+   */
+  CM.confirm = function (options) {
+    var settings = typeof options === 'string'
+      ? { message: options }
+      : (options || {});
+
+    var config = {
+      title: settings.title || 'Confirmation',
+      message: settings.message || 'Êtes-vous sûr de vouloir continuer ?',
+      confirmText: settings.confirmText || 'Confirmer',
+      cancelText: settings.cancelText || 'Annuler',
+      type: settings.type || 'primary' // primary | danger | warning | info
+    };
+
+    return new Promise(function (resolve) {
+      var modal = document.getElementById('cm-confirm-modal');
+      var titleEl = document.getElementById('cm-confirm-title');
+      var messageEl = document.getElementById('cm-confirm-message');
+      var okBtn = document.getElementById('cm-confirm-ok');
+      var cancelBtn = document.getElementById('cm-confirm-cancel');
+
+      if (!modal || !okBtn || !cancelBtn) {
+        // Fallback to native confirm if modal not in DOM
+        resolve(window.confirm(config.message));
+        return;
+      }
+
+      // Update content
+      if (titleEl) titleEl.textContent = config.title;
+      if (messageEl) messageEl.textContent = config.message;
+      okBtn.textContent = config.confirmText;
+      cancelBtn.textContent = config.cancelText;
+
+      // Update button style based on type
+      okBtn.className = 'cm-btn is-' + config.type;
+
+      // Show modal
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+      okBtn.focus();
+
+      function cleanup() {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        okBtn.removeEventListener('click', handleOk);
+        cancelBtn.removeEventListener('click', handleCancel);
+        document.removeEventListener('keydown', handleKeydown);
+        modal.removeEventListener('click', handleOverlay);
+      }
+
+      function handleOk() {
+        cleanup();
+        resolve(true);
+      }
+
+      function handleCancel() {
+        cleanup();
+        resolve(false);
+      }
+
+      function handleKeydown(e) {
+        if (e.key === 'Escape') {
+          cleanup();
+          resolve(false);
+        }
+      }
+
+      function handleOverlay(e) {
+        if (e.target === modal) {
+          cleanup();
+          resolve(false);
+        }
+      }
+
+      okBtn.addEventListener('click', handleOk);
+      cancelBtn.addEventListener('click', handleCancel);
+      document.addEventListener('keydown', handleKeydown);
+      modal.addEventListener('click', handleOverlay);
+    });
+  };
+})(window, document);

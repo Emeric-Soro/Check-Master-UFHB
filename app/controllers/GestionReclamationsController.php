@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Reclamation.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../Services/GestionReclamationsService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\GestionReclamationsService;
 
@@ -58,6 +59,11 @@ class GestionReclamationsController {
 
     private function traiterSoumissionReclamation()
     {
+        if (!canView('gestion_reclamations')) {
+            $this->afficherMessage("Accès non autorisé.", 'error');
+            header('Location: ?page=gestion_reclamations');
+            exit;
+        }
         try {
             error_log("POST data: " . print_r($_POST, true));
             error_log("SESSION data: " . print_r($_SESSION, true));

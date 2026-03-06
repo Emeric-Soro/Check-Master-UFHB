@@ -254,6 +254,24 @@ function traduireStatut($statut)
             background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
         }
 
+        .btn-pdf {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: white;
+        }
+
+        .btn-pdf:hover {
+            background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+        }
+
+        .btn-traiter {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-traiter:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
         .action-buttons {
             display: flex;
             flex-wrap: wrap;
@@ -412,16 +430,16 @@ function traduireStatut($statut)
             </div>
 
             <div class="cm-table-wrapper">
-                <table id="rapportsTable" class="table">
+                <table id="rapportsTable" class="table cm-data-table">
                     <thead>
                         <tr>
-                            <th><i class="fas fa-user-graduate mr-2"></i>Étudiant</th>
-                            <th><i class="fas fa-file-lines mr-2"></i>Rapport</th>
-                            <th><i class="fas fa-lightbulb mr-2"></i>Thème</th>
-                            <th><i class="fas fa-calendar-alt mr-2"></i>Promotion</th>
-                            <th><i class="fas fa-calendar-day mr-2"></i>Date de dépôt</th>
-                            <th><i class="fas fa-check-circle mr-2"></i>Approbation</th>
-                            <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
+                            <th class="cm-data-table__th"><i class="fas fa-user-graduate mr-2"></i>Étudiant</th>
+                            <th class="cm-data-table__th"><i class="fas fa-file-lines mr-2"></i>Rapport</th>
+                            <th class="cm-data-table__th"><i class="fas fa-lightbulb mr-2"></i>Thème</th>
+                            <th class="cm-data-table__th"><i class="fas fa-calendar-alt mr-2"></i>Promotion</th>
+                            <th class="cm-data-table__th"><i class="fas fa-calendar-day mr-2"></i>Date de dépôt</th>
+                            <th class="cm-data-table__th"><i class="fas fa-check-circle mr-2"></i>Approbation</th>
+                            <th class="cm-data-table__th is-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -443,9 +461,8 @@ function traduireStatut($statut)
                                     $promotionLabel = $academicYearLabels[(int) $rapport->id_annee_acad] ?? '-';
                                 }
                                 ?>
-                                <tr
-                                    class="hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-300">
-                                    <td class="font-semibold text-gray-800">
+                                <tr class="cm-data-table__row">
+                                    <td class="cm-data-table__td">
                                         <div class="flex items-center gap-3">
                                             <div>
                                                 <div class="font-semibold">
@@ -455,22 +472,22 @@ function traduireStatut($statut)
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td class="cm-data-table__td">
                                         <div class="font-bold text-gray-900"><?= htmlspecialchars($rapport->nom_rapport) ?>
                                         </div>
                                         <div class="text-sm text-gray-500">Rapport de master</div>
                                     </td>
-                                    <td>
+                                    <td class="cm-data-table__td">
                                         <div class="italic text-blue-700 max-w-xs truncate">
                                             <?= htmlspecialchars($rapport->theme_rapport) ?>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td class="cm-data-table__td">
                                         <div class="font-semibold text-gray-700">
                                             <?= htmlspecialchars($promotionLabel !== '' ? $promotionLabel : '-', ENT_QUOTES, 'UTF-8') ?>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td class="cm-data-table__td">
                                         <div class="flex items-center gap-2">
                                             <span
                                                 class="font-semibold text-gray-700"><?= date('d/m/Y', strtotime($rapport->date_depot)) ?></span>
@@ -507,13 +524,19 @@ function traduireStatut($statut)
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-center">
-                                        <div class="flex items-center justify-center gap-2 action-buttons">
+                                    <td class="cm-data-table__td is-center"><div class="flex items-center justify-center gap-2 action-buttons">
                                             <button onclick="voirDetail(<?= $rapport->id_rapport ?>)"
-                                                class="action-btn btn-detail">
-                                                <i class="fas fa-eye mr-1"></i> Voir détail
+                                                class="action-btn btn-detail" title="Consulter">
+                                                <i class="fas fa-eye mr-1"></i> Consulter
                                             </button>
-
+                                            <a href="?page=gestion_dossiers_candidatures&action=telecharger_pdf&id_rapport=<?= urlencode((string) $rapport->id_rapport) ?>"
+                                                class="action-btn btn-pdf" title="PDF">
+                                                <i class="fas fa-file-pdf mr-1"></i> PDF
+                                            </a>
+                                            <a href="?page=gestion_dossiers_candidatures&id_rapport=<?= urlencode((string) $rapport->id_rapport) ?>"
+                                                class="action-btn btn-traiter" title="Traiter dans gestion_dossiers_candidatures">
+                                                <i class="fas fa-pen mr-1"></i> Traiter
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>
@@ -526,7 +549,7 @@ function traduireStatut($statut)
     </div>
 
     <!-- Modal pour les détails du rapport -->
-    <div id="detailModal" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div id="detailModal" class="cm-legacy-panel fixed inset-0 z-50 hidden items-center justify-center">
         <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
                 
@@ -542,7 +565,7 @@ function traduireStatut($statut)
     </div>
 
     <!-- Modal de confirmation validation/rejet -->
-    <div id="confirmModal" class="fixed inset-0 hidden z-50 items-center justify-center p-4">
+    <div id="confirmModal" class="cm-legacy-panel fixed inset-0 hidden z-50 items-center justify-center p-4">
         <div class="modal-content bg-white max-w-md w-full rounded-xl shadow-2xl p-6 transform transition-all duration-300 scale-95 opacity-0"
             id="confirmModalContent">
 
@@ -841,3 +864,4 @@ function traduireStatut($statut)
 </body>
 
 </html>
+

@@ -190,9 +190,6 @@ class GestionRapportService
             if ($dejaDepose) {
                 $peutDeposer = false;
                 $messageDepot = 'Déjà déposé';
-            } elseif ($nbMots < 5000) {
-                $peutDeposer = false;
-                $messageDepot = 'Minimum 5 000 mots requis (' . (int) $nbMots . ')';
             } else {
                 // Vérifier si l'étudiant a un autre rapport en cours d'évaluation
                 $stmt = $this->rapportModel->pdo->prepare("
@@ -325,14 +322,6 @@ class GestionRapportService
         }
 
         return 0;
-    }
-
-    /**
-     * Vérifie le quota minimum de mots avant dépôt.
-     */
-    private function verifierQuotaDepotRapport($rapport_id, $num_etu, $minimumMots = 5000)
-    {
-        return $this->compterMotsRapport($rapport_id, $num_etu) >= (int) $minimumMots;
     }
 
     private function normaliserStatutCandidature($statut)
@@ -1014,10 +1003,6 @@ class GestionRapportService
      */
     public function traiterDepotRapport($id_rapport, $num_etu)
     {
-        if (!$this->verifierQuotaDepotRapport($id_rapport, $num_etu, 5000)) {
-            return ['success' => false, 'redirect' => '?page=gestion_rapports&message=depot_quota'];
-        }
-
         $result = $this->enregistrerDepotRapport($id_rapport, $num_etu);
 
         if ($result) {

@@ -257,7 +257,7 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
             </div>
         <?php endif; ?>
     </div>
-    <div id="dossierModal" class="fixed inset-0 z-50 flex items-center justify-center bg-opacity-40 hidden">
+    <div id="dossierModal" class="cm-legacy-panel fixed inset-0 z-50 flex items-center justify-center bg-opacity-40 hidden">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 relative overflow-y-auto max-h-[90vh]">
             <button id="closeModalBtn" class="absolute top-4 left-4  text-gray-500 flex items-center justify-center"><i
                     class="fas fa-times text-lg"></i></button>

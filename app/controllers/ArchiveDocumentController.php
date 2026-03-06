@@ -20,7 +20,7 @@ class ArchiveDocumentController
      */
     public function index()
     {
-        if (!canView()) {
+        if (!canView('archives_documents')) {
             $_SESSION['error_message'] = "Accès refusé aux archives documents.";
             header('Location: layout.php?page=access_denied');
             exit;
@@ -42,7 +42,7 @@ class ArchiveDocumentController
      */
     public function visionneuse()
     {
-        if (!canView()) {
+        if (!canView('archives_documents')) {
             http_response_code(403);
             echo "Accès refusé";
             exit;
@@ -71,7 +71,7 @@ class ArchiveDocumentController
      */
     public function telecharger()
     {
-        if (!canView()) {
+        if (!canView('archives_documents')) {
             http_response_code(403);
             exit;
         }
@@ -100,7 +100,7 @@ class ArchiveDocumentController
      */
     public function telechargerGroupe()
     {
-        if (!canCreate()) {
+        if (!canView('archives_documents')) {
             http_response_code(403);
             exit;
         }

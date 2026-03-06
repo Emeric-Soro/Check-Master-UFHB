@@ -14,21 +14,13 @@ unset($_SESSION['message']);
 ?>
 
 <div class="cm-etu-screen">
-    <?php cm_toolbar([
-        'screen' => 'gestion_reclamations',
-        'id_prefix' => 'reclamations',
-        'search_value' => $_GET['search'] ?? '',
-        'limit' => 10,
-        'can_delete' => canDelete(),
-        'can_view' => canView(),
-    ]); ?>
     <section class="cm-etu-panel">
         <header class="cm-etu-panel__header">
             <div>
                 
                 <p class="cm-etu-panel__subtitle">Soumettez, suivez et consultez vos réclamations.</p>
             </div>
-            <span class="cm-etu-count-badge"><?= (int) $totalReclamations ?> réclamation<?= (int) $totalReclamations > 1 ? 's' : '' ?></span>
+            <span class="cm-etu-count-badge"><?= $totalReclamations ?> réclamation<?= $totalReclamations > 1 ? 's' : '' ?></span>
         </header>
 
         <?php if (is_array($message)): ?>

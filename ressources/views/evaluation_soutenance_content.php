@@ -90,13 +90,6 @@ foreach ($soutenances as $soutenance) {
 
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur">
-            <div class="cm-pole-superieur-title">
-                <h2>
-                    <i class="fas fa-graduation-cap" aria-hidden="true"></i>
-                    Evaluation soutenance
-                </h2>
-            </div>
-
             <form id="cmEvalSoutForm" method="POST" action="?page=evaluation_soutenance" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" name="action" value="evaluer">
@@ -187,33 +180,33 @@ foreach ($soutenances as $soutenance) {
                     ]);
                     ?>
                 </div>
-                <div id="cmEvalCriteriaGrid" class="cm-grid-3"></div>
+                <?php
+                $criteriaForGrid = array_map(static function (array $c): array {
+                    return [
+                        'id'     => (int) ($c['id_critere'] ?? 0),
+                        'label'  => (string) ($c['lib_critere'] ?? ''),
+                        'abbrev' => (string) ($c['code_critere'] ?? ''),
+                        'bareme' => (float) ($c['bareme_max'] ?? 20),
+                    ];
+                }, $criteres);
+                cm_component('ui/evaluation-grid', [
+                    'criteria'          => $criteriaForGrid,
+                    'name_prefix'       => 'criteres',
+                    'id_prefix'         => 'cmEval',
+                    'commentaire_name'  => 'commentaire_general',
+                    'commentaire_label' => 'Commentaire general',
+                    'show_header'       => false,
+                    'show_buttons'      => false,
+                ]);
+                ?>
 
-                <div class="cm-grid-3">
-                    <?php
-                    cm_component('form/input-number', [
-                        'name' => 'cm_eval_moyenne',
-                        'id' => 'cmEvalMoyenne',
-                        'label' => 'Moyenne calculee',
-                        'readonly' => true,
-                        'step' => '0.01',
-                    ]);
-                    cm_component('form/select', [
-                        'name' => 'cm_eval_decision',
-                        'id' => 'cmEvalDecision',
-                        'label' => 'Decision',
-                        'options' => [
-                            'admis' => 'Admis',
-                            'ajourne' => 'Ajourne',
-                        ],
-                    ]);
-                    cm_component('form/textarea', [
-                        'name' => 'commentaire_general',
-                        'id' => 'cmEvalCommentaire',
-                        'label' => 'Commentaire general',
-                        'rows' => 3,
-                    ]);
-                    ?>
+                <div class="cm-form-group">
+                    <?php cm_component('form/select', [
+                        'name'    => 'cm_eval_decision',
+                        'id'      => 'cmEvalDecision',
+                        'label'   => 'Decision',
+                        'options' => ['admis' => 'Admis', 'ajourne' => 'Ajourne'],
+                    ]); ?>
                 </div>
 
                 <div class="cm-form-buttons">
@@ -402,7 +395,6 @@ foreach ($soutenances as $soutenance) {
     (function () {
         const criteresInit = <?php echo json_encode($criteres, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
         const soutenances = <?php echo json_encode($soutenances, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-        const criteriaGrid = document.getElementById('cmEvalCriteriaGrid');
         const anneeSelect = document.getElementById('cmEvalAnnee');
         const soutenanceSelect = document.getElementById('cmEvalSoutenanceSelect');
         const numEtuInput = document.getElementById('cmEvalNumEtu');
@@ -497,67 +489,25 @@ foreach ($soutenances as $soutenance) {
             return 'ajourne';
         }
 
-        function renderCriteriaInputs(criteres) {
-            if (!criteriaGrid) {
-                return;
-            }
-            criteriaGrid.innerHTML = '';
-
-            (criteres || []).forEach(function (critere) {
-                const id = String(critere.id_critere || '');
-                const label = String(critere.lib_critere || ('Critere ' + id));
-                const max = parseFloat($controller -> getBaremeCriteres());
-
-                const wrapper = document.createElement('div');
-                wrapper.className = 'cm-form-group';
-                wrapper.innerHTML = '' +
-                    '<label class="cm-form-label" for="cmCritere_' + id + '">' + label + '</label>' +
-                    '<div class="cm-input-wrapper">' +
-                    '<input type="number" style="width: 70px" class="cm-form-control" ' +
-                    'name="criteres[' + id + ']" id="cmCritere_' + id + '" ' +
-                    'data-bareme="' + max + '" min="0" max="' + max + '" step="0.5">' +
-                    '<label class="cm-form-label" for="cmCritere_' + id + '">/' + max + ' </label>' +
-                    '</div>';
-                criteriaGrid.appendChild(wrapper);
-            });
-
-            criteriaGrid.querySelectorAll('input[name^="criteres["]').forEach(function (input) {
-                input.addEventListener('input', recalcMoyenne);
-            });
-        }
-
         function recalcMoyenne() {
-            let sum = 0;
-            let valid = true;
-            const inputs = criteriaGrid ? criteriaGrid.querySelectorAll('input[name^="criteres["]') : [];
-            inputs.forEach(function (input) {
-                const raw = input.value;
-                if (raw === '') {
-                    input.classList.remove('is-invalid');
-                    return;
-                }
-                const note = parseFloat(raw);
-                const bareme = parseFloat(input.getAttribute('data-bareme') || '20');
-                if (isNaN(note) || note < 0 || note > bareme) {
-                    valid = false;
-                    input.classList.add('is-invalid');
+            const evalGrid = document.getElementById('cmEval');
+            if (!evalGrid) { return; }
+            let total = 0, allFilled = true;
+            evalGrid.querySelectorAll('.cm-eval-grid__row').forEach(function (row) {
+                const bareme = parseFloat(row.dataset.bareme) || 0;
+                const input = row.querySelector('.cm-eval-grid__note-field');
+                const val = input ? parseFloat(input.value) : NaN;
+                if (!isNaN(val) && val >= 0 && val <= bareme) {
+                    total += val;
                 } else {
-                    input.classList.remove('is-invalid');
-                    sum += note;
+                    allFilled = false;
                 }
             });
-
-            if (!moyenneInput) {
-                return;
+            if (moyenneInput) {
+                moyenneInput.value = allFilled ? total.toFixed(2) : '';
             }
-            if (!valid) {
-                moyenneInput.value = '';
-                return;
-            }
-
-            moyenneInput.value = sum.toFixed(2);
             if (decisionSelect) {
-                decisionSelect.value = mentionFromNote(sum);
+                decisionSelect.value = allFilled ? mentionFromNote(total) : 'ajourne';
             }
         }
 
@@ -591,6 +541,11 @@ foreach ($soutenances as $soutenance) {
                 selectedLabel.textContent = 'Soutenance selectionnee: ' + (info.nom_etudiant || 'Etudiant') + ' - ' + (datePart || '-');
             }
 
+            const commentaireEl = document.getElementById('cmEvalComment');
+            if (commentaireEl) {
+                commentaireEl.value = info.commentaire_general || '';
+            }
+
             if (info.est_evalue > 0) {
                 fetch('?page=evaluation_soutenance&action=getEvaluationExistante&num_etu=' + encodeURIComponent(numEtu), {
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
@@ -602,7 +557,7 @@ foreach ($soutenances as $soutenance) {
                             return;
                         }
                         rows.forEach(function (row) {
-                            const input = document.getElementById('cmCritere_' + String(row.id_critere || ''));
+                            const input = document.getElementById('cmEvalCrit' + String(row.id_critere || ''));
                             if (input) {
                                 input.value = row.note;
                             }
@@ -610,14 +565,41 @@ foreach ($soutenances as $soutenance) {
                         recalcMoyenne();
                     });
             } else {
-                if (criteriaGrid) {
-                    criteriaGrid.querySelectorAll('input[name^="criteres["]').forEach(function (input) {
-                        input.value = '';
-                        input.classList.remove('is-invalid');
-                    });
-                }
+                document.querySelectorAll('#cmEval .cm-eval-grid__note-field').forEach(function (input) {
+                    input.value = '';
+                    input.classList.remove('is-invalid');
+                });
                 recalcMoyenne();
             }
+        }
+
+        function rebuildGridRows(criteres) {
+            const evalGrid = document.getElementById('cmEval');
+            if (!evalGrid) { return; }
+            const tbody = evalGrid.querySelector('.cm-eval-grid__table tbody');
+            if (!tbody) { return; }
+            tbody.innerHTML = '';
+            (criteres || []).forEach(function (c) {
+                const id = String(c.id_critere || '');
+                const label = String(c.lib_critere || ('Critere ' + id));
+                const abbrev = c.code_critere ? ' <span class="cm-eval-grid__abbrev">(' + c.code_critere + ')</span>' : '';
+                const bareme = parseFloat(c.bareme_max || 0);
+                const tr = document.createElement('tr');
+                tr.className = 'cm-eval-grid__row';
+                tr.dataset.bareme = String(bareme);
+                tr.innerHTML = '<td class="cm-eval-grid__td cm-eval-grid__td--label">' + label + abbrev + '</td>' +
+                    '<td class="cm-eval-grid__td cm-eval-grid__td--bareme">' + Math.round(bareme) + '</td>' +
+                    '<td class="cm-eval-grid__td cm-eval-grid__td--note"><div class="cm-eval-grid__note-wrap">' +
+                    '<input type="number" id="cmEvalCrit' + id + '" name="criteres[' + id + ']" ' +
+                    'class="cm-eval-grid__note-input cm-eval-grid__note-field" value="" ' +
+                    'min="0" max="' + bareme + '" step="0.5" placeholder="\u2014" data-critere-id="' + id + '">' +
+                    '<span class="cm-eval-grid__note-unit">/' + Math.round(bareme) + '</span></div></td>';
+                tbody.appendChild(tr);
+            });
+            tbody.querySelectorAll('.cm-eval-grid__note-field').forEach(function (input) {
+                input.addEventListener('input', recalcMoyenne);
+            });
+            recalcMoyenne();
         }
 
         function reloadCriteriaByYear(idAnnee) {
@@ -633,7 +615,7 @@ foreach ($soutenances as $soutenance) {
                     if (!payload || !payload.success || !Array.isArray(payload.data)) {
                         return;
                     }
-                    renderCriteriaInputs(payload.data);
+                    rebuildGridRows(payload.data);
                     if (soutenanceSelect && soutenanceSelect.value) {
                         fillSoutenanceInfo(soutenanceSelect.value);
                     }
@@ -697,14 +679,12 @@ foreach ($soutenances as $soutenance) {
                 if (dateTimeInput) dateTimeInput.value = '';
                 if (juryInput) juryInput.value = '';
                 if (decisionSelect) decisionSelect.value = 'admis';
-                const commentaire = document.getElementById('cmEvalCommentaire');
+                const commentaire = document.getElementById('cmEvalComment');
                 if (commentaire) commentaire.value = '';
-                if (criteriaGrid) {
-                    criteriaGrid.querySelectorAll('input[name^="criteres["]').forEach(function (input) {
-                        input.value = '';
-                        input.classList.remove('is-invalid');
-                    });
-                }
+                document.querySelectorAll('#cmEval .cm-eval-grid__note-field').forEach(function (input) {
+                    input.value = '';
+                    input.classList.remove('is-invalid');
+                });
                 recalcMoyenne();
             });
         }
@@ -765,12 +745,18 @@ foreach ($soutenances as $soutenance) {
         }
 
         document.querySelectorAll('.cm-eval-sout-delete-one').forEach(function (button) {
-            button.addEventListener('click', function () {
+            button.addEventListener('click', async function () {
                 const numEtu = button.getAttribute('data-num-etu') || '';
                 if (!numEtu) {
                     return;
                 }
-                if (!window.confirm('Supprimer cette evaluation ?')) {
+                const confirmed = await window.CM.confirm({
+                    title: 'Suppression',
+                    message: 'Supprimer cette evaluation ?',
+                    type: 'danger',
+                    confirmText: 'Supprimer',
+                });
+                if (!confirmed) {
                     return;
                 }
 
@@ -794,7 +780,7 @@ foreach ($soutenances as $soutenance) {
         });
 
         if (deleteBtn) {
-            deleteBtn.addEventListener('click', function () {
+            deleteBtn.addEventListener('click', async function () {
                 const nums = getCheckedRows().map(function (row) {
                     const cb = row.querySelector('.cm-eval-sout-check-row');
                     return cb ? cb.value : '';
@@ -803,7 +789,13 @@ foreach ($soutenances as $soutenance) {
                 if (nums.length === 0) {
                     return;
                 }
-                if (!window.confirm('Supprimer ' + nums.length + ' evaluation(s) ?')) {
+                const confirmed = await window.CM.confirm({
+                    title: 'Suppression multiple',
+                    message: 'Supprimer ' + nums.length + ' evaluation(s) ?',
+                    type: 'danger',
+                    confirmText: 'Supprimer',
+                });
+                if (!confirmed) {
                     return;
                 }
 
@@ -877,7 +869,10 @@ foreach ($soutenances as $soutenance) {
             }
         });
 
-        renderCriteriaInputs(criteresInit);
+        document.querySelectorAll('#cmEval .cm-eval-grid__note-field').forEach(function (input) {
+            input.addEventListener('input', recalcMoyenne);
+        });
+        recalcMoyenne();
         if (soutenanceSelect && soutenanceSelect.value) {
             if (numEtuInput) {
                 numEtuInput.value = soutenanceSelect.value;

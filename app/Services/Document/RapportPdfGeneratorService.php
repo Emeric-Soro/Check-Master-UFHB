@@ -56,14 +56,10 @@ final class RapportPdfGeneratorService
         }
 
         $candidature = $this->dataUtils->getCandidatureByEtudiant((string)($rapport['matricule_etudiant'] ?? ''));
-        if ($candidature === null) {
-            return ['success' => false, 'error' => 'Candidature introuvable pour cet étudiant et cette année'];
-        }
+        // Non bloquant : la candidature n'est pas nécessaire pour la génération du PDF
 
         $infoStage = $this->dataUtils->getInformationsStage((string)($rapport['matricule_etudiant'] ?? ''));
-        if ($infoStage === null) {
-            return ['success' => false, 'error' => 'Informations de stage introuvables'];
-        }
+        // Non bloquant : les infos de stage enrichissent le PDF mais ne sont pas obligatoires
 
         // 4. Generate unique reference
         $reference = $this->dataUtils->generateReference(self::TYPE_DOCUMENT);

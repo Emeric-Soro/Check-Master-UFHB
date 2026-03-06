@@ -3,6 +3,7 @@ require_once __DIR__ . '/../models/Reclamation.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../Services/GestionReclamationsScolariteService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\GestionReclamationsScolariteService;
 class GestionReclamationsScolariteController {
@@ -21,6 +22,11 @@ class GestionReclamationsScolariteController {
     }
     public function changerStatut() {
         if (isset($_GET['id']) && isset($_POST['nouveau_statut'])) {
+            if (!canEdit('gestion_reclamations_scolarite')) {
+                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                header('Location: ?page=gestion_reclamations_scolarite');
+                exit;
+            }
             $id = (int) $_GET['id'];
             $nouveauStatut = $_POST['nouveau_statut'];
             $idUtilisateur = $_SESSION['id_utilisateur'] ?? 0;

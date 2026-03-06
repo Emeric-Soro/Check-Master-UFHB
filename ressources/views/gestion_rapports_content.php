@@ -9,7 +9,6 @@ $messageMap = [
     'depot_ok' => ['type' => 'success', 'text' => 'Le rapport a bien été déposé et votre candidature a été transmise.'],
     'depot_fail' => ['type' => 'danger', 'text' => 'Impossible de déposer le rapport. Vérifiez son état puis réessayez.'],
     'depot_en_cours' => ['type' => 'warning', 'text' => 'Vous avez déjà un rapport en cours d\'évaluation.'],
-    'depot_quota' => ['type' => 'warning', 'text' => 'Le dépôt est bloqué: minimum 5 000 mots requis pour le rapport.'],
     'suppression_ok' => ['type' => 'success', 'text' => 'Le rapport a été supprimé avec succès.'],
 ];
 $messageKey = (string) ($_GET['message'] ?? '');
@@ -145,7 +144,7 @@ $flash = $messageMap[$messageKey] ?? null;
     </section>
 </div>
 
-<div id="deleteReportModal" class="cm-etu-modal" hidden>
+<div id="deleteReportModal" class="cm-legacy-panel cm-etu-modal" hidden>
     <div class="cm-etu-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="deleteReportTitle">
 
         <p>Le rapport <strong id="deleteReportName"></strong> sera supprimé définitivement.</p>

@@ -25,6 +25,12 @@ class GestionUtilisateurController
     {
         header('Content-Type: application/json');
 
+        if (!canView('gestion_utilisateurs')) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => "Accès refusé."]);
+            exit;
+        }
+
         if (!isset($_GET['login']) || empty($_GET['login'])) {
             echo json_encode(['success' => false, 'message' => 'Login non fourni']);
             exit;
@@ -94,7 +100,7 @@ class GestionUtilisateurController
                 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Ajout d'un nouvel utilisateur
                     if (isset($_POST['btn_add_utilisateur'])) {
-                        if (!canCreate()) {
+                        if (!canCreate('gestion_utilisateurs')) {
                             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                                 http_response_code(403);
                                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -116,7 +122,7 @@ class GestionUtilisateurController
 
                     // Traitement de l'ajout en masse
                     if (isset($_POST['btn_add_multiple']) && !empty($_POST['selected_persons'])) {
-                        if (!canCreate()) {
+                        if (!canCreate('gestion_utilisateurs')) {
                             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                                 http_response_code(403);
                                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -148,7 +154,7 @@ class GestionUtilisateurController
 
                     // Modification d'un utilisateur
                     if (isset($_POST['btn_modifier_utilisateur'])) {
-                        if (!canEdit()) {
+                        if (!canEdit('gestion_utilisateurs')) {
                             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                                 http_response_code(403);
                                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -171,7 +177,7 @@ class GestionUtilisateurController
                     // Activation ou désactivation d'utilisateurs
                     if (isset($_POST['selected_ids'])) {
                         if (isset($_POST['submit_enable_multiple']) && $_POST['submit_enable_multiple'] == 3) {
-                            if (!canEdit()) {
+                            if (!canEdit('gestion_utilisateurs')) {
                                 if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                                     http_response_code(403);
                                     echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -190,7 +196,7 @@ class GestionUtilisateurController
                                 $messageErreur = $result['message'];
                             }
                         } elseif (isset($_POST['submit_disable_multiple']) && $_POST['submit_disable_multiple'] == 2) {
-                            if (!canEdit()) {
+                            if (!canEdit('gestion_utilisateurs')) {
                                 if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                                     http_response_code(403);
                                     echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -209,7 +215,7 @@ class GestionUtilisateurController
                                 $messageErreur = $result['message'];
                             }
                         } elseif (isset($_POST['submit_send_access']) && $_POST['submit_send_access'] == 4) {
-                            if (!canEdit()) {
+                            if (!canEdit('gestion_utilisateurs')) {
                                 if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                                     http_response_code(403);
                                     echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);

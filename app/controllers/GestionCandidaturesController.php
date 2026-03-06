@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/GestionCandidaturesService.php';
 require_once __DIR__ . '/../Core/Autoload.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Core\Session;
 use CheckMaster\Services\GestionCandidaturesService;
@@ -30,7 +31,12 @@ class GestionCandidaturesController {
 
         // Gestion des actions - DOIT être avant tout output HTML
         if ($action === 'valider_etape' && $examiner) {
-            $etapeValidee = $_POST['etape'] ?? '';
+            if (!canEdit('gestion_candidatures_soutenance')) {
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                header("Location: ?page=gestion_candidatures_soutenance");
+                exit;
+            }
+            $etapeValidee = intval($_POST['etape'] ?? 0);
             $_SESSION['etapes_validation'][$examiner][$etapeValidee] = 'validé';
             
             // Audit logging
@@ -48,7 +54,12 @@ class GestionCandidaturesController {
         }
 
         if ($action === 'rejeter_etape' && $examiner) {
-            $etapeRejetee = $_POST['etape'] ?? '';
+            if (!canEdit('gestion_candidatures_soutenance')) {
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                header("Location: ?page=gestion_candidatures_soutenance");
+                exit;
+            }
+            $etapeRejetee = intval($_POST['etape'] ?? 0);
             $_SESSION['etapes_validation'][$examiner][$etapeRejetee] = 'rejeté';
             
             // Audit logging
@@ -66,6 +77,11 @@ class GestionCandidaturesController {
 
         // Nouvelle action pour envoyer les résultats
         if ($action === 'envoyer_resultats' && $examiner) {
+            if (!canEdit('gestion_candidatures_soutenance')) {
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                header("Location: ?page=gestion_candidatures_soutenance&examiner=$examiner&etape=4");
+                exit;
+            }
             $writeGuard = $this->service->ensureWritableCandidature($examiner);
             if (!$writeGuard['success']) {
                 $_SESSION['error'] = $writeGuard['message'];

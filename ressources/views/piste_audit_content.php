@@ -253,7 +253,7 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
         return;
     }
 
-    table.addEventListener('click', function (event) {
+    table.addEventListener('click', async function (event) {
         const deleteButton = event.target.closest('.cm-btn-action.is-delete');
         if (!deleteButton) {
             return;
@@ -262,7 +262,13 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
         if (id === '') {
             return;
         }
-        if (!window.confirm('Supprimer ce log d\\'audit ?')) {
+        const confirmed = await window.CM.confirm({
+            title: 'Suppression',
+            message: 'Supprimer ce log d\\'audit ?',
+            type: 'danger',
+            confirmText: 'Supprimer',
+        });
+        if (!confirmed) {
             return;
         }
         deleteInput.value = id;

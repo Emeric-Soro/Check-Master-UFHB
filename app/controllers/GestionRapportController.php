@@ -151,7 +151,15 @@ class GestionRapportController
 
     public function traiterCreationRapport()
     {
-        if (!canCreate() && !canEdit() && !canDelete()) {
+        $postAction = $_POST['action'] ?? '';
+
+        $isEtudiant = $this->isEtudiant();
+        // L'export PDF est une opération de lecture : canView() suffit (les étudiants y ont accès aussi)
+        $canAccess = ($postAction === 'export_pdf')
+            ? ($isEtudiant || canView('gestion_rapports') || canCreate('gestion_rapports') || canEdit('gestion_rapports') || canDelete('gestion_rapports'))
+            : ($isEtudiant || canCreate('gestion_rapports') || canEdit('gestion_rapports') || canDelete('gestion_rapports'));
+
+        if (!$canAccess) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -384,7 +392,7 @@ class GestionRapportController
     //=============================ACTIONS AJAX=============================
     public function deleteRapportAjax()
     {
-        if (!canDelete()) {
+        if (!canDelete('gestion_rapports')) {
             http_response_code(403);
             $this->sendJsonResponse(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
             return;
@@ -513,7 +521,7 @@ class GestionRapportController
      */
     public function supprimer_rapport()
     {
-        if (!canDelete()) {
+        if (!canDelete('gestion_rapports')) {
             $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
             $_SESSION['error_type'] = 'permission_denied';
             header('Location: layout.php?page=access_denied');

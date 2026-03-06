@@ -147,7 +147,7 @@ foreach ($backups as $backup) {
     const deleteInput = document.getElementById('cmBackupDeleteFilename');
     const restoreInput = document.getElementById('cmBackupRestoreFilename');
 
-    table.addEventListener('click', function (event) {
+    table.addEventListener('click', async function (event) {
         const target = event.target;
         const downloadBtn = target.closest('.js-backup-download');
         const restoreBtn = target.closest('.js-backup-restore');
@@ -168,7 +168,13 @@ foreach ($backups as $backup) {
         if (restoreBtn) {
             const filename = restoreBtn.getAttribute('data-row-id') || '';
             if (filename !== '' && restoreForm && restoreInput) {
-                if (!window.confirm('Restaurer la base depuis ce fichier ?')) {
+                const restoreConfirmed = await window.CM.confirm({
+                    title: 'Restauration',
+                    message: 'Restaurer la base depuis ce fichier ?',
+                    type: 'warning',
+                    confirmText: 'Restaurer',
+                });
+                if (!restoreConfirmed) {
                     return;
                 }
                 restoreInput.value = filename;
@@ -184,7 +190,13 @@ foreach ($backups as $backup) {
         if (deleteBtn) {
             const filename = deleteBtn.getAttribute('data-row-id') || '';
             if (filename !== '' && deleteForm && deleteInput) {
-                if (!window.confirm('Supprimer definitivement ce fichier de sauvegarde ?')) {
+                const deleteConfirmed = await window.CM.confirm({
+                    title: 'Suppression',
+                    message: 'Supprimer definitivement ce fichier de sauvegarde ?',
+                    type: 'danger',
+                    confirmText: 'Supprimer',
+                });
+                if (!deleteConfirmed) {
                     return;
                 }
                 deleteInput.value = filename;

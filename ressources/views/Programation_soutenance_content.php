@@ -667,12 +667,18 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
         });
     });
     document.querySelectorAll('.cm-prog-delete').forEach(function (button) {
-        button.addEventListener('click', function () {
+        button.addEventListener('click', async function () {
             const id = button.getAttribute('data-id') || '';
             if (!id) {
                 return;
             }
-            if (!window.confirm('Supprimer cette programmation ?')) {
+            const confirmed = await window.CM.confirm({
+                title: 'Suppression',
+                message: 'Supprimer cette programmation ?',
+                type: 'danger',
+                confirmText: 'Supprimer',
+            });
+            if (!confirmed) {
                 return;
             }
             deleteAttribution(id)
@@ -739,7 +745,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
         });
     }
     if (deleteBtn) {
-        deleteBtn.addEventListener('click', function () {
+        deleteBtn.addEventListener('click', async function () {
             const ids = getCheckedRows().map(function (row) {
                 const cb = row.querySelector('.cm-prog-check-row');
                 return cb ? cb.value : '';
@@ -747,7 +753,13 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
             if (ids.length === 0) {
                 return;
             }
-            if (!window.confirm('Supprimer ' + ids.length + ' programmation(s) ?')) {
+            const confirmed = await window.CM.confirm({
+                title: 'Suppression multiple',
+                message: 'Supprimer ' + ids.length + ' programmation(s) ?',
+                type: 'danger',
+                confirmText: 'Supprimer',
+            });
+            if (!confirmed) {
                 return;
             }
             Promise.all(ids.map(deleteAttribution))

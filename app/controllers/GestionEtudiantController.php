@@ -81,7 +81,7 @@ class GestionEtudiantController
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Ajout d'un nouvel étudiant
                 if (isset($_POST['submit_add_etudiant'])) {
-                    if (!canCreate()) {
+                    if (!canCreate('gestion_etudiants')) {
                         if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                             http_response_code(403);
                             echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -110,7 +110,7 @@ class GestionEtudiantController
 
                 // Modification d'un étudiant
                 if (isset($_POST['submit_modifier_etudiant'])) {
-                    if (!canEdit()) {
+                    if (!canEdit('gestion_etudiants')) {
                         if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                             http_response_code(403);
                             echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -139,7 +139,7 @@ class GestionEtudiantController
 
                 // Suppression d'étudiants
                 if (isset($_POST['selected_ids']) && !empty($_POST['selected_ids'])) {
-                    if (!canDelete()) {
+                    if (!canDelete('gestion_etudiants')) {
                         if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                             http_response_code(403);
                             echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);

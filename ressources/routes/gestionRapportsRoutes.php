@@ -19,6 +19,9 @@ if ($_GET['page'] === 'gestion_rapports') {
         $infoStageModel = new InfoStage($db);
         $stage_info = $infoStageModel->getStageInfo($_SESSION['num_etu']);
 
+        // Rendre disponible pour les vues via $GLOBALS
+        $GLOBALS['stage_info'] = $stage_info;
+
         // Si pas d'infos de stage, rediriger vers la page de candidature
         if (!$stage_info) {
             $_SESSION['error'] = "Vous devez d'abord remplir vos informations de stage avant de créer votre rapport.";

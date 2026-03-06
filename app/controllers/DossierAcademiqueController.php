@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../Services/DossierAcademiqueService.php';
 require_once __DIR__ . '/../../app/config/database.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 use CheckMaster\Services\DossierAcademiqueService;
 
 
@@ -25,6 +26,12 @@ class DossierAcademiqueController {
 
     public function enregsitrer_dossier() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!canCreate('dossiers_academiques') && !canEdit('dossiers_academiques')) {
+                $redirect = $_SERVER['HTTP_REFERER'] ?? '/';
+                $sep = (strpos($redirect, '?') === false) ? '?' : '&';
+                header('Location: ' . $redirect . $sep . 'error=permission_denied');
+                exit;
+            }
             $data = $_POST;
             $success = $this->service->saveOrUpdate($data, (int) $_SESSION['id_utilisateur']);
             // Redirection vers la page d'origine avec message

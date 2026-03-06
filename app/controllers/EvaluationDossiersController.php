@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/EvaluationDossiersService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\EvaluationDossiersService;
 
@@ -40,6 +41,14 @@ class EvaluationDossiersController {
                 $action = $_POST['action'] ?? $_GET['action'] ?? '';
                 if (isset($_GET['debug'])) {
                     error_log("DEBUG: Action récupérée: '$action'");
+                }
+                
+                // Valider/rejeter/finaliser nécessite le droit de modifier
+                $actionsMutation = ['valider_dossier', 'rejeter_dossier', 'traiter_decision', 'finaliser_decision'];
+                if (in_array($action, $actionsMutation) && !canEdit('evaluations_dossiers_soutenance')) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                    exit;
                 }
                 
                 switch ($action) {

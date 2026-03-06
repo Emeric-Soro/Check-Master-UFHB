@@ -258,7 +258,11 @@ function isChecked($v): string
                                     </button>
 
                                     <?php if (!empty($c->actif)): ?>
-                                        <form method="POST" onsubmit="return confirm('Désactiver cette catégorie et ses fonctionnalités ?');" class="cm-flex">
+                                        <form method="POST"
+                                              class="cm-flex"
+                                              data-cm-confirm-message="Désactiver cette catégorie et ses fonctionnalités ?"
+                                              data-cm-confirm-type="danger"
+                                              data-cm-confirm-text="Désactiver">
                                             <?php cm_component('form/csrf-token'); ?>
                                             <input type="hidden" name="op" value="deactivate_category">
                                             <input type="hidden" name="id_categorie" value="<?= (int) $c->id_categorie ?>">
@@ -269,7 +273,11 @@ function isChecked($v): string
                                             </button>
                                         </form>
                                     <?php else: ?>
-                                        <form method="POST" onsubmit="return confirm('Réactiver cette catégorie et ses fonctionnalités ?');" class="cm-flex">
+                                        <form method="POST"
+                                              class="cm-flex"
+                                              data-cm-confirm-message="Réactiver cette catégorie et ses fonctionnalités ?"
+                                              data-cm-confirm-type="warning"
+                                              data-cm-confirm-text="Réactiver">
                                             <?php cm_component('form/csrf-token'); ?>
                                             <input type="hidden" name="op" value="activate_category">
                                             <input type="hidden" name="id_categorie" value="<?= (int) $c->id_categorie ?>">
@@ -331,7 +339,11 @@ function isChecked($v): string
                                             <span>Modifier</span>
                                         </button>
                                         <?php if (!empty($p->actif)): ?>
-                                            <form method="POST" onsubmit="return confirm('Désactiver cet élément ?');" class="cm-flex">
+                                            <form method="POST"
+                                                  class="cm-flex"
+                                                  data-cm-confirm-message="Désactiver cet élément ?"
+                                                  data-cm-confirm-type="danger"
+                                                  data-cm-confirm-text="Désactiver">
                                                 <?php cm_component('form/csrf-token'); ?>
                                                 <input type="hidden" name="op" value="deactivate_fonctionnalite">
                                                 <input type="hidden" name="id_fonctionnalite" value="<?= (int) $pid ?>">
@@ -342,7 +354,11 @@ function isChecked($v): string
                                                 </button>
                                             </form>
                                         <?php else: ?>
-                                            <form method="POST" onsubmit="return confirm('Réactiver cet élément ?');" class="cm-flex">
+                                            <form method="POST"
+                                                  class="cm-flex"
+                                                  data-cm-confirm-message="Réactiver cet élément ?"
+                                                  data-cm-confirm-type="warning"
+                                                  data-cm-confirm-text="Réactiver">
                                                 <?php cm_component('form/csrf-token'); ?>
                                                 <input type="hidden" name="op" value="activate_fonctionnalite">
                                                 <input type="hidden" name="id_fonctionnalite" value="<?= (int) $pid ?>">
@@ -389,7 +405,11 @@ function isChecked($v): string
                                                 <span>Modifier</span>
                                             </button>
                                             <?php if (!empty($ch->actif)): ?>
-                                                <form method="POST" onsubmit="return confirm('Désactiver cet écran ?');" class="cm-flex">
+                                                <form method="POST"
+                                                      class="cm-flex"
+                                                      data-cm-confirm-message="Désactiver cet écran ?"
+                                                      data-cm-confirm-type="danger"
+                                                      data-cm-confirm-text="Désactiver">
                                                     <?php cm_component('form/csrf-token'); ?>
                                                     <input type="hidden" name="op" value="deactivate_fonctionnalite">
                                                     <input type="hidden" name="id_fonctionnalite" value="<?= (int) $chid ?>">
@@ -400,7 +420,11 @@ function isChecked($v): string
                                                     </button>
                                                 </form>
                                             <?php else: ?>
-                                                <form method="POST" onsubmit="return confirm('Réactiver cet écran ?');" class="cm-flex">
+                                                <form method="POST"
+                                                      class="cm-flex"
+                                                      data-cm-confirm-message="Réactiver cet écran ?"
+                                                      data-cm-confirm-type="warning"
+                                                      data-cm-confirm-text="Réactiver">
                                                     <?php cm_component('form/csrf-token'); ?>
                                                     <input type="hidden" name="op" value="activate_fonctionnalite">
                                                     <input type="hidden" name="id_fonctionnalite" value="<?= (int) $chid ?>">
@@ -424,7 +448,7 @@ function isChecked($v): string
     </div>
 </section>
 
-<div id="editCategoryModal" class="cm-modal-overlay">
+<div id="editCategoryModal" class="cm-legacy-panel">
     <div class="cm-modal">
         <div class="cm-modal__header">
 
@@ -482,7 +506,7 @@ function isChecked($v): string
     </div>
 </div>
 
-<div id="editItemModal" class="cm-modal-overlay">
+<div id="editItemModal" class="cm-legacy-panel">
     <div class="cm-modal">
         <div class="cm-modal__header">
 
@@ -578,8 +602,7 @@ function isChecked($v): string
     (function () {
         /* === Scroll lock for modal - prevents background scroll === */
         function setScrollLock(lock) {
-            document.body.style.overflow = lock ? 'hidden' : '';
-            document.body.style.paddingRight = lock ? (window.innerWidth - document.documentElement.clientWidth) + 'px' : '';
+            void lock;
         }
 
         /* â”€â”€ Collapsible sections â”€â”€ */
@@ -615,7 +638,7 @@ function isChecked($v): string
         }
 
         /* Close on overlay click */
-        document.querySelectorAll('.cm-modal-overlay').forEach(function (overlay) {
+        document.querySelectorAll('.cm-legacy-panel').forEach(function (overlay) {
             overlay.addEventListener('click', function (e) {
                 if (e.target === overlay) {
                     overlay.classList.remove('is-open');
@@ -627,7 +650,7 @@ function isChecked($v): string
         /* Close on Escape key */
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
-                document.querySelectorAll('.cm-modal-overlay.is-open').forEach(function (m) {
+                document.querySelectorAll('.cm-legacy-panel.is-open').forEach(function (m) {
                     m.classList.remove('is-open');
                 });
                 setScrollLock(false);

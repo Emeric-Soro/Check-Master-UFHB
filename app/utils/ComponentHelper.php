@@ -305,31 +305,19 @@ if (!function_exists('cm_render_param_crud_view')) {
         <?php
     }
     ?>
-    <div class="cm-grid-4">
-        <?php foreach ($formFields as $field): ?>
-            <?php
+    <?php
+    $formGridFields = [];
+    foreach ($formFields as $field) {
             $fieldName = (string) ($field['name'] ?? '');
-            if ($fieldName === '') {
-                continue;
-            }
-            $componentType = (string) ($field['type'] ?? 'text');
-            $component = 'form/input-text';
-            if ($componentType === 'number') {
-                $component = 'form/input-number';
-            } elseif ($componentType === 'date') {
-                $component = 'form/input-date';
-            } elseif ($componentType === 'email') {
-                $component = 'form/input-email';
-            } elseif ($componentType === 'select') {
-                $component = 'form/select';
-            } elseif ($componentType === 'select-search') {
-                $component = 'form/select-search';
-            } elseif ($componentType === 'textarea') {
-                $component = 'form/textarea';
-            }
+        if ($fieldName === '') {
+            continue;
+        }
 
+            $componentType = (string) ($field['type'] ?? 'text');
             $valueKey = (string) ($field['value_key'] ?? $fieldName);
             $value = $field['value'] ?? $rowValue($editObject, $valueKey, '');
+            $attrs = is_array($field['attrs'] ?? null) ? $field['attrs'] : [];
+
             $props = [
                 'name' => $fieldName,
                 'id' => (string) ($field['id'] ?? $fieldName),
@@ -339,54 +327,78 @@ if (!function_exists('cm_render_param_crud_view')) {
                 'value' => (string) $value,
                 'readonly' => !empty($field['readonly']),
                 'disabled' => !empty($field['disabled']),
-                'attrs' => is_array($field['attrs'] ?? null) ? $field['attrs'] : [],
+                'attrs' => $attrs,
+                'type' => $componentType,
             ];
 
-            if ($componentType === 'select' || $componentType === 'select-search') {
+        if ($componentType === 'select' || $componentType === 'select-search') {
                 $options = $field['options'] ?? [];
-                if (is_callable($options)) {
-                    $options = $options($config);
-                }
+            if (is_callable($options)) {
+                $options = $options($config);
+            }
                 $props['options'] = is_array($options) ? $options : [];
                 $props['selected'] = (string) $value;
-            }
+        }
 
-            if ($componentType === 'number') {
-                if (isset($field['min'])) {
+        if ($componentType === 'number') {
+            if (isset($field['min'])) {
                     $props['min'] = (string) $field['min'];
-                }
-                if (isset($field['max'])) {
+            }
+            if (isset($field['max'])) {
                     $props['max'] = (string) $field['max'];
-                }
-                if (isset($field['step'])) {
+            }
+            if (isset($field['step'])) {
                     $props['step'] = (string) $field['step'];
-                }
             }
+        }
 
-            if ($componentType === 'textarea' && isset($field['rows'])) {
+        if ($componentType === 'textarea' && isset($field['rows'])) {
                 $props['rows'] = (int) $field['rows'];
-            }
+        }
 
-            // Standard and intelligent width proportions
-            if (isset($field['control_class'])) {
-                $props['control_class'] = (string) $field['control_class'];
+            $size = (string) ($field['size'] ?? '');
+            $legacyControlClass = (string) ($field['control_class'] ?? '');
+            $legacySize = '';
+        if ($legacyControlClass !== '' && preg_match('/cm-field-+(xs|sm|md|lg|xl|date|year|full)/', $legacyControlClass, $matches)) {
+                $legacySize = (string) ($matches[1] ?? '');
+        }
+        if ($size === '' && $legacySize !== '') {
+                $size = $legacySize;
+        }
+        if ($size === '') {
+            if ($componentType === 'date') {
+                    $size = 'date';
+            } elseif ($componentType === 'email') {
+                    $size = 'lg';
+            } elseif ($componentType === 'textarea') {
+                    $size = 'full';
+            } elseif ($componentType === 'number') {
+                    $size = 'sm';
+            } elseif ($componentType === 'select' || $componentType === 'select-search') {
+                    $size = 'md';
             } else {
-                // Default width based on type
-                if ($componentType === 'number' || $componentType === 'date') {
-                    $props['control_class'] = 'cm-field-sm';
-                } elseif ($componentType === 'select' || $componentType === 'select-search') {
-                    $props['control_class'] = 'cm-field-md';
-                } elseif ($componentType === 'textarea') {
-                    $props['control_class'] = 'cm-field-full';
-                } else {
-                    $props['control_class'] = 'cm-field-lg';
-                }
+                    $size = 'md';
             }
+        }
+            $props['size'] = $size;
 
-            cm_component($component, $props);
-            ?>
-        <?php endforeach; ?>
-    </div>
+        if ($componentType === 'select-search') {
+                $props['type'] = 'select';
+                $props['component'] = 'form/select-search';
+        }
+
+        if ($legacyControlClass !== '' && $legacySize === '') {
+                $props['control_class'] = $legacyControlClass;
+        }
+
+            $formGridFields[] = $props;
+    }
+
+    cm_component('form/form-grid', [
+        'cols' => 4,
+        'fields' => $formGridFields,
+    ]);
+    ?>
 
     <?php
     $actions = [];

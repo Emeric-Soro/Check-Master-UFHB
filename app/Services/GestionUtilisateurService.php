@@ -14,6 +14,7 @@ use GroupeUtilisateur;
 use NiveauAccesDonnees;
 use AuditLog;
 use PHPMailer\PHPMailer\PHPMailer;
+require_once __DIR__ . '/../utils/EmailService.php';
 
 // Composer autoload (optionnel). Si vendor/ n'est pas installé, certaines fonctions (email) seront indisponibles.
 $composerAutoload = __DIR__ . '/../../vendor/autoload.php';
@@ -632,77 +633,6 @@ class GestionUtilisateurService
         return $password;
     }
 
-    /**
-     * Construit le message HTML pour l'email d'inscription
-     *
-     * @param string      $nom
-     * @param string      $login
-     * @param string|null $motDePasse
-     * @param string|null $resetLink
-     * @return string HTML
-     */
-    public function construireMessageHTML($nom, $login, $motDePasse, $resetLink = null): string
-    {
-        // Construction du sujet
-        $sujet = "Bienvenue sur Soutenance Manager, " . htmlspecialchars($nom) . " !";
-
-        // Construction du corps du message HTML
-        $message = '
-        <!DOCTYPE html>
-        <html lang="fr">
-        <head>
-            <meta charset="UTF-8">
-            <title>Bienvenue</title>
-            <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background-color: #10b981; color: white; padding: 20px; text-align: center; }
-                .content { padding: 20px; background-color: #f9fafb; }
-                .footer { margin-top: 20px; padding: 10px; text-align: center; font-size: 12px; color: #6b7280; }
-                .button {
-                    display: inline-block; padding: 10px 20px; background-color: #10b981; 
-                    color: white; text-decoration: none; border-radius: 5px; margin: 15px 0;
-                }
-                .credentials { background-color: #e5e7eb; padding: 15px; border-radius: 5px; margin: 15px 0; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1> ' . htmlspecialchars($sujet) . '</h1>
-                </div>
-                
-                <div class="content">
-                    <p>Bonjour ' . htmlspecialchars($nom) . ',</p>
-                    <p>Votre compte a été créé avec succès sur notre plateforme.</p>
-                    
-                    <div class="credentials">
-                        <p><strong>Identifiant de connexion:</strong> ' . htmlspecialchars($login) . '</p>';
-
-        // Ajout du mot de passe temporaire si fourni
-        if ($resetLink) {
-            $message .= '<p style="margin-top:10px"><strong>Définir votre mot de passe:</strong></p>
-                         <p><a href="' . htmlspecialchars($resetLink) . '">' . htmlspecialchars($resetLink) . '</a></p>
-                         <p style="color:#ef4444; font-size:0.9em;">Ce lien expire dans 1 heure.</p>';
-        }
-
-        $message .= '
-                    </div>
-                    
-                    <p>Vous pouvez dès maintenant vous connecter à votre compte :</p>
-                     <a href="page_connexion.php" class="button " style="color:#fff">Se connecter</a>
-                    <p>Si vous n\'êtes pas à l\'origine de cette création de compte, veuillez ignorer cet email ou contacter notre support.</p>
-                </div>
-                
-                <div class="footer">
-                    <p>© ' . date('Y') . ' Soutenance Manager. Tous droits réservés.</p>
-                </div>
-            </div>
-        </body>
-        </html>';
-
-        return $message;
-    }
 
     /**
      * Envoie un email d'inscription via PHPMailer
@@ -716,58 +646,56 @@ class GestionUtilisateurService
      */
     public function envoyerEmailInscriptionPHPMailer($email, $nom, $login, $motDePasse = null, $resetLink = null): array
     {
-        $mail = new PHPMailer(true);
-
         try {
-            // Charger la configuration SMTP depuis le fichier de config
-            $config_email = require __DIR__ . '/../config/email.php';
+            $emailService = new \EmailService();
+            
+            // Build the dynamic variables
+            $login_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/public/page_connexion.php';
+            
+            $password_row = '';
+            if ($motDePasse) {
+                $password_row = '
+                <tr>
+                    <td style="padding-bottom: 10px; color: #64748b;">Mot de passe :</td>
+                    <td style="padding-bottom: 10px;"><span class="password-box">' . htmlspecialchars($motDePasse) . '</span></td>
+                </tr>';
+            }
 
-            // Configuration du serveur SMTP
-            $mail->SMTPDebug = 0; // Désactiver le debug pour éviter l'affichage
-            $mail->Debugoutput = function ($str, $level) {
-                error_log("PHPMailer Debug: $str");
-            };
-
-            $mail->isSMTP();
-            $mail->Host = $config_email['smtp']['host'];
-            $mail->SMTPAuth = true;
-            $mail->Username = $config_email['smtp']['username'];
-            $mail->Password = $config_email['smtp']['password'];
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = $config_email['smtp']['port'];
-            $mail->CharSet = 'UTF-8';
-
-            // Destinataires
-            $mail->setFrom($config_email['smtp']['from_email'], $config_email['smtp']['from_name']);
-            $mail->addAddress($email, $nom);
-            $mail->addReplyTo($config_email['smtp']['from_email'], 'Support technique');
-
-            // Contenu
-            $mail->isHTML(true);
-            $mail->Subject = "Bienvenue sur notre plateforme, $nom !";
-
-            // Construction du message HTML
-            $message = $this->construireMessageHTML($nom, $login, $motDePasse, $resetLink);
-            $mail->Body = $message;
-            $mail->AltBody = strip_tags($message);
+            $reset_password_section = '';
+            if ($resetLink) {
+                $reset_password_section = '
+                <p style="margin-top: 15px; border-top: 1px solid #cbd5e1; padding-top: 15px;"><strong>Définir ou réinitialiser votre mot de passe :</strong></p>
+                <p><a href="' . htmlspecialchars($resetLink) . '" style="color: #2980b9; word-break: break-all;">' . htmlspecialchars($resetLink) . '</a></p>
+                <p style="color: #ef4444; font-size: 0.85em; margin-top: 5px;">Ce lien expire dans 1 heure.</p>';
+            }
+            
+            $data = [
+                'nom' => htmlspecialchars($nom),
+                'login' => htmlspecialchars($login),
+                'password_row' => $password_row,
+                'reset_password_section' => $reset_password_section,
+                'login_url' => $login_url
+            ];
 
             error_log("Tentative d'envoi d'email à : " . $email);
-            $result = $mail->send();
-            error_log("Email envoyé avec succès à : " . $email);
+            $result = $emailService->sendTemplate('USER_WELCOME', $email, $data);
+            
+            if ($result) {
+                error_log("Email envoyé avec succès à : " . $email);
+                file_put_contents(
+                    __DIR__ . '/../../logs/email.log',
+                    date('Y-m-d H:i:s') . " - Email envoyé avec succès à : $email\n",
+                    FILE_APPEND | LOCK_EX
+                );
+                return ['success' => true, 'message' => 'Email envoyé'];
+            } else {
+                throw new \Exception("L'envoi a retourné false");
+            }
 
-            // Écrire aussi dans un fichier de log personnalisé
-            file_put_contents(
-                __DIR__ . '/../../logs/email.log',
-                date('Y-m-d H:i:s') . " - Email envoyé avec succès à : $email\n",
-                FILE_APPEND | LOCK_EX
-            );
-
-            return ['success' => true, 'message' => 'Email envoyé'];
         } catch (\Throwable $e) {
-            $errorMessage = $e->getMessage() . ' | ErrorInfo: ' . $mail->ErrorInfo;
-            error_log("Erreur PHPMailer détaillée: " . $errorMessage);
+            $errorMessage = $e->getMessage();
+            error_log("Erreur d'envoi d'email: " . $errorMessage);
 
-            // Écrire l'erreur dans un fichier de log personnalisé
             $logMessage = date('Y-m-d H:i:s') . " - ERREUR Email à $email: " . $errorMessage . "\n";
             file_put_contents(__DIR__ . '/../../logs/email.log', $logMessage, FILE_APPEND | LOCK_EX);
 

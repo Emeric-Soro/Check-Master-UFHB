@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/CandidatureSoutenanceService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\CandidatureSoutenanceService;
 
@@ -81,6 +82,10 @@ class CandidatureSoutenanceController
     public function demande_candidature()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!canView('candidature_soutenance')) {
+                $_SESSION['error'] = "Accès non autorisé.";
+                return;
+            }
             $etudiant_id = $_SESSION['num_etu'];
             $id_utilisateur = $_SESSION['id_utilisateur'];
 
@@ -117,7 +122,11 @@ class CandidatureSoutenanceController
                 header('Location: ?page=gestion_rapports&action=creer_rapport');
                 exit();
             }
-
+            if (!canView('candidature_soutenance')) {
+                $_SESSION['error'] = "Accès non autorisé.";
+                header('Location: ?page=candidature_soutenance');
+                exit();
+            }
             $etudiant_id = $_SESSION['num_etu'];
             $id_utilisateur = $_SESSION['id_utilisateur'];
 

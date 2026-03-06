@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/ArchiveService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\ArchiveService;
 
@@ -98,6 +99,12 @@ class ArchiveController
     public function updateStudentFile()
     {
         try {
+            if (!canEdit('admin_historique')) {
+                $_SESSION['archive_error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                header('Location: ?page=admin_historique');
+                exit;
+            }
+
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 header('Location: ?page=admin_historique');
                 exit;
@@ -146,6 +153,12 @@ class ArchiveController
     public function importArchive()
     {
         try {
+            if (!canCreate('admin_historique')) {
+                $_SESSION['archive_error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                header('Location: ?page=admin_historique');
+                exit;
+            }
+
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 header('Location: ?page=admin_historique');
                 exit;
