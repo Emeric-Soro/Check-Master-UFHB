@@ -599,6 +599,10 @@ switch ($currentMenuSlug) {
         $contentFile = $partialsBasePath . 'repertoire_enseignant_content.php';
         $currentPageLabel = 'Repertoire documents';
         break;
+    case 'programmation_ens':
+        $contentFile = $partialsBasePath . 'soutenance_ens_content.php';
+        $currentPageLabel = 'Programmation enseignant';
+        break;
     case 'maj_enseignant':
         $_GET['tab'] = 'enseignant';
         if (!class_exists('GestionRhController')) {

@@ -98,52 +98,28 @@ foreach ($soutenances as $soutenance) {
                 <div class="cm-grid-2">
                     <?php
                     cm_component('form/select', [
-                        'name' => 'id_annee_acad',
-                        'id' => 'cmEvalAnnee',
-                        'label' => 'Annee academique',
-                        'required' => true,
-                        'options' => $anneeOptions,
-                        'selected' => (string) ($anneeAcademiqueCourante['id_annee_acad'] ?? ''),
-                    ]);
-                    cm_component('form/select', [
                         'name' => 'cm_eval_soutenance',
                         'id' => 'cmEvalSoutenanceSelect',
-                        'label' => 'Soutenance',
+                        'label' => 'Etudiant',
                         'required' => true,
                         'options' => $soutenanceOptions,
                     ]);
-                    ?>
-                </div>
-
-                <p class="cm-text-sm cm-text-muted cm-m-0" id="cmEvalSelectedLabel">Soutenance selectionnee: -</p>
-
-
-
-
-
-                <div class="cm-grid-4">
-                    <?php
                     cm_component('form/input-text', [
+                        'name' => 'cm_eval_promotion',
+                        'id' => 'cmEvalPromotion',
+                        'label' => 'Promotion',
+                        'readonly' => true,
+                    ]);
+                    cm_component('form/textarea', [
                         'name' => 'cm_eval_theme',
                         'id' => 'cmEvalTheme',
                         'label' => 'Theme',
                         'readonly' => true,
                     ]);
-                    cm_component('form/input-text', [
-                        'name' => 'cm_eval_salle',
-                        'id' => 'cmEvalSalle',
-                        'label' => 'Salle',
-                        'readonly' => true,
-                    ]);
-                    cm_component('form/input-text', [
-                        'name' => 'cm_eval_datetime',
-                        'id' => 'cmEvalDateTime',
-                        'label' => 'Date / heure',
-                        'readonly' => true,
-                    ]);
                     ?>
                 </div>
 
+                <p class="cm-text-sm cm-text-muted cm-m-0" id="cmEvalSelectedLabel">Soutenance selectionnee: -</p>
                 <div class="cm-grid-3">
                     <?php
                     cm_component('form/input-text', [

@@ -19,6 +19,14 @@ class ProgrammationSoutenanceController
     }
 
     /**
+     * Recuperer tous les enseignants qui ont été une fois memebre de jury (pour affichage et modification)
+     */
+    public function getEnseignantJuryForView()
+    {
+        return $this->service->getEnseignantJury();
+    }
+
+    /**
      * Récupérer tous les étudiants avec rapport validé (pour affichage et modification)
      */
     public function getEtudiantsForView()
@@ -79,8 +87,7 @@ class ProgrammationSoutenanceController
                 'success' => true,
                 'data' => $etudiants
             ]);
-        }
-        catch (Exception $e) {
+        } catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(500);
             echo json_encode([
@@ -103,8 +110,7 @@ class ProgrammationSoutenanceController
                 'success' => true,
                 'data' => $enseignants
             ]);
-        }
-        catch (Exception $e) {
+        } catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(500);
             echo json_encode([
@@ -127,8 +133,7 @@ class ProgrammationSoutenanceController
                 'success' => true,
                 'data' => $professeurs
             ]);
-        }
-        catch (Exception $e) {
+        } catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(500);
             echo json_encode([
@@ -151,8 +156,7 @@ class ProgrammationSoutenanceController
                 'success' => true,
                 'data' => $salles
             ]);
-        }
-        catch (Exception $e) {
+        } catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(500);
             echo json_encode([
@@ -175,8 +179,7 @@ class ProgrammationSoutenanceController
                 'success' => true,
                 'data' => $attributions
             ]);
-        }
-        catch (Exception $e) {
+        } catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(500);
             echo json_encode([
@@ -211,8 +214,7 @@ class ProgrammationSoutenanceController
 
             header('Content-Type: application/json');
             echo json_encode($result);
-        }
-        catch (Exception $e) {
+        } catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(400);
             echo json_encode([
@@ -247,8 +249,7 @@ class ProgrammationSoutenanceController
 
             header('Content-Type: application/json');
             echo json_encode($result);
-        }
-        catch (Exception $e) {
+        } catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(400);
             echo json_encode([
@@ -283,8 +284,7 @@ class ProgrammationSoutenanceController
 
             header('Content-Type: application/json');
             echo json_encode($result);
-        }
-        catch (Exception $e) {
+        } catch (Exception $e) {
             header('Content-Type: application/json');
             http_response_code(400);
             echo json_encode([

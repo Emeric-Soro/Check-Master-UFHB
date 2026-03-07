@@ -831,4 +831,17 @@ class ProgrammationSoutenanceService
             }
         }
     }
+
+    public function getEnseignantJury(): array
+    {
+        try {
+            $sql = "SELECT * FROM enseignant_jury";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            $enseignantJury = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $enseignantJury;
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
 }

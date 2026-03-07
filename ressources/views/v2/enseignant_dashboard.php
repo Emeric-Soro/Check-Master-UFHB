@@ -443,13 +443,13 @@ function normalizeRoleName(string $role): string {
                     'placeholder' => 'Toutes les sessions'
                 ]) ?>
 
-                <?= cm_component('form/select', [
+                <!-- <?= cm_component('form/select', [
                     'name' => 'id_qualite_jury',
                     'label' => 'Qualité de jury',
                     'options' => $qualiteJuryOptions,
                     'selected' => (string)($filtreQualiteJury ?? ''),
                     'placeholder' => 'Toutes les qualités'
-                ]) ?>
+                ]) ?> -->
 
                 <div class="cm-flex cm-flex-gap-sm">
                     <button type="submit" class="cm-btn cm-btn--primary">
@@ -463,7 +463,7 @@ function normalizeRoleName(string $role): string {
         </form>
     </div>
 
-    <div class="cm-grid-4">
+    <!-- <div class="cm-grid-4">
         <div>
             <?php cm_component('dashboard/stat-widget', ['value' => number_format((int) $stats['soutenances_planifiees'], 0, ',', ' '), 'label' => 'Soutenances à venir', 'icon' => 'fa-calendar-check', 'color' => 'info']); ?>
             <?php if (!empty($soutenancesProgrammees)): ?>
@@ -476,7 +476,7 @@ function normalizeRoleName(string $role): string {
         <div>
             <?php cm_component('dashboard/stat-widget', ['value' => (string) $stats['prochaine_soutenance'], 'label' => 'Prochaine soutenance', 'icon' => 'fa-clock', 'color' => 'primary']); ?>
         </div>
-    </div>
+    </div> -->
 
     <?php if (!empty($qualitesJury) && $teacherId !== ''): ?>
         <div class="cm-card cm-mt-md">
