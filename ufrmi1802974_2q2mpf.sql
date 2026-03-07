@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : sam. 07 mars 2026 à 08:49
+-- Généré le : sam. 07 mars 2026 à 15:57
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.3.6
 
@@ -4913,7 +4913,24 @@ CREATE TABLE IF NOT EXISTS `mentions` (
     `actif` tinyint(1) DEFAULT '1',
     PRIMARY KEY (`id_mention`),
     UNIQUE KEY `lib_mention` (`lib_mention`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 7 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `mentions`
+--
+
+INSERT INTO
+    `mentions` (
+        `id_mention`,
+        `lib_mention`,
+        `actif`
+    )
+VALUES (1, 'Insuffisant', 1),
+    (2, 'Passable', 1),
+    (3, 'Assez-Bien', 1),
+    (4, 'Bien', 1),
+    (5, 'Très-Bien', 1),
+    (6, 'Honorable', 1);
 
 -- --------------------------------------------------------
 
@@ -5852,7 +5869,7 @@ CREATE TABLE IF NOT EXISTS `pister` (
     KEY `idx_utilisateur_action` (`id_utilisateur`, `action`),
     KEY `id_action` (`action`),
     KEY `id_action_2` (`action`)
-) ENGINE = InnoDB AUTO_INCREMENT = 155 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 166 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `pister`
@@ -6474,6 +6491,94 @@ VALUES (
         'Succès',
         'tableau_de_bord',
         '2026-03-06 15:59:24'
+    ),
+    (
+        155,
+        114,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-07 08:59:28'
+    ),
+    (
+        156,
+        114,
+        'Création',
+        'Succès',
+        'rapport_etudiants',
+        '2026-03-07 09:00:18'
+    ),
+    (
+        157,
+        114,
+        'Création',
+        'Succès',
+        'rapport_etudiants',
+        '2026-03-07 09:02:26'
+    ),
+    (
+        158,
+        114,
+        'Création',
+        'Succès',
+        'rapport_etudiants',
+        '2026-03-07 09:07:00'
+    ),
+    (
+        159,
+        114,
+        'Suppression',
+        'Succès',
+        'rapport_etudiants',
+        '2026-03-07 09:07:16'
+    ),
+    (
+        160,
+        114,
+        'Création',
+        'Succès',
+        'rapport_etudiants',
+        '2026-03-07 09:08:04'
+    ),
+    (
+        161,
+        114,
+        'Création',
+        'Succès',
+        'rapport_etudiants',
+        '2026-03-07 09:22:18'
+    ),
+    (
+        162,
+        114,
+        'Création',
+        'Succès',
+        'rapport_etudiants',
+        '2026-03-07 09:27:14'
+    ),
+    (
+        163,
+        114,
+        'Création',
+        'Succès',
+        'rapport_etudiants',
+        '2026-03-07 09:41:45'
+    ),
+    (
+        164,
+        114,
+        'Création',
+        'Succès',
+        'rapport_etudiants',
+        '2026-03-07 09:56:38'
+    ),
+    (
+        165,
+        114,
+        'Création',
+        'Succès',
+        'rapport_etudiants',
+        '2026-03-07 09:56:49'
     );
 
 -- --------------------------------------------------------
@@ -6557,7 +6662,7 @@ CREATE TABLE IF NOT EXISTS `rapport_etudiants` (
     `version` int NOT NULL DEFAULT '1' COMMENT 'Version du rapport',
     PRIMARY KEY (`id_rapport`),
     KEY `num_etu` (`num_etu`)
-) ENGINE = InnoDB AUTO_INCREMENT = 3 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 4 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `rapport_etudiants`
@@ -6579,13 +6684,13 @@ INSERT INTO
 VALUES (
         1,
         'CI0121399012',
-        '2026-03-06 00:03:46',
+        '2026-03-07 09:56:49',
         'ÉTUDE ET CONCEPTION D\'UNE SOLUTION D\'AUTOMATISATION PAR RPA (ROBOTIC PROCESS AUTOMATION) POUR UN PROCESSUS BANCAIRE REPETITIF : CAS DPO/GA SOCIETE GEN',
         'ÉTUDE ET CONCEPTION D\'UNE SOLUTION D\'AUTOMATISATION PAR RPA (ROBOTIC PROCESS AUTOMATION) POUR UN PROCESSUS BANCAIRE REPETITIF : CAS DPO/GA SOCIETE GEN',
-        'rapport_1.html',
+        'C:\\wamp64\\www\\Check-Master-UFHB\\app\\controllers/../../storage/rapports/2026/rapport_CI0121399012_2026_20260307_102446.pdf',
         'en_attente',
-        '2026-03-06 00:03:46',
-        51918,
+        '2026-03-07 09:56:49',
+        10729,
         1
     );
 
