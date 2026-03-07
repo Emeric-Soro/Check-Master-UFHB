@@ -1,8 +1,17 @@
 <?php
 // permissions_helper déjà inclus par layout.php
 
-// Determiner si c'est une edition ou creation
-$isEditingExisting = isset($isEditMode) && $isEditMode && isset($rapport);
+// Récupérer les variables globales définies par le controller
+$rapport = $GLOBALS['rapport'] ?? null;
+$rapport = is_array($rapport) ? $rapport : [];
+$isEditMode = $GLOBALS['isEditMode'] ?? false;
+$contenuRapport = $GLOBALS['contenuRapport'] ?? '';
+$contenuRapport = is_string($contenuRapport) ? $contenuRapport : '';
+$erreurs = $GLOBALS['erreurs'] ?? [];
+$erreurs = is_array($erreurs) ? $erreurs : [];
+
+// Determiner si c'est une edition ou création
+$isEditingExisting = $isEditMode && is_array($rapport) && !empty($rapport);
 $isReadOnly = !empty($GLOBALS['rapportDejaDepose']);
 
 // Recuperer les informations de l'étudiant depuis la session
@@ -32,10 +41,8 @@ if (($nomEtu === '' || $prenomEtu === '') && $numEtu !== '') {
 $nomCompletEtu = trim($nomEtu . ' ' . $prenomEtu);
 
 // Infos stage
-$stageInfo = is_array($stage_info ?? null) ? $stage_info : (is_array($GLOBALS['stage_info'] ?? null) ? $GLOBALS['stage_info'] : []);
-$rapport   = is_array($rapport ?? null) ? $rapport : [];
-$erreurs   = is_array($erreurs ?? null) ? $erreurs : [];
-$contenuRapport = (string) ($contenuRapport ?? '');
+$stageInfo = $GLOBALS['stage_info'] ?? [];
+$stageInfo = is_array($stageInfo) ? $stageInfo : [];
 
 $rapportId         = (string) ($rapport['id_rapport'] ?? '');
 $nomRapportInitial = (string) ($rapport['nom_rapport'] ?? '');
@@ -481,6 +488,12 @@ if (!function_exists('cm_etu_escape')) {
         var isReadOnly = <?= $isReadOnly ? 'true' : 'false' ?>;
         var isEditMode = <?= $isEditingExisting ? 'true' : 'false' ?>;
 
+        console.log('État de l\'éditeur:', {
+            isReadOnly: isReadOnly,
+            isEditMode: isEditMode,
+            contenuRapportLength: <?= strlen($contenuRapport) ?>
+        });
+
         var tabBtns         = document.querySelectorAll('.cm-etu-tab-btn');
         var tabPanes        = document.querySelectorAll('.cm-etu-tab-pane');
         var updatePreviewBtn = document.getElementById('updatePreviewBtn');
@@ -520,9 +533,33 @@ if (!function_exists('cm_etu_escape')) {
             defaultFontName: 'Times New Roman'
         });
 
+        // Charger le contenu du rapport dans l'éditeur
         <?php if ($isEditingExisting && !empty($contenuRapport)): ?>
-        joditEditor.value = <?= json_encode($contenuRapport) ?>;
+        console.log('Mode édition: chargement du contenu existant');
+        // Nettoyer le contenu pour enlever les éventuelles pages de couverture dupliquées
+        var rawContent = <?= json_encode($contenuRapport) ?>;
+        // Extraire uniquement le contenu après la dernière balise de page-break
+        var tempDiv = document.createElement('div');
+        tempDiv.innerHTML = rawContent;
+        
+        // Chercher tous les div avec page-break
+        var pageBreaks = tempDiv.querySelectorAll('div[style*="page-break"]');
+        var cleanContent = rawContent;
+        
+        if (pageBreaks.length > 0) {
+            // Prendre le contenu après le dernier page-break
+            var lastBreak = pageBreaks[pageBreaks.length - 1];
+            var nextSibling = lastBreak.nextElementSibling;
+            
+            if (nextSibling) {
+                // Récupérer le contenu à partir de cet élément
+                cleanContent = nextSibling.innerHTML || nextSibling.textContent || '';
+            }
+        }
+        
+        joditEditor.value = cleanContent || getInitialBodyContent();
         <?php else: ?>
+        console.log('Mode création: initialisation avec le contenu par défaut');
         joditEditor.value = getInitialBodyContent();
         <?php endif; ?>
 
@@ -760,14 +797,14 @@ if (!function_exists('cm_etu_escape')) {
                 if (!nomRapport) { showNotification('error', 'Veuillez saisir le nom du rapport'); return; }
                 if (!titreTheme) { showNotification('error', 'Veuillez saisir le titre du theme'); return; }
 
-                var fullContent = generateCoverPageHTML() +
-                    '<div style="page-break-before: always;"></div>' +
-                    '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
+                // IMPORTANT: Sauvegarder uniquement le contenu de l'éditeur, SANS la page de couverture
+                // La page de couverture sera générée à la demande pour l'aperçu et l'export PDF
+                var contentOnly = '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
 
                 document.getElementById('nom_rapport_hidden').value = nomRapport;
                 document.getElementById('theme_rapport_hidden').value = titreTheme +
                     (document.getElementById('sous_titre').value ? ' : ' + document.getElementById('sous_titre').value : '');
-                document.getElementById('contenu_rapport').value = fullContent;
+                document.getElementById('contenu_rapport').value = contentOnly;
                 document.getElementById('cover_data').value = JSON.stringify(getCoverData());
 
                 var formData = new FormData(rapportForm);
@@ -946,13 +983,12 @@ if (!function_exists('cm_etu_escape')) {
                     return;
                 }
 
-                var fullContent = generateCoverPageHTML() +
-                    '<div style="page-break-before: always;"></div>' +
-                    '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
+                // Sauvegarder uniquement le contenu de l'éditeur, SANS la page de couverture
+                var contentOnly = '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
 
                 document.getElementById('nom_rapport_hidden').value = document.getElementById('nom_rapport').value;
                 document.getElementById('theme_rapport_hidden').value = document.getElementById('titre_theme').value;
-                document.getElementById('contenu_rapport').value = fullContent;
+                document.getElementById('contenu_rapport').value = contentOnly;
                 rapportForm.querySelector('input[name="action"]').value = 'deposer_rapport';
                 rapportForm.submit();
             });
@@ -967,13 +1003,12 @@ if (!function_exists('cm_etu_escape')) {
                     var titreTheme = document.getElementById('titre_theme').value.trim();
                     if (!nomRapport || !titreTheme) return;
 
-                    var fullContent = generateCoverPageHTML() +
-                        '<div style="page-break-before: always;"></div>' +
-                        '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
+                    // Sauvegarder uniquement le contenu de l'éditeur, SANS la page de couverture
+                    var contentOnly = '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
 
                     document.getElementById('nom_rapport_hidden').value = nomRapport;
                     document.getElementById('theme_rapport_hidden').value = titreTheme;
-                    document.getElementById('contenu_rapport').value = fullContent;
+                    document.getElementById('contenu_rapport').value = contentOnly;
                     document.getElementById('cover_data').value = JSON.stringify(getCoverData());
 
                     var formData = new FormData(rapportForm);

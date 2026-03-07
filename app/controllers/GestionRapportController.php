@@ -145,7 +145,11 @@ class GestionRapportController
             $erreurs = $_SESSION['erreurs_form'] ?? [];
             unset($_SESSION['erreurs_form']);
 
-            // Les données sont maintenant disponibles globalement pour la vue
+            // Rendre toutes les données disponibles globalement pour la vue
+            $GLOBALS['rapport'] = $rapport;
+            $GLOBALS['isEditMode'] = $isEditMode;
+            $GLOBALS['contenuRapport'] = $contenuRapport;
+            $GLOBALS['erreurs'] = $erreurs;
         }
     }
 
@@ -269,7 +273,7 @@ class GestionRapportController
 
             // Générer le PDF via le service
             $userId = $_SESSION['id_utilisateur'] ?? 0;
-            $result = $rapportService->generate((int)$edit_id, (int)$userId);
+            $result = $rapportService->generate((int) $edit_id, (int) $userId);
 
             if (!$result['success']) {
                 throw new Exception($result['error'] ?? 'Erreur lors de la génération du PDF');
