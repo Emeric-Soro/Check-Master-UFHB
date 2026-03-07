@@ -2,11 +2,14 @@
 /**
  * Vue : Archives Documents
  * $data['documents']     - liste des documents archivés
- * $data['type_filter']   - filtre type actif ('rapport'|'compte_rendu'|null)
+ * $data['type_filter']   - filtre type actif ('rapport'|'compte_rendu'|'pv_final'|null)
  *   Champs: type_doc, id_doc, chemin, titre, date_depot, taille, etudiant, num_carte_etud
  */
 $documents   = $data['documents'] ?? [];
 $type_filter = $data['type_filter'] ?? '';
+$rapports = array_filter($documents, fn($d) => ($d['type_doc'] ?? '') === 'rapport');
+$crs = array_filter($documents, fn($d) => ($d['type_doc'] ?? '') === 'compte_rendu');
+$pvFinaux = array_filter($documents, fn($d) => ($d['type_doc'] ?? '') === 'pv_final');
 ?>
 
 <div class="cm-archives-documents">
@@ -18,7 +21,7 @@ $type_filter = $data['type_filter'] ?? '';
                 <i class="fas fa-folder-open cm-mr-2"></i>Archives Documents
             </h1>
             <p class="cm-page-subtitle">
-                Rapports et comptes rendus de l'année archivée
+                Rapports, comptes rendus et PV finaux de l'année archivée
             </p>
         </div>
         <a href="?page=admin_historique" class="cm-btn cm-btn-outline cm-btn-sm">
@@ -39,15 +42,19 @@ $type_filter = $data['type_filter'] ?? '';
                    class="cm-btn cm-btn-sm <?= $type_filter === 'rapport' ? 'cm-btn-primary' : 'cm-btn-outline' ?>">
                     <i class="fas fa-file-pdf cm-mr-1"></i>
                     Rapports
-                    <?php $rapports = array_filter($documents, fn($d) => $d['type_doc'] === 'rapport'); ?>
                     (<?= count($rapports) ?>)
                 </a>
                 <a href="?page=archives_documents&type=compte_rendu"
                    class="cm-btn cm-btn-sm <?= $type_filter === 'compte_rendu' ? 'cm-btn-primary' : 'cm-btn-outline' ?>">
                     <i class="fas fa-file-alt cm-mr-1"></i>
                     Comptes rendus
-                    <?php $crs = array_filter($documents, fn($d) => $d['type_doc'] === 'compte_rendu'); ?>
                     (<?= count($crs) ?>)
+                </a>
+                <a href="?page=archives_documents&type=pv_final"
+                   class="cm-btn cm-btn-sm <?= $type_filter === 'pv_final' ? 'cm-btn-primary' : 'cm-btn-outline' ?>">
+                    <i class="fas fa-gavel cm-mr-1"></i>
+                    PV finaux
+                    (<?= count($pvFinaux) ?>)
                 </a>
             </div>
         </div>
@@ -93,6 +100,10 @@ $type_filter = $data['type_filter'] ?? '';
                                             <span class="cm-badge cm-badge-primary">
                                                 <i class="fas fa-file-pdf cm-mr-1"></i> Rapport
                                             </span>
+                                        <?php elseif ($doc['type_doc'] === 'pv_final'): ?>
+                                            <span class="cm-badge cm-badge-success">
+                                                <i class="fas fa-gavel cm-mr-1"></i> PV final
+                                            </span>
                                         <?php else: ?>
                                             <span class="cm-badge cm-badge-info">
                                                 <i class="fas fa-file-alt cm-mr-1"></i> Compte rendu
@@ -103,10 +114,14 @@ $type_filter = $data['type_filter'] ?? '';
                                         <strong><?= htmlspecialchars($doc['titre'] ?? 'Sans titre') ?></strong>
                                     </td>
                                     <td>
-                                        <a href="?page=fiche_etudiant_archive&matricule=<?= urlencode($doc['num_carte_etud']) ?>">
-                                            <?= htmlspecialchars($doc['etudiant']) ?>
-                                        </a>
-                                        <br><small class="cm-text-muted"><?= htmlspecialchars($doc['num_carte_etud']) ?></small>
+                                        <?php if (!empty($doc['num_carte_etud'])): ?>
+                                            <a href="?page=fiche_etudiant_archive&id=<?= urlencode($doc['num_carte_etud']) ?>">
+                                                <?= htmlspecialchars($doc['etudiant']) ?>
+                                            </a>
+                                            <br><small class="cm-text-muted"><?= htmlspecialchars($doc['num_carte_etud']) ?></small>
+                                        <?php else: ?>
+                                            <span class="cm-text-muted"><?= htmlspecialchars($doc['etudiant'] ?? '—') ?></span>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
                                         <?= htmlspecialchars(!empty($doc['date_depot']) ? date('d/m/Y', strtotime($doc['date_depot'])) : '—') ?>

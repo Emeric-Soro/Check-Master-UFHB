@@ -9,6 +9,23 @@ use DateTimeImmutable;
 use RuntimeException;
 use TCPDF;
 
+final class SilentTcpdf extends TCPDF
+{
+    public function __construct($orientation = 'P', $unit = 'mm', $format = 'A4', $unicode = true, $encoding = 'UTF-8', $diskcache = false, $pdfa = false)
+    {
+        parent::__construct($orientation, $unit, $format, $unicode, $encoding, $diskcache, $pdfa);
+        $this->tcpdflink = false;
+    }
+
+    public function Header()
+    {
+    }
+
+    public function Footer()
+    {
+    }
+}
+
 /**
  * Service de génération de documents PDF basé sur TCPDF.
  *
@@ -21,6 +38,7 @@ use TCPDF;
 final class PdfGeneratorService
 {
     private const DEFAULT_FONT_SIZE = 11;
+    private const DEFAULT_FONT_FAMILY = 'dejavuserif';
     private const TITLE_FONT_SIZE = 18;
     private const HEADER_HEIGHT = 30; // mm
     private const MARGIN_LEFT = 15; // mm
@@ -58,13 +76,14 @@ final class PdfGeneratorService
 
         $authorName = (string)($author ?? $appName);
 
-        $pdf = new TCPDF($orientation, 'mm', $format, true, 'UTF-8', false);
+        $pdf = new SilentTcpdf($orientation, 'mm', $format, true, 'UTF-8', false);
+        $pdf->setFontSubsetting(true);
 
         // Métadonnées du document
         $pdf->SetCreator((string)$appName);
         $pdf->SetAuthor((string)$authorName);
         $pdf->SetTitle((string)$title);
-        $pdf->SetSubject('Document généré par ' . (string)$appName);
+        $pdf->SetSubject('Document genere par ' . (string)$appName);
 
         // Désactiver les en-têtes/pieds de page par défaut de TCPDF
         $pdf->setPrintHeader(false);
@@ -75,7 +94,7 @@ final class PdfGeneratorService
         $pdf->SetAutoPageBreak(true, self::MARGIN_BOTTOM);
 
         // Police par défaut
-        $pdf->SetFont('helvetica', '', self::DEFAULT_FONT_SIZE);
+        $pdf->SetFont(self::DEFAULT_FONT_FAMILY, '', self::DEFAULT_FONT_SIZE);
 
         return $pdf;
     }
@@ -118,12 +137,12 @@ final class PdfGeneratorService
 
         // Titre centré
         $pdf->SetY($startY + 5);
-        $pdf->SetFont('helvetica', 'B', self::TITLE_FONT_SIZE);
+        $pdf->SetFont(self::DEFAULT_FONT_FAMILY, 'B', self::TITLE_FONT_SIZE);
         $pdf->Cell(0, 10, (string)$title, 0, 1, 'C');
 
         // Sous-titre si fourni
         if ($subtitle !== null) {
-            $pdf->SetFont('helvetica', 'I', 12);
+            $pdf->SetFont(self::DEFAULT_FONT_FAMILY, 'I', 12);
             $pdf->Cell(0, 8, (string)$subtitle, 0, 1, 'C');
         }
 
@@ -133,7 +152,7 @@ final class PdfGeneratorService
         $pdf->Ln(5);
 
         // Rétablir la police par défaut
-        $pdf->SetFont('helvetica', '', self::DEFAULT_FONT_SIZE);
+        $pdf->SetFont(self::DEFAULT_FONT_FAMILY, '', self::DEFAULT_FONT_SIZE);
     }
 
     /**
@@ -143,21 +162,7 @@ final class PdfGeneratorService
      */
     public function addFooter(TCPDF $pdf): void
     {
-        $pdf->SetY(-15);
-        $pdf->SetFont('helvetica', 'I', 8);
-
-        // Ligne de séparation
-        $pdf->Line(self::MARGIN_LEFT, $pdf->GetY(), $pdf->getPageWidth() - self::MARGIN_RIGHT, $pdf->GetY());
-        $pdf->Ln(2);
-
-        // Date de génération à gauche
-        $now = new DateTimeImmutable();
-        $dateStr = 'Généré le ' . $now->format('d/m/Y à H:i');
-        $pdf->Cell(0, 5, $dateStr, 0, 0, 'L');
-
-        // Numéro de page à droite
-        $pageNumStr = 'Page ' . $pdf->getAliasNumPage() . ' / ' . $pdf->getAliasNbPages();
-        $pdf->Cell(0, 5, $pageNumStr, 0, 0, 'R');
+        // Aucun pied de page sur les rapports de stage.
     }
 
     /**
@@ -186,7 +191,9 @@ final class PdfGeneratorService
 
         // Sauvegarder le PDF
         try {
-            $pdf->Output($fullPath, 'F');
+            $this->runTcpdfWithoutDeprecationWarnings(static function () use ($pdf, $fullPath): void {
+                $pdf->Output($fullPath, 'F');
+            });
         } catch (\Exception $e) {
             throw new RuntimeException("Erreur lors de la sauvegarde du PDF: " . $e->getMessage(), 0, $e);
         }
@@ -214,7 +221,41 @@ final class PdfGeneratorService
      */
     public function writeHtml(TCPDF $pdf, string $html): void
     {
-        $pdf->writeHTML($html, true, false, true, false, '');
+        $normalizedHtml = $this->normalizeHtmlForPdf($html);
+        if (stripos($normalizedHtml, '<meta charset=') === false) {
+            $normalizedHtml = '<meta charset="UTF-8">' . $normalizedHtml;
+        }
+        $this->runTcpdfWithoutDeprecationWarnings(static function () use ($pdf, $normalizedHtml): void {
+            $pdf->writeHTML($normalizedHtml, true, false, true, false, '');
+        });
+    }
+
+    private function normalizeHtmlForPdf(string $html): string
+    {
+        $html = trim($html);
+        if ($html === '') {
+            return '';
+        }
+
+        $html = str_replace(
+            ["'Times New Roman', serif", "\"Times New Roman\", serif", "Times New Roman"],
+            ["'dejavuserif', serif", "\"dejavuserif\", serif", "dejavuserif"],
+            $html
+        );
+
+        return mb_convert_encoding($html, 'UTF-8', 'UTF-8');
+    }
+
+    private function runTcpdfWithoutDeprecationWarnings(callable $callback): mixed
+    {
+        $previousLevel = error_reporting();
+        error_reporting($previousLevel & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
+        try {
+            return $callback();
+        } finally {
+            error_reporting($previousLevel);
+        }
     }
 
     /**
@@ -276,9 +317,9 @@ final class PdfGeneratorService
         $pdf->SetDrawColor(140, 140, 140);
         $pdf->Rect($x, $y, $w, $h);
         $pdf->SetXY($x, $y + ($h / 2) - 2);
-        $pdf->SetFont('helvetica', '', 6);
+        $pdf->SetFont(self::DEFAULT_FONT_FAMILY, '', 6);
         $pdf->Cell($w, 4, $label, 0, 0, 'C');
-        $pdf->SetFont('helvetica', '', self::DEFAULT_FONT_SIZE);
+        $pdf->SetFont(self::DEFAULT_FONT_FAMILY, '', self::DEFAULT_FONT_SIZE);
     }
 
     private function resolveConfiguredPath(string $configuredPath, string $fallback): string

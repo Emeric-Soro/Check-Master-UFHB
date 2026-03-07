@@ -18,6 +18,7 @@
     "phpoffice/phpword": "^1.1",
     "mpdf/mpdf": "^8.2",
     "dompdf/dompdf": "^3.1",
+    "tecnickcom/tcpdf": "^6.7",
     "ezyang/htmlpurifier": "^4.19",
     "psr/log": "^1.1",
     "mpdf/psr-log-aware-trait": "^2.0"

@@ -97,7 +97,7 @@ try {
     $stmtQualites = $pdo->query("SELECT id_role_jury, lib_role FROM qualite_jury ORDER BY id_role_jury");
     $qualiteJuryOptions = $stmtQualites->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
 
-    // Qualites de jury
+    // Qualites de jury - Récupérer TOUS les rôles avec les comptes (même 0)
     if ($teacherId !== '') {
         $juryTable = $pdo->query("SHOW TABLES LIKE 'enseignant_jury'")->fetchColumn() ? 'enseignant_jury' : 'composer_jury';
         $rolesTable = $pdo->query("SHOW TABLES LIKE 'qualite_jury'")->fetchColumn() ? 'qualite_jury' : 'roles_jury';
@@ -123,15 +123,19 @@ try {
 
         $whereClause = implode(' AND ', $whereConditions);
 
+        // Utiliser un LEFT JOIN pour avoir tous les rôles même avec compte 0
         $sqlQualites = "SELECT
                             qj.id_role_jury,
                             qj.lib_role,
                             COUNT(DISTINCT ej.num_soutenance) AS total
-                        FROM {$juryTable} ej
-                        JOIN {$rolesTable} qj ON qj.id_role_jury = ej.id_qualite_jury
-                        JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance
-                        JOIN etudiants e ON e.num_carte_etud = ps.num_etud
-                        WHERE {$whereClause}
+                        FROM {$rolesTable} qj
+                        LEFT JOIN {$juryTable} ej ON qj.id_role_jury = ej.id_qualite_jury AND CAST(ej.id_enseignant AS CHAR) = :id_enseignant
+                        LEFT JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance
+                        LEFT JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                        WHERE 1=1
+                        " . ($filtreAnnee !== null ? "AND (ej.num_soutenance IS NULL OR EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad))" : "") . "
+                        " . ($filtreSession !== null ? "AND (ej.num_soutenance IS NULL OR ps.id_session = :id_session)" : "") . "
+                        " . ($filtreQualiteJury !== null ? "AND (ej.num_soutenance IS NULL OR ej.id_qualite_jury = :id_qualite_jury)" : "") . "
                         GROUP BY qj.id_role_jury, qj.lib_role
                         ORDER BY qj.id_role_jury";
         $stmtQualites = $pdo->prepare($sqlQualites);
@@ -439,13 +443,13 @@ function normalizeRoleName(string $role): string {
                     'placeholder' => 'Toutes les sessions'
                 ]) ?>
 
-                <?= cm_component('form/select', [
+                <!-- <?= cm_component('form/select', [
                     'name' => 'id_qualite_jury',
                     'label' => 'Qualité de jury',
                     'options' => $qualiteJuryOptions,
                     'selected' => (string)($filtreQualiteJury ?? ''),
                     'placeholder' => 'Toutes les qualités'
-                ]) ?>
+                ]) ?> -->
 
                 <div class="cm-flex cm-flex-gap-sm">
                     <button type="submit" class="cm-btn cm-btn--primary">
@@ -459,7 +463,7 @@ function normalizeRoleName(string $role): string {
         </form>
     </div>
 
-    <div class="cm-grid-4">
+    <!-- <div class="cm-grid-4">
         <div>
             <?php cm_component('dashboard/stat-widget', ['value' => number_format((int) $stats['soutenances_planifiees'], 0, ',', ' '), 'label' => 'Soutenances à venir', 'icon' => 'fa-calendar-check', 'color' => 'info']); ?>
             <?php if (!empty($soutenancesProgrammees)): ?>
@@ -472,12 +476,20 @@ function normalizeRoleName(string $role): string {
         <div>
             <?php cm_component('dashboard/stat-widget', ['value' => (string) $stats['prochaine_soutenance'], 'label' => 'Prochaine soutenance', 'icon' => 'fa-clock', 'color' => 'primary']); ?>
         </div>
-    </div>
+    </div> -->
 
-    <?php if (!empty($qualitesJury)): ?>
+    <?php if (!empty($qualitesJury) && $teacherId !== ''): ?>
         <div class="cm-card cm-mt-md">
             <div class="cm-card__header">
-
+                <h3 class="cm-card__title">
+                    <i class="fas fa-user-tie cm-mr-sm"></i>
+                    <?php if ($isAdmin && $enseignantSelectionne !== null): ?>
+                        Participations aux jurys de <?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?>
+                    <?php else: ?>
+                        Mes participations aux jurys
+                    <?php endif; ?>
+                </h3>
+                <p class="cm-text-muted"><small>Nombre de soutenances par rôle</small></p>
             </div>
             <div class="cm-card__body">
                 <div class="cm-grid-<?= min(count($qualitesJury), 5) ?>">

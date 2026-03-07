@@ -427,14 +427,16 @@ class PlanningDataUtils
                     e.prenom_etu AS prenom_etudiant,
                     e.email_etu AS email_etudiant,
                     i.id_annee_acad,
+                    CONCAT(YEAR(aa.date_deb), "-", YEAR(aa.date_fin)) AS libelle_annee,
                     niv.lib_niv_etude AS libelle_niveau
              FROM rapport_etudiants r
              INNER JOIN etudiants e ON e.num_carte_etud = r.num_etu
              LEFT JOIN inscriptions i ON i.id_inscription = (
                  SELECT i2.id_inscription FROM inscriptions i2 
-                 WHERE i2.id_etudiant = e.num_carte_etud 
-                 ORDER BY i2.date_inscription DESC LIMIT 1
-             )
+                  WHERE i2.id_etudiant = e.num_carte_etud 
+                  ORDER BY i2.date_inscription DESC LIMIT 1
+              )
+             LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
              LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niveau
              WHERE r.id_rapport = :id_rapport'
         );

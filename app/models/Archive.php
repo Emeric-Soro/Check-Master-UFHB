@@ -141,6 +141,25 @@ class Archive
         )";
     }
 
+    private function normalizeAcademicYearLabel($value)
+    {
+        $label = trim((string) $value);
+        if ($label === '') {
+            return null;
+        }
+
+        if (preg_match('/^(\d{4})\s*[-\/]\s*(\d{4})$/', $label, $matches) === 1) {
+            return $matches[1] . '-' . $matches[2];
+        }
+
+        if (preg_match('/^\d{4}$/', $label) === 1) {
+            $start = (int) $label;
+            return (string) $start . '-' . (string) ($start + 1);
+        }
+
+        return $label;
+    }
+
     /**
      * Get student history with filters
      */
@@ -603,6 +622,7 @@ class Archive
     public function getMentionsDistribution()
     {
         $mentions = [
+            'Honorable' => 0,
             'Tres bien' => 0,
             'Bien' => 0,
             'Assez bien' => 0,
@@ -620,7 +640,9 @@ class Archive
             $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($students as $row) {
                 $avg = (float) $row['moyenne'];
-                if ($avg >= 16) {
+                if ($avg >= 18) {
+                    $mentions['Honorable']++;
+                } elseif ($avg >= 16) {
                     $mentions['Tres bien']++;
                 } elseif ($avg >= 14) {
                     $mentions['Bien']++;
@@ -679,7 +701,7 @@ class Archive
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
-            
+
             $params = [];
             if ($anneeAcad) {
                 $sql .= " AND " . $anneeExpr . " = :annee_acad";
@@ -688,7 +710,7 @@ class Archive
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            return round((float)($stmt->fetchColumn() ?: 0), 1);
+            return round((float) ($stmt->fetchColumn() ?: 0), 1);
         } catch (PDOException $e) {
             error_log("Error getting success rate: " . $e->getMessage());
             return 0;
@@ -708,7 +730,7 @@ class Archive
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
-            
+
             $params = [];
             if ($anneeAcad) {
                 $sql .= " AND " . $anneeExpr . " = :annee_acad";
@@ -717,7 +739,7 @@ class Archive
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            return round((float)($stmt->fetchColumn() ?: 0), 2);
+            return round((float) ($stmt->fetchColumn() ?: 0), 2);
         } catch (PDOException $e) {
             error_log("Error getting average: " . $e->getMessage());
             return 0;
@@ -738,7 +760,7 @@ class Archive
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE p.date_soutenance IS NOT NULL";
-            
+
             $params = [];
             if ($anneeAcad) {
                 $sql .= " AND " . $anneeExpr . " = :annee_acad";
@@ -747,7 +769,7 @@ class Archive
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            return (int)($stmt->fetchColumn() ?: 0);
+            return (int) ($stmt->fetchColumn() ?: 0);
         } catch (PDOException $e) {
             error_log("Error getting defense days: " . $e->getMessage());
             return 0;
@@ -773,10 +795,14 @@ class Archive
                         LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                         WHERE 1=1";
                 $params = [];
-                if ($anneeAcad) { $sql .= " AND " . $anneeExpr . " = :annee"; $params['annee'] = $anneeAcad; }
+                if ($anneeAcad) {
+                    $sql .= " AND " . $anneeExpr . " = :annee";
+                    $params['annee'] = $anneeAcad;
+                }
                 $stmt = $this->db->prepare($sql);
                 $stmt->execute($params);
-                if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if($row['date']) $events[] = $row;
+                if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if ($row['date'])
+                    $events[] = $row;
             }
 
             // Start defenses
@@ -787,10 +813,14 @@ class Archive
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
             $params = [];
-            if ($anneeAcad) { $sql .= " AND " . $anneeExpr . " = :annee"; $params['annee'] = $anneeAcad; }
+            if ($anneeAcad) {
+                $sql .= " AND " . $anneeExpr . " = :annee";
+                $params['annee'] = $anneeAcad;
+            }
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if($row['date']) $events[] = $row;
+            if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if ($row['date'])
+                $events[] = $row;
 
             // End defenses
             $sql = "SELECT MAX(ps.date_soutenance) as date, 'Fin des soutenances' as event
@@ -800,10 +830,14 @@ class Archive
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
             $params = [];
-            if ($anneeAcad) { $sql .= " AND " . $anneeExpr . " = :annee"; $params['annee'] = $anneeAcad; }
+            if ($anneeAcad) {
+                $sql .= " AND " . $anneeExpr . " = :annee";
+                $params['annee'] = $anneeAcad;
+            }
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if($row['date']) $events[] = $row;
+            if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if ($row['date'])
+                $events[] = $row;
 
         } catch (PDOException $e) {
             error_log("Error getting timeline: " . $e->getMessage());
@@ -814,6 +848,60 @@ class Archive
         });
 
         return $events;
+    }
+
+    /**
+     * Returns available academic years for archive filters.
+     *
+     * @return array<int, string>
+     */
+    public function getAcademicYears()
+    {
+        $years = [];
+
+        try {
+            if (
+                $this->tableExists('annee_academique')
+                && $this->columnExists('annee_academique', 'date_deb')
+                && $this->columnExists('annee_academique', 'date_fin')
+            ) {
+                $stmt = $this->db->query(
+                    "SELECT DISTINCT CONCAT(YEAR(date_deb), '-', YEAR(date_fin)) AS annee
+                     FROM annee_academique
+                     ORDER BY date_deb DESC"
+                );
+                $fromYears = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                if (is_array($fromYears)) {
+                    foreach ($fromYears as $year) {
+                        $label = $this->normalizeAcademicYearLabel($year);
+                        if ($label !== null) {
+                            $years[] = $label;
+                        }
+                    }
+                }
+            }
+
+            if ($this->columnExists('etudiants', 'promotion_etu')) {
+                $stmt = $this->db->query(
+                    "SELECT DISTINCT promotion_etu
+                     FROM etudiants
+                     WHERE promotion_etu IS NOT NULL AND TRIM(promotion_etu) <> ''"
+                );
+                while (($promotion = $stmt->fetchColumn()) !== false) {
+                    $label = $this->normalizeAcademicYearLabel($promotion);
+                    if ($label !== null) {
+                        $years[] = $label;
+                    }
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("Error getting academic years: " . $e->getMessage());
+        }
+
+        $years = array_values(array_unique($years));
+        rsort($years, SORT_NATURAL);
+
+        return $years;
     }
 
     /**
