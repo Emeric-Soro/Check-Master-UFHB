@@ -86,6 +86,31 @@ class GestionRapportService
         return \AcademicYear::ensureWritableYear($this->db, $yearId, $context);
     }
 
+    private function getDerniereDecisionRapport(int $rapportId): ?array
+    {
+        $decisions = Approuver::getByRapport($rapportId);
+        if (empty($decisions)) {
+            return null;
+        }
+
+        $derniereDecision = end($decisions);
+        if ($derniereDecision === false) {
+            return null;
+        }
+
+        return is_array($derniereDecision) ? $derniereDecision : (array) $derniereDecision;
+    }
+
+    private function isRapportRejete(?array $decision): bool
+    {
+        if ($decision === null) {
+            return false;
+        }
+
+        $statut = strtolower((string) ($decision['decision'] ?? $decision['decision_validation'] ?? $decision['lib_approb'] ?? ''));
+        return $statut !== '' && (str_contains($statut, 'rejet') || $statut === 'desapprouve');
+    }
+
     // ========================= STATISTIQUES =========================
 
     /**
@@ -203,19 +228,8 @@ class GestionRapportService
                 $dernierDepot = $stmt->fetch(\PDO::FETCH_ASSOC);
 
                 if ($dernierDepot && $dernierDepot['id_rapport'] != $rapportId) {
-                    // Vérifier le statut d'approbation du dernier rapport déposé
-                    $stmt = $this->rapportModel->pdo->prepare("
-                        SELECT a.*, n.lib_approb 
-                        FROM approuver a
-                        JOIN niveau_approbation n ON a.id_approb = n.id_approb
-                        WHERE a.id_rapport = ?
-                        ORDER BY a.date_approv DESC
-                        LIMIT 1
-                    ");
-                    $stmt->execute([$dernierDepot['id_rapport']]);
-                    $derniereApprobation = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-                    if (!$derniereApprobation || strtolower($derniereApprobation['lib_approb']) !== 'rejeté') {
+                    $derniereDecision = $this->getDerniereDecisionRapport((int) $dernierDepot['id_rapport']);
+                    if (!$this->isRapportRejete($derniereDecision)) {
                         $peutDeposer = false;
                         $messageDepot = 'Vous avez déjà un rapport en cours d\'évaluation';
                     }
@@ -290,10 +304,36 @@ class GestionRapportService
      */
     public function chargerContenuRapport($rapport_id)
     {
-        $fichierContenu = $this->uploadsPath . "rapport_{$rapport_id}.html";
-        if (file_exists($fichierContenu)) {
-            return file_get_contents($fichierContenu);
+        $rapport = $this->rapportModel->getRapportById($rapport_id);
+        $candidats = [];
+
+        if (is_array($rapport) && !empty($rapport['chemin_fichier'])) {
+            $cheminFichier = (string) $rapport['chemin_fichier'];
+
+            if (preg_match('/^[A-Za-z]:\\\\|^\\\\\\\\/', $cheminFichier) === 1) {
+                $candidats[] = $cheminFichier;
+            } else {
+                $candidats[] = $this->uploadsPath . basename($cheminFichier);
+            }
         }
+
+        $candidats[] = $this->uploadsPath . "rapport_{$rapport_id}.html";
+
+        foreach (array_unique($candidats) as $fichierContenu) {
+            if (strtolower((string) pathinfo($fichierContenu, PATHINFO_EXTENSION)) !== 'html') {
+                continue;
+            }
+
+            if (!is_file($fichierContenu) || !is_readable($fichierContenu)) {
+                continue;
+            }
+
+            $contenu = file_get_contents($fichierContenu);
+            if ($contenu !== false) {
+                return $contenu;
+            }
+        }
+
         return '';
     }
 
@@ -443,8 +483,18 @@ class GestionRapportService
             return ['success' => false, 'message' => 'Vous avez déjà un rapport avec ce nom.'];
         }
 
-        error_log("Données pour sauvegarde: " . print_r($donneesRapport, true));
-        error_log("Num étudiant: " . $num_etu);
+        $htmlContent = (string) ($donneesRapport['contenu_rapport'] ?? '');
+        $htmlLength = strlen($htmlContent);
+        $textLength = strlen(trim(strip_tags($htmlContent)));
+        error_log(sprintf(
+            '[GestionRapportService] save request: edit_id=%s num_etu=%s nom_len=%d theme_len=%d html_len=%d text_len=%d',
+            (string) ($donneesRapport['edit_id'] ?? ''),
+            (string) $num_etu,
+            strlen((string) ($donneesRapport['nom_rapport'] ?? '')),
+            strlen((string) ($donneesRapport['theme_rapport'] ?? '')),
+            $htmlLength,
+            $textLength
+        ));
 
         if ($donneesRapport['edit_id']) {
             // Mode modification - vérifier que le rapport n'est pas déjà déposé
@@ -482,8 +532,12 @@ class GestionRapportService
         }
 
         $debug = [
-            'donneesRapport' => $donneesRapport,
+            'edit_id' => $donneesRapport['edit_id'] ?? null,
             'num_etu' => $num_etu,
+            'nom_rapport' => $donneesRapport['nom_rapport'] ?? '',
+            'theme_rapport' => $donneesRapport['theme_rapport'] ?? '',
+            'contenu_html_length' => $htmlLength,
+            'contenu_texte_length' => $textLength,
             'result' => $result
         ];
         error_log("Erreur sauvegarde rapport: " . print_r($debug, true));
@@ -615,19 +669,8 @@ class GestionRapportService
             return false;
         }
 
-        // Vérifier le statut d'approbation du dernier rapport déposé
-        $stmt = $this->rapportModel->pdo->prepare("
-            SELECT a.*, n.lib_approb 
-            FROM approuver a
-            JOIN niveau_approbation n ON a.id_approb = n.id_approb
-            WHERE a.id_rapport = ?
-            ORDER BY a.date_approv DESC
-            LIMIT 1
-        ");
-        $stmt->execute([$dernierDepot['id_rapport']]);
-        $derniereApprobation = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-        if (!$derniereApprobation || strtolower($derniereApprobation['lib_approb']) !== 'rejeté') {
+        $derniereDecision = $this->getDerniereDecisionRapport((int) $dernierDepot['id_rapport']);
+        if (!$this->isRapportRejete($derniereDecision)) {
             return true;
         }
 
@@ -702,23 +745,18 @@ class GestionRapportService
                 SELECT 
                     e.commentaire,
                     e.date_evaluation,
-                    e.note,
-                    CASE 
-                        WHEN e.type_evaluateur = 'enseignant' THEN ens.nom_enseignant
-                        ELSE pa.nom_pers_admin 
-                    END as nom_evaluateur,
-                    CASE 
-                        WHEN e.type_evaluateur = 'enseignant' THEN ens.prenom_enseignant
-                        ELSE pa.prenom_pers_admin 
-                    END as prenom_evaluateur,
-                    CASE 
-                        WHEN e.type_evaluateur = 'enseignant' THEN 'Enseignant'
-                        ELSE 'Personnel administratif'
-                    END as fonction_evaluateur
+                    NULL AS note,
+                    COALESCE(ens.nom_enseignant, pa.nom_pers_admin, 'Évaluateur') AS nom_evaluateur,
+                    COALESCE(ens.prenom_enseignant, pa.prenom_pers_admin, '') AS prenom_evaluateur,
+                    CASE
+                        WHEN ens.id_enseignant IS NOT NULL THEN 'Enseignant'
+                        WHEN pa.id_pers_admin IS NOT NULL THEN 'Personnel administratif'
+                        ELSE 'Évaluateur'
+                    END AS fonction_evaluateur
                 FROM evaluations_rapports e
-                LEFT JOIN enseignants ens ON e.id_evaluateur = ens.id_enseignant AND e.type_evaluateur = 'enseignant'
-                LEFT JOIN personnel_admin pa ON e.id_evaluateur = pa.id_pers_admin AND e.type_evaluateur = 'personnel_admin'
-                WHERE e.id_rapport = ? AND e.commentaire IS NOT NULL AND e.commentaire != '' AND e.statut_evaluation = 'terminee'
+                LEFT JOIN enseignants ens ON e.id_evaluateur = ens.id_enseignant
+                LEFT JOIN personnel_admin pa ON e.id_evaluateur = pa.id_pers_admin
+                WHERE e.id_rapport = ? AND e.commentaire IS NOT NULL AND TRIM(e.commentaire) != ''
                 ORDER BY e.date_evaluation DESC
             ");
             $stmt->execute([$rapportId]);

@@ -1,14 +1,6 @@
 <?php
 $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
 
-$anneeOptions = [];
-foreach ((array) ($GLOBALS['listeAnneesBareme'] ?? []) as $annee) {
-    $id = (string) ($annee->id_annee_acad ?? '');
-    if ($id === '') {
-        continue;
-    }
-    $anneeOptions[$id] = (string) ($annee->lib_annee ?? $id);
-}
 
 $critereOptions = [];
 foreach ((array) ($GLOBALS['listeCriteresBareme'] ?? []) as $critere) {
@@ -40,14 +32,6 @@ cm_render_param_crud_view([
     'add_button_label' => 'Ajouter',
     'edit_button_label' => 'Modifier',
     'form_fields' => [
-        [
-            'name' => 'id_annee_acad',
-            'label' => 'Année académique',
-            'type' => 'select',
-            'required' => true,
-            'options' => $anneeOptions,
-            'value_key' => 'id_annee_acad',
-        ],
         [
             'name' => 'id_critere',
             'label' => 'Critère',

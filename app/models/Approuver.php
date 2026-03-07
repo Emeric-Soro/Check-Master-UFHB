@@ -36,15 +36,64 @@ class Approuver
         }
     }
 
+    private static function resolveSourceTable($pdo)
+    {
+        if (self::tableExists($pdo, 'approuver')) {
+            return 'approuver';
+        }
+
+        if (self::tableExists($pdo, 'valider')) {
+            return 'valider';
+        }
+
+        return null;
+    }
+
     public static function getByRapport($id_rapport)
     {
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare("SELECT a.*, n.lib_approb, p.nom_pers_admin, p.prenom_pers_admin
-            FROM approuver a
-            JOIN niveau_approbation n ON a.id_approb = n.id_approb
-            JOIN personnel_admin p ON a.id_pers_admin = p.id_pers_admin
-            WHERE a.id_rapport = ?
-            ORDER BY a.date_approv ASC");
+        $sourceTable = self::resolveSourceTable($pdo);
+        if ($sourceTable === null) {
+            return [];
+        }
+
+        if ($sourceTable === 'approuver') {
+            $stmt = $pdo->prepare("SELECT a.*, n.lib_approb, p.nom_pers_admin, p.prenom_pers_admin
+                FROM approuver a
+                JOIN niveau_approbation n ON a.id_approb = n.id_approb
+                JOIN personnel_admin p ON a.id_pers_admin = p.id_pers_admin
+                WHERE a.id_rapport = ?
+                ORDER BY a.date_approv ASC");
+            $stmt->execute([$id_rapport]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $stmt = $pdo->prepare("SELECT
+                v.id_rapport,
+                NULL AS id_pers_admin,
+                NULL AS id_approb,
+                v.id_enseignant,
+                v.decision_validation,
+                v.commentaire_validation,
+                v.date_validation,
+                CASE
+                    WHEN v.decision_validation = 'valider' THEN 'approuve'
+                    WHEN v.decision_validation = 'rejeter' THEN 'rejete'
+                    ELSE v.decision_validation
+                END AS decision,
+                v.commentaire_validation AS commentaire_approv,
+                v.date_validation AS date_approv,
+                CASE
+                    WHEN v.decision_validation = 'valider' THEN 'Validé'
+                    WHEN v.decision_validation = 'rejeter' THEN 'Rejeté'
+                    ELSE v.decision_validation
+                END AS lib_approb,
+                ens.nom_enseignant AS nom_pers_admin,
+                ens.prenom_enseignant AS prenom_pers_admin
+            FROM valider v
+            LEFT JOIN enseignants ens ON v.id_enseignant = ens.id_enseignant
+            WHERE v.id_rapport = ?
+            ORDER BY v.date_validation ASC");
         $stmt->execute([$id_rapport]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -55,7 +104,8 @@ class Approuver
     public static function getRapportsAvecAvis()
     {
         $pdo = Database::getConnection();
-        if (!self::tableExists($pdo, 'approuver')) {
+        $sourceTable = self::resolveSourceTable($pdo);
+        if ($sourceTable === null) {
             return [];
         }
 
@@ -67,6 +117,7 @@ class Approuver
             ? 'r.etape_validation'
             : "COALESCE(r.statut_rapport, '')";
 
+        $joinTable = $sourceTable === 'approuver' ? 'approuver' : 'valider';
         $stmt = $pdo->query("
             SELECT DISTINCT
                 r.id_rapport,
@@ -78,7 +129,7 @@ class Approuver
                 e.prenom_etu
             FROM rapport_etudiants r
             JOIN etudiants e ON r.num_etu = e.num_carte_etud
-            JOIN approuver a ON r.id_rapport = a.id_rapport
+            JOIN {$joinTable} a ON r.id_rapport = a.id_rapport
             ORDER BY " . ($dateCol === 'NULL' ? 'r.id_rapport DESC' : "{$dateCol} DESC")
         );
         return $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
@@ -100,10 +151,29 @@ class Approuver
     public static function getTousAvis()
     {
         $pdo = Database::getConnection();
-        if (!self::tableExists($pdo, 'approuver')) {
+        $sourceTable = self::resolveSourceTable($pdo);
+        if ($sourceTable === null) {
             return [];
         }
-        $stmt = $pdo->query("SELECT id_rapport, id_pers_admin, decision, commentaire_approv FROM approuver");
+
+        if ($sourceTable === 'approuver') {
+            $stmt = $pdo->query("SELECT id_rapport, id_pers_admin, decision, commentaire_approv FROM approuver");
+            return $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+        }
+
+        $stmt = $pdo->query("
+            SELECT
+                id_rapport,
+                NULL AS id_pers_admin,
+                id_enseignant,
+                CASE
+                    WHEN decision_validation = 'valider' THEN 'approuve'
+                    WHEN decision_validation = 'rejeter' THEN 'rejete'
+                    ELSE decision_validation
+                END AS decision,
+                commentaire_validation AS commentaire_approv
+            FROM valider
+        ");
         return $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
     }
 }
