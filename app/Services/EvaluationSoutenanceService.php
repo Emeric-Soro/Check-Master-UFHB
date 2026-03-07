@@ -1023,6 +1023,9 @@ class EvaluationSoutenanceService
 
     public function calculerMention(float $noteTotale): string
     {
+        if ($noteTotale >= 18) {
+            return 'Honorable';
+        }
         if ($noteTotale >= 16) {
             return 'Tres Bien';
         }

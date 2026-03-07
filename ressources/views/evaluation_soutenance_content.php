@@ -183,40 +183,49 @@ foreach ($soutenances as $soutenance) {
                 <?php
                 $criteriaForGrid = array_map(static function (array $c): array {
                     return [
-                        'id'     => (int) ($c['id_critere'] ?? 0),
-                        'label'  => (string) ($c['lib_critere'] ?? ''),
+                        'id' => (int) ($c['id_critere'] ?? 0),
+                        'label' => (string) ($c['lib_critere'] ?? ''),
                         'abbrev' => (string) ($c['code_critere'] ?? ''),
                         'bareme' => (float) ($c['bareme_max'] ?? 20),
                     ];
                 }, $criteres);
                 cm_component('ui/evaluation-grid', [
-                    'criteria'          => $criteriaForGrid,
-                    'name_prefix'       => 'criteres',
-                    'id_prefix'         => 'cmEval',
-                    'commentaire_name'  => 'commentaire_general',
+                    'criteria' => $criteriaForGrid,
+                    'name_prefix' => 'criteres',
+                    'id_prefix' => 'cmEval',
+                    'commentaire_name' => 'commentaire_general',
                     'commentaire_label' => 'Commentaire general',
-                    'show_header'       => false,
-                    'show_buttons'      => false,
+                    'show_header' => false,
+                    'show_buttons' => false,
+                    'show_commentaire' => false,
                 ]);
                 ?>
 
-                <div class="cm-form-group">
-                    <?php cm_component('form/select', [
-                        'name'    => 'cm_eval_decision',
-                        'id'      => 'cmEvalDecision',
-                        'label'   => 'Decision',
-                        'options' => ['admis' => 'Admis', 'ajourne' => 'Ajourne'],
-                    ]); ?>
+                <div class="cm-grid-2" style="margin-left: auto; max-width: 600px;">
+                    <div class="cm-form-group">
+                        <?php cm_component('form/select', [
+                            'name' => 'cm_eval_decision',
+                            'id' => 'cmEvalDecision',
+                            'label' => 'Decision',
+                            'options' => ['admis' => 'Admis', 'ajourne' => 'Ajourne'],
+                        ]); ?>
+                    </div>
+
+                    <div class="cm-form-group">
+                        <label class="cm-form-label" for="cmEvalComment">Commentaire general</label>
+                        <textarea id="cmEvalComment" name="commentaire_general" class="cm-form-control"
+                            rows="2"></textarea>
+                    </div>
                 </div>
 
-                <div class="cm-form-buttons">
-                    <button class="cm-btn is-success" type="submit" id="cmEvalSubmitBtn">
-                        <i class="fas fa-check" aria-hidden="true"></i>
-                        Enregistrer evaluation
-                    </button>
+                <div class="cm-form-buttons" style="display: flex; justify-content: space-between; width: 100%;">
                     <button class="cm-btn is-light" type="button" id="cmEvalResetBtn">
                         <i class="fas fa-rotate-left" aria-hidden="true"></i>
                         Reinitialiser
+                    </button>
+                    <button class="cm-btn is-success" type="submit" id="cmEvalSubmitBtn">
+                        <i class="fas fa-check" aria-hidden="true"></i>
+                        Enregistrer evaluation
                     </button>
                 </div>
             </form>
@@ -302,7 +311,9 @@ foreach ($soutenances as $soutenance) {
                                 $moyenne = (float) ($soutenance['note_finale'] ?? 0);
                                 $mention = '-';
                                 if ($isEvaluated) {
-                                    if ($moyenne >= 16) {
+                                    if ($moyenne >= 18) {
+                                        $mention = 'Honorable';
+                                    } elseif ($moyenne >= 16) {
                                         $mention = 'Tres Bien';
                                     } elseif ($moyenne >= 14) {
                                         $mention = 'Bien';
@@ -489,9 +500,19 @@ foreach ($soutenances as $soutenance) {
             return 'ajourne';
         }
 
+        function getMentionLabel(note) {
+            if (note >= 18) return 'Honorable';
+            if (note >= 16) return 'Très Bien';
+            if (note >= 14) return 'Bien';
+            if (note >= 12) return 'Assez Bien';
+            if (note >= 10) return 'Passable';
+            return 'Insuffisant';
+        }
+
         function recalcMoyenne() {
             const evalGrid = document.getElementById('cmEval');
             if (!evalGrid) { return; }
+            const mentionDisplay = document.getElementById('cmEvalMention');
             let total = 0, allFilled = true;
             evalGrid.querySelectorAll('.cm-eval-grid__row').forEach(function (row) {
                 const bareme = parseFloat(row.dataset.bareme) || 0;
@@ -508,6 +529,16 @@ foreach ($soutenances as $soutenance) {
             }
             if (decisionSelect) {
                 decisionSelect.value = allFilled ? mentionFromNote(total) : 'ajourne';
+            }
+            if (mentionDisplay) {
+                if (allFilled) {
+                    const mention = getMentionLabel(total);
+                    mentionDisplay.textContent = mention;
+                    mentionDisplay.className = 'cm-eval-grid__mention-display cm-eval-grid__mention-display--active';
+                } else {
+                    mentionDisplay.textContent = '—';
+                    mentionDisplay.className = 'cm-eval-grid__mention-display';
+                }
             }
         }
 
@@ -576,27 +607,32 @@ foreach ($soutenances as $soutenance) {
         function rebuildGridRows(criteres) {
             const evalGrid = document.getElementById('cmEval');
             if (!evalGrid) { return; }
-            const tbody = evalGrid.querySelector('.cm-eval-grid__table tbody');
-            if (!tbody) { return; }
-            tbody.innerHTML = '';
+            const fieldsWrap = evalGrid.querySelector('.cm-eval-grid__fields-wrap');
+            if (!fieldsWrap) { return; }
+            // Garder la ligne total (qui contient maintenant total + mention)
+            const totalRow = fieldsWrap.querySelector('.cm-eval-grid__total-row');
+            fieldsWrap.innerHTML = '';
             (criteres || []).forEach(function (c) {
                 const id = String(c.id_critere || '');
                 const label = String(c.lib_critere || ('Critere ' + id));
                 const abbrev = c.code_critere ? ' <span class="cm-eval-grid__abbrev">(' + c.code_critere + ')</span>' : '';
                 const bareme = parseFloat(c.bareme_max || 0);
-                const tr = document.createElement('tr');
-                tr.className = 'cm-eval-grid__row';
-                tr.dataset.bareme = String(bareme);
-                tr.innerHTML = '<td class="cm-eval-grid__td cm-eval-grid__td--label">' + label + abbrev + '</td>' +
-                    '<td class="cm-eval-grid__td cm-eval-grid__td--bareme">' + Math.round(bareme) + '</td>' +
-                    '<td class="cm-eval-grid__td cm-eval-grid__td--note"><div class="cm-eval-grid__note-wrap">' +
+                const div = document.createElement('div');
+                div.className = 'cm-eval-grid__row';
+                div.dataset.bareme = String(bareme);
+                div.innerHTML = '<label class="cm-eval-grid__label" for="cmEvalCrit' + id + '">' + label + abbrev + '</label>' +
+                    '<div class="cm-eval-grid__input-group">' +
                     '<input type="number" id="cmEvalCrit' + id + '" name="criteres[' + id + ']" ' +
                     'class="cm-eval-grid__note-input cm-eval-grid__note-field" value="" ' +
                     'min="0" max="' + bareme + '" step="0.5" placeholder="\u2014" data-critere-id="' + id + '">' +
-                    '<span class="cm-eval-grid__note-unit">/' + Math.round(bareme) + '</span></div></td>';
-                tbody.appendChild(tr);
+                    '<span class="cm-eval-grid__note-unit">/' + Math.round(bareme) + '</span></div>';
+                fieldsWrap.appendChild(div);
             });
-            tbody.querySelectorAll('.cm-eval-grid__note-field').forEach(function (input) {
+            // Rajouter la ligne total à la fin
+            if (totalRow) {
+                fieldsWrap.appendChild(totalRow);
+            }
+            fieldsWrap.querySelectorAll('.cm-eval-grid__note-field').forEach(function (input) {
                 input.addEventListener('input', recalcMoyenne);
             });
             recalcMoyenne();

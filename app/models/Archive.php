@@ -603,6 +603,7 @@ class Archive
     public function getMentionsDistribution()
     {
         $mentions = [
+            'Honorable' => 0,
             'Tres bien' => 0,
             'Bien' => 0,
             'Assez bien' => 0,
@@ -620,7 +621,9 @@ class Archive
             $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($students as $row) {
                 $avg = (float) $row['moyenne'];
-                if ($avg >= 16) {
+                if ($avg >= 18) {
+                    $mentions['Honorable']++;
+                } elseif ($avg >= 16) {
                     $mentions['Tres bien']++;
                 } elseif ($avg >= 14) {
                     $mentions['Bien']++;
@@ -679,7 +682,7 @@ class Archive
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
-            
+
             $params = [];
             if ($anneeAcad) {
                 $sql .= " AND " . $anneeExpr . " = :annee_acad";
@@ -688,7 +691,7 @@ class Archive
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            return round((float)($stmt->fetchColumn() ?: 0), 1);
+            return round((float) ($stmt->fetchColumn() ?: 0), 1);
         } catch (PDOException $e) {
             error_log("Error getting success rate: " . $e->getMessage());
             return 0;
@@ -708,7 +711,7 @@ class Archive
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
-            
+
             $params = [];
             if ($anneeAcad) {
                 $sql .= " AND " . $anneeExpr . " = :annee_acad";
@@ -717,7 +720,7 @@ class Archive
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            return round((float)($stmt->fetchColumn() ?: 0), 2);
+            return round((float) ($stmt->fetchColumn() ?: 0), 2);
         } catch (PDOException $e) {
             error_log("Error getting average: " . $e->getMessage());
             return 0;
@@ -738,7 +741,7 @@ class Archive
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE p.date_soutenance IS NOT NULL";
-            
+
             $params = [];
             if ($anneeAcad) {
                 $sql .= " AND " . $anneeExpr . " = :annee_acad";
@@ -747,7 +750,7 @@ class Archive
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            return (int)($stmt->fetchColumn() ?: 0);
+            return (int) ($stmt->fetchColumn() ?: 0);
         } catch (PDOException $e) {
             error_log("Error getting defense days: " . $e->getMessage());
             return 0;
@@ -773,10 +776,14 @@ class Archive
                         LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                         WHERE 1=1";
                 $params = [];
-                if ($anneeAcad) { $sql .= " AND " . $anneeExpr . " = :annee"; $params['annee'] = $anneeAcad; }
+                if ($anneeAcad) {
+                    $sql .= " AND " . $anneeExpr . " = :annee";
+                    $params['annee'] = $anneeAcad;
+                }
                 $stmt = $this->db->prepare($sql);
                 $stmt->execute($params);
-                if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if($row['date']) $events[] = $row;
+                if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if ($row['date'])
+                    $events[] = $row;
             }
 
             // Start defenses
@@ -787,10 +794,14 @@ class Archive
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
             $params = [];
-            if ($anneeAcad) { $sql .= " AND " . $anneeExpr . " = :annee"; $params['annee'] = $anneeAcad; }
+            if ($anneeAcad) {
+                $sql .= " AND " . $anneeExpr . " = :annee";
+                $params['annee'] = $anneeAcad;
+            }
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if($row['date']) $events[] = $row;
+            if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if ($row['date'])
+                $events[] = $row;
 
             // End defenses
             $sql = "SELECT MAX(ps.date_soutenance) as date, 'Fin des soutenances' as event
@@ -800,10 +811,14 @@ class Archive
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
             $params = [];
-            if ($anneeAcad) { $sql .= " AND " . $anneeExpr . " = :annee"; $params['annee'] = $anneeAcad; }
+            if ($anneeAcad) {
+                $sql .= " AND " . $anneeExpr . " = :annee";
+                $params['annee'] = $anneeAcad;
+            }
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if($row['date']) $events[] = $row;
+            if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) if ($row['date'])
+                $events[] = $row;
 
         } catch (PDOException $e) {
             error_log("Error getting timeline: " . $e->getMessage());
