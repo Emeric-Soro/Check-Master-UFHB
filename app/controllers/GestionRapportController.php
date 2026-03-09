@@ -146,7 +146,6 @@ class GestionRapportController
             unset($_SESSION['erreurs_form']);
 
             // Rendre toutes les données disponibles globalement pour la vue
-            // (layout.php inclut la vue via $contentFile — ne PAS faire require_once ici)
             $GLOBALS['rapport'] = $rapport;
             $GLOBALS['isEditMode'] = $isEditMode;
             $GLOBALS['contenuRapport'] = $contenuRapport;

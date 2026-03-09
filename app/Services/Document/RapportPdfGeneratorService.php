@@ -44,14 +44,19 @@ final class RapportPdfGeneratorService
             return ['success' => false, 'error' => 'Rapport introuvable'];
         }
 
-        // 2. Note: Allow PDF generation for all statuses (including drafts) for preview purposes
-        // The PDF will be generated temporarily and may not be persisted if status is brouillon
+        // 2. Validate status: cannot generate PDF for drafts
+        if ((string) ($rapport['statut_rapport'] ?? '') === (enum_exists('App\Enum\StatutRapport') ? \App\Enum\StatutRapport::BROUILLON->value : 'brouillon')) {
+            return ['success' => false, 'error' => 'Impossible de générer un PDF pour un rapport en brouillon'];
+        }
 
         // 3. Fetch related entities
         $etudiant = $this->dataUtils->getEtudiantByNumCarte((string) ($rapport['matricule_etudiant'] ?? ''));
         if ($etudiant === null) {
             return ['success' => false, 'error' => 'Étudiant introuvable'];
         }
+
+        $candidature = $this->dataUtils->getCandidatureByEtudiant((string) ($rapport['matricule_etudiant'] ?? ''));
+        // Non bloquant : la candidature n'est pas nécessaire pour la génération du PDF
 
         $infoStage = $this->dataUtils->getInformationsStage((string) ($rapport['matricule_etudiant'] ?? ''));
         // Non bloquant : les infos de stage enrichissent le PDF mais ne sont pas obligatoires
@@ -62,13 +67,9 @@ final class RapportPdfGeneratorService
         // 5. Create PDF document
         $pdf = $this->pdfGenerator->createDocument('P', 'A4', 'Rapport de Stage', 'CheckMaster UFRMI');
 
-        // 6. Add content pages (unified document or legacy cover + body)
-        try {
-            $pdf->AddPage();
-            $this->addContentPages($pdf, $rapport, $etudiant, $infoStage);
-        } catch (RuntimeException $e) {
-            return ['success' => false, 'error' => $e->getMessage()];
-        }
+        // 6. Add content pages (includes cover page generated from data)
+        $pdf->AddPage();
+        $this->addContentPages($pdf, $rapport, $etudiant, $infoStage);
 
         // 7. Add footer to all pages
         $this->addFooterToAllPages($pdf);
@@ -121,124 +122,6 @@ final class RapportPdfGeneratorService
      * @param array<string, mixed>|null $infoStage Internship info
      */
     private function addContentPages(TCPDF $pdf, array $rapport, ?array $etudiant, ?array $infoStage): void
-    {
-        $pdf->SetFont('dejavuserif', '', 11);
-        $rawHtml = $this->resolveStoredReportHtml($rapport);
-        $rawHtml = $this->normalizeStoredHtml($rawHtml);
-
-        if ($this->isUnifiedReportDocument($rawHtml)) {
-            $htmlToRender = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>'
-                . $rawHtml
-                . '</body></html>';
-        } else {
-            $htmlToRender = $this->buildLegacyDocumentHtml($rapport, $etudiant, $infoStage, $rawHtml);
-        }
-
-        $this->pdfGenerator->writeHtml($pdf, $htmlToRender);
-    }
-
-    /**
-     * Extracts body content from a JS-generated unified report document.
-     * The body section is wrapped in an element with data-cm-report-body="1".
-     */
-    private function extractBodyFromUnifiedHtml(string $html): string
-    {
-        $domBody = $this->extractBodyFromUnifiedHtmlDom($html);
-        if ($domBody !== '') {
-            return $domBody;
-        }
-
-        // Method 1: content inside data-cm-report-body="1" attribute
-        // The body section ends just before the closing </div> of the outer wrapper.
-        if (preg_match('/data-cm-report-body="1"[^>]*>([\s\S]*?)<\/section>/i', $html, $m)) {
-            $body = trim($m[1]);
-            if ($body !== '') {
-                return $body;
-            }
-        }
-
-        // Method 2: extract everything after the empty page-break div
-        // Structure: <div data-cm-report-page-break="1" ...></div><section ...>BODY</section></div>
-        if (preg_match('/data-cm-report-page-break="1"[^>]*><\/div>([\s\S]*)/i', $html, $m)) {
-            $rest = trim($m[1]);
-            // Strip outer <section> opening tag and trailing </section></div>
-            $rest = preg_replace('/^<section[^>]*>/is', '', $rest) ?? $rest;
-            $rest = preg_replace('/<\/section>\s*<\/div>\s*$/is', '', $rest) ?? $rest;
-            $body = trim($rest);
-            if ($body !== '') {
-                return $body;
-            }
-        }
-
-        // Fallback: return the full HTML (TCPDF will attempt to render it)
-        return $html;
-    }
-
-    private function extractBodyFromUnifiedHtmlDom(string $html): string
-    {
-        if (!class_exists(\DOMDocument::class) || trim($html) === '') {
-            return '';
-        }
-
-        $wrapped = '<!DOCTYPE html><html><body>' . $html . '</body></html>';
-        $previous = libxml_use_internal_errors(true);
-        $dom = new \DOMDocument();
-        $loaded = $dom->loadHTML($wrapped);
-        libxml_clear_errors();
-        libxml_use_internal_errors($previous);
-
-        if ($loaded === false) {
-            return '';
-        }
-
-        $xpath = new \DOMXPath($dom);
-        $bodyNode = $xpath->query('//*[@data-cm-report-body="1"]');
-        if ($bodyNode !== false && $bodyNode->length > 0) {
-            return trim($this->innerHtml($bodyNode->item(0)));
-        }
-
-        $pageBreakNode = $xpath->query('//*[@data-cm-report-page-break="1"]');
-        if ($pageBreakNode !== false && $pageBreakNode->length > 0) {
-            $cursor = $pageBreakNode->item($pageBreakNode->length - 1)->nextSibling;
-            $chunks = [];
-            while ($cursor !== null) {
-                if ($cursor->nodeType === XML_ELEMENT_NODE || $cursor->nodeType === XML_TEXT_NODE) {
-                    $chunks[] = $dom->saveHTML($cursor) ?: '';
-                }
-                $cursor = $cursor->nextSibling;
-            }
-            $afterBreak = trim(implode('', $chunks));
-            if ($afterBreak !== '') {
-                return $afterBreak;
-            }
-        }
-
-        return '';
-    }
-
-    private function innerHtml(?\DOMNode $node): string
-    {
-        if ($node === null) {
-            return '';
-        }
-
-        $html = '';
-        foreach ($node->childNodes as $child) {
-            $html .= $node->ownerDocument?->saveHTML($child) ?? '';
-        }
-
-        return $html;
-    }
-
-    /**
-     * Generates the cover page HTML for the report.
-     *
-     * @param array<string, mixed> $rapport Report data
-     * @param array<string, mixed>|null $etudiant Student data
-     * @param array<string, mixed>|null $infoStage Internship info
-     * @return string Cover page HTML
-     */
-    private function generateCoverPageHTML(array $rapport, ?array $etudiant, ?array $infoStage): string
     {
         $nomEtu = (string) ($etudiant['nom_etu'] ?? '');
         $prenomEtu = (string) ($etudiant['prenom_etu'] ?? '');
@@ -422,7 +305,122 @@ HTML;
             $mime = 'image/png';
         }
 
-        return 'data:' . $mime . ';base64,' . base64_encode($binary);
+        // 1. Générer la page de couverture
+        $coverPageHtml = $this->generateCoverPageHTML($rapport, $etudiant, $infoStage);
+        $this->pdfGenerator->writeHtml($pdf, $coverPageHtml);
+
+        // 2. Ajouter un saut de page après la couverture
+        $pdf->AddPage();
+
+        // 3. Lire le contenu du fichier HTML (qui ne contient plus la page de couverture)
+        $contenuHtml = '';
+        if (!empty($rapport['chemin_fichier'])) {
+            // chemin_fichier contient le nom du fichier (ex: rapport_1.html)
+            // Le fichier est stocké dans ressources/uploads/rapports/
+            $cheminComplet = __DIR__ . '/../../../ressources/uploads/rapports/' . $rapport['chemin_fichier'];
+
+            if (file_exists($cheminComplet)) {
+                $contenuHtml = file_get_contents($cheminComplet);
+                if ($contenuHtml === false) {
+                    $contenuHtml = '';
+                }
+            }
+        }
+
+        // Fallback sur contenu_html si le fichier n'existe pas ou est vide
+        if (empty($contenuHtml) && !empty($rapport['contenu_html'])) {
+            $contenuHtml = $rapport['contenu_html'];
+        }
+
+        // 4. Render HTML content
+        // HTML is already sanitized by HtmlPurifierService, so render as-is
+        $this->pdfGenerator->writeHtml($pdf, (string) $contenuHtml);
+    }
+
+    /**
+     * Generates the cover page HTML for the report.
+     *
+     * @param array<string, mixed> $rapport Report data
+     * @param array<string, mixed>|null $etudiant Student data
+     * @param array<string, mixed>|null $infoStage Internship info
+     * @return string Cover page HTML
+     */
+    private function generateCoverPageHTML(array $rapport, ?array $etudiant, ?array $infoStage): string
+    {
+        $baseUrl = 'http://localhost:8000/checkmaster.ufrmi-ufhb-ci/public';
+
+        $nomEtu = $etudiant['nom_etu'] ?? '';
+        $prenomEtu = $etudiant['prenom_etu'] ?? '';
+        $nomComplet = trim(strtoupper($nomEtu) . ' ' . strtoupper($prenomEtu));
+        $genreEtu = $etudiant['genre_etu'] ?? 'M';
+        $civilite = $genreEtu === 'F' ? 'Mme' : 'M.';
+
+        $entreprise = $infoStage['nom_entreprise'] ?? 'Entreprise d\'accueil';
+        $maitreStage = $infoStage['nom_maitre_stage'] ?? '';
+        $theme = $rapport['theme_rapport'] ?? 'Thème du rapport';
+
+        return <<<HTML
+<div style="font-family: 'Times New Roman', serif; width: 210mm; min-height: 297mm; padding: 20mm 25mm; box-sizing: border-box; background: white;">
+    <table style="width: 100%; border: none; margin-bottom: 5px;">
+        <tr>
+            <td style="width: 50%; text-align: left; font-size: 10pt; vertical-align: top; border: none; padding: 0;">
+                MINISTERE DE L'ENSEIGNEMENT SUPERIEUR<br/>ET DE LA RECHERCHE SCIENTIFIQUE
+            </td>
+            <td style="width: 50%; text-align: right; font-size: 10pt; vertical-align: top; border: none; padding: 0;">
+                REPUBLIQUE DE COTE D'IVOIRE<br/>UNION - DISCIPLINE - TRAVAIL
+            </td>
+        </tr>
+    </table>
+    
+    <table style="width: 100%; border: none; margin: 15px 0 20px 0;">
+        <tr>
+            <td style="width: 50%; text-align: center; vertical-align: top; border: none; padding: 10px;">
+                <img src="{$baseUrl}/image/logo_ufhb.png" alt="Logo UFHB" style="width: 70px; height: auto;"/><br/><br/>
+                <span style="font-size: 11pt; font-weight: bold; color: #1a5276;">UNIVERSITE FELIX HOUPHOUET BOIGNY</span><br/><br/>
+                <span style="font-size: 10pt;">UFR MATHEMATIQUES ET INFORMATIQUE</span><br/>
+                <span style="font-size: 10pt;">FILIERES PROFESSIONNALISEES MIAGE-GI</span>
+            </td>
+            <td style="width: 50%; text-align: center; vertical-align: top; border: none; padding: 10px;">
+                <img src="{$baseUrl}/image/logo_civ.png" alt="Armoiries CI" style="width: 65px; height: auto;"/>
+                <img src="{$baseUrl}/image/logoCM.png" alt="Logo Entreprise" style="width: 65px; height: auto; margin-left: 15px;"/><br/><br/>
+                <span style="font-size: 11pt; font-weight: bold;">{$entreprise}</span>
+            </td>
+        </tr>
+    </table>
+    
+    <div style="text-align: center; margin: 25px 0 15px 0;">
+        <p style="font-size: 11pt; margin: 0 0 8px 0;">Memoire de fin de cycle pour l'obtention du :</p>
+        <p style="font-size: 12pt; font-weight: bold; font-style: italic; margin: 0 0 5px 0;">
+            Diplome d'Ingenieur de conception en informatique
+        </p>
+        <p style="font-size: 10pt; font-style: italic; margin: 0;">
+            Option Methodes Informatiques Appliquees a la Gestion des Entreprises
+        </p>
+    </div>
+    
+    <div style="text-align: center; margin: 25px 0;">
+        <p style="font-size: 11pt; font-weight: bold; margin: 0 0 12px 0;">Theme :</p>
+        <div style="background-color: #1B5E20; color: white; padding: 18px 25px; margin: 0 auto; width: 95%; text-align: center;">
+            <p style="font-size: 13pt; font-weight: bold; text-transform: uppercase; line-height: 1.5; margin: 0; text-align: center;">
+                {$theme}
+            </p>
+        </div>
+    </div>
+    
+    <table style="width: 100%; border-collapse: collapse; margin-top: 30px;">
+        <tr>
+            <td style="width: 50%; padding: 20px; border: 2px solid #000; text-align: center; vertical-align: top;">
+                <p style="font-size: 11pt; margin: 0 0 10px 0;">SOUTENU PAR :</p>
+                <p style="font-size: 11pt; font-weight: bold; margin: 0;">{$civilite} {$nomComplet}</p>
+            </td>
+            <td style="width: 50%; padding: 20px; border: 2px solid #000; text-align: center; vertical-align: top;">
+                <p style="font-size: 11pt; font-weight: bold; margin: 0 0 15px 0; text-align: center;">MAITRE DE STAGE</p>
+                <p style="font-size: 11pt; font-weight: bold; margin: 0; text-align: center;">{$maitreStage}</p>
+            </td>
+        </tr>
+    </table>
+</div>
+HTML;
     }
 
     /**
