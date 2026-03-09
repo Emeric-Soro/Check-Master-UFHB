@@ -31,16 +31,16 @@ if ($_GET['page'] === 'gestion_rapports') {
         }
     }
 
-    // Gestion du POST pour le dépôt de rapport
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'deposer_rapport') {
-        $controller->traiterCreationRapport();
-        exit;
-    }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        if (in_array($_POST['action'], ['save_rapport', 'export_pdf', 'deposer_rapport'], true)) {
+            $controller->traiterCreationRapport();
+            exit;
+        }
 
-    // Gestion du POST pour la suppression de rapport
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'supprimer_rapport') {
-        $controller->supprimer_rapport();
-        exit;
+        if ($_POST['action'] === 'supprimer_rapport') {
+            $controller->supprimer_rapport();
+            exit;
+        }
     }
 
     if (isset($_GET['action'])) {

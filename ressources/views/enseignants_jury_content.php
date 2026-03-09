@@ -59,7 +59,12 @@ try {
     $whereConditions = [];
     $params = [];
     if ($filtreAnneeAdmin !== null) {
-        $whereConditions[] = "e2.id_annee_acad = :id_annee_acad";
+        $whereConditions[] = "EXISTS (
+            SELECT 1
+            FROM inscriptions i2
+            WHERE i2.id_etudiant = ps2.num_etud
+              AND i2.id_annee_acad = :id_annee_acad
+        )";
         $params[':id_annee_acad'] = $filtreAnneeAdmin;
     }
     if ($filtreSessionAdmin !== null) {
@@ -78,7 +83,6 @@ try {
                      LEFT JOIN affecter a ON CAST(a.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
                      LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
                      LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
-                     LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
                      {$whereClause}
                      GROUP BY ens.id_enseignant
                      HAVING COUNT(DISTINCT ej.num_soutenance) > 0
@@ -109,7 +113,6 @@ try {
             LEFT JOIN affecter a ON CAST(a.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
             LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
             LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
-            LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
             {$whereClause}
             GROUP BY ens.id_enseignant, ens.nom_enseignant, ens.prenom_enseignant, ens.mail_enseignant, ens.tel_enseignant
             HAVING COUNT(DISTINCT ej.num_soutenance) > 0
@@ -139,7 +142,6 @@ try {
                         LEFT JOIN affecter a ON CAST(a.id_enseignant AS CHAR) = CAST(ens.id_enseignant AS CHAR)
                         LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
                         LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
-                        LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
                         {$whereClause}
                         GROUP BY ens.id_enseignant
                         HAVING COUNT(DISTINCT ej.num_soutenance) > 0

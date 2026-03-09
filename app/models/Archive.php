@@ -141,6 +141,25 @@ class Archive
         )";
     }
 
+    private function normalizeAcademicYearLabel($value)
+    {
+        $label = trim((string) $value);
+        if ($label === '') {
+            return null;
+        }
+
+        if (preg_match('/^(\d{4})\s*[-\/]\s*(\d{4})$/', $label, $matches) === 1) {
+            return $matches[1] . '-' . $matches[2];
+        }
+
+        if (preg_match('/^\d{4}$/', $label) === 1) {
+            $start = (int) $label;
+            return (string) $start . '-' . (string) ($start + 1);
+        }
+
+        return $label;
+    }
+
     /**
      * Get student history with filters
      */
@@ -829,6 +848,60 @@ class Archive
         });
 
         return $events;
+    }
+
+    /**
+     * Returns available academic years for archive filters.
+     *
+     * @return array<int, string>
+     */
+    public function getAcademicYears()
+    {
+        $years = [];
+
+        try {
+            if (
+                $this->tableExists('annee_academique')
+                && $this->columnExists('annee_academique', 'date_deb')
+                && $this->columnExists('annee_academique', 'date_fin')
+            ) {
+                $stmt = $this->db->query(
+                    "SELECT DISTINCT CONCAT(YEAR(date_deb), '-', YEAR(date_fin)) AS annee
+                     FROM annee_academique
+                     ORDER BY date_deb DESC"
+                );
+                $fromYears = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                if (is_array($fromYears)) {
+                    foreach ($fromYears as $year) {
+                        $label = $this->normalizeAcademicYearLabel($year);
+                        if ($label !== null) {
+                            $years[] = $label;
+                        }
+                    }
+                }
+            }
+
+            if ($this->columnExists('etudiants', 'promotion_etu')) {
+                $stmt = $this->db->query(
+                    "SELECT DISTINCT promotion_etu
+                     FROM etudiants
+                     WHERE promotion_etu IS NOT NULL AND TRIM(promotion_etu) <> ''"
+                );
+                while (($promotion = $stmt->fetchColumn()) !== false) {
+                    $label = $this->normalizeAcademicYearLabel($promotion);
+                    if ($label !== null) {
+                        $years[] = $label;
+                    }
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("Error getting academic years: " . $e->getMessage());
+        }
+
+        $years = array_values(array_unique($years));
+        rsort($years, SORT_NATURAL);
+
+        return $years;
     }
 
     /**

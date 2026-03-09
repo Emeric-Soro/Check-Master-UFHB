@@ -245,21 +245,28 @@ class GestionRapportController
 
     private function exporterRapport()
     {
-        // Nettoyer tout output précédent pour éviter "headers already sent"
-        if (ob_get_level()) {
+        // Drain ALL output buffers to ensure no HTML leaks into the PDF response.
+        while (ob_get_level() > 0) {
             ob_end_clean();
         }
-        ob_start();
 
         try {
-            // Vérifier que l'utilisateur est connecté et est un étudiant
-            if (!$this->isEtudiant()) {
-                throw new Exception('Accès non autorisé. Seuls les étudiants peuvent exporter leurs rapports.');
-            }
-
             $edit_id = $_POST['edit_id'] ?? null;
             if (!$edit_id) {
                 throw new Exception('ID du rapport manquant.');
+            }
+
+            $rapport = $this->service->getRapportById($edit_id);
+            if (!$rapport) {
+                throw new Exception('Rapport introuvable.');
+            }
+
+            if ($this->isEtudiant()) {
+                if (($rapport['num_etu'] ?? null) !== ($_SESSION['num_etu'] ?? null)) {
+                    throw new Exception('Accès non autorisé à ce rapport.');
+                }
+            } elseif (!(canView('gestion_rapports') || canCreate('gestion_rapports') || canEdit('gestion_rapports') || canDelete('gestion_rapports'))) {
+                throw new Exception('Accès non autorisé à l\'export de ce rapport.');
             }
 
             // Initialiser les services
@@ -285,14 +292,15 @@ class GestionRapportController
                 throw new Exception('Fichier PDF non trouvé: ' . $pdfPath);
             }
 
-            // Définir les headers pour le téléchargement
-            if (ob_get_level()) {
-                ob_end_clean();
-            }
+            // Stream the PDF — all ob levels were already drained at the top of this method.
+            $isDownload = !empty($_POST['download']);
+            $disposition = $isDownload ? 'attachment' : 'inline';
             header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="' . basename($pdfPath) . '"');
-            header('Cache-Control: private, max-age=0, must-revalidate');
-            header('Pragma: public');
+            header('Content-Disposition: ' . $disposition . '; filename="' . basename($pdfPath) . '"');
+            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+            header('Pragma: no-cache');
+            header('Expires: 0');
+            header('X-Content-Type-Options: nosniff');
             header('Content-Length: ' . filesize($pdfPath));
 
             readfile($pdfPath);
@@ -302,12 +310,12 @@ class GestionRapportController
             error_log("Erreur lors de l'export PDF: " . $e->getMessage());
             error_log("Stack trace: " . $e->getTraceAsString());
 
-            // Nettoyer tout output précédent
-            if (ob_get_level()) {
+            // Drain any buffers opened during PDF generation
+            while (ob_get_level() > 0) {
                 ob_end_clean();
             }
 
-            // Retourner une réponse JSON en cas d'erreur
+            // Return JSON error
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => false,
@@ -486,6 +494,11 @@ class GestionRapportController
 
     private function sendJsonResponse($data)
     {
+        // Drain all output buffers (layout.php opens ob_start() before including route files).
+        // Without this, any buffered HTML would be prepended to the JSON response.
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
         header('Content-Type: application/json');
         echo json_encode($data);
         exit;
