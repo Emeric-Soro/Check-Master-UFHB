@@ -276,20 +276,20 @@ class PlanningDataUtils
                     e.nom_etu AS nom_etudiant,
                     e.prenom_etu AS prenom_etudiant,
                     e.email_etu AS email_etudiant,
-                    i.id_niveau,
+                    i.id_niv_etude,
                     s.lib_session,
                     sa.lib_salle,
                     niv.lib_niv_etude AS libelle_niveau
              FROM programmer_soutenance ps
              INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud
-             LEFT JOIN inscriptions i ON i.id_inscription = (
-                 SELECT i2.id_inscription FROM inscriptions i2
-                 WHERE i2.id_etudiant = e.num_carte_etud
-                 ORDER BY i2.date_inscription DESC, i2.id_inscription DESC LIMIT 1
+             LEFT JOIN inscriptions i ON (i.num_carte_etud, i.id_annee_acad, i.num_versement) = (
+                 SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement FROM inscriptions i2
+                 WHERE i2.num_carte_etud = e.num_carte_etud
+                 ORDER BY i2.date_inscription DESC, i2.id_annee_acad DESC, i2.num_versement DESC LIMIT 1
              )
              LEFT JOIN session s ON s.id_session = ps.id_session
              LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
-             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niveau
+             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niv_etude
              WHERE ps.num_soutenance = :num_soutenance'
         );
         $stmt->execute(['num_soutenance' => $numSoutenance]);
@@ -431,13 +431,13 @@ class PlanningDataUtils
                     niv.lib_niv_etude AS libelle_niveau
              FROM rapport_etudiants r
              INNER JOIN etudiants e ON e.num_carte_etud = r.num_etu
-             LEFT JOIN inscriptions i ON i.id_inscription = (
-                 SELECT i2.id_inscription FROM inscriptions i2 
-                  WHERE i2.id_etudiant = e.num_carte_etud 
-                  ORDER BY i2.date_inscription DESC LIMIT 1
+             LEFT JOIN inscriptions i ON (i.num_carte_etud, i.id_annee_acad, i.num_versement) = (
+                 SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement FROM inscriptions i2 
+                  WHERE i2.num_carte_etud = e.num_carte_etud 
+                  ORDER BY i2.date_inscription DESC, i2.id_annee_acad DESC, i2.num_versement DESC LIMIT 1
               )
              LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
-             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niveau
+             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niv_etude
              WHERE r.id_rapport = :id_rapport'
         );
         $stmt->execute(['id_rapport' => $rapportId]);
@@ -456,16 +456,16 @@ class PlanningDataUtils
     {
         $stmt = $this->db->pdo()->prepare(
             'SELECT e.num_carte_etud, e.num_ident_etud, e.nom_etu, e.prenom_etu,
-                    e.email_etu, e.date_naiss_etu, e.genre_etu, e.promotion_etu,
-                    i.id_niveau, i.id_annee_acad,
+                    e.email_etu, e.date_naiss_etu, e.id_genre, e.promotion_etu,
+                    i.id_niv_etude, i.id_annee_acad,
                     niv.lib_niv_etude AS libelle_niveau
              FROM etudiants e
-             LEFT JOIN inscriptions i ON i.id_inscription = (
-                 SELECT i2.id_inscription FROM inscriptions i2 
-                 WHERE i2.id_etudiant = e.num_carte_etud 
-                 ORDER BY i2.date_inscription DESC LIMIT 1
+             LEFT JOIN inscriptions i ON (i.num_carte_etud, i.id_annee_acad, i.num_versement) = (
+                 SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement FROM inscriptions i2 
+                 WHERE i2.num_carte_etud = e.num_carte_etud 
+                 ORDER BY i2.date_inscription DESC, i2.id_annee_acad DESC, i2.num_versement DESC LIMIT 1
              )
-             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niveau
+             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niv_etude
              WHERE e.num_carte_etud = :num_carte'
         );
         $stmt->execute(['num_carte' => $numCarte]);

@@ -253,7 +253,7 @@ class EvaluationRapport
                     e.email_etu,
                     e.promotion_etu,
                     (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.id_etudiant = e.num_carte_etud 
+                     WHERE i.num_carte_etud = e.num_carte_etud 
                      ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad,
                     " . ($hasDeposer ? "d.date_depot" : "$dateExpr") . " AS date_depot,
                     COUNT(ev.id_evaluation) as total_votes,

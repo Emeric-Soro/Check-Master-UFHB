@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Modèle Versement (Wrapper pour la table inscriptions)
+ * 
+ * NOTE IMPORTANTE: La table "versements" n'existe plus dans la nouvelle structure.
+ * Les versements sont maintenant gérés via la table "inscriptions" avec num_versement.
+ * Ce modèle sert de wrapper pour maintenir la compatibilité avec le code existant.
+ */
 class Versement
 {
     private $db;
@@ -10,20 +17,32 @@ class Versement
     }
 
     /**
-     * Récupérer tous les versements
+     * Récupérer tous les versements (toutes les inscriptions avec leurs versements)
      */
     public function getAllVersements()
     {
         try {
-            $query = "SELECT v.*, 
-                            i.id_etudiant,
-                            e.nom_etu, e.prenom_etu, e.num_carte_etud,
-                            n.lib_niv_etude
-                     FROM versements v
-                     INNER JOIN inscriptions i ON v.id_inscription = i.id_inscription
-                     INNER JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
-                     INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
-                     ORDER BY v.date_versement DESC";
+            $query = "SELECT i.num_carte_etud,
+                            i.id_annee_acad,
+                            i.num_versement,
+                            i.montant_verser as montant,
+                            i.date_versement,
+                            i.methode_paiement,
+                            i.solde,
+                            e.nom_etu, 
+                            e.prenom_etu, 
+                            e.email_etu,
+                            n.lib_niv_etude,
+                            f.montant,
+                            a.date_deb,
+                            a.date_fin
+                     FROM inscriptions i
+                     INNER JOIN etudiants e ON i.num_carte_etud = e.num_carte_etud
+                     INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
+                     INNER JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
+                     LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
+                                                   AND f.id_niv_etude = i.id_niv_etude
+                     ORDER BY i.date_versement DESC";
             $stmt = $this->db->prepare($query);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -34,22 +53,33 @@ class Versement
     }
 
     /**
-     * Récupérer un versement par son ID
+     * Récupérer un versement par ses clés composites
+     * @param string $num_carte_etud
+     * @param int $id_annee_acad
+     * @param int $num_versement
      */
-    public function getVersementById($id_versement)
+    public function getVersementByKey($num_carte_etud, $id_annee_acad, $num_versement)
     {
         try {
-            $query = "SELECT v.*, 
-                            i.id_etudiant,
-                            e.nom_etu, e.prenom_etu, e.num_carte_etud, e.email_etu,
-                            n.lib_niv_etude, n.montant_scolarite
-                     FROM versements v
-                     INNER JOIN inscriptions i ON v.id_inscription = i.id_inscription
-                     INNER JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
-                     INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
-                     WHERE v.id_versement = ?";
+            $query = "SELECT i.*,
+                            e.nom_etu, 
+                            e.prenom_etu, 
+                            e.email_etu,
+                            n.lib_niv_etude,
+                            f.montant,
+                            a.date_deb,
+                            a.date_fin
+                     FROM inscriptions i
+                     INNER JOIN etudiants e ON i.num_carte_etud = e.num_carte_etud
+                     INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
+                     INNER JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
+                     LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
+                                                   AND f.id_niv_etude = i.id_niv_etude
+                     WHERE i.num_carte_etud = ? 
+                       AND i.id_annee_acad = ?
+                       AND i.num_versement = ?";
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$id_versement]);
+            $stmt->execute([$num_carte_etud, $id_annee_acad, $num_versement]);
             return $stmt->fetch(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération du versement : " . $e->getMessage());
@@ -58,38 +88,35 @@ class Versement
     }
 
     /**
-     * Récupérer les versements d'une inscription
+     * Récupérer les versements d'un étudiant pour une année
+     * @param string $num_carte_etud
+     * @param int|null $id_annee_acad Si null, toutes les années
      */
-    public function getVersementsByInscription($id_inscription)
+    public function getVersementsByEtudiant($num_carte_etud, $id_annee_acad = null)
     {
         try {
-            $query = "SELECT * FROM versements 
-                     WHERE id_inscription = ? 
-                     ORDER BY date_versement DESC";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute([$id_inscription]);
-            return $stmt->fetchAll(PDO::FETCH_OBJ);
-        } catch (PDOException $e) {
-            error_log("Erreur lors de la récupération des versements : " . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Récupérer les versements d'un étudiant
-     */
-    public function getVersementsByEtudiant($num_etu)
-    {
-        try {
-            $query = "SELECT v.*, i.id_niveau, n.lib_niv_etude, a.date_deb, a.date_fin
-                     FROM versements v
-                     INNER JOIN inscriptions i ON v.id_inscription = i.id_inscription
-                     INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+            $query = "SELECT i.*, 
+                            n.lib_niv_etude, 
+                            a.date_deb, 
+                            a.date_fin,
+                            f.montant
+                     FROM inscriptions i
+                     INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                      INNER JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
-                     WHERE i.id_etudiant = ?
-                     ORDER BY v.date_versement DESC";
+                     LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
+                                                   AND f.id_niv_etude = i.id_niv_etude
+                     WHERE i.num_carte_etud = ?";
+
+            $params = [$num_carte_etud];
+            if ($id_annee_acad !== null) {
+                $query .= " AND i.id_annee_acad = ?";
+                $params[] = $id_annee_acad;
+            }
+
+            $query .= " ORDER BY i.date_versement DESC";
+
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$num_etu]);
+            $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération des versements : " . $e->getMessage());
@@ -98,29 +125,72 @@ class Versement
     }
 
     /**
-     * Créer un nouveau versement
+     * Créer un nouveau versement (crée une nouvelle ligne dans inscriptions)
+     * @param string $num_carte_etud
+     * @param int $id_annee_acad
+     * @param int $id_niv_etude
+     * @param float $montant
+     * @param string $methode_paiement
+     * @return array|false Clés composites du nouveau versement ou false
      */
-    public function creerVersement($id_inscription, $montant, $type_versement, $methode_paiement)
+    public function creerVersement($num_carte_etud, $id_annee_acad, $id_niv_etude, $montant, $methode_paiement)
     {
         try {
-            // Vérifier que le type de versement est valide
-            if (!in_array($type_versement, ['Premier versement', 'Tranche'])) {
-                throw new Exception("Type de versement invalide");
-            }
+            // Récupérer le montant des frais d'inscription
+            $stmtFrais = $this->db->prepare(
+                "SELECT montant FROM frais_inscription 
+                 WHERE id_annee_acad = ? AND id_niv_etude = ?"
+            );
+            $stmtFrais->execute([$id_annee_acad, $id_niv_etude]);
+            $frais = $stmtFrais->fetch(PDO::FETCH_ASSOC);
+            $montant_total = $frais ? $frais['montant'] : 0;
 
-            // Vérifier que la méthode de paiement est valide
-            if (!in_array($methode_paiement, ['Espèce', 'Carte bancaire', 'Virement', 'Chèque'])) {
-                throw new Exception("Méthode de paiement invalide");
-            }
+            // Déterminer le prochain num_versement
+            $stmtMax = $this->db->prepare(
+                "SELECT COALESCE(MAX(num_versement), 0) as max_num
+                 FROM inscriptions
+                 WHERE num_carte_etud = ? AND id_annee_acad = ?"
+            );
+            $stmtMax->execute([$num_carte_etud, $id_annee_acad]);
+            $resultMax = $stmtMax->fetch(PDO::FETCH_ASSOC);
+            $num_versement = $resultMax['max_num'] + 1;
 
-            $query = "INSERT INTO versements 
-                     (id_inscription, montant, date_versement, type_versement, methode_paiement) 
-                     VALUES (?, ?, NOW(), ?, ?)";
+            // Calculer le solde
+            $stmtSum = $this->db->prepare(
+                "SELECT COALESCE(SUM(montant_verser), 0) as total_verse
+                 FROM inscriptions
+                 WHERE num_carte_etud = ? AND id_annee_acad = ?"
+            );
+            $stmtSum->execute([$num_carte_etud, $id_annee_acad]);
+            $resultSum = $stmtSum->fetch(PDO::FETCH_ASSOC);
+            $total_verse = $resultSum['total_verse'];
+            $solde = max(0, $montant_total - $total_verse - $montant);
+
+            // Insérer le nouveau versement
+            $query = "INSERT INTO inscriptions 
+                     (num_carte_etud, id_annee_acad, id_niv_etude, num_versement, 
+                      montant_verser, date_versement, methode_paiement, solde) 
+                     VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)";
             $stmt = $this->db->prepare($query);
-            $result = $stmt->execute([$id_inscription, $montant, $type_versement, $methode_paiement]);
+            $result = $stmt->execute([
+                $num_carte_etud,
+                $id_annee_acad,
+                $id_niv_etude,
+                $num_versement,
+                $montant,
+                $methode_paiement,
+                $solde
+            ]);
 
             if ($result) {
-                return $this->db->lastInsertId();
+                // Mettre à jour le solde des versements précédents
+                $this->updateSoldesPrecedents($num_carte_etud, $id_annee_acad);
+
+                return [
+                    'num_carte_etud' => $num_carte_etud,
+                    'id_annee_acad' => $id_annee_acad,
+                    'num_versement' => $num_versement
+                ];
             }
             return false;
         } catch (Exception $e) {
@@ -130,53 +200,56 @@ class Versement
     }
 
     /**
-     * Modifier un versement
+     * Mettre à jour les soldes de tous les versements précédents
      */
-    public function modifierVersement($id_versement, $montant, $methode_paiement)
+    private function updateSoldesPrecedents($num_carte_etud, $id_annee_acad)
     {
-        try {
-            // Vérifier que la méthode de paiement est valide
-            if (!in_array($methode_paiement, ['Espèce', 'Carte bancaire', 'Virement', 'Chèque'])) {
-                throw new Exception("Méthode de paiement invalide");
-            }
+        // Cette méthode recalcule tous les soldes pour garantir la cohérence
+        $query = "SELECT num_versement, montant_verser 
+                  FROM inscriptions 
+                  WHERE num_carte_etud = ? AND id_annee_acad = ?
+                  ORDER BY num_versement ASC";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$num_carte_etud, $id_annee_acad]);
+        $versements = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $query = "UPDATE versements 
-                     SET montant = ?, methode_paiement = ? 
-                     WHERE id_versement = ?";
-            $stmt = $this->db->prepare($query);
-            return $stmt->execute([$montant, $methode_paiement, $id_versement]);
-        } catch (Exception $e) {
-            error_log("Erreur lors de la modification du versement : " . $e->getMessage());
-            return false;
+        // Récupérer le montant total
+        $stmtFrais = $this->db->prepare(
+            "SELECT f.montant 
+             FROM frais_inscription f
+             JOIN inscriptions i ON i.id_annee_acad = f.id_annee_acad AND i.id_niv_etude = f.id_niv_etude
+             WHERE i.num_carte_etud = ? AND i.id_annee_acad = ?
+             LIMIT 1"
+        );
+        $stmtFrais->execute([$num_carte_etud, $id_annee_acad]);
+        $frais = $stmtFrais->fetch(PDO::FETCH_ASSOC);
+        $montant_total = $frais ? $frais['montant'] : 0;
+
+        // Recalculer chaque solde
+        $cumul = 0;
+        foreach ($versements as $v) {
+            $cumul += $v['montant_verser'];
+            $solde = max(0, $montant_total - $cumul);
+
+            $updateStmt = $this->db->prepare(
+                "UPDATE inscriptions SET solde = ? 
+                 WHERE num_carte_etud = ? AND id_annee_acad = ? AND num_versement = ?"
+            );
+            $updateStmt->execute([$solde, $num_carte_etud, $id_annee_acad, $v['num_versement']]);
         }
     }
 
     /**
-     * Supprimer un versement
+     * Calculer le total des versements pour un étudiant/année
      */
-    public function supprimerVersement($id_versement)
+    public function getTotalVersements($num_carte_etud, $id_annee_acad)
     {
         try {
-            $query = "DELETE FROM versements WHERE id_versement = ?";
+            $query = "SELECT COALESCE(SUM(montant_verser), 0) as total 
+                     FROM inscriptions 
+                     WHERE num_carte_etud = ? AND id_annee_acad = ?";
             $stmt = $this->db->prepare($query);
-            return $stmt->execute([$id_versement]);
-        } catch (PDOException $e) {
-            error_log("Erreur lors de la suppression du versement : " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Calculer le total des versements pour une inscription
-     */
-    public function getTotalVersements($id_inscription)
-    {
-        try {
-            $query = "SELECT COALESCE(SUM(montant), 0) as total 
-                     FROM versements 
-                     WHERE id_inscription = ?";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute([$id_inscription]);
+            $stmt->execute([$num_carte_etud, $id_annee_acad]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             return floatval($result['total']);
         } catch (PDOException $e) {
@@ -186,17 +259,23 @@ class Versement
     }
 
     /**
-     * Récupérer le premier versement d'une inscription
+     * Récupérer le premier versement d'un étudiant pour une année
      */
-    public function getPremierVersement($id_inscription)
+    public function getPremierVersement($num_carte_etud, $id_annee_acad)
     {
         try {
-            $query = "SELECT * FROM versements 
-                     WHERE id_inscription = ? AND type_versement = 'Premier versement'
-                     ORDER BY date_versement ASC
+            $query = "SELECT i.*,
+                            e.nom_etu, e.prenom_etu,
+                            n.lib_niv_etude
+                     FROM inscriptions i
+                     INNER JOIN etudiants e ON i.num_carte_etud = e.num_carte_etud
+                     INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
+                     WHERE i.num_carte_etud = ? 
+                       AND i.id_annee_acad = ?
+                     ORDER BY i.num_versement ASC
                      LIMIT 1";
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$id_inscription]);
+            $stmt->execute([$num_carte_etud, $id_annee_acad]);
             return $stmt->fetch(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération du premier versement : " . $e->getMessage());
@@ -205,18 +284,18 @@ class Versement
     }
 
     /**
-     * Récupérer les statistiques de versements
+     * Récupérer les statistiques de versements pour une année académique
      */
     public function getStatistiquesVersements($id_annee_acad = null)
     {
         try {
             $query = "SELECT 
                         COUNT(*) as total_versements,
-                        SUM(v.montant) as montant_total,
-                        COUNT(CASE WHEN v.type_versement = 'Premier versement' THEN 1 END) as premiers_versements,
-                        COUNT(CASE WHEN v.type_versement = 'Tranche' THEN 1 END) as tranches
-                     FROM versements v
-                     INNER JOIN inscriptions i ON v.id_inscription = i.id_inscription";
+                        SUM(i.montant_verser) as montant_total,
+                        COUNT(CASE WHEN i.num_versement = 1 THEN 1 END) as premiers_versements,
+                        COUNT(CASE WHEN i.num_versement > 1 THEN 1 END) as tranches,
+                        COUNT(DISTINCT i.num_carte_etud) as etudiants_distincts
+                     FROM inscriptions i";
 
             $params = [];
             if ($id_annee_acad) {

@@ -440,13 +440,19 @@ class ParametreService
 
         if (isset($post['btn_add_niveau']) || isset($post['btn_modifier_niveau'])) {
             $lib_niveau = $post['lib_niv_etude'];
-            $montant_scolarite = $post['montant_scolarite'];
-            $montant_inscription = $post['montant_inscription'];
+            // NOTE: montant_scolarite et montant_inscription ne sont plus stockés dans niveau_etude
+            // Ces valeurs doivent être gérées via frais_inscription pour chaque année académique
+            $montant_scolarite = $post['montant_scolarite'] ?? null;  // OBSOLÈTE - Ignoré
+            $montant_inscription = $post['montant_inscription'] ?? null;  // OBSOLÈTE - Ignoré
             $id_enseignant = isset($post['id_enseignant']) ? $post['id_enseignant'] : null;
 
             if (!empty($post['id_niv_etude'])) {
+                // Les montants sont ignorés, seul le libellé et l'enseignant sont mis à jour
                 if ($this->niveauEtude->updateNiveauEtude($post['id_niv_etude'], $lib_niveau, $montant_scolarite, $montant_inscription, $id_enseignant)) {
                     $messageSuccess = "Niveau d'étude modifié avec succès.";
+                    if ($montant_scolarite || $montant_inscription) {
+                        $messageSuccess .= " ATTENTION: Les montants doivent être configurés dans 'Frais d'inscription' pour chaque année académique.";
+                    }
                     $this->auditLog->logModification($userId, 'niveau_etude', 'Succès');
                 } else {
                     $messageErreur = "Erreur lors de la modification du niveau d'étude.";
@@ -455,6 +461,9 @@ class ParametreService
             } else {
                 if ($this->niveauEtude->ajouterNiveauEtude($lib_niveau, $montant_scolarite, $montant_inscription, $id_enseignant)) {
                     $messageSuccess = "Niveau d'étude ajouté avec succès.";
+                    if ($montant_scolarite || $montant_inscription) {
+                        $messageSuccess .= " ATTENTION: Les montants doivent être configurés dans 'Frais d'inscription' pour chaque année académique.";
+                    }
                     $this->auditLog->logCreation($userId, 'niveau_etude', 'Succès');
                 } else {
                     $messageErreur = "Erreur lors de l'ajout du niveau d'étude.";

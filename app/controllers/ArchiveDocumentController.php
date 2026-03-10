@@ -159,7 +159,7 @@ class ArchiveDocumentController
                         e.num_carte_etud
                     FROM rapport_etudiants re
                     JOIN etudiants e ON re.num_etu = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE re.chemin_fichier IS NOT NULL AND re.chemin_fichier <> ''";
 
             $params = [];
@@ -186,7 +186,7 @@ class ArchiveDocumentController
                         e.num_carte_etud
                     FROM compte_rendu cr
                     JOIN etudiants e ON cr.num_etu = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE cr.chemin_fichier_pdf IS NOT NULL AND cr.chemin_fichier_pdf <> ''";
 
             $params = [];

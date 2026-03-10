@@ -342,7 +342,7 @@ class ArchiveHubController
         try {
             $sql = "SELECT COUNT(DISTINCT e.num_carte_etud) 
                     FROM etudiants e
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$anneeId]);
@@ -359,7 +359,7 @@ class ArchiveHubController
             $sql = "SELECT COUNT(*) 
                     FROM programmer_soutenance ps
                     JOIN etudiants e ON ps.num_etud = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$anneeId]);
@@ -377,7 +377,7 @@ class ArchiveHubController
                     FROM enseignant_jury ej
                     JOIN programmer_soutenance ps ON ej.num_soutenance = ps.num_soutenance
                     JOIN etudiants e ON ps.num_etud = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$anneeId]);
@@ -394,7 +394,7 @@ class ArchiveHubController
             $sql = "SELECT COUNT(DISTINCT ps.num_soutenance)
                     FROM programmer_soutenance ps
                     JOIN etudiants e ON ps.num_etud = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$anneeId]);
@@ -411,7 +411,7 @@ class ArchiveHubController
             $sql = "SELECT COUNT(*)
                     FROM rapport_etudiants re
                     JOIN etudiants e ON re.num_etu = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$anneeId]);
@@ -428,7 +428,7 @@ class ArchiveHubController
             $sql = "SELECT COUNT(*)
                     FROM candidature_soutenance cs
                     JOIN etudiants e ON cs.num_etu = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$anneeId]);
@@ -445,7 +445,7 @@ class ArchiveHubController
             $sql = "SELECT COUNT(*)
                     FROM reclamations r
                     JOIN etudiants e ON r.num_carte_etud = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$anneeId]);
@@ -464,7 +464,7 @@ class ArchiveHubController
                     FROM valider v
                     JOIN rapport_etudiants re ON v.id_rapport = re.id_rapport
                     JOIN etudiants e ON re.num_etu = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$anneeId]);
@@ -482,7 +482,7 @@ class ArchiveHubController
                     FROM evaluer ev
                     JOIN programmer_soutenance ps ON ev.num_etudiant = ps.num_etud
                     JOIN etudiants e ON ps.num_etud = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$anneeId]);
@@ -499,7 +499,7 @@ class ArchiveHubController
             $sql = "SELECT COUNT(DISTINCT ps.date_soutenance)
                     FROM programmer_soutenance ps
                     JOIN etudiants e ON ps.num_etud = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$anneeId]);
@@ -519,7 +519,7 @@ class ArchiveHubController
             $sql = "SELECT MIN(cs.date_candidature) as date, 'Ouverture candidatures' as event
                     FROM candidature_soutenance cs
                     JOIN etudiants e ON cs.num_etu = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?
                     GROUP BY i.id_annee_acad";
             $stmt = $this->db->prepare($sql);
@@ -532,7 +532,7 @@ class ArchiveHubController
             $sql = "SELECT MIN(ps.date_soutenance) as date, 'Début des soutenances' as event
                     FROM programmer_soutenance ps
                     JOIN etudiants e ON ps.num_etud = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$anneeId]);
@@ -546,7 +546,7 @@ class ArchiveHubController
             $sql = "SELECT MAX(ps.date_soutenance) as date, 'Fin des soutenances' as event
                     FROM programmer_soutenance ps
                     JOIN etudiants e ON ps.num_etud = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$anneeId]);
@@ -560,7 +560,7 @@ class ArchiveHubController
             $sql = "SELECT MIN(d.date_depot) as date, 'Premier dépôt de rapport' as event
                     FROM deposer d
                     JOIN etudiants e ON d.num_etu = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$anneeId]);

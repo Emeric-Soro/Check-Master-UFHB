@@ -370,9 +370,18 @@ switch ($currentMenuSlug) {
             $recuService = new \App\Services\Document\RecuGeneratorService($pdfGen, $recuDataUtils, $dbWrapper);
             // Chercher le versement lié à l'inscription
             $pdo = $dbWrapper->pdo();
-            $stmtV = $pdo->prepare('SELECT id_versement FROM versement WHERE id_inscription = :id ORDER BY date_versement DESC LIMIT 1');
-            $stmtV->execute([':id' => $id_inscription]);
-            $versementRow = $stmtV->fetch(\PDO::FETCH_ASSOC);
+            // Parser l'ID composite (format: num_carte_etud-id_annee_acad-num_versement)
+            $parts = explode('-', $id_inscription);
+            if (count($parts) >= 3) {
+                $num_versement = array_pop($parts);
+                $id_annee_acad = array_pop($parts);
+                $num_carte_etud = implode('-', $parts);
+                $stmtV = $pdo->prepare('SELECT num_versement, CONCAT(num_carte_etud, \'-\', id_annee_acad, \'-\', num_versement) as id_versement FROM inscriptions WHERE num_carte_etud = :num AND id_annee_acad = :annee ORDER BY num_versement DESC LIMIT 1');
+                $stmtV->execute([':num' => $num_carte_etud, ':annee' => $id_annee_acad]);
+                $versementRow = $stmtV->fetch(\PDO::FETCH_ASSOC);
+            } else {
+                $versementRow = false;
+            }
             if ($versementRow) {
                 $result = $recuService->generate((int) $versementRow['id_versement'], (int) ($_SESSION['id_utilisateur'] ?? 0));
                 if ($result['success'] && !empty($result['path']) && file_exists($result['path'])) {

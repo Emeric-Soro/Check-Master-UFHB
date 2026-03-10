@@ -170,7 +170,7 @@ class EvaluationDossiersService
                 $yearWhere = '';
                 $yearParams = [];
                 if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
-                    $yearWhere = " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = ?)";
+                    $yearWhere = " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = ?)";
                     $yearParams[] = $selectedYearId;
                 }
                 $stmt = $this->db->prepare("
@@ -208,7 +208,7 @@ class EvaluationDossiersService
                     $yearWhere = '';
                     $yearParams = [];
                     if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
-                        $yearWhere = " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = ?)";
+                        $yearWhere = " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = ?)";
                         $yearParams[] = $selectedYearId;
                     }
                     $stmt = $this->db->prepare("
@@ -247,7 +247,7 @@ class EvaluationDossiersService
                     $yearWhere = '';
                     $yearParams = [];
                     if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
-                        $yearWhere = " WHERE EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = ?)";
+                        $yearWhere = " WHERE EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = ?)";
                         $yearParams[] = $selectedYearId;
                     }
                     $stmt = $this->db->prepare("

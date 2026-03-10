@@ -45,7 +45,7 @@ class Rapport
                     e.num_carte_etud
                 FROM rapport_etudiants re
                 INNER JOIN etudiants e ON e.num_carte_etud = re.num_etu
-                INNER JOIN inscriptions i1 ON i1.id_etudiant = e.num_carte_etud
+                INNER JOIN inscriptions i1 ON i1.num_carte_etud = e.num_carte_etud
                 WHERE i1.id_annee_acad = :id_annee_rapport
                   AND re.chemin_fichier IS NOT NULL
                   AND re.chemin_fichier <> ''
@@ -63,7 +63,7 @@ class Rapport
                     e.num_carte_etud
                 FROM compte_rendu cr
                 INNER JOIN etudiants e ON e.num_carte_etud = cr.num_etu
-                INNER JOIN inscriptions i2 ON i2.id_etudiant = e.num_carte_etud
+                INNER JOIN inscriptions i2 ON i2.num_carte_etud = e.num_carte_etud
                 WHERE i2.id_annee_acad = :id_annee_cr
                   AND cr.chemin_fichier_pdf IS NOT NULL
                   AND cr.chemin_fichier_pdf <> ''
@@ -72,7 +72,7 @@ class Rapport
 
                 SELECT
                     'fiche_inscription' AS type_doc,
-                    CAST(i3.id_inscription AS CHAR) AS id_doc,
+                    CONCAT(i3.num_carte_etud, '_', i3.id_annee_acad, '_', i3.num_versement) AS id_doc,
                     i3.fiche_inscription AS chemin,
                     CONCAT('Fiche inscription ', e.num_carte_etud) AS titre,
                     i3.date_inscription AS date_depot,
@@ -80,7 +80,7 @@ class Rapport
                     CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant,
                     e.num_carte_etud
                 FROM inscriptions i3
-                INNER JOIN etudiants e ON e.num_carte_etud = i3.id_etudiant
+                INNER JOIN etudiants e ON e.num_carte_etud = i3.num_carte_etud
                 WHERE i3.id_annee_acad = :id_annee_fiche
                   AND i3.fiche_inscription IS NOT NULL
                   AND i3.fiche_inscription <> ''
@@ -188,7 +188,8 @@ class Rapport
                         CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant,
                         e.num_carte_etud
                     FROM inscriptions i
-                    INNER JOIN etudiants e ON e.num_carte_etud = i.id_etudiant
+                    INNER JOIN etudiants e ON e.num_carte_etud = i.num_carte_etud
+                    /* FIXME: id_inscription n'existe plus. Utiliser PK composite (num_carte_etud, id_annee_acad, num_versement) */
                     WHERE i.id_inscription = :id
                     LIMIT 1
                 ");

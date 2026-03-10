@@ -248,7 +248,7 @@ if (!function_exists('cm_render_param_crud_view')) {
         $deselectAllBtnId = $uid . '_deselect_all';
         $selectedCountId = $uid . '_selected_count';
         $printBtnId = $uid . '_print';
-        // $exportBtnId = $uid . '_export';
+        $exportBtnId = $uid . '_export';
         $deleteFlagId = $uid . '_delete_flag';
 
         $columns = [];
@@ -1011,7 +1011,7 @@ if (!function_exists('cm_toolbar')) {
         $selectAllId = $idPrefix . '_selectAll';
         $deselectAllId = $idPrefix . '_deselectAll';
         $deleteBtnId = $idPrefix . '_deleteBtn';
-        // $exportBtnId = $idPrefix . '_exportBtn';
+        $exportBtnId = $idPrefix . '_exportBtn';
         $printBtnId = $idPrefix . '_printBtn';
         $filterFormId = $idPrefix . '_filterForm';
 

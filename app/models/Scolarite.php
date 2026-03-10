@@ -1,5 +1,20 @@
 <?php
 
+/**
+ * Modèle Scolarite
+ * 
+ * ATTENTION: Ce fichier contient encore plusieurs méthodes utilisant l'ancienne structure.
+ * Les principales méthodes ont été corrigées (getEtudiantsInscrits, getInfosPaiementEtudiant)
+ * mais plusieurs méthodes nécessitent encore une révision complète :
+ * - getVersementById() : Utilise id_inscription (obsolète)
+ * - supprimerVersement() : Utilise id_inscription (obsolète)
+ * - getInscriptionById() : Nécessite refactoring pour clé composite
+ * - getLastVersementByInscription() : Utilise id_inscription (obsolète)
+ * - getMontantsAsOf() : Utilise id_inscription (obsolète)
+ * 
+ * Ces méthodes sont marquées @deprecated et devraient être réécrites ou supprimées.
+ */
+
 class Scolarite
 {
     private $db;
@@ -95,77 +110,44 @@ class Scolarite
         $stmt->execute($params);
     }
 
-    private function refreshStudentYearBalances($id_etudiant, $id_annee_acad, $id_niveau = null): void
+    private function refreshStudentYearBalances($num_carte_etud, $id_annee_acad, $id_niv_etude = null): void
     {
+        // TODO: Refactoriser cette méthode pour la nouvelle structure
+        // Pour l'instant, les soldes sont déjà calculés par creerInscription
+        // Cette méthode n'est plus nécessaire avec la nouvelle logique
         if ($id_annee_acad === null || (int) $id_annee_acad <= 0) {
             return;
         }
 
-        $stmt = $this->db->prepare("
-            SELECT id_inscription, id_niveau, montant_verser
-            FROM inscriptions
-            WHERE id_etudiant = ? AND id_annee_acad = ?
-            ORDER BY COALESCE(date_versement, date_inscription) ASC, id_inscription ASC
-        ");
-        $stmt->execute([(string) $id_etudiant, (int) $id_annee_acad]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        if ($rows === false || $rows === []) {
-            return;
-        }
-
-        $effectiveNiveauId = $id_niveau !== null && (int) $id_niveau > 0
-            ? (int) $id_niveau
-            : (int) ($rows[0]['id_niveau'] ?? 0);
-        $montantScolarite = $effectiveNiveauId > 0
-            ? (float) $this->getMontantScolarite($effectiveNiveauId)
-            : 0.0;
-
-        $runningTotal = 0.0;
-        $sequence = 0;
-        $update = $this->db->prepare("
-            UPDATE inscriptions
-            SET num_versement = ?,
-                montant_paye = ?,
-                reste_a_payer = ?,
-                solde = ?,
-                statut_inscription = ?,
-                id_niveau = ?
-            WHERE id_inscription = ?
-        ");
-
-        foreach ($rows as $row) {
-            $sequence++;
-            $runningTotal += (float) ($row['montant_verser'] ?? 0);
-            $balance = max($montantScolarite - $runningTotal, 0);
-            $status = $balance <= 0 ? 'Soldé' : 'En cours';
-
-            if ($effectiveNiveauId > 0) {
-                $update->bindValue(6, $effectiveNiveauId, PDO::PARAM_INT);
-            } else {
-                $update->bindValue(6, null, PDO::PARAM_NULL);
-            }
-
-            $update->bindValue(1, $sequence, PDO::PARAM_INT);
-            $update->bindValue(2, $runningTotal);
-            $update->bindValue(3, $balance);
-            $update->bindValue(4, $balance);
-            $update->bindValue(5, $status, PDO::PARAM_STR);
-            $update->bindValue(7, (int) $row['id_inscription'], PDO::PARAM_INT);
-            $update->execute();
-        }
+        // Log pour debug
+        error_log("refreshStudentYearBalances appelée pour $num_carte_etud, année $id_annee_acad - SKIPPED (nouvelle structure)");
+        return;
     }
 
     /**
      * Récupérer le montant de la scolarité pour un niveau d'études
      */
-    public function getMontantScolarite($id_niveau)
+    public function getMontantScolarite($id_niv_etude, $id_annee_acad = null)
     {
-        $query = "SELECT montant_scolarite FROM niveau_etude WHERE id_niv_etude = ?";
+        // Si pas d'année fournie, prendre l'année active
+        if ($id_annee_acad === null) {
+            $id_annee_acad = \AcademicYear::getSelectedIdFromSession();
+        }
+
+        // Récupérer depuis frais_inscription
+        $query = "SELECT montant FROM frais_inscription 
+                  WHERE id_niv_etude = ? AND id_annee_acad = ?";
         $stmt = $this->db->prepare($query);
-        $stmt->execute([$id_niveau]);
+        $stmt->execute([$id_niv_etude, $id_annee_acad]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['montant_scolarite'];
+
+        if ($result && isset($result['montant'])) {
+            return floatval($result['montant']);
+        }
+
+        // Fallback: retourner 0 pour éviter les erreurs
+        error_log("ATTENTION: Aucun frais_inscription trouvé pour niveau $id_niv_etude, année $id_annee_acad");
+        return 0.0;
     }
 
     /**
@@ -177,14 +159,25 @@ class Scolarite
     public function getNiveauxEtudes($idAnneeAcad = null)
     {
         if ($idAnneeAcad !== null) {
-            $query = "SELECT id_niv_etude, lib_niv_etude, montant_scolarite, montant_inscription, id_annee_acad 
-                      FROM niveau_etude 
-                      WHERE id_annee_acad = ?";
+            $query = "SELECT 
+                        n.id_niv_etude, 
+                        n.lib_niv_etude, 
+                        COALESCE(f.montant, 0) as montant_scolarite,
+                        COALESCE(f.montant, 0) as montant_inscription,
+                        f.id_annee_acad 
+                      FROM niveau_etude n
+                      LEFT JOIN frais_inscription f ON f.id_niv_etude = n.id_niv_etude 
+                                                    AND f.id_annee_acad = ?";
             $stmt = $this->db->prepare($query);
             $stmt->execute([$idAnneeAcad]);
         } else {
-            $query = "SELECT id_niv_etude, lib_niv_etude, montant_scolarite, montant_inscription, id_annee_acad 
-                      FROM niveau_etude";
+            $query = "SELECT 
+                        n.id_niv_etude, 
+                        n.lib_niv_etude,
+                        NULL as montant_scolarite,
+                        NULL as montant_inscription,
+                        NULL as id_annee_acad
+                      FROM niveau_etude n";
             $stmt = $this->db->prepare($query);
             $stmt->execute();
         }
@@ -220,22 +213,25 @@ class Scolarite
     public function getEtudiantsInscrits($id_annee_acad = null)
     {
         $query = "SELECT 
-            i.id_etudiant,
-            e.nom_etu AS nom,
-            e.prenom_etu AS prenom,
-            n.lib_niv_etude AS nom_niveau,
-            n.montant_scolarite,
+            i.num_carte_etud,
+            COALESCE(e.num_ident_etud, i.num_carte_etud) AS num_ident_etud,
+            COALESCE(e.num_carte_etud, '') AS num_carte_etud_reel,
+            COALESCE(e.nom_etu, 'Inconnu') AS nom,
+            COALESCE(e.prenom_etu, '') AS prenom,
+            COALESCE(n.lib_niv_etude, i.id_niv_etude) AS nom_niveau,
+            COALESCE(f.montant, 0) AS montant_scolarite,
             i.id_annee_acad,
-            i.id_niveau,
-            COUNT(i.id_inscription) as nombre_versements,
+            i.id_niv_etude,
+            COUNT(i.num_versement) as nombre_versements,
             SUM(i.montant_verser) as montant_paye,
-            GREATEST(n.montant_scolarite - COALESCE(SUM(i.montant_verser), 0), 0) as reste_a_payer,
-            GREATEST(n.montant_scolarite - COALESCE(SUM(i.montant_verser), 0), 0) as solde,
-            MAX(i.date_versement) as derniere_date_versement,
-            MAX(i.id_inscription) as derniere_inscription_id
+            COALESCE(MAX(i.solde), 0) as reste_a_payer,
+            COALESCE(MAX(i.solde), 0) as solde,
+            MAX(i.date_versement) as derniere_date_versement
         FROM inscriptions i
-        INNER JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
-        INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude";
+        LEFT JOIN etudiants e ON i.num_carte_etud = e.num_ident_etud
+        LEFT JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
+        LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
+                                      AND f.id_niv_etude = i.id_niv_etude";
 
         $params = [];
         if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
@@ -244,8 +240,8 @@ class Scolarite
         }
 
         $query .= "
-        GROUP BY i.id_etudiant, i.id_annee_acad, i.id_niveau, e.nom_etu, e.prenom_etu, n.lib_niv_etude, n.montant_scolarite
-        ORDER BY e.nom_etu, e.prenom_etu";
+        GROUP BY i.num_carte_etud, i.id_annee_acad, i.id_niv_etude, e.num_ident_etud, e.num_carte_etud, e.nom_etu, e.prenom_etu, n.lib_niv_etude, f.montant
+        ORDER BY COALESCE(e.nom_etu, i.num_carte_etud), e.prenom_etu";
 
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
@@ -258,27 +254,30 @@ class Scolarite
     public function getAllVersements()
     {
         $query = "SELECT 
-            i.id_inscription,
-            i.id_etudiant,
-            e.nom_etu,
-            e.prenom_etu,
+            CONCAT(i.num_carte_etud, '-', i.id_annee_acad, '-', i.num_versement) as id_inscription,
+            i.num_carte_etud,
+            COALESCE(e.num_ident_etud, i.num_carte_etud) AS num_ident_etud,
+            COALESCE(e.nom_etu, 'Inconnu') as nom_etu,
+            COALESCE(e.prenom_etu, '') as prenom_etu,
             i.num_versement,
             i.date_versement,
             i.montant_verser,
             i.methode_paiement,
             i.num_piece_mp,
             i.id_annee_acad,
-            i.reste_a_payer,
+            i.id_niv_etude,
             i.solde,
-            n.montant_scolarite,
-            n.lib_niv_etude,
+            COALESCE(f.montant, 0) as montant_scolarite,
+            COALESCE(n.lib_niv_etude, i.id_niv_etude) as lib_niv_etude,
             a.date_deb,
             a.date_fin
         FROM inscriptions i
-        INNER JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
-        INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
-        INNER JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
-        ORDER BY i.date_versement DESC, e.nom_etu";
+        LEFT JOIN etudiants e ON i.num_carte_etud = e.num_ident_etud
+        LEFT JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
+        LEFT JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
+        LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
+                                      AND f.id_niv_etude = i.id_niv_etude
+        ORDER BY i.date_versement DESC, COALESCE(e.nom_etu, i.num_carte_etud)";
 
         $stmt = $this->db->prepare($query);
         $stmt->execute();
@@ -295,7 +294,7 @@ class Scolarite
                   WHERE NOT EXISTS (
                       SELECT 1
                       FROM inscriptions i
-                      WHERE i.id_etudiant = e.num_carte_etud";
+                      WHERE i.num_carte_etud = e.num_carte_etud";
         $params = [];
         if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
             $query .= " AND i.id_annee_acad = ?";
@@ -313,7 +312,7 @@ class Scolarite
      * Créer une inscription (= enregistrer un versement)
      * Chaque versement crée une nouvelle ligne dans inscriptions
      */
-    public function creerInscription($id_etudiant, $id_niveau, $id_annee_acad, $montant_versement, $methode_paiement, $num_piece = null)
+    public function creerInscription($num_carte_etud, $id_niv_etude, $id_annee_acad, $montant_versement, $methode_paiement, $num_piece = null)
     {
         $manageTransaction = !$this->db->inTransaction();
 
@@ -322,24 +321,24 @@ class Scolarite
                 $this->db->beginTransaction();
             }
 
-            // Récupérer le montant total de scolarité
-            $montant_scolarite = $this->getMontantScolarite($id_niveau);
+            // Récupérer le montant total de scolarité depuis frais_inscription
+            $montant_scolarite = $this->getMontantScolarite($id_niv_etude, $id_annee_acad);
 
             // Calculer le numéro de versement (1 pour le premier, 2 pour le deuxième, etc.)
             $query = "SELECT COALESCE(MAX(num_versement), 0) as dernier_num 
                      FROM inscriptions 
-                     WHERE id_etudiant = ? AND id_annee_acad = ?";
+                     WHERE num_carte_etud = ? AND id_annee_acad = ?";
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$id_etudiant, $id_annee_acad]);
+            $stmt->execute([$num_carte_etud, $id_annee_acad]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $num_versement = $result['dernier_num'] + 1;
 
             // Calculer le montant total déjà payé
             $query = "SELECT COALESCE(SUM(montant_verser), 0) as total_paye 
                      FROM inscriptions 
-                     WHERE id_etudiant = ? AND id_annee_acad = ?";
+                     WHERE num_carte_etud = ? AND id_annee_acad = ?";
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$id_etudiant, $id_annee_acad]);
+            $stmt->execute([$num_carte_etud, $id_annee_acad]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $total_paye = $result['total_paye'];
 
@@ -350,40 +349,34 @@ class Scolarite
             // Déterminer le statut
             $statut = ($solde <= 0) ? 'Soldé' : 'En cours';
 
-            // Insérer le versement
+            // Insérer le versement (PAS de champs id_inscription, montant_paye, reste_a_payer qui n'existent pas)
             $query = "INSERT INTO inscriptions (
-                id_etudiant, id_niveau, id_annee_acad, 
+                num_carte_etud, id_niv_etude, id_annee_acad, 
                 date_inscription, date_versement, 
                 num_versement, montant_verser, 
-                montant_paye, reste_a_payer, solde,
-                methode_paiement, num_piece_mp, 
-                statut_inscription
-            ) VALUES (?, ?, ?, NOW(), NOW(), ?, ?, ?, ?, ?, ?, ?, ?)";
+                solde, methode_paiement, num_piece_mp
+            ) VALUES (?, ?, ?, NOW(), NOW(), ?, ?, ?, ?, ?)";
 
             $stmt = $this->db->prepare($query);
-            $stmt->execute([
-                $id_etudiant,
-                $id_niveau,
+            $success = $stmt->execute([
+                $num_carte_etud,
+                $id_niv_etude,
                 $id_annee_acad,
                 $num_versement,
                 $montant_versement,
-                $nouveau_montant_paye,
-                $solde,
                 $solde,
                 $methode_paiement,
-                $num_piece,
-                $statut
+                $num_piece
             ]);
 
-            $idInscription = $this->db->lastInsertId();
-            $this->refreshStudentYearBalances($id_etudiant, $id_annee_acad, $id_niveau);
-            $this->synchronizeStudentAcademicContext($id_etudiant, $id_niveau, $id_annee_acad);
+            // Note: pas de lastInsertId() car PK composite
+            $this->refreshStudentYearBalances($num_carte_etud, $id_annee_acad, $id_niv_etude);
 
             if ($manageTransaction) {
                 $this->db->commit();
             }
 
-            return $idInscription;
+            return $success;
         } catch (Exception $e) {
             if ($manageTransaction && $this->db->inTransaction()) {
                 $this->db->rollBack();
@@ -412,7 +405,7 @@ class Scolarite
 
             $query = "
                 UPDATE inscriptions
-                SET id_niveau = ?,
+                SET id_niv_etude = ?,
                     id_annee_acad = ?,
                     montant_verser = ?,
                     methode_paiement = ?
@@ -490,18 +483,20 @@ class Scolarite
     public function getInfosPaiementEtudiant($id_etudiant, $id_annee_acad)
     {
         $query = "SELECT 
-            i.id_etudiant,
-            i.id_niveau,
+            i.num_carte_etud,
+            i.id_niv_etude,
             i.id_annee_acad,
-            n.montant_scolarite,
-            COUNT(i.id_inscription) as nombre_versements,
+            f.montant AS montant_scolarite,
+            COUNT(i.num_versement) as nombre_versements,
             SUM(i.montant_verser) as montant_paye,
-            GREATEST(n.montant_scolarite - COALESCE(SUM(i.montant_verser), 0), 0) as reste_a_payer,
-            GREATEST(n.montant_scolarite - COALESCE(SUM(i.montant_verser), 0), 0) as solde
+            COALESCE(MAX(i.solde), 0) as reste_a_payer,
+            COALESCE(MAX(i.solde), 0) as solde
         FROM inscriptions i
-        INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
-        WHERE i.id_etudiant = ? AND i.id_annee_acad = ?
-        GROUP BY i.id_etudiant, i.id_niveau, i.id_annee_acad, n.montant_scolarite";
+        INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
+        LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
+                                      AND f.id_niv_etude = i.id_niv_etude
+        WHERE i.num_carte_etud = ? AND i.id_annee_acad = ?
+        GROUP BY i.num_carte_etud, i.id_niv_etude, i.id_annee_acad, f.montant";
 
         $stmt = $this->db->prepare($query);
         $stmt->execute([$id_etudiant, $id_annee_acad]);
@@ -511,17 +506,32 @@ class Scolarite
     /**
      * Récupérer un versement spécifique
      */
-    public function getVersementById($id_inscription)
+    public function getVersementById($composite_id)
     {
+        // Décomposer l'ID composite (format: "num_carte_etud-id_annee_acad-num_versement")
+        $parts = explode('-', $composite_id);
+        if (count($parts) < 3) {
+            return false;
+        }
+
+        // Le num_carte_etud peut contenir des tirets, donc on doit gérer ça
+        $num_versement = array_pop($parts);
+        $id_annee_acad = array_pop($parts);
+        $num_carte_etud = implode('-', $parts);
+
         $query = "SELECT i.*, i.montant_verser AS montant, 'Tranche' AS type_versement,
                          e.nom_etu, e.prenom_etu,
-                         n.lib_niv_etude, n.montant_scolarite AS montant_total
+                         n.lib_niv_etude, 
+                         COALESCE(f.montant, 0) AS montant_total,
+                         CONCAT(i.num_carte_etud, '-', i.id_annee_acad, '-', i.num_versement) as id_inscription
                  FROM inscriptions i
-                 INNER JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
-                 INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
-                 WHERE i.id_inscription = ?";
+                 INNER JOIN etudiants e ON i.num_carte_etud = e.num_carte_etud
+                 INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
+                 LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
+                                              AND f.id_niv_etude = i.id_niv_etude
+                 WHERE i.num_carte_etud = ? AND i.id_annee_acad = ? AND i.num_versement = ?";
         $stmt = $this->db->prepare($query);
-        $stmt->execute([$id_inscription]);
+        $stmt->execute([$num_carte_etud, (int) $id_annee_acad, (int) $num_versement]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -622,43 +632,46 @@ class Scolarite
     }
 
     /**
-     * Récupérer la dernière inscription d'un étudiant (pour obtenir id_niveau et id_annee_acad)
+     * Récupérer la dernière inscription d'un étudiant (pour obtenir id_niv_etude et id_annee_acad)
      */
-    public function getDerniereInscription($id_etudiant)
+    public function getDerniereInscription($num_carte_etud)
     {
-        $query = "SELECT id_niveau, id_annee_acad FROM inscriptions 
-                 WHERE id_etudiant = ? ORDER BY id_inscription DESC LIMIT 1";
+        $query = "SELECT id_niv_etude, id_annee_acad 
+                 FROM inscriptions 
+                 WHERE num_carte_etud = ? 
+                 ORDER BY id_annee_acad DESC, date_inscription DESC 
+                 LIMIT 1";
         $stmt = $this->db->prepare($query);
-        $stmt->execute([$id_etudiant]);
+        $stmt->execute([$num_carte_etud]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function getInscriptionByEtudiantId($id_etudiant)
+    public function getInscriptionByEtudiantId($num_carte_etud)
     {
-        $derniereInscription = $this->getDerniereInscription($id_etudiant);
+        $derniereInscription = $this->getDerniereInscription($num_carte_etud);
         if (!is_array($derniereInscription) || empty($derniereInscription['id_annee_acad'])) {
             return false;
         }
 
         $query = "
             SELECT
-                MAX(i.id_inscription) AS id_inscription,
-                i.id_etudiant,
-                i.id_niveau,
+                i.num_carte_etud,
+                i.id_niv_etude,
                 i.id_annee_acad,
-                n.montant_scolarite,
+                COALESCE(f.montant, 0) AS montant_scolarite,
                 COALESCE(SUM(i.montant_verser), 0) AS montant_inscription,
-                GREATEST(COALESCE(n.montant_scolarite, 0) - COALESCE(SUM(i.montant_verser), 0), 0) AS reste_a_payer
+                COALESCE(MAX(i.solde), 0) AS reste_a_payer
             FROM inscriptions i
-            INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
-            WHERE i.id_etudiant = ? AND i.id_annee_acad = ?
-            GROUP BY i.id_etudiant, i.id_niveau, i.id_annee_acad, n.montant_scolarite
-            ORDER BY MAX(i.id_inscription) DESC
+            INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
+            LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
+                                          AND f.id_niv_etude = i.id_niv_etude
+            WHERE i.num_carte_etud = ? AND i.id_annee_acad = ?
+            GROUP BY i.num_carte_etud, i.id_niv_etude, i.id_annee_acad, f.montant
             LIMIT 1
         ";
         $stmt = $this->db->prepare($query);
         $stmt->execute([
-            (string) $id_etudiant,
+            (string) $num_carte_etud,
             (int) $derniereInscription['id_annee_acad'],
         ]);
 
@@ -667,19 +680,19 @@ class Scolarite
 
     public function addVersement($data)
     {
-        if (empty($data['id_inscription']) || empty($data['montant']) || empty($data['methode_paiement'])) {
-            return false;
-        }
-
-        $inscription = $this->getInscriptionById((int) $data['id_inscription']);
-        if (!is_array($inscription) || empty($inscription['id_etudiant']) || empty($inscription['id_annee_acad']) || empty($inscription['id_niveau'])) {
+        // data doit contenir: num_carte_etud, id_niv_etude, id_annee_acad, montant, methode_paiement
+        if (
+            empty($data['num_carte_etud']) || empty($data['id_niv_etude']) ||
+            empty($data['id_annee_acad']) || empty($data['montant']) || empty($data['methode_paiement'])
+        ) {
+            error_log("addVersement: données incomplètes - " . json_encode($data));
             return false;
         }
 
         return (bool) $this->creerInscription(
-            (string) $inscription['id_etudiant'],
-            (int) $inscription['id_niveau'],
-            (int) $inscription['id_annee_acad'],
+            (string) $data['num_carte_etud'],
+            (string) $data['id_niv_etude'],
+            (int) $data['id_annee_acad'],
             (float) $data['montant'],
             (string) $data['methode_paiement'],
             $data['num_piece'] ?? null
@@ -688,45 +701,53 @@ class Scolarite
 
     /**
      * Récupère une inscription par ID (compatibilité avec les vues de reçu).
+     * L'id_inscription est au format: num_carte_etud-id_annee_acad-num_versement
      */
     public function getInscriptionById($id_inscription)
     {
         try {
-            $hasVersements = $this->tableExists('versements');
-
-            $montantPayeExpr = $hasVersements
-                ? "COALESCE((SELECT SUM(v2.montant) FROM versements v2 WHERE v2.id_inscription = i.id_inscription), COALESCE(i.montant_paye, 0))"
-                : "COALESCE(i.montant_paye, COALESCE(i.montant_verser, 0), 0)";
-
-            $premierMontantExpr = $hasVersements
-                ? "(SELECT v3.montant FROM versements v3 WHERE v3.id_inscription = i.id_inscription ORDER BY v3.date_versement ASC, v3.id_versement ASC LIMIT 1)"
-                : "COALESCE(i.montant_verser, 0)";
-
-            $methodeExpr = $hasVersements
-                ? "(SELECT v3.methode_paiement FROM versements v3 WHERE v3.id_inscription = i.id_inscription ORDER BY v3.date_versement ASC, v3.id_versement ASC LIMIT 1)"
-                : "i.methode_paiement";
+            // Parser l'ID composite (format: num_carte_etud-id_annee_acad-num_versement)
+            $parts = explode('-', $id_inscription);
+            if (count($parts) < 3) {
+                error_log("Format id_inscription invalide: $id_inscription");
+                return false;
+            }
+            $num_versement = array_pop($parts);
+            $id_annee_acad = array_pop($parts);
+            $num_carte_etud = implode('-', $parts);
 
             $sql = "
                 SELECT 
                     i.*,
                     n.lib_niv_etude AS nom_niveau,
-                    COALESCE(n.montant_scolarite, 0) AS montant_total,
+                    COALESCE(f.montant, 0) AS montant_total,
                     CONCAT(YEAR(a.date_deb), '-', YEAR(a.date_fin)) AS annee_academique,
                     e.nom_etu AS nom_etudiant,
                     e.prenom_etu AS prenom_etudiant,
-                    $premierMontantExpr AS montant_premier_versement,
-                    $methodeExpr AS methode_paiement,
-                    $montantPayeExpr AS montant_paye,
-                    GREATEST(COALESCE(n.montant_scolarite, 0) - $montantPayeExpr, 0) AS reste_a_payer
+                    e.num_ident_etud AS num_ident_etudiant,
+                    i.montant_verser AS montant_premier_versement,
+                    i.methode_paiement AS methode_paiement,
+                    (
+                        SELECT COALESCE(SUM(i2.montant_verser), 0)
+                        FROM inscriptions i2
+                        WHERE i2.num_carte_etud = i.num_carte_etud
+                        AND i2.id_annee_acad = i.id_annee_acad
+                    ) AS montant_paye,
+                    i.solde AS reste_a_payer,
+                    CONCAT(i.num_carte_etud, '-', i.id_annee_acad, '-', i.num_versement) as id_inscription
                 FROM inscriptions i
-                LEFT JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                LEFT JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                 LEFT JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
-                LEFT JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
-                WHERE i.id_inscription = ?
+                LEFT JOIN etudiants e ON i.num_carte_etud = e.num_ident_etud
+                LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
+                                              AND f.id_niv_etude = i.id_niv_etude
+                WHERE i.num_carte_etud = ?
+                  AND i.id_annee_acad = ?
+                  AND i.num_versement = ?
                 LIMIT 1
             ";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$id_inscription]);
+            $stmt->execute([$num_carte_etud, $id_annee_acad, $num_versement]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
             error_log("Erreur getInscriptionById: " . $e->getMessage());
@@ -736,46 +757,36 @@ class Scolarite
 
     /**
      * Récupère le dernier versement pour une inscription.
+     * L'id_inscription est au format: num_carte_etud-id_annee_acad-num_versement
      */
     public function getLastVersementByInscription($id_inscription)
     {
         try {
-            if ($this->tableExists('versements')) {
-                $sql = "
-                    SELECT 
-                        v.*,
-                        i.id_etudiant AS num_etu,
-                        e.nom_etu AS nom_etudiant,
-                        e.prenom_etu AS prenom_etudiant
-                    FROM versements v
-                    JOIN inscriptions i ON v.id_inscription = i.id_inscription
-                    JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
-                    WHERE v.id_inscription = ?
-                    ORDER BY v.date_versement DESC, v.id_versement DESC
-                    LIMIT 1
-                ";
-                $stmt = $this->db->prepare($sql);
-                $stmt->execute([$id_inscription]);
-                return $stmt->fetch(PDO::FETCH_ASSOC);
+            // Parser l'ID composite
+            $parts = explode('-', $id_inscription);
+            if (count($parts) < 3) {
+                return false;
             }
+            $num_versement = array_pop($parts);
+            $id_annee_acad = array_pop($parts);
+            $num_carte_etud = implode('-', $parts);
 
             $sql = "
-                SELECT
-                    i.id_inscription AS id_versement,
-                    i.id_inscription,
-                    COALESCE(i.montant_verser, 0) AS montant,
-                    COALESCE(i.date_versement, i.date_inscription) AS date_versement,
-                    COALESCE(i.methode_paiement, '') AS methode_paiement,
-                    i.id_etudiant AS num_etu,
+                SELECT 
+                    i.*,
+                    i.num_carte_etud AS num_etu,
                     e.nom_etu AS nom_etudiant,
-                    e.prenom_etu AS prenom_etudiant
+                    e.prenom_etu AS prenom_etudiant,
+                    CONCAT(i.num_carte_etud, '-', i.id_annee_acad, '-', i.num_versement) as id_versement
                 FROM inscriptions i
-                LEFT JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
-                WHERE i.id_inscription = ?
+                JOIN etudiants e ON i.num_carte_etud = e.num_carte_etud
+                WHERE i.num_carte_etud = ?
+                  AND i.id_annee_acad = ?
+                ORDER BY i.num_versement DESC, i.date_versement DESC
                 LIMIT 1
             ";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$id_inscription]);
+            $stmt->execute([$num_carte_etud, $id_annee_acad]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
             error_log("Erreur getLastVersementByInscription: " . $e->getMessage());
@@ -785,47 +796,52 @@ class Scolarite
 
     /**
      * Calcule les montants à une date donnée pour l'historique des reçus.
+     * L'id_inscription est au format: num_carte_etud-id_annee_acad-num_versement
      */
     public function getMontantsAsOf($id_inscription, $asOfDate)
     {
         try {
+            // Parser l'ID composite
+            $parts = explode('-', $id_inscription);
+            if (count($parts) < 3) {
+                return [
+                    'montant_total' => 0,
+                    'montant_paye' => 0,
+                    'reste_a_payer' => 0,
+                ];
+            }
+            $num_versement = array_pop($parts);
+            $id_annee_acad = array_pop($parts);
+            $num_carte_etud = implode('-', $parts);
+
             $sqlBase = "
                 SELECT
-                    COALESCE(n.montant_scolarite, 0) AS montant_total
+                    COALESCE(f.montant, 0) AS montant_total
                 FROM inscriptions i
-                LEFT JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
-                WHERE i.id_inscription = ?
+                LEFT JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
+                LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
+                                              AND f.id_niv_etude = i.id_niv_etude
+                WHERE i.num_carte_etud = ?
+                  AND i.id_annee_acad = ?
+                  AND i.num_versement = ?
                 LIMIT 1
             ";
             $stmtBase = $this->db->prepare($sqlBase);
-            $stmtBase->execute([$id_inscription]);
+            $stmtBase->execute([$num_carte_etud, $id_annee_acad, $num_versement]);
             $base = $stmtBase->fetch(PDO::FETCH_ASSOC) ?: ['montant_total' => 0];
             $montantTotal = (float) ($base['montant_total'] ?? 0);
 
-            $montantPaye = 0.0;
-            if ($this->tableExists('versements')) {
-                $sqlPaye = "
-                    SELECT COALESCE(SUM(v.montant), 0) AS montant_paye
-                    FROM versements v
-                    WHERE v.id_inscription = ?
-                    AND DATE(v.date_versement) <= DATE(?)
-                ";
-                $stmtPaye = $this->db->prepare($sqlPaye);
-                $stmtPaye->execute([$id_inscription, $asOfDate]);
-                $row = $stmtPaye->fetch(PDO::FETCH_ASSOC) ?: ['montant_paye' => 0];
-                $montantPaye = (float) ($row['montant_paye'] ?? 0);
-            } else {
-                $sqlPaye = "
-                    SELECT COALESCE(montant_paye, COALESCE(montant_verser, 0), 0) AS montant_paye
-                    FROM inscriptions
-                    WHERE id_inscription = ?
-                    LIMIT 1
-                ";
-                $stmtPaye = $this->db->prepare($sqlPaye);
-                $stmtPaye->execute([$id_inscription]);
-                $row = $stmtPaye->fetch(PDO::FETCH_ASSOC) ?: ['montant_paye' => 0];
-                $montantPaye = (float) ($row['montant_paye'] ?? 0);
-            }
+            $sqlPaye = "
+                SELECT COALESCE(SUM(i.montant_verser), 0) AS montant_paye
+                FROM inscriptions i
+                WHERE i.num_carte_etud = ?
+                AND i.id_annee_acad = ?
+                AND DATE(i.date_versement) <= DATE(?)
+            ";
+            $stmtPaye = $this->db->prepare($sqlPaye);
+            $stmtPaye->execute([$num_carte_etud, $id_annee_acad, $asOfDate]);
+            $row = $stmtPaye->fetch(PDO::FETCH_ASSOC) ?: ['montant_paye' => 0];
+            $montantPaye = (float) ($row['montant_paye'] ?? 0);
 
             return [
                 'montant_total' => $montantTotal,

@@ -16,13 +16,13 @@ class Echeance
     {
         try {
             $query = "SELECT e.*, 
-                            i.id_etudiant,
+                            i.num_carte_etud,
                             et.nom_etu, et.prenom_etu, et.num_carte_etud,
                             n.lib_niv_etude
                      FROM echeances e
                      INNER JOIN inscriptions i ON e.id_inscription = i.id_inscription
-                     INNER JOIN etudiants et ON i.id_etudiant = et.num_carte_etud
-                     INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                     INNER JOIN etudiants et ON i.num_carte_etud = et.num_carte_etud
+                     INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                      ORDER BY e.date_echeance ASC";
             $stmt = $this->db->prepare($query);
             $stmt->execute();
@@ -40,13 +40,13 @@ class Echeance
     {
         try {
             $query = "SELECT e.*, 
-                            i.id_etudiant,
+                            i.num_carte_etud,
                             et.nom_etu, et.prenom_etu, et.num_carte_etud, et.email_etu,
                             n.lib_niv_etude
                      FROM echeances e
                      INNER JOIN inscriptions i ON e.id_inscription = i.id_inscription
-                     INNER JOIN etudiants et ON i.id_etudiant = et.num_carte_etud
-                     INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                     INNER JOIN etudiants et ON i.num_carte_etud = et.num_carte_etud
+                     INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                      WHERE e.id_echeance = ?";
             $stmt = $this->db->prepare($query);
             $stmt->execute([$id_echeance]);
@@ -81,11 +81,11 @@ class Echeance
     public function getEcheancesByEtudiant($num_etu)
     {
         try {
-            $query = "SELECT e.*, i.id_niveau, n.lib_niv_etude
+            $query = "SELECT e.*, i.id_niv_etude, n.lib_niv_etude
                      FROM echeances e
                      INNER JOIN inscriptions i ON e.id_inscription = i.id_inscription
-                     INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
-                     WHERE i.id_etudiant = ?
+                     INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
+                     WHERE i.num_carte_etud = ?
                      ORDER BY e.date_echeance ASC";
             $stmt = $this->db->prepare($query);
             $stmt->execute([$num_etu]);
@@ -202,13 +202,13 @@ class Echeance
     {
         try {
             $query = "SELECT e.*, 
-                            i.id_etudiant,
+                            i.num_carte_etud,
                             et.nom_etu, et.prenom_etu, et.num_carte_etud, et.email_etu,
                             n.lib_niv_etude
                      FROM echeances e
                      INNER JOIN inscriptions i ON e.id_inscription = i.id_inscription
-                     INNER JOIN etudiants et ON i.id_etudiant = et.num_carte_etud
-                     INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                     INNER JOIN etudiants et ON i.num_carte_etud = et.num_carte_etud
+                     INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                      WHERE e.date_echeance < CURDATE() 
                      AND e.statut_echeance != 'Payée'
                      ORDER BY e.date_echeance ASC";
@@ -228,13 +228,13 @@ class Echeance
     {
         try {
             $query = "SELECT e.*, 
-                            i.id_etudiant,
+                            i.num_carte_etud,
                             et.nom_etu, et.prenom_etu, et.num_carte_etud, et.email_etu,
                             n.lib_niv_etude
                      FROM echeances e
                      INNER JOIN inscriptions i ON e.id_inscription = i.id_inscription
-                     INNER JOIN etudiants et ON i.id_etudiant = et.num_carte_etud
-                     INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                     INNER JOIN etudiants et ON i.num_carte_etud = et.num_carte_etud
+                     INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                      WHERE e.date_echeance BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
                      AND e.statut_echeance = 'En attente'
                      ORDER BY e.date_echeance ASC";

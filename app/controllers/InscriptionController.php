@@ -45,29 +45,43 @@ class InscriptionController
                         __DIR__ . '/../../public/assets/img/logo.png'
                     );
                     $recuService = new \App\Services\Document\RecuGeneratorService($pdfGenerator, $recuDataUtils, $db);
-                    
-                    // Chercher les versements associés à cette inscription
-                    $pdo = $db->pdo();
-                    $stmtV = $pdo->prepare('SELECT id_versement FROM versements WHERE id_inscription = :id_inscription ORDER BY date_versement DESC LIMIT 1');
-                    $stmtV->execute([':id_inscription' => (int) $_GET['id_inscription']]);
-                    $versementRow = $stmtV->fetch(\PDO::FETCH_ASSOC);
-                    
+
+                    // FIXME: La table 'versements' n'existe plus dans la nouvelle structure.
+                    // Les versements sont maintenant intégrés dans la table inscriptions (num_versement).
+                    // RecuDataUtils a aussi des bugs (variables $data non définies).
+                    // TODO: Refactoriser pour utiliser la clé composite (num_carte_etud, id_annee_acad, num_versement)
+
+                    // Parser l'ID composite (format: num_carte_etud-id_annee_acad-num_versement)
+                    $id_inscription = $_GET['id_inscription'];
+                    $parts = explode('-', $id_inscription);
+                    if (count($parts) >= 3) {
+                        $num_versement = array_pop($parts);
+                        $id_annee_acad = array_pop($parts);
+                        $num_carte_etud = implode('-', $parts);
+                        $pdo = $db->pdo();
+                        $stmtV = $pdo->prepare('SELECT CONCAT(num_carte_etud, \'-\', id_annee_acad, \'-\', num_versement) as id_versement FROM inscriptions WHERE num_carte_etud = :num AND id_annee_acad = :annee AND num_versement = :vers');
+                        $stmtV->execute([':num' => $num_carte_etud, ':annee' => $id_annee_acad, ':vers' => $num_versement]);
+                        $versementRow = $stmtV->fetch(\PDO::FETCH_ASSOC);
+                    } else {
+                        $versementRow = null;
+                    }
+
                     if ($versementRow) {
                         $versementId = (int) $versementRow['id_versement'];
                         $result = $recuService->generate($versementId, $_SESSION['id_utilisateur']);
                         if ($result['success'] && !empty($result['path']) && file_exists($result['path'])) {
                             header('Content-Type: application/pdf');
-                            header('Content-Disposition: inline; filename="recu_' . $inscription['id_inscription'] . '.pdf"');
+                            header('Content-Disposition: inline; filename="recu_' . ($inscription['num_carte_etud'] ?? 'inconnu') . '_' . ($inscription['id_annee_acad'] ?? 'inconnu') . '.pdf"');
                             header('Content-Length: ' . filesize($result['path']));
                             readfile($result['path']);
                             $this->service->logPrint($_SESSION['id_utilisateur'], 'Succès');
                             exit;
                         }
                     }
-                    
+
                     // Si pas de versement ou erreur, logger l'erreur
                     throw new Exception('Impossible de générer le recu PDF: versement non trouvé ou erreur');
-                    
+
                 } catch (Exception $e) {
                     error_log('Erreur lors de la génération du recu: ' . $e->getMessage());
                     $GLOBALS['messageErreur'] = 'Erreur lors de la génération du recu: ' . $e->getMessage();

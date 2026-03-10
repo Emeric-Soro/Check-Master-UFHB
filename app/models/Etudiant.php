@@ -35,16 +35,19 @@ class Etudiant
         try {
             $query = "SELECT e.*, e.num_ident_etud as identifiant_mesrs, 
                             n.lib_niv_etude as lib_niv_etude, 
-                            a.date_deb, a.date_fin, g.libelle_genre
+                            a.date_deb, a.date_fin, g.libelle_genre,
+                            i.id_annee_acad, i.id_niv_etude
                      FROM etudiants e 
-                     LEFT JOIN inscriptions i ON i.id_inscription = (
-                         SELECT i2.id_inscription FROM inscriptions i2 
-                         WHERE i2.id_etudiant = e.num_carte_etud 
-                         ORDER BY i2.date_inscription DESC LIMIT 1
-                     )
-                     LEFT JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude 
+                     LEFT JOIN LATERAL (
+                         SELECT i2.num_carte_etud, i2.id_annee_acad, i2.id_niv_etude, i2.date_inscription
+                         FROM inscriptions i2 
+                         WHERE i2.num_carte_etud = e.num_carte_etud 
+                         ORDER BY i2.id_annee_acad DESC, i2.date_inscription DESC 
+                         LIMIT 1
+                     ) i ON TRUE
+                     LEFT JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude 
                      LEFT JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
-                     LEFT JOIN genre g ON e.genre_etu = g.id_genre";
+                     LEFT JOIN genre g ON e.id_genre = g.id_genre";
 
             $params = [];
             if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
@@ -52,22 +55,16 @@ class Etudiant
                             OR EXISTS (
                                 SELECT 1
                                 FROM inscriptions i3
-                                WHERE i3.id_etudiant = e.num_carte_etud
+                                WHERE i3.num_carte_etud = e.num_carte_etud
                                   AND i3.id_annee_acad = ?
-                            )";
+                            )
+                            OR e.promotion_etu = ?)";
                 $params[] = (int) $id_annee_acad;
                 $params[] = (int) $id_annee_acad;
-
-                $yearLabel = $this->getAcademicYearLabelById($id_annee_acad);
-                if ($yearLabel !== '') {
-                    $query .= " OR e.promotion_etu = ?";
-                    $params[] = $yearLabel;
-                }
-
-                $query .= ")";
+                $params[] = (string) $id_annee_acad; // promotion_etu est varchar donc on cast en string
             }
 
-            $query .= " ORDER BY e.nom_etu, e.prenom_etu";
+            $query .= " ORDER BY e.promotion_etu DESC, e.nom_etu, e.prenom_etu";
             $stmt = $this->db->prepare($query);
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -90,17 +87,17 @@ class Etudiant
                         a.date_fin,
                         g.libelle_genre
                       FROM etudiants e
-                      LEFT JOIN inscriptions i ON i.id_inscription = (
-                          SELECT i2.id_inscription
+                      LEFT JOIN LATERAL (
+                          SELECT i2.num_carte_etud, i2.id_annee_acad, i2.id_niv_etude, i2.date_inscription
                           FROM inscriptions i2
-                          WHERE i2.id_etudiant = e.num_carte_etud
+                          WHERE i2.num_carte_etud = e.num_carte_etud
                           " . (($id_annee_acad !== null && (int) $id_annee_acad > 0) ? "AND i2.id_annee_acad = :annee_lookup " : "") . "
-                          ORDER BY i2.date_inscription DESC, i2.id_inscription DESC
+                          ORDER BY i2.id_annee_acad DESC, i2.date_inscription DESC
                           LIMIT 1
-                      )
-                      LEFT JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                      ) i ON TRUE
+                      LEFT JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                       LEFT JOIN annee_academique a ON a.id_annee_acad = i.id_annee_acad
-                      LEFT JOIN genre g ON e.genre_etu = g.id_genre
+                      LEFT JOIN genre g ON e.id_genre = g.id_genre
                       WHERE 1 = 1";
 
             $yearLabel = '';
@@ -111,7 +108,7 @@ class Etudiant
                                 OR EXISTS (
                                     SELECT 1
                                     FROM inscriptions i3
-                                    WHERE i3.id_etudiant = e.num_carte_etud
+                                    WHERE i3.num_carte_etud = e.num_carte_etud
                                       AND i3.id_annee_acad = :annee_exists
                                 )";
                 if ($yearLabel !== '') {
@@ -185,7 +182,7 @@ class Etudiant
     public function ajouterEtudiant($num_etu, $nom_etu, $prenom_etu, $date_naiss_etu, $genre_etu, $email_etu, $promotion_etu, $id_niveau = null, $id_annee_acad = null, $identifiant_mesrs = null)
     {
         try {
-            $sql = "INSERT INTO etudiants (num_carte_etud, num_ident_etud, nom_etu, prenom_etu, date_naiss_etu, genre_etu, email_etu, promotion_etu) 
+            $sql = "INSERT INTO etudiants (num_carte_etud, num_ident_etud, nom_etu, prenom_etu, date_naiss_etu, id_genre, email_etu, promotion_etu) 
                     VALUES (:num_etu, :num_ident_etud, :nom_etu, :prenom_etu, :date_naiss_etu, :genre_etu, :email_etu, :promotion_etu)";
             $stmt = $this->db->prepare($sql);
             $stmt->bindParam(':num_etu', $num_etu);
@@ -211,7 +208,7 @@ class Etudiant
                         nom_etu = :nom_etu, 
                         prenom_etu = :prenom_etu, 
                         date_naiss_etu = :date_naiss_etu, 
-                        genre_etu = :genre_etu, 
+                        id_genre = :genre_etu, 
                         email_etu = :email_etu,
                         promotion_etu = :promotion_etu,
                         num_ident_etud = :num_ident_etud
@@ -250,10 +247,10 @@ class Etudiant
     {
         $query = "SELECT e.*, n.lib_niv_etude as niveau_nom, g.libelle_genre 
                  FROM etudiants e 
-                 INNER JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
-                 INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
-                 LEFT JOIN genre g ON e.genre_etu = g.id_genre 
-                 WHERE i.id_niveau = :niveau_id";
+                 INNER JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
+                 INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
+                 LEFT JOIN genre g ON e.id_genre = g.id_genre 
+                 WHERE i.id_niv_etude = :niveau_id";
 
         if ($anneeAcadId !== null && (int) $anneeAcadId > 0) {
             $query .= " AND i.id_annee_acad = :annee_id";
@@ -286,11 +283,13 @@ class Etudiant
                        i.id_annee_acad, a.date_deb, a.date_fin
                 FROM candidature_soutenance cs 
                 INNER JOIN etudiants e ON e.num_carte_etud = cs.num_etu 
-                LEFT JOIN inscriptions i ON i.id_inscription = (
-                    SELECT i2.id_inscription FROM inscriptions i2 
-                    WHERE i2.id_etudiant = e.num_carte_etud 
-                    ORDER BY i2.date_inscription DESC LIMIT 1
-                )
+                LEFT JOIN LATERAL (
+                    SELECT i2.num_carte_etud, i2.id_annee_acad, i2.date_inscription
+                    FROM inscriptions i2 
+                    WHERE i2.num_carte_etud = e.num_carte_etud 
+                    ORDER BY i2.id_annee_acad DESC, i2.date_inscription DESC 
+                    LIMIT 1
+                ) i ON TRUE
                 LEFT JOIN annee_academique a ON a.id_annee_acad = i.id_annee_acad
                 ORDER BY cs.date_candidature DESC";
         $stmt = $this->db->prepare($sql);
@@ -334,10 +333,11 @@ class Etudiant
     {
         try {
             // D'abord, récupérer le niveau d'étude de l'étudiant
-            $sql_niveau = "SELECT i.id_niveau 
+            $sql_niveau = "SELECT i.id_niv_etude 
                           FROM inscriptions i 
-                          WHERE i.id_etudiant = :num_etu 
-                          ";
+                          WHERE i.num_carte_etud = :num_etu 
+                          ORDER BY i.id_annee_acad DESC, i.date_inscription DESC
+                          LIMIT 1";
 
             $stmt_niveau = $this->db->prepare($sql_niveau);
             $stmt_niveau->execute([':num_etu' => $numEtu]);
@@ -353,7 +353,7 @@ class Etudiant
                 ];
             }
 
-            $id_niveau = $niveau_etudiant['id_niveau'];
+            $id_niveau = $niveau_etudiant['id_niv_etude'];
 
             // Compter le nombre total d'UE pour ce niveau
             $sql_total_ue = "SELECT COUNT(*) as total_ue 
@@ -494,9 +494,9 @@ class Etudiant
             // Récupérer tous les semestres du niveau d'étude de l'étudiant
             $sql = "SELECT s.id_semestre, s.lib_semestre, n.lib_niv_etude
                    FROM inscriptions i
-                   JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                   JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                    JOIN semestre s ON n.id_niv_etude = s.id_niv_etude
-                   WHERE i.id_etudiant = :num_etu
+                   WHERE i.num_carte_etud = :num_etu
                    ORDER BY s.lib_semestre ASC";
 
             $stmt = $this->db->prepare($sql);
@@ -628,7 +628,7 @@ class Etudiant
 
     public function getNiveauByEtudiant($num_etu)
     {
-        $query = "SELECT n.* FROM inscriptions i JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude WHERE i.id_etudiant = ? ORDER BY i.id_inscription DESC LIMIT 1";
+        $query = "SELECT n.* FROM inscriptions i JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude WHERE i.num_carte_etud = ? ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC LIMIT 1";
         $stmt = $this->db->prepare($query);
         $stmt->execute([$num_etu]);
         return $stmt->fetch(PDO::FETCH_OBJ);
@@ -711,8 +711,8 @@ class Etudiant
                     CONCAT('Inscription ', COALESCE(ne.lib_niv_etude, '')) AS titre,
                     CONCAT('Statut: ', COALESCE(i.statut_inscription, 'N/A')) AS description
                 FROM inscriptions i
-                LEFT JOIN niveau_etude ne ON ne.id_niv_etude = i.id_niveau
-                WHERE i.id_etudiant = :m1
+                LEFT JOIN niveau_etude ne ON ne.id_niv_etude = i.id_niv_etude
+                WHERE i.num_carte_etud = :m1
 
                 UNION ALL
 
@@ -808,14 +808,14 @@ class Etudiant
         $sql = "
             SELECT
                 'fiche_inscription' AS type_doc,
-                i.id_inscription AS id_doc,
+                CONCAT(i.num_carte_etud, '-', i.id_annee_acad, '-', i.num_versement) AS id_doc,
                 i.fiche_inscription AS chemin,
                 CONCAT('Fiche inscription ', COALESCE(CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)), '')) AS titre,
                 i.date_inscription AS date_document,
                 NULL AS taille_fichier
             FROM inscriptions i
             LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
-            WHERE i.id_etudiant = :matricule
+            WHERE i.num_carte_etud = :matricule
               AND i.fiche_inscription IS NOT NULL
               AND i.fiche_inscription <> ''
               {$yearFilter}
@@ -830,7 +830,7 @@ class Etudiant
                 re.date_redaction_rapport AS date_document,
                 re.taille_fichier AS taille_fichier
             FROM rapport_etudiants re
-            INNER JOIN inscriptions i ON i.id_etudiant = re.num_etu
+            INNER JOIN inscriptions i ON i.num_carte_etud = re.num_etu
             WHERE re.num_etu = :matricule
               AND re.chemin_fichier IS NOT NULL
               AND re.chemin_fichier <> ''
@@ -846,7 +846,7 @@ class Etudiant
                 cr.date_CR AS date_document,
                 NULL AS taille_fichier
             FROM compte_rendu cr
-            INNER JOIN inscriptions i ON i.id_etudiant = cr.num_etu
+            INNER JOIN inscriptions i ON i.num_carte_etud = cr.num_etu
             WHERE cr.num_etu = :matricule
               AND cr.chemin_fichier_pdf IS NOT NULL
               AND cr.chemin_fichier_pdf <> ''
@@ -886,7 +886,7 @@ class Etudiant
                 SELECT
                     e.*,
                     g.libelle_genre,
-                    i.id_inscription,
+                    CONCAT(i.num_carte_etud, '-', i.id_annee_acad, '-', i.num_versement) AS id_inscription,
                     i.id_annee_acad,
                     i.date_inscription,
                     i.statut_inscription,
@@ -896,21 +896,18 @@ class Etudiant
                     i.fiche_inscription,
                     ne.lib_niv_etude,
                     aa.date_deb,
-                    aa.date_fin,
-                    sp.lib_specialite
+                    aa.date_fin
                 FROM etudiants e
-                LEFT JOIN genre g ON g.id_genre = e.genre_etu
-                LEFT JOIN inscriptions i ON i.id_inscription = (
-                    SELECT i2.id_inscription
+                LEFT JOIN genre g ON g.id_genre = e.id_genre
+                LEFT JOIN inscriptions i ON (i.num_carte_etud, i.id_annee_acad, i.num_versement) = (
+                    SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement
                     FROM inscriptions i2
-                    WHERE i2.id_etudiant = e.num_carte_etud
+                    WHERE i2.num_carte_etud = e.num_carte_etud
                     " . ($id_annee_acad !== null && (int) $id_annee_acad > 0 ? "AND i2.id_annee_acad = :id_annee" : "") . "
-                    ORDER BY i2.date_inscription DESC, i2.id_inscription DESC
+                    ORDER BY i2.date_inscription DESC, i2.id_annee_acad DESC, i2.num_versement DESC
                     LIMIT 1
                 )
-                LEFT JOIN niveau_etude ne ON ne.id_niv_etude = i.id_niveau
-                LEFT JOIN enseignants ens_niv ON ens_niv.id_enseignant = ne.id_enseignant
-                LEFT JOIN specialite sp ON sp.id_specialite = ens_niv.id_specialite
+                LEFT JOIN niveau_etude ne ON ne.id_niv_etude = i.id_niv_etude
                 LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
                 WHERE e.num_carte_etud = :matricule
                 LIMIT 1
@@ -1134,7 +1131,6 @@ class Etudiant
                 e.promotion_etu,
                 i.id_annee_acad,
                 ne.lib_niv_etude,
-                sp.lib_specialite,
                 en.lib_long_entreprise,
                 re.id_rapport,
                 re.theme_rapport,
@@ -1154,10 +1150,8 @@ class Etudiant
         $sql = "
             SELECT {$select}
             FROM etudiants e
-            LEFT JOIN inscriptions i ON i.id_etudiant = e.num_carte_etud
-            LEFT JOIN niveau_etude ne ON ne.id_niv_etude = i.id_niveau
-            LEFT JOIN enseignants ens_niv ON ens_niv.id_enseignant = ne.id_enseignant
-            LEFT JOIN specialite sp ON sp.id_specialite = ens_niv.id_specialite
+            LEFT JOIN inscriptions i ON i.num_carte_etud = e.num_carte_etud
+            LEFT JOIN niveau_etude ne ON ne.id_niv_etude = i.id_niv_etude
             LEFT JOIN (
                 SELECT x.*
                 FROM informations_stage x
@@ -1202,10 +1196,14 @@ class Etudiant
             $params[':f_promotion'] = (string) $filters['promotion'];
         }
 
+        // NOTE: Le filtre de spécialité est désactivé car la table niveau_etude n'a plus de lien avec enseignants/specialite
+        // Pour réactiver ce filtre, il faudrait trouver une autre relation (via affecter, avoir, etc.)
+        /*
         if (!empty($filters['specialite'])) {
             $sql .= " AND sp.id_specialite = :f_specialite";
             $params[':f_specialite'] = (int) $filters['specialite'];
         }
+        */
 
         if (!empty($filters['statut'])) {
             $statut = strtolower(trim((string) $filters['statut']));

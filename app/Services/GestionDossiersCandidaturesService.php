@@ -106,7 +106,7 @@ class GestionDossiersCandidaturesService
         }
 
         return [
-            'sql' => " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = {$alias}.num_carte_etud AND i.id_annee_acad = :id_annee_acad)",
+            'sql' => " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = {$alias}.num_carte_etud AND i.id_annee_acad = :id_annee_acad)",
             'params' => [':id_annee_acad' => $selectedYearId],
         ];
     }
@@ -138,8 +138,8 @@ class GestionDossiersCandidaturesService
                     (
                         SELECT i.id_annee_acad
                         FROM inscriptions i
-                        WHERE i.id_etudiant = e.num_carte_etud
-                        ORDER BY i.date_inscription DESC, i.id_inscription DESC
+                        WHERE i.num_carte_etud = e.num_carte_etud
+                        ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
                         LIMIT 1
                     ) AS id_annee_acad,
                     e.promotion_etu,
@@ -171,8 +171,8 @@ class GestionDossiersCandidaturesService
                     (
                         SELECT i.id_annee_acad
                         FROM inscriptions i
-                        WHERE i.id_etudiant = e.num_carte_etud
-                        ORDER BY i.date_inscription DESC, i.id_inscription DESC
+                        WHERE i.num_carte_etud = e.num_carte_etud
+                        ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
                         LIMIT 1
                     ) AS id_annee_acad,
                     e.promotion_etu,

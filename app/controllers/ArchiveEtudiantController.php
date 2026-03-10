@@ -151,7 +151,6 @@ class ArchiveEtudiantController
                     e.email_etu,
                     e.promotion_etu,
                     g.libelle_genre,
-                    s.lib_specialite,
                     en.lib_long_entreprise as entreprise,
                     re.theme_rapport as theme,
                     n.moyenne_M1,
@@ -162,10 +161,9 @@ class ArchiveEtudiantController
                         ELSE 'En cours'
                     END as statut
                 FROM etudiants e
-                LEFT JOIN genre g ON e.genre_etu = g.id_genre
-                JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
-                LEFT JOIN niveau_etude ne ON i.id_niveau = ne.id_niv_etude
-                LEFT JOIN specialite s ON ne.id_enseignant IN (SELECT id_enseignant FROM enseignants WHERE id_specialite = s.id_specialite)
+                LEFT JOIN genre g ON e.id_genre = g.id_genre
+                JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
+                LEFT JOIN niveau_etude ne ON i.id_niv_etude = ne.id_niv_etude
                 LEFT JOIN informations_stage inf ON e.num_carte_etud = inf.num_etu
                 LEFT JOIN entreprises en ON inf.id_entreprise = en.id_entreprise
                 LEFT JOIN rapport_etudiants re ON e.num_carte_etud = re.num_etu
@@ -175,10 +173,13 @@ class ArchiveEtudiantController
 
         $params = [$anneeId];
 
+        // NOTE: Le filtre de spécialité est désactivé car la table niveau_etude n'a plus de lien avec enseignants/specialite
+        /*
         if (!empty($filters['specialite'])) {
             $sql .= " AND s.id_specialite = ?";
             $params[] = $filters['specialite'];
         }
+        */
         if (!empty($filters['statut'])) {
             $sql .= " AND v.decision_validation = ?";
             $params[] = $filters['statut'];
@@ -195,8 +196,8 @@ class ArchiveEtudiantController
     {
         $sql = "SELECT e.*, g.libelle_genre, i.id_annee_acad
                 FROM etudiants e
-                LEFT JOIN genre g ON e.genre_etu = g.id_genre
-                LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant AND i.id_annee_acad = ?
+                LEFT JOIN genre g ON e.id_genre = g.id_genre
+                LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud AND i.id_annee_acad = ?
                 WHERE e.num_carte_etud = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$anneeId, $matricule]);
@@ -207,9 +208,9 @@ class ArchiveEtudiantController
     {
         $sql = "SELECT i.*, ne.lib_niv_etude, n.moyenne_M1, n.moyenne_M2
                 FROM inscriptions i
-                JOIN niveau_etude ne ON i.id_niveau = ne.id_niv_etude
-                LEFT JOIN notes n ON i.id_etudiant = n.num_etu AND n.id_annee_acad = i.id_annee_acad
-                WHERE i.id_etudiant = ?
+                JOIN niveau_etude ne ON i.id_niv_etude = ne.id_niv_etude
+                LEFT JOIN notes n ON i.num_carte_etud = n.num_etu AND n.id_annee_acad = i.id_annee_acad
+                WHERE i.num_carte_etud = ?
                 ORDER BY i.date_inscription DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$matricule]);
@@ -231,7 +232,7 @@ class ArchiveEtudiantController
     private function getDocumentsEtudiant($matricule)
     {
         $docs = [];
-        
+
         // Rapports
         $sql = "SELECT 'rapport' as type, id_rapport as id, theme_rapport as titre, 
                        chemin_fichier as chemin, date_redaction_rapport as date
@@ -272,8 +273,8 @@ class ArchiveEtudiantController
                        CONCAT('Inscription ', ne.lib_niv_etude) as titre,
                        i.statut_inscription as description
                 FROM inscriptions i
-                JOIN niveau_etude ne ON i.id_niveau = ne.id_niv_etude
-                WHERE i.id_etudiant = ?";
+                JOIN niveau_etude ne ON i.id_niv_etude = ne.id_niv_etude
+                WHERE i.num_carte_etud = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$matricule]);
         $events = array_merge($events, $stmt->fetchAll(PDO::FETCH_ASSOC));
@@ -308,7 +309,7 @@ class ArchiveEtudiantController
         $events = array_merge($events, $stmt->fetchAll(PDO::FETCH_ASSOC));
 
         // Trier par date
-        usort($events, function($a, $b) {
+        usort($events, function ($a, $b) {
             return strtotime($a['date']) - strtotime($b['date']);
         });
 

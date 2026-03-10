@@ -42,9 +42,9 @@ class NotesService
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT i.id_niveau
+                SELECT i.id_niv_etude
                 FROM inscriptions i
-                WHERE i.id_etudiant = ?
+                WHERE i.num_carte_etud = ?
                 ORDER BY i.date_inscription DESC, i.id_inscription DESC
                 LIMIT 1
             ");

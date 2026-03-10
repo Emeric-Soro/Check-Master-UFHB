@@ -18,11 +18,13 @@ class Inscription
             $query = "SELECT i.*, 
                             e.nom_etu, e.prenom_etu, e.num_carte_etud,
                             n.lib_niv_etude,
-                            a.date_deb, a.date_fin
+                            a.date_deb, a.date_fin,
+                            f.montant as frais_inscription
                      FROM inscriptions i
-                     INNER JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
-                     INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                     INNER JOIN etudiants e ON i.num_carte_etud = e.num_carte_etud
+                     INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                      INNER JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
+                     LEFT JOIN frais_inscription f ON f.id_niv_etude = i.id_niv_etude AND f.id_annee_acad = i.id_annee_acad
                      ORDER BY i.date_inscription DESC";
             $stmt = $this->db->prepare($query);
             $stmt->execute();
@@ -34,23 +36,42 @@ class Inscription
     }
 
     /**
-     * Récupérer une inscription par son ID
+     * Récupérer une inscription par clé composite (num_carte_etud + id_annee_acad + num_versement)
      */
-    public function getInscriptionById($id_inscription)
+    public function getInscriptionByKey($num_carte_etud, $id_annee_acad, $num_versement = 1)
     {
         try {
             $query = "SELECT i.*, 
                             e.nom_etu, e.prenom_etu, e.num_carte_etud, e.email_etu,
-                            n.lib_niv_etude, n.montant_scolarite, n.montant_inscription,
-                            a.date_deb, a.date_fin
+                            n.lib_niv_etude,
+                            a.date_deb, a.date_fin,
+                            f.montant as frais_inscription
                      FROM inscriptions i
-                     INNER JOIN etudiants e ON i.id_etudiant = e.num_carte_etud
-                     INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                     INNER JOIN etudiants e ON i.num_carte_etud = e.num_carte_etud
+                     INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                      INNER JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
-                     WHERE i.id_inscription = ?";
+                     LEFT JOIN frais_inscription f ON f.id_niv_etude = i.id_niv_etude AND f.id_annee_acad = i.id_annee_acad
+                     WHERE i.num_carte_etud = ? AND i.id_annee_acad = ? AND i.num_versement = ?";
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$id_inscription]);
+            $stmt->execute([$num_carte_etud, $id_annee_acad, $num_versement]);
             return $stmt->fetch(PDO::FETCH_OBJ);
+        } catch (PDOException $e) {
+            error_log("Erreur lors de la récupération de l'inscription : " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Récupérer une inscription par son ancien ID (méthode deprecated pour compatibilité)
+     * @deprecated Utiliser getInscriptionByKey à la place
+     */
+    public function getInscriptionById($id_inscription)
+    {
+        try {
+            // Cette méthode est dépréciée car id_inscription n'existe plus
+            // On essaie de parser l'ID composite si possible
+            error_log("AVERTISSEMENT: getInscriptionById est déprécié. La table inscriptions n'a plus d'id_inscription.");
+            return null;
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération de l'inscription : " . $e->getMessage());
             return null;
@@ -64,13 +85,15 @@ class Inscription
     {
         try {
             $query = "SELECT i.*, 
-                            n.lib_niv_etude, n.montant_scolarite, n.montant_inscription,
-                            a.date_deb, a.date_fin
+                            n.lib_niv_etude,
+                            a.date_deb, a.date_fin,
+                            f.montant as frais_inscription
                      FROM inscriptions i
-                     INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                     INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                      INNER JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
-                     WHERE i.id_etudiant = ?
-                     ORDER BY i.date_inscription DESC";
+                     LEFT JOIN frais_inscription f ON f.id_niv_etude = i.id_niv_etude AND f.id_annee_acad = i.id_annee_acad
+                     WHERE i.num_carte_etud = ?
+                     ORDER BY i.id_annee_acad DESC, i.date_inscription DESC, i.num_versement DESC";
             $stmt = $this->db->prepare($query);
             $stmt->execute([$num_etu]);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -87,13 +110,15 @@ class Inscription
     {
         try {
             $query = "SELECT i.*, 
-                            n.lib_niv_etude, n.montant_scolarite, n.montant_inscription,
-                            a.date_deb, a.date_fin
+                            n.lib_niv_etude,
+                            a.date_deb, a.date_fin,
+                            f.montant as frais_inscription
                      FROM inscriptions i
-                     INNER JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude
+                     INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                      INNER JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
-                     WHERE i.id_etudiant = ?
-                     ORDER BY i.date_inscription DESC
+                     LEFT JOIN frais_inscription f ON f.id_niv_etude = i.id_niv_etude AND f.id_annee_acad = i.id_annee_acad
+                     WHERE i.num_carte_etud = ?
+                     ORDER BY i.id_annee_acad DESC, i.date_inscription DESC
                      LIMIT 1";
             $stmt = $this->db->prepare($query);
             $stmt->execute([$num_etu]);
@@ -105,21 +130,42 @@ class Inscription
     }
 
     /**
-     * Créer une nouvelle inscription
+     * Créer un nouveau versement/inscription
      */
-    public function creerInscription($id_etudiant, $id_niveau, $id_annee_acad, $nombre_tranche = 0, $reste_a_payer = 0, $montant_paye = 0)
+    public function creerInscription($num_carte_etud, $id_niv_etude, $id_annee_acad, $montant_verser = 0, $methode_paiement = null, $num_piece_mp = null)
     {
         try {
-            $query = "INSERT INTO inscriptions 
-                     (id_etudiant, id_niveau, id_annee_acad, date_inscription, statut_inscription, nombre_tranche, reste_a_payer, montant_paye) 
-                     VALUES (?, ?, ?, NOW(), 'En cours', ?, ?, ?)";
-            $stmt = $this->db->prepare($query);
-            $result = $stmt->execute([$id_etudiant, $id_niveau, $id_annee_acad, $nombre_tranche, $reste_a_payer, $montant_paye]);
+            // Déterminer le numéro de versement
+            $query_max = "SELECT COALESCE(MAX(num_versement), 0) as max_versement 
+                         FROM inscriptions 
+                         WHERE num_carte_etud = ? AND id_annee_acad = ?";
+            $stmt = $this->db->prepare($query_max);
+            $stmt->execute([$num_carte_etud, $id_annee_acad]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $num_versement = $result['max_versement'] + 1;
 
-            if ($result) {
-                return $this->db->lastInsertId();
-            }
-            return false;
+            // Récupérer le montant des frais
+            $query_frais = "SELECT montant FROM frais_inscription 
+                           WHERE id_niv_etude = ? AND id_annee_acad = ?";
+            $stmt_frais = $this->db->prepare($query_frais);
+            $stmt_frais->execute([$id_niv_etude, $id_annee_acad]);
+            $frais = $stmt_frais->fetch(PDO::FETCH_ASSOC);
+            $montant_total = $frais['montant'] ?? 0;
+
+            // Calculer le solde
+            $query_total_paye = "SELECT COALESCE(SUM(montant_verser), 0) as total_paye 
+                                FROM inscriptions 
+                                WHERE num_carte_etud = ? AND id_annee_acad = ?";
+            $stmt_total = $this->db->prepare($query_total_paye);
+            $stmt_total->execute([$num_carte_etud, $id_annee_acad]);
+            $total_paye_avant = $stmt_total->fetch(PDO::FETCH_ASSOC)['total_paye'];
+            $solde = $montant_total - ($total_paye_avant + $montant_verser);
+
+            $query = "INSERT INTO inscriptions 
+                     (num_carte_etud, id_niv_etude, id_annee_acad, num_versement, date_inscription, date_versement, montant_verser, methode_paiement, num_piece_mp, solde) 
+                     VALUES (?, ?, ?, ?, NOW(), NOW(), ?, ?, ?, ?)";
+            $stmt = $this->db->prepare($query);
+            return $stmt->execute([$num_carte_etud, $id_niv_etude, $id_annee_acad, $num_versement, $montant_verser, $methode_paiement, $num_piece_mp, $solde]);
         } catch (PDOException $e) {
             error_log("Erreur lors de la création de l'inscription : " . $e->getMessage());
             return false;
@@ -127,22 +173,29 @@ class Inscription
     }
 
     /**
-     * Modifier une inscription
+     * Modifier une inscription (versement)
      */
-    public function modifierInscription($id_inscription, $id_niveau, $id_annee_acad, $nombre_tranche = null)
+    public function modifierInscription($num_carte_etud, $id_annee_acad, $num_versement, $id_niv_etude, $montant_verser = null, $methode_paiement = null)
     {
         try {
             $query = "UPDATE inscriptions 
-                     SET id_niveau = ?, id_annee_acad = ?";
-            $params = [$id_niveau, $id_annee_acad];
+                     SET id_niv_etude = ?";
+            $params = [$id_niv_etude];
 
-            if ($nombre_tranche !== null) {
-                $query .= ", nombre_tranche = ?";
-                $params[] = $nombre_tranche;
+            if ($montant_verser !== null) {
+                $query .= ", montant_verser = ?";
+                $params[] = $montant_verser;
             }
 
-            $query .= " WHERE id_inscription = ?";
-            $params[] = $id_inscription;
+            if ($methode_paiement !== null) {
+                $query .= ", methode_paiement = ?";
+                $params[] = $methode_paiement;
+            }
+
+            $query .= " WHERE num_carte_etud = ? AND id_annee_acad = ? AND num_versement = ?";
+            $params[] = $num_carte_etud;
+            $params[] = $id_annee_acad;
+            $params[] = $num_versement;
 
             $stmt = $this->db->prepare($query);
             return $stmt->execute($params);
@@ -153,14 +206,14 @@ class Inscription
     }
 
     /**
-     * Supprimer une inscription
+     * Supprimer une inscription (versement)
      */
-    public function supprimerInscription($id_inscription)
+    public function supprimerInscription($num_carte_etud, $id_annee_acad, $num_versement)
     {
         try {
-            $query = "DELETE FROM inscriptions WHERE id_inscription = ?";
+            $query = "DELETE FROM inscriptions WHERE num_carte_etud = ? AND id_annee_acad = ? AND num_versement = ?";
             $stmt = $this->db->prepare($query);
-            return $stmt->execute([$id_inscription]);
+            return $stmt->execute([$num_carte_etud, $id_annee_acad, $num_versement]);
         } catch (PDOException $e) {
             error_log("Erreur lors de la suppression de l'inscription : " . $e->getMessage());
             return false;
@@ -174,7 +227,7 @@ class Inscription
     {
         try {
             $query = "SELECT COUNT(*) as count FROM inscriptions 
-                     WHERE id_etudiant = ? AND id_annee_acad = ?";
+                     WHERE num_carte_etud = ? AND id_annee_acad = ?";
             $stmt = $this->db->prepare($query);
             $stmt->execute([$num_etu, $id_annee_acad]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -186,16 +239,17 @@ class Inscription
     }
 
     /**
-     * Mettre à jour le statut d'une inscription
+     * Mettre à jour le solde d'une inscription (méthode deprecated)
+     * @deprecated Le solde est maintenant calculé automatiquement
      */
-    public function changerStatut($id_inscription, $statut)
+    public function changerStatut($num_carte_etud, $id_annee_acad, $num_versement, $solde)
     {
         try {
-            $query = "UPDATE inscriptions SET statut_inscription = ? WHERE id_inscription = ?";
+            $query = "UPDATE inscriptions SET solde = ? WHERE num_carte_etud = ? AND id_annee_acad = ? AND num_versement = ?";
             $stmt = $this->db->prepare($query);
-            return $stmt->execute([$statut, $id_inscription]);
+            return $stmt->execute([$solde, $num_carte_etud, $id_annee_acad, $num_versement]);
         } catch (PDOException $e) {
-            error_log("Erreur lors du changement de statut : " . $e->getMessage());
+            error_log("Erreur lors de la mise à jour du solde : " . $e->getMessage());
             return false;
         }
     }
@@ -283,9 +337,9 @@ class Inscription
                             WHEN n.lib_niv_etude LIKE '%Master 2%' THEN 'Master 2'
                             ELSE n.lib_niv_etude
                         END as niveau,
-                        COUNT(i.id_inscription) as total
+                        COUNT(DISTINCT i.num_carte_etud) as total
                       FROM inscriptions i
-                      JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude";
+                      JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude";
 
             $params = [];
             if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {

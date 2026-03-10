@@ -92,8 +92,8 @@ class RapportEtudiant
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
                     (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.id_etudiant = e.num_carte_etud 
-                     ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
+                     WHERE i.num_carte_etud = e.num_carte_etud 
+                     ORDER BY i.id_annee_acad DESC, i.date_inscription DESC LIMIT 1) AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
                 " . $this->getReportOrderBy('r') . "
@@ -117,7 +117,7 @@ class RapportEtudiant
                 e.email_etu,
                 e.promotion_etu,
                 (SELECT i.id_annee_acad FROM inscriptions i 
-                 WHERE i.id_etudiant = e.num_carte_etud 
+                 WHERE i.num_carte_etud = e.num_carte_etud 
                  ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad,
                 d.date_depot
             FROM rapport_etudiants r
@@ -134,7 +134,7 @@ class RapportEtudiant
         $stmt = $this->pdo->prepare("
             SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
                 (SELECT i.id_annee_acad FROM inscriptions i 
-                 WHERE i.id_etudiant = e.num_carte_etud 
+                 WHERE i.num_carte_etud = e.num_carte_etud 
                  ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad, d.date_depot
             FROM rapport_etudiants r
             JOIN etudiants e ON r.num_etu = e.num_carte_etud
@@ -150,7 +150,7 @@ class RapportEtudiant
         $stmt = $this->pdo->prepare("
             SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
                 (SELECT i.id_annee_acad FROM inscriptions i 
-                 WHERE i.id_etudiant = e.num_carte_etud 
+                 WHERE i.num_carte_etud = e.num_carte_etud 
                  ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
             FROM rapport_etudiants r
             JOIN etudiants e ON r.num_etu = e.num_carte_etud
@@ -166,7 +166,7 @@ class RapportEtudiant
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
                     (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.id_etudiant = e.num_carte_etud 
+                     WHERE i.num_carte_etud = e.num_carte_etud 
                      ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
@@ -379,7 +379,7 @@ class RapportEtudiant
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
                     (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.id_etudiant = e.num_carte_etud 
+                     WHERE i.num_carte_etud = e.num_carte_etud 
                      ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
@@ -415,7 +415,7 @@ class RapportEtudiant
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
                     (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.id_etudiant = e.num_carte_etud 
+                     WHERE i.num_carte_etud = e.num_carte_etud 
                      ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
@@ -500,7 +500,7 @@ class RapportEtudiant
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
                     (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.id_etudiant = e.num_carte_etud 
+                     WHERE i.num_carte_etud = e.num_carte_etud 
                      ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON r.num_etu = e.num_carte_etud
@@ -563,7 +563,7 @@ class RapportEtudiant
             $stmt = $this->pdo->query("
                 SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu, e.promotion_etu, 
                     (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.id_etudiant = e.num_carte_etud 
+                     WHERE i.num_carte_etud = e.num_carte_etud 
                      ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad, d.date_depot
                 FROM deposer d
                 JOIN rapport_etudiants r ON d.id_rapport = r.id_rapport

@@ -137,7 +137,7 @@ class ArchiveSoutenanceController
                 LEFT JOIN salles s ON ps.id_salle = s.id_salle
                 LEFT JOIN domaine d ON ps.id_domaine = d.id_domaine
                 LEFT JOIN session se ON ps.id_session = se.id_session
-                JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                 WHERE i.id_annee_acad = ?";
 
         $params = [$anneeId];
@@ -223,7 +223,7 @@ class ArchiveSoutenanceController
                 LEFT JOIN evaluer ev ON ps.num_etud = ev.num_etudiant
                 LEFT JOIN avoir a ON ens.id_enseignant = a.id_enseignant
                 LEFT JOIN grade g ON a.id_grade = g.id_grade
-                JOIN inscriptions i ON ps.num_etud = i.id_etudiant
+                JOIN inscriptions i ON ps.num_etud = i.num_carte_etud
                 WHERE i.id_annee_acad = ?
                 GROUP BY ens.id_enseignant
                 ORDER BY total_soutenances DESC";

@@ -352,7 +352,7 @@ HTML;
         $nomEtu = $etudiant['nom_etu'] ?? '';
         $prenomEtu = $etudiant['prenom_etu'] ?? '';
         $nomComplet = trim(strtoupper($nomEtu) . ' ' . strtoupper($prenomEtu));
-        $genreEtu = $etudiant['genre_etu'] ?? 'M';
+        $genreEtu = $etudiant['id_genre'] ?? 'M';
         $civilite = $genreEtu === 'F' ? 'Mme' : 'M.';
 
         $entreprise = $infoStage['nom_entreprise'] ?? 'Entreprise d\'accueil';
