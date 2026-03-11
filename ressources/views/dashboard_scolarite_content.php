@@ -37,7 +37,7 @@ try {
     $etudiantModel = new Etudiant(Database::getConnection());
     $allEtudiants = $etudiantModel->getAllEtudiants($selectedYearId);
     foreach ($allEtudiants as $etu) {
-        $rawGenre = strtolower(trim((string) ($etu->libelle_genre ?? $etu->genre_etu ?? '')));
+        $rawGenre = strtolower(trim((string) ($etu->libelle_genre ?? '')));
         if ($rawGenre === 'masculin' || $rawGenre === '1') {
             $genres['Masculin']++;
         } elseif ($rawGenre === 'feminin' || $rawGenre === 'féminin' || $rawGenre === '2') {
@@ -185,23 +185,23 @@ cm_component('layout/page-header', [
         <div class="cm-chart-container__body">
             <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
                 <?php if (canCreate()): ?>
-                <a class="cm-btn is-info" href="?page=gestion_etudiants&action=ajouter_des_etudiants">
-                    <i class="fas fa-user-graduate" aria-hidden="true"></i>
-                    Gérer les étudiants
-                </a>
+                    <a class="cm-btn is-info" href="?page=gestion_etudiants&action=ajouter_des_etudiants">
+                        <i class="fas fa-user-graduate" aria-hidden="true"></i>
+                        Gérer les étudiants
+                    </a>
                 <?php endif; ?>
                 <?php if (canView()): ?>
-                <a class="cm-btn is-info" href="?page=gestion_scolarite">
-                    <i class="fas fa-credit-card" aria-hidden="true"></i>
-                    Inscriptions / paiements
-                </a>
+                    <a class="cm-btn is-info" href="?page=gestion_scolarite">
+                        <i class="fas fa-credit-card" aria-hidden="true"></i>
+                        Inscriptions / paiements
+                    </a>
                 <?php endif; ?>
                 <?php if (canView()): ?>
-                <a class="cm-btn is-info" href="?page=gestion_dossiers_candidatures">
-                    <i class="fas fa-folder-open" aria-hidden="true"></i>
-                    Dossiers de candidatures
-                </a>
+                    <a class="cm-btn is-info" href="?page=gestion_dossiers_candidatures">
+                        <i class="fas fa-folder-open" aria-hidden="true"></i>
+                        Dossiers de candidatures
+                    </a>
                 <?php endif; ?>
+            </div>
         </div>
     </div>
-</div>

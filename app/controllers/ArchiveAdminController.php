@@ -76,8 +76,8 @@ class ArchiveAdminController
                     TIMESTAMPDIFF(DAY, cs.date_candidature, COALESCE(cs.date_traitement, NOW())) as delai_traitement
                 FROM candidature_soutenance cs
                 JOIN etudiants e ON cs.num_etu = e.num_carte_etud
-                JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
-                JOIN niveau_etude ne ON i.id_niveau = ne.id_niv_etude
+                JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
+                JOIN niveau_etude ne ON i.id_niv_etude = ne.id_niv_etude
                 LEFT JOIN personnel_admin pa ON cs.id_pers_admin = pa.id_pers_admin
                 WHERE i.id_annee_acad = ?
                 ORDER BY cs.date_candidature DESC";
@@ -96,7 +96,7 @@ class ArchiveAdminController
                     AVG(TIMESTAMPDIFF(DAY, cs.date_candidature, COALESCE(cs.date_traitement, NOW()))) as delai_moyen
                 FROM candidature_soutenance cs
                 JOIN etudiants e ON cs.num_etu = e.num_carte_etud
-                JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                 WHERE i.id_annee_acad = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$anneeId]);
@@ -117,7 +117,7 @@ class ArchiveAdminController
                 FROM reclamations r
                 JOIN etudiants e ON r.num_carte_etud = e.num_carte_etud
                 LEFT JOIN statut_reclamation sr ON r.statut_reclamation = sr.id_statut_reclamation
-                JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                 WHERE i.id_annee_acad = ?
                 ORDER BY r.date_creation DESC";
         $stmt = $this->db->prepare($sql);
@@ -134,7 +134,7 @@ class ArchiveAdminController
                 FROM reclamations r
                 JOIN etudiants e ON r.num_carte_etud = e.num_carte_etud
                 LEFT JOIN statut_reclamation sr ON r.statut_reclamation = sr.id_statut_reclamation
-                JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                 WHERE i.id_annee_acad = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$anneeId]);

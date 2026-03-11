@@ -154,6 +154,12 @@ class CandidatureSoutenanceService
 
         $id_maitre_stage = $this->maitreDeStage->findOrCreate($maitreStageData);
 
+        // Vérifier que l'ID du maître de stage a bien été créé/récupéré
+        if (!$id_maitre_stage) {
+            $this->auditLog->logCreation($id_utilisateur, "candidature_soutenance", "Erreur - création maître de stage");
+            return ['success' => false, 'message' => "Une erreur est survenue lors de l'enregistrement du maître de stage."];
+        }
+
         $existing_info = $this->stage->getStageInfo($etudiant_id);
 
         $stage_data = [

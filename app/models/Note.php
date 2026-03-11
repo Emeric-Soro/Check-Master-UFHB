@@ -278,8 +278,8 @@ class Note
             // On calcule la moyenne (M1+M2)/2 pour le classement
             $queryAll = "SELECT n.num_etu, (n.moyenne_M1 + n.moyenne_M2) / 2 as moyenne_gen
                         FROM notes n
-                        INNER JOIN inscriptions i ON n.num_etu = i.id_etudiant
-                        WHERE i.id_niveau = ? AND n.id_annee_acad = ?
+                        INNER JOIN inscriptions i ON n.num_etu = i.num_carte_etud
+                        WHERE i.id_niv_etude = ? AND n.id_annee_acad = ?
                         ORDER BY moyenne_gen DESC";
             
             $stmtAll = $this->db->prepare($queryAll);
@@ -311,8 +311,8 @@ class Note
         try {
             $query = "SELECT s.* 
                      FROM semestre s
-                     INNER JOIN inscriptions i ON s.id_niv_etude = i.id_niveau
-                     WHERE i.id_etudiant = ?
+                     INNER JOIN inscriptions i ON s.id_niv_etude = i.id_niv_etude
+                     WHERE i.num_carte_etud = ?
                      ORDER BY i.id_inscription DESC, s.id_semestre ASC";
             
             $stmt = $this->db->prepare($query);

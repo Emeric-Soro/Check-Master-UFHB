@@ -1,0 +1,2418 @@
+[
+  {
+    "filepath": "app\\config\\database.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\config\\email.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\config\\email_templates.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\ArchiveAdminController.php",
+    "backup": "backups_before_autofix\\app\\controllers\\ArchiveAdminController.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 79
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 99
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 120
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 137
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 80
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\controllers\\ArchiveController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\ArchiveDocumentController.php",
+    "backup": "backups_before_autofix\\app\\controllers\\ArchiveDocumentController.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 162
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 189
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\controllers\\ArchiveEtudiantController.php",
+    "backup": "backups_before_autofix\\app\\controllers\\ArchiveEtudiantController.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 166
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 199
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 211
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 212
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 276
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 167
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 210
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 275
+      },
+      {
+        "type": "replacement",
+        "description": "e.genre_etu → e.id_genre",
+        "old": "e.genre_etu",
+        "new": "e.id_genre",
+        "line": 165
+      },
+      {
+        "type": "replacement",
+        "description": "e.genre_etu → e.id_genre",
+        "old": "e.genre_etu",
+        "new": "e.id_genre",
+        "line": 198
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\controllers\\ArchiveHubController.php",
+    "backup": "backups_before_autofix\\app\\controllers\\ArchiveHubController.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 345
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 362
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 380
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 397
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 414
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 431
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 448
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 467
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 485
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 502
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 522
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 535
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 549
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 563
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\controllers\\ArchivesCompteRenduController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\ArchivesDossiersSoutenanceController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\ArchiveSoutenanceController.php",
+    "backup": "backups_before_autofix\\app\\controllers\\ArchiveSoutenanceController.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 140
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 226
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\controllers\\AuditController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\AuthController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\CandidatureSoutenanceController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\CriteresEvaluationController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\DashboardCommissionController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\DashboardController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\DashboardEnseignantController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\DashboardScolariteController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\DashboardSecretaireController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\DossierAcademiqueController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\enregistrerPaiement_method.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\EvaluationDossiersController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\EvaluationSoutenanceController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\GestionCandidaturesController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\GestionDossiersCandidaturesController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\GestionEtudiantController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\GestionRapportController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\GestionReclamationsController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\GestionReclamationsScolariteController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\GestionRhController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\GestionSallesController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\GestionScolariteController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\GestionUtilisateurController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\InscriptionController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\MenuController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\NotesController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\NotesResultatsController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\ParametreController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\PlanificationSoutenanceController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\ProcessusValidationController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\ProgrammationSoutenanceController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\RedactionCompteRenduController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\SauvegardeRestaurationController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\controllers\\VerificationRapportsController.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Core\\Autoload.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Core\\Bootstrap.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Core\\Csrf.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Core\\Request.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Core\\Response.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Core\\Router.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Core\\Session.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\middlewares\\PermissionMiddleware.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Action.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\AnneeAcademique.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Approuver.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Archive.php",
+    "backup": "backups_before_autofix\\app\\models\\Archive.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 185
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 236
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 339
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 521
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 590
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 595
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 701
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 730
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 760
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 794
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 812
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 829
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\models\\Attribution.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\AuditLog.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\CandidatureSoutenance.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Categorie.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\CompteRendu.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Cours.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\CritereEvaluation.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\DossierAcademique.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Echeance.php",
+    "backup": "backups_before_autofix\\app\\models\\Echeance.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 19
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 24
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 43
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 48
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 88
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 205
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 210
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 231
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 236
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 25
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 49
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 84
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 87
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 211
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 237
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\models\\Enseignant.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Entreprise.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Etudiant.php",
+    "backup": "backups_before_autofix\\app\\models\\Etudiant.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 505
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 637
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 721
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 824
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 839
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 855
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 1163
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 503
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 637
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 720
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 918
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 1165
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 912
+      },
+      {
+        "type": "replacement",
+        "description": "e.genre_etu → e.id_genre",
+        "old": "e.genre_etu",
+        "new": "e.id_genre",
+        "line": 909
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\models\\Evaluation.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\EvaluationRapport.php",
+    "backup": "backups_before_autofix\\app\\models\\EvaluationRapport.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 256
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\models\\Fonction.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Fonctionnalite.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Grade.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\GroupeUtilisateur.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\InfoStage.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Inscription.php",
+    "backup": "backups_before_autofix\\app\\models\\Inscription.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 342
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\models\\Jury.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\MaitreDeStage.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Message.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\NiveauAccesDonnees.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\NiveauApprobation.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\NiveauEtude.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Note.php",
+    "backup": "backups_before_autofix\\app\\models\\Note.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 281
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 315
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 282
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 314
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\models\\Permission.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\PersAdmin.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\QualiteJury.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Rapport.php",
+    "backup": "backups_before_autofix\\app\\models\\Rapport.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 191
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 66
+      },
+      {
+        "type": "replacement",
+        "description": "i3.id_etudiant → i3.num_carte_etud",
+        "old": "i3.id_etudiant",
+        "new": "i3.num_carte_etud",
+        "line": 83
+      },
+      {
+        "type": "comment_added",
+        "description": "WHERE id_inscription",
+        "comment": "/* FIXME: id_inscription n'existe plus. Utiliser PK composite (num_carte_etud, id_annee_acad, num_versement) */",
+        "line": 192
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\models\\RapportEtudiant.php",
+    "backup": "backups_before_autofix\\app\\models\\RapportEtudiant.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 120
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 137
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 153
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 169
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 382
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 418
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 503
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 566
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\models\\Reclamation.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Salle.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Scolarite.php",
+    "backup": "backups_before_autofix\\app\\models\\Scolarite.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 223
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 237
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 247
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 262
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 278
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 298
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 493
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 503
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 504
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 520
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 646
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 654
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 655
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 724
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 747
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 752
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 769
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 773
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 229
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 238
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 247
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 279
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 495
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 502
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 504
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 522
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 648
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 654
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 655
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 723
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 797
+      },
+      {
+        "type": "replacement",
+        "description": "INSERT inscriptions: id_etudiant → num_carte_etud",
+        "old": "INSERT INTO inscriptions (\n                id_etudiant",
+        "new": "INSERT INTO inscriptions (\n                num_carte_etud",
+        "line": 355
+      },
+      {
+        "type": "replacement",
+        "description": "UPDATE inscriptions: id_niveau → id_niv_etude",
+        "old": "UPDATE inscriptions\n                SET id_niveau =",
+        "new": "UPDATE inscriptions\n                SET id_niv_etude =",
+        "line": 415
+      },
+      {
+        "type": "replacement",
+        "description": "UPDATE inscriptions: id_niveau → id_niv_etude",
+        "old": "UPDATE inscriptions\n            SET num_versement = ?,\n                montant_paye = ?,\n                reste_a_payer = ?,\n                solde = ?,\n                statut_inscription = ?,\n                id_niveau =",
+        "new": "UPDATE inscriptions\n            SET num_versement = ?,\n                montant_paye = ?,\n                reste_a_payer = ?,\n                solde = ?,\n                statut_inscription = ?,\n                id_niv_etude =",
+        "line": 127
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 794
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 720
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 713
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 655
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 651
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 649
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 518
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 504
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 500
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 496
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 273
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 247
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 233
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 227
+      },
+      {
+        "type": "comment_added",
+        "description": "WHERE id_inscription",
+        "comment": "/* FIXME: id_inscription n'existe plus. Utiliser PK composite (num_carte_etud, id_annee_acad, num_versement) */",
+        "line": 826
+      },
+      {
+        "type": "comment_added",
+        "description": "WHERE id_inscription",
+        "comment": "/* FIXME: id_inscription n'existe plus. Utiliser PK composite (num_carte_etud, id_annee_acad, num_versement) */",
+        "line": 808
+      },
+      {
+        "type": "comment_added",
+        "description": "WHERE id_inscription",
+        "comment": "/* FIXME: id_inscription n'existe plus. Utiliser PK composite (num_carte_etud, id_annee_acad, num_versement) */",
+        "line": 758
+      },
+      {
+        "type": "comment_added",
+        "description": "WHERE id_inscription",
+        "comment": "/* FIXME: id_inscription n'existe plus. Utiliser PK composite (num_carte_etud, id_annee_acad, num_versement) */",
+        "line": 547
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\models\\Semestre.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Soutenance.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Specialite.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\StatutJury.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Traitement.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\TypeUtilisateur.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Utilisateur.php",
+    "backup": "backups_before_autofix\\app\\models\\Utilisateur.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 504
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\models\\Valider.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\models\\Versement.php",
+    "backup": "backups_before_autofix\\app\\models\\Versement.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 19
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 24
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 43
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 48
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 89
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 25
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 49
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 84
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 87
+      },
+      {
+        "type": "comment_added",
+        "description": "Montants dans niveau_etude",
+        "comment": "/* FIXME: montant_* n'existe plus dans niveau_etude. Utiliser frais_inscription */",
+        "line": 45
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\Security\\AuthorizationService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Security\\DbRateLimiter.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Security\\LegacyActionResolver.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Security\\RouteActionResolver.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Security\\RoutePermissionService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\ArchivesCompteRenduService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\ArchivesDossiersSoutenanceService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\ArchiveService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\AuditService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\AuthService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\CandidatureSoutenanceService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\CriteresEvaluationService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\DashboardCommissionService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\DashboardEnseignantService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\DashboardScolariteService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\DashboardSecretaireService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\DashboardService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\DossierAcademiqueService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\EtudiantService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\EvaluationDossiersService.php",
+    "backup": "backups_before_autofix\\app\\Services\\EvaluationDossiersService.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 173
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 211
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 250
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\Services\\EvaluationSoutenanceService.php",
+    "backup": "backups_before_autofix\\app\\Services\\EvaluationSoutenanceService.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 68
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 525
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\Services\\GestionCandidaturesService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\GestionDossiersCandidaturesService.php",
+    "backup": "backups_before_autofix\\app\\Services\\GestionDossiersCandidaturesService.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 109
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 141
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 174
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\Services\\GestionEtudiantService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\GestionRapportService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\GestionReclamationsScolariteService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\GestionReclamationsService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\GestionRhService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\GestionSallesService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\GestionScolariteService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\GestionUtilisateurService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\InscriptionService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\MenuService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\NotesResultatsService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\NotesService.php",
+    "backup": "backups_before_autofix\\app\\Services\\NotesService.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 47
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 45
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\Services\\ParametreService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\PlanificationSoutenanceService.php",
+    "backup": "backups_before_autofix\\app\\Services\\PlanificationSoutenanceService.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 245
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 325
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 139
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\Services\\ProcessusValidationService.php",
+    "backup": "backups_before_autofix\\app\\Services\\ProcessusValidationService.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 108
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 135
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\Services\\ProgrammationSoutenanceService.php",
+    "backup": "backups_before_autofix\\app\\Services\\ProgrammationSoutenanceService.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 359
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 545
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 77
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\Services\\RedactionCompteRenduService.php",
+    "backup": "backups_before_autofix\\app\\Services\\RedactionCompteRenduService.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 38
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\Services\\RepertoireEnseignantService.php",
+    "backup": "backups_before_autofix\\app\\Services\\RepertoireEnseignantService.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 450
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 492
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 644
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 655
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 670
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 192
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 218
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 281
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 307
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 382
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 406
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\Services\\SauvegardeRestaurationService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\VerificationRapportsService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\Document\\PdfGeneratorService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\Document\\PlanningGeneratorService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\Document\\PvCommissionGeneratorService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\Document\\PvFinalGeneratorService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\Document\\RapportPdfGeneratorService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\Document\\RecuGeneratorService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Services\\Document\\StudentInfoTrait.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\Support\\Database.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\utils\\AcademicYear.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\utils\\ComponentHelper.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\utils\\EmailService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\utils\\ExcelImportService.php",
+    "backup": "backups_before_autofix\\app\\utils\\ExcelImportService.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "INSERT inscriptions: id_etudiant → num_carte_etud",
+        "old": "INSERT INTO inscriptions (id_etudiant",
+        "new": "INSERT INTO inscriptions (num_carte_etud",
+        "line": 236
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\utils\\FormattingUtils.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\utils\\FormFieldStandards.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\utils\\FormHelper.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\utils\\NavigationHelper.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\utils\\PaginationHelper.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\utils\\permissions_helper.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\utils\\PlanningDataUtils.php",
+    "backup": "backups_before_autofix\\app\\utils\\PlanningDataUtils.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 279
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 292
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 440
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 460
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 468
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 287
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 436
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 465
+      },
+      {
+        "type": "replacement",
+        "description": "e.genre_etu → e.id_genre",
+        "old": "e.genre_etu",
+        "new": "e.id_genre",
+        "line": 459
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\utils\\ReceiptUtils.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app\\utils\\RecuDataUtils.php",
+    "backup": "backups_before_autofix\\app\\utils\\RecuDataUtils.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 55
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_etudiant → i.num_carte_etud",
+        "old": "i.id_etudiant",
+        "new": "i.num_carte_etud",
+        "line": 76
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 86
+      },
+      {
+        "type": "replacement",
+        "description": "i.id_niveau → i.id_niv_etude",
+        "old": "i.id_niveau",
+        "new": "i.id_niv_etude",
+        "line": 107
+      },
+      {
+        "type": "replacement",
+        "description": "i2.id_etudiant → i2.num_carte_etud",
+        "old": "i2.id_etudiant",
+        "new": "i2.num_carte_etud",
+        "line": 111
+      },
+      {
+        "type": "comment_added",
+        "description": "WHERE id_inscription",
+        "comment": "/* FIXME: id_inscription n'existe plus. Utiliser PK composite (num_carte_etud, id_annee_acad, num_versement) */",
+        "line": 87
+      },
+      {
+        "type": "comment_added",
+        "description": "WHERE id_inscription",
+        "comment": "/* FIXME: id_inscription n'existe plus. Utiliser PK composite (num_carte_etud, id_annee_acad, num_versement) */",
+        "line": 58
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app\\utils\\TableHelper.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  }
+]

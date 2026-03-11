@@ -501,7 +501,7 @@ class Utilisateur
     {
         $query = "SELECT DISTINCT e.num_carte_etud as num_etu, e.nom_etu, e.prenom_etu, e.email_etu
                  FROM etudiants e
-                 INNER JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                 INNER JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                  LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur
                  WHERE u.id_utilisateur IS NULL
                  ORDER BY e.nom_etu, e.prenom_etu";

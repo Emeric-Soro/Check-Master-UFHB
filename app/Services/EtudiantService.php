@@ -64,7 +64,7 @@ class EtudiantService
         if (
             empty($data['num_etu']) || empty($data['nom_etu']) ||
             empty($data['prenom_etu']) || empty($data['date_naiss_etu']) ||
-            empty($data['genre_etu']) || empty($data['email_etu'])
+            empty($data['id_genre']) || empty($data['email_etu'])
         ) {
             return ['success' => false, 'message' => "Les champs N° Étudiant, Nom, Prénom, Date de naissance, Genre et Email sont obligatoires."];
         }
@@ -79,7 +79,7 @@ class EtudiantService
         $nom_etu = trim($data['nom_etu']);
         $prenom_etu = trim($data['prenom_etu']);
         $date_naiss_etu = $data['date_naiss_etu'];
-        $genre_etu = $data['genre_etu'];
+        $genre_etu = $data['id_genre'];
         $email_etu = trim($data['email_etu']);
         
         // CORRECTION DE TYPAGE ET GESTION EXPLICITE DES NULLS
@@ -105,7 +105,7 @@ class EtudiantService
         if (
             empty($data['old_num_etu']) || empty($data['num_etu']) || empty($data['nom_etu']) ||
             empty($data['prenom_etu']) || empty($data['date_naiss_etu']) ||
-            empty($data['genre_etu']) || empty($data['email_etu'])
+            empty($data['id_genre']) || empty($data['email_etu'])
         ) {
             return ['success' => false, 'message' => "Les champs Nom, Prénom, Date de naissance, Genre et Email sont obligatoires."];
         }
@@ -122,7 +122,7 @@ class EtudiantService
         $nom_etu = trim($data['nom_etu']);
         $prenom_etu = trim($data['prenom_etu']);
         $date_naiss_etu = $data['date_naiss_etu'];
-        $genre_etu = $data['genre_etu'];
+        $genre_etu = $data['id_genre'];
         $email_etu = trim($data['email_etu']);
         $promotion_etu = !empty($data['promotion_etu']) ? $data['promotion_etu'] : null;
         

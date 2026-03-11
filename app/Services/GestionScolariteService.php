@@ -74,7 +74,7 @@ class GestionScolariteService
 
         $inscritsByStudent = [];
         foreach ($etudiantsInscrits as $row) {
-            $studentId = (string) ($row['id_etudiant'] ?? '');
+            $studentId = (string) ($row['num_carte_etud'] ?? '');
             if ($studentId !== '') {
                 $inscritsByStudent[$studentId] = true;
             }
@@ -85,9 +85,12 @@ class GestionScolariteService
             return $studentId !== '' && !isset($inscritsByStudent[$studentId]);
         }));
 
+        // Récupérer l'année d'écriture pour avoir les montants de frais_inscription
+        $writableYearId = \AcademicYear::getWritableIdFromSession();
+
         return [
             'etudiantsNonInscrits' => $etudiantsNonInscrits,
-            'niveaux' => $this->scolariteModel->getNiveauxEtudes(),
+            'niveaux' => $this->scolariteModel->getNiveauxEtudes($writableYearId),
             'etudiantsInscrits' => $etudiantsInscrits,
             'listeAllEtudiant' => $listeAllEtudiant,
             'listeAnnees' => $this->anneeAcademique->getAllAnneeAcademiques(),
@@ -162,11 +165,14 @@ class GestionScolariteService
                 ];
             }
 
-            // Préparer les données du versement
+            // Préparer les données du versement avec la nouvelle structure
             $versementData = [
-                'id_inscription' => $inscription['id_inscription'],
+                'num_carte_etud' => $inscription['num_carte_etud'],
+                'id_niv_etude' => $inscription['id_niv_etude'],
+                'id_annee_acad' => $inscription['id_annee_acad'],
                 'montant' => $montant,
-                'methode_paiement' => $data['methode_paiement']
+                'methode_paiement' => $data['methode_paiement'],
+                'num_piece' => $data['num_piece'] ?? null
             ];
 
             // Enregistrer le versement

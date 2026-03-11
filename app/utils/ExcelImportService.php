@@ -233,7 +233,7 @@ class ExcelImportService
         }
 
         $dateInscription = $startYear . '-09-01 00:00:00';
-        $insert = $this->db->prepare("INSERT INTO inscriptions (id_etudiant, id_niveau, id_annee_acad, date_inscription, statut_inscription, nombre_tranche, reste_a_payer, montant_paye) VALUES (:etudiant, NULL, :annee, :date_inscription, :statut, :tranches, :reste, :paye)");
+        $insert = $this->db->prepare("INSERT INTO inscriptions (num_carte_etud, id_niveau, id_annee_acad, date_inscription, statut_inscription, nombre_tranche, reste_a_payer, montant_paye) VALUES (:etudiant, NULL, :annee, :date_inscription, :statut, :tranches, :reste, :paye)");
         $insert->execute([
             'etudiant' => $numEtu,
             'annee' => $idAnneeAcad,

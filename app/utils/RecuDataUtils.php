@@ -52,12 +52,18 @@ class RecuDataUtils
                         WHEN \'virement\' THEN \'virement\'
                         ELSE LOWER(i.methode_paiement)
                     END AS methode_paiement,
-                    COALESCE(i.id_etudiant, \'\') AS matricule_etudiant,
+                    COALESCE(i.num_carte_etud, \'\') AS matricule_etudiant,
                     \'\' AS reference_paiement_genere
              FROM inscriptions i
-             WHERE i.id_inscription = :id'
+             WHERE i.num_carte_etud = :num_carte_etud 
+               AND i.id_annee_acad = :id_annee_acad
+               AND i.num_versement = :num_versement'
         );
-        $stmt->execute(['id' => $id]);
+        $stmt->execute([
+            'num_carte_etud' => $data['num_carte_etud'] ?? '',
+            'id_annee_acad' => $data['id_annee_acad'] ?? 0,
+            'num_versement' => $data['num_versement'] ?? 1
+        ]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return is_array($row) ? $row : null;
@@ -72,21 +78,26 @@ class RecuDataUtils
     public function findInscriptionById(int $id): ?array
     {
         $stmt = $this->db->pdo()->prepare(
-            'SELECT i.id_inscription,
-                    i.id_etudiant,
+            'SELECT i.num_carte_etud,
                     i.id_annee_acad,
-                    i.reste_a_payer,
-                    i.montant_paye,
-                    i.statut_inscription,
+                    i.num_versement,
+                    i.solde as reste_a_payer,
+                    i.montant_verser as montant_paye,
                     CONCAT(aa.date_deb, \' / \', aa.date_fin) AS libelle_annee,
                     COALESCE(n.lib_niv_etude, \'\') AS code_niveau,
                     COALESCE(n.lib_niv_etude, \'\') AS code_filiere
              FROM inscriptions i
              LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
-             LEFT JOIN niveau_etude n ON n.id_niv_etude = i.id_niveau
-             WHERE i.id_inscription = :id'
+             LEFT JOIN niveau_etude n ON n.id_niv_etude = i.id_niv_etude
+             WHERE i.num_carte_etud = :num_carte_etud
+               AND i.id_annee_acad = :id_annee_acad
+               AND i.num_versement = :num_versement'
         );
-        $stmt->execute(['id' => $id]);
+        $stmt->execute([
+            'num_carte_etud' => $data['num_carte_etud'] ?? '',
+            'id_annee_acad' => $data['id_annee_acad'] ?? 0,
+            'num_versement' => $data['num_versement'] ?? 1
+        ]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return is_array($row) ? $row : null;
@@ -104,12 +115,12 @@ class RecuDataUtils
             'SELECT e.num_carte_etud, e.nom_etu AS nom_etudiant,
                     e.prenom_etu AS prenom_etudiant,
                     e.email_etu AS email_etudiant,
-                    i.id_niveau, i.id_annee_acad
+                    i.id_niv_etude, i.id_annee_acad
              FROM etudiants e
-             LEFT JOIN inscriptions i ON i.id_inscription = (
-                 SELECT i2.id_inscription FROM inscriptions i2 
-                 WHERE i2.id_etudiant = e.num_carte_etud 
-                 ORDER BY i2.date_inscription DESC LIMIT 1
+             LEFT JOIN inscriptions i ON (i.num_carte_etud, i.id_annee_acad, i.num_versement) = (
+                 SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement FROM inscriptions i2 
+                 WHERE i2.num_carte_etud = e.num_carte_etud 
+                 ORDER BY i2.date_inscription DESC, i2.id_annee_acad DESC, i2.num_versement DESC LIMIT 1
              )
              WHERE e.num_carte_etud = :matricule'
         );

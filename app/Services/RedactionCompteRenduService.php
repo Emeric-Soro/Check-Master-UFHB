@@ -33,11 +33,12 @@ class RedactionCompteRenduService
             SELECT r.id_rapport, r.num_etu, r.theme_rapport, e.prenom_etu, e.nom_etu, v2.decision_validation, ins.id_annee_acad
             FROM rapport_etudiants r
             JOIN etudiants e ON r.num_etu = e.num_carte_etud
-            LEFT JOIN inscriptions ins ON ins.id_inscription = (
-                SELECT i2.id_inscription FROM inscriptions i2
-                WHERE i2.id_etudiant = e.num_carte_etud
-                ORDER BY i2.date_inscription DESC, i2.id_inscription DESC LIMIT 1
-            )
+            LEFT JOIN LATERAL (
+                        SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement, i2.date_inscription
+                        FROM inscriptions i2 
+                        WHERE i2.num_carte_etud = e.num_carte_etud 
+                        ORDER BY i2.date_inscription DESC, i2.num_versement DESC LIMIT 1
+                    ) ins ON TRUE
             JOIN (
                 SELECT id_rapport, MAX(date_validation) AS last_validation
                 FROM valider

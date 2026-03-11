@@ -222,7 +222,7 @@ class GestionEtudiantService
         if (
             empty($data['num_etu']) || empty($data['nom_etu']) ||
             empty($data['prenom_etu']) || empty($data['date_naiss_etu']) ||
-            empty($data['genre_etu']) || empty($data['email_etu'])
+            empty($data['id_genre']) || empty($data['email_etu'])
         ) {
             return [
                 'success' => false,
@@ -245,7 +245,7 @@ class GestionEtudiantService
         $nom_etu = trim($data['nom_etu']);
         $prenom_etu = trim($data['prenom_etu']);
         $date_naiss_etu = $data['date_naiss_etu'];
-        $genre_etu = $data['genre_etu'];
+        $genre_etu = $data['id_genre'];
         $email_etu = trim($data['email_etu']);
         $niveauResolved = $this->resolveNiveauId($data['id_niveau'] ?? null);
         if (!$niveauResolved['valid']) {
@@ -304,7 +304,7 @@ class GestionEtudiantService
         if (
             empty($data['old_num_etu']) || empty($data['num_etu']) || empty($data['nom_etu']) ||
             empty($data['prenom_etu']) || empty($data['date_naiss_etu']) ||
-            empty($data['genre_etu']) || empty($data['email_etu'])
+            empty($data['id_genre']) || empty($data['email_etu'])
         ) {
             return [
                 'success' => false,
@@ -329,7 +329,7 @@ class GestionEtudiantService
         $nom_etu = trim($data['nom_etu']);
         $prenom_etu = trim($data['prenom_etu']);
         $date_naiss_etu = $data['date_naiss_etu'];
-        $genre_etu = $data['genre_etu'];
+        $genre_etu = $data['id_genre'];
         $email_etu = trim($data['email_etu']);
         $promotion_etu = !empty($data['promotion_etu']) ? $data['promotion_etu'] : null;
         $niveauResolved = $this->resolveNiveauId($data['id_niveau'] ?? null);
@@ -375,7 +375,7 @@ class GestionEtudiantService
             'nom_etu' => $ancienEtudiant->nom_etu,
             'prenom_etu' => $ancienEtudiant->prenom_etu,
             'date_naiss_etu' => $ancienEtudiant->date_naiss_etu,
-            'genre_etu' => $ancienEtudiant->genre_etu,
+            'id_genre' => $ancienEtudiant->genre_etu,
             'email_etu' => $ancienEtudiant->email_etu,
             'promotion_etu' => $ancienEtudiant->promotion_etu,
             'id_niveau' => $ancienEtudiant->id_niveau ?? null,
@@ -387,7 +387,7 @@ class GestionEtudiantService
             'nom_etu' => $nom_etu,
             'prenom_etu' => $prenom_etu,
             'date_naiss_etu' => $date_naiss_etu,
-            'genre_etu' => $genre_etu,
+            'id_genre' => $genre_etu,
             'email_etu' => $email_etu,
             'promotion_etu' => $promotion_etu,
             'id_niveau' => $id_niveau,

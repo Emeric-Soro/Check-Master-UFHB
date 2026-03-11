@@ -68,7 +68,7 @@ class GestionEtudiantController
                             'nom_etu' => $etudiant_a_modifier->nom_etu,
                             'prenom_etu' => $etudiant_a_modifier->prenom_etu,
                             'date_naiss_etu' => $etudiant_a_modifier->date_naiss_etu,
-                            'genre_etu' => $etudiant_a_modifier->genre_etu,
+                            'id_genre' => $etudiant_a_modifier->id_genre,
                             'email_etu' => $etudiant_a_modifier->email_etu,
                             'promotion_etu' => $etudiant_a_modifier->promotion_etu
                         ]);

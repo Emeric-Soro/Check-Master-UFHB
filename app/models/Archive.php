@@ -182,7 +182,7 @@ class Archive
             LEFT JOIN rapport_etudiants r ON e.num_carte_etud = r.num_etu
             LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
             LEFT JOIN entreprises ent ON ist.id_entreprise = ent.id_entreprise
-            LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+            LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
             LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
             WHERE 1=1
         ";
@@ -233,7 +233,7 @@ class Archive
             SELECT COUNT(DISTINCT e.num_carte_etud) as total
             FROM etudiants e
             LEFT JOIN rapport_etudiants r ON e.num_carte_etud = r.num_etu
-            LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+            LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
             LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
             WHERE 1=1
         ";
@@ -336,7 +336,7 @@ class Archive
                 i.date_inscription,
                 " . $anneeExpr . " as annee_academique
             FROM etudiants e
-            LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+            LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
             LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
             WHERE e.num_carte_etud = :num_etu
             ORDER BY i.date_inscription DESC
@@ -353,9 +353,18 @@ class Archive
     private function getStageInfo($numEtu)
     {
         $sql = "
-            SELECT ist.*, ent.lib_long_entreprise, ent.lib_court_en
+            SELECT ist.*, 
+                   ent.lib_long_entreprise, 
+                   ent.lib_court_en,
+                   ent.lib_long_entreprise as lib_entreprise,
+                   ms.Nom as maitre_nom,
+                   ms.prenom as maitre_prenom,
+                   CONCAT(COALESCE(ms.Nom, ''), ' ', COALESCE(ms.prenom, '')) as encadrant_entreprise,
+                   ms.email as maitre_email,
+                   ms.telephone as maitre_telephone
             FROM informations_stage ist
             LEFT JOIN entreprises ent ON ist.id_entreprise = ent.id_entreprise
+            LEFT JOIN maitre_de_stage ms ON ist.id_maitre_stage = ms.id_maitre_stage
             WHERE ist.num_etu = :num_etu
             ORDER BY ist.date_debut_stage DESC
             LIMIT 1
@@ -518,7 +527,7 @@ class Archive
             LEFT JOIN {$juryTable} cj ON CAST(p.{$programmationJuryColumn} AS CHAR) = CAST(cj.{$juryReferenceColumn} AS CHAR)
             LEFT JOIN enseignants ens ON cj.id_enseignant = ens.id_enseignant
             LEFT JOIN {$juryRoleTable} rj ON cj.id_qualite_jury = rj.{$juryRoleIdColumn}
-            LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+            LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
             LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
             WHERE 1=1
         ";
@@ -587,12 +596,12 @@ class Archive
         $sql = "
             SELECT 
                 CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) as annee,
-                COUNT(DISTINCT i.id_etudiant) as inscrits,
+                COUNT(DISTINCT i.num_carte_etud) as inscrits,
                 SUM(CASE WHEN re.statut_rapport = 'valider' THEN 1 ELSE 0 END) as admis,
                 ROUND(AVG(ev.note), 2) as moyenne_note
             FROM inscriptions i
             LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
-            LEFT JOIN etudiants e ON e.num_carte_etud = i.id_etudiant
+            LEFT JOIN etudiants e ON e.num_carte_etud = i.num_carte_etud
             LEFT JOIN rapport_etudiants re ON re.num_etu = e.num_carte_etud
             LEFT JOIN evaluer ev ON ev.num_etudiant = e.num_carte_etud
             GROUP BY aa.date_deb, aa.date_fin
@@ -698,7 +707,7 @@ class Archive
                         COUNT(CASE WHEN r.statut_rapport = 'valider' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) as taux
                     FROM rapport_etudiants r
                     JOIN etudiants e ON r.num_etu = e.num_carte_etud
-                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
 
@@ -727,7 +736,7 @@ class Archive
             $sql = "SELECT AVG(ev.note)
                     FROM evaluer ev
                     JOIN etudiants e ON ev.num_etudiant = e.num_carte_etud
-                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
 
@@ -757,7 +766,7 @@ class Archive
             $sql = "SELECT COUNT(DISTINCT p.date_soutenance)
                     FROM {$programmationTable} p
                     JOIN etudiants e ON p.num_etud = e.num_carte_etud
-                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE p.date_soutenance IS NOT NULL";
 
@@ -791,7 +800,7 @@ class Archive
                 $sql = "SELECT MIN(cs.date_candidature) as date, 'Ouverture candidatures' as event
                         FROM candidature_soutenance cs
                         JOIN etudiants e ON cs.num_etu = e.num_carte_etud
-                        LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                        LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                         LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                         WHERE 1=1";
                 $params = [];
@@ -809,7 +818,7 @@ class Archive
             $sql = "SELECT MIN(ps.date_soutenance) as date, 'Début des soutenances' as event
                     FROM {$progTable} ps
                     JOIN etudiants e ON ps.num_etud = e.num_carte_etud
-                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
             $params = [];
@@ -826,7 +835,7 @@ class Archive
             $sql = "SELECT MAX(ps.date_soutenance) as date, 'Fin des soutenances' as event
                     FROM {$progTable} ps
                     JOIN etudiants e ON ps.num_etud = e.num_carte_etud
-                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
+                    LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
             $params = [];

@@ -1,0 +1,69 @@
+[
+  {
+    "filepath": "app/Services/ProgrammationSoutenanceService.php",
+    "backup": "backups_services_inscription\\app\\Services\\ProgrammationSoutenanceService.php",
+    "changes": [
+      "Corrigé: SELECT id_annee_acad WHERE id_etudiant",
+      "Appliqué LATERAL JOIN pour inscriptions"
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app/Services/EvaluationSoutenanceService.php",
+    "backup": "backups_services_inscription\\app\\Services\\EvaluationSoutenanceService.php",
+    "changes": [
+      "Corrigé: SELECT id_annee_acad WHERE id_etudiant"
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app/Services/GestionDossiersCandidaturesService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app/Services/PlanificationSoutenanceService.php",
+    "backup": "backups_services_inscription\\app\\Services\\PlanificationSoutenanceService.php",
+    "changes": [
+      "Appliqué LATERAL JOIN pour inscriptions"
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app/Services/ProcessusValidationService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  },
+  {
+    "filepath": "app/Services/RedactionCompteRenduService.php",
+    "backup": "backups_services_inscription\\app\\Services\\RedactionCompteRenduService.php",
+    "changes": [
+      "Appliqué LATERAL JOIN pour inscriptions"
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app/Services/DossierAcademiqueService.php",
+    "backup": "backups_services_inscription\\app\\Services\\DossierAcademiqueService.php",
+    "changes": [
+      "Corrigé: SELECT id_annee_acad WHERE id_etudiant"
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app/Services/GestionRapportService.php",
+    "backup": "backups_services_inscription\\app\\Services\\GestionRapportService.php",
+    "changes": [
+      "Corrigé: SELECT id_annee_acad WHERE id_etudiant"
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app/Services/NotesService.php",
+    "changes": [],
+    "success": true,
+    "no_changes": true
+  }
+]
