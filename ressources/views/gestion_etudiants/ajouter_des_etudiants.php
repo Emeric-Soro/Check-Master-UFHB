@@ -1,826 +1,588 @@
 <?php
-require_once __DIR__ . '/../../../app/utils/permissions_helper.php';
-
-$listeEtudiants = $GLOBALS['listeEtudiants'] ?? [];
-$etudiant_a_modifier = $GLOBALS['etudiant_a_modifier'] ?? null;
-$modalAction = $GLOBALS['modalAction'] ?? '';
-$showModal = isset($_GET['modalAction']) && ($_GET['modalAction'] === 'edit' || $_GET['modalAction'] === 'add');
-
-// Pagination
-$currentPage = $GLOBALS['currentPage'] ?? 1;
-$itemsPerPage = $GLOBALS['itemsPerPage'] ?? 10;
-$totalItems = $GLOBALS['totalItems'] ?? 0;
-$totalPages = $GLOBALS['totalPages'] ?? 0;
-$startIndex = $GLOBALS['startIndex'] ?? 0;
-$endIndex = $GLOBALS['endIndex'] ?? 0;
-$currentPageItems = $GLOBALS['listeEtudiants'] ?? [];
-
-// Récupérer tous les étudiants pour la recherche
-$allEtudiants = $GLOBALS['allEtudiants'] ?? [];
-
-// Debug pour vérifier les valeurs
-error_log("View - Current Page: " . $currentPage);
-error_log("View - Total Pages: " . $totalPages);
-error_log("View - Total Items: " . $totalItems);
-error_log("View - Start Index: " . $startIndex);
-error_log("View - End Index: " . $endIndex);
-error_log("View - Items Per Page: " . $itemsPerPage);
-error_log("View - Current Page Items Count: " . count($currentPageItems));
-error_log("View - All Etudiants Count: " . count($allEtudiants));
+$listeEtudiants = is_array($GLOBALS['listeEtudiants'] ?? null) ? $GLOBALS['listeEtudiants'] : [];
+$allEtudiants = is_array($GLOBALS['allEtudiants'] ?? null) ? $GLOBALS['allEtudiants'] : [];
+$etudiantAModifier = $GLOBALS['etudiant_a_modifier'] ?? null;
+$listeNiveaux = is_array($GLOBALS['listeNiveaux'] ?? null) ? $GLOBALS['listeNiveaux'] : [];
+$listeAnneesAcad = is_array($GLOBALS['listeAnneesAcad'] ?? null) ? $GLOBALS['listeAnneesAcad'] : [];
+$currentPage = max(1, (int) ($GLOBALS['currentPage'] ?? 1));
+$itemsPerPage = max(2, (int) ($GLOBALS['itemsPerPage'] ?? 10));
+$totalItems = max(0, (int) ($GLOBALS['totalItems'] ?? count($listeEtudiants)));
+$allowedLimits = [2, 5, 10, 25, 50, 100];
+if (!in_array($itemsPerPage, $allowedLimits, true)) {
+    $itemsPerPage = 10;
+}
+$anneeActiveId = \AcademicYear::getActiveIdFromSession();
+$anneeActiveLabel = \AcademicYear::getActiveLabelFromSession();
+$anneeSelectionneeId = \AcademicYear::getSelectedIdFromSession();
+$anneeSelectionneeLabel = \AcademicYear::getSelectedLabelFromSession();
+$anneeSelectionToutes = \AcademicYear::isAllSelectedFromSession();
+$anneeEcritureId = \AcademicYear::getWritableIdFromSession();
+$anneeEcritureLabel = \AcademicYear::getWritableLabelFromSession();
+$ecritureAutorisee = \AcademicYear::isWriteAllowedFromSession();
+$today = date('Y-m-d');
+if ($anneeActiveId === null || $anneeActiveLabel === '') {
+    $anneeActiveLabel = date('Y') . '-' . (date('Y') + 1);
+    foreach ($listeAnneesAcad as $annee) {
+        $dateDebut = (string) ($annee->date_deb ?? '');
+        $dateFin = (string) ($annee->date_fin ?? '');
+        if ($dateDebut !== '' && $dateFin !== '' && $today >= $dateDebut && $today <= $dateFin) {
+            $anneeActiveId = (int) ($annee->id_annee_acad ?? 0);
+            $anneeActiveLabel = date('Y', strtotime($dateDebut)) . '-' . date('Y', strtotime($dateFin));
+            break;
+        }
+    }
+}
+if ($anneeSelectionneeLabel === '') {
+    $anneeSelectionneeLabel = $anneeSelectionToutes
+        ? \AcademicYear::getAllLabel()
+        : ($anneeEcritureLabel !== '' ? $anneeEcritureLabel : $anneeActiveLabel);
+}
+// Find Master 2 ID for auto-selection (before formValues)
+$master2Id = '';
+foreach ($listeNiveaux as $niveau) {
+    $libelle = strtolower(trim((string) ($niveau->lib_niv_etude ?? '')));
+    if (strpos($libelle, 'master 2') !== false || strpos($libelle, 'master2') !== false) {
+        $master2Id = (string) ($niveau->id_niv_etude ?? '');
+        break;
+    }
+}
+$formValues = [
+    'id_annee_acad' => $anneeEcritureId,
+    'identifiant_mesrs' => '',
+    'num_etu' => '',
+    'nom_etu' => '',
+    'prenom_etu' => '',
+    'date_naiss_etu' => '',
+    'genre_etu' => '',
+    'id_niveau' => $master2Id, // Auto-select Master 2
+    'promotion_etu' => $anneeEcritureLabel !== '' ? $anneeEcritureLabel : $anneeSelectionneeLabel,
+    'email_etu' => '',
+];
+if (is_object($etudiantAModifier)) {
+    $formValues['id_annee_acad'] = (int) ($etudiantAModifier->id_annee_acad ?? $anneeActiveId);
+    $formValues['identifiant_mesrs'] = (string) ($etudiantAModifier->identifiant_mesrs ?? '');
+    $formValues['num_etu'] = (string) ($etudiantAModifier->num_carte_etud ?? '');
+    $formValues['nom_etu'] = (string) ($etudiantAModifier->nom_etu ?? '');
+    $formValues['prenom_etu'] = (string) ($etudiantAModifier->prenom_etu ?? '');
+    $formValues['date_naiss_etu'] = (string) ($etudiantAModifier->date_naiss_etu ?? '');
+    $formValues['genre_etu'] = (string) ($etudiantAModifier->genre_etu ?? '');
+    $formValues['id_niveau'] = (string) ($etudiantAModifier->id_niveau ?? '');
+    $formValues['promotion_etu'] = (string) ($etudiantAModifier->promotion_etu ?? ($anneeEcritureLabel !== '' ? $anneeEcritureLabel : $anneeSelectionneeLabel));
+    $formValues['email_etu'] = (string) ($etudiantAModifier->email_etu ?? '');
+}
+$pagination = function_exists('cm_paginate')
+    ? cm_paginate($totalItems, $itemsPerPage, $currentPage)
+    : [
+        'total' => $totalItems,
+        'per_page' => $itemsPerPage,
+        'current' => $currentPage,
+        'last' => max(1, (int) ceil($totalItems / $itemsPerPage)),
+        'offset' => max(0, ($currentPage - 1) * $itemsPerPage),
+        'has_prev' => $currentPage > 1,
+        'has_next' => $currentPage < max(1, (int) ceil($totalItems / $itemsPerPage)),
+        'pages' => [$currentPage],
+    ];
+$paginationBaseUrl = '?page=gestion_etudiants&action=ajouter_des_etudiants&limit=' . $itemsPerPage;
+$preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . urlencode((string) $currentPage);
 ?>
-
-<!DOCTYPE html>
-<html lang="fr">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion des étudiants</title>
-
-
-</head>
-
-<body style="background-color: #DFF2FF;">
-    <div class="relative container mx-auto px-4 py-8">
-        <!-- Système de notification -->
-        <?php if (!empty($GLOBALS['messageSuccess'])): ?>
-            <div id="successNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
-                <div
-                    class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg flex items-center">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-check-circle text-green-500 text-xl"></i>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium"><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
-                    </div>
-                    <button onclick="this.parentElement.parentElement.remove()" class="ml-auto pl-3">
-                        <i class="fas fa-times text-green-500 hover:text-green-700"></i>
-                    </button>
-                </div>
+<div class="cm-prd3-screen cm-prd3-crud-screen">
+    <?php
+    cm_component('layout/page-header', [
+        'title' => '',
+        'subtitle' => 'Pôle supérieur: saisie / Pôle inférieur: historique des étudiants.',
+        'annee' => $anneeSelectionneeLabel,
+        'icon' => 'fa-user-graduate',
+    ]);
+    ?>
+    <?php if (!empty($GLOBALS['messageSuccess'])): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => (string) $GLOBALS['messageSuccess']]); ?>
+    <?php endif; ?>
+    <?php if (!empty($GLOBALS['messageErreur'])): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $GLOBALS['messageErreur']]); ?>
+    <?php endif; ?>
+    <?php if ($anneeSelectionToutes): ?>
+        <?php cm_component('ui/alert-box', [
+            'type' => 'info',
+            'message' => "Affichage multi-années actif. Les nouveaux étudiants seront rattachés à l'année académique active {$anneeEcritureLabel}.",
+        ]); ?>
+    <?php elseif (!$ecritureAutorisee): ?>
+        <?php cm_component('ui/alert-box', [
+            'type' => 'warning',
+            'message' => "Consultation historique active. Les enregistrements et modifications sont réservés à l'année académique active {$anneeActiveLabel}.",
+        ]); ?>
+    <?php endif; ?>
+    <div class="cm-crud-wrapper">
+        <div class="">
+            <div class="">
             </div>
-        <?php endif; ?>
-
-        <?php if (!empty($GLOBALS['messageErreur'])): ?>
-            <div id="errorNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
-                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg flex items-center">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium"><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
-                    </div>
-                    <button onclick="this.parentElement.parentElement.remove()" class="ml-auto pl-3">
-                        <i class="fas fa-times text-red-500 hover:text-red-700"></i>
-                    </button>
-                </div>
-            </div>
-        <?php endif; ?>
-
-        <!-- Modal de confirmation de suppression -->
-        <div id="deleteModal" class="fixed inset-0 bg-opacity-50 hidden items-center justify-center z-50">
-            <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-                <h3 class="text-xl font-semibold text-gray-900 mb-4">Confirmer la suppression</h3>
-                <p class="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer les étudiants sélectionnés ? Cette
-                    action est irréversible.</p>
-                <div class="flex justify-end space-x-4">
-                    <button onclick="closeDeleteModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">
-                        Annuler
-                    </button>
-                    <button onclick="confirmDelete()" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                        Supprimer
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Add/Edit User Modal -->
-        <div id="userModal"
-            class="fixed inset-0 bg-opacity-50 border border-gray-200 overflow-y-auto h-full w-full z-50 flex <?php echo $showModal ? 'add' : 'hidden'; ?> items-center justify-center modal-transition">
-            <div class="relative p-8 w-full max-w-2xl shadow-2xl rounded-xl bg-white fade-in transform">
-                <div class="absolute top-0 right-0 m-3">
-                    <button onclick="closeUserModal()"
-                        class="text-gray-400 hover:text-gray-600 focus:outline-none btn-icon">
-                        <i class="fas fa-times fa-lg"></i>
-                    </button>
-                </div>
-                <div class="flex items-center justify-between mb-6 pb-2 border-b border-gray-200">
-                    <div class="flex">
-                        <div class="bg-green-100 p-1.5 rounded-full mr-3">
-                            <i class="fas fa-user-plus text-green-500 text-sm"></i>
-                        </div>
-                        <h3 id="userModalTitle" class="text-2xl font-semibold text-gray-700">
-                            <?php echo isset($etudiant_a_modifier) && $_GET['modalAction'] == 'edit' ? 'Modifier un étudiant' : 'Ajouter un étudiant'; ?>
-                        </h3>
-                    </div>
-
-                    <?php if ($_GET['modalAction'] === 'edit'): ?>
-                        <div>
-                            <label for="num_etu" class="block text-sm font-medium text-gray-700 mb-2">
-                                <i class="fas fa-book text-green-500 mr-2"></i>Numéro étudiant
-                            </label>
-                            <input type="text" name="num_etu" id="num_etu" required
-                                value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->num_etu) : ''; ?>"
-                                readonly
-                                class="focus:outline-none w-32 px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-100 cursor-not-allowed">
-                        </div>
-                    <?php endif; ?>
-                </div>
-                <form id="userForm" class="space-y-4" method="post"
-                    action="?page=gestion_etudiants&action=ajouter_des_etudiants">
-                    <input type="hidden" id="num_etu" name="num_etu"
-                        value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->num_etu) : ''; ?>">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label for="nom_etu" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-user text-green-500 mr-2"></i>Nom
-                            </label>
-                            <input type="text" name="nom_etu" id="nom_etu" required
-                                value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->nom_etu) : ''; ?>"
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
-                        </div>
-                        <div class="space-y-2">
-                            <label for="prenom_etu" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-user text-green-500 mr-2"></i>Prénom
-                            </label>
-                            <input type="text" name="prenom_etu" id="prenom_etu" required
-                                value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->prenom_etu) : ''; ?>"
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label for="email_etu" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-envelope text-green-500 mr-2"></i>Email
-                            </label>
-                            <input type="email" name="email_etu" id="email_etu" required
-                                value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->email_etu) : ''; ?>"
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
-                        </div>
-                        <div class="space-y-2">
-                            <label for="promotion_etu" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-graduation-cap text-green-500 mr-2"></i>Promotion
-                            </label>
-                            <select name="promotion_etu" id="promotion_etu" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
-                                <option value="">Sélectionner une promotion</option>
-                                <?php
-                                for ($i = 2000; $i <= 2030; $i++) {
-                                    $value = $i . '-' . ($i + 1);
-                                    $selected = ($etudiant_a_modifier && $etudiant_a_modifier->promotion_etu === $value) ? 'selected' : '';
-                                    echo "<option value=\"$value\" $selected>$value</option>";
-                                }
-                                ?>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label for="date_naiss_etu" class="block text-sm font-medium text-gray-700">
-                                <i class="fas fa-calendar text-green-500 mr-2"></i>Date de naissance
-                            </label>
-                            <input type="date" name="date_naiss_etu" id="date_naiss_etu" required
-                                value="<?php echo $etudiant_a_modifier ? htmlspecialchars($etudiant_a_modifier->date_naiss_etu) : ''; ?>"
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
-                        </div>
-                        <div class="space-y-2">
-                            <label for="genre_etu" class="block text-sm font-medium text-gray-700">
-                                <i class="fa-solid fa-venus-mars text-green-500 mr-2"></i>Genre
-                            </label>
-                            <select name="genre_etu" id="genre_etu" required
-                                class="focus:outline-none w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-200">
-                                <option value="">Sélectionner un genre</option>
-                                <option value="Femme" <?php echo ($etudiant_a_modifier && $etudiant_a_modifier->genre_etu === 'Femme') ? 'selected' : ''; ?>>
-                                    Féminin</option>
-                                <option value="Homme" <?php echo ($etudiant_a_modifier && $etudiant_a_modifier->genre_etu === 'Homme') ? 'selected' : ''; ?>>
-                                    Masculin</option>
-                                <option value="Neutre" <?php echo ($etudiant_a_modifier && $etudiant_a_modifier->genre_etu === 'Neutre') ? 'selected' : ''; ?>>
-                                    Neutre</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-between space-x-4 self-end pt-6">
-                        <button type="button" onclick="closeUserModal()"
-                            class="px-6 py-2.5 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">
-                            <i class="fas fa-times mr-2"></i>Annuler
-                        </button>
-                        <?php if ((isset($etudiant_a_modifier) && isset($_GET['modalAction']) && $_GET['modalAction'] == 'edit' && canEdit()) || ((!isset($etudiant_a_modifier) || (isset($_GET['modalAction']) && $_GET['modalAction'] != 'edit')) && canCreate())): ?>
-                        <button type="submit"
-                            name="<?php echo isset($etudiant_a_modifier) && $_GET['modalAction'] == 'edit' ? 'submit_modifier_etudiant' : 'submit_add_etudiant'; ?>"
-                            class="px-6 py-2.5 text-sm font-medium rounded-lg shadow-sm text-white bg-gradient from-green-600 to-green-800 hover:shadow-lg transition-all duration-200">
-                            <i class="fas fa-save mr-2"></i><span
-                                id="userModalSubmitButton"><?php echo isset($etudiant_a_modifier) && $_GET['modalAction'] == 'edit' ? 'Modifier' : 'Enregistrer'; ?></span>
-                        </button>
-                        <?php endif; ?>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="bg-white shadow-card rounded-lg overflow-hidden border border-gray-200 mb-8">
-            <!-- Dashboard Header -->
-            <div class=" bg-gradient-to-r from-green-600 to-green-800 px-6 py-4 flex justify-between items-center">
-                <h2 class="text-xl font-bold text-white">Gestion des étudiants</h2>
-                <?php if (canCreate()): ?>
-                <button onclick="openUserModal()"
-                    class="bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
-                    <i class="fas fa-plus mr-2"></i>Ajouter un étudiant
-                </button>
+            <form id="studentForm" class="cm-ajout-etudiant-form" method="POST"
+                action="?page=gestion_etudiants&action=ajouter_des_etudiants<?php echo $preservedListParams; ?>">
+                <?php cm_component('form/csrf-token'); ?>
+                <?php if (is_object($etudiantAModifier)): ?>
+                    <input type="hidden" name="old_num_etu"
+                        value="<?php echo htmlspecialchars((string) ($etudiantAModifier->num_carte_etud ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                 <?php endif; ?>
-            </div>
-
-            <!-- Action Bar for Table -->
-            <div class="px-6 py-4 flex flex-col sm:flex-row justify-between items-center border-b border-gray-200">
-                <div class="relative w-full sm:w-1/2 lg:w-1/3 mb-4 sm:mb-0">
-                    <input type="text" id="searchInput" placeholder="Rechercher un étudiant..."
-                        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                        <i class="fas fa-search text-gray-400"></i>
-                    </span>
+                <input type="hidden" id="num_ident_etud" name="num_ident_etud"
+                    value="<?php echo htmlspecialchars((string) $formValues['identifiant_mesrs'], ENT_QUOTES, 'UTF-8'); ?>">
+                <!-- Ligne 1: Niveau, Promotion, Année A. (grid-3) -->
+                <div class="cm-grid-3">
+                    <?php
+                    $promotionOptions = [];
+                    foreach ($listeAnneesAcad as $annee) {
+                        $debut = !empty($annee->date_deb) ? date('Y', strtotime((string) $annee->date_deb)) : '';
+                        $fin = !empty($annee->date_fin) ? date('Y', strtotime((string) $annee->date_fin)) : '';
+                        $label = trim($debut . '-' . $fin, '-');
+                        if ($label !== '') {
+                            $promotionOptions[$label] = $label;
+                        }
+                    }
+                    cm_component('form/select', [
+                        'name' => 'promotion_etu',
+                        'id' => 'promotion_etu',
+                        'label' => 'Promotion',
+                        'required' => true,
+                        'options' => $promotionOptions,
+                        'selected' => (string) $formValues['promotion_etu'],
+                        'control_class' => 'cm-field-md',
+                    ]);
+                    echo '<input type="hidden" name="id_annee_acad" value="' . htmlspecialchars((string) $formValues['id_annee_acad'], ENT_QUOTES, 'UTF-8') . '">';
+                    ?>
                 </div>
-                <div class="flex flex-wrap gap-2 justify-center sm:justify-end">
-                    <button onclick="imprimerListe()"
-                        class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-                        <i class="fas fa-print mr-2"></i>Imprimer
-                    </button>
-                    <button onclick="exporterListe()"
-                        class="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50">
-                        <i class="fas fa-file-export mr-2"></i>Exporter
-                    </button>
-                    <?php if (canDelete()): ?>
-                    <button id="deleteButton" onclick="openDeleteModal()"
-                        class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
-                        <i class="fas fa-trash-alt mr-2"></i>Supprimer
-                    </button>
+                <!-- Ligne 2: Identifiant (MESRS), N° Carte Étudiant, Nom, Prénom (grid-4) -->
+                <div class="cm-grid-4">
+                    <?php
+                    cm_component('form/input-text', [
+                        'name' => 'identifiant_mesrs',
+                        'id' => 'identifiant_mesrs',
+                        'label' => 'Identifiant (MESRS)',
+                        'maxlength' => 25,
+                        'value' => (string) $formValues['identifiant_mesrs'],
+                        'control_class' => 'cm-field-md',
+                    ]);
+                    cm_component('form/input-text', [
+                        'name' => 'num_etu',
+                        'id' => 'num_etu',
+                        'label' => 'N° Carte Etudiant',
+                        'maxlength' => 25,
+                        'required' => true,
+                        'value' => (string) $formValues['num_etu'],
+                        'control_class' => 'cm-field-md',
+                    ]);
+                    cm_component('form/input-text', [
+                        'name' => 'nom_etu',
+                        'id' => 'nom_etu',
+                        'label' => 'Nom',
+                        'maxlength' => 50,
+                        'required' => true,
+                        'value' => (string) $formValues['nom_etu'],
+                        'control_class' => 'cm-field-lg',
+                    ]);
+                    cm_component('form/input-text', [
+                        'name' => 'prenom_etu',
+                        'id' => 'prenom_etu',
+                        'label' => 'Prénom',
+                        'maxlength' => 100,
+                        'required' => true,
+                        'value' => (string) $formValues['prenom_etu'],
+                        'control_class' => 'cm-field-lg',
+                    ]);
+                    ?>
+                </div>
+                <!-- Ligne 3: Date Naissance, Genre, E-mail (grid-3) -->
+                <div class="cm-grid-3">
+                    <?php
+                    cm_component('form/input-date', [
+                        'name' => 'date_naiss_etu',
+                        'id' => 'date_naiss_etu',
+                        'label' => 'Date Naissance',
+                        'required' => true,
+                        'value' => (string) $formValues['date_naiss_etu'],
+                        'control_class' => 'cm-field-sm',
+                    ]);
+                    cm_component('form/select', [
+                        'name' => 'genre_etu',
+                        'id' => 'genre_etu',
+                        'label' => 'Genre',
+                        'required' => true,
+                        'options' => [
+                            '1' => 'Masculin',
+                            '2' => 'Feminin',
+                            '3' => 'Neutre',
+                        ],
+                        'selected' => (string) $formValues['genre_etu'],
+                        'control_class' => 'cm-field-md',
+                    ]);
+                    cm_component('form/input-email', [
+                        'name' => 'email_etu',
+                        'id' => 'email_etu',
+                        'label' => 'E-mail',
+                        'required' => true,
+                        'maxlength' => 60,
+                        'value' => (string) $formValues['email_etu'],
+                        'control_class' => 'cm-field-lg',
+                    ]);
+                    ?>
+                </div>
+                <div class="cm-form-buttons">
+                    <?php if (is_object($etudiantAModifier)): ?>
+                        <a class="cm-btn is-light"
+                            href="?page=gestion_etudiants&action=ajouter_des_etudiants<?php echo $preservedListParams; ?>">
+                            <i class="fas fa-xmark" aria-hidden="true"></i>
+                            Annuler
+                        </a>
+                        <?php if (canEdit()): ?>
+                            <button class="cm-btn is-success" type="submit" name="submit_modifier_etudiant">
+                                <i class="fas fa-floppy-disk" aria-hidden="true"></i>
+                                Modifier
+                            </button>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <button class="cm-btn is-light" type="reset">
+                            <i class="fas fa-rotate-left" aria-hidden="true"></i>
+                            Réinitialiser
+                        </button>
+                        <?php if (canCreate()): ?>
+                            <button class="cm-btn is-success" type="submit" name="submit_add_etudiant">
+                                <i class="fas fa-floppy-disk" aria-hidden="true"></i>
+                                Enregistrer
+                            </button>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
-            </div>
-
-            <!-- Users Table -->
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-4 py-3 text-center">
-                                <input type="checkbox" id="selectAllCheckbox"
-                                    class="form-checkbox h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer">
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                <div class="flex items-center">
-                                    <span>Numéro étudiant</span>
-                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
-                                </div>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                <div class="flex items-center">
-                                    <span>Nom</span>
-                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
-                                </div>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                <div class="flex items-center">
-                                    <span>Prénom</span>
-                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
-                                </div>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                <div class="flex items-center">
-                                    <span>Genre</span>
-                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
-                                </div>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                <div class="flex items-center">
-                                    <span>Email</span>
-                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
-                                </div>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                <div class="flex items-center">
-                                    <span>Promotion</span>
-                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
-                                </div>
-                            </th>
-                            <?php if (canEdit()): ?>
-                            <th
-                                class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Actions
-                            </th>
-                            <?php endif; ?>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200" id="usersTableBody">
-                        <?php if (empty($currentPageItems)): ?>
-                            <tr>
-                                <td colspan="9" class="px-6 py-12 text-center text-gray-500">
-                                    <div class="flex flex-col items-center">
-                                        <i class="fas fa-users text-gray-300 text-4xl mb-4"></i>
-                                        <p>Aucun étudiant trouvé.</p>
-                                        <p class="text-sm mt-2">Ajoutez de nouveaux étudiants en cliquant sur le bouton
-                                            "Ajouter un étudiant"</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($currentPageItems as $etudiant): ?>
-                                <tr class="table-row-hover">
-                                    <td class="px-4 py-4 text-center">
-                                        <input type="checkbox" name="selected_ids[]"
-                                            value="<?php echo htmlspecialchars($etudiant->num_etu); ?>"
-                                            class="user-checkbox form-checkbox h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer">
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php echo htmlspecialchars($etudiant->num_etu); ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php echo htmlspecialchars($etudiant->nom_etu); ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php echo htmlspecialchars($etudiant->prenom_etu); ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php echo htmlspecialchars($etudiant->genre_etu); ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php echo htmlspecialchars($etudiant->email_etu); ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php echo htmlspecialchars($etudiant->promotion_etu); ?>
-                                    </td>
-                                    <?php if (canEdit()): ?>
-                                    <td class="px-6 py-4 whitespace-nowrap text-center">
-                                        <button onclick="openUserModal('<?php echo htmlspecialchars($etudiant->num_etu); ?>')"
-                                            class="text-blue-600 hover:text-blue-900 mr-3">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                    </td>
-                                    <?php endif; ?>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            <?php if ($totalPages > 1): ?>
-                <div class="bg-white rounded-lg shadow-sm p-4 mt-6">
-                    <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <div class="text-sm text-gray-500">
-                            Affichage de <?= $startIndex + 1 ?> à <?= min($startIndex + $itemsPerPage, $totalItems) ?> sur
-                            <?= $totalItems ?> entrées
-                        </div>
-                        <div class="flex flex-wrap justify-center gap-2">
-                            <?php if ($currentPage > 1): ?>
-                                <a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=<?= $currentPage - 1 ?><?= !empty($GLOBALS['searchTerm']) ? '&search=' . urlencode($GLOBALS['searchTerm']) : '' ?>"
-                                    class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                    <i class="fas fa-chevron-left mr-1"></i>Précédent
-                                </a>
-                            <?php endif; ?>
-
-                            <?php
-                            $start = max(1, $currentPage - 2);
-                            $end = min($totalPages, $currentPage + 2);
-
-                            if ($start > 1) {
-                                echo '<a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=1' . (!empty($GLOBALS['searchTerm']) ? '&search=' . urlencode($GLOBALS['searchTerm']) : '') . '" class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">1</a>';
-                                if ($start > 2) {
-                                    echo '<span class="px-3 py-2 text-gray-500">...</span>';
-                                }
-                            }
-
-                            for ($i = $start; $i <= $end; $i++):
-                                $searchParam = !empty($GLOBALS['searchTerm']) ? '&search=' . urlencode($GLOBALS['searchTerm']) : '';
-                                ?>
-                                <a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=<?= $i ?><?= $searchParam ?>"
-                                    class="btn-hover px-3 py-2 <?= $i === $currentPage ? 'bg-green-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50' ?> border border-gray-300 rounded-lg text-sm font-medium">
-                                    <?= $i ?>
-                                </a>
-                            <?php endfor;
-
-                            if ($end < $totalPages) {
-                                if ($end < $totalPages - 1) {
-                                    echo '<span class="px-3 py-2 text-gray-500">...</span>';
-                                }
-                                $searchParam = !empty($GLOBALS['searchTerm']) ? '&search=' . urlencode($GLOBALS['searchTerm']) : '';
-                                echo '<a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=' . $totalPages . $searchParam . '" class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">' . $totalPages . '</a>';
-                            }
-                            ?>
-
-                            <?php if ($currentPage < $totalPages): ?>
-                                <a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=<?= $currentPage + 1 ?><?= !empty($GLOBALS['searchTerm']) ? '&search=' . urlencode($GLOBALS['searchTerm']) : '' ?>"
-                                    class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                    Suivant<i class="fas fa-chevron-right ml-1"></i>
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
+            </form>
         </div>
-    </div>
-    <script>
-        // Initialisation au chargement de la page
-        document.addEventListener('DOMContentLoaded', function () {
-            const searchInput = document.getElementById('searchInput');
-            const searchTerm = '<?= $GLOBALS['searchTerm'] ?? '' ?>';
-            const deleteButton = document.getElementById('deleteButton');
-
-            // Désactiver le bouton de suppression par défaut
-            deleteButton.disabled = true;
-            deleteButton.classList.add('opacity-50', 'cursor-not-allowed');
-
-            // Si un terme de recherche est présent dans l'URL, l'afficher dans le champ de recherche
-            if (searchTerm) {
-                searchInput.value = searchTerm;
-                // Déclencher l'événement de recherche
-                searchInput.dispatchEvent(new Event('input'));
-            }
-
-            // Gérer les notifications
-            const successNotification = document.getElementById('successNotification');
-            const errorNotification = document.getElementById('errorNotification');
-
-            function removeNotification(notification) {
-                if (notification) {
-                    notification.classList.add('animate__fadeOut');
-                    setTimeout(() => notification.remove(), 500);
-                }
-            }
-
-            if (successNotification) {
-                setTimeout(() => removeNotification(successNotification), 5000);
-            }
-
-            if (errorNotification) {
-                setTimeout(() => removeNotification(errorNotification), 5000);
-            }
-
-            // Gérer les checkboxes
-            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-            const userCheckboxes = document.querySelectorAll('.user-checkbox');
-
-            // Fonction pour mettre à jour l'état du bouton de suppression
-            function updateDeleteButtonState() {
-                const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
-                const hasChecked = checkedBoxes.length > 0;
-
-                deleteButton.disabled = !hasChecked;
-                deleteButton.classList.toggle('opacity-50', !hasChecked);
-                deleteButton.classList.toggle('cursor-not-allowed', !hasChecked);
-
-                // Mettre à jour l'état de la case "Tout sélectionner"
-                selectAllCheckbox.checked = checkedBoxes.length === userCheckboxes.length && userCheckboxes.length >
-                    0;
-            }
-
-            // Écouter les changements sur toutes les checkboxes
-            document.addEventListener('change', function (e) {
-                if (e.target.classList.contains('user-checkbox') || e.target === selectAllCheckbox) {
-                    if (e.target === selectAllCheckbox) {
-                        // Si c'est la case "Tout sélectionner"
-                        userCheckboxes.forEach(checkbox => {
-                            checkbox.checked = selectAllCheckbox.checked;
-                        });
-                    }
-                    updateDeleteButtonState();
-                }
-            });
-
-            // Initialiser l'état du bouton
-            updateDeleteButtonState();
-        });
-
-        // Manage the user modal
-        const userModal = document.getElementById('userModal');
-        const userForm = document.getElementById('userForm');
-        const userModalTitle = document.getElementById('userModalTitle');
-        const userModalSubmitButton = document.getElementById('userModalSubmitButton');
-        const searchInput = document.getElementById('searchInput');
-        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-        const deleteButton = document.getElementById('deleteButton');
-
-        function openUserModal(numEtu = null) {
-            if (numEtu) {
-                window.location.href =
-                    `?page=gestion_etudiants&action=ajouter_des_etudiants&modalAction=edit&num_etu=${numEtu}`;
-            } else {
-                window.location.href = '?page=gestion_etudiants&action=ajouter_des_etudiants&modalAction=add';
-            }
-        }
-
-        function closeUserModal() {
-            window.location.href = '?page=gestion_etudiants&action=ajouter_des_etudiants';
-        }
-
-        // Search functionality
-        searchInput.addEventListener('input', function () {
-            const searchTerm = this.value.toLowerCase();
-            const tableRows = document.querySelectorAll('#usersTableBody tr');
-            let hasResults = false;
-
-            // Convertir les données PHP en JavaScript
-            const allEtudiants = <?= json_encode($allEtudiants) ?>;
-            const itemsPerPage = <?= $itemsPerPage ?>;
-
-            // Filtrer les étudiants
-            const filteredEtudiants = allEtudiants.filter(etudiant => {
-                const nom = etudiant.nom_etu.toLowerCase();
-                const prenom = etudiant.prenom_etu.toLowerCase();
-                return nom.includes(searchTerm) || prenom.includes(searchTerm);
-            });
-
-            // Calculer la pagination pour les résultats filtrés
-            const totalFilteredItems = filteredEtudiants.length;
-            const totalFilteredPages = Math.ceil(totalFilteredItems / itemsPerPage);
-            const currentPage = 1; // Toujours commencer à la première page lors d'une recherche
-            const startIndex = 0;
-            const endIndex = Math.min(itemsPerPage, totalFilteredItems);
-
-            // Mettre à jour l'affichage
-            if (filteredEtudiants.length === 0) {
-                document.getElementById('usersTableBody').innerHTML = `
-                <tr>
-                    <td colspan="9" class="px-6 py-12 text-center text-gray-500">
-                        <div class="flex flex-col items-center">
-                            <i class="fas fa-users text-gray-300 text-4xl mb-4"></i>
-                            <p>Aucun étudiant trouvé.</p>
-                            <p class="text-sm mt-2">Essayez avec d'autres termes de recherche</p>
-                        </div>
-                    </td>
-                </tr>
-            `;
-                // Cacher la pagination si aucun résultat
-                const paginationContainer = document.querySelector('.bg-white.rounded-lg.shadow-sm.p-4.mt-6');
-                if (paginationContainer) {
-                    paginationContainer.style.display = 'none';
-                }
-            } else {
-                // Afficher les étudiants de la page courante
-                const currentPageItems = filteredEtudiants.slice(startIndex, endIndex);
-                let html = '';
-                currentPageItems.forEach(etudiant => {
-                    html += `
-                    <tr class="table-row-hover">
-                        <td class="px-4 py-4 text-center">
-                            <input type="checkbox" name="selected_ids[]" value="${etudiant.num_etu}"
-                                class="user-checkbox form-checkbox h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer">
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">${etudiant.num_etu}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">${etudiant.nom_etu}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">${etudiant.prenom_etu}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">${etudiant.date_naiss_etu}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">${etudiant.genre_etu}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">${etudiant.email_etu}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">${etudiant.promotion_etu}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <button onclick="openUserModal('${etudiant.num_etu}')"
-                                class="text-blue-600 hover:text-blue-900 mr-3">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-                });
-                document.getElementById('usersTableBody').innerHTML = html;
-
-                // Mettre à jour la pagination
-                const paginationContainer = document.querySelector('.bg-white.rounded-lg.shadow-sm.p-4.mt-6');
-                if (paginationContainer) {
-                    paginationContainer.style.display = totalFilteredPages > 1 ? 'block' : 'none';
-
-                    // Mettre à jour le texte d'affichage
-                    const displayText = paginationContainer.querySelector('.text-sm.text-gray-500');
-                    if (displayText) {
-                        displayText.textContent =
-                            `Affichage de ${startIndex + 1} à ${endIndex} sur ${totalFilteredItems} entrées`;
-                    }
-
-                    // Mettre à jour les liens de pagination
-                    const paginationLinks = paginationContainer.querySelector(
-                        '.flex.flex-wrap.justify-center.gap-2');
-                    if (paginationLinks) {
-                        let paginationHtml = '';
-
-                        // Bouton Précédent
-                        if (currentPage > 1) {
-                            paginationHtml += `
-                            <a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=${currentPage - 1}&search=${encodeURIComponent(searchTerm)}"
-                                class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                <i class="fas fa-chevron-left mr-1"></i>Précédent
-                            </a>
-                        `;
-                        }
-
-                        // Numéros de page
-                        const start = Math.max(1, currentPage - 2);
-                        const end = Math.min(totalFilteredPages, currentPage + 2);
-
-                        if (start > 1) {
-                            paginationHtml += `
-                            <a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=1&search=${searchTerm}"
-                                class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">1</a>
-                        `;
-                            if (start > 2) {
-                                paginationHtml += '<span class="px-3 py-2 text-gray-500">...</span>';
-                            }
-                        }
-
-                        for (let i = start; i <= end; i++) {
-                            paginationHtml += `
-                            <a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=${i}&search=${searchTerm}"
-                                class="btn-hover px-3 py-2 ${i === currentPage ? 'bg-green-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'} border border-gray-300 rounded-lg text-sm font-medium">
-                                ${i}
-                            </a>
-                        `;
-                        }
-
-                        if (end < totalFilteredPages) {
-                            if (end < totalFilteredPages - 1) {
-                                paginationHtml += '<span class="px-3 py-2 text-gray-500">...</span>';
-                            }
-                            paginationHtml += `
-                            <a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=${totalFilteredPages}&search=${searchTerm}"
-                                class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">${totalFilteredPages}</a>
-                        `;
-                        }
-
-                        // Bouton Suivant
-                        if (currentPage < totalFilteredPages) {
-                            paginationHtml += `
-                            <a href="?page=gestion_etudiants&action=ajouter_des_etudiants&p=${currentPage + 1}&search=${searchTerm}"
-                                class="btn-hover px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                Suivant<i class="fas fa-chevron-right ml-1"></i>
-                            </a>
-                        `;
-                        }
-
-                        paginationLinks.innerHTML = paginationHtml;
-                    }
-                }
-            }
-        });
-
-        // Fonction pour ouvrir la modale de suppression
-        function openDeleteModal() {
-            const selectedCheckboxes = document.querySelectorAll('.user-checkbox:checked');
-            if (selectedCheckboxes.length === 0) {
-                alert('Veuillez sélectionner au moins un étudiant à supprimer.');
-                return;
-            }
-            const modal = document.getElementById('deleteModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function closeDeleteModal() {
-            const modal = document.getElementById('deleteModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-
-        function confirmDelete() {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '?page=gestion_etudiants&action=ajouter_des_etudiants';
-
-            const selectedCheckboxes = document.querySelectorAll('.user-checkbox:checked');
-            selectedCheckboxes.forEach(checkbox => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'selected_ids[]';
-                input.value = checkbox.value;
-                form.appendChild(input);
-            });
-
-            document.body.appendChild(form);
-            form.submit();
-        }
-
-        // Fonction pour exporter en Excel
-        function exporterListe() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const allEtudiants = <?= json_encode($allEtudiants) ?>;
-
-            // Filtrer les étudiants si une recherche est active
-            let etudiantsToExport = allEtudiants;
-            if (searchTerm) {
-                etudiantsToExport = allEtudiants.filter(etudiant => {
-                    const nom = etudiant.nom_etu.toLowerCase();
-                    const prenom = etudiant.prenom_etu.toLowerCase();
-                    return nom.includes(searchTerm) || prenom.includes(searchTerm);
-                });
-            }
-
-            // Créer le contenu CSV
-            let csvContent = "data:text/csv;charset=utf-8,";
-
-            // Ajouter les en-têtes
-            csvContent += "Numéro étudiant,Nom,Prénom,Date de naissance,Genre,Email,Promotion\n";
-
-            // Ajouter les données
-            etudiantsToExport.forEach(etudiant => {
-                const row = [
-                    etudiant.num_etu,
-                    etudiant.nom_etu,
-                    etudiant.prenom_etu,
-                    etudiant.date_naiss_etu,
-                    etudiant.genre_etu,
-                    etudiant.email_etu,
-                    etudiant.promotion_etu
-                ].map(field => `"${field}"`).join(',');
-                csvContent += row + '\n';
-            });
-
-            // Créer le lien de téléchargement
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement('a');
-            link.setAttribute('href', encodedUri);
-            link.setAttribute('download', 'etudiants.csv');
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // Fonction pour imprimer
-        function imprimerListe() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const allEtudiants = <?= json_encode($allEtudiants) ?>;
-            const printWindow = window.open('', '_blank');
-
-            // Filtrer les étudiants si une recherche est active
-            let etudiantsToPrint = allEtudiants;
-            if (searchTerm) {
-                etudiantsToPrint = allEtudiants.filter(etudiant => {
-                    const nom = etudiant.nom_etu.toLowerCase();
-                    const prenom = etudiant.prenom_etu.toLowerCase();
-                    return nom.includes(searchTerm) || prenom.includes(searchTerm);
-                });
-            }
-
-            // Créer le contenu HTML pour l'impression
-            let html = `
-            <html>
-                <head>
-                    <title>Liste des étudiants</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                        th { background-color: #f5f5f5; }
-                        @media print {
-                            body { margin: 0; padding: 15px; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <h2>Liste des étudiants</h2>
-                    ${searchTerm ? `<p>Résultats de la recherche pour : "${searchTerm}"</p>` : ''}
-                    <table>
+        <?php cm_toolbar([
+            'screen' => 'gestion_etudiants',
+            'id_prefix' => 'students',
+            'limit' => $itemsPerPage,
+            'limit_options' => $allowedLimits,
+            'search_placeholder' => 'Rechercher (nom, prénom, numéro, email)...',
+            'can_delete' => canDelete() || canEdit(),
+            'can_view' => canView(),
+        ]); ?>
+        <div class="cm-pole-inferieur">
+            <form id="studentsBulkForm" method="POST" action="?page=gestion_etudiants&action=ajouter_des_etudiants"
+                class="cm-table-form">
+                <?php cm_component('form/csrf-token'); ?>
+                <div class="cm-table-wrapper">
+                    <table class="cm-data-table" id="cmStudentsTable">
                         <thead>
                             <tr>
-                                <th>Numéro étudiant</th>
-                                <th>Nom</th>
-                                <th>Prénom</th>
-                                <th>Date de naissance</th>
-                                <th>Genre</th>
-                                <th>Email</th>
-                                <th>Promotion</th>
+                                <?php if (canEdit() || canDelete()): ?>
+                                    <th class="cm-data-table__th is-checkbox">
+                                        <input type="checkbox" id="cmCheckAllRows" class="cm-checkbox"
+                                            aria-label="Sélectionner toutes les lignes">
+                                    </th>
+                                <?php endif; ?>
+                                <th class="cm-data-table__th cm-col-id" data-sort-field="id_mesrs">ID MESRS</th>
+                                <th class="cm-data-table__th cm-col-id" data-sort-field="num_etu">N° Carte Etud.</th>
+                                <th class="cm-data-table__th" data-sort-field="nom">Nom</th>
+                                <th class="cm-data-table__th" data-sort-field="prenom">Prénom</th>
+                                <th class="cm-data-table__th cm-col-date" data-sort-field="date_naiss">Date Nais.</th>
+                                <th class="cm-data-table__th cm-col-genre" data-sort-field="genre">Genre</th>
+                                <th class="cm-data-table__th" data-sort-field="email">Email</th>
+                                <th class="cm-data-table__th" data-sort-field="promotion">Promotion</th>
+                                <?php if (canEdit()): ?>
+                                    <th class="cm-data-table__th is-center">Actions</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
-                        <tbody>
-        `;
-
-            // Ajouter les données
-            etudiantsToPrint.forEach(etudiant => {
-                html += `
-                <tr>
-                    <td>${etudiant.num_etu}</td>
-                    <td>${etudiant.nom_etu}</td>
-                    <td>${etudiant.prenom_etu}</td>
-                    <td>${etudiant.date_naiss_etu}</td>
-                    <td>${etudiant.genre_etu}</td>
-                    <td>${etudiant.email_etu}</td>
-                    <td>${etudiant.promotion_etu}</td>
-                </tr>
-            `;
-            });
-
-            html += `
+                        <tbody id="cmStudentsTableBody">
+                            <?php if (empty($listeEtudiants)): ?>
+                                <?php cm_component('ui/empty-state', [
+                                    'in_table' => true,
+                                    'colspan' => (canEdit() || canDelete()) ? (canEdit() ? 10 : 9) : (canEdit() ? 9 : 8),
+                                    'title' => '',
+                                    'message' => 'Aucun enregistrement disponible pour cette page.',
+                                ]); ?>
+                            <?php else: ?>
+                                <?php foreach ($listeEtudiants as $etudiant): ?>
+                                    <?php
+                                    $numEtu = (string) ($etudiant->num_carte_etud ?? '');
+                                    $nom = (string) ($etudiant->nom_etu ?? '');
+                                    $prenom = (string) ($etudiant->prenom_etu ?? '');
+                                    $idMesrs = (string) ($etudiant->identifiant_mesrs ?? '');
+                                    $dateNaiss = (string) ($etudiant->date_naiss_etu ?? '');
+                                    $genre = (string) ($etudiant->libelle_genre ?? $etudiant->genre_etu ?? '');
+                                    $email = (string) ($etudiant->email_etu ?? '');
+                                    $promotion = (string) ($etudiant->promotion_etu ?? '');
+                                    ?>
+                                    <tr class="cm-data-table__row"
+                                        data-search="<?php echo htmlspecialchars(strtolower($numEtu . ' ' . $nom . ' ' . $prenom . ' ' . $email . ' ' . $idMesrs), ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-num-etu="<?php echo htmlspecialchars(strtolower($numEtu), ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-id-mesrs="<?php echo htmlspecialchars(strtolower($idMesrs), ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-nom="<?php echo htmlspecialchars(strtolower($nom), ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-prenom="<?php echo htmlspecialchars(strtolower($prenom), ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-date-naiss="<?php echo htmlspecialchars($dateNaiss, ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-genre="<?php echo htmlspecialchars(strtolower($genre), ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-email="<?php echo htmlspecialchars(strtolower($email), ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-promotion="<?php echo htmlspecialchars($promotion, ENT_QUOTES, 'UTF-8'); ?>">
+                                        <?php if (canEdit() || canDelete()): ?>
+                                            <td class="cm-data-table__td is-checkbox">
+                                                <input type="checkbox" class="cm-checkbox cm-row-checkbox" name="selected_ids[]"
+                                                    value="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>">
+                                            </td>
+                                        <?php endif; ?>
+                                        <td class="cm-data-table__td cm-col-id">
+                                            <?php echo htmlspecialchars($idMesrs, ENT_QUOTES, 'UTF-8'); ?>
+                                        </td>
+                                        <td class="cm-data-table__td cm-col-id">
+                                            <?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>
+                                        </td>
+                                        <td class="cm-data-table__td"><?php echo htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'); ?>
+                                        </td>
+                                        <td class="cm-data-table__td">
+                                            <?php echo htmlspecialchars($prenom, ENT_QUOTES, 'UTF-8'); ?>
+                                        </td>
+                                        <td class="cm-data-table__td cm-col-date">
+                                            <?php echo htmlspecialchars($dateNaiss, ENT_QUOTES, 'UTF-8'); ?>
+                                        </td>
+                                        <td class="cm-data-table__td cm-col-genre">
+                                            <?php echo htmlspecialchars($genre, ENT_QUOTES, 'UTF-8'); ?>
+                                        </td>
+                                        <td class="cm-data-table__td">
+                                            <?php echo htmlspecialchars($email, ENT_QUOTES, 'UTF-8'); ?>
+                                        </td>
+                                        <td class="cm-data-table__td">
+                                            <?php echo htmlspecialchars($promotion, ENT_QUOTES, 'UTF-8'); ?>
+                                        </td>
+                                        <?php if (canEdit()): ?>
+                                            <td class="cm-data-table__td is-center">
+                                                <div class="cm-row-actions">
+                                                    <a class="cm-btn-action is-edit"
+                                                        href="?page=gestion_etudiants&action=ajouter_des_etudiants&num_etu=<?php echo urlencode($numEtu); ?><?php echo $preservedListParams; ?>"
+                                                        title="Modifier">
+                                                        <i class="fas fa-pen" aria-hidden="true"></i>
+                                                    </a>
+                                                    <?php if (canDelete() || canEdit()): ?>
+                                                        <button type="button" class="cm-btn-action is-delete"
+                                                            onclick="submitSingleDelete('<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>', '<?php echo htmlspecialchars($nom . ' ' . $prenom, ENT_QUOTES, 'UTF-8'); ?>')"
+                                                            title="Supprimer">
+                                                            <i class="fas fa-trash" aria-hidden="true"></i>
+                                                        </button>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
+                                        <?php endif; ?>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
-                </body>
-            </html>
-        `;
-
-            printWindow.document.write(html);
-            printWindow.document.close();
-            printWindow.focus();
-            printWindow.print();
-            printWindow.close();
+                </div>
+            </form>
+            <?php cm_component('crud/pagination', [
+                'pagination' => $pagination,
+                'base_url' => $paginationBaseUrl,
+                'param_name' => 'p',
+            ]); ?>
+        </div>
+    </div>
+</div>
+<script>
+    (function () {
+        const identifiantInput = document.getElementById('identifiant_mesrs');
+        const hiddenNumIdent = document.getElementById('num_ident_etud');
+        const bulkForm = document.getElementById('studentsBulkForm');
+        const checkAll = document.getElementById('cmCheckAllRows');
+        const searchInput = document.getElementById('cmStudentSearch');
+        const limitSelect = document.getElementById('cmStudentLimit');
+        const selectedCount = document.getElementById('cmSelectedCount');
+        const deleteBtn = document.getElementById('cmDeleteSelectedBtn');
+        const sortableHeaders = Array.from(document.querySelectorAll('#cmStudentsTable thead th[data-sort-field]'));
+        let currentSort = { field: null, direction: 'asc' };
+        const navigate = function (url) {
+            if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+                window.CM.ajax.load(url);
+                return;
+            }
+            window.location.href = url;
+        };
+        const rowCheckboxes = function () {
+            return Array.from(document.querySelectorAll('#cmStudentsTableBody .cm-row-checkbox'));
+        };
+        const visibleRows = function () {
+            return Array.from(document.querySelectorAll('#cmStudentsTableBody tr')).filter(function (row) {
+                return row.style.display !== 'none';
+            });
+        };
+        const parseSortableValue = function (raw) {
+            const value = String(raw || '').trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                return new Date(value + 'T00:00:00').getTime();
+            }
+            if (/^\d+(\.\d+)?$/.test(value)) {
+                return Number(value);
+            }
+            return value.toLowerCase();
+        };
+        const sortRows = function (field, direction) {
+            const tbody = document.getElementById('cmStudentsTableBody');
+            if (!tbody) {
+                return;
+            }
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            rows.sort(function (a, b) {
+                const attr = 'data-' + field.replace(/_/g, '-');
+                const av = parseSortableValue(a.getAttribute(attr));
+                const bv = parseSortableValue(b.getAttribute(attr));
+                if (av < bv) {
+                    return direction === 'asc' ? -1 : 1;
+                }
+                if (av > bv) {
+                    return direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+            rows.forEach(function (row) {
+                tbody.appendChild(row);
+            });
+        };
+        const updateSelectionState = function () {
+            const checked = rowCheckboxes().filter(function (cb) { return cb.checked; }).length;
+            if (selectedCount) {
+                selectedCount.textContent = String(checked);
+            }
+            if (deleteBtn) {
+                deleteBtn.disabled = checked === 0;
+            }
+            if (checkAll) {
+                const all = rowCheckboxes();
+                checkAll.checked = all.length > 0 && all.every(function (cb) { return cb.checked; });
+            }
+        };
+        if (identifiantInput && hiddenNumIdent) {
+            identifiantInput.addEventListener('input', function () {
+                hiddenNumIdent.value = identifiantInput.value;
+            });
         }
-    </script>
-</body>
-
-</html>
+        const selectAllBtn = document.getElementById('cmSelectAllBtn');
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', function () {
+                rowCheckboxes().forEach(function (cb) { cb.checked = true; });
+                updateSelectionState();
+            });
+        }
+        const deselectAllBtn = document.getElementById('cmDeselectAllBtn');
+        if (deselectAllBtn) {
+            deselectAllBtn.addEventListener('click', function () {
+                rowCheckboxes().forEach(function (cb) { cb.checked = false; });
+                updateSelectionState();
+            });
+        }
+        if (checkAll) {
+            checkAll.addEventListener('change', function () {
+                rowCheckboxes().forEach(function (cb) { cb.checked = checkAll.checked; });
+                updateSelectionState();
+            });
+        }
+        document.addEventListener('change', function (event) {
+            if (event.target.classList.contains('cm-row-checkbox')) {
+                updateSelectionState();
+            }
+        });
+        if (deleteBtn && bulkForm) {
+            deleteBtn.addEventListener('click', function () {
+                const selected = rowCheckboxes().filter(function (cb) { return cb.checked; });
+                if (selected.length === 0) {
+                    return;
+                }
+                const confirmDelete = window.confirm('Confirmer la suppression de ' + selected.length + ' étudiant(s) ?');
+                if (confirmDelete) {
+                    bulkForm.submit();
+                }
+            });
+        }
+        window.submitSingleDelete = function (numEtu, fullName) {
+            const confirmed = window.confirm('Confirmer la suppression de l\'étudiant : ' + fullName + ' (' + numEtu + ') ?');
+            if (!confirmed || !bulkForm) {
+                return;
+            }
+            rowCheckboxes().forEach(function (cb) {
+                cb.checked = cb.value === numEtu;
+            });
+            updateSelectionState();
+            bulkForm.submit();
+        };
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                const term = searchInput.value.trim().toLowerCase();
+                document.querySelectorAll('#cmStudentsTableBody tr').forEach(function (row) {
+                    const haystack = row.getAttribute('data-search') || '';
+                    row.style.display = haystack.indexOf(term) !== -1 ? '' : 'none';
+                });
+            });
+        }
+        sortableHeaders.forEach(function (th) {
+            th.style.cursor = 'pointer';
+            th.title = 'Trier';
+            th.addEventListener('click', function () {
+                const field = th.getAttribute('data-sort-field');
+                if (!field) {
+                    return;
+                }
+                const nextDirection = (currentSort.field === field && currentSort.direction === 'asc') ? 'desc' : 'asc';
+                currentSort = { field: field, direction: nextDirection };
+                sortableHeaders.forEach(function (header) {
+                    header.removeAttribute('data-sort-dir');
+                });
+                th.setAttribute('data-sort-dir', nextDirection);
+                sortRows(field, nextDirection);
+                updateSelectionState();
+            });
+        });
+        // Tri par défaut: Promotion desc (derniere année académique en premier)
+        const defaultSortField = 'promotion';
+        const defaultSortDirection = 'desc';
+        currentSort = { field: defaultSortField, direction: defaultSortDirection };
+        sortRows(defaultSortField, defaultSortDirection);
+        sortableHeaders.forEach(function (header) {
+            header.removeAttribute('data-sort-dir');
+            if (header.getAttribute('data-sort-field') === defaultSortField) {
+                header.setAttribute('data-sort-dir', defaultSortDirection);
+            }
+        });
+        if (limitSelect) {
+            limitSelect.addEventListener('change', function () {
+                const url = new URL(window.location.href);
+                url.searchParams.set('limit', String(limitSelect.value));
+                url.searchParams.set('p', '1');
+                navigate(url.toString());
+            });
+        }
+        const printBtn = document.getElementById('cmPrintBtn');
+        if (printBtn) {
+            printBtn.addEventListener('click', function () {
+                window.print();
+            });
+        }
+        const exportBtn = document.getElementById('cmExportBtn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', function () {
+                const headers = ['ID MESRS', 'N° Carte Etud.', 'Nom', 'Prénom', 'Date Nais.', 'Genre', 'Email', 'Promotion'];
+                const lines = [headers.join(';')];
+                visibleRows().forEach(function (row) {
+                    const cells = Array.from(row.querySelectorAll('td'));
+                    if (cells.length === 0) {
+                        return;
+                    }
+                    const startIndex = <?php echo (canEdit() || canDelete()) ? '1' : '0'; ?>;
+                    const endIndex = <?php echo canEdit() ? '-1' : 'cells.length'; ?>;
+                    const dataCells = endIndex === -1 ? cells.slice(startIndex, cells.length - 1) : cells.slice(startIndex);
+                    const rowValues = dataCells.map(function (cell) {
+                        return '"' + (cell.textContent || '').trim().replace(/"/g, '""') + '"';
+                    });
+                    lines.push(rowValues.join(';'));
+                });
+                const blob = new Blob(["\uFEFF" + lines.join('\n')], {type: 'text/csv;charset=utf-8;'});
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'etudiants_' + new Date().toISOString().split('T')[0] + '.csv';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        }
+        updateSelectionState();
+    })();
+</script>

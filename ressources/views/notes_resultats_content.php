@@ -1,5 +1,4 @@
 <?php
-
 // Récupération des données depuis le contrôleur
 $etudiant = $GLOBALS['etudiant'] ?? null;
 $moyenneGenerale = $GLOBALS['moyenneGenerale'] ?? null;
@@ -8,40 +7,29 @@ $classement = $GLOBALS['classement'] ?? null;
 $totalEtudiants = $GLOBALS['totalEtudiants'] ?? 0;
 $notes = $GLOBALS['notes'] ?? [];
 $semestres = $GLOBALS['semestres'] ?? [];
-
 ?>
-
-
-
-
-
-
-
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portail Étudiant - Mes Résultats</title>
 </head>
-
 <body class="min-h-screen" style="background: linear-gradient(135deg, #DFF2FF 0%, #C8E8FF 100%);">
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
         <header class="mb-10 text-center animate-fade-in">
-            <h1 class="text-4xl font-bold text-green-800 mb-2">Mon Portail Académique</h1>
+
             <p class="text-xl text-green-600">Consultez vos résultats et bulletins de notes</p>
             <div class="flex justify-center mt-4">
                 <div class="bg-white rounded-full shadow-md px-6 py-2 inline-flex items-center">
                     <i class="fas fa-user-graduate text-indigo-500 mr-2"></i>
                     <span class="font-medium">Étudiant:
                         <?php echo htmlspecialchars($etudiant->nom_etu . ' ' . $etudiant->prenom_etu); ?> | Numéro
-                        étudiant: <?php echo htmlspecialchars($etudiant->num_etu); ?></span>
+                        étudiant: <?php echo htmlspecialchars($etudiant->num_carte_etud); ?></span>
                 </div>
             </div>
         </header>
-
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <div class="card-gradient-1 rounded-xl shadow-lg p-6 flex items-center animate-fade-in">
@@ -50,45 +38,38 @@ $semestres = $GLOBALS['semestres'] ?? [];
                 </div>
                 <div>
                     <p class="text-white text-sm">Moyenne Générale</p>
-                    <h3 class="text-2xl font-bold text-white">
+                    <span class="text-2xl font-bold text-white">
                         <?php echo $moyenneGenerale !== null ? number_format($moyenneGenerale, 2) . '/20' : 'N/A'; ?>
-                    </h3>
+                    </span>
                 </div>
             </div>
-
             <div class="card-gradient-2 rounded-xl shadow-lg p-6 flex items-center animate-fade-in">
                 <div class="bg-green-100 p-3 rounded-full mr-4">
                     <i class="fas fa-check-circle text-green-600 text-xl"></i>
                 </div>
                 <div>
                     <p class="text-white text-sm">Modules Validés</p>
-                    <h3 class="text-2xl font-bold text-white"><?php echo $nbUeValide; ?></h3>
+                    <span class="text-2xl font-bold text-white"><?php echo $nbUeValide; ?></span>
                 </div>
             </div>
-
             <div class="card-gradient-3 rounded-xl shadow-lg p-6 flex items-center animate-fade-in">
                 <div class="bg-amber-100 p-3 rounded-full mr-4">
                     <i class="fas fa-chart-line text-amber-600 text-xl"></i>
                 </div>
                 <div>
                     <p class="text-white text-sm">Classement</p>
-                    <h3 class="text-2xl font-bold text-white">
-                        <?php echo $classement !== null ? $classement . '/' . $totalEtudiants : 'N/A'; ?></h3>
+                    <span class="text-2xl font-bold text-white">
+                        <?php echo $classement !== null ? $classement . '/' . $totalEtudiants : 'N/A'; ?>
+                    </span>
                 </div>
             </div>
-
-
         </div>
-
         <!-- Main Content -->
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden animate-fade-in">
             <!-- Toolbar -->
-            <div class="bg-indigo-700 px-6 py-4 flex flex-wrap justify-between items-center">
-                <h2 class="text-xl font-bold text-white">
-                    <i class="fas fa-table mr-2"></i> Bulletin de Notes
-                </h2>
+            <div class="bg-indigo-700 px-4 py-2 flex flex-wrap justify-between items-center">
                 <div class="flex space-x-2 mt-2 sm:mt-0">
-
+                    <?php if (canView()): ?>
                     <button id="pdfBtn"
                         class="bg-white text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-50 transition flex items-center"
                         onclick="window.location.href='?action=export_pdf'">
@@ -98,6 +79,7 @@ $semestres = $GLOBALS['semestres'] ?? [];
                         class="bg-white text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-50 transition flex items-center">
                         <i class="fas fa-file-excel mr-2"></i> Excel
                     </button>
+                    <?php endif; ?>
                     <div class="relative">
                         <select id="semesterFilter"
                             class="appearance-none bg-white text-indigo-700 pl-4 pr-8 py-2 rounded-lg hover:bg-indigo-50 transition cursor-pointer">
@@ -114,29 +96,28 @@ $semestres = $GLOBALS['semestres'] ?? [];
                     </div>
                 </div>
             </div>
-
             <!-- Table -->
-            <div class="overflow-x-auto">
+            <div class="cm-table-wrapper">
                 <table class="min-w-full divide-y divide-gray-200" id="gradesTable">
                     <thead class="bg-gray-50">
                         <tr>
                             <th scope="col"
-                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Module</th>
                             <th scope="col"
-                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Professeur</th>
                             <th scope="col"
-                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Crédits</th>
                             <th scope="col"
-                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Note</th>
                             <th scope="col"
-                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Appréciation</th>
                             <th scope="col"
-                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Semestre</th>
                         </tr>
                     </thead>
@@ -144,18 +125,21 @@ $semestres = $GLOBALS['semestres'] ?? [];
                         <?php if (!empty($notes)): ?>
                             <?php foreach ($notes as $note): ?>
                                 <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                                        <?php echo htmlspecialchars($note->lib_ue); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-gray-500">-</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-gray-500">
-                                        <?php echo htmlspecialchars($note->credit); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="px-4 py-2 whitespace-nowrap font-medium text-gray-900">
+                                        <?php echo htmlspecialchars($note->lib_ue); ?>
+                                    </td>
+                                    <td class="px-4 py-2 whitespace-nowrap text-gray-500">-</td>
+                                    <td class="px-4 py-2 whitespace-nowrap text-gray-500">
+                                        <?php echo htmlspecialchars($note->credit); ?>
+                                    </td>
+                                    <td class="px-4 py-2 whitespace-nowrap">
                                         <span
                                             class="grade-<?php echo $note->moyenne >= 16 ? 'A' : ($note->moyenne >= 14 ? 'B' : ($note->moyenne >= 12 ? 'C' : ($note->moyenne >= 10 ? 'D' : 'F'))); ?> px-3 py-1 rounded-full text-sm font-semibold"><?php echo htmlspecialchars($note->moyenne); ?></span>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-gray-500">
-                                        <?php echo htmlspecialchars($note->commentaire); ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-gray-500">
+                                    <td class="px-4 py-2 whitespace-nowrap text-gray-500">
+                                        <?php echo htmlspecialchars($note->commentaire); ?>
+                                    </td>
+                                    <td class="px-4 py-2 whitespace-nowrap text-gray-500">
                                         <?php
                                         if (!empty($note->lib_semestre)) {
                                             echo htmlspecialchars($note->lib_semestre);
@@ -176,13 +160,8 @@ $semestres = $GLOBALS['semestres'] ?? [];
                     </tbody>
                 </table>
             </div>
-
-
         </div>
-
-
     </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Animation des éléments
@@ -193,13 +172,11 @@ $semestres = $GLOBALS['semestres'] ?? [];
                 stagger: 0.1,
                 ease: "power2.out"
             });
-
             // Filtrage par semestre
             const semesterFilter = document.getElementById('semesterFilter');
             semesterFilter.addEventListener('change', function () {
                 const selectedSemester = this.value;
                 const rows = document.querySelectorAll('#gradesTable tbody tr');
-
                 rows.forEach(row => {
                     const semesterCell = row.querySelector('td:nth-child(6)');
                     if (selectedSemester === 'all' || semesterCell.textContent ===
@@ -210,33 +187,26 @@ $semestres = $GLOBALS['semestres'] ?? [];
                     }
                 });
             });
-
             // Bouton Imprimer
             document.getElementById('printBtn').addEventListener('click', function () {
                 window.print();
             });
-
             // Bouton PDF (utilisant jsPDF et html2canvas)
             document.getElementById('pdfBtn').addEventListener('click', function () {
                 const {
                     jsPDF
                 } = window.jspdf;
                 const element = document.querySelector('.bg-white.rounded-2xl');
-
                 html2canvas(element).then(canvas => {
                     const imgData = canvas.toDataURL('image/png');
                     const pdf = new jsPDF('p', 'mm', 'a4');
                     const imgProps = pdf.getImageProperties(imgData);
                     const pdfWidth = pdf.internal.pageSize.getWidth();
                     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
                     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
                     pdf.save('bulletin-notes.pdf');
                 });
             });
-
-
-
             // Effet hover sur les lignes du tableau
             const tableRows = document.querySelectorAll('#gradesTable tbody tr');
             tableRows.forEach(row => {
@@ -248,15 +218,12 @@ $semestres = $GLOBALS['semestres'] ?? [];
                 });
             });
         });
-
         function exportCSV() {
             const table = document.getElementById('gradesTable');
             let csv = [];
-
             // En-têtes
             const headers = Array.from(table.querySelectorAll('thead th')).map(th => `"${th.textContent.trim()}"`);
             csv.push(headers.join(';'));
-
             // Lignes visibles
             const rows = table.querySelectorAll('tbody tr');
             rows.forEach(row => {
@@ -266,7 +233,6 @@ $semestres = $GLOBALS['semestres'] ?? [];
                     csv.push(rowData.join(';'));
                 }
             });
-
             const csvContent = csv.join('\n');
             const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' }); // \uFEFF pour compat Excel
             const link = document.createElement('a');
@@ -279,5 +245,4 @@ $semestres = $GLOBALS['semestres'] ?? [];
         }
     </script>
 </body>
-
 </html>

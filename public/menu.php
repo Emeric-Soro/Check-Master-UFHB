@@ -11,7 +11,7 @@ class MenuView
         $code = str_replace('_', ' ', $code);
         $code = strtolower($code);
         if (function_exists('mb_convert_case')) {
-            return (string) mb_convert_case($code, MB_CASE_TITLE, 'UTF-8');
+            return (string)mb_convert_case($code, MB_CASE_TITLE, 'UTF-8');
         }
         return ucwords($code);
     }
@@ -48,18 +48,10 @@ class MenuView
     {
         $html = '';
 
-        // Récupérer le statut de la candidature si étudiant
-        $statut = null;
-        if (isset($_SESSION['id_GU']) && $_SESSION['id_GU'] == 13 && isset($_SESSION['num_etu'])) {
-            require_once __DIR__ . '/../app/models/CandidatureSoutenance.php';
-            $statut = CandidatureSoutenance::getStatutByEtudiant($_SESSION['num_etu']);
-        }
-
         foreach ($menuHierarchique as $index => $item) {
             $categorie = $item['categorie'];
             $fonctionnalites = $item['fonctionnalites'];
 
-            // ID unique pour le collapse
             $collapseId = 'collapse-' . $categorie->code_categorie;
 
             // Vérifier si une fonctionnalité de cette catégorie est active
@@ -71,83 +63,68 @@ class MenuView
                 }
             }
 
-            // Header de catégorie (collapse)
-            $html .= '<div class="mb-2">';
-            $html .= '<button type="button" class="w-full flex items-center justify-between px-4 py-2 text-sm font-semibold text-white/90 hover:text-white  rounded-lg transition-all duration-200" ';
+            $isOpen = ($index === 0 || $categorieHasActive);
+            $chevronClass = $isOpen ? 'is-open' : '';
+            $displayStyle = $isOpen ? '' : 'display: none;';
+
+            // Header de catégorie
+            $html .= '<div class="cm-sidebar__category">';
+            $html .= '<button type="button" class="cm-sidebar__cat-btn" ';
             $html .= 'onclick="toggleCategory(\'' . $collapseId . '\')" id="btn-' . $collapseId . '">';
-            $html .= '<div class="flex items-center">';
-            $html .= '<i class="' . htmlspecialchars($categorie->icone_categorie) . ' mr-3 text-base w-5 text-center"></i>';
+            $html .= '<span class="cm-sidebar__cat-btn-left">';
+            $html .= '<i class="' . htmlspecialchars($categorie->icone_categorie) . ' cm-sidebar__cat-icon"></i>';
             $html .= '<span>' . htmlspecialchars($categorie->lib_categorie) . '</span>';
-            $html .= '</div>';
-            $html .= '<i class="fas fa-chevron-down text-xs transition-transform duration-200" id="icon-' . $collapseId . '"></i>';
+            $html .= '</span>';
+            $html .= '<i class="fas fa-chevron-down cm-sidebar__cat-chevron ' . $chevronClass . '" id="icon-' . $collapseId . '"></i>';
             $html .= '</button>';
 
             // Contenu de la catégorie (fonctionnalités)
-            $displayStyle = ($index === 0 || $categorieHasActive) ? '' : 'display: none;'; // Premier et actif ouverts par défaut
-            $html .= '<div id="' . $collapseId . '" class="mt-1 ml-4 space-y-1" style="' . $displayStyle . '">';
+            $html .= '<div id="' . $collapseId . '" class="cm-sidebar__cat-items" style="' . $displayStyle . '">';
 
             foreach ($fonctionnalites as $fonc) {
                 $children = isset($fonc->children) && is_array($fonc->children) ? $fonc->children : [];
                 $hasChildren = !empty($children);
                 $isActive = $this->isItemActive($currentPage, $fonc);
-                $linkBaseClasses = "flex items-center px-4 py-2 text-sm font-medium rounded-lg group transition-all duration-200";
-                $activeClasses = "bg-white text-primary shadow-md";
-                $inactiveClasses = "text-white/70 hover:text-white ";
-                $iconBaseClasses = "mr-3 text-base w-5 text-center";
-                $iconActiveClasses = "text-primary";
-                $iconInactiveClasses = "text-white/50 group-hover:text-white";
 
-                // Blocage pour gestion_rapports si candidature non validée
-                $isLocked = (strpos($fonc->url_fonctionnalite, 'gestion_rapports') !== false && $statut !== 'Validée');
+                $subId = 'sub-' . preg_replace('/[^a-zA-Z0-9_\-]/', '-', (string)($fonc->code_fonctionnalite ?? uniqid()));
 
-                if ($isLocked) {
-                    $html .= '<span class="' . $linkBaseClasses . ' text-white/40 cursor-not-allowed" title="Accessible après validation de la candidature">';
-                    $html .= '<i class="fas fa-lock ' . $iconBaseClasses . ' text-white/40"></i>';
-                    $html .= htmlspecialchars($this->displayLabel($fonc));
+                if ($hasChildren) {
+                    // Parent item with sub-menu
+                    $activeClass = $isActive ? ' is-active-blue' : '';
+                    $html .= '<button type="button" class="cm-sidebar__menu-link cm-sidebar__menu-parent' . $activeClass . '" ';
+                    $html .= 'onclick="toggleSubMenu(\'' . $subId . '\')" aria-controls="' . $subId . '">';
+                    $html .= '<span class="cm-sidebar__menu-parent-left">';
+                    $html .= '<i class="fas ' . htmlspecialchars((string)($fonc->icone_fonctionnalite ?? 'fa-folder')) . ' cm-sidebar__menu-icon"></i>';
+                    $html .= '<span>' . htmlspecialchars($this->displayLabel($fonc)) . '</span>';
                     $html .= '</span>';
-                } else {
-                    $subId = 'sub-' . preg_replace('/[^a-zA-Z0-9_\-]/', '-', (string)($fonc->code_fonctionnalite ?? uniqid()));
+                    $subChevronClass = $isActive ? 'is-open' : '';
+                    $html .= '<i class="fas fa-chevron-down cm-sidebar__sub-chevron ' . $subChevronClass . '" id="icon-' . $subId . '"></i>';
+                    $html .= '</button>';
 
-                    if ($hasChildren) {
-                        // Parent (sous-menu) + toggle
-                        $html .= '<button type="button" class="' . $linkBaseClasses . ' ' . ($isActive ? $activeClasses : $inactiveClasses) . ' w-full justify-between" ';
-                        $html .= 'onclick="toggleSubMenu(\'' . $subId . '\')" aria-controls="' . $subId . '">';
-                        $html .= '<span class="flex items-center">';
-                        $html .= '<i class="fas ' . htmlspecialchars((string)($fonc->icone_fonctionnalite ?? 'fa-folder')) . ' ' . $iconBaseClasses . ' ' . ($isActive ? $iconActiveClasses : $iconInactiveClasses) . '"></i>';
-                        $html .= '<span>' . htmlspecialchars($this->displayLabel($fonc)) . '</span>';
-                        $html .= '</span>';
-                        $html .= '<i class="fas fa-chevron-down text-xs transition-transform duration-200 ' . ($isActive ? 'rotate-180' : '') . '" id="icon-' . $subId . '"></i>';
-                        $html .= '</button>';
-
-                        $subDisplay = $isActive ? '' : 'display:none;';
-                        $html .= '<div id="' . $subId . '" class="ml-6 mt-1 space-y-1" style="' . $subDisplay . '">';
-                        foreach ($children as $child) {
-                            $childActive = $this->isPageActiveExact($currentPage, (string)($child->url_fonctionnalite ?? ''));
-                            $childLocked = (strpos((string)($child->url_fonctionnalite ?? ''), 'gestion_rapports') !== false && $statut !== 'Validée');
-                            if ($childLocked) {
-                                $html .= '<span class="' . $linkBaseClasses . ' text-white/40 cursor-not-allowed" title="Accessible après validation de la candidature">';
-                                $html .= '<i class="fas fa-lock ' . $iconBaseClasses . ' text-white/40"></i>';
-                                $html .= htmlspecialchars($this->displayLabel($child));
-                                $html .= '</span>';
-                                continue;
-                            }
-                            $html .= '<a href="' . htmlspecialchars((string)($child->url_fonctionnalite ?? '#')) . '" class="' . $linkBaseClasses . ' ' . ($childActive ? $activeClasses : $inactiveClasses) . '">';
-                            $html .= '<i class="fas ' . htmlspecialchars((string)($child->icone_fonctionnalite ?? 'fa-circle')) . ' ' . $iconBaseClasses . ' ' . ($childActive ? $iconActiveClasses : $iconInactiveClasses) . '"></i>';
-                            $html .= '<span>' . htmlspecialchars($this->displayLabel($child)) . '</span>';
-                            $html .= '</a>';
-                        }
-                        $html .= '</div>';
-                    } else {
-                        $html .= '<a href="' . htmlspecialchars((string)($fonc->url_fonctionnalite ?? '#')) . '" class="' . $linkBaseClasses . ' ' . ($isActive ? $activeClasses : $inactiveClasses) . '">';
-                        $html .= '<i class="fas ' . htmlspecialchars((string)($fonc->icone_fonctionnalite ?? 'fa-circle')) . ' ' . $iconBaseClasses . ' ' . ($isActive ? $iconActiveClasses : $iconInactiveClasses) . '"></i>';
-                        $html .= '<span>' . htmlspecialchars($this->displayLabel($fonc)) . '</span>';
+                    $subDisplay = $isActive ? '' : 'display:none;';
+                    $html .= '<div id="' . $subId . '" class="cm-sidebar__sub-items" style="' . $subDisplay . '">';
+                    foreach ($children as $child) {
+                        $childActive = $this->isPageActiveExact($currentPage, (string)($child->url_fonctionnalite ?? ''));
+                        $childActiveClass = $childActive ? ' is-active-blue' : '';
+                        $html .= '<a href="' . htmlspecialchars((string)($child->url_fonctionnalite ?? '#')) . '" class="cm-sidebar__menu-link' . $childActiveClass . '">';
+                        $html .= '<i class="fas ' . htmlspecialchars((string)($child->icone_fonctionnalite ?? 'fa-circle')) . ' cm-sidebar__menu-icon"></i>';
+                        $html .= '<span>' . htmlspecialchars($this->displayLabel($child)) . '</span>';
                         $html .= '</a>';
                     }
+                    $html .= '</div>';
+                }
+                else {
+                    // Simple menu link
+                    $activeClass = $isActive ? ' is-active-blue' : '';
+                    $html .= '<a href="' . htmlspecialchars((string)($fonc->url_fonctionnalite ?? '#')) . '" class="cm-sidebar__menu-link' . $activeClass . '">';
+                    $html .= '<i class="fas ' . htmlspecialchars((string)($fonc->icone_fonctionnalite ?? 'fa-circle')) . ' cm-sidebar__menu-icon"></i>';
+                    $html .= '<span>' . htmlspecialchars($this->displayLabel($fonc)) . '</span>';
+                    $html .= '</a>';
                 }
             }
 
-            $html .= '</div>'; // Fin contenu catégorie
-            $html .= '</div>'; // Fin bloc catégorie
+            $html .= '</div>'; // Fin cm-sidebar__cat-items
+            $html .= '</div>'; // Fin cm-sidebar__category
         }
 
         // Script JavaScript pour toggle
@@ -224,88 +201,50 @@ class MenuView
     {
         return '<script>
         function toggleCategory(collapseId) {
-            const content = document.getElementById(collapseId);
-            const icon = document.getElementById("icon-" + collapseId);
-            
-            if (content.style.display === "none" || content.style.display === "") {
-                content.style.display = "block";
-                icon.style.transform = "rotate(180deg)";
+            var content = document.getElementById(collapseId);
+            var icon = document.getElementById("icon-" + collapseId);
+            if (!content) return;
+
+            if (content.style.display === "none") {
+                content.style.display = "";
+                if (icon) icon.classList.add("is-open");
             } else {
                 content.style.display = "none";
-                icon.style.transform = "rotate(0deg)";
+                if (icon) icon.classList.remove("is-open");
             }
         }
 
         function toggleSubMenu(subId) {
-            const content = document.getElementById(subId);
-            const icon = document.getElementById("icon-" + subId);
+            var content = document.getElementById(subId);
+            var icon = document.getElementById("icon-" + subId);
             if (!content) return;
-            if (content.style.display === "none" || content.style.display === "") {
-                content.style.display = "block";
-                if (icon) icon.style.transform = "rotate(180deg)";
+
+            if (content.style.display === "none") {
+                content.style.display = "";
+                if (icon) icon.classList.add("is-open");
             } else {
                 content.style.display = "none";
-                if (icon) icon.style.transform = "rotate(0deg)";
+                if (icon) icon.classList.remove("is-open");
             }
         }
-        
-        // Auto-expand catégorie active au chargement
+
         document.addEventListener("DOMContentLoaded", function() {
-            const activeLinks = document.querySelectorAll(".bg-white.text-primary");
-            activeLinks.forEach(link => {
-                const category = link.closest("[id^=\'collapse-\']");
+            var activeLinks = document.querySelectorAll(".cm-sidebar__menu-link.is-active-blue, .cm-sidebar__menu-link.is-active");
+            activeLinks.forEach(function(link) {
+                var category = link.closest("[id^=\'collapse-\']");
                 if (category) {
-                    category.style.display = "block";
-                    const categoryId = category.id;
-                    const icon = document.getElementById("icon-" + categoryId);
-                    if (icon) icon.style.transform = "rotate(180deg)";
+                    category.style.display = "";
+                    var icon = document.getElementById("icon-" + category.id);
+                    if (icon) icon.classList.add("is-open");
+                }
+                var subMenu = link.closest(".cm-sidebar__sub-items");
+                if (subMenu) {
+                    subMenu.style.display = "";
+                    var subIcon = document.getElementById("icon-" + subMenu.id);
+                    if (subIcon) subIcon.classList.add("is-open");
                 }
             });
         });
         </script>';
-    }
-
-    /**
-     * Ancien afficheur de menu (compatibilité rétroactive)
-     * @deprecated Utiliser afficherMenuHierarchique() à la place
-     */
-    public function afficherMenu($traitements, $currentMenuSlug)
-    {
-        // Tri des traitements par ordre_traitement
-        usort($traitements, function ($a, $b) {
-            return $a['ordre_traitement'] - $b['ordre_traitement'];
-        });
-        // Génération du menu
-        $html = '';
-        // Récupérer le statut de la candidature si étudiant
-        $statut = null;
-        if (isset($_SESSION['id_GU']) && $_SESSION['id_GU'] == 13 && isset($_SESSION['num_etu'])) { // 13 = groupe étudiant
-            require_once __DIR__ . '/../app/models/CandidatureSoutenance.php';
-            $statut = CandidatureSoutenance::getStatutByEtudiant($_SESSION['num_etu']);
-        }
-        foreach ($traitements as $traitement) {
-            $isActive = ($currentMenuSlug === $traitement['lib_traitement']);
-            $linkBaseClasses = "flex items-center px-4 py-3 text-sm font-medium rounded-lg group transition-all duration-200";
-            // Styles inspirés de l'image
-            $activeClasses = "bg-white text-primary shadow-md";
-            $inactiveClasses = "text-white/80 hover:text-white ";
-            $iconBaseClasses = "mr-3 text-lg w-6 text-center";
-            $iconActiveClasses = "text-primary";
-            $iconInactiveClasses = "text-white/60 group-hover:text-white";
-
-            // Blocage du lien gestion_rapports si la candidature n'est pas validée
-            if ($traitement['lib_traitement'] === 'gestion_rapports' && $statut !== 'Validée') {
-                $html .= '<span class="' . $linkBaseClasses . ' text-white/40 cursor-not-allowed" title="Accessible après validation de la candidature">';
-                $html .= '<i class="fas fa-lock ' . $iconBaseClasses . ' ' . $iconInactiveClasses . ' text-white/40"></i>';
-                $html .= htmlspecialchars($traitement['label_traitement']);
-                $html .= '</span>';
-            } else {
-                $html .= '<a href="?page=' . htmlspecialchars($traitement['lib_traitement']) . '" class="' . $linkBaseClasses . ' ' . ($isActive ? $activeClasses : $inactiveClasses) . '" >';
-                $html .= '<i class="fas ' . htmlspecialchars($traitement['icone_traitement']) . ' ' . $iconBaseClasses . ' ' . ($isActive ? $iconActiveClasses : $iconInactiveClasses) . '"></i>';
-                $html .= '<span>' . htmlspecialchars($traitement['label_traitement']) . '</span>';
-                $html .= '</a>';
-            }
-        }
-        return $html;
     }
 }

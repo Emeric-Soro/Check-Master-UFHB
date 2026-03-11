@@ -484,7 +484,7 @@ class Utilisateur
     // Récupérer les étudiants non enregistrés comme utilisateurs
     public function getEtudiantsNonUtilisateurs()
     {
-        $query = "SELECT e.num_etu, e.nom_etu, e.prenom_etu,e.email_etu
+        $query = "SELECT e.num_carte_etud as num_etu, e.nom_etu, e.prenom_etu,e.email_etu
                  FROM etudiants e 
                  LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur 
                  WHERE u.id_utilisateur IS NULL 
@@ -499,9 +499,9 @@ class Utilisateur
     // Récupérer les étudiants qui ont au moins une inscription et ne sont pas encore utilisateurs
     public function getEtudiantsInscritsNonUtilisateurs()
     {
-        $query = "SELECT DISTINCT e.num_etu, e.nom_etu, e.prenom_etu, e.email_etu
+        $query = "SELECT DISTINCT e.num_carte_etud as num_etu, e.nom_etu, e.prenom_etu, e.email_etu
                  FROM etudiants e
-                 INNER JOIN inscriptions i ON e.num_etu = i.id_etudiant
+                 INNER JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                  LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur
                  WHERE u.id_utilisateur IS NULL
                  ORDER BY e.nom_etu, e.prenom_etu";
@@ -588,10 +588,74 @@ class Utilisateur
     // Récupérer un étudiant par son ID
     public function getEtudiantById($id)
     {
-        $sql = "SELECT * FROM etudiants WHERE num_etu = :id";
+        $sql = "SELECT * FROM etudiants WHERE num_carte_etud = :id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['id' => $id]);
         return $stmt->fetch(PDO::FETCH_OBJ);
+    }
+
+    /**
+     * Récupérer l'email d'un utilisateur à partir de son nom et type
+     * @param string $nomUtilisateur Nom complet de l'utilisateur
+     * @param int $idTypeUtilisateur ID du type d'utilisateur
+     * @return string|null Email de l'utilisateur ou null si non trouvé
+     */
+    public function getEmailByNomAndType($nomUtilisateur, $idTypeUtilisateur)
+    {
+        $email = null;
+
+        // Séparer le nom en parties
+        $parts = explode(' ', trim($nomUtilisateur), 2);
+
+        if (count($parts) < 2) {
+            return null;
+        }
+
+        $part1 = $parts[0];
+        $part2 = $parts[1];
+
+        // Chercher selon le type d'utilisateur
+        // Type 4 = Personnel administratif
+        // Type 5 = Enseignant administratif
+        // Type 6 = Enseignant simple
+        // Type 7 = Étudiant
+
+        if ($idTypeUtilisateur == 5 || $idTypeUtilisateur == 6) {
+            // Chercher dans enseignants (types 5 et 6)
+            // Essayer d'abord "NOM Prénom"
+            $sql = "SELECT mail_enseignant as email 
+                    FROM enseignants 
+                    WHERE (UPPER(nom_enseignant) = UPPER(:part1) AND UPPER(prenom_enseignant) = UPPER(:part2))
+                       OR (UPPER(prenom_enseignant) = UPPER(:part1) AND UPPER(nom_enseignant) = UPPER(:part2))
+                    LIMIT 1";
+        } elseif ($idTypeUtilisateur == 4) {
+            // Chercher dans personnel_admin (type 4)
+            $sql = "SELECT email_pers_admin as email 
+                    FROM personnel_admin 
+                    WHERE (UPPER(nom_pers_admin) = UPPER(:part1) AND UPPER(prenom_pers_admin) = UPPER(:part2))
+                       OR (UPPER(prenom_pers_admin) = UPPER(:part1) AND UPPER(nom_pers_admin) = UPPER(:part2))
+                    LIMIT 1";
+        } elseif ($idTypeUtilisateur == 7) {
+            // Chercher dans etudiants (type 7)
+            $sql = "SELECT email_etu as email 
+                    FROM etudiants 
+                    WHERE (UPPER(nom_etu) = UPPER(:part1) AND UPPER(prenom_etu) = UPPER(:part2))
+                       OR (UPPER(prenom_etu) = UPPER(:part1) AND UPPER(nom_etu) = UPPER(:part2))
+                    LIMIT 1";
+        } else {
+            return null;
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['part1' => $part1, 'part2' => $part2]);
+        $result = $stmt->fetch(PDO::FETCH_OBJ);
+
+        if (!$result) {
+            return null;
+        }
+
+        $email = trim((string) ($result->email ?? ''));
+        return $email !== '' ? $email : null;
     }
 
 

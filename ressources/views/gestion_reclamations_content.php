@@ -1,68 +1,110 @@
-<!DOCTYPE html>
-<html lang="en">
+<?php
+$statistiquesReclamations = $statistiquesReclamations ?? null;
+$reclamationsRecentes = is_array($reclamationsRecentes ?? null) ? $reclamationsRecentes : [];
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion des Réclamations</title>
-</head>
+$totalReclamations = 0;
+if (is_object($statistiquesReclamations) && isset($statistiquesReclamations->total)) {
+    $totalReclamations = (int) $statistiquesReclamations->total;
+} elseif (is_array($statistiquesReclamations) && isset($statistiquesReclamations['total'])) {
+    $totalReclamations = (int) $statistiquesReclamations['total'];
+}
 
-<body class="min-h-screen flex items-center justify-center"
-    style="background: linear-gradient(135deg, #DFF2FF 0%, #C8E8FF 100%);">
+$message = $_SESSION['message'] ?? null;
+unset($_SESSION['message']);
+?>
 
-    <div class="container mx-auto py-10">
-        <?php if (isset($_SESSION['message'])): ?>
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6 text-center">
-                <strong class="font-bold">
-                    <?php if ($_SESSION['message']['type'] === 'success'): ?>Succès !<?php else: ?>Erreur !<?php endif; ?>
-                </strong> <?= htmlspecialchars($_SESSION['message']['text']) ?>
+<div class="cm-etu-screen">
+    <section class="cm-etu-panel">
+        <header class="cm-etu-panel__header">
+            <div>
+                
+                <p class="cm-etu-panel__subtitle">Soumettez, suivez et consultez vos réclamations.</p>
             </div>
-            <?php unset($_SESSION['message']); ?>
+            <span class="cm-etu-count-badge"><?= $totalReclamations ?> réclamation<?= $totalReclamations > 1 ? 's' : '' ?></span>
+        </header>
+
+        <?php if (is_array($message)): ?>
+            <?php cm_component('ui/alert-box', [
+                    'type' => ($message['type'] ?? '') === 'success' ? 'success' : 'danger',
+                    'message' => (string) ($message['text'] ?? ''),
+            ]); ?>
         <?php endif; ?>
-        <h1 class="text-3xl font-bold text-center text-green-800 mb-10">Gestion des Réclamations</h1>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <?php foreach ($cardReclamation as $card): ?>
-                <div
-                    class="bg-white p-6 rounded-lg shadow-lg hover:shadow-2xl transition-shadow duration-75 transform hover:-translate-y-2 card">
-                    <div
-                        class="flex items-center justify-center w-14 h-14 <?php echo htmlspecialchars($card['bg_color']); ?> rounded-full mb-4">
-                        <?php if (!empty($card['icon'])): ?>
-                            <i
-                                class="<?php echo htmlspecialchars($card['icon']); ?> <?php echo htmlspecialchars($card['text_color']); ?> text-2xl"></i>
-                        <?php endif ?>
-                    </div>
-                    <h2 class="text-xl font-semibold mb-4 text-gray-800"><?php echo htmlspecialchars($card['title']); ?>
-                    </h2>
-                    <p class="text-gray-600 mb-6"><?php echo htmlspecialchars($card['description']); ?></p>
-                    <a href="<?php echo htmlspecialchars($card['link']); ?>"
-                        class="inline-block <?php echo htmlspecialchars($card['bg_color']); ?> text-white px-6 py-2 rounded-lg hover:<?php echo htmlspecialchars($card['bg_color']); ?> transition-colors duration-300"><?php echo htmlspecialchars($card['title_link']); ?></a>
-                </div>
-            <?php endforeach; ?>
+
+        <div class="cm-etu-hub-grid">
+            <article class="cm-etu-hub-card">
+                <div class="cm-etu-hub-card__icon"><i class="fas fa-pen-to-square" aria-hidden="true"></i></div>
+
+                <p class="cm-etu-hub-card__desc">Rédigez et soumettez une nouvelle réclamation à la scolarité.</p>
+                <?php if (canCreate()): ?>
+                    <a class="cm-btn is-primary is-sm" href="?page=gestion_reclamations&action=soumettre_reclamation">Nouvelle réclamation</a>
+                <?php endif; ?>
+            </article>
+
+            <article class="cm-etu-hub-card">
+                <div class="cm-etu-hub-card__icon"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i></div>
+
+                <p class="cm-etu-hub-card__desc">Consultez le statut et l'historique de vos réclamations.</p>
+                <a class="cm-btn is-info is-sm" href="?page=gestion_reclamations&action=suivi_historique_reclamation">Consulter</a>
+            </article>
         </div>
-    </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        <?php if (!empty($reclamationsRecentes)): ?>
+            <div class="cm-etu-list-header">
 
-            // Animation au survol des cartes
-            const cards = document.querySelectorAll('.card');
-            cards.forEach(card => {
-                card.addEventListener('mouseenter', () => {
-                    gsap.to(card, {
-                        scale: 1.05,
-                        duration: 0.1
-                    });
-                });
+                <?php cm_component('ui/badge', ['type' => 'info', 'text' => count($reclamationsRecentes) . ' récente' . (count($reclamationsRecentes) > 1 ? 's' : '')]); ?>
+            </div>
 
-                card.addEventListener('mouseleave', () => {
-                    gsap.to(card, {
-                        scale: 1,
-                        duration: 0.1
-                    });
-                });
-            });
-        });
-    </script>
-</body>
+            <div class="cm-etu-report-list">
+                <?php foreach ($reclamationsRecentes as $reclamation): ?>
+                    <?php
+                    $statutRecl = strtolower((string) ($reclamation->statut ?? $reclamation['statut'] ?? 'en_attente'));
+                    $badgeType = 'light';
+                    $badgeText = 'En attente';
+                    if ($statutRecl === 'en_cours' || $statutRecl === 'en cours') {
+                        $badgeType = 'info';
+                        $badgeText = 'En cours';
+                    } elseif ($statutRecl === 'traitee' || $statutRecl === 'traité' || $statutRecl === 'resolu') {
+                        $badgeType = 'success';
+                        $badgeText = 'Traitée';
+                    } elseif ($statutRecl === 'rejetee' || $statutRecl === 'rejeté') {
+                        $badgeType = 'danger';
+                        $badgeText = 'Rejetée';
+                    }
 
-</html>
+                    $objetRecl = (string) ($reclamation->objet ?? $reclamation['objet'] ?? 'Réclamation');
+                    $typeRecl = (string) ($reclamation->type ?? $reclamation['type_reclamation'] ?? '');
+                    $dateRecl = (string) ($reclamation->date_reclamation ?? $reclamation['date_reclamation'] ?? '');
+                    ?>
+                    <article class="cm-etu-report-item">
+                        <div class="cm-etu-report-item__main">
+                            <div class="cm-etu-report-item__head">
+                                <span class="cm-etu-report-item__title"><?= htmlspecialchars($objetRecl, ENT_QUOTES, 'UTF-8') ?></span>
+                                <?php cm_component('ui/badge', ['type' => $badgeType, 'text' => $badgeText]); ?>
+                            </div>
+                            <?php if ($typeRecl !== ''): ?>
+                                <p class="cm-etu-report-item__meta"><strong>Type :</strong> <?= htmlspecialchars($typeRecl, ENT_QUOTES, 'UTF-8') ?></p>
+                            <?php endif; ?>
+                            <?php if ($dateRecl !== ''): ?>
+                                <p class="cm-etu-report-item__meta">Soumise le <?= date('d/m/Y à H:i', strtotime($dateRecl)) ?></p>
+                            <?php endif; ?>
+                        </div>
+                        <div class="cm-etu-report-item__actions">
+                            <a href="?page=gestion_reclamations&action=suivi_historique_reclamation" class="cm-btn is-info is-sm">
+                                <i class="fas fa-eye" aria-hidden="true"></i>
+                                <span>Voir</span>
+                            </a>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="cm-etu-empty">
+                <i class="fas fa-inbox" aria-hidden="true"></i>
+                <p>Aucune réclamation pour le moment.</p>
+                <?php if (canCreate()): ?>
+                    <a class="cm-btn is-primary" href="?page=gestion_reclamations&action=soumettre_reclamation">Soumettre ma première réclamation</a>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+    </section>
+</div>

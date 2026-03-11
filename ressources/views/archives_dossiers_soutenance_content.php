@@ -145,40 +145,74 @@ function getTimeAgo($date)
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, .15)
         }
+
+        .filter-section form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 14rem));
+            gap: 0.75rem;
+            align-items: end;
+        }
+
+        .filter-section label {
+            margin-bottom: 0.25rem;
+            font-size: 0.78rem;
+        }
+
+        .filter-section input,
+        .filter-section select {
+            min-height: 34px;
+            padding: 0.4rem 0.65rem;
+            font-size: 0.84rem;
+            border-radius: 10px;
+        }
+
+        .filter-section form .xl\:col-span-6 {
+            grid-column: 1 / -1;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+        }
+
+        .filter-section button,
+        .filter-section a {
+            padding: 0.55rem 1rem;
+            font-size: 0.84rem;
+        }
     </style>
 </head>
 
 <body class="font-sans antialiased bg-gray-50">
     <div class="min-h-screen">
         <div class="bg-white shadow-sm border-b border-gray-200">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4">
                 <div class="flex justify-between items-center py-6">
                     <div>
-                        <h1 class="text-3xl font-bold text-gray-900">
-                            <i class="fas fa-archive text-blue-600 mr-3"></i>
-                            Archives des Dossiers de Soutenance
-                        </h1>
+
                         <p class="mt-2 text-gray-600">
                             Consultation des rapports validés et rejetés par la commission
                         </p>
                     </div>
                     <div class="flex items-center space-x-4">
-                        <button onclick="exportArchives()"
-                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-download mr-2"></i>
-                            Exporter
-                        </button>
-                        <button onclick="printArchives()"
-                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-print mr-2"></i>
-                            Imprimer
-                        </button>
+                    <?php if (canView()): ?>
+                    <button onclick="exportArchives()"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-download mr-2"></i>
+                        Exporter
+                    </button>
+                    <?php endif; ?>
+                    <?php if (canView()): ?>
+                    <button onclick="printArchives()"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-print mr-2"></i>
+                        Imprimer
+                    </button>
+                    <?php endif; ?>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4 py-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <div class="bg-white rounded-lg shadow p-6 fade-in">
                     <div class="flex items-center">
@@ -259,99 +293,14 @@ function getTimeAgo($date)
                 </div>
             </div>
 
-            <div class="filter-section rounded-lg p-6 mb-8 fade-in">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                    <i class="fas fa-filter text-blue-600 mr-2"></i>
-                    Filtres de recherche
-                </h3>
-                <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-                        <select name="statut"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-                            <option value="">Tous les statuts</option>
-                            <option value="valider" <?php echo ($filtres['statut'] ?? '') === 'valider' ? 'selected' : ''; ?>>Validés
-                            </option>
-                            <option value="rejeter" <?php echo ($filtres['statut'] ?? '') === 'rejeter' ? 'selected' : ''; ?>>Rejetés
-                            </option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Année</label>
-                        <select name="annee"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-                            <option value="">Toutes les années</option>
-                            <?php
-                            if (!empty($statistiques['repartition_annees'])) {
-                                foreach ($statistiques['repartition_annees'] as $annee) {
-                                    $selected = ($filtres['annee'] ?? '') == $annee['annee'] ? 'selected' : '';
-                                    echo "<option value=\"{$annee['annee']}\" {$selected}>{$annee['annee']}</option>";
-                                }
-                            }
-                            ?>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Enseignant</label>
-                        <input type="text" name="enseignant"
-                            value="<?php echo htmlspecialchars($filtres['enseignant'] ?? ''); ?>"
-                            placeholder="Nom ou prénom"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Étudiant</label>
-                        <input type="text" name="etudiant"
-                            value="<?php echo htmlspecialchars($filtres['etudiant'] ?? ''); ?>"
-                            placeholder="Nom ou prénom"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date début</label>
-                        <input type="date" name="date_debut" value="<?php echo $filtres['date_debut'] ?? ''; ?>"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date fin</label>
-                        <input type="date" name="date_fin" value="<?php echo $filtres['date_fin'] ?? ''; ?>"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-                    </div>
-
-                    <div class="xl:col-span-6 flex justify-end space-x-4">
-                        <button type="submit"
-                            class="flex items-center bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-search mr-2"></i>
-                            Rechercher
-                        </button>
-                        <a href="?page=archives_dossiers_soutenance"
-                            class="flex items-center bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-times mr-2"></i>
-                            Réinitialiser
-                        </a>
-                    </div>
-                </form>
-            </div>
-
-            <div class="mb-6">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-lg font-semibold text-gray-800">
-                        <i class="fas fa-list text-blue-600 mr-2"></i>
-                        Rapports archivés (<?php echo count($rapportsArchives); ?>
-                        résultat<?php echo count($rapportsArchives) > 1 ? 's' : ''; ?>)
-                    </h3>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-sm text-gray-600">Affichage :</span>
-                        <select id="displayMode" class="px-3 py-1 border border-gray-300 rounded-md text-sm">
-                            <option value="cards">Cartes</option>
-                            <option value="table">Tableau</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
+        <?php cm_toolbar([
+            'screen' => 'archives_dossiers_soutenance',
+            'id_prefix' => 'archives',
+            'search_value' => $_GET['search'] ?? '',
+            'limit' => 10,
+            'can_delete' => canDelete(),
+            'can_view' => canView(),
+        ]); ?>
 
             <div id="cardsView" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 <?php if (!empty($rapportsArchives)): ?>
@@ -360,9 +309,7 @@ function getTimeAgo($date)
                             <div class="p-6 border-b border-gray-200">
                                 <div class="flex justify-between items-start mb-4">
                                     <div class="flex-1">
-                                        <h4 class="text-lg font-semibold text-gray-900 mb-2">
-                                            <?php echo htmlspecialchars($rapport['nom_rapport'] ?? 'Rapport #' . $rapport['id_rapport']); ?>
-                                        </h4>
+
                                         <p class="text-sm text-gray-600 mb-2">
                                             <i class="fas fa-tag mr-1"></i>
                                             <?php echo htmlspecialchars($rapport['theme_rapport'] ?? 'Thème non spécifié'); ?>
@@ -384,10 +331,7 @@ function getTimeAgo($date)
 
                             <div class="p-6">
                                 <div class="mb-4">
-                                    <h5 class="text-sm font-medium text-gray-700 mb-2">
-                                        <i class="fas fa-user-graduate mr-1"></i>
-                                        Étudiant
-                                    </h5>
+
                                     <p class="text-sm text-gray-900">
                                         <?php echo htmlspecialchars(($rapport['prenom_etu'] ?? '') . ' ' . ($rapport['nom_etu'] ?? '')); ?>
                                     </p>
@@ -397,10 +341,7 @@ function getTimeAgo($date)
                                 </div>
 
                                 <div class="mb-4">
-                                    <h5 class="text-sm font-medium text-gray-700 mb-2">
-                                        <i class="fas fa-chalkboard-teacher mr-1"></i>
-                                        Enseignant responsable
-                                    </h5>
+
                                     <p class="text-sm text-gray-900">
                                         <?php echo htmlspecialchars(($rapport['prenom_enseignant'] ?? '') . ' ' . ($rapport['nom_enseignant'] ?? '')); ?>
                                     </p>
@@ -410,10 +351,7 @@ function getTimeAgo($date)
                                 </div>
 
                                 <div class="mb-4">
-                                    <h5 class="text-sm font-medium text-gray-700 mb-2">
-                                        <i class="fas fa-calendar-alt mr-1"></i>
-                                        Dates importantes
-                                    </h5>
+
                                     <div class="grid grid-cols-2 gap-2 text-xs">
                                         <div>
                                             <span class="text-gray-500">Dépôt :</span>
@@ -432,10 +370,6 @@ function getTimeAgo($date)
 
                                 <?php if (!empty($rapport['commentaire_validation'])): ?>
                                     <div class="mb-4">
-                                        <h5 class="text-sm font-medium text-gray-700 mb-2">
-                                            <i class="fas fa-comment mr-1"></i>
-                                            Commentaire de validation
-                                        </h5>
                                         <p class="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">
                                             <?php echo htmlspecialchars($rapport['commentaire_validation']); ?>
                                         </p>
@@ -443,10 +377,6 @@ function getTimeAgo($date)
                                 <?php endif; ?>
 
                                 <div class="mb-4">
-                                    <h5 class="text-sm font-medium text-gray-700 mb-2">
-                                        <i class="fas fa-chart-bar mr-1"></i>
-                                        Statistiques
-                                    </h5>
                                     <div class="flex justify-between text-xs">
                                         <span class="text-gray-500">Évaluations :</span>
                                         <span
@@ -455,16 +385,20 @@ function getTimeAgo($date)
                                 </div>
 
                                 <div class="flex justify-end space-x-2 pt-4 border-t border-gray-200">
+                                    <?php if (canView()): ?>
                                     <button onclick="viewDetails(<?php echo $rapport['id_rapport']; ?>)"
                                         class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                                         <i class="fas fa-eye mr-1"></i>
                                         Détails
                                     </button>
+                                    <?php endif; ?>
+                                    <?php if (canView()): ?>
                                     <button onclick="downloadRapport(<?php echo $rapport['id_rapport']; ?>)"
                                         class="text-green-600 hover:text-green-800 text-sm font-medium">
                                         <i class="fas fa-download mr-1"></i>
                                         Télécharger
                                     </button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -473,7 +407,7 @@ function getTimeAgo($date)
                     <div class="col-span-full">
                         <div class="text-center py-12">
                             <i class="fas fa-archive text-4xl text-gray-400 mb-4"></i>
-                            <h3 class="text-lg font-medium text-gray-900 mb-2">Aucun rapport trouvé</h3>
+
                             <p class="text-gray-500">Aucun rapport ne correspond aux critères de recherche.</p>
                         </div>
                     </div>
@@ -481,27 +415,27 @@ function getTimeAgo($date)
             </div>
 
             <div id="tableView" class="hidden">
-                <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="bg-white rounded-lg shadow cm-table-wrapper">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Statut</th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Rapport</th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Étudiant</th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Enseignant</th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Date validation</th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions</th>
                             </tr>
                         </thead>
@@ -509,7 +443,7 @@ function getTimeAgo($date)
                             <?php if (!empty($rapportsArchives)): ?>
                                 <?php foreach ($rapportsArchives as $rapport): ?>
                                     <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 whitespace-nowrap">
+                                        <td class="px-4 py-2 whitespace-nowrap">
                                             <span
                                                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <?php echo getStatusClass($rapport['decision_validation']); ?>">
                                                 <i
@@ -517,7 +451,7 @@ function getTimeAgo($date)
                                                 <?php echo ucfirst($rapport['decision_validation']); ?>
                                             </span>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
+                                        <td class="px-4 py-2 whitespace-nowrap">
                                             <div class="text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($rapport['nom_rapport'] ?? 'Rapport #' . $rapport['id_rapport']); ?>
                                             </div>
@@ -525,7 +459,7 @@ function getTimeAgo($date)
                                                 <?php echo htmlspecialchars($rapport['theme_rapport'] ?? 'Thème non spécifié'); ?>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
+                                        <td class="px-4 py-2 whitespace-nowrap">
                                             <div class="text-sm text-gray-900">
                                                 <?php echo htmlspecialchars(($rapport['prenom_etu'] ?? '') . ' ' . ($rapport['nom_etu'] ?? '')); ?>
                                             </div>
@@ -533,7 +467,7 @@ function getTimeAgo($date)
                                                 <?php echo htmlspecialchars($rapport['email_etu'] ?? ''); ?>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
+                                        <td class="px-4 py-2 whitespace-nowrap">
                                             <div class="text-sm text-gray-900">
                                                 <?php echo htmlspecialchars(($rapport['prenom_enseignant'] ?? '') . ' ' . ($rapport['nom_enseignant'] ?? '')); ?>
                                             </div>
@@ -541,24 +475,28 @@ function getTimeAgo($date)
                                                 <?php echo htmlspecialchars($rapport['email_enseignant'] ?? ''); ?>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                                             <?php echo formatDate($rapport['date_validation']); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm font-medium">
+                                            <?php if (canView()): ?>
                                             <button onclick="viewDetails(<?php echo $rapport['id_rapport']; ?>)"
                                                 class="text-blue-600 hover:text-blue-900 mr-3">
                                                 <i class="fas fa-eye"></i>
                                             </button>
+                                            <?php endif; ?>
+                                            <?php if (canView()): ?>
                                             <button onclick="downloadRapport(<?php echo $rapport['id_rapport']; ?>)"
                                                 class="text-green-600 hover:text-green-900">
                                                 <i class="fas fa-download"></i>
                                             </button>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                                    <td colspan="6" class="px-4 py-2 text-center text-gray-500">
                                         <i class="fas fa-archive text-2xl mb-2"></i>
                                         <p>Aucun rapport trouvé</p>
                                     </td>

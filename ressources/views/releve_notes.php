@@ -201,7 +201,7 @@
                     <strong style="margin-left:18px">PARCOURS :</strong> MIAGE<br>
                     <strong>NIVEAU :</strong> <?= htmlspecialchars($GLOBALS['niveau'] ?? '') ?>
                     <strong style="margin-left:18px">N° CARTE ETUDIANT :</strong>
-                    <?= htmlspecialchars($GLOBALS['selectedStudent']->num_etu) ?>
+                    <?= htmlspecialchars($GLOBALS['selectedStudent']->num_carte_etud) ?>
                 </div>
                 <div class="faculty">FILIERES PROFESSIONNALISEES (GI-MIAGE) —
                     <?= htmlspecialchars($GLOBALS['annee_universitaire'] ?? '2023-2024') ?>
@@ -225,6 +225,7 @@
                 $totalCoef = 0;
                 ?>
                 <div class="section-title">Semestre <?= $semIndex ?> — <?= htmlspecialchars($sem) ?></div>
+                <div class="cm-table-wrapper">
                 <table class="table-notes">
                     <tr>
                         <th>Code</th>
@@ -271,7 +272,9 @@
                         <td></td>
                     </tr>
                 </table>
+                </div>
 
+                <div class="cm-table-wrapper">
                 <table class="table-notes">
                     <tr>
                         <th>Code</th>
@@ -318,6 +321,7 @@
                         <td></td>
                     </tr>
                 </table>
+                </div>
                 <div class="recap">
                     <strong>Total crédits :</strong> <?= $credMaj + $credMin ?><br>
                     <strong>Résultat Semestre <?= $semIndex ?> :</strong> Admis<br>

@@ -1,400 +1,294 @@
 <?php
-// Include permissions helper
-require_once __DIR__ . '/../../../app/utils/permissions_helper.php';
+$archives = is_array($GLOBALS['archives'] ?? null) ? $GLOBALS['archives'] : [];
+$currentPage = max(1, (int) ($GLOBALS['currentPage'] ?? 1));
+$totalPages = max(1, (int) ($GLOBALS['totalPages'] ?? 1));
+$totalArchives = max(0, (int) ($GLOBALS['totalArchives'] ?? count($archives)));
+$search = trim((string) ($GLOBALS['search'] ?? ''));
+$year = trim((string) ($GLOBALS['year'] ?? ''));
+$perPage = max(5, (int) ($GLOBALS['limit_archive_cr'] ?? 10));
+$allowedLimits = [5, 10, 25, 50];
+if (!in_array($perPage, $allowedLimits, true)) {
+    $perPage = 10;
+}
+$pagination = function_exists('cm_paginate')
+    ? cm_paginate($totalArchives, $perPage, $currentPage)
+    : [
+        'total' => $totalArchives,
+        'per_page' => $perPage,
+        'current' => $currentPage,
+        'last' => $totalPages,
+        'offset' => ($currentPage - 1) * $perPage,
+        'has_prev' => $currentPage > 1,
+        'has_next' => $currentPage < $totalPages,
+        'pages' => [$currentPage],
+    ];
+$baseUrl = '?page=archive_comptes_rendus'
+    . '&search=' . urlencode($search)
+    . '&year=' . urlencode($year)
+    . '&limit_archive_cr=' . $perPage;
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archives | Mr. Diarra</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .sidebar-hover:hover {
-            background-color: #fef3c7;
-            border-left: 4px solid #f59e0b;
-        }
-        .fade-in {
-            animation: fadeIn 0.3s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .archive-card {
-            transition: all 0.3s ease;
-        }
-        .archive-card:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        }
-        .search-input:focus {
-            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
-        }
-        .timeline-item {
-            position: relative;
-            padding-left: 2rem;
-        }
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: 0.5rem;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: linear-gradient(to bottom, #e5e7eb, transparent);
-        }
-        .timeline-item:last-child::before {
-            display: none;
-        }
-        .timeline-dot {
-            position: absolute;
-            left: 0.25rem;
-            top: 0.5rem;
-            width: 0.75rem;
-            height: 0.75rem;
-            border-radius: 50%;
-            z-index: 1;
-        }
-        .filter-badge {
-            transition: all 0.2s ease;
-        }
-        .filter-badge.active {
-            background-color: #f59e0b;
-            color: white;
-        }
-    </style>
-</head>
-<body class="font-sans antialiased bg-gray-50">
-    <div class="flex h-screen overflow-hidden">
-        <!-- Main content -->
-        <div class="flex flex-col flex-1 overflow-hidden">
-            <!-- Main content area -->
-            <div class="flex-1 overflow-y-auto bg-gray-50">
-                <div class="max-w-7xl mx-auto p-6">
-                    <!-- Header Section -->
-                    <div class="mb-8">
-                        <div class="bg-white rounded-lg shadow-sm p-6">
-                            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                                <div class="mb-4 lg:mb-0">
-                                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Archives des Comptes Rendus</h2>
-                                    <p class="text-gray-600">Accédez à l'historique complet de vos évaluations</p>
-                                </div>
-                                <div class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                                    <div class="relative">
-                                        <input type="text" id="searchInput" placeholder="Rechercher dans les archives..." 
-                                               class="search-input pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 w-64"
-                                               value="<?php echo htmlspecialchars($search ?? ''); ?>">
-                                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                                    </div>
-                                    <button onclick="exportArchives()" class="flex items-center px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700">
-                                        <i class="fas fa-download mr-2"></i>Exporter
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Filter Section -->
-                    <div class="mb-6">
-                        <div class="bg-white rounded-lg shadow-sm p-4">
-                            <div class="flex flex-wrap items-center gap-3">
-                                <span class="text-sm font-medium text-gray-700">Filtrer par:</span>
-                                <button onclick="filterArchives('all')" class="filter-badge <?php echo !isset($year) ? 'active' : ''; ?> px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200">
-                                    Tous
-                                </button>
-                                <?php foreach ($stats['par_annee'] ?? [] as $annee): ?>
-                                <button onclick="filterArchives('<?php echo $annee['annee']; ?>')" class="filter-badge <?php echo ($year == $annee['annee']) ? 'active' : ''; ?> px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200">
-                                    <?php echo $annee['annee']; ?>
-                                </button>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Stats Summary -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div class="bg-white rounded-lg shadow p-6 fade-in">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-blue-100 mr-4">
-                                    <i class="fas fa-archive text-blue-600 text-xl"></i>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-600">Total Archives</p>
-                                    <p class="text-2xl font-bold text-gray-900"><?php echo $stats['total'] ?? 0; ?></p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-lg shadow p-6 fade-in">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-green-100 mr-4">
-                                    <i class="fas fa-calendar-week text-green-600 text-xl"></i>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-600">Cette Semaine</p>
-                                    <p class="text-2xl font-bold text-gray-900"><?php echo $stats['cette_semaine'] ?? 0; ?></p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-lg shadow p-6 fade-in">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-yellow-100 mr-4">
-                                    <i class="fas fa-calendar-alt text-yellow-600 text-xl"></i>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-600">Ce Mois</p>
-                                    <p class="text-2xl font-bold text-gray-900"><?php echo $stats['ce_mois'] ?? 0; ?></p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Archives List -->
-                    <div class="bg-white rounded-lg shadow-sm">
-                        <div class="px-6 py-4 border-b border-gray-200">
-                            <h3 class="text-lg font-medium text-gray-900">Liste des Archives</h3>
-                                            </div>
-                        <div class="divide-y divide-gray-200">
-                            <?php if (empty($archives)): ?>
-                            <div class="px-6 py-12 text-center">
-                                <i class="fas fa-archive text-gray-400 text-4xl mb-4"></i>
-                                <h3 class="text-lg font-medium text-gray-900 mb-2">Aucune archive trouvée</h3>
-                                <p class="text-gray-600">Aucun compte rendu n'a été archivé pour le moment.</p>
-                                                </div>
-                            <?php else: ?>
-                            <?php foreach ($archives as $archive): ?>
-                            <div class="archive-card p-6 hover:bg-gray-50">
-                                            <div class="flex items-center justify-between">
-                                    <div class="flex-1">
-                                        <div class="flex items-center space-x-3 mb-2">
-                                            <h4 class="text-lg font-semibold text-gray-900">
-                                                <?php echo htmlspecialchars($archive['nom_CR']); ?>
-                                            </h4>
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                <i class="fas fa-check mr-1"></i>Finalisé
-                                            </span>
-                                        </div>
-                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-                                            <div>
-                                                <span class="font-medium">Étudiant:</span>
-                                                <?php echo htmlspecialchars($archive['prenom_etu'] . ' ' . $archive['nom_etu']); ?>
-                                            </div>
-                                            <div>
-                                                <span class="font-medium">Email:</span>
-                                                <?php echo htmlspecialchars($archive['email_etu']); ?>
-                                            </div>
-                                            <div>
-                                                <span class="font-medium">Date:</span>
-                                                <?php echo date('d/m/Y H:i', strtotime($archive['date_CR'])); ?>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center space-x-2 ml-4">
-                                        
-                                        <button onclick="window.location.href='layout.php?page=archive_comptes_rendus&action=download_pdf&chemin=<?php echo urlencode($archive['chemin_fichier_pdf']); ?>'" class="flex items-center px-3 py-1 text-sm text-green-600 hover:text-green-800">
-                                            <i class="fas fa-download mr-1"></i>PDF
+<div class="cm-prd3-screen cm-prd3-crud-screen">
+    <div id="cmArchiveAlert"></div>
+    <form id="cmArchiveCsrfForm" style="display:none;">
+        <?php cm_component('form/csrf-token'); ?>
+    </form>
+    <div class="cm-crud-wrapper">
+        <div class="cm-pole-superieur">
+            <div class="">
+            </div>
+        </div>
+        <?php cm_toolbar([
+            'screen' => 'archive_comptes_rendus',
+            'id_prefix' => 'cmArchive',
+            'search_value' => $search,
+            'limit' => $perPage,
+            'allowed_limits' => $allowedLimits,
+            'can_delete' => canDelete(),
+            'can_view' => canView(),
+        ]); ?>
+        <div class="cm-pole-inferieur">
+            <div class="cm-table-wrapper">
+                <table class="cm-data-table" id="cmArchiveTable">
+                    <thead>
+                    <tr>
+                        <th class="cm-data-table__th cm-data-table__th--check">
+                            <input type="checkbox" id="cmArchiveCheckAll" aria-label="Tout sélectionner">
+                        </th>
+                        <th class="cm-data-table__th">N CR</th>
+                        <th class="cm-data-table__th">Nom CR</th>
+                        <th class="cm-data-table__th">Etudiant</th>
+                        <th class="cm-data-table__th">Date</th>
+                        <th class="cm-data-table__th">Statut</th>
+                        <th class="cm-data-table__th is-center">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="cmArchiveTableBody">
+                    <?php if (empty($archives)): ?>
+                        <?php cm_component('ui/empty-state', [
+                            'in_table' => true,
+                            'colspan' => 7,
+                            'title' => '',
+                            'message' => 'Aucun compte rendu archive.',
+                        ]); ?>
+                    <?php else: ?>
+                        <?php foreach ($archives as $archive): ?>
+                            <?php
+                            $idCr = (int) ($archive['id_CR'] ?? 0);
+                            $nomCr = (string) ($archive['nom_CR'] ?? '');
+                            $etudiant = trim((string) ($archive['prenom_etu'] ?? '') . ' ' . (string) ($archive['nom_etu'] ?? ''));
+                            $dateCr = !empty($archive['date_CR']) ? date('d/m/Y', strtotime((string) $archive['date_CR'])) : '-';
+                            $searchText = strtolower($nomCr . ' ' . $etudiant . ' ' . (string) ($archive['email_etu'] ?? ''));
+                            ?>
+                            <tr class="cm-data-table__row"
+                                data-id="<?php echo $idCr; ?>"
+                                data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
+                                <td class="cm-data-table__td cm-data-table__td--check">
+                                    <input type="checkbox" class="cm-archive-check-row" value="<?php echo $idCr; ?>" aria-label="Sélectionner archive <?php echo $idCr; ?>">
+                                </td>
+                                <td class="cm-data-table__td">#<?php echo $idCr; ?></td>
+                                <td class="cm-data-table__td"><?php echo htmlspecialchars($nomCr, ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="cm-data-table__td"><?php echo htmlspecialchars($etudiant, ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="cm-data-table__td"><?php echo htmlspecialchars($dateCr, ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="cm-data-table__td">
+                                    <?php cm_component('ui/badge', ['text' => 'Finalise', 'type' => 'success']); ?>
+                                </td>
+                                <td class="cm-data-table__td is-center">
+                                    <div class="cm-table-actions">
+                                        <a class="cm-btn-action is-view"
+                                           href="?page=archive_comptes_rendus&action=view&id=<?php echo $idCr; ?>"
+                                           target="_blank"
+                                           rel="noopener"
+                                           title="Voir">
+                                            <i class="fas fa-eye" aria-hidden="true"></i>
+                                        </a>
+                                        <?php if (!empty($archive['chemin_fichier_pdf'])): ?>
+                                            <a class="cm-btn-action is-view"
+                                               href="?page=archive_comptes_rendus&action=download_pdf&chemin=<?php echo urlencode((string) $archive['chemin_fichier_pdf']); ?>"
+                                               target="_blank"
+                                               rel="noopener"
+                                               title="Telecharger PDF">
+                                                <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        <button type="button"
+                                                class="cm-btn-action is-delete cm-archive-delete-one"
+                                                data-id="<?php echo $idCr; ?>"
+                                                title="Supprimer">
+                                            <i class="fas fa-trash" aria-hidden="true"></i>
                                         </button>
-                                       
                                     </div>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
-                            <?php endif; ?>
-                                </div>
-                            </div>
-
-                    <!-- Pagination -->
-                    <?php if ($totalPages > 1): ?>
-                    <div class="mt-6 flex items-center justify-between">
-                        <div class="text-sm text-gray-700">
-                            Page <?php echo $currentPage; ?> sur <?php echo $totalPages; ?>
-                                </div>
-                        <div class="flex space-x-2">
-                            <?php if ($currentPage > 1): ?>
-                            <a href="?page=archives_compte_rendu&page_num=<?php echo $currentPage - 1; ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?><?php echo $year ? '&year=' . $year : ''; ?>" class="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">
-                                Précédent
-                            </a>
-                            <?php endif; ?>
-                            <?php if ($currentPage < $totalPages): ?>
-                            <a href="?page=archives_compte_rendu&page_num=<?php echo $currentPage + 1; ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?><?php echo $year ? '&year=' . $year : ''; ?>" class="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">
-                                Suivant
-                            </a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
                     <?php endif; ?>
-                </div>
+                    </tbody>
+                </table>
             </div>
+            <?php
+            cm_component('crud/pagination', [
+                'pagination' => $pagination,
+                'base_url' => $baseUrl,
+                'param_name' => 'page_num',
+            ]);
+            ?>
         </div>
     </div>
-
-    <!-- Archive View Modal -->
-    <div id="archiveModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 transition-opacity modal-overlay" onclick="closeArchiveModal()"></div>
-            
-            <div class="inline-block w-full max-w-4xl p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
-                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900">
-                        <i class="fas fa-archive text-yellow-600 mr-2"></i>
-                        Détails de l'Archive
-                    </h3>
-                    <div class="flex items-center space-x-2">
-                        <button onclick="printArchive()" class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
-                            <i class="fas fa-print mr-1"></i>Imprimer
-                        </button>
-                        <button onclick="closeArchiveModal()" class="text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-times text-xl"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="px-8 py-6 max-h-96 overflow-y-auto">
-                    <div id="archiveContent" class="archive-content">
-                        <!-- Archive content will be loaded here -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Variables globales
-        let currentFilter = '<?php echo $year ?? "all"; ?>';
-        let currentSearch = '<?php echo htmlspecialchars($search ?? ""); ?>';
-
-        // Fonctions de filtrage et recherche
-        function filterArchives(filter) {
-            currentFilter = filter;
-            const url = new URL(window.location);
-            if (filter === 'all') {
-                url.searchParams.delete('year');
-            } else {
-                url.searchParams.set('year', filter);
-            }
-            url.searchParams.delete('page');
-            window.location.href = url.toString();
+</div>
+<script>
+(function () {
+    const alertBox = document.getElementById('cmArchiveAlert');
+    const searchInput = document.getElementById('cmArchiveSearch');
+    const checkAll = document.getElementById('cmArchiveCheckAll');
+    const selectAllBtn = document.getElementById('cmArchiveSelectAllBtn');
+    const deselectBtn = document.getElementById('cmArchiveDeselectBtn');
+    const deleteBtn = document.getElementById('cmArchiveDeleteBtn');
+    function setAlert(type, message) {
+        if (!alertBox) {
+            return;
         }
-
-        function searchArchives() {
-            const searchTerm = document.getElementById('searchInput').value;
-            const url = new URL(window.location);
-            if (searchTerm.trim()) {
-                url.searchParams.set('search', searchTerm);
-            } else {
-                url.searchParams.delete('search');
-            }
-            url.searchParams.delete('page');
-            window.location.href = url.toString();
-        }
-
-        // Fonctions d'action
-        function viewArchive(id) {
-            // Charger les détails de l'archive via AJAX
-            fetch(`ressources/routes/archivesCompteRenduRoutes.php?page=archives_compte_rendu&action=view&id=${id}`)
-                .then(response => response.text())
-                .then(html => {
-                    document.getElementById('archiveContent').innerHTML = html;
-                    document.getElementById('archiveModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-                })
-                .catch(error => {
-                    console.error('Erreur lors du chargement de l\'archive:', error);
-                    alert('Erreur lors du chargement de l\'archive');
-                });
-        }
-
-        function closeArchiveModal() {
-            document.getElementById('archiveModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
-
-        function deleteArchive(id) {
-            if (confirm('Êtes-vous sûr de vouloir supprimer cette archive ? Cette action est irréversible.')) {
-                const formData = new FormData();
-                formData.append('id_CR', id);
-                
-                fetch('ressources/routes/archivesCompteRenduRoutes.php?page=archives_compte_rendu&action=delete', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Archive supprimée avec succès');
-                        location.reload();
-                    } else {
-                        alert('Erreur lors de la suppression: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                    alert('Erreur lors de la suppression');
-                });
-            }
-        }
-
-        function exportArchives() {
-            const url = new URL('ressources/routes/archivesCompteRenduRoutes.php', window.location.origin);
-            url.searchParams.set('page', 'archives_compte_rendu');
-            url.searchParams.set('action', 'export');
-            if (currentSearch) url.searchParams.set('search', currentSearch);
-            if (currentFilter !== 'all') url.searchParams.set('year', currentFilter);
-            
-            window.location.href = url.toString();
-        }
-
-        function printArchive() {
-            const content = document.getElementById('archiveContent').innerHTML;
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>Archive - Compte Rendu</title>
-                    <style>
-                        body { font-family: 'Times New Roman', serif; line-height: 1.6; margin: 40px; }
-                        h1, h2, h3 { color: #333; }
-                        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-                        .border-b-2 { border-bottom: 2px solid #ccc; padding-bottom: 12px; margin-bottom: 16px; }
-                        .mb-8 { margin-bottom: 32px; }
-                        .p-4 { padding: 16px; }
-                        .rounded-lg { border-radius: 8px; }
-                        .text-center { text-align: center; }
-                        .font-bold { font-weight: bold; }
-                    </style>
-                </head>
-                <body>${content}</body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.print();
-        }
-
-        // Event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            // Recherche en temps réel
-            const searchInput = document.getElementById('searchInput');
-            let searchTimeout;
-            
-            searchInput.addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    searchArchives();
-                }, 500);
-            });
-
-            // Gestion du menu mobile
-            const mobileMenuButton = document.getElementById('mobileMenuButton');
-            const sidebar = document.querySelector('.hidden.md\\:flex.md\\:flex-shrink-0 > .flex.flex-col.w-64');
-
-            if (mobileMenuButton && sidebar) {
-                mobileMenuButton.addEventListener('click', function() {
-                    sidebar.classList.toggle('hidden');
-                    sidebar.classList.toggle('absolute');
-                    sidebar.classList.toggle('z-20');
-                });
-            }
+        const cssType = type === 'success' ? 'success' : 'danger';
+        alertBox.innerHTML = '<div class=\"cm-alert is-' + cssType + '\"><div class=\"cm-alert__content\"><span class=\"cm-alert__message\">' +
+            String(message || '').replace(/[<>&]/g, '') + '</span></div></div>';
+    }
+    function getRows() {
+        return Array.from(document.querySelectorAll('#cmArchiveTableBody .cm-data-table__row'));
+    }
+    function getVisibleRows() {
+        return getRows().filter(function (row) { return row.style.display !== 'none'; });
+    }
+    function getCheckedRows() {
+        return getRows().filter(function (row) {
+            const cb = row.querySelector('.cm-archive-check-row');
+            return cb && cb.checked;
         });
-    </script>
-</body>
-</html>
+    }
+    function updateDeleteState() {
+        const count = getCheckedRows().length;
+        if (deleteBtn) {
+            deleteBtn.disabled = count === 0;
+            deleteBtn.innerHTML = '<i class=\"fas fa-trash\" aria-hidden=\"true\"></i> Supprimer (' + count + ')';
+        }
+        if (checkAll) {
+            const visible = getVisibleRows();
+            const checkedVisible = visible.filter(function (row) {
+                const cb = row.querySelector('.cm-archive-check-row');
+                return cb && cb.checked;
+            });
+            checkAll.checked = visible.length > 0 && checkedVisible.length === visible.length;
+        }
+    }
+    function deleteArchive(id) {
+        const formData = new FormData();
+        formData.append('id_CR', id);
+        const tokenInput = document.querySelector('#cmArchiveCsrfForm input[name=\"csrf_token\"]');
+        if (tokenInput && tokenInput.value) {
+            formData.append('csrf_token', tokenInput.value);
+        }
+        return fetch('?page=archive_comptes_rendus&action=delete', {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        }).then(function (response) { return response.json(); });
+    }
+    document.querySelectorAll('.cm-archive-delete-one').forEach(function (button) {
+        button.addEventListener('click', async function () {
+            const id = button.getAttribute('data-id') || '';
+            if (!id) {
+                return;
+            }
+            const confirmed = await window.CM.confirm({
+                title: 'Suppression',
+                message: 'Supprimer cette archive ?',
+                type: 'danger',
+                confirmText: 'Supprimer',
+            });
+            if (!confirmed) {
+                return;
+            }
+            deleteArchive(id).then(function (payload) {
+                if (!payload || !payload.success) {
+                    setAlert('error', payload && payload.message ? payload.message : 'Suppression impossible.');
+                    return;
+                }
+                setAlert('success', payload.message || 'Archive supprimee.');
+                const row = button.closest('.cm-data-table__row');
+                if (row) row.remove();
+                updateDeleteState();
+            }).catch(function () {
+                setAlert('error', 'Erreur reseau.');
+            });
+        });
+    });
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', async function () {
+            const checked = getCheckedRows();
+            if (checked.length === 0) {
+                return;
+            }
+            const confirmed = await window.CM.confirm({
+                title: 'Suppression multiple',
+                message: 'Supprimer ' + checked.length + ' archive(s) ?',
+                type: 'danger',
+                confirmText: 'Supprimer',
+            });
+            if (!confirmed) {
+                return;
+            }
+            Promise.all(checked.map(function (row) {
+                const cb = row.querySelector('.cm-archive-check-row');
+                return cb ? deleteArchive(cb.value) : Promise.resolve({ success: false });
+            })).then(function () {
+                checked.forEach(function (row) { row.remove(); });
+                updateDeleteState();
+                setAlert('success', 'Suppression terminee.');
+            }).catch(function () {
+                setAlert('error', 'Erreur reseau.');
+            });
+        });
+    }
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            const term = (searchInput.value || '').trim().toLowerCase();
+            getRows().forEach(function (row) {
+                const text = row.getAttribute('data-search') || '';
+                row.style.display = term === '' || text.indexOf(term) !== -1 ? '' : 'none';
+            });
+            updateDeleteState();
+        });
+    }
+    document.addEventListener('change', function (event) {
+        if (event.target && event.target.classList.contains('cm-archive-check-row')) {
+            updateDeleteState();
+        }
+    });
+    if (checkAll) {
+        checkAll.addEventListener('change', function () {
+            getVisibleRows().forEach(function (row) {
+                const cb = row.querySelector('.cm-archive-check-row');
+                if (cb) cb.checked = checkAll.checked;
+            });
+            updateDeleteState();
+        });
+    }
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function () {
+            getVisibleRows().forEach(function (row) {
+                const cb = row.querySelector('.cm-archive-check-row');
+                if (cb) cb.checked = true;
+            });
+            updateDeleteState();
+        });
+    }
+    if (deselectBtn) {
+        deselectBtn.addEventListener('click', function () {
+            getRows().forEach(function (row) {
+                const cb = row.querySelector('.cm-archive-check-row');
+                if (cb) cb.checked = false;
+            });
+            updateDeleteState();
+        });
+    }
+    updateDeleteState();
+})();
+</script>

@@ -8,6 +8,21 @@ if ($_GET['page'] === 'parametres_generaux') {
             case 'annees_academiques':
                 $controller->gestionAnnees();
                 break;
+            case 'app_settings':
+            case 'genre':
+            case 'decisions_jury':
+            case 'etablissement_origine':
+            case 'session':
+            case 'mode_paiement':
+            case 'statut_reclamation':
+            case 'domaine':
+            case 'mentions':
+            case 'filieres':
+            case 'qualite_jury':
+            case 'maitre_stage':
+            case 'type_enseignant':
+                $controller->gestionReferentielSimple();
+                break;
             case 'grades':
                 $controller->gestionGrade();
                 break;
@@ -20,7 +35,7 @@ if ($_GET['page'] === 'parametres_generaux') {
             case 'niveaux_etude':
                 $controller->gestionNiveauEtude();
                 break;
-            case 'ue';
+            case 'ue':
                 $controller->gestionUe();
                 break;
             case 'ecue':
@@ -64,6 +79,9 @@ if ($_GET['page'] === 'parametres_generaux') {
                 break;
             case 'salles':
                 $controller->gestionSalles();
+                break;
+            case 'bareme_critere':
+                $controller->gestionBaremeCritere();
                 break;
             default:
                 '';

@@ -1,658 +1,453 @@
-<!-- Gestion des critères d'évaluation -->
-<div class="space-y-6">
-    <!-- En-tête -->
-    <div class="bg-white shadow rounded-lg p-6">
-        <div class="flex justify-between items-center">
-            <div>
-                <h2 class="text-2xl font-bold text-gray-900">Critères d'Évaluation</h2>
-                <p class="text-gray-600 mt-1">Gérez les critères d'évaluation et leurs barèmes par année académique</p>
+<?php
+$pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
+?>
+<section class="cm-prd3-crud-screen cm-prd6-admin-screen">
+    <div class="cm-crud-wrapper">
+        <?php
+        ob_start();
+        ?>
+        <form id="cmCritereForm" class="cm-form" autocomplete="off">
+            <div class="cm-grid-2">
+                <?php cm_component('form/input-text', [
+                    'name' => 'lib_critere',
+                    'id' => 'cmCritereLibelle',
+                    'label' => 'Libellé critère',
+                    'required' => true,
+                    'placeholder' => 'Ex: Qualité de la présentation',
+                ]); ?>
+                <div class="cm-form-group">
+                    <label class="cm-form-label">Barèmes par année</label>
+                    <div id="cmBaremesRows"></div>
+                    <button type="button" class="cm-btn is-light is-sm" id="cmAddBaremeRow">
+                        <i class="fas fa-plus" aria-hidden="true"></i>
+                        <span>Ajouter une année</span>
+                    </button>
+                </div>
             </div>
-            <?php if (canCreate()): ?>
-            <button onclick="openAddCritereModal()"
-                class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                <i class="fas fa-plus mr-2"></i>Nouveau Critère
+            <?php
+            cm_component('crud/form-actions', [
+                'actions' => [
+                    [
+                        'tag' => 'button',
+                        'type' => 'button',
+                        'label' => 'Réinitialiser',
+                        'icon' => 'fa-rotate-left',
+                        'class' => 'cm-btn is-light',
+                        'attrs' => ['id' => 'cmResetCritereForm'],
+                    ],
+                    [
+                        'tag' => 'button',
+                        'type' => 'submit',
+                        'label' => 'Enregistrer',
+                        'icon' => 'fa-save',
+                        'class' => 'cm-btn is-success',
+                        'attrs' => ['id' => 'cmSubmitCritere'],
+                    ],
+                ],
+            ]);
+            ?>
+        </form>
+        <?php
+        cm_component('crud/form-pole', [
+            'title' => '',
+            'icon' => 'fa-list-ol',
+            'content' => (string) ob_get_clean(),
+        ]);
+        ?>
+
+        <?php cm_toolbar([
+            'screen' => 'criteres_evaluation',
+            'id_prefix' => 'cmCritToolbar',
+            'search_placeholder' => 'Rechercher un critère...',
+            'show_actions' => false,
+            'filters' => [
+                ['type' => 'select', 'name' => 'annee', 'label' => 'Année', 'options' => ['' => 'Toutes']],
+            ],
+            'custom_actions' => [
+                ['tag' => 'button', 'type' => 'button', 'id' => 'cmCritPrint', 'label' => 'Imprimer', 'class' => 'cm-btn is-info is-sm'],
+                ['tag' => 'button', 'type' => 'button', 'id' => 'cmCritExport', 'label' => 'Exporter', 'class' => 'cm-btn is-info is-sm'],
+            ],
+        ]); ?>
+
+        <div class="cm-pole-inferieur">
+            <div id="cmCritereNotice"></div>
+            <div class="cm-table-wrapper">
+                <table class="cm-data-table" id="cmCritereTable">
+                    <thead>
+                        <tr>
+                            <th class="cm-data-table__th">Critère</th>
+                            <th class="cm-data-table__th">Barèmes</th>
+                            <th class="cm-data-table__th is-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cmCritereTableBody">
+                        <tr>
+                            <td colspan="3" class="cm-data-table__td is-center">Chargement...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<template id="cmBaremeRowTpl">
+    <div class="cm-grid-2 cm-bareme-row">
+        <select class="cm-form-control js-bareme-year">
+            <option value="">-- Sélectionner année --</option>
+        </select>
+        <div class="cm-bareme-row__value-wrap">
+            <input type="number" min="0" max="20" class="cm-form-control js-bareme-value" placeholder="Barème">
+            <button type="button" class="cm-btn-action is-delete js-remove-bareme" aria-label="Supprimer">
+                <i class="fas fa-trash" aria-hidden="true"></i>
             </button>
-            <?php endif; ?>
         </div>
     </div>
-
-    <!-- Filtre par année académique -->
-    <div class="bg-white shadow rounded-lg p-6">
-        <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Année Académique:</label>
-            <select id="anneeFilter" onchange="filterByAnnee()"
-                class="flex-1 sm:max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
-                <option value="">Toutes les années</option>
-                <!-- Options seront ajoutées dynamiquement -->
-            </select>
-            <div class="flex items-center space-x-4 text-sm">
-                <span class="text-gray-500">
-                    Total: <span id="totalCriteres">0</span> critère(s)
-                </span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Liste des critères -->
-    <div class="bg-white shadow rounded-lg overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-medium text-gray-900">Liste des Critères d'Évaluation</h3>
-        </div>
-
-        <div class="overflow-x-auto">
-            <table id="criteresTable" class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Critère</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Année
-                            Académique</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Barème (points)</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Statut</th>
-                        <?php if (canEdit() || canDelete()): ?>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Actions</th>
-                        <?php endif; ?>
-                    </tr>
-                </thead>
-                <tbody id="criteresBody" class="bg-white divide-y divide-gray-200">
-                    <!-- Les lignes seront ajoutées dynamiquement -->
-                </tbody>
-            </table>
-        </div>
-
-        <!-- État vide -->
-        <div id="emptyStateCriteres" class="text-center py-12" style="display: none;">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun critère trouvé</h3>
-            <p class="mt-1 text-sm text-gray-500">Commencez par ajouter un critère d'évaluation.</p>
-        </div>
-    </div>
-</div>
-
-<!-- Modal d'ajout/modification de critère -->
-<div id="critereModal"
-    class="fixed inset-0 bg-opacity-60 flex items-center justify-center overflow-y-auto h-full w-full z-50"
-    style="display: none;">
-    <div class="relative mx-auto p-5  w-full max-w-2xl shadow-lg rounded-lg bg-white m-4">
-        <div class="mt-3">
-            <!-- En-tête du modal -->
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-medium text-gray-900" id="modalTitle">Nouveau Critère d'Évaluation</h3>
-                <button onclick="closeCritereModal()" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-
-            <!-- Formulaire -->
-            <form id="critereForm" class="space-y-6">
-                <input type="hidden" id="critereId" value="">
-
-                <!-- Libellé du critère -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Libellé du Critère *</label>
-                    <input type="text" id="libCritere" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                        placeholder="Ex: Qualité de la présentation, Maîtrise du sujet...">
-                </div>
-
-                <!-- Configuration des barèmes par année -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-3">Configuration des Barèmes</label>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <div class="space-y-4" id="baremesContainer">
-                            <!-- Les barèmes seront ajoutés dynamiquement -->
-                        </div>
-                        <button type="button" onclick="addBaremeRow()"
-                            class="mt-3 text-green-600 hover:text-green-800 text-sm font-medium">
-                            <i class="fas fa-plus mr-1"></i>Ajouter une année
-                        </button>
-                    </div>
-
-                    <!-- Affichage des totaux par année -->
-                    <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <h4 class="text-sm font-medium text-blue-800 mb-2">
-                            <i class="fas fa-calculator mr-2"></i>Récapitulatif des barèmes par année
-                        </h4>
-                        <div id="totalBaremeDisplay" class="text-sm">
-                            <div class="text-gray-500 italic">Aucun barème configuré</div>
-                        </div>
-                    </div>
-
-                    <!-- Zone d'affichage des erreurs -->
-                    <div id="baremeErrorMessage" style="display: none;"></div>
-                </div>
-
-                <!-- Boutons d'action -->
-                <div class="flex justify-end space-x-3 pt-6 border-t">
-                    <button type="button" onclick="closeCritereModal()"
-                        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                        Annuler
-                    </button>
-                    <button type="submit"
-                        class="px-4 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                        <i class="fas fa-save mr-2"></i><span id="submitButtonText">Enregistrer</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+</template>
 
 <script>
-    // Variables globales
-    let criteresData = [];
-    let anneesAcademiques = [];
-    let isEditMode = false;
+(function () {
+    const routeBase = '?page=criteres_evaluation&action=';
+    const yearsFilter = document.getElementById('cmCritToolbar_filter_annee');
+    const searchInput = document.getElementById('cmCritToolbar_search');
+    const toolbarId = 'cmCritToolbar_toolbar';
+    const tableBody = document.getElementById('cmCritereTableBody');
+    const noticeBox = document.getElementById('cmCritereNotice');
+    const form = document.getElementById('cmCritereForm');
+    const baremesRows = document.getElementById('cmBaremesRows');
+    const addRowBtn = document.getElementById('cmAddBaremeRow');
+    const resetBtn = document.getElementById('cmResetCritereForm');
+    const libelleInput = document.getElementById('cmCritereLibelle');
 
-    // Initialisation
-    document.addEventListener('DOMContentLoaded', function () {
-        loadAnneesAcademiques();
-        loadCriteres();
-    });
+    let annees = [];
+    let criteres = [];
+    let editingId = null;
 
-    // Charger les années académiques
-    function loadAnneesAcademiques() {
-        fetch('?page=criteres_evaluation&action=getAnnees')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    anneesAcademiques = data.data;
+    const esc = function (v) {
+        return String(v || '').replace(/[&<>"']/g, function (s) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[s];
+        });
+    };
 
-                    const select = document.getElementById('anneeFilter');
-                    select.innerHTML = '<option value="">Toutes les années</option>';
-
-                    anneesAcademiques.forEach(annee => {
-                        select.innerHTML += `<option value="${annee.id}">${annee.lib}</option>`;
-                    });
-                } else {
-                    showNotification('Erreur lors du chargement des années académiques : ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                showNotification('Erreur de connexion lors du chargement des années académiques', 'error');
-            });
+    function showNotice(type, message) {
+        const cls = type === 'success' ? 'success' : 'danger';
+        noticeBox.innerHTML = '<div class="cm-alert is-' + cls + '">' + esc(message) + '</div>';
+        setTimeout(function () {
+            noticeBox.innerHTML = '';
+        }, 4500);
     }
 
-    // Charger les critères
-    function loadCriteres() {
-        fetch('?page=criteres_evaluation&action=getCriteres')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    criteresData = data.data;
-                    displayCriteres();
-                } else {
-                    showNotification('Erreur lors du chargement des critères : ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                showNotification('Erreur de connexion lors du chargement des critères', 'error');
-            });
+    function makeYearOptions(selected) {
+        let html = '<option value="">-- Sélectionner année --</option>';
+        annees.forEach(function (annee) {
+            const value = String(annee.id || '');
+            const isSel = String(selected || '') === value ? ' selected' : '';
+            html += '<option value="' + esc(value) + '"' + isSel + '>' + esc(annee.lib || value) + '</option>';
+        });
+        return html;
     }
 
-    // Afficher les critères
-    function displayCriteres() {
-        const tbody = document.getElementById('criteresBody');
-        const emptyState = document.getElementById('emptyStateCriteres');
-        const totalElement = document.getElementById('totalCriteres');
+    function addBaremeRow(yearValue, baremeValue) {
+        const tpl = document.getElementById('cmBaremeRowTpl');
+        if (!tpl) {
+            return;
+        }
+        const node = tpl.content.firstElementChild.cloneNode(true);
+        const yearSelect = node.querySelector('.js-bareme-year');
+        const valueInput = node.querySelector('.js-bareme-value');
+        const removeBtn = node.querySelector('.js-remove-bareme');
+        yearSelect.innerHTML = makeYearOptions(yearValue || '');
+        valueInput.value = baremeValue || '';
+        removeBtn.addEventListener('click', function () {
+            node.remove();
+            if (baremesRows.children.length === 0) {
+                addBaremeRow('', '');
+            }
+        });
+        baremesRows.appendChild(node);
+    }
 
-        const filteredData = filterCriteres();
-
-        if (filteredData.length === 0) {
-            tbody.innerHTML = '';
-            emptyState.style.display = 'block';
-            totalElement.textContent = '0';
+    function setSubmitButtonLabel(label) {
+        const submit = document.getElementById('cmSubmitCritere');
+        if (!submit) {
             return;
         }
 
-        emptyState.style.display = 'none';
-        totalElement.textContent = filteredData.length;
+        const span = submit.querySelector('span');
+        if (span) {
+            span.textContent = label;
+            return;
+        }
 
-        tbody.innerHTML = filteredData.map(critere => {
-            const baremesDisplay = critere.baremes.map(b =>
-                `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">
-                    ${b.annee_lib}: ${b.bareme}pts
-                </span>`
-            ).join('');
+        const icon = submit.querySelector('i');
+        submit.textContent = '';
+        if (icon) {
+            submit.appendChild(icon);
+            submit.appendChild(document.createTextNode(' ' + label));
+            return;
+        }
+        submit.textContent = label;
+    }
 
+    function resetForm() {
+        editingId = null;
+        libelleInput.value = '';
+        baremesRows.innerHTML = '';
+        addBaremeRow('', '');
+        setSubmitButtonLabel('Enregistrer');
+    }
 
+    function collectBaremes() {
+        const out = [];
+        baremesRows.querySelectorAll('.cm-bareme-row').forEach(function (row) {
+            const y = row.querySelector('.js-bareme-year').value;
+            const b = row.querySelector('.js-bareme-value').value;
+            if (y !== '' && b !== '') {
+                out.push({ annee_id: y, bareme: Number(b) });
+            }
+        });
+        return out;
+    }
 
-            return `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4">
-                        <div class="text-sm font-medium text-gray-900">${escapeHtml(critere.libelle)}</div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="text-sm text-gray-900">${critere.baremes.length} année(s) configurée(s)</div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="space-y-1">
-                            ${baremesDisplay}
-                        </div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${critere.baremes.length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                }">
-                            ${critere.baremes.length > 0 ? 'Configuré' : 'Non configuré'}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-sm font-medium space-x-2">
-                        <button onclick="editCritere(${critere.id})" 
-                                class="text-green-600 hover:text-green-900 transition-colors duration-200" title="Modifier">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button onclick="deleteCritere(${critere.id})" 
-                                class="text-red-600 hover:text-red-900 transition-colors duration-200" title="Supprimer">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
+    function filterData() {
+        const q = (searchInput.value || '').toLowerCase().trim();
+        const year = yearsFilter.value || '';
+        return criteres.filter(function (row) {
+            const hitsSearch = q === '' || String(row.libelle || '').toLowerCase().includes(q);
+            const hitsYear = year === '' || (row.baremes || []).some(function (b) {
+                return String(b.annee_id || '') === year;
+            });
+            return hitsSearch && hitsYear;
+        });
+    }
+
+    function renderTable() {
+        const data = filterData();
+        if (data.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="3" class="cm-data-table__td is-center">Aucun critère trouvé.</td></tr>';
+            return;
+        }
+
+        tableBody.innerHTML = data.map(function (row) {
+            const baremes = (row.baremes || []).map(function (b) {
+                return '<span class="cm-badge is-info cm-bareme-badge">' + esc((b.annee_lib || b.annee_id) + ': ' + b.bareme) + '</span>';
+            }).join(' ');
+            return '' +
+                '<tr class="cm-data-table__row">' +
+                    '<td class="cm-data-table__td">' + esc(row.libelle) + '</td>' +
+                    '<td class="cm-data-table__td">' + (baremes || '<span class="cm-text-muted">Aucun barème</span>') + '</td>' +
+                    '<td class="cm-data-table__td is-center">' +
+                        '<button type="button" class="cm-btn-action is-edit js-edit" data-id="' + esc(row.id) + '" aria-label="Modifier"><i class="fas fa-pen"></i></button>' +
+                        '<button type="button" class="cm-btn-action is-delete js-delete" data-id="' + esc(row.id) + '" aria-label="Supprimer"><i class="fas fa-trash"></i></button>' +
+                    '</td>' +
+                '</tr>';
         }).join('');
     }
 
-    // Filtrer les critères par année
-    function filterCriteres() {
-        const anneeFilter = document.getElementById('anneeFilter').value;
-
-        if (!anneeFilter) {
-            return criteresData;
-        }
-
-        return criteresData.filter(critere =>
-            critere.baremes.some(b => b.annee_id.toString() === anneeFilter)
-        );
-    }
-
-    // Filtrer par année (appelé par le select)
-    function filterByAnnee() {
-        displayCriteres();
-    }
-
-    // Ouvrir le modal d'ajout
-    function openAddCritereModal() {
-        console.log('Ouverture du modal...');
-        console.log('Années académiques disponibles:', anneesAcademiques);
-
-        isEditMode = false;
-        document.getElementById('modalTitle').textContent = 'Nouveau Critère d\'Évaluation';
-        document.getElementById('submitButtonText').textContent = 'Enregistrer';
-        document.getElementById('critereForm').reset();
-        document.getElementById('critereId').value = '';
-
-        // Ajouter une ligne de barème vide
-        document.getElementById('baremesContainer').innerHTML = '';
-        addBaremeRow();
-
-        // Initialiser la validation
-        setTimeout(() => {
-            validateTotalBareme();
-        }, 100);
-
-        console.log('Affichage du modal...');
-        document.getElementById('critereModal').style.display = 'block';
-    }
-
-    // Ouvrir le modal d'édition
-    function editCritere(id) {
-        isEditMode = true;
-        const critere = criteresData.find(c => c.id === id);
-
-        if (!critere) return;
-
-        document.getElementById('modalTitle').textContent = 'Modifier le Critère';
-        document.getElementById('submitButtonText').textContent = 'Mettre à jour';
-        document.getElementById('critereId').value = critere.id;
-        document.getElementById('libCritere').value = critere.libelle;
-
-        // Remplir les barèmes
-        const container = document.getElementById('baremesContainer');
-        container.innerHTML = '';
-
-        critere.baremes.forEach(bareme => {
-            addBaremeRow(bareme.annee_id, bareme.bareme);
-        });
-
-        if (critere.baremes.length === 0) {
-            addBaremeRow();
-        }
-
-        // Initialiser la validation
-        setTimeout(() => {
-            validateTotalBareme();
-        }, 100);
-
-        document.getElementById('critereModal').style.display = 'block';
-    }
-
-    // Ajouter une ligne de barème
-    function addBaremeRow(selectedAnnee = '', bareme = '') {
-        const container = document.getElementById('baremesContainer');
-        const rowId = 'bareme_' + Date.now() + '_' + Math.random();
-
-        const anneesOptions = anneesAcademiques.map(annee =>
-            `<option value="${annee.id}" ${annee.id.toString() === selectedAnnee.toString() ? 'selected' : ''}>${annee.lib}</option>`
-        ).join('');
-
-        const rowHtml = `
-            <div class="flex items-center space-x-3 bg-white p-3 rounded border" id="${rowId}">
-                <div class="flex-1">
-                    <select class="bareme-annee w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500" onchange="validateTotalBareme()">
-                        <option value="">Sélectionner une année</option>
-                        ${anneesOptions}
-                    </select>
-                </div>
-                <div class="w-32">
-                    <input type="number" class="bareme-points w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500" 
-                           placeholder="Points" min="0" max="20" value="${bareme}" oninput="validateTotalBareme()">
-                </div>
-                <button type="button" onclick="removeBaremeRow('${rowId}')" 
-                        class="text-red-600 hover:text-red-800 p-1">
-                    <i class="fas fa-trash text-sm"></i>
-                </button>
-            </div>
-        `;
-
-        container.insertAdjacentHTML('beforeend', rowHtml);
-    }
-
-    // Supprimer une ligne de barème
-    function removeBaremeRow(rowId) {
-        const row = document.getElementById(rowId);
-        if (row && document.querySelectorAll('#baremesContainer > div').length > 1) {
-            row.remove();
-            validateTotalBareme();
-        } else if (document.querySelectorAll('#baremesContainer > div').length === 1) {
-            showNotification('Vous devez conserver au moins un barème', 'error');
-        }
-    }
-
-    // Validation en temps réel des barèmes
-    function validateTotalBareme() {
-        const anneesBaremes = {};
-        let isValid = true;
-        let errorMessage = '';
-
-        // Calculer les totaux par année
-        const baremeRows = document.querySelectorAll('#baremesContainer > div');
-        baremeRows.forEach(row => {
-            const anneeSelect = row.querySelector('.bareme-annee');
-            const pointsInput = row.querySelector('.bareme-points');
-
-            if (anneeSelect.value && pointsInput.value) {
-                const anneeId = anneeSelect.value;
-                const points = parseFloat(pointsInput.value) || 0;
-
-                if (!anneesBaremes[anneeId]) {
-                    anneesBaremes[anneeId] = {
-                        total: 0,
-                        lib: anneeSelect.options[anneeSelect.selectedIndex].text,
-                        currentCritere: 0
-                    };
+    function loadYears() {
+        return fetch(routeBase + 'getAnnees')
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (!res.success) {
+                    throw new Error(res.message || 'Erreur chargement années');
                 }
-                anneesBaremes[anneeId].total += points;
-                anneesBaremes[anneeId].currentCritere += points;
-            }
-        });
+                annees = Array.isArray(res.data) ? res.data : [];
+                yearsFilter.innerHTML = '<option value="">Toutes</option>' + annees.map(function (a) {
+                    return '<option value="' + esc(a.id) + '">' + esc(a.lib) + '</option>';
+                }).join('');
+            });
+    }
 
-        // Ajouter les barèmes existants des autres critères (pour le mode édition)
-        const critereId = document.getElementById('critereId').value;
-        if (critereId) {
-            // Si on est en mode édition, exclure les barèmes actuels du critère en cours
-            criteresData.forEach(critere => {
-                if (critere.id_critere.toString() !== critereId.toString()) {
-                    critere.baremes.forEach(bareme => {
-                        const anneeId = bareme.annee_id.toString();
-                        if (!anneesBaremes[anneeId]) {
-                            anneesBaremes[anneeId] = {
-                                total: 0,
-                                lib: bareme.annee_lib,
-                                currentCritere: 0
-                            };
-                        }
-                        anneesBaremes[anneeId].total += parseFloat(bareme.bareme) || 0;
-                    });
+    function loadCriteres() {
+        return fetch(routeBase + 'getCriteres')
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (!res.success) {
+                    throw new Error(res.message || 'Erreur chargement critères');
                 }
+                criteres = Array.isArray(res.data) ? res.data : [];
+                renderTable();
             });
-        } else {
-            // Mode création : ajouter tous les barèmes existants
-            criteresData.forEach(critere => {
-                critere.baremes.forEach(bareme => {
-                    const anneeId = bareme.annee_id.toString();
-                    if (!anneesBaremes[anneeId]) {
-                        anneesBaremes[anneeId] = {
-                            total: 0,
-                            lib: bareme.annee_lib,
-                            currentCritere: 0
-                        };
-                    }
-                    anneesBaremes[anneeId].total += parseFloat(bareme.bareme) || 0;
-                });
-            });
-        }
-
-        // Vérifier les limites et mettre à jour l'affichage
-        let displayHtml = '';
-        for (const anneeId in anneesBaremes) {
-            const data = anneesBaremes[anneeId];
-            const isOverLimit = data.total > 20;
-
-            if (isOverLimit) {
-                isValid = false;
-                errorMessage = `Le total des points pour ${data.lib} dépasse 20 points (${data.total} points)`;
-            }
-
-            displayHtml += `
-                <div class="flex justify-between items-center py-1 ${isOverLimit ? 'text-red-600 font-semibold' : data.total === 20 ? 'text-green-600' : 'text-gray-700'}">
-                    <span>${data.lib}:</span>
-                    <span>${data.total} / 20 points ${data.currentCritere > 0 ? '(+' + data.currentCritere + ')' : ''}</span>
-                </div>
-            `;
-        }
-
-        // Afficher les totaux
-        const totalDisplay = document.getElementById('totalBaremeDisplay');
-        if (totalDisplay) {
-            totalDisplay.innerHTML = displayHtml;
-        }
-
-        // Afficher/masquer le message d'erreur
-        const errorDiv = document.getElementById('baremeErrorMessage');
-        if (errorDiv) {
-            if (!isValid) {
-                errorDiv.innerHTML = `<div class="text-red-600 text-sm mt-2 p-2 bg-red-50 border border-red-200 rounded"><i class="fas fa-exclamation-triangle mr-2"></i>${errorMessage}</div>`;
-                errorDiv.style.display = 'block';
-            } else {
-                errorDiv.style.display = 'none';
-            }
-        }
-
-        // Désactiver/activer le bouton de soumission
-        const submitBtn = document.querySelector('#critereForm button[type="submit"]');
-        if (submitBtn) {
-            if (isValid) {
-                submitBtn.disabled = false;
-                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            } else {
-                submitBtn.disabled = true;
-                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            }
-        }
-
-        return isValid;
     }
 
-    // Fermer le modal
-    function closeCritereModal() {
-        document.getElementById('critereModal').style.display = 'none';
+    function submitCritere(payload) {
+        const action = editingId ? 'updateCritere' : 'createCritere';
+        return fetch(routeBase + action, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(function (r) { return r.json(); });
     }
 
-    // Soumettre le formulaire
-    document.getElementById('critereForm').addEventListener('submit', function (e) {
-        e.preventDefault();
+    function deleteCritere(id) {
+        return fetch(routeBase + 'deleteCritere', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id })
+        }).then(function (r) { return r.json(); });
+    }
 
-        const libCritere = document.getElementById('libCritere').value.trim();
-        const critereId = document.getElementById('critereId').value;
-
-        if (!libCritere) {
-            showNotification('Veuillez saisir le libellé du critère', 'error');
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        const libelle = (libelleInput.value || '').trim();
+        const baremes = collectBaremes();
+        if (libelle === '') {
+            showNotice('danger', 'Le libellé est obligatoire.');
             return;
         }
-
-        // Récupérer les barèmes
-        const baremes = [];
-        const baremesRows = document.querySelectorAll('#baremesContainer > div');
-
-        baremesRows.forEach(row => {
-            const anneeSelect = row.querySelector('.bareme-annee');
-            const pointsInput = row.querySelector('.bareme-points');
-
-            if (anneeSelect.value && pointsInput.value) {
-                const annee = anneesAcademiques.find(a => a.id.toString() === anneeSelect.value);
-                baremes.push({
-                    annee_id: parseInt(anneeSelect.value),
-                    annee_lib: annee ? annee.lib : '',
-                    bareme: parseInt(pointsInput.value)
-                });
-            }
-        });
-
         if (baremes.length === 0) {
-            showNotification('Veuillez configurer au moins un barème', 'error');
+            showNotice('danger', 'Au moins un barème est obligatoire.');
             return;
         }
 
-        // Vérifier que le total des barèmes par année ne dépasse pas 20 points
-        const anneesBaremes = {};
-        baremes.forEach(bareme => {
-            if (!anneesBaremes[bareme.annee_id]) {
-                anneesBaremes[bareme.annee_id] = 0;
+        const payload = { libelle: libelle, baremes: baremes };
+        if (editingId) {
+            payload.id = editingId;
+        }
+
+        submitCritere(payload).then(function (res) {
+            if (!res.success) {
+                throw new Error(res.message || 'Erreur enregistrement');
             }
-            anneesBaremes[bareme.annee_id] += bareme.bareme;
+            showNotice('success', res.message || 'Enregistrement réussi');
+            resetForm();
+            return loadCriteres();
+        }).catch(function (err) {
+            showNotice('danger', err.message || 'Erreur serveur');
         });
-
-        for (const [anneeId, totalBareme] of Object.entries(anneesBaremes)) {
-            if (totalBareme > 20) {
-                const annee = anneesAcademiques.find(a => a.id.toString() === anneeId);
-                showNotification(`Le total des barèmes pour l'année ${annee ? annee.lib : anneeId} (${totalBareme} points) dépasse 20 points`, 'error');
-                return;
-            }
-        }
-
-        // Préparer les données pour l'envoi
-        const requestData = {
-            libelle: libCritere,
-            baremes: baremes
-        };
-
-        if (isEditMode && critereId) {
-            requestData.id = parseInt(critereId);
-        }
-
-        // Définir l'URL et la méthode selon le mode
-        const url = isEditMode
-            ? '?page=criteres_evaluation&action=updateCritere'
-            : '?page=criteres_evaluation&action=createCritere';
-        const method = 'POST';
-
-        // Envoyer la requête AJAX
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestData)
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                    loadCriteres(); // Recharger la liste
-                    closeCritereModal();
-                } else {
-                    showNotification('Erreur : ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                showNotification('Erreur de connexion lors de la sauvegarde', 'error');
-            });
     });
 
-    // Supprimer un critère
-    function deleteCritere(id) {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer ce critère d\'évaluation ?')) {
+    if (addRowBtn) {
+        addRowBtn.addEventListener('click', function () {
+            addBaremeRow('', '');
+        });
+    }
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function () {
+            resetForm();
+        });
+    }
+
+    if (yearsFilter) {
+        yearsFilter.addEventListener('change', renderTable);
+    }
+    if (searchInput) {
+        searchInput.addEventListener('input', renderTable);
+    }
+
+    function isThisToolbarEvent(event) {
+        return !!(event && event.detail && event.detail.toolbar && event.detail.toolbar.id === toolbarId);
+    }
+
+    document.addEventListener('cm:toolbar:search', function (event) {
+        if (!isThisToolbarEvent(event)) return;
+        event.preventDefault();
+        renderTable();
+    });
+
+    document.addEventListener('cm:toolbar:filter:apply', function (event) {
+        if (!isThisToolbarEvent(event)) return;
+        event.preventDefault();
+        renderTable();
+    });
+
+    document.addEventListener('cm:toolbar:filter:reset', function (event) {
+        if (!isThisToolbarEvent(event)) return;
+        event.preventDefault();
+        renderTable();
+    });
+
+    tableBody.addEventListener('click', async function (event) {
+        const editBtn = event.target.closest('.js-edit');
+        if (editBtn) {
+            const id = Number(editBtn.getAttribute('data-id') || '0');
+            const row = criteres.find(function (c) { return Number(c.id) === id; });
+            if (!row) {
+                return;
+            }
+            editingId = id;
+            libelleInput.value = row.libelle || '';
+            baremesRows.innerHTML = '';
+            (row.baremes || []).forEach(function (b) {
+                addBaremeRow(String(b.annee_id || ''), String(b.bareme || ''));
+            });
+            if (baremesRows.children.length === 0) {
+                addBaremeRow('', '');
+            }
+            setSubmitButtonLabel('Mettre a jour');
             return;
         }
 
-        fetch('ressources/routes/criteresEvaluationRoutes.php?page=criteres_evaluation&action=deleteCritere', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ id: id })
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification(data.message, 'info');
-                    loadCriteres(); // Recharger la liste
-                } else {
-                    showNotification('Erreur : ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                showNotification('Erreur de connexion lors de la suppression', 'error');
+        const deleteBtn = event.target.closest('.js-delete');
+        if (deleteBtn) {
+            const id = Number(deleteBtn.getAttribute('data-id') || '0');
+            if (!id) {
+                return;
+            }
+            const confirmed = await window.CM.confirm({
+                title: 'Suppression',
+                message: 'Supprimer ce critère ?',
+                type: 'danger',
+                confirmText: 'Supprimer',
             });
-    }
-
-    // Fonction utilitaire pour échapper le HTML
-    function escapeHtml(text) {
-        if (!text) return '';
-        return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-
-    // Notifications
-    function showNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white text-sm z-50 transition-opacity duration-300 ${type === 'success' ? 'bg-green-600' :
-            type === 'error' ? 'bg-red-600' :
-                'bg-blue-600'
-            }`;
-        notification.innerHTML = `
-            <div class="flex items-center">
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>
-                ${message}
-            </div>
-        `;
-
-        document.body.appendChild(notification);
-
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-    }
-
-    // Fermer le modal en cliquant à l'extérieur
-    window.onclick = function (event) {
-        const modal = document.getElementById('critereModal');
-        if (event.target === modal) {
-            closeCritereModal();
+            if (!confirmed) {
+                return;
+            }
+            deleteCritere(id).then(function (res) {
+                if (!res.success) {
+                    throw new Error(res.message || 'Erreur suppression');
+                }
+                showNotice('success', res.message || 'Suppression réussie');
+                if (editingId === id) {
+                    resetForm();
+                }
+                return loadCriteres();
+            }).catch(function (err) {
+                showNotice('danger', err.message || 'Erreur serveur');
+            });
         }
-    }
+    });
+
+    document.getElementById('cmCritPrint').addEventListener('click', function () {
+        const table = document.getElementById('cmCritereTable');
+        const w = window.open('', '_blank');
+        if (!w || !table) {
+            return;
+        }
+        w.document.write('<html><head><title>Impression</title><style>body{font-family:Arial;padding:16px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #d1d5db;padding:8px}th{background:#f3f4f6}</style></head><body>');
+        w.document.write(table.outerHTML);
+        w.document.write('</body></html>');
+        w.document.close();
+        w.print();
+    });
+
+    document.getElementById('cmCritExport').addEventListener('click', function () {
+        const rows = [['Critère', 'Année', 'Barème']];
+        filterData().forEach(function (c) {
+            (c.baremes || []).forEach(function (b) {
+                rows.push([c.libelle || '', b.annee_lib || b.annee_id || '', String(b.bareme || '')]);
+            });
+        });
+        const csv = rows.map(function (line) {
+            return line.map(function (cell) {
+                return '"' + String(cell).replace(/"/g, '""') + '"';
+            }).join(';');
+        }).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'criteres_evaluation.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+
+    Promise.all([loadYears(), loadCriteres()]).then(function () {
+        resetForm();
+    }).catch(function (err) {
+        showNotice('danger', err.message || 'Erreur de chargement');
+        resetForm();
+    });
+})();
 </script>
+

@@ -24,7 +24,7 @@ $pourcentageReussite = $totalInscriptions > 0 ? round(($paiementsComplets / $tot
 $db = Database::getConnection();
 $queryActivites = "SELECT i.date_inscription, e.nom_etu, e.prenom_etu, n.lib_niv_etude 
                    FROM inscriptions i 
-                   JOIN etudiants e ON i.id_etudiant = e.num_etu 
+                   JOIN etudiants e ON i.id_etudiant = e.num_carte_etud 
                    JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude 
                    ORDER BY i.date_inscription DESC 
                    LIMIT 5";
@@ -35,7 +35,7 @@ $activitesRecentes = $stmtActivites->fetchAll(PDO::FETCH_ASSOC);
 // Récupérer les réclamations récentes
 $queryReclamations = "SELECT r.date_creation, e.nom_etu, e.prenom_etu, r.type_reclamation, r.statut_reclamation 
                       FROM reclamations r 
-                      JOIN etudiants e ON r.num_etu = e.num_etu 
+                      JOIN etudiants e ON r.num_carte_etud = e.num_carte_etud 
                       ORDER BY r.date_creation DESC 
                       LIMIT 5";
 $stmtReclamations = $db->prepare($queryReclamations);
@@ -155,7 +155,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
     <main class="flex-1 p-6 md:p-8">
         <!-- En-tête -->
         <header class="flex items-center justify-between mb-8">
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Tableau de bord Secrétariat</h1>
+
             <div class="flex items-center space-x-4 text-gray-600 text-sm">
                 <span><?php echo date('d/m/Y'); ?></span>
                 <span class="text-gray-400">|</span>
@@ -240,7 +240,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
 
             <!-- Analytique (Droite) -->
             <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4 text-center">Analytique des Étudiants</h2>
+                
                 <div class="donut-chart-container mb-6">
                     <div class="donut-chart-inner">
                         <span class="text-2xl font-bold text-gray-900"><?php echo $pourcentageReussite; ?>%</span>
@@ -274,7 +274,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
             </div>
             <!-- Activités du Secrétariat (Gauche) -->
             <div class="bg-white p-6 rounded-xl shadow-lg">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">Activités du Secrétariat</h2>
+                
                 <div class="space-y-4">
                     <?php if (!empty($activitesRecentes)): ?>
                         <?php foreach ($activitesRecentes as $activite): ?>
@@ -311,7 +311,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
         <!-- Suivi des Dossiers -->
         <div class="grid grid-cols-1 lg:grid-cols-1 gap-6">
             <div class="bg-white p-6 rounded-xl shadow-lg">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">Suivi des Réclamations</h2>
+                
                 <div class="flex mb-4 text-sm border-b border-gray-200">
                     <button id="btn-recentes"
                         class="py-2 px-4 text-gray-700 font-medium border-b-2 border-indigo-500 -mb-px filter-btn active"
@@ -324,21 +324,21 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                         data-filter="resolues">Résolues</button>
                 </div>
 
-                <div class="overflow-x-auto">
+                <div class="cm-table-wrapper">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Date</th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Étudiant</th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Type</th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Statut</th>
                             </tr>
                         </thead>
@@ -348,16 +348,16 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                             <?php if (!empty($reclamationsRecentes)): ?>
                                 <?php foreach ($reclamationsRecentes as $reclamation): ?>
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                                             <?php echo date('d/m/Y', strtotime($reclamation['date_creation'])); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                                             <?php echo htmlspecialchars($reclamation['nom_etu'] . ' ' . $reclamation['prenom_etu']); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                                             <?php echo htmlspecialchars($reclamation['type_reclamation']); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
+                                        <td class="px-4 py-2 whitespace-nowrap">
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                             <?php
                                             $statutClass = '';
@@ -384,7 +384,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                    <td colspan="4" class="px-4 py-2 text-center text-sm text-gray-500">
                                         Aucune réclamation récente
                                     </td>
                                 </tr>
@@ -401,16 +401,16 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                             <?php if (!empty($reclamationsEnAttente)): ?>
                                 <?php foreach ($reclamationsEnAttente as $reclamation): ?>
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                                             <?php echo date('d/m/Y', strtotime($reclamation['date_creation'])); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                                             <?php echo htmlspecialchars($reclamation['nom_etu'] . ' ' . $reclamation['prenom_etu']); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                                             <?php echo htmlspecialchars($reclamation['type_reclamation']); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
+                                        <td class="px-4 py-2 whitespace-nowrap">
                                             <span
                                                 class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                                                 En attente
@@ -420,7 +420,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                    <td colspan="4" class="px-4 py-2 text-center text-sm text-gray-500">
                                         Aucune réclamation en attente
                                     </td>
                                 </tr>
@@ -437,16 +437,16 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                             <?php if (!empty($reclamationsResolues)): ?>
                                 <?php foreach ($reclamationsResolues as $reclamation): ?>
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                                             <?php echo date('d/m/Y', strtotime($reclamation['date_creation'])); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                                             <?php echo htmlspecialchars($reclamation['nom_etu'] . ' ' . $reclamation['prenom_etu']); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                                             <?php echo htmlspecialchars($reclamation['type_reclamation']); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
+                                        <td class="px-4 py-2 whitespace-nowrap">
                                             <span
                                                 class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                                 Résolue
@@ -456,7 +456,7 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                    <td colspan="4" class="px-4 py-2 text-center text-sm text-gray-500">
                                         Aucune réclamation résolue
                                     </td>
                                 </tr>

@@ -4,7 +4,7 @@
 require_once __DIR__ . '/../../app/controllers/ProgrammationSoutenanceController.php';
 
 $controller = new ProgrammationSoutenanceController();
-$action = $_GET['action'];
+$action = $_GET['action'] ?? '';
 
 switch ($action) {
     case 'getEtudiants':
@@ -17,6 +17,9 @@ switch ($action) {
 
     case 'getProfesseursTitulaires':
         $controller->getProfesseursTitulaires();
+        break;
+    case 'getSalles':
+        $controller->getSalles();
         break;
 
     case 'getAttributions':
@@ -33,6 +36,18 @@ switch ($action) {
 
     case 'deleteAttribution':
         $controller->deleteAttribution();
+        break;
+
+    case 'getPlanningPreview':
+        $controller->getPlanningPreview();
+        break;
+
+    case 'generatePlanningPdf':
+        $controller->generatePlanningPdf();
+        break;
+
+    case 'getDayDetails':
+        $controller->getDayDetails();
         break;
 
     default:

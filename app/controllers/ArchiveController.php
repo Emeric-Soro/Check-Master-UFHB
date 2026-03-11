@@ -1,26 +1,24 @@
 <?php
 
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../models/Archive.php';
-require_once __DIR__ . '/../utils/ExcelImportService.php';
-require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../Services/ArchiveService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
+
+use CheckMaster\Services\ArchiveService;
 
 /**
- * Archive Controller - Handles history and archiving operations
+ * Archive Controller - Handles history and archiving operations.
+ *
+ * HTTP / session concerns only – all business logic lives in ArchiveService.
  */
 class ArchiveController
 {
-    private $archive;
-    private $importService;
-    private $auditLog;
-    private $db;
+    private $service;
     
     public function __construct()
     {
-        $this->db = Database::getConnection();
-        $this->archive = new Archive($this->db);
-        $this->importService = new ExcelImportService($this->db);
-        $this->auditLog = new AuditLog($this->db);
+        $db = Database::getConnection();
+        $this->service = new ArchiveService($db);
     }
     
     /**
@@ -30,41 +28,20 @@ class ArchiveController
     {
         try {
             // Get filters from request
-            $tab = $_GET['tab'] ?? 'students';
+            $tab       = $_GET['tab'] ?? 'students';
             $anneeAcad = $_GET['annee'] ?? null;
-            $statut = $_GET['statut'] ?? null;
-            $search = $_GET['search'] ?? null;
-            $page = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
-            $perPage = 20;
-            $offset = ($page - 1) * $perPage;
+            $statut    = $_GET['statut'] ?? null;
+            $search    = $_GET['search'] ?? null;
+            $page      = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
+            $perPage   = 20;
             
-            // Get data based on active tab
-            if ($tab === 'students') {
-                $students = $this->archive->getStudentHistory($anneeAcad, $statut, $search, $perPage, $offset);
-                $totalStudents = $this->archive->countStudents($anneeAcad, $statut, $search);
-                $totalPages = ceil($totalStudents / $perPage);
-
-                $GLOBALS['students'] = $students;
-                $GLOBALS['totalPages'] = $totalPages;
-                $GLOBALS['currentPage'] = $page;
-            } elseif ($tab === 'jury') {
-                $juries = $this->archive->getJuryHistory($anneeAcad, null, $perPage, $offset);
-                $GLOBALS['juries'] = $juries;
-            } elseif ($tab === 'stats') {
-                $GLOBALS['globalStats'] = $this->archive->getGlobalStats();
-                $GLOBALS['yearlyEvolution'] = $this->archive->getYearlyEvolution();
-                $GLOBALS['mentionsDistribution'] = $this->archive->getMentionsDistribution();
-                $GLOBALS['topEntreprises'] = $this->archive->getTopEntreprises();
+            // Delegate to service
+            $data = $this->service->getIndexData($tab, $anneeAcad, $statut, $search, $page, $perPage);
+            
+            // Expose data to views via $GLOBALS
+            foreach ($data as $key => $value) {
+                $GLOBALS[$key] = $value;
             }
-            
-            // Get available years for filter
-            $GLOBALS['academicYears'] = $this->archive->getAcademicYears();
-            $GLOBALS['currentTab'] = $tab;
-            $GLOBALS['filters'] = [
-                'annee' => $anneeAcad,
-                'statut' => $statut,
-                'search' => $search
-            ];
             
             // Messages
             $GLOBALS['messageSuccess'] = $_SESSION['archive_success'] ?? '';
@@ -93,7 +70,7 @@ class ArchiveController
                 exit;
             }
             
-            $studentFile = $this->archive->getStudentCompleteFile($numEtu);
+            $studentFile = $this->service->getStudentFile($numEtu);
             
             if (!$studentFile) {
                 $_SESSION['archive_error'] = "Étudiant non trouvé.";
@@ -122,6 +99,12 @@ class ArchiveController
     public function updateStudentFile()
     {
         try {
+            if (!canEdit('admin_historique')) {
+                $_SESSION['archive_error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                header('Location: ?page=admin_historique');
+                exit;
+            }
+
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 header('Location: ?page=admin_historique');
                 exit;
@@ -135,38 +118,13 @@ class ArchiveController
                 exit;
             }
             
-            // Prepare update data
-            $updateData = [];
-            
-            // Basic info
-            if (isset($_POST['nom_etu'])) {
-                $updateData['nom_etu'] = $_POST['nom_etu'];
-            }
-            if (isset($_POST['prenom_etu'])) {
-                $updateData['prenom_etu'] = $_POST['prenom_etu'];
-            }
-            if (isset($_POST['email_etu'])) {
-                $updateData['email_etu'] = $_POST['email_etu'];
-            }
-            
-            // Rapport info
-            if (isset($_POST['theme_rapport']) || isset($_POST['statut_rapport'])) {
-                $updateData['rapport'] = [];
-                if (isset($_POST['theme_rapport'])) {
-                    $updateData['rapport']['theme_rapport'] = $_POST['theme_rapport'];
-                }
-                if (isset($_POST['statut_rapport'])) {
-                    $updateData['rapport']['statut_rapport'] = $_POST['statut_rapport'];
-                }
-            }
-            
-            // Update the student
-            $success = $this->archive->updateStudentInfo($numEtu, $updateData);
+            // Delegate update to service
+            $success = $this->service->updateStudentInfo($numEtu, $_POST);
             
             if ($success) {
                 // Log the action
                 if (isset($_SESSION['id_utilisateur'])) {
-                    $this->auditLog->logModification(
+                    $this->service->logModification(
                         $_SESSION['id_utilisateur'],
                         'Archive Étudiant',
                         'Succès'
@@ -195,75 +153,31 @@ class ArchiveController
     public function importArchive()
     {
         try {
+            if (!canCreate('admin_historique')) {
+                $_SESSION['archive_error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                header('Location: ?page=admin_historique');
+                exit;
+            }
+
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 header('Location: ?page=admin_historique');
                 exit;
             }
             
-            // Check if file was uploaded
-            if (!isset($_FILES['archive_file']) || $_FILES['archive_file']['error'] !== UPLOAD_ERR_OK) {
-                $_SESSION['archive_error'] = "Aucun fichier uploadé ou erreur lors de l'upload.";
+            // Delegate validation + import to service
+            $result = $this->service->importArchiveFile($_FILES['archive_file'] ?? []);
+            
+            if (!$result['success']) {
+                $_SESSION['archive_error'] = $result['error'];
                 header('Location: ?page=admin_historique');
                 exit;
             }
             
-            $file = $_FILES['archive_file'];
-            $fileName = $file['name'];
-            $fileTmpPath = $file['tmp_name'];
-            $fileSize = (int) ($file['size'] ?? 0);
-            $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-
-            // Basic hardening: upload réel + taille max
-            if (!is_string($fileTmpPath) || $fileTmpPath === '' || !is_uploaded_file($fileTmpPath)) {
-                $_SESSION['archive_error'] = "Upload invalide (fichier non reconnu).";
-                header('Location: ?page=admin_historique');
-                exit;
-            }
-            if ($fileSize <= 0 || $fileSize > 10 * 1024 * 1024) { // 10 MB
-                $_SESSION['archive_error'] = "Fichier trop volumineux (max 10 MB).";
-                header('Location: ?page=admin_historique');
-                exit;
-            }
-            
-            // Validate file type
-            $allowedExtensions = ['csv', 'xlsx', 'xls'];
-            if (!in_array($fileExtension, $allowedExtensions)) {
-                $_SESSION['archive_error'] = "Type de fichier non supporté. Veuillez utiliser CSV, XLS ou XLSX.";
-                header('Location: ?page=admin_historique');
-                exit;
-            }
-            
-            // For now, only CSV is fully supported
-            if ($fileExtension !== 'csv') {
-                $_SESSION['archive_error'] = "Pour le moment, seuls les fichiers CSV sont supportés. Veuillez convertir votre fichier Excel en CSV.";
-                header('Location: ?page=admin_historique');
-                exit;
-            }
-
-            // MIME check (CSV)
-            $finfo = new finfo(FILEINFO_MIME_TYPE);
-            $mime = $finfo->file($fileTmpPath) ?: '';
-            $allowedMimes = [
-                'text/plain',
-                'text/csv',
-                'application/csv',
-                'application/vnd.ms-excel',
-                'text/x-csv',
-            ];
-            if ($mime !== '' && !in_array($mime, $allowedMimes, true)) {
-                $_SESSION['archive_error'] = "Type MIME non autorisé pour CSV ($mime).";
-                header('Location: ?page=admin_historique');
-                exit;
-            }
-            
-            // Process the import
-            $success = $this->importService->importFile($fileTmpPath, $fileExtension);
-            
-            $summary = $this->importService->getSummary();
+            $summary = $result['summary'];
             
             // Log the import
             if (isset($_SESSION['id_utilisateur'])) {
-                $this->auditLog->logAction(
+                $this->service->logAction(
                     $_SESSION['id_utilisateur'],
                     'Import',
                     'Archive',

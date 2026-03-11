@@ -18,6 +18,7 @@
     "phpoffice/phpword": "^1.1",
     "mpdf/mpdf": "^8.2",
     "dompdf/dompdf": "^3.1",
+    "tecnickcom/tcpdf": "^6.7",
     "ezyang/htmlpurifier": "^4.19",
     "psr/log": "^1.1",
     "mpdf/psr-log-aware-trait": "^2.0"
@@ -27,7 +28,20 @@
   },
   "autoload": {
     "psr-4": {
-      "App\\": "src/"
-    }
+      "App\\": ["src/", "app/"]
+    },
+    "classmap": [
+      "app/utils/ReceiptUtils.php",
+      "app/utils/EmailService.php",
+      "app/utils/FormHelper.php",
+      "app/utils/TableHelper.php",
+      "app/utils/ComponentHelper.php",
+      "app/utils/FormattingUtils.php",
+      "app/utils/ExcelImportService.php"
+    ],
+    "files": [
+      "app/utils/permissions_helper.php",
+      "app/utils/PaginationHelper.php"
+    ]
   }
 }

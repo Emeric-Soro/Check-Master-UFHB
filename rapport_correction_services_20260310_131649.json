@@ -1,0 +1,100 @@
+[
+  {
+    "filepath": "app/Services/GestionEtudiantService.php",
+    "backup": "backups_services_correction\\app\\Services\\GestionEtudiantService.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "Validation genre_etu → id_genre",
+        "old": "empty($data['genre_etu'])",
+        "new": "empty($data['id_genre'])",
+        "line": 225
+      },
+      {
+        "type": "replacement",
+        "description": "Validation genre_etu → id_genre",
+        "old": "empty($data['genre_etu'])",
+        "new": "empty($data['id_genre'])",
+        "line": 307
+      },
+      {
+        "type": "replacement",
+        "description": "Accès genre_etu → id_genre",
+        "old": "$data['genre_etu']",
+        "new": "$data['id_genre']",
+        "line": 248
+      },
+      {
+        "type": "replacement",
+        "description": "Accès genre_etu → id_genre",
+        "old": "$data['genre_etu']",
+        "new": "$data['id_genre']",
+        "line": 332
+      },
+      {
+        "type": "replacement",
+        "description": "Array key genre_etu → id_genre",
+        "old": "'genre_etu' => $",
+        "new": "'id_genre' => $",
+        "line": 378
+      },
+      {
+        "type": "replacement",
+        "description": "Array key genre_etu → id_genre",
+        "old": "'genre_etu' => $",
+        "new": "'id_genre' => $",
+        "line": 390
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app/Services/EtudiantService.php",
+    "backup": "backups_services_correction\\app\\Services\\EtudiantService.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "Validation genre_etu → id_genre",
+        "old": "empty($data['genre_etu'])",
+        "new": "empty($data['id_genre'])",
+        "line": 67
+      },
+      {
+        "type": "replacement",
+        "description": "Validation genre_etu → id_genre",
+        "old": "empty($data['genre_etu'])",
+        "new": "empty($data['id_genre'])",
+        "line": 108
+      },
+      {
+        "type": "replacement",
+        "description": "Accès genre_etu → id_genre",
+        "old": "$data['genre_etu']",
+        "new": "$data['id_genre']",
+        "line": 82
+      },
+      {
+        "type": "replacement",
+        "description": "Accès genre_etu → id_genre",
+        "old": "$data['genre_etu']",
+        "new": "$data['id_genre']",
+        "line": 125
+      }
+    ],
+    "success": true
+  },
+  {
+    "filepath": "app/Services/Document/RapportPdfGeneratorService.php",
+    "backup": "backups_services_correction\\app\\Services\\Document\\RapportPdfGeneratorService.php",
+    "changes": [
+      {
+        "type": "replacement",
+        "description": "Etudiant genre_etu → id_genre",
+        "old": "$etudiant['genre_etu']",
+        "new": "$etudiant['id_genre']",
+        "line": 355
+      }
+    ],
+    "success": true
+  }
+]

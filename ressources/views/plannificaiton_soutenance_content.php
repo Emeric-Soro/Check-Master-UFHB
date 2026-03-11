@@ -29,6 +29,27 @@ $etudiantsAvecJury = $controller->getEtudiantsAvecJuryForView();
 $etudiantsDisponibles = $controller->getEtudiantsDisponiblesForView();
 $salles = $controller->getSallesForView();
 $planifications = $controller->getPlanificationsForView();
+$selectedYearLabel = \AcademicYear::getSelectedLabelFromSession();
+$activeYearLabel = \AcademicYear::getActiveLabelFromSession();
+$writeYearLabel = \AcademicYear::getWritableLabelFromSession();
+$allYearsSelected = \AcademicYear::isAllSelectedFromSession();
+$writeAllowed = \AcademicYear::isWriteAllowedFromSession();
+
+$normalizePlanificationRow = static function ($row): array {
+    if (is_array($row)) {
+        return $row;
+    }
+    if (is_object($row)) {
+        return get_object_vars($row);
+    }
+
+    return [];
+};
+
+$etudiantsAvecJury = array_values(array_map($normalizePlanificationRow, is_array($etudiantsAvecJury) ? $etudiantsAvecJury : []));
+$etudiantsDisponibles = array_values(array_map($normalizePlanificationRow, is_array($etudiantsDisponibles) ? $etudiantsDisponibles : []));
+$salles = array_values(array_map($normalizePlanificationRow, is_array($salles) ? $salles : []));
+$planifications = array_values(array_map($normalizePlanificationRow, is_array($planifications) ? $planifications : []));
 
 
 ?>
@@ -37,7 +58,7 @@ $planifications = $controller->getPlanificationsForView();
 <?php if ($message): ?>
     <div class="fixed top-4 right-4 z-50 max-w-sm">
         <div
-            class="<?= $messageType === 'success' ? 'bg-green-600' : 'bg-red-600' ?> text-white px-6 py-4 rounded-lg shadow-lg">
+            class="<?= $messageType === 'success' ? 'bg-green-600' : 'bg-red-600' ?> text-white px-4 py-2 rounded-lg shadow-lg">
             <div class="flex items-center">
                 <i class="fas <?= $messageType === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle' ?> mr-2"></i>
                 <?= htmlspecialchars($message) ?>
@@ -56,8 +77,21 @@ $planifications = $controller->getPlanificationsForView();
     </script>
 <?php endif; ?>
 
+<?php if ($selectedYearLabel !== ''): ?>
+    <div class="mb-4">
+        <?php cm_component('ui/alert-box', [
+            'type' => $allYearsSelected || $writeAllowed ? 'info' : 'warning',
+            'message' => $allYearsSelected
+                ? "Affichage multi-années actif. Les nouvelles planifications restent réservées à l'année académique active {$writeYearLabel}."
+                : ($writeAllowed
+                    ? "Année académique affichée: {$selectedYearLabel}."
+                    : "Consultation historique: {$selectedYearLabel}. Les planifications sont réservées à l'année académique active {$activeYearLabel}."),
+        ]); ?>
+    </div>
+<?php endif; ?>
+
 <!-- Section de planification des soutenances -->
-<div class="bg-white shadow rounded-lg p-6 mb-6 relative">
+<div class="bg-white shadow rounded-lg p-6 mb-6 relative cm-legacy-form-panel">
     <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3">
         <span class="text-lg font-medium text-blue-600" id="form-title">
             Planification Soutenance
@@ -72,7 +106,7 @@ $planifications = $controller->getPlanificationsForView();
                     <i class="fas fa-info-circle text-blue-400"></i>
                 </div>
                 <div class="ml-3">
-                    <h3 class="text-sm font-medium text-blue-800">Information</h3>
+
                     <div class="mt-1 text-sm text-blue-600">
                         Tous les étudiants avec attribution de jury ont déjà été planifiés ou aucun jury n'a encore été
                         attribué.
@@ -90,12 +124,12 @@ $planifications = $controller->getPlanificationsForView();
 
         <div class="space-y-4">
             <!-- Première ligne : Étudiant et Thème -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="cm-form-grid cm-form-grid--2">
                 <!-- Étudiant -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Étudiant *</label>
+                <div class="cm-form-group">
+                    <label class="cm-label">Étudiant <span class="cm-required-star">*</span></label>
                     <select name="id_programmation" id="etudiant" required onchange="updateTheme(this)"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        class="cm-field-input cm-field-lg">
                         <option value="">Sélectionner un étudiant</option>
                         <?php if (empty($etudiantsAvecJury)): ?>
                             <option value="" disabled>Aucun étudiant avec jury attribué</option>
@@ -106,6 +140,9 @@ $planifications = $controller->getPlanificationsForView();
                                     data-statut="<?= htmlspecialchars($etudiant['statut_planification'] ?? 'none') ?>">
                                     <?= htmlspecialchars($etudiant['nom_complet']) ?>
                                     (<?= htmlspecialchars($etudiant['matricule_etudiant']) ?>)
+                                    <?php if ($allYearsSelected && !empty($etudiant['promotion_etu'])): ?>
+                                        - <?= htmlspecialchars($etudiant['promotion_etu']) ?>
+                                    <?php endif; ?>
                                     <?php if (isset($etudiant['statut_planification']) && $etudiant['statut_planification'] === 'complete'): ?>
                                         - ✅ Planifié
                                     <?php elseif (isset($etudiant['statut_planification']) && $etudiant['statut_planification'] === 'partial'): ?>
@@ -118,8 +155,8 @@ $planifications = $controller->getPlanificationsForView();
                 </div>
 
                 <!-- Thème Soutenance -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Thème Soutenance</label>
+                <div class="cm-form-group">
+                    <label class="cm-label">Thème Soutenance</label>
                     <div class="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
                         <span id="theme-display" class="text-gray-500 italic">
                             Sera affiché selon l'étudiant sélectionné
@@ -129,42 +166,45 @@ $planifications = $controller->getPlanificationsForView();
             </div>
 
             <!-- Deuxième ligne : Salle, Date et Heure -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="cm-form-grid cm-form-grid--3">
                 <!-- Salle -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Salle *</label>
+                <div class="cm-form-group">
+                    <label class="cm-label">Salle <span class="cm-required-star">*</span></label>
                     <select name="id_salle" id="salle" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        class="cm-field-input cm-field-md">
                         <option value="">Sélectionner une salle</option>
                         <?php foreach ($salles as $salle): ?>
-                            <option value="<?= htmlspecialchars($salle['id_salle']) ?>">
-                                <?= htmlspecialchars($salle['lib_salle']) ?>
+                            <?php
+                            $salleId = $salle['id_salle'] ?? '';
+                            $salleLibelle = $salle['lib_salle'] ?? '';
+                            ?>
+                            <option value="<?= htmlspecialchars((string) $salleId) ?>">
+                                <?= htmlspecialchars((string) $salleLibelle) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
                 <!-- Date -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Date *</label>
+                <div class="cm-form-group">
+                    <label class="cm-label">Date <span class="cm-required-star">*</span></label>
                     <input type="date" name="date_soutenance" id="date" required min="<?= date('Y-m-d') ?>"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        class="cm-field-input cm-field-date">
                 </div>
 
                 <!-- Heure -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Heure *</label>
+                <div class="cm-form-group">
+                    <label class="cm-label">Heure <span class="cm-required-star">*</span></label>
                     <input type="time" name="heure_soutenance" id="heure" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        class="cm-field-input cm-field-sm">
                 </div>
             </div>
         </div>
 
         <!-- Boutons d'action -->
         <?php if (canCreate() || canEdit()): ?>
-        <div class="absolute -bottom-4 right-4 flex space-x-3" id="buttonContainer">
-            <button type="submit" id="submitBtn"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-colors duration-200">
+        <div class="cm-form-buttons is-dense" id="buttonContainer">
+            <button type="submit" id="submitBtn" class="cm-btn is-success">
                 <i class="fas fa-calendar-plus mr-2"></i>Planifier
             </button>
         </div>
@@ -174,39 +214,41 @@ $planifications = $controller->getPlanificationsForView();
 
 <!-- Section tableau des planifications -->
 <div class="bg-white shadow rounded-lg overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-        <h3 class="text-lg font-medium text-gray-900">Planning des Soutenances</h3>
+    <div class="px-4 py-2 border-b border-gray-200 flex justify-between items-center">
+
         <div class="text-sm text-gray-500">
             <span><?= count($planifications) ?></span> soutenance(s) programmée(s)
         </div>
     </div>
 
-    <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+    <div class="cm-table-wrapper">
+        <table class="cm-data-table">
+            <thead>
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N°</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Étudiant
+                    <th class="cm-data-table__th">N°</th>
+                    <th class="cm-data-table__th">Étudiant
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thème
+                    <th class="cm-data-table__th">Promotion
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salle
+                    <th class="cm-data-table__th">Thème
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Heure
+                    <th class="cm-data-table__th">Salle
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut
+                    <th class="cm-data-table__th">Date</th>
+                    <th class="cm-data-table__th">Heure
+                    </th>
+                    <th class="cm-data-table__th">Statut
                     </th>
                     <?php if (canEdit() || canDelete()): ?>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions
+                    <th class="cm-data-table__th">Actions
                     </th>
                     <?php endif; ?>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody>
                 <?php if (empty($planifications)): ?>
                     <tr>
-                        <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                        <td colspan="9" class="px-6 py-12 text-center text-gray-500">
                             <div class="flex flex-col items-center">
                                 <svg class="h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
@@ -220,52 +262,58 @@ $planifications = $controller->getPlanificationsForView();
                     </tr>
                 <?php else: ?>
                     <?php foreach ($planifications as $index => $planification): ?>
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><?= $index + 1 ?></td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                        <tr class="cm-data-table__row">
+                            <td class="cm-data-table__td"><?= $index + 1 ?></td>
+                            <td class="cm-data-table__td">
                                 <div class="text-sm font-medium text-gray-900">
                                     <?= htmlspecialchars($planification['nom_etudiant']) ?>
                                 </div>
                                 <div class="text-sm text-gray-500"><?= htmlspecialchars($planification['matricule_etudiant']) ?>
                                 </div>
                             </td>
-                            <td class="px-6 py-4">
+                            <td class="cm-data-table__td">
+                                <?= htmlspecialchars($planification['promotion_etu'] ?? '-') ?>
+                            </td>
+                            <td class="cm-data-table__td">
                                 <div class="text-sm text-gray-900 max-w-xs truncate"
                                     title="<?= htmlspecialchars($planification['theme_soutenance']) ?>">
                                     <?= htmlspecialchars($planification['theme_soutenance']) ?>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="cm-data-table__td">
                                 <span
                                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                     <?= htmlspecialchars($planification['nom_salle'] ?? 'Non définie') ?>
                                 </span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td class="cm-data-table__td">
                                 <?= $planification['date_soutenance'] ? date('d/m/Y', strtotime($planification['date_soutenance'])) : '-' ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td class="cm-data-table__td">
                                 <?= $planification['heure_soutenance'] ? date('H:i', strtotime($planification['heure_soutenance'])) : '-' ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="cm-data-table__td">
                                 <span
                                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                     Planifiée
                                 </span>
                             </td>
                             <?php if (canEdit() || canDelete()): ?>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <td class="cm-data-table__td is-center">
                                 <div class="flex justify-center space-x-2">
                                     <?php if (canEdit()): ?>
-                                    <button onclick="editPlanification(<?= $planification['id_programmation'] ?>)"
+                                    <button onclick='editPlanification(<?= json_encode((string) ($planification["id_programmation"] ?? "")) ?>)'
                                         class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-medium py-1 px-3 rounded transition-colors duration-200">
                                         Modifier
                                     </button>
                                     <?php endif; ?>
 
                                     <?php if (canDelete()): ?>
-                                    <form method="POST" style="display: inline;"
-                                        onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette planification ?');">
+                                    <form method="POST"
+                                        style="display: inline;"
+                                        data-cm-confirm-message="Êtes-vous sûr de vouloir supprimer cette planification ?"
+                                        data-cm-confirm-type="danger"
+                                        data-cm-confirm-text="Supprimer">
                                         <input type="hidden" name="action" value="supprimer">
                                         <input type="hidden" name="id_programmation"
                                             value="<?= $planification['id_programmation'] ?>">
@@ -368,8 +416,8 @@ $planifications = $controller->getPlanificationsForView();
         const submitBtn = document.getElementById('submitBtn');
         if (submitBtn) {
             submitBtn.innerHTML = '<i class="fas fa-edit mr-2"></i>Modifier';
-            submitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-            submitBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+            submitBtn.classList.remove('is-success');
+            submitBtn.classList.add('is-warning');
         }
 
         // Ajouter un bouton d'annulation si pas déjà présent
@@ -379,7 +427,7 @@ $planifications = $controller->getPlanificationsForView();
             cancelBtn.id = 'cancelBtn';
             cancelBtn.type = 'button';
             cancelBtn.onclick = resetForm;
-            cancelBtn.className = 'bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-colors duration-200';
+            cancelBtn.className = 'cm-btn is-light';
             cancelBtn.innerHTML = '<i class="fas fa-times mr-2"></i>Annuler';
 
             buttonContainer.insertBefore(cancelBtn, submitBtn);
@@ -419,8 +467,8 @@ $planifications = $controller->getPlanificationsForView();
         const submitBtn = document.getElementById('submitBtn');
         if (submitBtn) {
             submitBtn.innerHTML = '<i class="fas fa-calendar-plus mr-2"></i>Planifier';
-            submitBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-700');
-            submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            submitBtn.classList.remove('is-warning');
+            submitBtn.classList.add('is-success');
         }
 
         // Remove cancel button
@@ -459,3 +507,4 @@ $planifications = $controller->getPlanificationsForView();
         }, 3000);
     }
 </script>
+

@@ -14,10 +14,14 @@ $html = (string) ob_get_clean();
 $replacements = [
     'href="css/' => 'href="../css/',
     "href='css/" => "href='../css/",
+    'href="assets/' => 'href="../assets/',
+    "href='assets/" => "href='../assets/",
     'href="image/' => 'href="../image/',
     "href='image/" => "href='../image/",
     'src="image/' => 'src="../image/',
     "src='image/" => "src='../image/",
+    'src="assets/' => 'src="../assets/',
+    "src='assets/" => "src='../assets/",
     'href="./images/' => 'href="../images/',
     "href='./images/" => "href='../images/",
     'src="./images/' => 'src="../images/',
@@ -33,4 +37,3 @@ $replacements = [
 ];
 
 echo strtr($html, $replacements);
-

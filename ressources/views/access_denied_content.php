@@ -4,7 +4,7 @@
             <div class="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full mb-4">
                 <i class="fas fa-lock text-red-500 text-4xl"></i>
             </div>
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">Accès refusé</h1>
+
             <p class="text-gray-600">Vous n'avez pas les permissions nécessaires pour accéder à cette page.</p>
         </div>
 
@@ -15,7 +15,7 @@
                         <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>
                     </div>
                     <div class="ml-3">
-                        <h3 class="text-sm font-medium text-red-800">Détails de l'erreur</h3>
+
                         <p class="mt-1 text-sm text-red-700">
                             <?= htmlspecialchars($_SESSION['error_message']) ?>
                         </p>
@@ -25,7 +25,7 @@
         <?php endif; ?>
 
         <div class="bg-gray-50 rounded-lg p-6 mb-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-3">Que faire maintenant ?</h2>
+            
             <ul class="space-y-3">
                 <li class="flex items-start">
                     <i class="fas fa-arrow-right text-blue-500 mt-1 mr-3"></i>
@@ -99,9 +99,7 @@
     <?php if (isset($_SESSION['id_GU']) && $_SESSION['id_GU'] == 5): ?>
         <!-- Section de debug pour l'administrateur -->
         <div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-yellow-800 mb-3">
-                <i class="fas fa-tools mr-2"></i>
-                Informations de débogage (Admin uniquement)
+
             </h3>
             <div class="text-sm space-y-2">
                 <p><strong>Utilisateur ID:</strong> <?= $_SESSION['id_utilisateur'] ?></p>

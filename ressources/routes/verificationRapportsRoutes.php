@@ -81,6 +81,11 @@ if (isset($_GET['page']) && $_GET['page'] === 'verification_candidatures_soutena
                 exit;
 
             case 'detail':
+                if (!canView('verification_candidatures_soutenance')) {
+                    http_response_code(403);
+                    echo '<div class="text-red-500 text-center py-8">Accès refusé.</div>';
+                    exit;
+                }
                 $id = $_GET['id'] ?? 0;
                 if ($id) {
                     $rapport = $controller->getRapportDetail($id);
@@ -199,6 +204,11 @@ if (isset($_GET['page']) && $_GET['page'] === 'verification_candidatures_soutena
                 exit;
 
             case 'telecharger_pdf':
+                if (!canView('verification_candidatures_soutenance')) {
+                    http_response_code(403);
+                    echo '<div style="text-align:center;padding:50px;font-family:Arial,sans-serif;"><h2 style="color:#e74c3c;">Accès refusé</h2><p>Vous n\'avez pas l\'autorisation d\'accéder à ce fichier.</p></div>';
+                    exit;
+                }
                 $id = $_GET['id'] ?? 0;
                 if ($id) {
                     $rapport = $controller->getRapportDetail($id);
@@ -213,62 +223,20 @@ if (isset($_GET['page']) && $_GET['page'] === 'verification_candidatures_soutena
                         if (file_exists($fichierContenu)) {
                             $contenu = file_get_contents($fichierContenu);
 
-                            // Créer le PDF avec DOMPDF
-                            require_once __DIR__ . '/../../vendor/autoload.php';
-                            $dompdf = new Dompdf\Dompdf();
-
-                            // Préparer le HTML pour le PDF
-                            $html = '
-                            <!DOCTYPE html>
-                            <html>
-                            <head>
-                                <meta charset="UTF-8">
-                                <title>Rapport - ' . htmlspecialchars($rapport->nom_rapport) . '</title>
-                                <style>
-                                    body { font-family: Arial, sans-serif; margin: 20px; }
-                                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-                                    .info { margin-bottom: 20px; }
-                                    .info div { margin: 5px 0; }
-                                    .content { margin-top: 30px; }
-                                    .content h1, .content h2, .content h3 { color: #333; }
-                                    .content p { line-height: 1.6; }
-                                </style>
-                            </head>
-                            <body>
-                                <div class="header">
-                                    <h1>Rapport de Soutenance</h1>
-                                </div>
-                                
-                                <div class="info">
-                                    <div><strong>Étudiant:</strong> ' . htmlspecialchars($rapport->nom_etu . ' ' . $rapport->prenom_etu) . '</div>
-                                    <div><strong>Email:</strong> ' . htmlspecialchars($rapport->email_etu) . '</div>
-                                    <div><strong>Nom du rapport:</strong> ' . htmlspecialchars($rapport->nom_rapport) . '</div>
-                                    <div><strong>Thème:</strong> ' . htmlspecialchars($rapport->theme_rapport) . '</div>
-                                    <div><strong>Date de dépôt:</strong> ' . ($rapport->date_depot ? date('d/m/Y H:i', strtotime($rapport->date_depot)) : 'Non déposé') . '</div>
-                                    <div><strong>Statut:</strong> ' . ($rapport->statut_rapport === 'valider' ? 'Validé' : ($rapport->statut_rapport === 'rejeter' ? 'Rejeté' : ($rapport->statut_rapport === 'en_cours' ? 'En cours' : 'En attente'))) . '</div>
-                                </div>
-                                
-                                <div class="content">
-                                    ' . $contenu . '
-                                </div>
-                            </body>
-                            </html>';
-
-                            $dompdf->loadHtml($html);
-                            $dompdf->setPaper('A4', 'portrait');
-                            $dompdf->render();
+                            // PdfGeneratorService : autoloadé par Composer PSR-4
+                            $pdfGen = new \App\Services\Document\PdfGeneratorService(
+                                __DIR__ . '/../../storage',
+                                __DIR__ . '/../../public/assets/img/logo.png'
+                            );
+                            $pdf = $pdfGen->createDocument('P', 'A4', 'Rapport - ' . htmlspecialchars($rapport->nom_rapport));
+                            $pdf->AddPage();
+                            $pdfGen->writeHtml($pdf, $html);
 
                             // Générer le nom du fichier
                             $nomFichier = 'rapport_' . $rapport->nom_rapport . '_' . date('Y-m-d_H-i-s') . '.pdf';
 
                             // Envoyer le PDF
-                            header('Content-Type: application/pdf');
-                            header('Content-Disposition: attachment; filename="' . $nomFichier . '"');
-                            header('Cache-Control: no-cache, no-store, must-revalidate');
-                            header('Pragma: no-cache');
-                            header('Expires: 0');
-
-                            echo $dompdf->output();
+                            $pdf->Output($nomFichier, 'D');
                         } else {
                             header('Content-Type: text/html; charset=utf-8');
                             echo '<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">';

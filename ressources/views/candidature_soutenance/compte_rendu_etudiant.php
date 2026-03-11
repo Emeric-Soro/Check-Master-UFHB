@@ -1,117 +1,131 @@
-<!DOCTYPE html>
-<html lang="fr">
+<?php
+$compte_rendu = $GLOBALS['compte_rendu'] ?? null;
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Compte Rendu de Soutenance</title>
-</head>
+$statut = (string) ($compte_rendu['statut'] ?? 'en_attente');
+$statutLower = strtolower($statut);
+$badgeType = 'light';
+$badgeText = ucfirst($statut);
+if ($statutLower === 'accepté' || $statutLower === 'accepte' || $statutLower === 'valide' || $statutLower === 'validé') {
+    $badgeType = 'success';
+    $badgeText = 'Accepté';
+} elseif ($statutLower === 'refusé' || $statutLower === 'refuse' || $statutLower === 'rejeté' || $statutLower === 'rejete') {
+    $badgeType = 'danger';
+    $badgeText = 'Refusé';
+} elseif ($statutLower === 'en_attente' || $statutLower === 'en attente') {
+    $badgeType = 'warning';
+    $badgeText = 'En attente';
+}
 
-<body class="min-h-screen" style="background: linear-gradient(135deg, #DFF2FF 0%, #C8E8FF 100%);">
-    <div class="container max-w-4xl mx-auto px-4 py-8">
-        <div class="bg-white rounded-lg shadow-lg p-8">
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold text-gray-800">Compte Rendu de Soutenance</h1>
-                <a href="?page=candidature_soutenance" class="text-blue-500 hover:text-blue-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                </a>
+$dateSoutenance = $compte_rendu['date_soutenance'] ?? null;
+$noteTechnique = (int) ($compte_rendu['note_technique'] ?? 0);
+$notePresentation = (int) ($compte_rendu['note_presentation'] ?? 0);
+$commentaires = (string) ($compte_rendu['commentaires'] ?? 'Aucun commentaire disponible.');
+$nomCr = (string) ($compte_rendu['nom_CR'] ?? 'Compte Rendu de Soutenance');
+$dateCr = (string) ($compte_rendu['date_CR'] ?? '');
+$pdfPath = (string) ($compte_rendu['chemin_fichier_pdf'] ?? '');
+$contenuCr = (string) ($compte_rendu['contenu_CR'] ?? '');
+?>
+
+<div class="cm-etu-screen">
+    <section class="cm-etu-panel">
+        <header class="cm-etu-panel__header">
+            <div>
+                
+                <p class="cm-etu-panel__subtitle">Document officiel publié par la commission après évaluation de votre dossier.</p>
             </div>
+                    <?php if (function_exists('canView') ? canView() : true): ?>
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                <span>Retour</span>
+            </a>
+                    <?php endif; ?>
 
-            <?php
-            $compte_rendu = $GLOBALS['compte_rendu'] ?? null;
-            if (!$compte_rendu):
-                ?>
-                <div class="text-center py-8">
-                    <p class="text-gray-500 text-lg">Aucun compte rendu disponible pour cette soutenance.</p>
-                </div>
-            <?php else: ?>
-                <div class="space-y-6">
+        <?php if (!$compte_rendu): ?>
+            <div class="cm-etu-empty">
+                <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+                <p>Aucun compte rendu disponible pour cette soutenance.</p>
+                <a href="?page=candidature_soutenance" class="cm-btn is-primary is-sm">Retour à ma candidature</a>
+            </div>
+        <?php else: ?>
+            <article class="cm-etu-doc-card">
+                <header class="cm-etu-doc-card__header">
+                    <div>
+
+                        <?php if ($dateCr !== ''): ?>
+                            <p>Publié le <?= date('d/m/Y à H:i', strtotime($dateCr)) ?></p>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($pdfPath !== '' && (function_exists('canView') ? canView() : true)): ?>
+                        <a href="<?= htmlspecialchars($pdfPath, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="cm-btn is-info is-sm">
+                            <i class="fas fa-download" aria-hidden="true"></i>
+                            <span>Télécharger</span>
+                        </a>
+                    <?php endif; ?>
+                </header>
+
+                <div class="cm-etu-doc-card__body">
                     <!-- Statut de la candidature -->
-                    <div class="border-b pb-4">
-                        <h2 class="text-lg font-semibold text-gray-700 mb-2">Statut de la candidature</h2>
-                        <div class="flex items-center">
-                            <span class="px-3 py-1 rounded-full text-sm font-medium
-                            <?php
-                            $statut = $compte_rendu['statut'] ?? 'en_attente';
-                            echo $statut === 'accepté' ? 'bg-green-100 text-green-800' :
-                                ($statut === 'refusé' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800');
-                            ?>">
-                                <?php echo ucfirst($statut); ?>
-                            </span>
-                        </div>
+                    <div class="cm-etu-cr-section">
+
+                        <?php cm_component('ui/badge', ['type' => $badgeType, 'text' => $badgeText]); ?>
                     </div>
 
-                    <!-- Date de la soutenance -->
-                    <div class="border-b pb-4">
-                        <h2 class="text-lg font-semibold text-gray-700 mb-2">Date de la soutenance</h2>
-                        <p class="text-gray-600">
-                            <?php
-                            $date_soutenance = $compte_rendu['date_soutenance'] ?? null;
-                            echo $date_soutenance ? date('d/m/Y', strtotime($date_soutenance)) : 'Non définie';
-                            ?>
-                        </p>
+                    <!-- Date de soutenance -->
+                    <div class="cm-etu-cr-section">
+
+                        <p><?= $dateSoutenance ? date('d/m/Y', strtotime($dateSoutenance)) : 'Non définie' ?></p>
                     </div>
 
                     <!-- Évaluation technique -->
-                    <div class="border-b pb-4">
-                        <h2 class="text-lg font-semibold text-gray-700 mb-2">Évaluation technique</h2>
-                        <div class="space-y-2">
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Qualité du travail</span>
-                                <span class="font-medium">
-                                    <?php
-                                    $note_technique = $compte_rendu['note_technique'] ?? 0;
-                                    echo $note_technique . '/20';
-                                    ?>
-                                </span>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2">
-                                <div class="bg-blue-500 h-2 rounded-full"
-                                    style="width: <?php echo ($note_technique / 20) * 100; ?>%"></div>
-                            </div>
+                    <div class="cm-etu-cr-section">
+
+                        <div class="cm-etu-cr-score">
+                            <span>Qualité du travail</span>
+                            <strong><?= $noteTechnique ?>/20</strong>
+                        </div>
+                        <div class="cm-etu-cr-bar">
+                            <div class="cm-etu-cr-bar__fill" style="width: <?= ($noteTechnique / 20) * 100 ?>%"></div>
                         </div>
                     </div>
 
                     <!-- Évaluation de la présentation -->
-                    <div class="border-b pb-4">
-                        <h2 class="text-lg font-semibold text-gray-700 mb-2">Évaluation de la présentation</h2>
-                        <div class="space-y-2">
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Qualité de la présentation</span>
-                                <span class="font-medium">
-                                    <?php
-                                    $note_presentation = $compte_rendu['note_presentation'] ?? 0;
-                                    echo $note_presentation . '/20';
-                                    ?>
-                                </span>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2">
-                                <div class="bg-blue-500 h-2 rounded-full"
-                                    style="width: <?php echo ($note_presentation / 20) * 100; ?>%"></div>
-                            </div>
+                    <div class="cm-etu-cr-section">
+
+                        <div class="cm-etu-cr-score">
+                            <span>Qualité de la présentation</span>
+                            <strong><?= $notePresentation ?>/20</strong>
+                        </div>
+                        <div class="cm-etu-cr-bar">
+                            <div class="cm-etu-cr-bar__fill" style="width: <?= ($notePresentation / 20) * 100 ?>%"></div>
                         </div>
                     </div>
 
+                    <!-- Contenu texte du CR -->
+                    <?php if ($contenuCr !== ''): ?>
+                        <div class="cm-etu-cr-section">
+
+                            <p><?= nl2br(htmlspecialchars($contenuCr, ENT_QUOTES, 'UTF-8')) ?></p>
+                        </div>
+                    <?php endif; ?>
+
                     <!-- Commentaires -->
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-700 mb-2">Commentaires</h2>
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <p class="text-gray-600 whitespace-pre-line">
-                                <?php
-                                $commentaires = $compte_rendu['commentaires'] ?? 'Aucun commentaire disponible.';
-                                echo nl2br(htmlspecialchars($commentaires));
-                                ?>
-                            </p>
+                    <div class="cm-etu-cr-section">
+
+                        <div class="cm-etu-cr-comments">
+                            <p><?= nl2br(htmlspecialchars($commentaires, ENT_QUOTES, 'UTF-8')) ?></p>
                         </div>
                     </div>
                 </div>
-            <?php endif; ?>
-        </div>
-    </div>
-</body>
 
-</html>
+                <footer class="cm-etu-doc-card__footer">
+                    <span>Numéro étudiant : <strong><?= htmlspecialchars((string) ($compte_rendu['num_etu'] ?? $_SESSION['num_etu'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong></span>
+                    <a href="?page=candidature_soutenance" class="cm-btn is-light is-sm">Retour à ma candidature</a>
+                </footer>
+            </article>
+
+            <div class="cm-etu-note-box">
+                <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                <p>Note importante : ce compte rendu est un document officiel.</p>
+            </div>
+        <?php endif; ?>
+    </section>
+</div>

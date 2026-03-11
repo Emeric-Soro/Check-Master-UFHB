@@ -1,918 +1,1482 @@
 <?php
-// Inclure le helper de permissions
-require_once __DIR__ . '/../../../app/utils/permissions_helper.php';
+// permissions_helper déjà inclus par layout.php
 
-// Déterminer si c'est une édition ou création
-$isEditingExisting = isset($isEditMode) && $isEditMode && isset($rapport);
+// Récupérer les variables globales définies par le controller
+$rapport = $GLOBALS['rapport'] ?? null;
+$rapport = is_array($rapport) ? $rapport : [];
+$isEditMode = $GLOBALS['isEditMode'] ?? false;
+$contenuRapport = $GLOBALS['contenuRapport'] ?? '';
+$contenuRapport = is_string($contenuRapport) ? $contenuRapport : '';
+$erreurs = $GLOBALS['erreurs'] ?? [];
+$erreurs = is_array($erreurs) ? $erreurs : [];
 
-// Récupérer les informations de l'étudiant depuis la session
+// Determiner si c'est une edition ou création
+$isEditingExisting = $isEditMode && is_array($rapport) && !empty($rapport);
+$isReadOnly = !empty($GLOBALS['rapportDejaDepose']);
+
 $numEtu = $_SESSION['num_etu'] ?? '';
 $nomEtu = $_SESSION['nom_etu'] ?? '';
 $prenomEtu = $_SESSION['prenom_etu'] ?? '';
+
+if (($nomEtu === '' || $prenomEtu === '') && $numEtu !== '') {
+    try {
+        $db = Database::getConnection();
+        $stmt = $db->prepare("SELECT nom_etu, prenom_etu FROM etudiants WHERE num_carte_etud = :num_etu LIMIT 1");
+        $stmt->execute(['num_etu' => $numEtu]);
+        $etudiantInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($etudiantInfo) {
+            $nomEtu = $etudiantInfo['nom_etu'] ?? '';
+            $prenomEtu = $etudiantInfo['prenom_etu'] ?? '';
+            $_SESSION['nom_etu'] = $nomEtu;
+            $_SESSION['prenom_etu'] = $prenomEtu;
+        }
+    } catch (Exception $e) {
+        error_log('Erreur récupération nom étudiant : ' . $e->getMessage());
+    }
+}
+
 $nomCompletEtu = trim($nomEtu . ' ' . $prenomEtu);
+$stageInfo = $GLOBALS['stage_info'] ?? [];
+$stageInfo = is_array($stageInfo) ? $stageInfo : [];
 
-// URLs des logos
-$baseUrl = (isset($_SERVER["REQUEST_SCHEME"]) ? $_SERVER["REQUEST_SCHEME"] . "://" . $_SERVER["HTTP_HOST"] : "") . '/checkmaster.ufrmi-ufhb-ci/public/image/';
-$logoUfhb = $baseUrl . 'logo_ufhb.png';
-$logoCiv = $baseUrl . 'logo_civ.png';
+// Infos stage
+$stageInfo = $GLOBALS['stage_info'] ?? [];
+$stageInfo = is_array($stageInfo) ? $stageInfo : [];
+
+$rapportId         = (string) ($rapport['id_rapport'] ?? '');
+$nomRapportInitial = (string) ($rapport['nom_rapport'] ?? '');
+$themeRapportInitial = (string) ($rapport['theme_rapport'] ?? '');
+if ($themeRapportInitial === '' && isset($stageInfo['sujet_stage'])) {
+    $themeRapportInitial = (string) $stageInfo['sujet_stage'];
+}
+
+$nomEntreprise = (string) ($stageInfo['nom_entreprise'] ?? '');
+$encadrantNom = (string) ($stageInfo['nom_maitre_stage'] ?? ($stageInfo['encadrant_nom'] ?? ''));
+$encadrantPrenom = (string) ($stageInfo['prenom_maitre_stage'] ?? ($stageInfo['encadrant_prenom'] ?? ''));
+$maitreStage = trim($encadrantNom . ' ' . $encadrantPrenom);
+
+$anneeAcademique = '';
+$sessionYearCandidates = [
+    $_SESSION['annee_academique'] ?? null,
+    $_SESSION['annee_academique_libelle'] ?? null,
+    $_SESSION['lib_annee_academique'] ?? null,
+    $_SESSION['annee_active'] ?? null,
+];
+foreach ($sessionYearCandidates as $candidate) {
+    if (is_string($candidate) && trim($candidate) !== '') {
+        $anneeAcademique = trim($candidate);
+        break;
+    }
+}
+if ($anneeAcademique === '') {
+    $year = (int) date('Y');
+    $month = (int) date('n');
+    $start = $month >= 9 ? $year : ($year - 1);
+    $end = $start + 1;
+    $anneeAcademique = $start . ' - ' . $end;
+}
+
+$documentName = $nomRapportInitial !== ''
+    ? $nomRapportInitial
+    : ($themeRapportInitial !== '' ? $themeRapportInitial : 'Rapport de stage');
+$studentLabel = $nomCompletEtu !== '' ? $nomCompletEtu : 'Etudiant non renseigné';
+$themeLabel = $themeRapportInitial !== '' ? $themeRapportInitial : 'Thème non renseigné';
+$mentorLabel = $maitreStage !== '' ? $maitreStage : 'Maître de stage non renseigné';
+$companyLabel = $nomEntreprise !== '' ? $nomEntreprise : '';
+$statusLabel = $isReadOnly ? 'Déposé' : ($isEditingExisting ? 'Brouillon' : 'Nouveau');
+$mentorWithCompany = $mentorLabel . ($companyLabel !== '' ? ' (' . $companyLabel . ')' : '');
+
+if (!function_exists('cm_etu_escape')) {
+    function cm_etu_escape($value)
+    {
+        return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    }
+}
+
+if (!function_exists('cm_etu_image_data_uri')) {
+    function cm_etu_image_data_uri(string $path): string
+    {
+        if (!is_file($path) || !is_readable($path)) {
+            return '';
+        }
+        $binary = file_get_contents($path);
+        if ($binary === false) {
+            return '';
+        }
+        $mime = function_exists('mime_content_type') ? (string) mime_content_type($path) : 'image/png';
+        if ($mime === '' || !str_starts_with($mime, 'image/')) {
+            $mime = 'image/png';
+        }
+        return 'data:' . $mime . ';base64,' . base64_encode($binary);
+    }
+}
+
+$logoBasePath = __DIR__ . '/../../../public/image/';
+$logoUfhbData = cm_etu_image_data_uri($logoBasePath . 'logo_ufhb.png');
+$logoCivData = cm_etu_image_data_uri($logoBasePath . 'logo_civ.png');
+$logoCmData = cm_etu_image_data_uri($logoBasePath . 'logoCM.png');
+
+$editorMeta = [
+    'studentName' => $studentLabel,
+    'studentNumber' => (string) $numEtu,
+    'theme' => $themeRapportInitial,
+    'mentor' => $mentorLabel,
+    'company' => $companyLabel,
+    'documentName' => $documentName,
+    'academicYear' => $anneeAcademique,
+    'ufhbLogo' => $logoUfhbData,
+    'civLogo' => $logoCivData,
+    'cmLogo' => $logoCmData,
+];
+$jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 ?>
-<!DOCTYPE html>
-<html lang="fr">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.js"></script>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Éditeur de Rapport de Stage - Approche Hybride</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Jodit Editor -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.js"></script>
-    <style>
-        :root {
-            --primary-green: #1B5E20;
-            --light-bg: #DFF2FF;
-        }
+<style>
+/* ── Focus Mode: 3-zone layout ── */
+.fm-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 60px);
+    background: #DFF2FF;
+    overflow: hidden;
+}
 
-        body {
-            background-color: var(--light-bg);
-        }
+/* ── ZONE A: Header fixe ── */
+.fm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.65rem 1.25rem;
+    background: linear-gradient(135deg, #0b3954 0%, #1a5276 100%);
+    color: #fff;
+    flex-shrink: 0;
+    z-index: 10;
+    box-shadow: 0 2px 12px rgba(11,57,84,0.25);
+}
+.fm-header__left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+.fm-back-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    text-decoration: none;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+.fm-back-btn:hover {
+    background: rgba(255,255,255,0.18);
+}
+.fm-header__title {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.fm-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.fm-badge.is-warning {
+    background: rgba(243,156,18,0.2);
+    color: #f9d423;
+}
+.fm-badge.is-success {
+    background: rgba(39,174,96,0.2);
+    color: #6fec97;
+}
+.fm-badge.is-info {
+    background: rgba(52,152,219,0.2);
+    color: #7ec8f8;
+}
+.fm-header__right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+.fm-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    border: none;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    white-space: nowrap;
+}
+.fm-btn:active {
+    transform: scale(0.97);
+}
+.fm-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+.fm-btn.is-save {
+    background: #3498db;
+    color: #fff;
+}
+.fm-btn.is-save:hover:not(:disabled) {
+    background: #2980b9;
+}
+.fm-btn.is-deposit {
+    background: #27ae60;
+    color: #fff;
+}
+.fm-btn.is-deposit:hover:not(:disabled) {
+    background: #219a52;
+}
 
-        /* Notification styles */
-        .notification {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            padding: 16px 20px;
-            min-width: 320px;
-            max-width: 480px;
-            border-left: 4px solid;
-            transform: translateX(100%);
-            opacity: 0;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-        }
+/* ── ZONE B: Corps central (scrollable) ── */
+.fm-body {
+    flex: 1 1 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
 
-        .notification.show { transform: translateX(0); opacity: 1; }
-        .notification.hide { transform: translateX(100%); opacity: 0; }
-        .notification.success { border-left-color: #10b981; background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); }
-        .notification.error { border-left-color: #ef4444; background: linear-gradient(135deg, #fef2f2 0%, #fef2f2 100%); }
-        .notification.info { border-left-color: #3b82f6; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }
-        .notification.warning { border-left-color: #f59e0b; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); }
+/* Info panel compact */
+.fm-info-panel {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    padding: 0.6rem 1.25rem;
+    background: #fff;
+    border-bottom: 1px solid rgba(26,82,118,0.1);
+    flex-shrink: 0;
+}
+.fm-info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0 1rem;
+    font-size: 0.82rem;
+    color: #334155;
+    line-height: 1.4;
+    border-right: 1px solid rgba(26,82,118,0.1);
+}
+.fm-info-item:first-child {
+    padding-left: 0;
+}
+.fm-info-item:last-child {
+    border-right: none;
+}
+.fm-info-item i {
+    color: #1a5276;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+.fm-info-item .fm-info-label {
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    margin-right: 0.3rem;
+}
 
-        .notification-icon { flex-shrink: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
-        .notification-content { flex: 1; min-width: 0; }
-        .notification-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; color: #1f2937; }
-        .notification-message { font-size: 13px; color: #6b7280; line-height: 1.4; word-wrap: break-word; }
-        .notification-close { flex-shrink: 0; width: 20px; height: 20px; cursor: pointer; color: #9ca3af; transition: color 0.2s; background: none; border: none; padding: 0; }
-        .notification-close:hover { color: #6b7280; }
-        .notification-progress { position: absolute; bottom: 0; left: 0; height: 3px; background-color: currentColor; opacity: 0.3; transition: width 0.03s linear; }
+/* Title input */
+.fm-title-bar {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1.25rem;
+    background: #f0f7ff;
+    border-bottom: 1px solid rgba(26,82,118,0.1);
+    flex-shrink: 0;
+}
+.fm-title-bar label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #1a5276;
+    margin-right: 0.75rem;
+    white-space: nowrap;
+}
+.fm-title-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #0f172a;
+    outline: none;
+    padding: 0.4rem 0;
+    font-family: inherit;
+}
+.fm-title-input:focus {
+    border-bottom: 2px solid #3498db;
+}
+.fm-title-input:read-only {
+    color: #64748b;
+    cursor: default;
+}
 
-        /* Tab styles */
-        .tab-btn {
-            padding: 14px 28px;
-            border: none;
-            background: #e5e7eb;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 15px;
-            transition: all 0.2s;
-        }
-        .tab-btn.active {
-            background: var(--primary-green);
-            color: white;
-        }
-        .tab-btn:first-child { border-radius: 10px 0 0 10px; }
-        .tab-btn:last-child { border-radius: 0 10px 10px 0; }
-        .tab-btn:hover:not(.active) { background: #d1d5db; }
+/* Read-only banner */
+.fm-readonly-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 1.25rem;
+    background: #fff8eb;
+    border-bottom: 1px solid rgba(243,156,18,0.2);
+    color: #8b5b08;
+    font-size: 0.82rem;
+    flex-shrink: 0;
+}
 
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+/* Error/success feedback */
+.fm-feedback {
+    padding: 0.55rem 1.25rem;
+    font-size: 0.82rem;
+    border-bottom: 1px solid rgba(26,82,118,0.1);
+    flex-shrink: 0;
+}
+.fm-feedback.is-success {
+    background: #f2fbf6;
+    border-left: 3px solid #27ae60;
+    color: #166534;
+}
+.fm-feedback.is-error {
+    background: #fff5f5;
+    border-left: 3px solid #e74c3c;
+    color: #991b1b;
+}
 
-        /* Form styles */
-        .form-group { margin-bottom: 16px; }
-        .form-label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 6px; }
-        .form-input {
-            width: 100%;
-            padding: 10px 14px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary-green);
-            box-shadow: 0 0 0 3px rgba(27, 94, 32, 0.1);
-        }
-        .form-input:disabled, .form-input[readonly] {
-            background-color: #f3f4f6;
-            cursor: not-allowed;
-        }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } }
+/* Editor zone */
+.fm-editor-zone {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+.fm-editor-zone .jodit-container:not(.jodit_inline) {
+    border: 0 !important;
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+}
+.fm-editor-zone .jodit-toolbar__box,
+.fm-editor-zone .jodit-toolbar-editor-collection {
+    background: #f6fbff !important;
+    border-bottom: 1px solid rgba(26,82,118,0.12) !important;
+}
+.fm-editor-zone .jodit-workplace {
+    flex: 1 1 0;
+    background: linear-gradient(180deg, #f0f5fa 0%, #e8eff6 100%);
+}
+.fm-editor-zone .jodit-wysiwyg {
+    min-height: 500px !important;
+    padding: 1.4rem !important;
+    background: transparent !important;
+    font-family: 'Times New Roman', serif !important;
+    font-size: 12pt !important;
+    line-height: 1.65 !important;
+    color: #111827 !important;
+}
+.fm-editor-zone .jodit-status-bar {
+    display: none !important;
+}
 
-        /* Cover Preview */
-        .cover-preview {
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 15px;
-            min-height: 400px;
-            transform: scale(0.55);
-            transform-origin: top left;
-            width: 182%;
-        }
+/* ── ZONE C: Footer fixe ── */
+.fm-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 1.25rem;
+    background: #fff;
+    border-top: 1px solid rgba(26,82,118,0.12);
+    flex-shrink: 0;
+    z-index: 10;
+    box-shadow: 0 -2px 8px rgba(11,57,84,0.06);
+}
+.fm-footer__left,
+.fm-footer__right {
+    font-size: 0.78rem;
+    color: #64748b;
+}
+.fm-footer__center {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.fm-btn-preview {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid #3498db;
+    background: transparent;
+    color: #3498db;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+.fm-btn-preview:hover {
+    background: #3498db;
+    color: #fff;
+}
+.fm-btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid #27ae60;
+    background: transparent;
+    color: #27ae60;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+.fm-btn-download:hover {
+    background: #27ae60;
+    color: #fff;
+}
+.fm-footer__right .fm-save-status {
+    color: #27ae60;
+    font-weight: 500;
+}
 
-        /* Jodit customization */
-        .jodit-container { border-radius: 8px !important; overflow: hidden; }
-        .jodit-toolbar { background: #f8fafc !important; }
+/* PDF loading overlay */
+.fm-pdf-loading {
+    position: fixed;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    background: rgba(10,23,34,0.74);
+    z-index: 1100;
+    color: #fff;
+    text-align: center;
+}
+.fm-pdf-loading.is-visible {
+    display: flex;
+}
+.fm-pdf-loading__spinner {
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    border: 3px solid rgba(255,255,255,0.2);
+    border-top-color: #fff;
+    animation: fm-spin 0.8s linear infinite;
+}
+@keyframes fm-spin {
+    to { transform: rotate(360deg); }
+}
 
-        /* Preview Modal */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-        .modal-overlay.show { opacity: 1; visibility: visible; }
-        .modal-content {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            max-width: 900px;
-            width: 95%;
-            max-height: 90vh;
-            overflow-y: auto;
-            transform: scale(0.9);
-            transition: transform 0.3s ease;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        }
-        .modal-overlay.show .modal-content { transform: scale(1); }
+/* Notification toasts */
+#fmNotifications {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
 
-        /* PDF Loading */
-        .pdf-loading {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-        .pdf-loading.show { opacity: 1; visibility: visible; }
-        .pdf-loading .spinner {
-            width: 60px;
-            height: 60px;
-            border: 5px solid #374151;
-            border-top: 5px solid #10b981;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .pdf-loading p { color: white; margin-top: 20px; font-size: 1.2rem; }
-    </style>
-</head>
+/* Responsive */
+@media (max-width: 768px) {
+    .fm-header {
+        flex-wrap: wrap;
+        padding: 0.5rem 0.75rem;
+    }
+    .fm-header__title {
+        font-size: 0.85rem;
+    }
+    .fm-info-panel {
+        flex-direction: column;
+        gap: 0.3rem;
+        padding: 0.5rem 0.75rem;
+    }
+    .fm-info-item {
+        border-right: none;
+        border-bottom: 1px solid rgba(26,82,118,0.06);
+        padding: 0.3rem 0;
+    }
+    .fm-title-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.3rem;
+        padding: 0.5rem 0.75rem;
+    }
+    .fm-footer {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+        padding: 0.4rem 0.75rem;
+    }
+}
+</style>
 
-<body class="min-h-screen">
-    <div class="container mx-auto px-4 py-6">
-        <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-center mb-6">
-            <div>
-                <h1 class="text-2xl md:text-3xl font-bold text-gray-800">📄 Éditeur de Rapport de Stage</h1>
-                <p class="text-gray-600 mt-1">
-                    <?php if ($isEditingExisting): ?>
-                        Mode édition : <?= htmlspecialchars(isset($rapport) && isset($rapport['nom_rapport']) ? $rapport['nom_rapport'] : 'Rapport') ?>
-                    <?php else: ?>
-                        Approche hybride : Template fixe + Éditeur Jodit
-                    <?php endif; ?>
-                </p>
-            </div>
-            <div class="flex flex-wrap gap-3 mt-4 md:mt-0">
-                <?php if (!isset($GLOBALS['rapportDejaDepose']) || !$GLOBALS['rapportDejaDepose']): ?>
-                    <button id="saveBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
-                        </svg>
-                        Enregistrer
-                    </button>
-                <?php endif; ?>
-                <button id="previewBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                    </svg>
-                    Aperçu
-                </button>
-                <button id="exportBtn" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                    </svg>
-                    Exporter PDF
-                </button>
-                <?php if (!isset($GLOBALS['rapportDejaDepose']) || !$GLOBALS['rapportDejaDepose']): ?>
-                    <button id="deposerBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Déposer
-                    </button>
-                <?php else: ?>
-                    <button disabled class="bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg flex items-center cursor-not-allowed" title="Rapport déjà déposé">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Déposé ✓
-                    </button>
-                <?php endif; ?>
-            </div>
+<!-- Hidden form for AJAX submissions -->
+<form id="rapportForm" method="POST" action="?page=gestion_rapports" style="display:none;">
+    <input type="hidden" name="action" value="save_rapport">
+    <?php if ($isEditingExisting): ?>
+        <input type="hidden" name="edit_id" value="<?= cm_etu_escape($rapportId) ?>">
+    <?php endif; ?>
+    <input type="hidden" id="nom_rapport_hidden" name="nom_rapport" value="<?= cm_etu_escape($documentName) ?>">
+    <input type="hidden" id="theme_rapport_hidden" name="theme_rapport" value="<?= cm_etu_escape($themeLabel) ?>">
+    <input type="hidden" id="contenu_rapport" name="contenu_rapport">
+    <input type="hidden" id="payloadReportId" name="id_rapport" value="<?= cm_etu_escape($rapportId) ?>">
+</form>
+
+<div class="fm-wrapper">
+    <!-- ═══ ZONE A: Header ═══ -->
+    <header class="fm-header">
+        <div class="fm-header__left">
+            <a href="?page=gestion_rapports" class="fm-back-btn" title="Retour à la liste">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <span class="fm-header__title">Rédaction du rapport</span>
+            <span class="fm-badge <?= $isReadOnly ? 'is-success' : ($isEditingExisting ? 'is-warning' : 'is-info') ?>">
+                <i class="fas <?= $isReadOnly ? 'fa-lock' : ($isEditingExisting ? 'fa-pen' : 'fa-plus') ?>"></i>
+                <?= cm_etu_escape($statusLabel) ?>
+            </span>
         </div>
-
-        <!-- Main Content -->
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-            <?php if (isset($erreurs) && !empty($erreurs)): ?>
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 m-4 rounded">
-                    <strong>Erreurs de validation :</strong>
-                    <ul class="mt-2 list-disc list-inside">
-                        <?php foreach ($erreurs as $erreur): ?>
-                            <li><?= htmlspecialchars($erreur) ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
+        <div class="fm-header__right">
+            <?php if (!$isReadOnly): ?>
+                <button id="saveBtn" type="button" class="fm-btn is-save">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+                <button id="deposerBtn" type="button" class="fm-btn is-deposit">
+                    <i class="fas fa-paper-plane"></i> Déposer
+                </button>
             <?php endif; ?>
+        </div>
+    </header>
 
-            <!-- Form hidden -->
-            <form id="rapportForm" method="POST" style="display: none;">
-                <input type="hidden" name="action" value="save_rapport">
-                <?php if ($isEditingExisting): ?>
-                    <input type="hidden" name="edit_id" value="<?= $rapport['id_rapport'] ?>">
-                <?php endif; ?>
-                <input type="hidden" id="nom_rapport_hidden" name="nom_rapport" value="<?= isset($rapport) ? htmlspecialchars($rapport['nom_rapport']) : '' ?>">
-                <input type="hidden" id="theme_rapport_hidden" name="theme_rapport" value="<?= isset($rapport) ? htmlspecialchars($rapport['theme_rapport']) : '' ?>">
-                <input type="hidden" id="contenu_rapport" name="contenu_rapport">
-                <input type="hidden" id="cover_data" name="cover_data">
-            </form>
-
-            <!-- Tabs -->
-            <div class="border-b border-gray-200 p-4">
-                <div class="flex">
-                    <button class="tab-btn active" data-tab="cover">1️⃣ Page de Couverture</button>
-                    <button class="tab-btn" data-tab="body">2️⃣ Corps du Rapport</button>
-                </div>
+    <!-- ═══ ZONE B: Corps central ═══ -->
+    <div class="fm-body">
+        <?php if ($isReadOnly): ?>
+            <div class="fm-readonly-banner">
+                <i class="fas fa-lock"></i>
+                <span>Mode consultation — le rapport a été déposé et ne peut plus être modifié.</span>
             </div>
+        <?php endif; ?>
 
-            <!-- Tab 1: Cover Page Form -->
-            <div id="tab-cover" class="tab-content active p-6">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Left: Form -->
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-800 mb-4">📝 Informations de la Page de Couverture</h3>
-                        
-                        <div id="coverPageFormContainer">
-                            <!-- Nom du rapport -->
-                            <div class="form-group">
-                                <label class="form-label">Nom du rapport *</label>
-                                <input type="text" id="nom_rapport" class="form-input" 
-                                    value="<?= isset($rapport) ? htmlspecialchars($rapport['nom_rapport']) : '' ?>" 
-                                    placeholder="Ex: Rapport de stage - Développement Web"
-                                    <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'readonly' : '' ?> required>
-                            </div>
+        <?php if (isset($_SESSION['success'])): ?>
+            <div class="fm-feedback is-success"><?= cm_etu_escape($_SESSION['success']) ?></div>
+            <?php unset($_SESSION['success']); ?>
+        <?php endif; ?>
 
-                            <!-- Diplôme & Option -->
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Diplôme *</label>
-                                    <select id="diplome" class="form-input" <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'disabled' : '' ?> required>
-                                        <option value="Diplôme d'Ingénieur de conception en informatique">Diplôme d'Ingénieur de conception en informatique</option>
-                                        <option value="Licence Professionnelle">Licence Professionnelle</option>
-                                        <option value="Master Professionnel">Master Professionnel</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Option/Spécialité *</label>
-                                    <select id="option_specialite" class="form-input" <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'disabled' : '' ?> required>
-                                        <option value="Option Méthodes Informatiques Appliquées à la Gestion des Entreprises">MIAGE</option>
-                                        <option value="Option Génie Logiciel">Génie Logiciel</option>
-                                        <option value="Option Réseaux et Systèmes">Réseaux et Systèmes</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Étudiant -->
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Civilité</label>
-                                    <select id="civilite" class="form-input" <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'disabled' : '' ?>>
-                                        <option value="M.">M.</option>
-                                        <option value="Mme">Mme</option>
-                                        <option value="Mlle">Mlle</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Matricule</label>
-                                    <input type="text" id="matricule" class="form-input" value="<?= htmlspecialchars($numEtu) ?>" readonly>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Nom complet de l'étudiant *</label>
-                                <input type="text" id="nom_etudiant" class="form-input" value="<?= htmlspecialchars($nomCompletEtu) ?>" 
-                                    <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'readonly' : '' ?> required>
-                            </div>
-
-                            <!-- Thème -->
-                            <div class="form-group">
-                                <label class="form-label">Titre du thème *</label>
-                                <input type="text" id="titre_theme" class="form-input" 
-                                    value="<?= isset($rapport) ? htmlspecialchars($rapport['theme_rapport']) : '' ?>" 
-                                    placeholder="Ex: MISE EN PLACE D'UN MODULE D'INTEGRATION..."
-                                    <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'readonly' : '' ?> required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Sous-titre (optionnel)</label>
-                                <input type="text" id="sous_titre" class="form-input" 
-                                    placeholder="Ex: CAS DE L'ENTREPRISE XYZ"
-                                    <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'readonly' : '' ?>>
-                            </div>
-
-                            <!-- Entreprise -->
-                            <div class="form-group">
-                                <label class="form-label">Entreprise d'accueil *</label>
-                                <input type="text" id="nom_entreprise" class="form-input" 
-                                    placeholder="Ex: KYRIA CONSULTANCY SERVICES"
-                                    <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'readonly' : '' ?> required>
-                            </div>
-
-                            <!-- Encadrement -->
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Encadreur académique</label>
-                                    <input type="text" id="encadreur" class="form-input" 
-                                        placeholder="Nom de l'encadreur"
-                                        <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'readonly' : '' ?>>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Maître de stage</label>
-                                    <input type="text" id="maitre_stage" class="form-input" 
-                                        placeholder="Nom du maître de stage"
-                                        <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'readonly' : '' ?>>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Fonction du maître de stage</label>
-                                <input type="text" id="fonction_maitre" class="form-input" 
-                                    placeholder="Ex: Consultant à KYRIA Consultancy Services"
-                                    <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'readonly' : '' ?>>
-                            </div>
-
-                            <?php if (!isset($GLOBALS['rapportDejaDepose']) || !$GLOBALS['rapportDejaDepose']): ?>
-                                <button type="button" id="updatePreviewBtn" class="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition">
-                                    🔄 Mettre à jour l'aperçu
-                                </button>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- Right: Preview -->
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-800 mb-4">👁️ Aperçu de la Page de Couverture</h3>
-                        <div id="coverPreview" class="cover-preview">
-                            <!-- Le contenu sera généré dynamiquement -->
-                        </div>
-                    </div>
-                </div>
+        <?php if (!empty($erreurs)): ?>
+            <div class="fm-feedback is-error">
+                <?php foreach ($erreurs as $e): ?>
+                    <div><?= cm_etu_escape($e) ?></div>
+                <?php endforeach; ?>
             </div>
+        <?php endif; ?>
 
-            <!-- Tab 2: Report Body Editor -->
-            <div id="tab-body" class="tab-content p-6">
-                <h3 class="text-lg font-bold text-gray-800 mb-4">📝 Corps du Rapport (Éditeur Jodit)</h3>
-                <textarea id="jodit-editor"></textarea>
+        <!-- Info panel compact -->
+        <div class="fm-info-panel">
+            <div class="fm-info-item">
+                <i class="fas fa-user-graduate"></i>
+                <span class="fm-info-label">Étudiant</span>
+                <span><?= cm_etu_escape($studentLabel) ?> <?= $numEtu !== '' ? '(' . cm_etu_escape($numEtu) . ')' : '' ?></span>
+            </div>
+            <div class="fm-info-item">
+                <i class="fas fa-user-tie"></i>
+                <span class="fm-info-label">Maître</span>
+                <span><?= cm_etu_escape($mentorWithCompany) ?></span>
             </div>
         </div>
 
-        <!-- Footer -->
-        <div class="mt-6 text-center text-gray-600 text-sm">
-            <p>© 2025 - Éditeur de Rapport de Stage | Développé pour faciliter la création de rapports professionnels</p>
+        <!-- Titre officiel editable -->
+        <div class="fm-title-bar">
+            <label for="reportTitleInput">Titre officiel</label>
+            <input type="text" id="reportTitleInput" class="fm-title-input"
+                   placeholder="Saisissez le thème du rapport..."
+                   value="<?= cm_etu_escape($themeLabel) ?>"
+                   <?= $isReadOnly ? 'readonly' : '' ?>>
+        </div>
+
+        <!-- Editeur WYSIWYG -->
+        <div class="fm-editor-zone">
+            <textarea id="jodit-editor"></textarea>
         </div>
     </div>
 
-    <!-- Notifications -->
-    <div id="notificationContainer" class="fixed top-4 right-4 z-50 space-y-3"></div>
-
-    <!-- Preview Modal -->
-    <div id="previewModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold">👁️ Aperçu du Rapport Complet</h2>
-                <button id="closePreviewModal" class="text-gray-500 hover:text-gray-700">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-            <div id="fullPreview" style="background: white; padding: 20px; border: 1px solid #ddd; max-height: 70vh; overflow-y: auto;"></div>
+    <!-- ═══ ZONE C: Footer ═══ -->
+    <footer class="fm-footer">
+        <div class="fm-footer__left">
+            <span id="wordCount">0 mots</span>
         </div>
-    </div>
+        <div class="fm-footer__center">
+            <button id="previewPdfBtn" type="button" class="fm-btn-preview" title="Ouvrir l'aperçu PDF dans un nouvel onglet">
+                <i class="fas fa-eye"></i> Aperçu PDF
+            </button>
+            <button id="downloadPdfBtn" type="button" class="fm-btn-download" title="Télécharger le PDF officiel">
+                <i class="fas fa-file-pdf"></i> Télécharger
+            </button>
+        </div>
+        <div class="fm-footer__right">
+            <span id="saveStatus" class="fm-save-status"><?= $isReadOnly ? 'Lecture seule' : 'Auto-save toutes les 60s' ?></span>
+        </div>
+    </footer>
+</div>
 
-    <!-- PDF Loading Overlay -->
-    <div id="pdfLoading" class="pdf-loading">
-        <div class="spinner"></div>
-        <p>Génération du PDF en cours...</p>
-    </div>
+<!-- PDF loading overlay -->
+<div id="pdfLoading" class="fm-pdf-loading">
+    <div class="fm-pdf-loading__spinner"></div>
+    <p>Génération du PDF en cours…</p>
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Configuration
-            const logoUfhb = '<?= $logoUfhb ?>';
-            const logoCiv = '<?= $logoCiv ?>';
-            const isReadOnly = <?= (isset($GLOBALS['rapportDejaDepose']) && $GLOBALS['rapportDejaDepose']) ? 'true' : 'false' ?>;
-            const isEditMode = <?= $isEditingExisting ? 'true' : 'false' ?>;
+<!-- Notification container -->
+<div id="fmNotifications"></div>
 
-            // Elements
-            const tabBtns = document.querySelectorAll('.tab-btn');
-            const tabContents = document.querySelectorAll('.tab-content');
-            const updatePreviewBtn = document.getElementById('updatePreviewBtn');
-            const coverPreview = document.getElementById('coverPreview');
-            const previewBtn = document.getElementById('previewBtn');
-            const previewModal = document.getElementById('previewModal');
-            const closePreviewModal = document.getElementById('closePreviewModal');
-            const fullPreview = document.getElementById('fullPreview');
-            const pdfLoading = document.getElementById('pdfLoading');
-            const saveBtn = document.getElementById('saveBtn');
-            const exportBtn = document.getElementById('exportBtn');
-            const deposerBtn = document.getElementById('deposerBtn');
-            const rapportForm = document.getElementById('rapportForm');
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var logoUfhb = '<?= $logoUfhb ?>';
+        var logoCiv = '<?= $logoCiv ?>';
+        var isReadOnly = <?= $isReadOnly ? 'true' : 'false' ?>;
+        var isEditMode = <?= $isEditingExisting ? 'true' : 'false' ?>;
 
-            // Initialize Jodit Editor
-            const joditEditor = Jodit.make('#jodit-editor', {
-                height: 500,
-                language: 'fr',
-                placeholder: 'Commencez à rédiger le corps de votre rapport ici...',
-                toolbarButtonSize: 'middle',
-                readonly: isReadOnly,
-                buttons: [
-                    'source', '|',
-                    'bold', 'italic', 'underline', 'strikethrough', '|',
-                    'font', 'fontsize', 'brush', 'paragraph', '|',
-                    'ul', 'ol', 'indent', 'outdent', '|',
-                    'align', 'undo', 'redo', '|',
-                    'table', 'link', 'image', '|',
-                    'hr', 'copyformat', 'fullsize', 'print'
-                ],
-                uploader: {
-                    insertImageAsBase64URI: true
-                },
-                defaultFontSize: '12pt',
-                defaultFontName: 'Times New Roman'
-            });
+        console.log('État de l\'éditeur:', {
+            isReadOnly: isReadOnly,
+            isEditMode: isEditMode,
+            contenuRapportLength: <?= strlen($contenuRapport) ?>
+        });
 
-            // Load existing content if in edit mode
-            <?php if ($isEditingExisting && !empty($contenuRapport)): ?>
-                joditEditor.value = <?= json_encode($contenuRapport) ?>;
-            <?php else: ?>
-                joditEditor.value = getInitialBodyContent();
-            <?php endif; ?>
+        var tabBtns         = document.querySelectorAll('.cm-etu-tab-btn');
+        var tabPanes        = document.querySelectorAll('.cm-etu-tab-pane');
+        var updatePreviewBtn = document.getElementById('updatePreviewBtn');
+        var coverPreview    = document.getElementById('coverPreview');
+        var previewBtn      = document.getElementById('previewBtn');
+        var previewModal    = document.getElementById('previewModal');
+        var closePreviewModal = document.getElementById('closePreviewModal');
+        var fullPreview     = document.getElementById('fullPreview');
+        var pdfLoading      = document.getElementById('pdfLoading');
+        var saveBtn         = document.getElementById('saveBtn');
+        var exportBtn       = document.getElementById('exportBtn');
+        var deposerBtn      = document.getElementById('deposerBtn');
+        var rapportForm     = document.getElementById('rapportForm');
+        var wordCounter     = document.getElementById('wordCounter');
+        var autosaveStatus  = document.getElementById('autosaveStatus');
 
-            // Tab switching
-            tabBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const tabId = btn.dataset.tab;
-                    tabBtns.forEach(b => b.classList.remove('active'));
-                    tabContents.forEach(c => c.classList.remove('active'));
-                    btn.classList.add('active');
-                    document.getElementById('tab-' + tabId).classList.add('active');
+        var joditEditor = Jodit.make('#jodit-editor', {
+            height: 500,
+            language: 'fr',
+            placeholder: 'Commencez a rediger le corps de votre rapport ici...',
+            toolbarButtonSize: 'middle',
+            readonly: isReadOnly,
+            toolbarAdaptive: false,
+            askBeforePasteHTML: false,
+            askBeforePasteFromWord: false,
+            buttons: [
+                'source', '|',
+                'bold', 'italic', 'underline', 'strikethrough', '|',
+                'font', 'fontsize', 'brush', 'paragraph', '|',
+                'ul', 'ol', 'indent', 'outdent', '|',
+                'align', 'undo', 'redo', '|',
+                'table', 'link', 'image', '|',
+                'hr', 'copyformat', 'fullsize', 'print'
+            ],
+            uploader: { insertImageAsBase64URI: true },
+            defaultFontSize: '12pt',
+            defaultFontName: 'Times New Roman'
+        });
+
+        // Charger le contenu du rapport dans l'éditeur
+        <?php if ($isEditingExisting && !empty($contenuRapport)): ?>
+        console.log('Mode édition: chargement du contenu existant');
+        // Nettoyer le contenu pour enlever les éventuelles pages de couverture dupliquées
+        var rawContent = <?= json_encode($contenuRapport) ?>;
+        // Extraire uniquement le contenu après la dernière balise de page-break
+        var tempDiv = document.createElement('div');
+        tempDiv.innerHTML = rawContent;
+        
+        // Chercher tous les div avec page-break
+        var pageBreaks = tempDiv.querySelectorAll('div[style*="page-break"]');
+        var cleanContent = rawContent;
+        
+        if (pageBreaks.length > 0) {
+            // Prendre le contenu après le dernier page-break
+            var lastBreak = pageBreaks[pageBreaks.length - 1];
+            var nextSibling = lastBreak.nextElementSibling;
+            
+            if (nextSibling) {
+                // Récupérer le contenu à partir de cet élément
+                cleanContent = nextSibling.innerHTML || nextSibling.textContent || '';
+            }
+        }
+        
+        joditEditor.value = cleanContent || getInitialBodyContent();
+        <?php else: ?>
+        console.log('Mode création: initialisation avec le contenu par défaut');
+        joditEditor.value = getInitialBodyContent();
+        <?php endif; ?>
+
+    if (rapportForm) {
+        rapportForm.setAttribute('action', reportEndpoint);
+    }
+
+    console.log('[init] Elements found:', {
+        rapportForm: !!rapportForm,
+        saveBtn: !!saveBtn,
+        deposerBtn: !!deposerBtn,
+        previewPdfBtn: !!previewPdfBtn,
+        downloadPdfBtn: !!downloadPdfBtn,
+        titleInput: !!titleInput,
+        isReadOnly: isReadOnly
+    });
+
+    var requiresMigrationSave = false;
+    var saveInFlight = null;
+    var lastSnapshot = '';
+    var activePreviewUrl = null;
+
+    /* ── Helpers ── */
+
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text == null ? '' : String(text);
+        return div.innerHTML;
+    }
+
+    function nowLabel() {
+        return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    function buildDocumentName() {
+        var v = String(titleInput.value || '').trim();
+        if (v !== '') return v;
+        var t = String(editorMeta.theme || '').trim();
+        return t !== '' ? t : 'Rapport de stage';
+    }
+
+    function buildThemeValue() {
+        var v = String(titleInput.value || '').trim();
+        return v !== '' ? v : buildDocumentName();
+    }
+
+    function getCsrfToken() {
+        if (rapportForm) {
+            var tokenInput = rapportForm.querySelector('input[name="csrf_token"]');
+            if (tokenInput && tokenInput.value) return tokenInput.value;
+        }
+        var anyToken = document.querySelector('input[name="csrf_token"]');
+        return anyToken && anyToken.value ? anyToken.value : '';
+    }
+
+    function editorGetValue() {
+        if (joditEditor) return joditEditor.value || '';
+        return editorTextarea ? String(editorTextarea.value || '') : '';
+    }
+
+    function editorSetValue(value) {
+        var html = String(value || '');
+        if (joditEditor) {
+            joditEditor.value = html;
+            return;
+        }
+        if (editorTextarea) {
+            editorTextarea.value = html;
+        }
+    }
+
+    function editorOnChange(handler) {
+        if (joditEditor && joditEditor.events && typeof joditEditor.events.on === 'function') {
+            joditEditor.events.on('change', handler);
+            return;
+        }
+        if (editorTextarea) {
+            editorTextarea.addEventListener('input', handler);
+        }
+    }
+
+    /* ── Cover page HTML builder ── */
+
+    function buildCoverSectionHTML() {
+        var theme = String(titleInput.value || editorMeta.theme || 'Thème du rapport');
+        var studentName = String(editorMeta.studentName || 'Etudiant');
+        var mentor = String(editorMeta.mentor || 'Maître de stage');
+        var company = String(editorMeta.company || '');
+        var academicYear = String(editorMeta.academicYear || '');
+        var studentNumber = String(editorMeta.studentNumber || '');
+        var companyLogos = '';
+
+        if (editorMeta.civLogo) {
+            companyLogos += '<img src="' + editorMeta.civLogo + '" alt="Armoiries" style="max-width:68px; width:68px; height:auto; display:inline-block; vertical-align:middle;">';
+        }
+        if (editorMeta.cmLogo) {
+            companyLogos += '<img src="' + editorMeta.cmLogo + '" alt="Logo CM" style="max-width:64px; width:64px; height:auto; display:inline-block; vertical-align:middle; margin-left:12px;">';
+        }
+
+        return '' +
+            '<section class="cm-report-cover-page" data-cm-report-cover="1" style="font-family:\'Times New Roman\', serif; width:210mm; min-height:297mm; padding:20mm 22mm 18mm; box-sizing:border-box; background:#ffffff; color:#111827;">' +
+                '<table style="width:100%; border:none; margin-bottom:8mm; border-collapse:collapse;">' +
+                    '<tr>' +
+                        '<td style="width:50%; vertical-align:top; border:none; padding:0; font-size:10pt; line-height:1.45;">MINISTERE DE L\'ENSEIGNEMENT SUPERIEUR<br>ET DE LA RECHERCHE SCIENTIFIQUE</td>' +
+                        '<td style="width:50%; vertical-align:top; border:none; padding:0; font-size:10pt; line-height:1.45; text-align:right;">REPUBLIQUE DE COTE D\'IVOIRE<br>UNION - DISCIPLINE - TRAVAIL</td>' +
+                    '</tr>' +
+                '</table>' +
+                '<table style="width:100%; border:none; margin:0 0 12mm; border-collapse:collapse;">' +
+                    '<tr>' +
+                        '<td style="width:50%; vertical-align:top; border:none; padding:0 10mm 0 0; text-align:center;">' +
+                            (editorMeta.ufhbLogo ? '<img src="' + editorMeta.ufhbLogo + '" alt="Logo UFHB" style="max-width:72px; width:72px; height:auto; display:block; margin:0 auto 10px;">' : '') +
+                            '<div style="font-size:11pt; font-weight:bold; color:#0f4666; line-height:1.5;">UNIVERSITE FELIX HOUPHOUET BOIGNY</div>' +
+                            '<div style="font-size:10pt; line-height:1.55; margin-top:6px;">UFR MATHEMATIQUES ET INFORMATIQUE<br>FILIERES PROFESSIONNALISEES MIAGE-GI</div>' +
+                        '</td>' +
+                        '<td style="width:50%; vertical-align:top; border:none; padding:0 0 0 10mm; text-align:center;">' +
+                            '<div style="margin-bottom:10px;">' + companyLogos + '</div>' +
+                            (company ? '<div style="font-size:11pt; font-weight:bold; line-height:1.5; color:#0f172a;">' + escapeHtml(company.toUpperCase()) + '</div>' : '') +
+                        '</td>' +
+                    '</tr>' +
+                '</table>' +
+                '<div style="text-align:center; margin:0 0 10mm;">' +
+                    '<p style="margin:0 0 6px; font-size:11pt;">RAPPORT DE STAGE POUR L\'OBTENTION DU</p>' +
+                    '<p style="margin:0; font-size:13pt; font-weight:bold; font-style:italic; color:#0f4666;">Diplôme d\'Ingénieur de conception en informatique</p>' +
+                    '<p style="margin:6px 0 0; font-size:10pt; font-style:italic;">Option Méthodes Informatiques Appliquées à la Gestion des Entreprises</p>' +
+                '</div>' +
+                '<div data-cm-theme-block="1" style="margin:0 auto 12mm; border-radius:18px; border:2px solid #0f4666; background:#f6fbff; padding:10mm 9mm; text-align:center;">' +
+                    '<p style="margin:0 0 8px; font-size:11pt; font-weight:bold; text-transform:uppercase; letter-spacing:0.04em; color:#0f4666;">Thème</p>' +
+                    '<p data-cm-theme-text="1" style="margin:0; font-size:14pt; font-weight:bold; line-height:1.6; text-transform:uppercase;">' + escapeHtml(theme.toUpperCase()) + '</p>' +
+                '</div>' +
+                '<table style="width:100%; border-collapse:collapse; margin-top:12mm;">' +
+                    '<tr>' +
+                        '<td style="width:50%; border:1.5px solid #111827; padding:12mm 8mm; vertical-align:top; text-align:center;">' +
+                            '<p style="margin:0 0 8px; font-size:10.5pt; font-weight:bold;">SOUTENU PAR</p>' +
+                            '<p style="margin:0; font-size:12pt; font-weight:bold; line-height:1.6;">' + escapeHtml(studentName.toUpperCase()) + '</p>' +
+                            (studentNumber ? '<p style="margin:6px 0 0; font-size:10pt;">Matricule : ' + escapeHtml(studentNumber) + '</p>' : '') +
+                        '</td>' +
+                        '<td style="width:50%; border:1.5px solid #111827; padding:12mm 8mm; vertical-align:top; text-align:center;">' +
+                            '<p style="margin:0 0 8px; font-size:10.5pt; font-weight:bold;">MAITRE DE STAGE</p>' +
+                            '<p style="margin:0; font-size:12pt; font-weight:bold; line-height:1.6;">' + escapeHtml(mentor.toUpperCase()) + '</p>' +
+                            (company ? '<p style="margin:6px 0 0; font-size:10pt;">' + escapeHtml(company) + '</p>' : '') +
+                        '</td>' +
+                    '</tr>' +
+                '</table>' +
+                '<div style="margin-top:14mm; text-align:center; font-size:10pt; color:#475569;">Année académique ' + escapeHtml(academicYear) + '</div>' +
+            '</section>';
+    }
+
+    function getDefaultBodyContent() {
+        return '' +
+            '<h1 style="font-family:\'Times New Roman\', serif; font-size:15pt; text-align:center; margin:0 0 16px; color:#0f4666;">INTRODUCTION</h1>' +
+            '<p style="margin:0 0 14px; text-align:justify; text-indent:50px;">Présentez le contexte général de votre stage…</p>' +
+            '<h2 style="font-family:\'Times New Roman\', serif; font-size:13pt; margin:24px 0 12px; color:#0f4666;">I. PRÉSENTATION DU CADRE DE RÉFÉRENCE</h2>' +
+            '<p style="margin:0 0 14px; text-align:justify; text-indent:50px;">Décrivez l\'entreprise, son organisation, ses activités…</p>' +
+            '<h2 style="font-family:\'Times New Roman\', serif; font-size:13pt; margin:24px 0 12px; color:#0f4666;">II. PROBLÉMATIQUE ET OBJECTIFS</h2>' +
+            '<p style="margin:0 0 14px; text-align:justify; text-indent:50px;">Expliquez la problématique métier ou technique…</p>' +
+            '<h2 style="font-family:\'Times New Roman\', serif; font-size:13pt; margin:24px 0 12px; color:#0f4666;">III. DÉMARCHE ET RÉALISATIONS</h2>' +
+            '<p style="margin:0 0 14px; text-align:justify; text-indent:50px;">Présentez la méthode de travail adoptée…</p>' +
+            '<h2 style="font-family:\'Times New Roman\', serif; font-size:13pt; margin:24px 0 12px; color:#0f4666;">IV. BILAN ET PERSPECTIVES</h2>' +
+            '<p style="margin:0 0 14px; text-align:justify; text-indent:50px;">Concluez en mettant en avant les acquis…</p>';
+    }
+
+    /* ── Document assembly ── */
+
+    function extractLegacyBodyContent(rawHtml) {
+        if (!rawHtml) return '';
+        var temp = document.createElement('div');
+        temp.innerHTML = rawHtml;
+        var bodySection = temp.querySelector('[data-cm-report-body="1"]');
+        if (bodySection) return bodySection.innerHTML.trim();
+        var pageBreaks = temp.querySelectorAll('div[style*="page-break"], .cm-report-page-break, [data-cm-report-page-break="1"]');
+        if (pageBreaks.length > 0) {
+            var frags = [];
+            var cur = pageBreaks[pageBreaks.length - 1].nextSibling;
+            while (cur) {
+                if (cur.nodeType === 1) frags.push(cur.outerHTML);
+                else if (cur.nodeType === 3 && cur.textContent.trim() !== '') frags.push(cur.textContent);
+                cur = cur.nextSibling;
+            }
+            var after = frags.join('').trim();
+            if (after !== '') return after;
+        }
+        return temp.innerHTML.trim();
+    }
+
+    function buildDocumentHtml(bodyHtml) {
+        return '' +
+            '<div class="cm-report-editor-document" data-cm-report-document="1" style="background:#ffffff; color:#111827;">' +
+                buildCoverSectionHTML() +
+                '<div class="cm-report-page-break" data-cm-report-page-break="1" style="page-break-before:always; break-before:page; border-top:2px dashed #cbd5e1; margin:18px 0;"></div>' +
+                '<section class="cm-report-body-page" data-cm-report-body="1" style="font-family:\'Times New Roman\', serif; width:210mm; min-height:297mm; padding:18mm 20mm 20mm; box-sizing:border-box; background:#ffffff; color:#111827;">' +
+                    (bodyHtml && bodyHtml.trim() !== '' ? bodyHtml : getDefaultBodyContent()) +
+                '</section>' +
+            '</div>';
+    }
+
+    function isUnifiedDocumentHtml(html) {
+        return String(html || '').indexOf('data-cm-report-document="1"') !== -1;
+    }
+
+    function normalizeDocumentHtml(html) {
+        if (isUnifiedDocumentHtml(html)) return String(html || '');
+        return buildDocumentHtml(extractLegacyBodyContent(String(html || '')) || getDefaultBodyContent());
+    }
+
+    /* ── Metrics ── */
+
+    function extractPlainText(html) {
+        var probe = document.createElement('div');
+        probe.innerHTML = html;
+        return String(probe.textContent || probe.innerText || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function getBodyHtmlForMetrics(html) {
+        var probe = document.createElement('div');
+        probe.innerHTML = normalizeDocumentHtml(html || '');
+        var bodySection = probe.querySelector('[data-cm-report-body="1"]');
+        return bodySection ? bodySection.innerHTML : probe.innerHTML;
+    }
+
+    function updateWordCount() {
+        var text = extractPlainText(getBodyHtmlForMetrics(editorGetValue()));
+        var words = text === '' ? 0 : text.split(' ').filter(Boolean).length;
+        wordCountEl.textContent = words.toLocaleString('fr-FR') + ' mots';
+    }
+
+    /* ── Title <-> Editor sync ── */
+
+    function syncTitleToEditor() {
+        if (isReadOnly) return;
+        var html = editorGetValue();
+        var placeholder = 'data-cm-theme-text="1"';
+        if (html.indexOf(placeholder) !== -1) {
+            var titleVal = (titleInput.value || 'Thème du rapport').toUpperCase();
+            html = html.replace(/(<p[^>]*data-cm-theme-text="1"[^>]*>)([^<]*?)(<\/p>)/g, '$1' + escapeHtml(titleVal) + '$3');
+            editorSetValue(html);
+        }
+    }
+
+    function syncEditorToTitle() {
+        // Not needed for now
+    }
+
+    /* ── Persistence ── */
+
+    function snapshot() {
+        return JSON.stringify({ html: normalizeDocumentHtml(editorGetValue()) });
+    }
+
+    function getEditId() {
+        var editIdField = rapportForm.querySelector('input[name="edit_id"]');
+        if (editIdField && editIdField.value) return editIdField.value;
+        var payloadField = document.getElementById('payloadReportId');
+        if (payloadField && payloadField.value) return payloadField.value;
+        return new URL(window.location.href).searchParams.get('edit');
+    }
+
+    function syncReportId(reportId) {
+        if (!reportId) return;
+        var editIdField = rapportForm.querySelector('input[name="edit_id"]');
+        if (!editIdField) {
+            editIdField = document.createElement('input');
+            editIdField.type = 'hidden';
+            editIdField.name = 'edit_id';
+            rapportForm.appendChild(editIdField);
+        }
+        editIdField.value = reportId;
+        document.getElementById('payloadReportId').value = reportId;
+        var currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('edit', reportId);
+        window.history.replaceState({}, '', currentUrl.toString());
+    }
+
+    function applyFormPayload(action) {
+        rapportForm.querySelector('input[name="action"]').value = action;
+        document.getElementById('nom_rapport_hidden').value = buildDocumentName();
+        document.getElementById('theme_rapport_hidden').value = buildThemeValue();
+        document.getElementById('contenu_rapport').value = normalizeDocumentHtml(editorGetValue());
+        var csrfInput = rapportForm.querySelector('input[name="csrf_token"]');
+        if (!csrfInput) {
+            var csrfToken = getCsrfToken();
+            if (csrfToken) {
+                csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                csrfInput.value = csrfToken;
+                rapportForm.appendChild(csrfInput);
+            }
+        }
+    }
+
+    function persistDraft(options) {
+        options = options || {};
+        if (isReadOnly) return Promise.resolve(getEditId());
+        if (saveInFlight) return saveInFlight;
+
+        applyFormPayload('save_rapport');
+        var formData = new FormData(rapportForm);
+        if (!formData.get('csrf_token')) {
+            var csrfToken = getCsrfToken();
+            if (csrfToken) {
+                formData.append('csrf_token', csrfToken);
+            }
+        }
+        if (!formData.get('csrf_token')) {
+            return Promise.reject(new Error('Session expirée. Veuillez recharger la page.'));
+        }
+        saveStatusEl.textContent = options.pendingMessage || 'Sauvegarde en cours…';
+        if (saveBtn && options.disableButton !== false) saveBtn.disabled = true;
+
+        console.log('[persistDraft] Sending data', {
+            nom_rapport: document.getElementById('nom_rapport_hidden').value,
+            theme: document.getElementById('theme_rapport_hidden').value,
+            contentLength: document.getElementById('contenu_rapport').value.length
+        });
+
+        saveInFlight = fetch(reportEndpoint, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (r) { 
+            console.log('[persistDraft] Response status:', r.status, r.headers.get('content-type'));
+            if (!r.ok && r.status !== 200) {
+                return r.text().then(function(text) {
+                    console.error('[persistDraft] Error response:', text);
+                    throw new Error('HTTP ' + r.status);
                 });
+            }
+            return r.json(); 
+        })
+        .then(function (result) {
+            console.log('[persistDraft] Success:', result);
+            if (!result.success) throw new Error(result.message || 'Échec de la sauvegarde.');
+            if (result.rapport_id) syncReportId(String(result.rapport_id));
+            requiresMigrationSave = false;
+            lastSnapshot = snapshot();
+            saveStatusEl.textContent = (options.successPrefix || 'Sauvegardé à ') + nowLabel();
+            if (!options.silentSuccess) showNotification('success', result.message || 'Rapport enregistré.');
+            return getEditId();
+        })
+        .catch(function (error) {
+            console.error('[persistDraft] Error:', error);
+            saveStatusEl.textContent = options.failureMessage || ('Échec à ' + nowLabel());
+            if (!options.silentError) showNotification('error', error.message || 'Erreur lors de la sauvegarde.');
+            throw error;
+        })
+        .finally(function () {
+            saveInFlight = null;
+            if (saveBtn) saveBtn.disabled = false;
+        });
+
+        return saveInFlight;
+    }
+
+    function ensurePersistedForOutput() {
+        var reportId = getEditId();
+        var currentSnapshot = snapshot();
+        if (!reportId || requiresMigrationSave || currentSnapshot !== lastSnapshot) {
+            return persistDraft({
+                pendingMessage: 'Préparation du document…',
+                successPrefix: 'Sauvegardé à ',
+                silentSuccess: true,
+                failureMessage: 'Échec de la préparation à ' + nowLabel()
             });
+        }
+        return Promise.resolve(reportId);
+    }
 
-            // Generate Cover Page HTML - Pixel Perfect Match
-            function generateCoverPageHTML() {
-                const data = getCoverData();
-                const logoKyria = '<?= $baseUrl ?>logoCM.png'; // Logo entreprise
-                
-                return `
-<div style="font-family: 'Times New Roman', serif; width: 210mm; min-height: 297mm; padding: 20mm 25mm; box-sizing: border-box; background: white;">
-    <!-- En-têtes officiels -->
-    <table style="width: 100%; border: none; margin-bottom: 5px;">
-        <tr>
-            <td style="width: 50%; text-align: left; font-size: 10pt; vertical-align: top; border: none; padding: 0;">
-                MINISTERE DE L'ENSEIGNEMENT SUPERIEUR<br/>
-                ET DE LA RECHERCHE SCIENTIFIQUE
-            </td>
-            <td style="width: 50%; text-align: right; font-size: 10pt; vertical-align: top; border: none; padding: 0;">
-                REPUBLIQUE DE COTE D'IVOIRE<br/>
-                UNION - DISCIPLINE - TRAVAIL
-            </td>
-        </tr>
-    </table>
+    /* ── PDF export ── */
 
-    <!-- Section Logos et Informations -->
-    <table style="width: 100%; border: none; margin: 15px 0 20px 0;">
-        <tr>
-            <!-- Colonne gauche: UFHB -->
-            <td style="width: 50%; text-align: center; vertical-align: top; border: none; padding: 10px;">
-                <img src="${logoUfhb}" alt="Logo UFHB" style="width: 70px; height: auto;" onerror="this.style.display='none'"/><br/><br/>
-                <span style="font-size: 11pt; font-weight: bold; color: #1a5276;">UNIVERSITE FELIX HOUPHOUET BOIGNY</span><br/><br/>
-                <span style="font-size: 10pt;">UFR MATHEMATIQUES ET INFORMATIQUE</span><br/>
-                <span style="font-size: 10pt;">FILIERES PROFESSIONNALISEES MIAGE-GI</span>
-            </td>
-            <!-- Colonne droite: Armoiries + Entreprise -->
-            <td style="width: 50%; text-align: center; vertical-align: top; border: none; padding: 10px;">
-                <img src="${logoCiv}" alt="Armoiries CI" style="width: 65px; height: auto;" onerror="this.style.display='none'"/>
-                <img src="${logoKyria}" alt="Logo Entreprise" style="width: 65px; height: auto; margin-left: 15px;" onerror="this.style.display='none'"/><br/><br/>
-                <span style="font-size: 11pt; font-weight: bold;">${escapeHtml(data.nomEntreprise).toUpperCase()}</span>
-            </td>
-        </tr>
-    </table>
+    function downloadBlob(blob, filename) {
+        var url = window.URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = String(filename || 'rapport.pdf').replace(/[\\/:*?"<>|]+/g, '_');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    }
 
-    <!-- Mémoire de fin de cycle -->
-    <div style="text-align: center; margin: 25px 0 15px 0;">
-        <p style="font-size: 11pt; margin: 0 0 8px 0;">Mémoire de fin de cycle pour l'obtention du :</p>
-        <p style="font-size: 12pt; font-weight: bold; font-style: italic; margin: 0 0 5px 0;">${escapeHtml(data.diplome)}</p>
-        <p style="font-size: 10pt; font-style: italic; margin: 0;">${escapeHtml(data.optionSpecialite)}</p>
-    </div>
+    function requestPdfBlob(reportId, shouldDownload) {
+        var csrfToken = getCsrfToken();
+        if (!csrfToken) {
+            return Promise.reject(new Error('Session expirée. Veuillez recharger la page.'));
+        }
 
-    <!-- Thème -->
-    <div style="text-align: center; margin: 25px 0;">
-        <p style="font-size: 11pt; font-weight: bold; margin: 0 0 12px 0;">Thème :</p>
-        <div style="background-color: #1B5E20; color: white; padding: 18px 25px; margin: 0 auto; width: 95%; text-align: center;">
-            <p style="font-size: 13pt; font-weight: bold; text-transform: uppercase; line-height: 1.5; margin: 0; text-align: center;">
-                ${escapeHtml(data.titreTheme).toUpperCase()}${data.sousTitre ? ' :' : ''}
-            </p>
-            ${data.sousTitre ? `<p style="font-size: 12pt; font-weight: bold; text-transform: uppercase; margin: 8px 0 0 0; text-align: center;">${escapeHtml(data.sousTitre).toUpperCase()}</p>` : ''}
-        </div>
-    </div>
+        var formData = new FormData();
+        formData.append('action', 'export_pdf');
+        formData.append('edit_id', reportId);
+        formData.append('csrf_token', csrfToken);
+        if (shouldDownload) {
+            formData.append('download', '1');
+        }
 
-    <!-- Présenté par -->
-    <div style="text-align: center; margin: 30px 0 25px 0;">
-        <p style="font-size: 11pt; margin: 0 0 10px 0;">PRESENTE PAR :</p>
-        <p style="font-size: 11pt; font-weight: bold; margin: 0;">${escapeHtml(data.civilite)} ${escapeHtml(data.nomEtudiant).toUpperCase()}</p>
-    </div>
+        console.log('[requestPdfBlob] Requesting PDF for report', reportId, 'download=', !!shouldDownload);
 
-    <!-- Encadrement -->
-    <table style="width: 100%; border-collapse: collapse; margin-top: 30px;">
-        <tr>
-            <td style="width: 50%; padding: 20px; border: 2px solid #000; text-align: center; vertical-align: top;">
-                <p style="font-size: 11pt; font-weight: bold; margin: 0 0 15px 0; text-align: center;">ENCADREUR</p>
-                <p style="font-size: 10pt; margin: 0; text-align: center;">${escapeHtml(data.encadreur) || ''}</p>
-            </td>
-            <td style="width: 50%; padding: 20px; border: 2px solid #000; text-align: center; vertical-align: top;">
-                <p style="font-size: 11pt; font-weight: bold; margin: 0 0 15px 0; text-align: center;">MAITRE DE STAGE</p>
-                <p style="font-size: 11pt; font-weight: bold; margin: 0; text-align: center;">${escapeHtml(data.maitreStage) || ''}</p>
-                ${data.fonctionMaitre ? `<p style="font-size: 9pt; font-style: italic; margin: 8px 0 0 0; text-align: center;">${escapeHtml(data.fonctionMaitre)}</p>` : ''}
-            </td>
-        </tr>
-    </table>
-</div>`;
+        return fetch(reportEndpoint, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Cache-Control': 'no-cache'
+            }
+        })
+        .then(function (response) {
+            console.log('[requestPdfBlob] Response:', response.status, response.headers.get('content-type'));
+            if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
+            var ct = response.headers.get('content-type') || '';
+            if (ct.indexOf('application/pdf') !== -1) return response.blob();
+            return response.text().then(function (text) {
+                console.error('[requestPdfBlob] Non-PDF response:', text);
+                var data = {};
+                try { data = JSON.parse(text); } catch (e) {}
+                throw new Error(data.message || 'Erreur lors de la génération du PDF.');
+            });
+        });
+    }
+
+    function exportPdf(reportId) {
+        return requestPdfBlob(reportId, true)
+        .then(function (blob) {
+            console.log('[exportPdf] Blob size:', blob.size);
+            if (!blob || blob.size === 0) throw new Error('Le PDF généré est vide.');
+            downloadBlob(blob, buildDocumentName().replace(/\s+/g, '_') + '.pdf');
+        });
+    }
+
+    function previewPdf(reportId, previewWindow) {
+        return requestPdfBlob(reportId, false)
+        .then(function (blob) {
+            console.log('[previewPdf] Blob size:', blob.size);
+            if (!blob || blob.size === 0) {
+                throw new Error('Le PDF généré est vide.');
             }
 
-            // Get cover page data
-            function getCoverData() {
-                return {
-                    diplome: document.getElementById('diplome').value,
-                    optionSpecialite: document.getElementById('option_specialite').value,
-                    civilite: document.getElementById('civilite').value,
-                    matricule: document.getElementById('matricule').value,
-                    nomEtudiant: document.getElementById('nom_etudiant').value,
-                    titreTheme: document.getElementById('titre_theme').value,
-                    sousTitre: document.getElementById('sous_titre').value,
-                    nomEntreprise: document.getElementById('nom_entreprise').value,
-                    encadreur: document.getElementById('encadreur').value,
-                    maitreStage: document.getElementById('maitre_stage').value,
-                    fonctionMaitre: document.getElementById('fonction_maitre').value
-                };
+            if (activePreviewUrl) {
+                window.URL.revokeObjectURL(activePreviewUrl);
+                activePreviewUrl = null;
             }
 
-            // Escape HTML
-            function escapeHtml(text) {
-                if (!text) return '';
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
+            activePreviewUrl = window.URL.createObjectURL(blob);
+
+            if (previewWindow && !previewWindow.closed) {
+                previewWindow.location.href = activePreviewUrl;
+                return;
             }
 
-            // Initial body content - Pixel Perfect Match with Pages 2-4
-            function getInitialBodyContent() {
-                return `
-<div style="font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.5;">
-
-<p style="font-size: 12pt; font-weight: bold; margin: 0 0 20px 0;">
-    <span style="font-weight: bold;">I.</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-weight: bold;">PRESENTATION DU CADRE DE REFERENCE</span>
-</p>
-
-<p style="text-align: justify; margin: 0 0 15px 0; text-indent: 50px;">
-    KYRIA CONSULTANCY SERVICES (KYRIA-CS) est une société d'ingénierie financière spécialisée dans le conseil et la stratégie, qui a développé des compétences complémentaires pour répondre aux besoins spécifiques de ses clients et à leur évolution.
-</p>
-
-<p style="text-align: justify; margin: 0 0 15px 0; text-indent: 50px;">
-    Créée en Mai 2019, KYRIA-CS fournit un conseil et un accompagnement qui s'articulent autour d'une idée forte qui est de transformer une vision stratégique en actions et en processus. Elle s'appuie sur les connaissances professionnelles de ses ingénieurs, qui peuvent pleinement appréhender le système d'information de l'entreprise, à savoir la rédaction du cahier des charges, le développement logiciel et l'ingénierie. Elle accompagne surtout les entreprises présentent dans les domaines de la Finance, l'assurance, la mutualité, l'industrie et l'audit.
-</p>
-
-<p style="text-align: justify; margin: 0 0 15px 0; text-indent: 50px;">
-    KYRIA organise ses activités métiers autour de quatre pôles d'expertises :
-</p>
-
-<ul style="margin: 0 0 15px 40px; list-style-type: disc;">
-    <li style="margin-bottom: 8px; text-align: justify;"><strong>La Stratégie</strong> : Stratégie opérationnelle, technologique ou commerciale</li>
-    <li style="margin-bottom: 8px; text-align: justify;"><strong>Le Conseil</strong> : Transformation des entreprises et des administrations dans le contexte de la révolution numérique</li>
-    <li style="margin-bottom: 8px; text-align: justify;"><strong>Le Numérique</strong> : Relation client, marketing numérique, big data, technologies mobiles, gestion de contenus, e-commerce</li>
-    <li style="margin-bottom: 8px; text-align: justify;"><strong>La Technologie</strong> : Services technologiques, conseil, Logiciels sectoriels, recherche et développement</li>
-</ul>
-
-<p style="text-align: justify; margin: 0 0 15px 0; text-indent: 50px;">
-    Pour la « valeur ajoutée », KYRIA nous donnons à ses prestations :
-</p>
-<p style="margin: 0 0 5px 40px;">- Un accompagnement personnalisé</p>
-<p style="margin: 0 0 5px 40px;">- Un conseil de proximité fourni par des professionnels expérimentés</p>
-<p style="margin: 0 0 20px 40px;">- Une approche personnalisée de niveau international.</p>
-
-<p style="font-size: 12pt; font-weight: bold; margin: 25px 0 20px 0;">
-    <span style="font-weight: bold;">II.</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-weight: bold;">INTRODUCTION : GENERALITE &amp; PROBLEMATIQUE</span>
-</p>
-
-<p style="text-decoration: underline; font-weight: normal; margin: 0 0 15px 0;">Généralités</p>
-
-<p style="text-align: justify; margin: 0 0 15px 0; text-indent: 50px;">
-    Dans le contexte actuel de la transformation numérique, les entreprises cherchent constamment à améliorer leurs processus de gestion pour rester compétitives et répondre aux besoins de leurs clients. Le secteur financier n'échappe pas à cette réalité. Les institutions financières, telles que les banques et les sociétés de gestion d'actifs, adoptent de plus en plus de solutions technologiques avancées pour gérer efficacement leurs relations avec les clients et les opérations d'investissement.
-</p>
-
-<p style="text-align: justify; margin: 0 0 15px 0; text-indent: 50px;">
-    Dans ce contexte, notre mémoire se focalisera sur le thème suivant : <strong>MISE EN PLACE D'UN MODULE D'INTEGRATION ENTRE ATLANTIS CRM ET ATLANTIS SGO : CAS DE LA BOA CAPITAL ASSET MANAGEMENT.</strong>
-</p>
-
-<p style="text-decoration: underline; font-weight: normal; margin: 20px 0 15px 0;">Problématique</p>
-
-<p style="text-align: justify; margin: 0 0 15px 0; text-indent: 50px;">
-    Dans un environnement où l'efficacité et la réactivité sont des critères déterminants de succès, la mise en place d'une solution intégrée entre un système de gestion de la relation client (CRM) et un logiciel de gestion de placement collectif en valeurs mobilières (SGO) se pose comme un défi majeur.
-</p>
-
-<p style="text-align: justify; margin: 0 0 15px 0; text-indent: 50px;">
-    La problématique à laquelle répond notre projet est donc la suivante : <strong>Comment concevoir et implémenter un module d'intégration efficace entre Atlantis CRM et Atlantis SGO pour améliorer la gestion des relations client et des placements financiers ?</strong>
-</p>
-
-<p style="font-size: 12pt; font-weight: bold; margin: 25px 0 20px 0;">
-    <span style="font-weight: bold;">III.</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-weight: bold;">OBJECTIFS GENERAUX ET SPECIFIQUES</span>
-</p>
-
-<p style="margin: 0 0 10px 0;"><strong>1. Objectif général</strong></p>
-
-<p style="text-align: justify; margin: 0 0 15px 0; text-indent: 50px;">
-    L'objectif principal est de concevoir et de mettre en œuvre un module d'intégration entre Atlantis CRM et Atlantis SGO, qui permettra de synchroniser les données client avec les informations de gestion des placements financiers, afin d'améliorer la qualité du service client et l'efficacité opérationnelle.
-</p>
-
-<p style="margin: 0 0 10px 0;"><strong>2. Objectifs spécifiques</strong></p>
-
-<p style="margin: 0 0 8px 40px;">- <strong>Automatisation des flux de données</strong> : Développer des processus automatisés pour le transfert et la synchronisation des données entre Atlantis CRM et Atlantis SGO</p>
-<p style="margin: 0 0 8px 40px;">- <strong>Amélioration de l'expérience utilisateur</strong> : Optimiser l'interface utilisateur pour permettre un accès facile et rapide aux informations intégrées, facilitant ainsi la prise de décision pour les gestionnaires de portefeuille et les équipes de service client.</p>
-<p style="margin: 0 0 20px 40px;">- <strong>Renforcement de la sécurité et de l'intégrité des données</strong> : Mettre en place des mécanismes robustes pour assurer la protection des données sensibles échangées entre les deux systèmes et leur non redondance.</p>
-
-<p style="font-size: 12pt; font-weight: bold; margin: 25px 0 20px 0;">
-    <span style="font-weight: bold;">IV.</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-weight: bold;">METHODOLOGIE</span>
-</p>
-
-<p style="text-align: justify; margin: 0 0 15px 0; text-indent: 50px;">
-    Suite à la problématique, le déroulement de notre projet comportera trois (3) grandes parties.
-</p>
-
-<p style="text-align: justify; margin: 0 0 10px 0; text-indent: 50px;">
-    <strong>En Première Partie</strong>, <em>L'Approche Méthodologique</em>, dans laquelle nous présenterons la structure d'accueil, le cadre de référence ainsi que le projet.
-</p>
-
-<p style="text-align: justify; margin: 0 0 10px 0; text-indent: 50px;">
-    <strong>En deuxième Partie</strong>, nous déroulerons la conception du système, quitte à définir la méthode d'étude, de modélisation et de réalisation du projet.
-</p>
-
-<p style="text-align: justify; margin: 0 0 15px 0; text-indent: 50px;">
-    <strong>Enfin la Troisième Partie</strong> qui est la Réalisation de la solution. Dans cette partie nous déroulerons les différents outils utilisés, le système de gestion de base de données et scripts utilisés pour la réalisation de la solution cible.
-</p>
-
-</div>`;
+            var fallbackWindow = window.open(activePreviewUrl, '_blank', 'noopener');
+            if (!fallbackWindow) {
+                throw new Error('Le navigateur a bloqué l’aperçu PDF.');
             }
+        });
+    }
 
-            // Update preview
-            function updatePreview() {
-                coverPreview.innerHTML = generateCoverPageHTML();
-                // Update hidden fields
-                document.getElementById('nom_rapport_hidden').value = document.getElementById('nom_rapport').value;
-                document.getElementById('theme_rapport_hidden').value = document.getElementById('titre_theme').value + 
+    /* ── Deposit ── */
+
+    function requestDepositConfirmation() {
+        if (window.CM && typeof window.CM.confirm === 'function') {
+            return window.CM.confirm({
+                title: 'Confirmation de dépôt',
+                message: 'Voulez-vous vraiment déposer ce rapport ? Cette action est irréversible.',
+                type: 'warning',
+                confirmText: 'Déposer'
+            });
+        }
+        return Promise.resolve(window.confirm('Voulez-vous vraiment déposer ce rapport ? Cette action est irréversible.'));
+    }
+
+        // Save report
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function () {
+                var nomRapport = document.getElementById('nom_rapport').value.trim();
+                var titreTheme = document.getElementById('titre_theme').value.trim();
+
+                if (!nomRapport) { showNotification('error', 'Veuillez saisir le nom du rapport'); return; }
+                if (!titreTheme) { showNotification('error', 'Veuillez saisir le titre du theme'); return; }
+
+                // IMPORTANT: Sauvegarder uniquement le contenu de l'éditeur, SANS la page de couverture
+                // La page de couverture sera générée à la demande pour l'aperçu et l'export PDF
+                var contentOnly = '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
+
+                document.getElementById('nom_rapport_hidden').value = nomRapport;
+                document.getElementById('theme_rapport_hidden').value = titreTheme +
                     (document.getElementById('sous_titre').value ? ' : ' + document.getElementById('sous_titre').value : '');
+                document.getElementById('contenu_rapport').value = contentOnly;
                 document.getElementById('cover_data').value = JSON.stringify(getCoverData());
-            }
 
-            // Initial preview
-            updatePreview();
-
-            // Update preview button
-            if (updatePreviewBtn) {
-                updatePreviewBtn.addEventListener('click', function() {
-                    updatePreview();
-                    showNotification('success', 'Aperçu mis à jour !');
-                });
-            }
-
-            // Auto-update on form change
-            document.querySelectorAll('#coverPageFormContainer input, #coverPageFormContainer select').forEach(el => {
-                el.addEventListener('change', updatePreview);
-                el.addEventListener('input', updatePreview);
-            });
-
-            // Preview full report
-            previewBtn.addEventListener('click', () => {
-                const coverHTML = generateCoverPageHTML();
-                const bodyHTML = `<div style="font-family: 'Times New Roman', serif; width: 210mm; padding: 15mm 20mm; box-sizing: border-box; background: white;">${joditEditor.value}</div>`;
-                fullPreview.innerHTML = coverHTML + '<div style="page-break-before: always;"></div>' + bodyHTML;
-                previewModal.classList.add('show');
-            });
-
-            // Close preview modal
-            closePreviewModal.addEventListener('click', () => previewModal.classList.remove('show'));
-            previewModal.addEventListener('click', (e) => { if (e.target === previewModal) previewModal.classList.remove('show'); });
-
-            // Save report
-            if (saveBtn) {
-                saveBtn.addEventListener('click', function() {
-                    const nomRapport = document.getElementById('nom_rapport').value.trim();
-                    const titreTheme = document.getElementById('titre_theme').value.trim();
-                    
-                    if (!nomRapport) {
-                        showNotification('error', 'Veuillez saisir le nom du rapport');
-                        return;
-                    }
-                    if (!titreTheme) {
-                        showNotification('error', 'Veuillez saisir le titre du thème');
-                        return;
-                    }
-
-                    // Prepare content: Cover + Body
-                    const fullContent = generateCoverPageHTML() + 
-                        '<div style="page-break-before: always;"></div>' +
-                        '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
-
-                    // Update hidden fields
-                    document.getElementById('nom_rapport_hidden').value = nomRapport;
-                    document.getElementById('theme_rapport_hidden').value = titreTheme + 
-                        (document.getElementById('sous_titre').value ? ' : ' + document.getElementById('sous_titre').value : '');
-                    document.getElementById('contenu_rapport').value = fullContent;
-                    document.getElementById('cover_data').value = JSON.stringify(getCoverData());
-                    
-                    // Submit form
-                    rapportForm.querySelector('input[name="action"]').value = 'save_rapport';
-                    rapportForm.submit();
-                });
-            }
-
-            // Export PDF
-            exportBtn.addEventListener('click', function() {
-                const nomRapport = document.getElementById('nom_rapport').value.trim() || 'Rapport_Stage';
-                const fullContent = generateCoverPageHTML() + 
-                    '<div style="page-break-before: always;"></div>' +
-                    '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
-
-                if (!joditEditor.value || joditEditor.value.trim() === '' || joditEditor.value === '<p><br></p>') {
-                    showNotification('warning', 'Le corps du rapport est vide. Ajoutez du contenu avant d\'exporter.');
-                }
-
-                pdfLoading.classList.add('show');
-                exportBtn.disabled = true;
-
-                const formData = new FormData();
-                formData.append('action', 'export_pdf');
-                formData.append('contenu_rapport', fullContent);
-                formData.append('nom_rapport', nomRapport);
-                formData.append('theme_rapport', document.getElementById('titre_theme').value || 'Thème du rapport');
+                var formData = new FormData(rapportForm);
+                saveBtn.disabled = true;
 
                 fetch(window.location.href, {
                     method: 'POST',
                     body: formData,
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 })
-                .then(response => {
-                    if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`);
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/pdf')) {
-                        return response.blob();
-                    } else {
-                        return response.text().then(text => {
-                            try {
-                                const data = JSON.parse(text);
-                                throw new Error(data.message || 'Erreur lors de la génération du PDF');
-                            } catch (e) {
-                                throw new Error('Erreur serveur: ' + text.substring(0, 200));
-                            }
-                        });
-                    }
-                })
-                .then(blob => {
-                    if (blob.size === 0) throw new Error('Le PDF généré est vide');
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `${nomRapport.replace(/\s+/g, '_')}.pdf`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(url);
-                    showNotification('success', 'Rapport exporté en PDF avec succès!');
-                })
-                .catch(error => {
-                    console.error('Erreur export PDF:', error);
-                    showNotification('error', error.message || 'Erreur lors de l\'export PDF');
-                })
-                .finally(() => {
-                    pdfLoading.classList.remove('show');
-                    exportBtn.disabled = false;
-                });
+                    .then(function (response) { return response.json(); })
+                    .then(function (result) {
+                        if (!result.success) {
+                            showNotification('error', result.message || 'Echec de la sauvegarde.');
+                            return;
+                        }
+                        if (result.rapport_id) {
+                            var reportId = String(result.rapport_id);
+                            var editIdField = rapportForm.querySelector('input[name="edit_id"]');
+                            if (editIdField) editIdField.value = reportId;
+                            document.getElementById('payloadReportId').value = reportId;
+                            var currentUrl = new URL(window.location.href);
+                            currentUrl.searchParams.set('edit', reportId);
+                            window.history.replaceState({}, '', currentUrl.toString());
+                        }
+                        autosaveStatus.textContent = 'Sauvegarde a ' + nowLabel();
+                        lastSnapshot = snapshot();
+                        showNotification('success', result.message || 'Rapport enregistre avec succes.');
+                    })
+                    .catch(function () {
+                        showNotification('error', 'Erreur reseau lors de la sauvegarde.');
+                    })
+                    .finally(function () {
+                        saveBtn.disabled = false;
+                    });
             });
+        }
+        var container = document.getElementById('fmNotifications');
+        if (!container) return;
+        var toast = document.createElement('div');
+        toast.style.cssText = 'min-width:260px; max-width:360px; padding:0.8rem 1rem; border-radius:12px; background:#fff; border:1px solid rgba(26,82,118,0.12); box-shadow:0 12px 24px rgba(15,44,70,0.14); color:#0f172a; font-size:0.85rem;';
+        toast.style.borderLeft = '4px solid ' + (type === 'success' ? '#27ae60' : '#e74c3c');
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(function () { toast.remove(); }, 4000);
+    }
 
-            // Déposer button
-            if (deposerBtn) {
-                deposerBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    if (isReadOnly) {
-                        showNotification('warning', 'Ce rapport a déjà été déposé');
-                        return;
-                    }
-                    
-                    if (!confirm('Êtes-vous sûr de vouloir déposer ce rapport ? Cette action est irréversible.')) {
-                        return;
-                    }
+    function initJoditEditor() {
+        joditEditor = window.Jodit.make('#jodit-editor', {
+            height: 'auto',
+            minHeight: 500,
+            language: 'fr',
+            readonly: isReadOnly,
+            toolbarAdaptive: false,
+            askBeforePasteHTML: false,
+            askBeforePasteFromWord: false,
+            defaultFontSize: '12pt',
+            defaultFontName: 'Times New Roman',
+            buttons: [
+                'bold', 'italic', 'underline', 'strikethrough', '|',
+                'font', 'fontsize', 'paragraph', 'brush', '|',
+                'align', 'ul', 'ol', 'indent', 'outdent', '|',
+                'table', 'link', 'image', '|',
+                'hr', 'undo', 'redo', '|',
+                'fullsize'
+            ],
+            uploader: { insertImageAsBase64URI: true },
+            placeholder: 'Rédigez votre rapport ici…'
+        });
+    }
 
-                    const fullContent = generateCoverPageHTML() + 
-                        '<div style="page-break-before: always;"></div>' +
-                        '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
+    function activateFallbackEditor() {
+        fallbackEditorMode = true;
+        if (editorTextarea) {
+            editorTextarea.style.width = '100%';
+            editorTextarea.style.minHeight = '520px';
+            editorTextarea.style.padding = '14px 16px';
+            editorTextarea.style.fontFamily = 'Times New Roman, serif';
+            editorTextarea.style.fontSize = '12pt';
+            editorTextarea.style.border = '1px solid #d8e4f2';
+            editorTextarea.style.borderRadius = '10px';
+            editorTextarea.style.background = '#ffffff';
+            editorTextarea.readOnly = !!isReadOnly;
+        }
+        showNotification('error', 'Éditeur enrichi indisponible. Mode texte activé.');
+        console.error('[editor] Jodit indisponible, fallback textarea actif.');
+    }
 
-                    document.getElementById('nom_rapport_hidden').value = document.getElementById('nom_rapport').value;
-                    document.getElementById('theme_rapport_hidden').value = document.getElementById('titre_theme').value;
-                    document.getElementById('contenu_rapport').value = fullContent;
-                    rapportForm.querySelector('input[name="action"]').value = 'deposer_rapport';
-                    rapportForm.submit();
-                });
+    function applyInitialContent() {
+        if (rawContent && rawContent.trim() !== '') {
+            if (isUnifiedDocumentHtml(rawContent)) {
+                editorSetValue(rawContent);
+            } else {
+                requiresMigrationSave = true;
+                editorSetValue(buildDocumentHtml(extractLegacyBodyContent(rawContent) || getDefaultBodyContent()));
+            }
+        } else {
+            if (getEditId()) requiresMigrationSave = true;
+            editorSetValue(buildDocumentHtml(getDefaultBodyContent()));
+        }
+
+        updateWordCount();
+        lastSnapshot = snapshot();
+
+        if (!isReadOnly && requiresMigrationSave) {
+            saveStatusEl.textContent = 'Mise à niveau au prochain enregistrement.';
+        }
+    }
+
+    function ensureJoditAssets() {
+        if (typeof window.Jodit !== 'undefined' && typeof window.Jodit.make === 'function') {
+            return Promise.resolve();
+        }
+
+        if (window.__cmJoditLoaderPromise) {
+            return window.__cmJoditLoaderPromise;
+        }
+
+        window.__cmJoditLoaderPromise = new Promise(function (resolve, reject) {
+            var existingCss = document.querySelector('link[data-cm-jodit-css="1"]');
+            if (!existingCss) {
+                var css = document.createElement('link');
+                css.rel = 'stylesheet';
+                css.href = 'https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.css';
+                css.setAttribute('data-cm-jodit-css', '1');
+                document.head.appendChild(css);
             }
 
-            // Notification function
-            function showNotification(type, message, title = null) {
-                const container = document.getElementById('notificationContainer');
-                const notification = document.createElement('div');
-                notification.className = `notification ${type}`;
+            var existingScript = document.querySelector('script[data-cm-jodit-script="1"]');
+            if (existingScript) {
+                existingScript.addEventListener('load', resolve, { once: true });
+                existingScript.addEventListener('error', reject, { once: true });
+                return;
+            }
 
-                let iconPath = '';
-                let displayTitle = title || type.charAt(0).toUpperCase() + type.slice(1);
-
-                switch (type) {
-                    case 'success': iconPath = 'M5 13l4 4L19 7'; break;
-                    case 'error': iconPath = 'M6 18L18 6M6 6l12 12'; break;
-                    case 'info': iconPath = 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'; break;
-                    case 'warning': iconPath = 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z'; break;
-                    default: iconPath = 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
-                }
-
-                notification.innerHTML = `
-                    <div class="notification-icon">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"></path>
-                        </svg>
-                    </div>
-                    <div class="notification-content">
-                        <div class="notification-title">${displayTitle}</div>
-                        <div class="notification-message">${message}</div>
-                    </div>
-                    <button class="notification-close">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                `;
-
-                notification.querySelector('.notification-close').addEventListener('click', () => hideNotification(notification));
-                container.appendChild(notification);
-                setTimeout(() => notification.classList.add('show'), 10);
-                setTimeout(() => hideNotification(notification), 4000);
-
-                function hideNotification(notif) {
-                    notif.classList.remove('show');
-                    notif.classList.add('hide');
-                    setTimeout(() => { if (container.contains(notif)) container.removeChild(notif); }, 300);
-                }
+            var script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.js';
+            script.async = false;
+            script.setAttribute('data-cm-jodit-script', '1');
+            script.onload = function () { resolve(); };
+            script.onerror = function () { reject(new Error('Impossible de charger l’éditeur Jodit.')); };
+            document.head.appendChild(script);
+        }).finally(function () {
+            if (!(typeof window.Jodit !== 'undefined' && typeof window.Jodit.make === 'function')) {
+                window.__cmJoditLoaderPromise = null;
             }
         });
-    </script>
-</body>
-</html>
+
+        return window.__cmJoditLoaderPromise;
+    }
+
+    /* ── Initialize editor (Jodit with textarea fallback) ── */
+
+    function finalizeEditorInitialization() {
+        applyInitialContent();
+
+        /* ── Event bindings ── */
+
+        editorOnChange(function () {
+            updateWordCount();
+        });
+
+        // Bidirectional title sync
+        if (titleInput) {
+            titleInput.addEventListener('input', function () {
+                syncTitleToEditor();
+            });
+        }
+
+        // Save button
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function () {
+                persistDraft({ pendingMessage: 'Sauvegarde en cours…', successPrefix: 'Sauvegardé à ' })
+                    .catch(function () {});
+            });
+        }
+
+                // Sauvegarder uniquement le contenu de l'éditeur, SANS la page de couverture
+                var contentOnly = '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
+
+                document.getElementById('nom_rapport_hidden').value = document.getElementById('nom_rapport').value;
+                document.getElementById('theme_rapport_hidden').value = document.getElementById('titre_theme').value;
+                document.getElementById('contenu_rapport').value = contentOnly;
+                rapportForm.querySelector('input[name="action"]').value = 'deposer_rapport';
+                rapportForm.submit();
+            });
+        }
+
+        // Auto-save every 60 seconds
+        if (!isReadOnly) {
+            setInterval(function () {
+                var current = snapshot();
+                if (current !== lastSnapshot) {
+                    var nomRapport = document.getElementById('nom_rapport').value.trim();
+                    var titreTheme = document.getElementById('titre_theme').value.trim();
+                    if (!nomRapport || !titreTheme) return;
+
+                    // Sauvegarder uniquement le contenu de l'éditeur, SANS la page de couverture
+                    var contentOnly = '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
+
+                    document.getElementById('nom_rapport_hidden').value = nomRapport;
+                    document.getElementById('theme_rapport_hidden').value = titreTheme;
+                    document.getElementById('contenu_rapport').value = contentOnly;
+                    document.getElementById('cover_data').value = JSON.stringify(getCoverData());
+
+                    var formData = new FormData(rapportForm);
+                    formData.set('action', 'save_rapport');
+
+                    fetch(window.location.href, {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then(function (response) { return response.json(); })
+                        .then(function (result) {
+                            if (result.success) {
+                                autosaveStatus.textContent = 'Sauvegarde automatiquement a ' + nowLabel();
+                                lastSnapshot = snapshot();
+                                if (result.rapport_id) {
+                                    var reportId = String(result.rapport_id);
+                                    var editIdField = rapportForm.querySelector('input[name="edit_id"]');
+                                    if (editIdField) editIdField.value = reportId;
+                                    document.getElementById('payloadReportId').value = reportId;
+                                    var currentUrl = new URL(window.location.href);
+                                    currentUrl.searchParams.set('edit', reportId);
+                                    window.history.replaceState({}, '', currentUrl.toString());
+                                }
+                            }
+                        })
+                        .catch(function () { /* silently fail */ });
+                }
+            }, 60000);
+        }
+    }
+
+    ensureJoditAssets()
+        .then(function () {
+            if (typeof window.Jodit !== 'undefined' && typeof window.Jodit.make === 'function') {
+                initJoditEditor();
+            } else {
+                activateFallbackEditor();
+            }
+        })
+        .catch(function (error) {
+            console.error('[editor] Asset load error:', error);
+            activateFallbackEditor();
+        })
+        .finally(function () {
+            finalizeEditorInitialization();
+        });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initRapportEditorPage, { once: true });
+} else {
+    initRapportEditorPage();
+}
+})();
+</script>

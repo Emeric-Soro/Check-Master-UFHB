@@ -2,18 +2,23 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Reclamation.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../Services/GestionReclamationsService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
+
+use CheckMaster\Services\GestionReclamationsService;
 
 class GestionReclamationsController {
 
     private $baseViewPath;
-    private $reclamationModel;
-    private $auditLog;
+    private $service;
 
     public function __construct()
     {
         $this->baseViewPath = __DIR__ . '/../../ressources/views/gestion_reclamations/';
-        $this->reclamationModel = new Reclamation();
-        $this->auditLog = new AuditLog(Database::getConnection());
+
+        $reclamationModel = new Reclamation();
+        $auditLog = new AuditLog(Database::getConnection());
+        $this->service = new GestionReclamationsService($reclamationModel, $auditLog);
 
         // Vérifier que l'utilisateur est connecté et est un étudiant
         if (!isset($_SESSION['num_etu'])) {
@@ -26,11 +31,11 @@ class GestionReclamationsController {
     public function index()
     {
         try {
-            // Récupérer les statistiques pour usage dans la vue
             global $statistiquesReclamations, $reclamationsRecentes;
 
-            $statistiquesReclamations = $this->reclamationModel->getStatistiques();
-            $reclamationsRecentes = $this->reclamationModel->getTous(5, 0);
+            $data = $this->service->getDashboardData();
+            $statistiquesReclamations = $data['statistiques'];
+            $reclamationsRecentes = $data['reclamationsRecentes'];
 
         } catch (Exception $e) {
             $this->afficherErreur("Erreur lors du chargement du dashboard : " . $e->getMessage());
@@ -43,16 +48,9 @@ class GestionReclamationsController {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->traiterSoumissionReclamation();
         } else {
-            // Préparer les données pour la vue
             global $typesReclamation, $erreurs;
 
-            $typesReclamation = [
-                'academic' => 'Problème académique',
-                'administrative' => 'Problème administratif',
-                'technical' => 'Problème technique',
-                'financial' => 'Problème financier',
-                'other' => 'Autre'
-            ];
+            $typesReclamation = $this->service->getTypesReclamation();
 
             $erreurs = $_SESSION['erreurs_form'] ?? [];
             unset($_SESSION['erreurs_form']);
@@ -61,21 +59,18 @@ class GestionReclamationsController {
 
     private function traiterSoumissionReclamation()
     {
+        if (!canView('gestion_reclamations')) {
+            $this->afficherMessage("Accès non autorisé.", 'error');
+            header('Location: ?page=gestion_reclamations');
+            exit;
+        }
         try {
-            // Debug : afficher les données reçues
             error_log("POST data: " . print_r($_POST, true));
             error_log("SESSION data: " . print_r($_SESSION, true));
 
-            // Récupérer les données du formulaire
-            $donneesReclamation = [
-                'titre' => $_POST['objet'] ?? '',
-                'description' => $_POST['content'] ?? '',
-                'type' => $this->mapTypeFromForm($_POST['type'] ?? ''),
-                'priorite' => 'Moyenne' // Par défaut
-            ];
+            $donneesReclamation = $this->service->preparerDonneesFormulaire($_POST);
 
-            // Validation des données
-            $erreurs = $this->validerDonneesReclamation($donneesReclamation);
+            $erreurs = $this->service->validerDonneesReclamation($donneesReclamation);
 
             if (!empty($erreurs)) {
                 $_SESSION['erreurs_form'] = $erreurs;
@@ -83,38 +78,32 @@ class GestionReclamationsController {
                 exit;
             }
 
-            // Préparer les données pour la base
-                if (!isset($_SESSION['num_etu'])) {
-                    // Tentative de récupération via l'email si pas trouvé
-                    $this->recupererNumEtu();
-
-                    if (!isset($_SESSION['num_etu'])) {
-                        throw new Exception("Impossible de récupérer votre numéro d'étudiant. Veuillez vous reconnecter.");
+            // Résoudre le num_etu si absent de la session
+            if (!isset($_SESSION['num_etu'])) {
+                if (isset($_SESSION['login_utilisateur'])) {
+                    $numEtu = $this->service->recupererNumEtuParEmail($_SESSION['login_utilisateur']);
+                    if ($numEtu !== null) {
+                        $_SESSION['num_etu'] = $numEtu;
                     }
                 }
 
-                $donnees = [
-                    'num_etu' => $_SESSION['num_etu'],
-                    'titre' => trim($donneesReclamation['titre']),
-                    'description' => strip_tags(trim($donneesReclamation['description'])),
-                    'type' => $donneesReclamation['type'],
-                'priorite' => $donneesReclamation['priorite']
-            ];
+                if (!isset($_SESSION['num_etu'])) {
+                    throw new Exception("Impossible de récupérer votre numéro d'étudiant. Veuillez vous reconnecter.");
+                }
+            }
 
-            // Debug : afficher les données préparées
-            error_log("Données pour insertion: " . print_r($donnees, true));
+            $resultat = $this->service->creerReclamation(
+                $donneesReclamation,
+                $_SESSION['num_etu'],
+                (int) $_SESSION['id_utilisateur']
+            );
 
-            // Créer la réclamation
-            $reclamationId = $this->reclamationModel->creer($donnees);
-
-            if ($reclamationId) {
-                $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'reclamation', 'Succès');
-                $this->afficherMessage('Réclamation soumise avec succès. Numéro de référence : REC-' . $reclamationId, 'success');
+            if ($resultat['success']) {
+                $this->afficherMessage($resultat['message'], 'success');
                 header('Location: ?page=gestion_reclamations');
                 exit;
             } else {
-                $this->auditLog->logCreation($_SESSION['id_utilisateur'], 'reclamation', 'Erreur');
-                $this->afficherMessage('Erreur lors de la soumission de la réclamation. Veuillez réessayer.', 'error');
+                $this->afficherMessage($resultat['message'], 'error');
                 header('Location: ?page=gestion_reclamations&action=soumettre_reclamation');
                 exit;
             }
@@ -127,60 +116,6 @@ class GestionReclamationsController {
         }
     }
 
-    private function recupererNumEtu() {
-        try {
-            if (!isset($_SESSION['login_utilisateur'])) {
-                return false;
-            }
-
-            $db = Database::getConnection();
-            $query = "SELECT num_etu FROM etudiants WHERE email_etu = :email";
-            $stmt = $db->prepare($query);
-            $stmt->bindParam(':email', $_SESSION['login_utilisateur']);
-            $stmt->execute();
-
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($result) {
-                $_SESSION['num_etu'] = $result['num_etu'];
-                return true;
-            }
-            return false;
-        } catch (Exception $e) {
-            error_log("Erreur lors de la récupération du num_etu: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    private function mapTypeFromForm($type) {
-        $map = [
-            'academic' => 'Académique',
-            'administrative' => 'Administrative',
-            'technical' => 'Technique',
-            'financial' => 'Financière',
-            'other' => 'Autre'
-        ];
-        return $map[$type] ?? 'Autre';
-    }
-
-    private function validerDonneesReclamation($donnees)
-    {
-        $erreurs = [];
-
-        if (empty($donnees['titre']) || strlen(trim($donnees['titre'])) < 5) {
-            $erreurs['titre'] = 'Le titre doit contenir au moins 5 caractères.';
-        }
-
-        if (empty($donnees['description']) || strlen(strip_tags(trim($donnees['description']))) < 20) {
-            $erreurs['description'] = 'La description doit contenir au moins 20 caractères.';
-        }
-
-        if (empty($donnees['type']) || !in_array($donnees['type'], ['Académique', 'Administrative', 'Technique', 'Financière', 'Autre'])) {
-            $erreurs['type'] = 'Veuillez sélectionner un type de réclamation valide.';
-        }
-
-        return $erreurs;
-    }
-
     //=============================SUIVI RECLAMATION=============================
     public function suiviHistoriqueReclamations()
     {
@@ -189,107 +124,29 @@ class GestionReclamationsController {
 
             $page = isset($_GET['p']) ? (int)$_GET['p'] : 1;
             $limit = 10;
-            $offset = ($page - 1) * $limit;
 
-            // Filtres
-            $filtres = [];
-            if (isset($_GET['status']) && $_GET['status'] !== 'all') {
-                $statusMap = [
-                    'en_attente' => 'En attente',
-                    'en_cours' => 'En cours',
-                    'resolue' => 'Résolue',
-                    'rejetee' => 'Rejetée'
-                ];
-                if (isset($statusMap[$_GET['status']])) {
-                    $filtres['statut'] = $statusMap[$_GET['status']];
-                }
-            }
+            $filtres = $this->service->construireFiltres($_GET);
 
-            if (isset($_GET['type']) && $_GET['type'] !== 'all') {
-                $typeMap = [
-                    'academic' => 'Académique',
-                    'administrative' => 'Administrative',
-                    'technical' => 'Technique',
-                    'financial' => 'Financière'
-                ];
-                if (isset($typeMap[$_GET['type']])) {
-                    $filtres['type'] = $typeMap[$_GET['type']];
-                }
-            }
+            $suiviData = $this->service->getSuiviReclamations(
+                $_SESSION['num_etu'],
+                $page,
+                $limit,
+                $filtres
+            );
 
-            // Récupérer les réclamations de l'étudiant connecté
-            $reclamations = $this->reclamationModel->getTous(1000, 0); // Grande limite
-            $reclamations = array_filter($reclamations, function($rec) {
-                return $rec['num_etu'] == $_SESSION['num_etu'];
-            });
-                $totalReclamations = count($reclamations);
+            $reclamations = $suiviData['reclamations'];
+            $totalReclamations = $suiviData['totalReclamations'];
+            $totalPages = $suiviData['totalPages'];
+            $page = $suiviData['page'];
 
-            // Appliquer les filtres manuellement
-                if (!empty($filtres)) {
-                    $reclamations = array_filter($reclamations, function($rec) use ($filtres) {
-                        if (isset($filtres['statut']) && $rec['statut_reclamation'] !== $filtres['statut']) {
-                            return false;
-                        }
-                        if (isset($filtres['type']) && $rec['type_reclamation'] !== $filtres['type']) {
-                            return false;
-                        }
-                        return true;
-                    });
-                }
+            $statistiques = $this->service->calculerStatistiquesEtudiant($_SESSION['num_etu']);
 
-                $reclamations = array_slice($reclamations, $offset, $limit);
-
-            $totalPages = ceil($totalReclamations / $limit);
-
-            // Calculer les statistiques
-            $statistiques = $this->calculerStatistiques();
-
-            // Données pour la vue
             $filtresActuels = $_GET;
 
         } catch (Exception $e) {
             $this->afficherErreur("Erreur lors du chargement du suivi : " . $e->getMessage());
         }
     }
-
-    private function calculerStatistiques()
-    {
-        // Récupérer les réclamations de l'étudiant connecté
-        $reclamations = $this->reclamationModel->getTous(1000, 0); // Grande limite pour avoir toutes les réclamations
-        
-        // Filtrer pour ne garder que celles de l'étudiant connecté
-        $reclamations = array_filter($reclamations, function($rec) {
-            return $rec['num_etu'] == $_SESSION['num_etu'];
-        });
-
-        $stats = [
-            'total' => count($reclamations),
-            'en_attente' => 0,
-            'en_cours' => 0,
-            'resolue' => 0,
-            'rejetee' => 0
-        ];
-
-        foreach ($reclamations as $rec) {
-            switch ($rec['statut_reclamation']) {
-                case 'En attente':
-                    $stats['en_attente']++;
-                    break;
-                case 'En cours':
-                    $stats['en_cours']++;
-                    break;
-                case 'Résolue':
-                    $stats['resolue']++;
-                    break;
-                case 'Rejetée':
-                    $stats['rejetee']++;
-                    break;
-            }
-        }
-
-        return $stats;
-    }
-
 
     //=============================MÉTHODES UTILITAIRES=============================
     private function afficherMessage($message, $type = 'info')
@@ -300,24 +157,17 @@ class GestionReclamationsController {
     private function afficherErreur($message)
     {
         $this->afficherMessage($message, 'error');
-        
-    }
-
-    private function verifierDroitsAdmin()
-    {
-        $groupesAdmin = [5, 6, 7, 8]; // Admins, secrétaires, etc.
-        return in_array($_SESSION['groupe_utilisateur'] ?? 0, $groupesAdmin);
     }
 
     public function exporterReclamations()
     {
-        if (!$this->verifierDroitsAdmin()) {
+        if (!$this->service->verifierDroitsAdmin((int) ($_SESSION['groupe_utilisateur'] ?? 0))) {
             $this->afficherErreur("Accès non autorisé.");
             return;
         }
 
         try {
-            $reclamations = $this->reclamationModel->getTous(1000, 0); // Limite élevée pour export
+            $reclamations = $this->service->getReclamationsPourExport();
 
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename=reclamations_' . date('Y-m-d') . '.csv');
@@ -352,30 +202,21 @@ class GestionReclamationsController {
 
     public function getReclamationDetailsAjax()
     {
-        // Empêcher le chargement du layout pour les actions AJAX
         if (!isset($_GET['id'])) {
             http_response_code(400);
             echo "ID de la réclamation manquant";
             return;
         }
 
-        $reclamationId = $_GET['id'];
+        $result = $this->service->getReclamationDetails((int) $_GET['id'], $_SESSION['num_etu']);
 
-        // Récupérer la réclamation
-        $reclamation = $this->reclamationModel->getParId($reclamationId);
-
-        if (!$reclamation) {
-            http_response_code(404);
-            echo "Réclamation non trouvée";
+        if (!$result['success']) {
+            http_response_code($result['httpCode']);
+            echo $result['error'];
             return;
         }
 
-        // Vérifier que l'étudiant est propriétaire de la réclamation
-        if ($reclamation['num_etu'] != $_SESSION['num_etu']) {
-            http_response_code(403);
-            echo "Accès non autorisé";
-            return;
-        }
+        $reclamation = $result['reclamation'];
 
         // Générer le HTML pur sans layout
         ob_start();

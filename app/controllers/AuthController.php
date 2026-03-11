@@ -1,216 +1,51 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../models/Utilisateur.php';
-require_once __DIR__ . '/../models/Traitement.php';
-require_once __DIR__ . '/../models/Enseignant.php';
-require_once __DIR__ . '/../models/Etudiant.php';
-require_once __DIR__ . '/../models/PersAdmin.php';
-require_once __DIR__ . '/../models/Grade.php';
-require_once __DIR__ . '/../models/Fonction.php';
-require_once __DIR__ . '/../models/Specialite.php';
-require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../Core/Autoload.php';
+require_once __DIR__ . '/../Services/AuthService.php';
 
-use CheckMaster\Security\DbRateLimiter;
+class AuthController
+{
+    private $authService;
 
-// Si nécessaire pour d'autres opérations
-
-class AuthController {
-    private $db;
-    private $enseignantModel;
-    private $persAdminModel;
-    private $etudiantModel;
-    private $auditLog;
-
-    public function __construct($db) {
-        $this->db = $db;
-        $this->enseignantModel = new Enseignant($db);
-        $this->persAdminModel = new PersAdmin($db);
-        $this->etudiantModel = new Etudiant($db);
-        $this->auditLog = new AuditLog($db);
-        
-       
+    public function __construct($db)
+    {
+        $this->authService = new \CheckMaster\Services\AuthService($db);
     }
 
     public function login($login, $password)
     {
-        // Rate limiting (DB only) - fail-open si la table n'est pas encore créée
-        $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
-        $identifier = strtolower(trim((string) $login));
-        if ($identifier === '') {
-            $identifier = '-';
-        }
-        $limiter = new DbRateLimiter($this->db);
-        if (!$limiter->isAllowed('login', $ip, $identifier)) {
-            $_SESSION['error'] = 'Trop de tentatives. Veuillez patienter avant de réessayer.';
+        $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+
+        $result = $this->authService->login($login, $password, $ip);
+
+        if (!$result['success']) {
+            $_SESSION['error'] = $result['message'] ?? 'Identifiants incorrects.';
             return false;
         }
 
-        $utilisateur = new Utilisateur($this->db);
-        $infoUtilisateur = $utilisateur->verifierConnexion($login, $password);
-
-        if ($infoUtilisateur) {
-            // Durcir la session après authentification
-            if (session_status() === PHP_SESSION_ACTIVE) {
-                session_regenerate_id(true);
-            }
-            
-           
-            // Stocker les infos de session
-            $_SESSION['id_utilisateur'] = $infoUtilisateur['id_utilisateur'];
-            $_SESSION['nom_utilisateur'] = $infoUtilisateur['nom_utilisateur'];
-            $_SESSION['statut_utilisateur'] = $infoUtilisateur['statut_utilisateur'];
-            $_SESSION['login_utilisateur'] = $infoUtilisateur['login_utilisateur'];
-            // Récupérer les autres infos via le modèle
-            $_SESSION['type_utilisateur'] = $utilisateur->getLibelleTypeUtilisateur($infoUtilisateur['id_utilisateur']);
-            $_SESSION['id_GU'] = $infoUtilisateur['id_GU'];
-            $_SESSION['lib_GU'] = $utilisateur->getLibelleGroupeUtilisateur($infoUtilisateur['id_utilisateur']);
-            $_SESSION['niveau_acces'] = $utilisateur->getLibelleNivAcces($infoUtilisateur['id_utilisateur']);
-
-            $type_utilisateur = $utilisateur->getLibelleTypeUtilisateur($infoUtilisateur['id_utilisateur']);
-
-            if ($type_utilisateur !== 'Etudiant') {
-                if ($type_utilisateur === 'Enseignant simple' || $type_utilisateur === 'Enseignant administratif') {
-                    // Récupérer les informations de l'enseignant
-                    $enseignant = $this->enseignantModel->getEnseignantByLogin($infoUtilisateur['login_utilisateur']);
-                    if ($enseignant) {
-                        $_SESSION['specialite'] = $enseignant->lib_specialite;
-                        $_SESSION['grade'] = $enseignant->lib_grade;
-                        $_SESSION['fonction'] = $enseignant->lib_fonction;
-                        $_SESSION['date_grade'] = $enseignant->date_grade;
-                        $_SESSION['date_fonction'] = $enseignant->date_occupation;
-                    }
-                } else if ($type_utilisateur === 'Personnel administratif') {
-                    // Récupérer les informations du personnel administratif
-                    $persAdmin = $this->persAdminModel->getPersAdminByLogin($infoUtilisateur['login_utilisateur']);
-                    if ($persAdmin) {
-                        $_SESSION['telephone'] = $persAdmin->tel_pers_admin;
-                        $_SESSION['poste'] = $persAdmin->poste;
-                        $_SESSION['date_embauche'] = $persAdmin->date_embauche;
-                    }
-                }
-            }
-            if ($type_utilisateur == 'Etudiant') {
-                $etudiant = $this->etudiantModel->getEtudiantByLogin($infoUtilisateur['login_utilisateur']);
-                if ($etudiant) {
-                    $_SESSION['num_etu'] = $etudiant->num_etu;
-                }
-            }
-            $this->auditLog->logConnexion($infoUtilisateur['id_utilisateur'], 'utilisateur', 'Succès');
-            // Succès: reset rate limit
-            $limiter->reset('login', $ip, $identifier);
-            return true;
-        } 
-        // Échec: incrémenter tentative (5 essais / 15 min, blocage 10 min)
-        $limiter->hit('login', $ip, $identifier, 5, 15 * 60, 10 * 60);
-        return false;
+        return true;
     }
 
     public function logout()
     {
-        $this->auditLog->logDeconnexion($_SESSION['id_utilisateur'] , 'utilisateur', 'Succès');
-       
+        $idUtilisateur = $_SESSION['id_utilisateur'] ?? null;
 
-        // Détruire toutes les données de session
-        $_SESSION = array();
-
-        // Si vous voulez détruire complètement la session, effacez aussi le cookie
-        if (ini_get("session.use_cookies")) {
-            $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000,
-                $params["path"], $params["domain"],
-                $params["secure"], $params["httponly"]
-            );
-        }
-
-        // Finalement, détruire la session
-        return session_destroy();
+        return $this->authService->logout($idUtilisateur);
     }
 
-    public function updatePassword($currentPassword, $newPassword, $confirmPassword) {
-        $utilisateur = new Utilisateur($this->db);
-        $user = $utilisateur->getUtilisateurById($_SESSION['id_utilisateur']);
-        $messageErreur = '';
-        $messageSuccess = '';
+    public function updatePassword($currentPassword, $newPassword, $confirmPassword)
+    {
+        $idUtilisateur = $_SESSION['id_utilisateur'] ?? null;
 
-        // Vérifier si le mot de passe actuel est correct
-        if (!password_verify($currentPassword, $user->mdp_utilisateur)) {
-            $messageErreur = 'Le mot de passe actuel est incorrect.';
-            $GLOBALS['messageErreur'] = $messageErreur;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
-        
-            return false;
-        }
+        $result = $this->authService->updatePassword($idUtilisateur, $currentPassword, $newPassword, $confirmPassword);
 
-        // Vérifier si les nouveaux mots de passe correspondent
-        if ($newPassword !== $confirmPassword) {
-            $messageErreur = 'Les mots de passe ne correspondent pas.';
-            $GLOBALS['messageErreur'] = $messageErreur;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
-            
-            return false;
-        }
-
-        // Vérifier si le nouveau mot de passe est différent du mot de passe actuel
-        if (password_verify($newPassword, $user->mdp_utilisateur)) {
-            $messageErreur = 'Le nouveau mot de passe doit être différent de l\'ancien.';
-            $GLOBALS['messageErreur'] = $messageErreur;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
-            
-            return false;
-        }
-
-        // Vérifier la longueur minimale
-        if (strlen($newPassword) < 8) {
-            $messageErreur = 'Le mot de passe doit contenir au moins 8 caractères.';
-            $GLOBALS['messageErreur'] = $messageErreur;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
-            
-            return false;
-        }
-
-        // Vérifier la présence d'au moins une majuscule
-        if (!preg_match('/[A-Z]/', $newPassword)) {
-            $messageErreur = 'Le mot de passe doit contenir au moins une majuscule.';
-            $GLOBALS['messageErreur'] = $messageErreur;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
-            
-            return false;
-        }
-
-        // Vérifier la présence d'au moins un chiffre
-        if (!preg_match('/[0-9]/', $newPassword)) {
-            $messageErreur = 'Le mot de passe doit contenir au moins un chiffre.';
-            $GLOBALS['messageErreur'] = $messageErreur;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
-         
-            return false;
-        }
-
-        // Vérifier la présence d'au moins un caractère spécial
-        if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]+/', $newPassword)) {
-            $messageErreur = 'Le mot de passe doit contenir au moins un caractère spécial.';
-            $GLOBALS['messageErreur'] = $messageErreur;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Erreur'); 
-          
-            return false;
-        }
-
-        // Hasher le nouveau mot de passe
-        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-
-        // Mettre à jour le mot de passe
-        if ($utilisateur->updatePassword($_SESSION['id_utilisateur'], $hashedPassword)) {
-            $messageSuccess = 'Mot de passe mis à jour avec succès.';
-            $GLOBALS['messageSuccess'] = $messageSuccess;
-            $this->auditLog->logModification($_SESSION['id_utilisateur'], 'utilisateur', 'Succès'); 
+        if ($result['success']) {
+            $GLOBALS['messageSuccess'] = $result['message'];
             return true;
         }
 
-        $messageErreur = 'Erreur lors de la mise à jour du mot de passe.';
-        $GLOBALS['messageErreur'] = $messageErreur;
-        $GLOBALS['messageSuccess'] = $messageSuccess;
-
+        $GLOBALS['messageErreur'] = $result['message'];
+        $GLOBALS['messageSuccess'] = '';
         return false;
     }
 }

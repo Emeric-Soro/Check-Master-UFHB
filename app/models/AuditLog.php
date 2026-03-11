@@ -60,26 +60,6 @@ class AuditLog {
             $statut = 'Erreur';
         }
 
-        // Si la colonne details n'existe pas, on ignore silencieusement.
-        $hasDetails = false;
-        try {
-            $cols = $this->db->query("SHOW COLUMNS FROM pister")->fetchAll(PDO::FETCH_ASSOC);
-            foreach ($cols as $col) {
-                if (($col['Field'] ?? '') === 'details') {
-                    $hasDetails = true;
-                    break;
-                }
-            }
-        } catch (Exception $e) {
-            $hasDetails = false;
-        }
-
-        if ($hasDetails) {
-            $sql = "INSERT INTO pister (id_utilisateur, action, nom_table, statut_action, details) VALUES (?, ?, ?, ?, ?)";
-            $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$id_utilisateur, $action, $nom_table, $statut, $details]);
-        }
-
         $sql = "INSERT INTO pister (id_utilisateur, action, nom_table, statut_action) VALUES (?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([$id_utilisateur, $action, $nom_table, $statut]);

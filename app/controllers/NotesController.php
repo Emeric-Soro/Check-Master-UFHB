@@ -1,207 +1,128 @@
 <?php
 
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../models/AnneeAcademique.php';
-require_once __DIR__ . '/../models/Note.php';
-require_once __DIR__ . '/../models/Etudiant.php';
-require_once __DIR__ . '/../models/NiveauEtude.php';
-require_once __DIR__ . '/../models/Semestre.php';
-require_once __DIR__ . '/../models/Ue.php';
-require_once __DIR__ . '/../models/Ecue.php';
-require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../Services/NotesService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
+use CheckMaster\Services\NotesService;
 
+class NotesController
+{
+    private $service;
 
-class NotesController {
-    private $noteModel;
-    private $etudiantModel;
-    private $niveauModel;
-    private $semestreModel;
-    private $ueModel;
-    private $ecueModel;
-    private $db;
-    private $auditLog;
-
-    public function __construct() {
-        $this->db = Database::getConnection();
-        $this->noteModel = new Note($this->db);
-        $this->etudiantModel = new Etudiant($this->db);
-        $this->ueModel = new Ue($this->db);
-        $this->niveauModel = new NiveauEtude($this->db);
-        $this->ecueModel = new Ecue($this->db);
-        $this->semestreModel = new Semestre($this->db);
-        $this->auditLog = new AuditLog($this->db);
+    public function __construct()
+    {
+        $db = Database::getConnection();
+        $this->service = new NotesService($db);
     }
 
-    public function index() {
-
-       if(isset($_GET['action']) && $_GET['action'] == 'enregistrer_notes'){
-        $this->enregistrerNotes();
-        
-       }
-        $selectedNiveau = isset($_GET['niveau']) ? (int)$_GET['niveau'] : null;
-        $selectedStudent = isset($_GET['student']) ? $_GET['student'] : null;
-        $selectedStudent = $selectedStudent ? $this->etudiantModel->getEtudiantById($selectedStudent) : null;
-
-        $GLOBALS['niveaux'] = $this->niveauModel->getAllNiveauxEtudes();
-        $GLOBALS['etudiants'] = $selectedNiveau ? $this->etudiantModel->getEtudiantsByNiveau($selectedNiveau) : [];
-        $GLOBALS['selectedNiveau'] = $selectedNiveau;
-        $GLOBALS['niveau'] = $this->niveauModel->getNiveauEtudeById($selectedNiveau);
-        $GLOBALS['selectedStudent'] = $selectedStudent;
-
-        $GLOBALS['listeEtudiants'] = $this->etudiantModel->getAllEtudiants();
-        $GLOBALS['niveauxEtude'] = $this->niveauModel->getAllNiveauxEtudes();
-
-        if ($selectedStudent) {
-            $GLOBALS['studentGrades'] = $this->noteModel->getByStudent($selectedStudent->num_etu);
-            $GLOBALS['studentSemestres'] = $selectedNiveau ? $this->semestreModel->getSemestresByNiveau($selectedNiveau) : [];
-            $GLOBALS['studentUes'] = $selectedNiveau ? $this->ueModel->getUesByNiveau($selectedNiveau) : [];
-            $GLOBALS['studentEcues'] = $selectedNiveau ? $this->ecueModel->getEcuesByNiveau($selectedNiveau) : [];
-        } else {
-            $GLOBALS['studentGrades'] = [];
-            $GLOBALS['studentSemestres'] = $selectedNiveau ? $this->semestreModel->getSemestresByNiveau($selectedNiveau) : [];
-            $GLOBALS['studentUes'] = $selectedNiveau ? $this->ueModel->getUesByNiveau($selectedNiveau) : [];
-            $GLOBALS['studentEcues'] = $selectedNiveau ? $this->ecueModel->getEcuesByNiveau($selectedNiveau) : [];
-        }
-
-       
-    }
-
-    public function enregistrerNotes() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_enregistrer_notes'])) {
-            $success = true;
-            $studentId = $_GET['student'] ?? null;
-            
-            if (!$studentId) {
-                $_SESSION['error'] = "ID étudiant manquant";
+    public function index()
+    {
+        try {
+            // Traitement de l'enregistrement des notes
+            if (isset($_GET['action']) && $_GET['action'] == 'enregistrer_notes') {
+                $this->enregistrerNotes();
                 return;
             }
 
-            try {
-                // Traiter les notes des UE
-                if (isset($_POST['notes']) && is_array($_POST['notes'])) {
-            
-                    foreach ($_POST['notes'] as $ueId => $note) {
+            // Delegate to service
+            $data = $this->service->getIndexData($_GET);
 
-                        // On ne traite que les notes qui ont été saisies
-                        if ($note !== '') {
-                            $commentaire = $_POST['commentaires'][$ueId] ?? null;
-                       
-                            // Vérifier si la note existe déjà
-                            $existingNote = $this->noteModel->getByStudent($studentId);
-                            $noteExists = false;
+            // Populate globals for the view
+            $GLOBALS['niveaux'] = $data['niveaux'];
+            $GLOBALS['anneesAcademiques'] = $data['anneesAcademiques'];
+            $GLOBALS['etudiants'] = $data['etudiants'];
+            $GLOBALS['selectedNiveau'] = $data['selectedNiveau'];
+            $GLOBALS['selectedAnneeAcad'] = $data['selectedAnneeAcad'];
+            $GLOBALS['niveau'] = $data['niveau'];
+            $GLOBALS['selectedStudent'] = $data['selectedStudent'];
+            $GLOBALS['studentNote'] = $data['studentNote'];
+            $GLOBALS['moyenneGenerale'] = $data['moyenneGenerale'];
 
-                            if( $existingNote != null){
-                            
-                            foreach ($existingNote as $existing) {
-                                if ($existing->id_ue == $ueId) {
-                                    $noteExists = true;
-                                    break;
-                                }
-                            }
-                        }
-                            if ($noteExists) {
-                            
-                                $result = $this->noteModel->updateNote($studentId, $ueId, $note, $commentaire,null);
-                            } else {
-                              
-                                $result = $this->noteModel->createNote($studentId, $ueId, $note, $commentaire,null);
-                            }
-                            
-                            if (!$result) {
-                                $success = false;
-                            }
-                        }
-                    }
-                }
-
-                // Traiter les notes des ECUE
-                if (isset($_POST['notes_ecue']) && is_array($_POST['notes_ecue'])) {
-                  
-                    foreach ($_POST['notes_ecue'] as $ecueId => $note) {
-                        // On ne traite que les notes qui ont été saisies
-                        if ($note !== '') {
-                            $commentaire = $_POST['commentaires_ecue'][$ecueId] ?? null;
-                            
-                            // Vérifier si la note existe déjà
-                            $existingNote = $this->noteModel->getByStudent($studentId);
-                            $noteExists = false;
-
-                            if ($existingNote != null) {
-
-                                foreach ($existingNote as $existing) {
-                                    if ($existing->id_ecue == $ecueId) {
-                                        $noteExists = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            if ($noteExists) {
-   
-                                $result = $this->noteModel->updateNote($studentId, $ueId, $note, $commentaire, $ecueId);
-                            } else {
-              
-                                $result = $this->noteModel->createNote($studentId, $ueId, $note, $commentaire, $ecueId);
-                            }
-                            
-                        
-                            if (!$result) {
-                                
-                                $success = false;
-                            }
-                        }
-                    }
-                }
-
-                
-                
-                if ($success) {
-                    $_SESSION['success'] = "Les notes ont été enregistrées avec succès.";
-                    $this->auditLog->logCreation($_SESSION['id_utilisateur'], "notes", "Succès  ");
-                } else {
-                    $_SESSION['error'] = "Une erreur est survenue lors de l'enregistrement des notes.";
-                    $this->auditLog->logCreation($_SESSION['id_utilisateur'], "notes", "Erreur");
-                }
-                
-                // Rediriger vers la même page avec les mêmes paramètres
-                $redirectUrl = "?page=gestion_notes_evaluations";
-                if (!empty($_GET['niveau'])) {
-                    $redirectUrl .= "&niveau=" . $_GET['niveau'];
-                }
-                if (!empty($_GET['student'])) {
-                    $redirectUrl .= "&student=" . $_GET['student'];
-                }
-                
-                
-            } catch (Exception $e) {
-               
-                $_SESSION['error'] = "Une erreur est survenue lors de l'enregistrement des notes: " . $e->getMessage();
-                $this->auditLog->logCreation($_SESSION['id_utilisateur'], "notes", "Erreur");
-                
-                // Rediriger vers la même page avec les mêmes paramètres
-                $redirectUrl = "?page=gestion_notes_evaluations";
-                if (!empty($_GET['niveau'])) {
-                    $redirectUrl .= "&niveau=" . $_GET['niveau'];
-                }
-                if (!empty($_GET['student'])) {
-                    $redirectUrl .= "&student=" . $_GET['student'];
-                }
-
-                header("Location: " . $redirectUrl);
-                
-                
-            }
+        } catch (Exception $e) {
+            error_log("Erreur dans NotesController::index : " . $e->getMessage());
+            $GLOBALS['messageErreur'] = "Une erreur est survenue lors du chargement des données.";
         }
     }
 
-    public function getNotesByEtudiant() {
+    public function enregistrerNotes()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_enregistrer_notes'])) {
+            if (!canCreate('gestion_notes_evaluations') && !canEdit('gestion_notes_evaluations')) {
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'enregistrer des notes.";
+                $this->redirectBack();
+                return;
+            }
+            $studentId = $_GET['student'] ?? ($_POST['student'] ?? ($_POST['student_picker'] ?? null));
+            $studentId = is_string($studentId) ? trim($studentId) : $studentId;
+            $anneeAcadId = $_POST['id_annee_acad'] ?? null;
+
+            if (!$studentId) {
+                $_SESSION['error'] = "ID étudiant manquant";
+                $this->redirectBack();
+                return;
+            }
+
+            if (!$anneeAcadId) {
+                $_SESSION['error'] = "Année académique manquante";
+                $this->redirectBack();
+                return;
+            }
+
+            $moyenneM1 = isset($_POST['moyenne_M1']) ? floatval($_POST['moyenne_M1']) : 0;
+            $moyenneM2 = isset($_POST['moyenne_M2']) ? floatval($_POST['moyenne_M2']) : 0;
+
+            $result = $this->service->enregistrerNotes(
+                $studentId,
+                (int) $anneeAcadId,
+                $moyenneM1,
+                $moyenneM2,
+                (int) $_SESSION['id_utilisateur']
+            );
+
+            if ($result['success']) {
+                $_SESSION['success'] = $result['message'];
+            } else {
+                $_SESSION['error'] = $result['message'];
+            }
+
+            $this->redirectBack();
+        }
+    }
+
+    private function redirectBack()
+    {
+        $redirectUrl = "?page=gestion_notes_evaluations";
+        if (!empty($_GET['niveau'])) {
+            $redirectUrl .= "&niveau=" . $_GET['niveau'];
+        }
+        if (!empty($_GET['annee'])) {
+            $redirectUrl .= "&annee=" . $_GET['annee'];
+        }
+        $studentId = $_GET['student'] ?? ($_POST['student'] ?? ($_POST['student_picker'] ?? null));
+        if (!empty($studentId)) {
+            $redirectUrl .= "&student=" . $studentId;
+        }
+
+        header("Location: " . $redirectUrl);
+        exit;
+    }
+
+    public function getNotesByEtudiant()
+    {
+        if (!canView('gestion_notes_evaluations')) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => "Accès non autorisé."]);
+            exit;
+        }
         if (isset($_GET['student_id'])) {
-            $notes = $this->noteModel->getByStudent($_GET['student_id']);
+            $anneeAcadId = isset($_GET['annee_acad_id']) ? (int) $_GET['annee_acad_id'] : null;
+            $notes = $this->service->getNotesByEtudiant($_GET['student_id'], $anneeAcadId);
             echo json_encode($notes);
             exit;
         }
-        
+
         echo json_encode([]);
     }
-} 
+}

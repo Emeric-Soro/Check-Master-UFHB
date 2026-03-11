@@ -1,678 +1,882 @@
 <?php
-// Initialisation des variables avec des valeurs par défaut
-$etudiantsInscrits = isset($GLOBALS['etudiantsInscrits']) ? $GLOBALS['etudiantsInscrits'] : [];
-$listeAllEtudiant = $GLOBALS['listeAllEtudiant'];
-$allVersement = $GLOBALS['listeVersement'];
-
-// Configuration de la pagination
-$items_par_page = 10; // Nombre d'éléments par page
-$page_actuelle = isset($_GET['page_versements']) ? (int)$_GET['page_versements'] : 1;
-$total_items = count($allVersement);
-$total_pages = ceil($total_items / $items_par_page);
-$page_actuelle = max(1, min($page_actuelle, $total_pages)); // S'assurer que la page est valide
-
-// Calculer l'index de début et de fin pour la pagination
-$debut = ($page_actuelle - 1) * $items_par_page;
-$versements_pages = array_slice($allVersement, $debut, $items_par_page);
-
-// Calcul des statistiques
-$totalEtudiants = count($etudiantsInscrits);
-$complete = 0;
-$partial = 0;
-
-foreach ($etudiantsInscrits as $etudiant) {
-    $reste_a_payer = isset($etudiant['reste_a_payer']) ? floatval($etudiant['reste_a_payer']) : 0;
-
-    if ($reste_a_payer <= 0) {
-        $complete++;
-    } else {
-        $partial++;
+$etudiantsNonInscrits = is_array($GLOBALS['etudiantsNonInscrits'] ?? null) ? $GLOBALS['etudiantsNonInscrits'] : [];
+$etudiantsInscrits = is_array($GLOBALS['etudiantsInscrits'] ?? null) ? $GLOBALS['etudiantsInscrits'] : [];
+$listeAllEtudiant = is_array($GLOBALS['listeAllEtudiant'] ?? null) ? $GLOBALS['listeAllEtudiant'] : [];
+$niveaux = is_array($GLOBALS['niveaux'] ?? null) ? $GLOBALS['niveaux'] : [];
+$listeAnnees = is_array($GLOBALS['listeAnnees'] ?? null) ? $GLOBALS['listeAnnees'] : [];
+$listeVersement = is_array($GLOBALS['listeVersement'] ?? null) ? $GLOBALS['listeVersement'] : [];
+$anneeActiveId = \AcademicYear::getActiveIdFromSession();
+$anneeActiveLabel = \AcademicYear::getActiveLabelFromSession();
+$anneeSelectionneeId = \AcademicYear::getSelectedIdFromSession();
+$anneeSelectionneeLabel = \AcademicYear::getSelectedLabelFromSession();
+$anneeSelectionToutes = \AcademicYear::isAllSelectedFromSession();
+$anneeEcritureId = \AcademicYear::getWritableIdFromSession();
+$anneeEcritureLabel = \AcademicYear::getWritableLabelFromSession();
+$ecritureAutorisee = \AcademicYear::isWriteAllowedFromSession();
+$today = date('Y-m-d');
+if ($anneeActiveId === null || $anneeActiveLabel === '') {
+    $anneeActiveLabel = date('Y') . '-' . (date('Y') + 1);
+    foreach ($listeAnnees as $annee) {
+        $debut = (string) ($annee->date_deb ?? '');
+        $fin = (string) ($annee->date_fin ?? '');
+        if ($debut !== '' && $fin !== '' && $today >= $debut && $today <= $fin) {
+            $anneeActiveId = (int) ($annee->id_annee_acad ?? 0);
+            $anneeActiveLabel = date('Y', strtotime($debut)) . '-' . date('Y', strtotime($fin));
+            break;
+        }
     }
 }
+if ($anneeSelectionneeLabel === '') {
+    $anneeSelectionneeLabel = $anneeSelectionToutes
+        ? \AcademicYear::getAllLabel()
+        : ($anneeEcritureLabel !== '' ? $anneeEcritureLabel : $anneeActiveLabel);
+}
 
-$pourcentageComplete = $totalEtudiants > 0 ? round(($complete / $totalEtudiants) * 100) : 0;
-$pourcentagePartial = $totalEtudiants > 0 ? round(($partial / $totalEtudiants) * 100) : 0;
-$pourcentagePending = count($listeAllEtudiant) > 0 ? round(($totalEtudiants / count($listeAllEtudiant)) * 100) : 0;
+$niveauxOptions = [];
+$niveauxMontants = [];
+foreach ($niveaux as $niveau) {
+    $idNiveau = (string) ($niveau['id_niv_etude'] ?? '');
+    $niveauxOptions[$idNiveau] = (string) ($niveau['lib_niv_etude'] ?? 'Niveau');
+    $niveauxMontants[$idNiveau] = (float) ($niveau['montant_scolarite'] ?? 0);
+}
+$anneesOptions = [];
+foreach ($listeAnnees as $annee) {
+    $id = (int) ($annee->id_annee_acad ?? 0);
+    $debut = !empty($annee->date_deb) ? date('Y', strtotime((string) $annee->date_deb)) : '';
+    $fin = !empty($annee->date_fin) ? date('Y', strtotime((string) $annee->date_fin)) : '';
+    $anneesOptions[$id] = trim($debut . '-' . $fin, '-');
+}
+$catalog = [];
+foreach ($listeAllEtudiant as $etu) {
+    $numIdent = (string) ($etu['num_ident_etud'] ?? '');
+    $numCarte = (string) ($etu['num_carte_etud'] ?? '');
+    if ($numIdent === '') {
+        continue;
+    }
+    $catalog[$numIdent] = [
+        'num_ident' => $numIdent,
+        'num_carte' => $numCarte,
+        'nom' => (string) ($etu['nom_etu'] ?? ''),
+        'prenom' => (string) ($etu['prenom_etu'] ?? ''),
+        'inscrit' => false,
+        'id_niv_etude' => !empty($etu['id_niv_etude']) ? (string) $etu['id_niv_etude'] : null,
+        'nom_niveau' => '',
+        'id_annee' => $anneeEcritureId,
+        'montant_total' => 0.0,
+        'montant_paye' => 0.0,
+        'reste_a_payer' => 0.0,
+        'solde' => 0.0,
+        'num_versement' => 1,
+    ];
+}
+foreach ($etudiantsNonInscrits as $etu) {
+    $numIdent = (string) ($etu['num_ident_etud'] ?? $etu['num_etu'] ?? '');
+    $numCarte = (string) ($etu['num_carte_etud'] ?? '');
+    if ($numIdent === '') {
+        continue;
+    }
+    if (!isset($catalog[$numIdent])) {
+        $catalog[$numIdent] = [
+            'num_ident' => $numIdent,
+            'num_carte' => $numCarte,
+            'nom' => (string) ($etu['nom_etu'] ?? ''),
+            'prenom' => (string) ($etu['prenom_etu'] ?? ''),
+            'inscrit' => false,
+            'id_niv_etude' => null,
+            'nom_niveau' => '',
+            'id_annee' => $anneeEcritureId,
+            'montant_total' => 0.0,
+            'montant_paye' => 0.0,
+            'reste_a_payer' => 0.0,
+            'solde' => 0.0,
+            'num_versement' => 1,
+        ];
+    }
+}
+foreach ($etudiantsInscrits as $etu) {
+    $numIdent = (string) ($etu['num_ident_etud'] ?? '');
+    $numCarte = (string) ($etu['num_carte_etud'] ?? '');
+    if ($numIdent === '') {
+        continue;
+    }
+    if (!isset($catalog[$numIdent])) {
+        $catalog[$numIdent] = [
+            'num_ident' => $numIdent,
+            'num_carte' => $numCarte,
+            'nom' => (string) ($etu['nom'] ?? ''),
+            'prenom' => (string) ($etu['prenom'] ?? ''),
+            'inscrit' => true,
+            'id_niv_etude' => !empty($etu['id_niv_etude']) ? (string) $etu['id_niv_etude'] : null,
+            'nom_niveau' => (string) ($etu['nom_niveau'] ?? ''),
+            'id_annee' => !empty($etu['id_annee_acad']) ? (int) $etu['id_annee_acad'] : $anneeActiveId,
+            'montant_total' => (float) ($etu['montant_scolarite'] ?? 0),
+            'montant_paye' => (float) ($etu['montant_paye'] ?? 0),
+            'reste_a_payer' => (float) ($etu['reste_a_payer'] ?? 0),
+            'solde' => (float) ($etu['solde'] ?? $etu['reste_a_payer'] ?? 0),
+            'num_versement' => ((int) ($etu['nombre_versements'] ?? 0)) + 1,
+        ];
+    } else {
+        $catalog[$numIdent]['inscrit'] = true;
+        $catalog[$numIdent]['num_carte'] = $numCarte;
+        $catalog[$numIdent]['id_niv_etude'] = !empty($etu['id_niv_etude']) ? (string) $etu['id_niv_etude'] : $catalog[$numIdent]['id_niv_etude'];
+        $catalog[$numIdent]['nom_niveau'] = (string) ($etu['nom_niveau'] ?? $catalog[$numIdent]['nom_niveau']);
+        $catalog[$numIdent]['id_annee'] = !empty($etu['id_annee_acad']) ? (int) $etu['id_annee_acad'] : $catalog[$numIdent]['id_annee'];
+        $catalog[$numIdent]['montant_total'] = (float) ($etu['montant_scolarite'] ?? 0);
+        $catalog[$numIdent]['montant_paye'] = (float) ($etu['montant_paye'] ?? 0);
+        $catalog[$numIdent]['reste_a_payer'] = (float) ($etu['reste_a_payer'] ?? 0);
+        $catalog[$numIdent]['solde'] = (float) ($etu['solde'] ?? $etu['reste_a_payer'] ?? 0);
+        $catalog[$numIdent]['num_versement'] = ((int) ($etu['nombre_versements'] ?? 0)) + 1;
+    }
+}
+$studentOptions = [];
+foreach ($catalog as $numIdent => $item) {
+    $status = !empty($item['inscrit']) ? 'Inscrit' : 'Non inscrit';
+    $numCarte = $item['num_carte'] ?? $numIdent;
+    $studentOptions[$numIdent] = trim($item['nom'] . ' ' . $item['prenom']) . ' (' . $numCarte . ') - ' . $status;
+}
+ksort($studentOptions);
+$allowedLimits = [2, 5, 10, 25, 50, 100];
+$versementsParPage = max(2, (int) ($_GET['limit_versements'] ?? 10));
+if (!in_array($versementsParPage, $allowedLimits, true)) {
+    $versementsParPage = 10;
+}
+$versementsPage = max(1, (int) ($_GET['page_versements'] ?? 1));
+$totalVersements = count($listeVersement);
+$versementPagination = function_exists('cm_paginate')
+    ? cm_paginate($totalVersements, $versementsParPage, $versementsPage)
+    : [
+        'total' => $totalVersements,
+        'per_page' => $versementsParPage,
+        'current' => $versementsPage,
+        'last' => max(1, (int) ceil($totalVersements / $versementsParPage)),
+        'offset' => max(0, ($versementsPage - 1) * $versementsParPage),
+        'has_prev' => $versementsPage > 1,
+        'has_next' => $versementsPage < max(1, (int) ceil($totalVersements / $versementsParPage)),
+        'pages' => [$versementsPage],
+    ];
+$versementsToShow = array_slice($listeVersement, (int) ($versementPagination['offset'] ?? 0), $versementsParPage);
+$paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsParPage;
 ?>
-
-<!DOCTYPE html>
-<html lang="fr">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion Scolarité | Scolarité</title>
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-    .fade-in {
-        animation: fadeIn 0.5s ease-in;
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .hover-scale {
-        transition: transform 0.3s ease;
-    }
-
-    .hover-scale:hover {
-        transform: scale(1.03);
-    }
-
-    .sidebar-item.active {
-        background-color: #e6f7ff;
-        border-left: 4px solid #3b82f6;
-        color: #3b82f6;
-    }
-
-    .sidebar-item.active i {
-        color: #3b82f6;
-    }
-
-    .status-badge {
-        padding: 0.25rem 0.5rem;
-        border-radius: 9999px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-    </style>
-</head>
-
-<body class="font-sans antialiased" style="background-color: #DFF2FF;">
-    <!-- Système de notification -->
-    <?php if (isset($GLOBALS['messageSuccess']) && !empty($GLOBALS['messageSuccess'])): ?>
-    <div id="successNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg flex items-center">
-            <div class="flex-shrink-0">
-                <i class="fas fa-check-circle text-green-500 text-xl"></i>
-            </div>
-            <div class="ml-3">
-                <p class="text-sm font-medium"><?= htmlspecialchars($GLOBALS['messageSuccess']) ?></p>
-            </div>
-            <button onclick="this.parentElement.parentElement.remove()" class="ml-auto pl-3">
-                <i class="fas fa-times text-green-500 hover:text-green-700"></i>
-            </button>
-        </div>
-    </div>
+<div class="cm-prd3-screen cm-prd3-crud-screen">
+    <?php
+    cm_component('layout/page-header', [
+        'title' => '',
+        'subtitle' => 'Gestion unifiee des inscriptions et versements.',
+        'annee' => $anneeSelectionneeLabel,
+        'icon' => 'fa-credit-card',
+    ]);
+    ?>
+    <?php if (!empty($GLOBALS['messageSuccess'])): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => (string) $GLOBALS['messageSuccess']]); ?>
     <?php endif; ?>
-
-    <?php if (isset($GLOBALS['messageErreur']) && !empty($GLOBALS['messageErreur'])): ?>
-    <div id="errorNotification" class="fixed top-4 right-4 z-50 animate__animated animate__fadeIn">
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg flex items-center">
-            <div class="flex-shrink-0">
-                <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>
-            </div>
-            <div class="ml-3">
-                <p class="text-sm font-medium"><?= htmlspecialchars($GLOBALS['messageErreur']) ?></p>
-            </div>
-            <button onclick="this.parentElement.parentElement.remove()" class="ml-auto pl-3">
-                <i class="fas fa-times text-red-500 hover:text-red-700"></i>
-            </button>
-        </div>
-    </div>
+    <?php if (!empty($GLOBALS['messageErreur'])): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $GLOBALS['messageErreur']]); ?>
     <?php endif; ?>
-    <div class="flex h-screen overflow-hidden">
-        <!-- Main content area -->
-        <div class="flex-1 p-4 md:p-6 overflow-y-auto">
-            <div class="max-w-7xl mx-auto">
-                <!-- Header -->
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-800">Gestion des paiements</h1>
-                        <p class="text-gray-600">Suivi des paiements de scolarité</p>
-                    </div>
-
+    <?php if ($anneeSelectionToutes): ?>
+        <?php cm_component('ui/alert-box', [
+            'type' => 'info',
+            'message' => "Affichage multi-années actif. Les nouvelles inscriptions et les nouveaux versements seront enregistrés sur l'année académique active {$anneeEcritureLabel}.",
+        ]); ?>
+    <?php elseif (!$ecritureAutorisee): ?>
+        <?php cm_component('ui/alert-box', [
+            'type' => 'warning',
+            'message' => "Consultation historique active. Les inscriptions et versements sont réservés à l'année académique active {$anneeActiveLabel}.",
+        ]); ?>
+    <?php endif; ?>
+    <div class="cm-crud-wrapper">
+        <div class="cm-pole-superieur is-compact">
+            <form id="cmPaiementForm" method="POST" action="?page=gestion_scolarite&action=enregistrer_paiement">
+                <?php cm_component('form/csrf-token'); ?>
+                <input type="hidden" id="cmIsNewInscription" name="is_new_inscription" value="">
+                <!-- Ligne 1: Niveau, Année A., Frais Scolarité -->
+                <div class="cm-grid-3">
+                    <?php
+                    cm_component('form/select', [
+                        'name' => 'niveau',
+                        'id' => 'cmNiveau',
+                        'label' => 'Niveau',
+                        'options' => $niveauxOptions,
+                        'selected' => 'M2',
+                        'required' => true,
+                        'control_class' => 'cm-field-md',
+                    ]);
+                    ?>
+                    <input type="hidden" name="annee_academique" id="cmAnneeAcademique"
+                        value="<?= htmlspecialchars((string) $anneeEcritureId, ENT_QUOTES, 'UTF-8') ?>">
+                    <?php
+                    cm_component('form/input-text', [
+                        'name' => 'frais_scolarite_display',
+                        'id' => 'cmFraisScolarite',
+                        'label' => 'Frais',
+                        'readonly' => true,
+                        'value' => '',
+                        'control_class' => 'cm-field-md',
+                    ]);
+                    ?>
                 </div>
-
-                <!-- Payment status cards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-white p-4 rounded-lg shadow-sm hover-scale">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-500">Paiements complets</p>
-                                <p class="text-2xl font-bold text-gray-800"><?php echo $complete; ?></p>
-                                <p class="text-xs text-gray-500"><?php echo $pourcentageComplete; ?>% des étudiants</p>
-                            </div>
-                            <div class="p-3 rounded-full bg-green-100 text-green-500">
-                                <i class="fas fa-check-circle text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-4 rounded-lg shadow-sm hover-scale">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-500">Paiements partiels</p>
-                                <p class="text-2xl font-bold text-gray-800"><?php echo $partial; ?></p>
-                                <p class="text-xs text-gray-500"><?php echo $pourcentagePartial; ?>% des étudiants</p>
-                            </div>
-                            <div class="p-3 rounded-full bg-yellow-100 text-yellow-500">
-                                <i class="fas fa-exclamation-circle text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-4 rounded-lg shadow-sm hover-scale">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-500">Etudiants inscrits</p>
-                                <p class="text-2xl font-bold text-gray-800"><?php echo $totalEtudiants; ?></p>
-                                <p class="text-xs text-gray-500"><?php echo $pourcentagePending; ?>% des étudiants</p>
-                            </div>
-                            <div class="p-3 rounded-full bg-red-100 text-red-500">
-                                <i class="fas fa-times-circle text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Ligne 2: Nom Prénom, Identifiant, N° Carte -->
+                <div class="cm-grid-3">
+                    <?php
+                    cm_component('form/select-search', [
+                        'name' => 'etudiant',
+                        'id' => 'cmEtudiantSelect',
+                        'label' => 'Nom Prénom',
+                        'options' => $studentOptions,
+                        'required' => true,
+                        'placeholder' => '-- Sélectionner --',
+                        'dense' => true,
+                        'size' => 'sm',
+                        'show_selected_label' => false,
+                        'control_class' => 'cm-field-lg',
+                    ]);
+                    cm_component('form/input-text', [
+                        'name' => 'identifiant_display',
+                        'id' => 'cmIdentifiantDisplay',
+                        'label' => 'Identifiant',
+                        'readonly' => true,
+                        'control_class' => 'cm-field-md',
+                    ]);
+                    cm_component('form/input-text', [
+                        'name' => 'num_carte_display',
+                        'id' => 'cmNumCarteDisplay',
+                        'label' => 'N° Carte',
+                        'readonly' => true,
+                        'control_class' => 'cm-field-md',
+                    ]);
+                    ?>
                 </div>
-
-                <!-- Payment form -->
-                <?php if (canCreate() || canEdit()): ?>
-                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h2 class="text-lg font-semibold text-gray-800">
-                            <?php echo isset($GLOBALS['versementAModifier']) ? 'Mettre à jour un versement' : 'Enregistrer un versement'; ?>
-                        </h2>
-                    </div>
-                    <div class="px-6 py-4">
-                        <form id="versementsForm" method="POST"
-                            action="?page=gestion_scolarite<?php echo isset($GLOBALS['versementAModifier']) ? '&action=mettre_a_jour_versement' : '&action=enregistrer_versement'; ?>">
-                            <?php if (isset($GLOBALS['versementAModifier'])): ?>
-                            <input type="hidden" name="id_versement"
-                                value="<?php echo $GLOBALS['versementAModifier']['id_versement']; ?>">
-                            <?php endif; ?>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label for="studentSelect"
-                                        class="block text-sm font-medium text-gray-700 mb-1">Étudiant <span
-                                            class="text-red-500">*</span></label>
-                                    <select id="studentSelect" name="id_etudiant" required
-                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                                        <option value="">Sélectionner un étudiant</option>
-                                        <?php foreach ($etudiantsInscrits as $etudiant): ?>
-                                        <option value="<?php echo $etudiant['id_etudiant']; ?>"
-                                            data-montant-total="<?php echo isset($GLOBALS['montantTotal']) ? $GLOBALS['montantTotal'] : (isset($etudiant['montant_scolarite']) ? $etudiant['montant_scolarite'] : 0); ?>"
-                                            data-montant-paye="<?php echo isset($GLOBALS['montantPaye']) ? $GLOBALS['montantPaye'] : (isset($etudiant['montant_paye']) ? $etudiant['montant_paye'] : 0); ?>"
-                                            data-reste-a-payer="<?php echo isset($GLOBALS['resteAPayer']) ? $GLOBALS['resteAPayer'] : (isset($etudiant['reste_a_payer']) ? $etudiant['reste_a_payer'] : 0); ?>"
-                                            <?php echo (isset($GLOBALS['versementAModifier']) && $GLOBALS['versementAModifier']['id_inscription'] == $etudiant['id_inscription']) ? 'selected' : ''; ?>>
-                                            <?php echo $etudiant['nom'] . ' ' . $etudiant['prenom']; ?> -
-                                            <?php echo $etudiant['nom_niveau']; ?>
-                                        </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="paymentAmount"
-                                        class="block text-sm font-medium text-gray-700 mb-1">Montant <span
-                                            class="text-red-500">*</span></label>
-                                    <div class="relative mt-1">
-                                        <div
-                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <span class="text-gray-500">FCFA</span>
-                                        </div>
-                                        <input type="number" id="paymentAmount" name="montant" required
-                                            class="block w-full pl-16 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                            placeholder="0"
-                                            value="<?php echo isset($GLOBALS['versementAModifier']) ? $GLOBALS['versementAModifier']['montant'] : ''; ?>">
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label for="paymentMethod"
-                                        class="block text-sm font-medium text-gray-700 mb-1">Méthode <span
-                                            class="text-red-500">*</span></label>
-                                    <select id="paymentMethod" name="methode_paiement" required
-                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                                        <option value="">Sélectionner une méthode de paiement</option>
-                                        <option value="Espèce"
-                                            <?php echo (isset($GLOBALS['versementAModifier']) && $GLOBALS['versementAModifier']['methode_paiement'] == 'Espèce') ? 'selected' : ''; ?>>
-                                            Espèce</option>
-                                        <option value="Carte bancaire"
-                                            <?php echo (isset($GLOBALS['versementAModifier']) && $GLOBALS['versementAModifier']['methode_paiement'] == 'Carte bancaire') ? 'selected' : ''; ?>>
-                                            Carte bancaire</option>
-                                        <option value="Virement"
-                                            <?php echo (isset($GLOBALS['versementAModifier']) && $GLOBALS['versementAModifier']['methode_paiement'] == 'Virement') ? 'selected' : ''; ?>>
-                                            Virement</option>
-                                        <option value="Chèque"
-                                            <?php echo (isset($GLOBALS['versementAModifier']) && $GLOBALS['versementAModifier']['methode_paiement'] == 'Chèque') ? 'selected' : ''; ?>>
-                                            Chèque</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="flex justify-end mt-4">
-                                <button type="submit" id="submitButton"
-                                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                                    <?php echo isset($GLOBALS['versementAModifier']) ? 'Mettre à jour' : 'Enregistrer'; ?>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                <!-- Ligne 3: Versement + Paiement (compact) -->
+                <div class="cm-grid-5">
+                    <?php
+                    cm_component('form/input-number', [
+                        'name' => 'num_versement_display',
+                        'id' => 'cmNumVersement',
+                        'label' => 'N° Vers.',
+                        'readonly' => true,
+                        'control_class' => 'cm-field-sm',
+                    ]);
+                    cm_component('form/input-date', [
+                        'name' => 'date_versement_display',
+                        'id' => 'cmDateVersement',
+                        'label' => 'Date',
+                        'value' => date('Y-m-d'),
+                        'required' => true,
+                        'control_class' => 'cm-field-sm',
+                    ]);
+                    cm_component('form/input-number', [
+                        'name' => 'montant_versement',
+                        'id' => 'cmMontantVersement',
+                        'label' => 'Montant',
+                        'required' => true,
+                        'min' => 1,
+                        'control_class' => 'cm-field-md',
+                    ]);
+                    cm_component('form/input-text', [
+                        'name' => 'reste_a_payer_display',
+                        'id' => 'cmResteAPayer',
+                        'label' => 'Reste',
+                        'readonly' => true,
+                        'value' => '',
+                        'control_class' => 'cm-field-md',
+                    ]);
+                    cm_component('form/input-text', [
+                        'name' => 'solde_display',
+                        'id' => 'cmSolde',
+                        'label' => 'Solde',
+                        'readonly' => true,
+                        'value' => '',
+                        'control_class' => 'cm-field-md',
+                    ]);
+                    cm_component('form/select', [
+                        'name' => 'methode_paiement',
+                        'id' => 'cmModePaiement',
+                        'label' => 'Mode',
+                        'required' => true,
+                        'options' => [
+                            'Espece' => 'Espece',
+                            'Cheque' => 'Cheque',
+                            'Virement' => 'Virement',
+                            'Mobile Money' => 'Mobile Money',
+                            'Wave' => 'Wave',
+                        ],
+                        'control_class' => 'cm-field-md',
+                    ]);
+                    cm_component('form/input-text', [
+                        'name' => 'num_piece',
+                        'id' => 'cmNumPiece',
+                        'label' => 'N° M.P',
+                        'maxlength' => 30,
+                        'control_class' => 'cm-field-md',
+                    ]);
+                    ?>
                 </div>
-                <?php endif; ?>
-
-                <!-- Liste des versements -->
-                <div class="bg-white rounded-lg shadow-sm overflow-hidden mt-6">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <div class="flex justify-between items-center">
-                            <h2 class="text-lg font-semibold text-gray-800">Liste des versements</h2>
-                        </div>
-                        <div class="mt-4 flex items-center justify-between space-x-4">
-                            <div class="flex-1 max-w-md">
-                                <input type="text" id="searchVersements" placeholder="Rechercher un versement..."
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
-                            <div class="flex space-x-2">
-                                <button type="button" onclick="exporterVersements()"
-                                    class="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition">
-                                    <i class="fas fa-file-excel mr-1"></i> Exporter
-                                </button>
-                                <button type="button" onclick="imprimerListeVersements()"
-                                    class="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
-                                    <i class="fas fa-print mr-1"></i> Imprimer
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <form id="versementsForm" method="POST" action="?page=gestion_scolarite">
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Étudiant</th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Montant versé</th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Date versement</th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Méthode</th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Type versement</th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    <?php if (!empty($versements_pages)): ?>
-                                    <?php foreach ($versements_pages as $versement): ?>
-                                    <tr class="versement-row">
-
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="flex items-center">
-                                                <div
-                                                    class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
-                                                    <i class="fas fa-user text-gray-500"></i>
-                                                </div>
-                                                <div>
-                                                    <p class="text-sm font-medium text-gray-800">
-                                                        <?php echo htmlspecialchars($versement['nom_etudiant'] . ' ' . $versement['prenom_etudiant']); ?>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                                            <?php echo htmlspecialchars(number_format($versement['montant'] ?? 0, 0, ',', ' ')); ?>
-                                            FCFA
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                                            <?php echo htmlspecialchars(date('d/m/Y', strtotime($versement['date_versement'] ?? 'now'))); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                                            <?php echo htmlspecialchars($versement['methode_paiement'] ?? 'N/A'); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                                            <?php echo htmlspecialchars($versement['type_versement'] ?? 'N/A'); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                            <div class="flex items-center justify-center space-x-2">
-                                                <?php if ($versement['type_versement'] === 'Tranche'): ?>
-                                                <?php if (canEdit()): ?>
-                                                <a href="?page=gestion_scolarite&action=mettre_a_jour_versement&id=<?php echo $versement['id_versement']; ?>"
-                                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200">
-                                                    <i class="fas fa-edit mr-1"></i>
-                                                </a>
-                                                <?php endif; ?>
-                                                <?php endif; ?>
-                                                <button
-                                                    onclick="imprimerRecu(<?php echo $versement['id_versement']; ?>)"
-                                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2  transition-all duration-200">
-                                                    <i class="fas fa-print mr-1"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                    <?php else: ?>
-                                    <tr>
-                                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">
-                                            Aucun versement trouvé.
-                                        </td>
-                                    </tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </form>
-
-                    <!-- Pagination -->
-                    <?php if ($total_pages > 1): ?>
-                    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                        <div class="flex-1 flex justify-between sm:hidden">
-                            <?php if ($page_actuelle > 1): ?>
-                            <a href="?page=gestion_scolarite&page_versements=<?php echo $page_actuelle - 1; ?>"
-                                class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                Précédent
-                            </a>
-                            <?php endif; ?>
-                            <?php if ($page_actuelle < $total_pages): ?>
-                            <a href="?page=gestion_scolarite&page_versements=<?php echo $page_actuelle + 1; ?>"
-                                class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                Suivant
-                            </a>
-                            <?php endif; ?>
-                        </div>
-                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                            <div>
-                                <p class="text-sm text-gray-700">
-                                    Affichage de <span class="font-medium"><?php echo $debut + 1; ?></span> à
-                                    <span
-                                        class="font-medium"><?php echo min($debut + $items_par_page, $total_items); ?></span>
-                                    sur
-                                    <span class="font-medium"><?php echo $total_items; ?></span> versements
-                                </p>
-                            </div>
-                            <div>
-                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
-                                    aria-label="Pagination">
-                                    <?php if ($page_actuelle > 1): ?>
-                                    <a href="?page=gestion_scolarite&page_versements=<?php echo $page_actuelle - 1; ?>"
-                                        class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                        <span class="sr-only">Précédent</span>
-                                        <i class="fas fa-chevron-left"></i>
-                                    </a>
-                                    <?php endif; ?>
-
-                                    <?php
-                                    $debut_pagination = max(1, $page_actuelle - 2);
-                                    $fin_pagination = min($total_pages, $page_actuelle + 2);
-
-                                    if ($debut_pagination > 1) {
-                                        echo '<a href="?page=gestion_scolarite&page_versements=1" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">1</a>';
-                                        if ($debut_pagination > 2) {
-                                            echo '<span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">...</span>';
-                                        }
-                                    }
-
-                                    for ($i = $debut_pagination; $i <= $fin_pagination; $i++) {
-                                        $classes = $i === $page_actuelle 
-                                            ? 'relative inline-flex items-center px-4 py-2 border border-blue-500 bg-blue-50 text-sm font-medium text-blue-600'
-                                            : 'relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50';
-                                        echo "<a href=\"?page=gestion_scolarite&page_versements={$i}\" class=\"{$classes}\">{$i}</a>";
-                                    }
-
-                                    if ($fin_pagination < $total_pages) {
-                                        if ($fin_pagination < $total_pages - 1) {
-                                            echo '<span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">...</span>';
-                                        }
-                                        echo "<a href=\"?page=gestion_scolarite&page_versements={$total_pages}\" class=\"relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50\">{$total_pages}</a>";
-                                    }
-                                    ?>
-
-                                    <?php if ($page_actuelle < $total_pages): ?>
-                                    <a href="?page=gestion_scolarite&page_versements=<?php echo $page_actuelle + 1; ?>"
-                                        class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                        <span class="sr-only">Suivant</span>
-                                        <i class="fas fa-chevron-right"></i>
-                                    </a>
-                                    <?php endif; ?>
-                                </nav>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Hidden field -->
+                <input type="hidden" id="cmInfoEtudiant" name="cmInfoEtudiant" value="">
+                <div class="cm-form-buttons is-dense">
+                    <?php if (canCreate() || canEdit()): ?>
+                        <button class="cm-btn is-success" type="submit">
+                            <i class="fas fa-check" aria-hidden="true"></i>
+                            Valider
+                        </button>
                     <?php endif; ?>
+                    <button class="cm-btn is-light" type="reset" id="cmResetPaiement">
+                        <i class="fas fa-rotate-left" aria-hidden="true"></i>
+                        Réinitialiser
+                    </button>
                 </div>
-            </div>
+            </form>
         </div>
-    </div>
-
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const studentSelect = document.getElementById('studentSelect');
-        const paymentAmount = document.getElementById('paymentAmount');
-        const searchInput = document.getElementById('searchVersements');
-        const submitButton = document.getElementById('submitButton');
-        const paymentMethod = document.getElementById('paymentMethod');
-
-
-
-
-        // Mettre à jour le montant maximum possible
-        studentSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption.value) {
-                const resteAPayer = selectedOption.dataset.resteAPayer;
-                if (resteAPayer == 0) {
-                    paymentAmount.disabled = true;
-                    paymentAmount.value = '';
-                    paymentAmount.placeholder = 'Paiement déjà soldé';
-                    submitButton.disabled = true;
-                    submitButton.classList.add('opacity-50', 'cursor-not-allowed');
-                } else {
-                    paymentAmount.disabled = false;
-                    paymentAmount.max = resteAPayer;
-                    paymentAmount.placeholder = `Montant maximum: ${resteAPayer} FCFA`;
-                    submitButton.disabled = false;
-                    submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
-
-            }
-        });
-
-        // Recherche d'étudiants
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('.versement-row');
-
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
-            });
-        });
-
-        // Validation du formulaire
-        document.getElementById('paymentForm').addEventListener('submit', function(e) {
-            const amount = parseFloat(paymentAmount.value);
-            const selectedOption = studentSelect.options[studentSelect.selectedIndex];
-            const resteAPayer = parseFloat(selectedOption.dataset.resteAPayer);
-
-            if (amount > resteAPayer) {
-                e.preventDefault();
-                alert('Le montant ne peut pas dépasser le reste à payer.');
-            }
-
-        });
-
-    });
-
-
-
-    // Fonction pour imprimer le reçu
-    // Supporte les appels rétrocompatibles : imprimerRecu(id) ou imprimerRecu(id, isVersement, idInscription)
-    function imprimerRecu(id, isVersement, idInscription) {
-        // Si appelé avec un seul argument, on le considère comme un id_versement
-        if (typeof isVersement === 'undefined') {
-            isVersement = true;
+        <?php
+        // Préparer les options de filtres dynamiques
+        $niveauxFilterOptions = ['' => 'Tous'];
+        foreach ($niveauxOptions as $idNiveau => $libelle) {
+            $niveauxFilterOptions[$idNiveau] = $libelle;
         }
 
-        if (!id) {
-            alert('ID manquant pour l\'impression du reçu');
-            return;
-        }
-
-        if (isVersement) {
-            // id est un id_versement
-            window.open(`?page=gestion_scolarite&action=imprimer_recu&id=${id}`, '_blank');
-            return;
-        }
-
-        // id est un id_inscription : si idInscription est fourni, on l'utilise, sinon on utilise id
-        var inscriptionId = idInscription || id;
-        // Ouvrir la page qui imprimera le dernier versement pour cette inscription (serveur fera le fallback)
-        window.open(`?page=gestion_scolarite&action=imprimer_recu&id=${inscriptionId}`, '_blank');
-    }
-
-    // Fonction pour exporter les versements
-    function exporterVersements() {
-        const searchTerm = document.getElementById('searchVersements').value.toLowerCase();
-        const rows = document.querySelectorAll('.versement-row');
-        const selectedVersements = document.querySelectorAll('.versement-checkbox:checked');
-
-        // Si aucun versement n'est sélectionné et qu'il y a une recherche, exporter les versements filtrés
-        const versementsAExporter = selectedVersements.length > 0 ? selectedVersements :
-            Array.from(rows).filter(row => {
-                const text = row.textContent.toLowerCase();
-                return searchTerm === '' || text.includes(searchTerm);
-            });
-
-        if (versementsAExporter.length === 0) {
-            alert('Aucun versement à exporter.');
-            return;
-        }
-
-        // Créer le contenu CSV
-        let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Étudiant,Montant,Date,Méthode,Type\n";
-
-        versementsAExporter.forEach(row => {
-            const cells = row.querySelectorAll('td:not(:first-child):not(:last-child)');
-            const rowData = Array.from(cells).map(cell => `"${cell.textContent.trim()}"`).join(',');
-            csvContent += rowData + '\n';
-        });
-
-        // Télécharger le fichier
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement('a');
-        link.setAttribute('href', encodedUri);
-        link.setAttribute('download', 'versements.csv');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    // Fonction pour imprimer la liste des versements
-    function imprimerListeVersements() {
-        const searchTerm = document.getElementById('searchVersements').value.toLowerCase();
-        const rows = document.querySelectorAll('.versement-row');
-        const selectedVersements = document.querySelectorAll('.versement-checkbox:checked');
-
-        // Si aucun versement n'est sélectionné et qu'il y a une recherche, imprimer les versements filtrés
-        const versementsAImprimer = selectedVersements.length > 0 ? selectedVersements :
-            Array.from(rows).filter(row => {
-                const text = row.textContent.toLowerCase();
-                return searchTerm === '' || text.includes(searchTerm);
-            });
-
-        if (versementsAImprimer.length === 0) {
-            alert('Aucun versement à imprimer.');
-            return;
-        }
-
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-            <html>
-            <head>
-                <title>Liste des versements</title>
-                <style>
-                    body { font-family: Arial, sans-serif; }
-                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    th { background-color: #f5f5f5; }
-                    h2 { text-align: center; margin: 20px 0; }
-                    .info { text-align: center; margin: 10px 0; color: #666; }
-                    @media print {
-                        body { margin: 0; padding: 20px; }
-                        table { page-break-inside: auto; }
-                        tr { page-break-inside: avoid; page-break-after: auto; }
-                    }
-                </style>
-            </head>
-            <body>
-                <h2>Liste des versements</h2>
-                <div class="info">
-                    ${searchTerm ? `Filtre de recherche : "${searchTerm}"` : 'Liste complète des versements'}<br>
-                    Nombre de versements : ${versementsAImprimer.length}<br>
-                    Date d'impression : ${new Date().toLocaleDateString()}
-                </div>
-                <table>
+        cm_toolbar([
+            'screen' => 'gestion_scolarite',
+            'id_prefix' => 'cmScolarite',
+            'search_name' => 'search',
+            'search_value' => $_GET['search'] ?? '',
+            'search_placeholder' => 'Rechercher (étudiant, numero, mode)...',
+            'limit' => $versementsParPage,
+            'limit_options' => $allowedLimits,
+            'limit_name' => 'limit_versements',
+            'can_delete' => canDelete(),
+            'can_view' => canView(),
+            'filters' => [
+                ['type' => 'select', 'name' => 'niveau', 'label' => 'Niveau', 'options' => $niveauxFilterOptions],
+                ['type' => 'select', 'name' => 'statut_paiement', 'label' => 'Statut paiement', 'options' => ['' => 'Tous', 'solde' => 'Soldé', 'partiel' => 'Partiel', 'non_solde' => 'Non soldé']],
+                ['type' => 'select', 'name' => 'mode_paiement', 'label' => 'Mode paiement', 'options' => ['' => 'Tous', 'especes' => 'Espèces', 'cheque' => 'Chèque', 'virement' => 'Virement', 'mobile' => 'Mobile Money']],
+                ['type' => 'date_range', 'name' => 'date_versement', 'label' => 'Date de versement'],
+            ],
+        ]);
+        ?>
+        <div class="cm-pole-inferieur">
+            <div class="cm-table-wrapper">
+                <table class="cm-data-table cm-data-table--compact" id="cmVersementsTable">
                     <thead>
                         <tr>
-                            <th>Étudiant</th>
-                            <th>Montant</th>
-                            <th>Date</th>
-                            <th>Méthode</th>
-                            <th>Type</th>
+                            <th class="cm-data-table__th cm-data-table__th--check">
+                                <input type="checkbox" id="cmCheckAllVersements" class="cm-checkbox"
+                                    aria-label="Sélectionner toutes les lignes">
+                            </th>
+                            <th class="cm-data-table__th">N° Etud.</th>
+                            <th class="cm-data-table__th">Nom & Prenom</th>
+                            <th class="cm-data-table__th">N° Vers.</th>
+                            <th class="cm-data-table__th">Date Vers.</th>
+                            <th class="cm-data-table__th">Année Acad.</th>
+                            <th class="cm-data-table__th">Montant verse</th>
+                            <th class="cm-data-table__th">Reste</th>
+                            <th class="cm-data-table__th">Solde</th>
+                            <th class="cm-data-table__th">Mode paie.</th>
+                            <th class="cm-data-table__th">N° M.P</th>
+                            <th class="cm-data-table__th">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-        `);
-
-        versementsAImprimer.forEach(row => {
-            const cells = row.querySelectorAll('td:not(:first-child):not(:last-child)');
-            printWindow.document.write('<tr>');
-            cells.forEach(cell => {
-                printWindow.document.write(`<td>${cell.textContent.trim()}</td>`);
-            });
-            printWindow.document.write('</tr>');
-        });
-
-        printWindow.document.write(`
+                    <tbody id="cmVersementsTableBody">
+                        <?php if (empty($versementsToShow)): ?>
+                            <?php cm_component('ui/empty-state', [
+                                'in_table' => true,
+                                'colspan' => 12,
+                                'title' => '',
+                                'message' => 'Aucune inscription / aucun versement trouve.',
+                            ]); ?>
+                        <?php else: ?>
+                            <?php foreach ($versementsToShow as $versement): ?>
+                                <?php
+                                $numEtu = (string) ($versement['num_carte_etud'] ?? '');
+                                $nomPrenom = trim((string) ($versement['nom_etu'] ?? '') . ' ' . (string) ($versement['prenom_etu'] ?? ''));
+                                $numVersement = (int) ($versement['num_versement'] ?? 0);
+                                $dateVersement = !empty($versement['date_versement']) ? date('d/m/Y', strtotime((string) $versement['date_versement'])) : '';
+                                $anneeVersement = $anneesOptions[(int) ($versement['id_annee_acad'] ?? 0)] ?? '';
+                                $montant = (float) ($versement['montant_verser'] ?? 0);
+                                $resteVersement = (float) ($versement['reste_a_payer'] ?? 0);
+                                $soldeVersement = (float) ($versement['solde'] ?? $resteVersement);
+                                $mode = (string) ($versement['methode_paiement'] ?? '');
+                                $numPiece = (string) ($versement['num_piece_mp'] ?? '');
+                                $niveauLib = strtolower((string) ($versement['lib_niv_etude'] ?? ''));
+                                $niveauId = (string) ($versement['id_niv_etude'] ?? '');
+                                // Créer un ID composite pour le reçu
+                                $idInscriptionComposite = $numEtu . '-' . ($versement['id_annee_acad'] ?? '') . '-' . $numVersement;
+                                $statutPaiement = $soldeVersement <= 0 ? 'solde' : 'partiel';
+                                $modeNormalized = strtolower(trim($mode));
+                                $modeFilterKey = '';
+                                if (strpos($modeNormalized, 'espe') !== false) {
+                                    $modeFilterKey = 'especes';
+                                } elseif (strpos($modeNormalized, 'cheq') !== false) {
+                                    $modeFilterKey = 'cheque';
+                                } elseif (strpos($modeNormalized, 'vir') !== false) {
+                                    $modeFilterKey = 'virement';
+                                } elseif (strpos($modeNormalized, 'mobile') !== false || strpos($modeNormalized, 'wave') !== false) {
+                                    $modeFilterKey = 'mobile';
+                                }
+                                $dateVersementRaw = !empty($versement['date_versement']) ? date('Y-m-d', strtotime((string) $versement['date_versement'])) : '';
+                                ?>
+                                <tr class="cm-data-table__row"
+                                    data-search="<?php echo htmlspecialchars(strtolower($numEtu . ' ' . $nomPrenom . ' ' . $mode . ' ' . $numPiece), ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-niveau="<?php echo htmlspecialchars($niveauLib, ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-niveau-id="<?php echo htmlspecialchars($niveauId, ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-statut="<?php echo htmlspecialchars($statutPaiement, ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-mode="<?php echo htmlspecialchars($modeFilterKey, ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-date="<?php echo htmlspecialchars($dateVersementRaw, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <td class="cm-data-table__td cm-data-table__td--check">
+                                        <input type="checkbox" class="cm-checkbox cm-row-checkbox">
+                                    </td>
+                                    <td class="cm-data-table__td"><?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars($nomPrenom, ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars((string) $numVersement, ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars($dateVersement, ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars($anneeVersement !== '' ? $anneeVersement : '-', ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars(number_format($montant, 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars(number_format($resteVersement, 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars(number_format($soldeVersement, 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td"><?php echo htmlspecialchars($mode, ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars($numPiece, ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td is-center is-actions">
+                                        <div class="cm-table-actions">
+                                            <button type="button" class="cm-btn-action is-edit cmPrefillPaiement"
+                                                data-student="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>"
+                                                title="Pre-remplir le formulaire">
+                                                <i class="fas fa-pen" aria-hidden="true"></i>
+                                            </button>
+                                            <a class="cm-btn-action is-edit"
+                                                href="?page=gestion_scolarite&action=imprimer_recu&id=<?php echo urlencode($idInscriptionComposite); ?>"
+                                                target="_blank" title="Imprimer recu">
+                                                <i class="fas fa-receipt" aria-hidden="true"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.print();
-        printWindow.focus();
-        printWindow.close();
-    }
-
-    // Gérer les notifications
-    const successNotification = document.getElementById('successNotification');
-    const errorNotification = document.getElementById('errorNotification');
-
-    function removeNotification(notification) {
-        if (notification) {
-            notification.classList.add('animate__fadeOut');
-            setTimeout(() => notification.remove(), 500);
+            </div>
+            <?php cm_component('crud/pagination', [
+                'pagination' => $versementPagination,
+                'base_url' => $paginationBaseUrl,
+                'param_name' => 'page_versements',
+            ]); ?>
+        </div>
+    </div>
+</div>
+<script>
+    (function () {
+        const catalog = <?php echo json_encode($catalog, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const niveauxMontants = <?php echo json_encode($niveauxMontants, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const navigate = function (url) {
+            if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+                window.CM.ajax.load(url);
+                return;
+            }
+            window.location.href = url;
+        };
+        const etudiantHidden = document.getElementById('cmEtudiantSelect_hidden');
+        const etudiantSearchInput = document.getElementById('cmEtudiantSelect_search');
+        const etudiantSelectedLabel = document.getElementById('cmEtudiantSelect_selected_label');
+        const niveauField = document.getElementById('cmNiveau');
+        const fraisField = document.getElementById('cmFraisScolarite');
+        const identifiantField = document.getElementById('cmIdentifiantDisplay');
+        const numCarteField = document.getElementById('cmNumCarteDisplay');
+        const numVersementField = document.getElementById('cmNumVersement');
+        const montantVerseField = document.getElementById('cmMontantVersement');
+        const resteField = document.getElementById('cmResteAPayer');
+        const soldeField = document.getElementById('cmSolde');
+        const modePaiementField = document.getElementById('cmModePaiement');
+        const anneeField = document.getElementById('cmAnneeAcademique');
+        const infoField = document.getElementById('cmInfoEtudiant');
+        const isNewField = document.getElementById('cmIsNewInscription');
+        const form = document.getElementById('cmPaiementForm');
+        const formatNumber = function (value) {
+            const parsed = Number(value || 0);
+            return parsed.toLocaleString('fr-FR');
+        };
+        const parseNumber = function (value) {
+            return Number(String(value || '0').replace(/\s/g, '').replace(',', '.')) || 0;
+        };
+        const syncByStudent = function () {
+            if (!etudiantHidden) {
+                return;
+            }
+            const studentId = etudiantHidden.value;
+            const data = catalog[studentId];
+            if (!data) {
+                identifiantField.value = '';
+                numCarteField.value = '';
+                numVersementField.value = '';
+                fraisField.value = '';
+                resteField.value = '';
+                if (soldeField) {
+                    soldeField.value = '';
+                }
+                infoField.value = '';
+                isNewField.value = '';
+                return;
+            }
+            const isInscrit = !!data.inscrit;
+            isNewField.value = isInscrit ? 'false' : 'true';
+            identifiantField.value = data.num_ident || '';
+            numCarteField.value = data.num_carte || '';
+            numVersementField.value = String(data.num_versement || 1);
+            if (isInscrit) {
+                if (data.id_niveau && niveauField) {
+                    niveauField.value = String(data.id_niveau);
+                }
+                if (data.id_annee && anneeField) {
+                    anneeField.value = String(data.id_annee);
+                }
+                const montantTotal = Number(data.montant_total || 0);
+                const montantPaye = Number(data.montant_paye || 0);
+                const reste = Number(data.reste_a_payer || 0);
+                const solde = Number(data.solde !== undefined ? data.solde : reste);
+                fraisField.value = formatNumber(montantTotal);
+                resteField.value = formatNumber(reste);
+                if (soldeField) {
+                    soldeField.value = formatNumber(solde);
+                }
+                infoField.value = 'Deja inscrit - montant paye: ' + formatNumber(montantPaye) + ' FCFA';
+            } else {
+                infoField.value = 'Nouvelle inscription';
+                if (niveauField && niveauField.value && niveauxMontants[niveauField.value] !== undefined) {
+                    fraisField.value = formatNumber(niveauxMontants[niveauField.value]);
+                } else {
+                    fraisField.value = '';
+                }
+                updateReste();
+            }
+        };
+        const setSelectSearchValue = function (studentId) {
+            const options = document.querySelectorAll('#cmEtudiantSelect_wrapper .cm-select-search__option');
+            let selectedLabel = '';
+            options.forEach(function (option) {
+                const isSelected = option.getAttribute('data-value') === studentId;
+                option.classList.toggle('is-selected', isSelected);
+                option.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+                if (isSelected) {
+                    selectedLabel = option.getAttribute('data-label') || '';
+                }
+            });
+            if (etudiantSearchInput) {
+                etudiantSearchInput.value = selectedLabel;
+            }
+            if (etudiantSelectedLabel) {
+                etudiantSelectedLabel.textContent = selectedLabel || '-- Sélectionner un étudiant --';
+            }
+        };
+        const updateFraisFromNiveau = function () {
+            if (!niveauField) {
+                return;
+            }
+            const niveauId = niveauField.value;
+            const montant = niveauxMontants[niveauId] !== undefined ? Number(niveauxMontants[niveauId]) : 0;
+            fraisField.value = montant > 0 ? formatNumber(montant) : '';
+            updateReste();
+        };
+        const updateReste = function () {
+            const studentId = etudiantHidden ? etudiantHidden.value : '';
+            const data = catalog[studentId];
+            const montantScolarite = parseNumber(fraisField.value);
+            const montantVerse = parseNumber(montantVerseField.value);
+            if (data && data.inscrit) {
+                const reste = Number(data.reste_a_payer || 0);
+                const solde = Math.max(0, reste - montantVerse);
+                resteField.value = formatNumber(solde);
+                if (soldeField) {
+                    soldeField.value = formatNumber(solde);
+                }
+            } else {
+                const reste = Math.max(0, montantScolarite - montantVerse);
+                resteField.value = montantScolarite > 0 ? formatNumber(reste) : '';
+                if (soldeField) {
+                    soldeField.value = montantScolarite > 0 ? formatNumber(reste) : '';
+                }
+            }
+        };
+        if (etudiantHidden) {
+            etudiantHidden.addEventListener('change', syncByStudent);
+            document.querySelectorAll('#cmEtudiantSelect_wrapper .cm-select-search__option').forEach(function (option) {
+                option.addEventListener('click', function () {
+                    setTimeout(syncByStudent, 0);
+                });
+            });
         }
-    }
+        document.querySelectorAll('.cmPrefillPaiement').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (!etudiantHidden) {
+                    return;
+                }
+                const studentId = button.getAttribute('data-student') || '';
+                if (!studentId) {
+                    return;
+                }
+                etudiantHidden.value = studentId;
+                setSelectSearchValue(studentId);
+                syncByStudent();
+            });
+        });
+        if (niveauField) {
+            niveauField.addEventListener('change', updateFraisFromNiveau);
+        }
+        if (montantVerseField) {
+            montantVerseField.addEventListener('input', updateReste);
+        }
+        const resetPaiementBtn = document.getElementById('cmResetPaiement');
+        if (resetPaiementBtn) {
+            resetPaiementBtn.addEventListener('click', function () {
+                setTimeout(function () {
+                    if (isNewField) {
+                        isNewField.value = '';
+                    }
+                    if (infoField) {
+                        infoField.value = '';
+                    }
+                    if (fraisField) {
+                        fraisField.value = '';
+                    }
+                    if (resteField) {
+                        resteField.value = '';
+                    }
+                    if (soldeField) {
+                        soldeField.value = '';
+                    }
+                    if (numVersementField) {
+                        numVersementField.value = '';
+                    }
+                }, 0);
+            });
+        }
+        if (form) {
+            form.addEventListener('submit', function (event) {
+                if (!etudiantHidden || !etudiantHidden.value) {
+                    event.preventDefault();
+                    window.alert('Veuillez sélectionner un étudiant.');
+                    return;
+                }
+                const currentData = catalog[etudiantHidden.value];
+                const montantVerse = parseNumber(montantVerseField.value);
+                if (montantVerse <= 0) {
+                    event.preventDefault();
+                    window.alert('Le montant verse doit etre strictement positif.');
+                    return;
+                }
+                if (currentData && currentData.inscrit) {
+                    const reste = Number(currentData.reste_a_payer || 0);
+                    if (montantVerse > reste) {
+                        event.preventDefault();
+                        window.alert('Le montant verse ne peut pas depasser le reste a payer (' + formatNumber(reste) + ' FCFA).');
+                        return;
+                    }
+                } else {
+                    const montantScolarite = parseNumber(fraisField.value);
+                    if (montantScolarite > 0 && montantVerse > montantScolarite) {
+                        event.preventDefault();
+                        window.alert('Le montant verse ne peut pas depasser les frais de scolarite.');
+                        return;
+                    }
+                    if (!niveauField.value || !anneeField.value) {
+                        event.preventDefault();
+                        window.alert('Niveau et année académique sont obligatoires pour une nouvelle inscription.');
+                        return;
+                    }
+                }
+                if (!modePaiementField.value) {
+                    event.preventDefault();
+                    window.alert('Veuillez sélectionner un mode de paiement.');
+                }
+            });
+        }
+        const toolbarId = 'cmScolarite_toolbar';
+        const searchInput = document.getElementById('cmScolarite_search');
+        const limitSelect = document.getElementById('cmScolarite_limit');
+        const filterNiveau = document.getElementById('cmScolarite_filter_niveau');
+        const filterStatut = document.getElementById('cmScolarite_filter_statut_paiement');
+        const filterMode = document.getElementById('cmScolarite_filter_mode_paiement');
+        const filterDateStart = document.getElementById('cmScolarite_filter_date_versement_debut');
+        const filterDateEnd = document.getElementById('cmScolarite_filter_date_versement_fin');
+        const selectAllRowsBtn = document.getElementById('cmSelectAllVersements');
+        const deselectAllRowsBtn = document.getElementById('cmDeselectAllVersements');
+        const deleteRowsBtn = document.getElementById('cmDeleteVersements');
+        const selectedRowsCount = document.getElementById('cmSelectedVersementsCount');
+        const rows = function () { return Array.from(document.querySelectorAll('#cmVersementsTableBody tr')); };
+        const rowCheckboxes = function () {
+            return Array.from(document.querySelectorAll('#cmVersementsTableBody .cm-row-checkbox'));
+        };
+        const updateSelectionState = function () {
+            const checkboxes = rowCheckboxes();
+            const checked = checkboxes.filter(function (cb) { return cb.checked; }).length;
+            if (selectedRowsCount) {
+                selectedRowsCount.textContent = String(checked);
+            }
+            if (deleteRowsBtn) {
+                deleteRowsBtn.disabled = checked === 0;
+            }
+            if (checkAllRows) {
+                checkAllRows.checked = checkboxes.length > 0 && checkboxes.every(function (cb) { return cb.checked; });
+            }
+        };
+        const applyFilters = function () {
+            const term = (searchInput ? searchInput.value : '').trim().toLowerCase();
+            const niveau = (filterNiveau ? filterNiveau.value : '').trim();
+            const statut = (filterStatut ? filterStatut.value : '').trim().toLowerCase();
+            const mode = (filterMode ? filterMode.value : '').trim().toLowerCase();
+            const dateStart = (filterDateStart ? filterDateStart.value : '').trim();
+            const dateEnd = (filterDateEnd ? filterDateEnd.value : '').trim();
+            rows().forEach(function (row) {
+                const matchSearch = term === '' || (row.getAttribute('data-search') || '').indexOf(term) !== -1;
+                const matchNiveau = niveau === '' || (row.getAttribute('data-niveau-id') || '') === niveau;
+                const matchStatut = statut === '' || (row.getAttribute('data-statut') || '') === statut;
+                const matchMode = mode === '' || (row.getAttribute('data-mode') || '') === mode;
+                const rowDate = row.getAttribute('data-date') || '';
+                const matchDateStart = dateStart === '' || (rowDate !== '' && rowDate >= dateStart);
+                const matchDateEnd = dateEnd === '' || (rowDate !== '' && rowDate <= dateEnd);
+                row.style.display = matchSearch && matchNiveau && matchStatut && matchMode && matchDateStart && matchDateEnd ? '' : 'none';
+            });
+        };
+        if (searchInput) {
+            searchInput.addEventListener('input', applyFilters);
+        }
+        if (filterNiveau) {
+            filterNiveau.addEventListener('change', applyFilters);
+        }
+        if (filterStatut) {
+            filterStatut.addEventListener('change', applyFilters);
+        }
+        if (filterMode) {
+            filterMode.addEventListener('change', applyFilters);
+        }
+        if (filterDateStart) {
+            filterDateStart.addEventListener('change', applyFilters);
+        }
+        if (filterDateEnd) {
+            filterDateEnd.addEventListener('change', applyFilters);
+        }
 
-    if (successNotification) {
-        setTimeout(() => removeNotification(successNotification), 5000);
-    }
+        const isThisToolbarEvent = function (event) {
+            return !!(event && event.detail && event.detail.toolbar && event.detail.toolbar.id === toolbarId);
+        };
 
-    if (errorNotification) {
-        setTimeout(() => removeNotification(errorNotification), 5000);
-    }
-    </script>
-</body>
+        document.addEventListener('cm:toolbar:search', function (event) {
+            if (!isThisToolbarEvent(event)) {
+                return;
+            }
+            event.preventDefault();
+            applyFilters();
+        });
 
-</html>
+        document.addEventListener('cm:toolbar:filter:apply', function (event) {
+            if (!isThisToolbarEvent(event)) {
+                return;
+            }
+            event.preventDefault();
+            applyFilters();
+        });
+
+        document.addEventListener('cm:toolbar:filter:reset', function (event) {
+            if (!isThisToolbarEvent(event)) {
+                return;
+            }
+            event.preventDefault();
+            applyFilters();
+        });
+
+        document.addEventListener('cm:toolbar:limit:change', function (event) {
+            if (!isThisToolbarEvent(event)) {
+                return;
+            }
+            event.preventDefault();
+            const selectedLimit = event.detail && event.detail.limit ? String(event.detail.limit) : (limitSelect ? String(limitSelect.value) : '10');
+            const url = new URL(window.location.href);
+            url.searchParams.set('limit_versements', selectedLimit);
+            url.searchParams.set('page_versements', '1');
+            navigate(url.toString());
+        });
+        const checkAllRows = document.getElementById('cmCheckAllVersements');
+        if (checkAllRows) {
+            checkAllRows.addEventListener('change', function () {
+                rowCheckboxes().forEach(function (cb) {
+                    cb.checked = checkAllRows.checked;
+                });
+                updateSelectionState();
+            });
+        }
+        if (selectAllRowsBtn) {
+            selectAllRowsBtn.addEventListener('click', function () {
+                rowCheckboxes().forEach(function (cb) { cb.checked = true; });
+                updateSelectionState();
+            });
+        }
+        if (deselectAllRowsBtn) {
+            deselectAllRowsBtn.addEventListener('click', function () {
+                rowCheckboxes().forEach(function (cb) { cb.checked = false; });
+                updateSelectionState();
+            });
+        }
+        document.addEventListener('change', function (event) {
+            if (event.target.classList.contains('cm-row-checkbox')) {
+                updateSelectionState();
+            }
+        });
+        if (deleteRowsBtn) {
+            deleteRowsBtn.addEventListener('click', function () {
+                if (deleteRowsBtn.disabled) {
+                    return;
+                }
+                window.alert('Suppression multiple indisponible sur cet ecran.');
+            });
+        }
+        const printVersementsBtn = document.getElementById('cmPrintVersements');
+        if (printVersementsBtn) {
+            printVersementsBtn.addEventListener('click', function () {
+                window.print();
+            });
+        }
+        const exportVersementsBtn = document.getElementById('cmExportVersements');
+        if (exportVersementsBtn) {
+            exportVersementsBtn.addEventListener('click', function () {
+                const headers = ['N° Etud.', 'Nom & Prenom', 'N° Vers.', 'Date Vers.', 'Année Acad.', 'Montant', 'Reste', 'Solde', 'Mode', 'N° M.P'];
+                const lines = [headers.join(';')];
+                rows().forEach(function (row) {
+                    if (row.style.display === 'none') {
+                        return;
+                    }
+                    const cells = Array.from(row.querySelectorAll('td')).slice(1, 11);
+                    const values = cells.map(function (cell) {
+                        return '"' + (cell.textContent || '').trim().replace(/"/g, '""') + '"';
+                    });
+                    lines.push(values.join(';'));
+                });
+                const blob = new Blob(["\uFEFF" + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'versements_' + new Date().toISOString().split('T')[0] + '.csv';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        }
+        syncByStudent();
+        updateSelectionState();
+        applyFilters();
+        // Initialiser les frais pour le niveau par défaut (M2)
+        updateFraisFromNiveau();
+    })();
+</script>

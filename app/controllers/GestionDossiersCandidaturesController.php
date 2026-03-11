@@ -1,143 +1,46 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../models/RapportEtudiant.php';
-require_once __DIR__ . '/../models/Etudiant.php';
-require_once __DIR__ . '/../models/Approuver.php';
-require_once __DIR__ . '/../models/PersAdmin.php';
-require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../Services/GestionDossiersCandidaturesService.php';
 
-class GestionDossiersCandidaturesController {
-    private $db;
-    private $rapportModel;
-    private $etudiant;
-    private $approuver;
-    private $persAdmin;
-    private $auditLog;
+use CheckMaster\Services\GestionDossiersCandidaturesService;
 
-    public function __construct() {
-        $this->db = Database::getConnection();
-        $this->rapportModel = new RapportEtudiant($this->db);
-        $this->etudiant = new Etudiant($this->db);
-        $this->approuver = new Approuver($this->db);
-        $this->persAdmin = new PersAdmin($this->db);
-        $this->auditLog = new AuditLog($this->db);
+class GestionDossiersCandidaturesController
+{
+    private $service;
+
+    public function __construct()
+    {
+        $db = Database::getConnection();
+        $this->service = new GestionDossiersCandidaturesService($db);
     }
 
-    public function index() {
+    public function index()
+    {
         // Récupérer l'historique des rapports vérifiés (approuvés ou désapprouvés)
-        $rapportsVerifies = $this->getRapportsVerifies();
+        $rapportsVerifies = $this->service->getRapportsVerifies();
         $GLOBALS['rapports_verifies'] = $rapportsVerifies;
-        
+
         // Récupérer les statistiques
-        $statistiques = $this->getStatistiques();
+        $statistiques = $this->service->getStatistiques();
         $GLOBALS['statistiques'] = $statistiques;
     }
 
-    private function getRapportsVerifies() {
-        $sql = "
-            SELECT 
-                r.id_rapport,
-                r.nom_rapport as titre_rapport,
-                r.theme_rapport,
-                r.date_rapport as date_depot,
-                r.statut_rapport,
-                e.num_etu,
-                e.nom_etu,
-                e.prenom_etu,
-                e.email_etu,
-                a.date_approv as date_approbation,
-                a.commentaire_approv as commentaire,
-                a.decision as statut_approbation,
-                pa.nom_pers_admin,
-                pa.prenom_pers_admin
-            FROM rapport_etudiants r
-            INNER JOIN etudiants e ON r.num_etu = e.num_etu
-            INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-            LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
-            WHERE a.decision IN ('approuve', 'desapprouve')
-            ORDER BY a.date_approv DESC
-        ";
-        
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    public function getDetailsRapport($id_rapport)
+    {
+        return $this->service->getDetailsRapport($id_rapport);
     }
 
-    private function getStatistiques() {
-        // Total des rapports vérifiés
-        $sql = "
-            SELECT COUNT(*) as total
-            FROM rapport_etudiants r
-            INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-            WHERE a.decision IN ('approuve', 'desapprouve')
-        ";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
-        $total = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-        // Rapports approuvés
-        $sql = "
-            SELECT COUNT(*) as approuves
-            FROM rapport_etudiants r
-            INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-            WHERE a.decision = 'approuve'
-        ";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
-        $approuves = $stmt->fetch(PDO::FETCH_ASSOC)['approuves'];
-
-        // Rapports désapprouvés
-        $sql = "
-            SELECT COUNT(*) as desapprouves
-            FROM rapport_etudiants r
-            INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-            WHERE a.decision = 'desapprouve'
-        ";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
-        $desapprouves = $stmt->fetch(PDO::FETCH_ASSOC)['desapprouves'];
-
-        return [
-            'total' => $total,
-            'approuves' => $approuves,
-            'desapprouves' => $desapprouves
-        ];
-    }
-
-    public function getDetailsRapport($id_rapport) {
-        $sql = "
-            SELECT 
-                r.*,
-                e.nom_etu,
-                e.prenom_etu,
-                e.email_etu,
-                a.date_approv as date_approbation,
-                a.commentaire_approv as commentaire,
-                a.decision as statut_approbation,
-                pa.nom_pers_admin,
-                pa.prenom_pers_admin
-            FROM rapport_etudiants r
-            INNER JOIN etudiants e ON r.num_etu = e.num_etu
-            INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-            LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
-            WHERE r.id_rapport = ?
-        ";
-        
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$id_rapport]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-
-    public function telechargerPdf($id_rapport) {
+    public function telechargerPdf($id_rapport)
+    {
         // Nettoyer tout output précédent
         if (ob_get_level()) {
             ob_end_clean();
         }
         ob_start();
-        
-        $rapport = $this->getDetailsRapport($id_rapport);
-        
-        if (!$rapport) {
+
+        $donnees = $this->service->preparerDonneesPdf($id_rapport);
+
+        if ($donnees === null) {
             ob_end_clean();
             header('Content-Type: text/html; charset=utf-8');
             echo '<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">';
@@ -148,14 +51,7 @@ class GestionDossiersCandidaturesController {
             exit;
         }
 
-        // Récupérer le contenu du rapport
-        $chemin = $rapport['chemin_fichier'] ?? '';
-        if (empty($chemin)) {
-            $chemin = 'rapport_' . $id_rapport . '.html';
-        }
-        $fichierContenu = __DIR__ . "/../../ressources/uploads/rapports/" . $chemin;
-        
-        if (!file_exists($fichierContenu)) {
+        if (isset($donnees['error']) && $donnees['error'] === 'file_not_found') {
             ob_end_clean();
             header('Content-Type: text/html; charset=utf-8');
             echo '<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">';
@@ -166,72 +62,36 @@ class GestionDossiersCandidaturesController {
             exit;
         }
 
-        $contenu = file_get_contents($fichierContenu);
-        
-        // Créer le PDF avec DOMPDF
-        require_once __DIR__ . '/../../vendor/autoload.php';
-        $dompdf = new Dompdf\Dompdf();
-        
-        // Préparer le HTML pour le PDF
-        $html = '
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Rapport - ' . htmlspecialchars($rapport['nom_rapport']) . '</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-                .info { margin-bottom: 20px; }
-                .info div { margin: 5px 0; }
-                .content { margin-top: 30px; }
-                .content h1, .content h2, .content h3 { color: #333; }
-                .content p { line-height: 1.6; }
-                .status { margin-top: 20px; padding: 10px; border-radius: 5px; }
-                .status.approuve { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-                .status.desapprouve { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-            </style>
-        </head>
-        <body>
-            
-            <div class="content">
-                ' . $contenu . '
-            </div>
-        </body>
-        </html>';
-        
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-        
-        // Générer le nom du fichier
-        $nomFichier = 'rapport_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $rapport['nom_rapport']) . '_' . date('Y-m-d_H-i-s') . '.pdf';
-        
+        // Créer le PDF avec PdfGeneratorService (TCPDF)
+        require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
+        $pdfGen = new \App\Services\Document\PdfGeneratorService(
+            __DIR__ . '/../../storage',
+            __DIR__ . '/../../public/assets/img/logo.png'
+        );
+        $pdf = $pdfGen->createDocument('P', 'A4', 'Rapport');
+        $pdf->AddPage();
+        $pdfGen->writeHtml($pdf, $donnees['html']);
+
         // Audit logging pour le téléchargement
-        $this->auditLog->logImpression($_SESSION['id_utilisateur'], 'rapport_etudiants', 'Succès');
-        
+        $this->service->logImpression($_SESSION['id_utilisateur']);
+
         // Nettoyer tout output et envoyer le PDF
         ob_end_clean();
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="' . $nomFichier . '"');
-        header('Cache-Control: no-cache, no-store, must-revalidate');
-        header('Pragma: no-cache');
-        header('Expires: 0');
-        
-        echo $dompdf->output();
+        $pdf->Output($donnees['nomFichier'], 'D');
         exit;
     }
 
-    public function consulterRapport($id_rapport) {
+    public function consulterRapport($id_rapport)
+    {
         // Nettoyer tout output précédent
         if (ob_get_level()) {
             ob_end_clean();
         }
         ob_start();
-        
-        $rapport = $this->getDetailsRapport($id_rapport);
-        
-        if (!$rapport) {
+
+        $donnees = $this->service->preparerDonneesConsultation($id_rapport);
+
+        if ($donnees === null) {
             ob_end_clean();
             header('Content-Type: text/html; charset=utf-8');
             echo '<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">';
@@ -242,14 +102,7 @@ class GestionDossiersCandidaturesController {
             exit;
         }
 
-        // Récupérer le contenu du rapport
-        $chemin = $rapport['chemin_fichier'] ?? '';
-        if (empty($chemin)) {
-            $chemin = 'rapport_' . $id_rapport . '.html';
-        }
-        $fichierContenu = __DIR__ . "/../../ressources/uploads/rapports/" . $chemin;
-        
-        if (!file_exists($fichierContenu)) {
+        if (isset($donnees['error']) && $donnees['error'] === 'file_not_found') {
             ob_end_clean();
             header('Content-Type: text/html; charset=utf-8');
             echo '<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">';
@@ -260,11 +113,12 @@ class GestionDossiersCandidaturesController {
             exit;
         }
 
-        $contenu = file_get_contents($fichierContenu);
-        
+        $rapport = $donnees['rapport'];
+        $contenu = $donnees['contenu'];
+
         // Audit logging pour la consultation
-        $this->auditLog->logAction($_SESSION['id_utilisateur'], 'Consultation', 'rapport_etudiants', 'Succès');
-        
+        $this->service->logConsultation($_SESSION['id_utilisateur']);
+
         // Nettoyer tout output et afficher le rapport
         ob_end_clean();
         header('Content-Type: text/html; charset=utf-8');
@@ -384,4 +238,4 @@ class GestionDossiersCandidaturesController {
         </html>';
         exit;
     }
-} 
+}

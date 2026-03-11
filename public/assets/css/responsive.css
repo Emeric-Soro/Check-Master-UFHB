@@ -1,0 +1,200 @@
+/**
+ * CheckMaster responsive rules
+ * Breakpoints:
+ * - mobile small: <= 480px
+ * - mobile: <= 768px
+ * - tablet: 769px - 1024px
+ * - desktop: > 1024px
+ * - large desktop: >= 1400px
+ */
+
+@media (min-width: 1400px) {
+    .cm-content-area {
+        padding-left: var(--cm-spacing-xl);
+        padding-right: var(--cm-spacing-xl);
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .cm-content-area {
+        margin-left: var(--cm-sidebar-width-tablet);
+        padding-left: var(--cm-spacing-md);
+        padding-right: var(--cm-spacing-md);
+    }
+
+    .cm-navbar {
+        left: var(--cm-sidebar-width-tablet);
+    }
+
+    .cm-sidebar {
+        width: var(--cm-sidebar-width-tablet);
+    }
+
+    .cm-grid-4,
+    .cm-grid-3,
+    .cm-grid-5,
+    .cm-dashboard-stats-grid-5 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .cm-sidebar {
+        transform: translateX(-100%);
+        width: min(88vw, 320px);
+    }
+
+    .cm-sidebar.is-open {
+        transform: translateX(0);
+    }
+
+    .cm-content-area {
+        margin-left: 0;
+        padding-left: var(--cm-spacing-md);
+        padding-right: var(--cm-spacing-md);
+        /* Allow the page to scroll on mobile */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        height: 100vh;
+    }
+
+    /* Body must allow scrolling context for mobile */
+    .cm-app-body {
+        overflow: auto;
+    }
+
+    .cm-navbar {
+        left: 0;
+        padding-left: var(--cm-spacing-md);
+        padding-right: var(--cm-spacing-md);
+    }
+
+    .cm-navbar__center {
+        display: none;
+    }
+
+    .cm-grid-4,
+    .cm-grid-3,
+    .cm-grid-5,
+    .cm-dashboard-stats-grid-5 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cm-grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .cm-form-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    .cm-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--cm-spacing-sm);
+    }
+
+    .cm-toolbar-left,
+    .cm-toolbar-center,
+    .cm-toolbar-right {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .cm-toolbar__search-wrap {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .cm-toolbar__search-wrap .cm-form-control {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .cm-tab-links {
+        width: 100%;
+    }
+
+    .cm-tab-links .cm-btn {
+        flex: 1 1 calc(50% - var(--cm-spacing-sm));
+    }
+
+    .cm-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .cm-form-buttons {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .cm-form-buttons .cm-btn {
+        flex: 1 1 auto;
+    }
+
+    .cm-prd3-crud-screen .cm-toolbar-field-xs,
+    .cm-prd3-crud-screen .cm-toolbar-field-sm,
+    .cm-prd3-crud-screen .cm-toolbar-field-md,
+    .cm-prd3-crud-screen .cm-toolbar-field-lg {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .cm-prd3-crud-screen . h2 {
+        font-size: var(--cm-font-size-lg);
+    }
+
+    .cm-profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 480px) {
+
+    .cm-grid-4,
+    .cm-grid-3,
+    .cm-grid-2,
+    .cm-grid-5,
+    .cm-dashboard-stats-grid-5 {
+        grid-template-columns: 1fr;
+    }
+
+    .cm-content-area {
+        padding-left: var(--cm-spacing-sm);
+        padding-right: var(--cm-spacing-sm);
+    }
+
+    .cm-navbar {
+        padding-left: var(--cm-spacing-sm);
+        padding-right: var(--cm-spacing-sm);
+    }
+
+    .cm-navbar__username {
+        display: none;
+    }
+
+    .cm-tab-links .cm-btn {
+        flex-basis: 100%;
+    }
+}
+
+@media (max-width: 1024px) {
+    .cm-login-shell {
+        grid-template-columns: 1fr;
+        max-width: 760px;
+        padding: 16px;
+    }
+
+    .cm-login-brand h1 {
+        font-size: 1.9rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .cm-login-features {
+        grid-template-columns: 1fr;
+    }
+}
