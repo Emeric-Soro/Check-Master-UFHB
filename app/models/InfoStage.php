@@ -34,6 +34,12 @@ class InfoStage
 
     public function updateStageInfo($etudiant_id, $stage_data)
     {
+        // Validation: id_maitre_stage est requis (NOT NULL dans la base)
+        if (!isset($stage_data['id_maitre_stage']) || empty($stage_data['id_maitre_stage'])) {
+            error_log("Erreur updateStageInfo: id_maitre_stage manquant pour num_etu=$etudiant_id");
+            return false;
+        }
+
         $sql = "UPDATE informations_stage SET 
                 id_entreprise = ?, 
                 date_debut_stage = ?, 
@@ -47,13 +53,19 @@ class InfoStage
             $stage_data['date_debut_stage'],
             $stage_data['date_fin_stage'],
             $stage_data['sujet_stage'],
-            $stage_data['id_maitre_stage'] ?? null,
+            $stage_data['id_maitre_stage'],
             $etudiant_id
         ]);
     }
 
     public function createStageInfo($etudiant_id, $stage_data)
     {
+        // Validation: id_maitre_stage est requis (NOT NULL dans la base)
+        if (!isset($stage_data['id_maitre_stage']) || empty($stage_data['id_maitre_stage'])) {
+            error_log("Erreur createStageInfo: id_maitre_stage manquant pour num_etu=$etudiant_id");
+            return false;
+        }
+
         $sql = "INSERT INTO informations_stage (num_etu, id_entreprise, date_debut_stage, date_fin_stage, sujet_stage, id_maitre_stage) 
                 VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
@@ -63,7 +75,7 @@ class InfoStage
             $stage_data['date_debut_stage'],
             $stage_data['date_fin_stage'],
             $stage_data['sujet_stage'],
-            $stage_data['id_maitre_stage'] ?? null
+            $stage_data['id_maitre_stage']
         ]);
     }
 }

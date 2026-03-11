@@ -353,9 +353,18 @@ class Archive
     private function getStageInfo($numEtu)
     {
         $sql = "
-            SELECT ist.*, ent.lib_long_entreprise, ent.lib_court_en
+            SELECT ist.*, 
+                   ent.lib_long_entreprise, 
+                   ent.lib_court_en,
+                   ent.lib_long_entreprise as lib_entreprise,
+                   ms.Nom as maitre_nom,
+                   ms.prenom as maitre_prenom,
+                   CONCAT(COALESCE(ms.Nom, ''), ' ', COALESCE(ms.prenom, '')) as encadrant_entreprise,
+                   ms.email as maitre_email,
+                   ms.telephone as maitre_telephone
             FROM informations_stage ist
             LEFT JOIN entreprises ent ON ist.id_entreprise = ent.id_entreprise
+            LEFT JOIN maitre_de_stage ms ON ist.id_maitre_stage = ms.id_maitre_stage
             WHERE ist.num_etu = :num_etu
             ORDER BY ist.date_debut_stage DESC
             LIMIT 1

@@ -109,18 +109,18 @@ class PlanningDataUtils
                 INNER JOIN enseignants ens ON ens.id_enseignant = ej.id_enseignant
                 INNER JOIN qualite_jury qj ON qj.id_role_jury = ej.id_qualite_jury
                 WHERE ej.num_soutenance = :num_soutenance';
-                
+
         $stmt = $this->db->pdo()->prepare($sql);
         $stmt->execute(['num_soutenance' => $numSoutenance]);
         $membres = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         $juryDetails = [];
         if (is_array($membres)) {
             foreach ($membres as $m) {
-                $role = strtoupper((string)($m['lib_role'] ?? ''));
+                $role = strtoupper((string) ($m['lib_role'] ?? ''));
                 // On met "M." par défaut, mais cela pourrait être "Mme." selon le genre si la base le permettait
-                $identite = trim((string)($m['prenom_enseignant'] ?? '') . ' ' . (string)($m['nom_enseignant'] ?? ''));
-                
+                $identite = trim((string) ($m['prenom_enseignant'] ?? '') . ' ' . (string) ($m['nom_enseignant'] ?? ''));
+
                 if (str_contains($role, 'PRÉSIDENT') || str_contains($role, 'PRESIDENT')) {
                     $juryDetails['president'] = 'M. ' . $identite;
                 } elseif (str_contains($role, 'EXAMINATEUR')) {
@@ -137,7 +137,7 @@ class PlanningDataUtils
                 }
             }
         }
-        
+
         return $juryDetails;
     }
 
@@ -541,8 +541,11 @@ class PlanningDataUtils
 
         // Seules les colonnes réelles de rapport_etudiants
         $allowedColumns = [
-            'chemin_fichier', 'statut_rapport', 'date_modification',
-            'taille_fichier', 'version',
+            'chemin_fichier',
+            'statut_rapport',
+            'date_modification',
+            'taille_fichier',
+            'version',
         ];
 
         $sets = [];

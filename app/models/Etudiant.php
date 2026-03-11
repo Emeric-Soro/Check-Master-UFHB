@@ -283,13 +283,12 @@ class Etudiant
                        i.id_annee_acad, a.date_deb, a.date_fin
                 FROM candidature_soutenance cs 
                 INNER JOIN etudiants e ON e.num_carte_etud = cs.num_etu 
-                LEFT JOIN LATERAL (
-                    SELECT i2.num_carte_etud, i2.id_annee_acad, i2.date_inscription
-                    FROM inscriptions i2 
-                    WHERE i2.num_carte_etud = e.num_carte_etud 
-                    ORDER BY i2.id_annee_acad DESC, i2.date_inscription DESC 
-                    LIMIT 1
-                ) i ON TRUE
+                LEFT JOIN (
+                    SELECT i2.num_carte_etud, i2.id_annee_acad, i2.date_inscription,
+                           ROW_NUMBER() OVER (PARTITION BY i2.num_carte_etud 
+                                             ORDER BY i2.id_annee_acad DESC, i2.date_inscription DESC) as rn
+                    FROM inscriptions i2
+                ) i ON i.num_carte_etud = e.num_carte_etud AND i.rn = 1
                 LEFT JOIN annee_academique a ON a.id_annee_acad = i.id_annee_acad
                 ORDER BY cs.date_candidature DESC";
         $stmt = $this->db->prepare($sql);
@@ -305,7 +304,7 @@ class Etudiant
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function traiterCandidature($numEtu, $decision, $commentaire, $id_pers_admin)
+    public function traiterCandidature($id_candidature, $decision, $commentaire, $id_pers_admin)
     {
         try {
             $sql = "UPDATE candidature_soutenance 
@@ -320,7 +319,7 @@ class Etudiant
                 ':decision' => $decision,
                 ':commentaire' => $commentaire,
                 ':id_pers_admin' => $id_pers_admin,
-                ':id_candidature' => $numEtu
+                ':id_candidature' => $id_candidature
             ]);
         } catch (PDOException $e) {
             error_log("Erreur lors du traitement de la candidature: " . $e->getMessage());
