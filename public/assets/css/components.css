@@ -5910,3 +5910,56 @@ form .cm-grid-auto {
     min-width: 100px;
   }
 }
+
+/* ── Timeline Vertical (Parcours étudiant) ── */
+.cm-timeline-vertical {
+    position: relative;
+    padding-left: 40px;
+}
+.cm-timeline-vertical::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--cm-border-color);
+}
+.cm-timeline-item-vertical {
+    position: relative;
+    margin-bottom: 30px;
+    padding-left: 30px;
+}
+.cm-timeline-icon {
+    position: absolute;
+    left: -33px;
+    width: 32px;
+    height: 32px;
+    background: white;
+    border: 2px solid var(--cm-border-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--cm-font-size-sm);
+}
+.cm-timeline-primary .cm-timeline-icon { border-color: var(--cm-primary); }
+.cm-timeline-success .cm-timeline-icon { border-color: var(--cm-feedback-success); }
+.cm-timeline-info .cm-timeline-icon { border-color: var(--cm-feedback-info); }
+.cm-timeline-warning .cm-timeline-icon { border-color: var(--cm-feedback-warning); }
+.cm-timeline-danger .cm-timeline-icon { border-color: var(--cm-feedback-danger); }
+.cm-timeline-secondary .cm-timeline-icon { border-color: var(--cm-text-muted); }
+
+.cm-timeline-date {
+    font-size: var(--cm-font-size-xs);
+    color: var(--cm-text-muted);
+    margin-bottom: var(--cm-spacing-xs);
+}
+.cm-timeline-title {
+    font-weight: var(--cm-font-weight-semibold);
+    margin-bottom: var(--cm-spacing-xs);
+}
+.cm-timeline-desc {
+    color: var(--cm-text-muted);
+    font-size: var(--cm-font-size-sm);
+}

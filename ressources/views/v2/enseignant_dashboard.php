@@ -400,10 +400,10 @@ function normalizeRoleName(string $role): string {
     <?php if ($isAdmin): ?>
         <div class="cm-card cm-mb-md">
             <div class="cm-card__body">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <i class="fas fa-user-shield" style="font-size: 24px;"></i>
+                <div class="cm-flex cm-items-center cm-flex-gap-md">
+                    <i class="fas fa-user-shield cm-text-2xl"></i>
                     <div>
-                        <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">
+                        <p class="cm-mt-1 cm-text-sm cm-m-0">
                             <?php if ($enseignantSelectionne !== null): ?>
                                 Consultation des données de : <strong><?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?></strong>
                             <?php else: ?>
@@ -417,13 +417,13 @@ function normalizeRoleName(string $role): string {
     <?php endif; ?>
 
     <div class="cm-card cm-mb-md">
-        <form method="GET" style="align-items: end;">
+        <form method="GET" class="cm-items-end">
             <input type="hidden" name="page" value="tableau_bord_enseignant">
 
             <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars((string) (\AcademicYear::getWritableIdFromSession() ?? ''), ENT_QUOTES, 'UTF-8') ?>">
 
             <?php if ($isAdmin): ?>
-                <div class="cm-mb-md" style="max-width: 380px;">
+                <div class="cm-mb-md cm-max-w-md">
                     <?= cm_component('form/select', [
                         'name' => 'id_enseignant_selected',
                         'label' => 'Enseignant à consulter',
@@ -540,7 +540,7 @@ function normalizeRoleName(string $role): string {
                 </h3>
             </div>
             <div class="cm-card__body">
-                <div style="overflow-x: auto;">
+                <div class="cm-table-responsive">
                     <table class="cm-table">
                         <thead>
                             <tr>
@@ -565,31 +565,31 @@ function normalizeRoleName(string $role): string {
                                     <td <?php 
                                         $president = $etudiant['president'] ?? '';
                                         if ($president !== '' && stripos($president, $teacherFullName) !== false) {
-                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
+                                            echo 'class="cm-highlight-row"';
                                         }
                                     ?>><?= htmlspecialchars($president, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
                                     <td <?php 
                                         $directeur = $etudiant['directeur_memoire'] ?? '';
                                         if ($directeur !== '' && stripos($directeur, $teacherFullName) !== false) {
-                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
+                                            echo 'class="cm-highlight-row"';
                                         }
                                     ?>><?= htmlspecialchars($directeur, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
                                     <td <?php 
                                         $examinateur = $etudiant['examinateur'] ?? '';
                                         if ($examinateur !== '' && stripos($examinateur, $teacherFullName) !== false) {
-                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
+                                            echo 'class="cm-highlight-row"';
                                         }
                                     ?>><?= htmlspecialchars($examinateur, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
                                     <td <?php 
                                         $encadrant = $etudiant['encadrant'] ?? '';
                                         if ($encadrant !== '' && stripos($encadrant, $teacherFullName) !== false) {
-                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
+                                            echo 'class="cm-highlight-row"';
                                         }
                                     ?>><?= htmlspecialchars($encadrant, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
                                     <td <?php 
                                         $maitre = $etudiant['maitre_stage'] ?? '';
                                         if ($maitre !== '' && stripos($maitre, $teacherFullName) !== false) {
-                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
+                                            echo 'class="cm-highlight-row"';
                                         }
                                     ?>><?= htmlspecialchars($maitre, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
                                 </tr>
@@ -617,7 +617,7 @@ function normalizeRoleName(string $role): string {
                 </small></p>
             </div>
             <div class="cm-card__body">
-                <div style="overflow-x: auto;">
+                <div class="cm-table-responsive">
                     <table class="cm-table">
                         <thead>
                             <tr>

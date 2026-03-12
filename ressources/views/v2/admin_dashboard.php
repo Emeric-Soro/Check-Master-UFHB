@@ -299,7 +299,7 @@ try {
             </a>
         </div>
         <div class="cm-card__body">
-            <form method="GET" class="cm-grid-3 cm-mb-md" style="align-items: end;">
+            <form method="GET" class="cm-grid-3 cm-mb-md cm-items-end">
                 <input type="hidden" name="page" value="dashboard">
 
                 <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars((string) (\AcademicYear::getWritableIdFromSession() ?? ''), ENT_QUOTES, 'UTF-8') ?>">
