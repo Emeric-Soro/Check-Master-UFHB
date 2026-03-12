@@ -489,4 +489,3 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
         });
     </script>
 </div>
-</html>
