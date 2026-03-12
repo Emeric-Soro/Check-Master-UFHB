@@ -173,7 +173,7 @@ function getTimeAgo($date)
     </style>
 
 <div class="cm-prd3-screen">
-    <div class="min-h-screen cm-prd3-screen cm-prd3-crud-screen">
+    <div class="min-h-screen cm-prd3-crud-screen">
         <div class="bg-white shadow-sm border-b border-gray-200">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4">
                 <div class="flex justify-between items-center py-6">
