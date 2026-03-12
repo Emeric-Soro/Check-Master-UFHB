@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Sticky Topbar Test</title>
+<link rel="stylesheet" href="assets/css/checkmaster-theme.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/utilities.css">
+<link rel="stylesheet" href="assets/css/responsive.css">
+<link rel="stylesheet" href="assets/css/compact-forms.css">
+<style>
+/* Simplified test - no sidebar/navbar dependencies */
+.test-navbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--cm-header-height);
+    background: #1a5276;
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 90;
+    font-family: var(--cm-font-family);
+}
+.test-info {
+    position: fixed;
+    bottom: 10px; right: 10px;
+    background: #333;
+    color: #0f0;
+    padding: 10px;
+    z-index: 999;
+    font-family: monospace;
+    font-size: 12px;
+    border-radius: 4px;
+}
+</style>
+</head>
+<body class="cm-app-body">
+<div class="test-navbar">
+    <span style="font-weight:600">CHECK MASTER - Test Sticky Topbar</span>
+</div>
+
+<div class="cm-main-wrapper" id="mainWrapper">
+    <main id="cmLayoutMain" class="cm-content-area cm-layout-main cm-layout-main--scroll"
+          style="margin-left:0">
+
+        <div class="cm-global-topbar">
+            <button type="button" class="cm-btn is-light is-sm">
+                <i class="fas fa-arrow-left"></i> Retour
+            </button>
+            <div class="cm-global-topbar__year">
+                <label class="cm-global-topbar__label cm-text-sm cm-text-semibold cm-m-0">Année académique</label>
+                <select class="cm-form-control cm-form-select cm-select--sm">
+                    <option>2024-2025</option>
+                    <option>2023-2024</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Simulated page content (no cm-prd3-screen to test main scroll) -->
+        <div style="padding: 0 var(--cm-spacing-lg);">
+            <h2 style="color: var(--cm-primary-dark);">Test: Page sans cm-prd3-screen (scroll dans main)</h2>
+            <p>Scrollez vers le bas pour vérifier que la barre "Année académique" reste ancrée.</p>
+
+            <div class="cm-card cm-p-lg cm-mb-md" style="min-height: 300px;">
+                <h3>Card 1 - Tableau de bord</h3>
+                <p>Contenu du dashboard...</p>
+            </div>
+            <div class="cm-card cm-p-lg cm-mb-md" style="min-height: 300px;">
+                <h3>Card 2 - Statistiques</h3>
+                <p>Contenu des stats...</p>
+            </div>
+            <div class="cm-card cm-p-lg cm-mb-md" style="min-height: 300px;">
+                <h3>Card 3 - Gestion</h3>
+                <p>Contenu de gestion...</p>
+            </div>
+            <div class="cm-card cm-p-lg cm-mb-md" style="min-height: 300px;">
+                <h3>Card 4 - Rapports</h3>
+                <p>Contenu des rapports...</p>
+            </div>
+            <div class="cm-card cm-p-lg cm-mb-md" style="min-height: 300px;">
+                <h3>Card 5 - Archives</h3>
+                <p>Contenu des archives...</p>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div class="test-info" id="scrollInfo">Scroll: 0px</div>
+<script>
+document.getElementById('cmLayoutMain').addEventListener('scroll', function() {
+    document.getElementById('scrollInfo').textContent = 'Scroll: ' + this.scrollTop + 'px';
+});
+</script>
+</body>
+</html>

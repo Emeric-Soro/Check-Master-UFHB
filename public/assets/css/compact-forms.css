@@ -245,12 +245,17 @@
 /* Keep academic year selector visible while scrolling content */
 .cm-content-area .cm-global-topbar {
   position: sticky !important;
-  top: calc(var(--cm-header-height) + 2px) !important;
+  top: 0 !important;
   z-index: 35 !important;
+  flex-shrink: 0 !important;
   padding-top: 0.3rem !important;
   padding-bottom: 0.3rem !important;
   margin-bottom: 0.45rem !important;
-  background: var(--cm-content-bg) !important;
+  /* Opaque background so scrolling content does not show through */
+  background: #e4f0fc !important;
+  max-width: none !important;
+  width: 100% !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
 }
 
 .cm-content-area #globalAnneeAcademique {
