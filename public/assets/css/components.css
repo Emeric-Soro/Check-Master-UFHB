@@ -5910,3 +5910,201 @@ form .cm-grid-auto {
     min-width: 100px;
   }
 }
+
+/* ── Timeline Vertical (Parcours étudiant) ── */
+.cm-timeline-vertical {
+    position: relative;
+    padding-left: 40px;
+}
+.cm-timeline-vertical::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--cm-border-color);
+}
+.cm-timeline-item-vertical {
+    position: relative;
+    margin-bottom: 30px;
+    padding-left: 30px;
+}
+.cm-timeline-icon {
+    position: absolute;
+    left: -33px;
+    width: 32px;
+    height: 32px;
+    background: white;
+    border: 2px solid var(--cm-border-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--cm-font-size-sm);
+}
+.cm-timeline-primary .cm-timeline-icon { border-color: var(--cm-primary); }
+.cm-timeline-success .cm-timeline-icon { border-color: var(--cm-feedback-success); }
+.cm-timeline-info .cm-timeline-icon { border-color: var(--cm-feedback-info); }
+.cm-timeline-warning .cm-timeline-icon { border-color: var(--cm-feedback-warning); }
+.cm-timeline-danger .cm-timeline-icon { border-color: var(--cm-feedback-danger); }
+.cm-timeline-secondary .cm-timeline-icon { border-color: var(--cm-text-muted); }
+
+.cm-timeline-date {
+    font-size: var(--cm-font-size-xs);
+    color: var(--cm-text-muted);
+    margin-bottom: var(--cm-spacing-xs);
+}
+.cm-timeline-title {
+    font-weight: var(--cm-font-weight-semibold);
+    margin-bottom: var(--cm-spacing-xs);
+}
+.cm-timeline-desc {
+    color: var(--cm-text-muted);
+    font-size: var(--cm-font-size-sm);
+}
+
+/* ── Tab container (admin_historique) ── */
+.cm-tab-container {
+    background: var(--cm-content-bg);
+    border-radius: var(--cm-border-radius-lg);
+    box-shadow: var(--cm-shadow-sm);
+    overflow: hidden;
+    margin-top: var(--cm-spacing-md);
+}
+.cm-tab-link {
+    padding: var(--cm-spacing-md) var(--cm-spacing-lg);
+    color: var(--cm-text-muted);
+    text-decoration: none;
+    border-bottom: 3px solid transparent;
+    transition: all var(--cm-transition-fast);
+    font-weight: var(--cm-font-weight-medium);
+    display: flex;
+    align-items: center;
+    gap: var(--cm-spacing-sm);
+}
+.cm-tab-link:hover {
+    color: var(--cm-primary);
+    background: rgba(0,0,0,0.02);
+}
+.cm-tab-link.is-active {
+    color: var(--cm-primary);
+    border-bottom-color: var(--cm-primary);
+    background: var(--cm-content-bg);
+}
+.cm-tab-content {
+    padding: var(--cm-spacing-xl);
+}
+
+/* ── Screen header ── */
+.cm-screen-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--cm-spacing-lg);
+}
+.cm-screen-header__title {
+    display: flex;
+    align-items: center;
+    gap: var(--cm-spacing-md);
+}
+.cm-screen-header__title h1 {
+    margin: 0;
+    font-size: var(--cm-font-size-2xl);
+}
+.cm-screen-header__title i {
+    font-size: var(--cm-font-size-2xl);
+    color: var(--cm-primary);
+}
+
+/* ── Fiche étudiant archive - timeline & description list ── */
+.cm-timeline-item {
+    position: relative;
+    padding-bottom: var(--cm-spacing-lg);
+}
+.cm-timeline-marker {
+    position: absolute;
+    left: -2rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--cm-content-bg);
+    border: 2px solid var(--cm-border-color);
+    font-size: var(--cm-font-size-sm);
+}
+.cm-timeline-completed .cm-timeline-marker {
+    border-color: var(--cm-feedback-success);
+    color: var(--cm-feedback-success);
+    background: var(--cm-feedback-success-bg);
+}
+.cm-timeline-pending .cm-timeline-marker {
+    border-color: #d1d5db;
+    color: #9ca3af;
+}
+.cm-timeline-content {
+    padding-left: var(--cm-spacing-md);
+}
+
+/* Description list */
+.cm-dl {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cm-spacing-md);
+}
+.cm-dl-item {
+    display: flex;
+    gap: var(--cm-spacing-md);
+}
+.cm-dl-item dt {
+    font-weight: var(--cm-font-weight-medium);
+    color: var(--cm-text-muted);
+    min-width: 120px;
+}
+.cm-dl-item dd {
+    color: var(--cm-text-main);
+}
+
+/* Progress bars */
+.cm-progress-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cm-spacing-sm);
+}
+.cm-progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.cm-progress-value {
+    font-weight: var(--cm-font-weight-semibold);
+}
+.cm-progress-bar {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: var(--cm-border-radius-full);
+    overflow: hidden;
+}
+.cm-progress-bar-lg {
+    height: 12px;
+}
+.cm-progress-fill {
+    height: 100%;
+    border-radius: var(--cm-border-radius-full);
+    transition: width 0.3s ease;
+}
+.cm-progress-row-highlight {
+    padding-top: var(--cm-spacing-md);
+    border-top: 1px solid var(--cm-border-color);
+}
+
+/* Badge purple */
+.cm-badge-purple {
+    background: #9333ea;
+    color: white;
+}
+.cm-bg-gray {
+    background: #d1d5db;
+}

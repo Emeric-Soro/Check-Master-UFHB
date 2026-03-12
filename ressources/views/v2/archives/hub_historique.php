@@ -323,7 +323,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <tbody>
                         <?php if (empty($students)): ?>
                         <tr><td colspan="8" class="cm-data-table__td is-center cm-p-5">
-                            <i class="fas fa-inbox cm-text-muted cm-text-3xl cm-mb-2" style="display: block;"></i>
+                            <i class="fas fa-inbox cm-text-muted cm-text-3xl cm-mb-2 cm-d-block"></i>
                             <span class="cm-text-muted">Aucun étudiant trouvé pour les critères sélectionnés.</span>
                         </td></tr>
                         <?php else: ?>
@@ -341,7 +341,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 <td class="cm-data-table__td cm-text-muted"><?= $rowNum ?></td>
                                 <td class="cm-data-table__td"><code><?= htmlspecialchars((string) ($student['matricule'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></code></td>
                                 <td class="cm-data-table__td cm-font-semibold"><?= htmlspecialchars(trim(($student['nom'] ?? '') . ' ' . ($student['prenoms'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
-                                <td class="cm-data-table__td" style="max-width: 250px;">
+                                <td class="cm-data-table__td cm-max-w-sm">
                                     <span class="cm-text-ellipsis" title="<?= htmlspecialchars((string) ($student['theme'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                                         <?= htmlspecialchars((string) ($student['theme'] ?? '-'), ENT_QUOTES, 'UTF-8') ?>
                                     </span>
@@ -400,7 +400,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <tbody>
                         <?php if (empty($juries)): ?>
                         <tr><td colspan="8" class="cm-data-table__td is-center cm-p-5">
-                            <i class="fas fa-users-slash cm-text-muted cm-text-3xl cm-mb-2" style="display: block;"></i>
+                            <i class="fas fa-users-slash cm-text-muted cm-text-3xl cm-mb-2 cm-d-block"></i>
                             <span class="cm-text-muted">Aucun jury trouvé pour cette année académique.</span>
                         </td></tr>
                         <?php else: ?>
@@ -420,7 +420,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                     <?= htmlspecialchars((string) ($jury['etudiant_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?>
                                     <br><small class="cm-text-muted"><?= htmlspecialchars((string) ($jury['etudiant_matricule'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small>
                                 </td>
-                                <td class="cm-data-table__td" style="max-width: 200px;">
+                                <td class="cm-data-table__td cm-max-w-sm">
                                     <span class="cm-text-ellipsis" title="<?= htmlspecialchars((string) ($jury['theme_soutenance'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                                         <?= htmlspecialchars((string) ($jury['theme_soutenance'] ?? '-'), ENT_QUOTES, 'UTF-8') ?>
                                     </span>

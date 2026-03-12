@@ -8,15 +8,8 @@ $totalEtudiants = $GLOBALS['totalEtudiants'] ?? 0;
 $notes = $GLOBALS['notes'] ?? [];
 $semestres = $GLOBALS['semestres'] ?? [];
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portail Étudiant - Mes Résultats</title>
-</head>
-<body class="min-h-screen" style="background: linear-gradient(135deg, #DFF2FF 0%, #C8E8FF 100%);">
-    <div class="container mx-auto px-4 py-8">
+<div class="cm-prd3-screen">
+    <div class="cm-p-4">
         <!-- Header -->
         <header class="mb-10 text-center animate-fade-in">
 
@@ -244,5 +237,4 @@ $semestres = $GLOBALS['semestres'] ?? [];
             document.body.removeChild(link);
         }
     </script>
-</body>
-</html>
+</div>
