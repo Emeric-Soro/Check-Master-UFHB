@@ -1,4 +1,5 @@
 <?php
+$caps = getPermissionCaps('profil');
 $nomUser = (string) ($_SESSION['nom_utilisateur'] ?? '');
 $loginUser = (string) ($_SESSION['login_utilisateur'] ?? '');
 $statutUser = (string) ($_SESSION['statut_utilisateur'] ?? '');
@@ -38,7 +39,7 @@ ob_start();
 ?>
 <section class="cm-profile-card">
     <header class="cm-profile-card__header">
-        
+        <h3 class="cm-profile-card__title">Informations du compte</h3>
     </header>
     <div class="cm-profile-grid">
         <?= $renderField('Nom utilisateur', $nomUser) ?>
@@ -57,7 +58,7 @@ ob_start();
 
 <section class="cm-profile-card">
     <header class="cm-profile-card__header">
-        
+        <h3 class="cm-profile-card__title">Détails professionnels</h3>
     </header>
     <div class="cm-profile-grid">
         <?php if ($isEnseignant): ?>
@@ -76,6 +77,15 @@ ob_start();
         <?php endif; ?>
     </div>
 </section>
+
+<div class="cm-form-buttons">
+    <div class="cm-form-buttons__right">
+        <button type="button" class="cm-btn is-primary is-sm" data-edit-profile="1">
+            <i class="fas fa-pen" aria-hidden="true"></i>
+            Modifier mes informations
+        </button>
+    </div>
+</div>
 <?php
 $profileTabHtml = (string) ob_get_clean();
 
@@ -83,7 +93,7 @@ ob_start();
 ?>
 <section class="cm-profile-card">
     <header class="cm-profile-card__header">
-        
+        <h3 class="cm-profile-card__title">Changer le mot de passe</h3>
     </header>
 
     <?php if ($passwordSuccess !== ''): ?>
@@ -96,6 +106,7 @@ ob_start();
     <form action="?page=profil&tab=password" method="POST" class="cm-profile-password-form" data-cm-ajax-form="true">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(\CheckMaster\Core\Csrf::token(), ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="id_utilisateur" value="<?php echo (int) ($_SESSION['id_utilisateur'] ?? 0); ?>">
+        <input type="hidden" name="action" value="update_password">
 
         <div class="cm-profile-grid">
             <div>
@@ -127,12 +138,12 @@ ob_start();
             </div>
         </div>
 
-        <div class="cm-form-buttons">
-            <button type="submit" name="update_password" class="cm-btn is-success">
-                <i class="fas fa-save"></i>
-                <span>Mettre à jour le mot de passe</span>
-            </button>
-        </div>
+        <?php cm_component('crud/form-actions', [
+            'actions' => [
+                ['label' => 'Réinitialiser', 'type' => 'reset', 'class' => 'cm-btn is-secondary is-sm'],
+                ['label' => 'Changer le mot de passe', 'type' => 'submit', 'class' => 'cm-btn is-primary is-sm', 'attrs' => ['name' => 'update_password']],
+            ],
+        ]); ?>
     </form>
 </section>
 <?php
@@ -149,5 +160,10 @@ $passwordTabHtml = (string) ob_get_clean();
     ]); ?>
 
     <?php cm_component('tabs/tab-content', ['id' => 'profile', 'active' => $currentTab === 'profile', 'content' => $profileTabHtml]); ?>
-    <?php cm_component('tabs/tab-content', ['id' => 'password', 'active' => $currentTab === 'password', 'content' => $passwordTabHtml]); ?>
+    <?php
+    $passwordContent = $caps['edit']
+        ? $passwordTabHtml
+        : showNoPermissionMessage('modifier', 'profil');
+    cm_component('tabs/tab-content', ['id' => 'password', 'active' => $currentTab === 'password', 'content' => $passwordContent]);
+    ?>
 </section>

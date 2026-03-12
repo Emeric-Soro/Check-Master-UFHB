@@ -422,15 +422,26 @@ function normalizeRoleName(string $role): string {
 
             <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars((string) (\AcademicYear::getWritableIdFromSession() ?? ''), ENT_QUOTES, 'UTF-8') ?>">
 
-            <?php if ($isAdmin): ?>
+            <?php if (!empty($enseignantOptions)): ?>
                 <div class="cm-mb-md" style="max-width: 380px;">
                     <?= cm_component('form/select', [
                         'name' => 'id_enseignant_selected',
-                        'label' => 'Enseignant à consulter',
+                        'label' => 'Enseignant',
                         'options' => $enseignantOptions,
                         'selected' => (string)($enseignantSelectionne ?? ''),
                         'placeholder' => 'Sélectionner un enseignant'
                     ]) ?>
+                </div>
+            <?php else: ?>
+                <div class="cm-mb-md" style="max-width: 380px;">
+                    <div class="cm-form-group">
+                        <label class="cm-form-label">Enseignant</label>
+                        <select class="cm-form-control cm-field-md" disabled>
+                            <option value="<?= htmlspecialchars($teacherId, ENT_QUOTES, 'UTF-8') ?>" selected>
+                                <?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?>
+                            </option>
+                        </select>
+                    </div>
                 </div>
             <?php endif; ?>
 
@@ -452,10 +463,10 @@ function normalizeRoleName(string $role): string {
                 ]) ?> -->
 
                 <div class="cm-flex cm-flex-gap-sm">
-                    <button type="submit" class="cm-btn cm-btn--primary">
+                    <button type="submit" class="cm-btn is-primary is-sm">
                         <i class="fas fa-filter cm-mr-sm"></i> Filtrer
                     </button>
-                    <a href="?page=tableau_bord_enseignant" class="cm-btn cm-btn--outline">
+                    <a href="?page=tableau_bord_enseignant" class="cm-btn is-light is-sm">
                         Réinitialiser
                     </a>
                 </div>

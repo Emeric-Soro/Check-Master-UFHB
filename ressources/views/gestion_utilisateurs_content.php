@@ -153,7 +153,7 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
                 </div>
                 <?php cm_component('crud/form-actions', ['actions' => array_filter([
                     ['tag' => 'a', 'href' => '?page=gestion_utilisateurs', 'label' => 'Retour', 'icon' => 'fa-arrow-left', 'class' => 'cm-btn is-light'],
-                    canCreate() ? ['tag' => 'button', 'type' => 'submit', 'label' => 'Ajouter la selection', 'icon' => 'fa-users', 'class' => 'cm-btn is-success', 'attrs' => ['name' => 'btn_add_multiple']] : null,
+                    canCreate() ? ['tag' => 'button', 'type' => 'submit', 'label' => 'Ajouter la selection', 'icon' => 'fa-users', 'class' => 'cm-btn is-primary', 'attrs' => ['name' => 'btn_add_multiple']] : null,
                 ])]); ?>
                 <div id="cmUsersMassFormState" class="cm-text-muted" aria-live="polite"></div>
             </form>
@@ -178,14 +178,14 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
                     <div class="cm-form-group" id="cmUserNameTextWrap"><?php cm_component('form/input-text', ['name' => 'nom_utilisateur', 'id' => 'cmNomUtilisateurText', 'label' => 'Nom utilisateur', 'required' => true, 'value' => $editNomValue, 'placeholder' => 'Nom complet', 'control_class' => 'cm-field-lg']); ?></div>
                     <div class="cm-form-group cm-hidden" id="cmUserNameSelectWrap"><label for="cmNomUtilisateurSelect" class="cm-form-label">Nom utilisateur</label><select id="cmNomUtilisateurSelect" class="cm-form-control cm-field-lg"></select></div>
                     <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'id' => 'cmNiveauAcces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'selected' => $editNiveauValue !== '' ? $editNiveauValue : (string) array_key_first($niveauOptions), 'control_class' => 'cm-field-md']); ?>
-                    <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'id' => 'cmStatutUtilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif'], 'selected' => $editStatutValue, 'control_class' => 'cm-field-md']); ?>
+                    <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'id' => 'cmStatutUtilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif', 'Suspendu' => 'Suspendu'], 'selected' => $editStatutValue, 'control_class' => 'cm-field-md']); ?>
                     <?php cm_component('form/input-text', ['name' => 'login_utilisateur', 'id' => 'cmLoginUtilisateur', 'label' => 'Login', 'required' => true, 'value' => $editLoginValue, 'placeholder' => 'login', 'control_class' => 'cm-field-md']); ?>
                 </div>
                 <div class="cm-form-group"><small id="cmLoginHint" class="cm-text-muted"></small></div>
-                <?php cm_component('crud/form-actions', ['actions' => array_filter([
-                    ['tag' => 'a', 'href' => '?page=gestion_utilisateurs', 'label' => 'Réinitialiser', 'icon' => 'fa-rotate-left', 'class' => 'cm-btn is-light'],
-                    canCreate() ? ['tag' => 'a', 'href' => '?page=gestion_utilisateurs&action=addMasse', 'label' => 'Ajout en masse', 'icon' => 'fa-users', 'class' => 'cm-btn is-info'] : null,
-                    ($utilisateurEdit ? canEdit() : canCreate()) ? ['tag' => 'button', 'type' => 'submit', 'label' => $utilisateurEdit ? 'Modifier' : 'Enregistrer', 'icon' => 'fa-save', 'class' => 'cm-btn is-success', 'attrs' => ['name' => $utilisateurEdit ? 'btn_modifier_utilisateur' : 'btn_add_utilisateur']] : null,
+                <?php cm_component('crud/form-actions', ['cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']], 'actions' => array_filter([
+                    ['tag' => 'button', 'type' => 'reset', 'label' => 'Réinitialiser', 'icon' => 'fa-rotate-left', 'class' => 'cm-btn is-secondary is-sm'],
+                    canCreate() ? ['tag' => 'a', 'href' => '?page=gestion_utilisateurs&action=addMasse', 'label' => 'Ajout en masse', 'icon' => 'fa-users', 'class' => 'cm-btn is-info is-sm'] : null,
+                    ($utilisateurEdit ? canEdit() : canCreate()) ? ['tag' => 'button', 'type' => 'submit', 'label' => $utilisateurEdit ? 'Modifier' : 'Enregistrer', 'icon' => 'fa-save', 'class' => 'cm-btn is-primary is-sm', 'attrs' => ['name' => $utilisateurEdit ? 'btn_modifier_utilisateur' : 'btn_add_utilisateur']] : null,
                 ])]); ?>
                 <div id="cmUserFormState" class="cm-text-muted" aria-live="polite"></div>
             </form>
@@ -214,16 +214,20 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
                     <?php cm_component('crud/data-table', [
                         'id' => 'cmUsersTable',
                         'columns' => [
-                            cm_column('id_utilisateur', 'ID'), cm_column('nom_utilisateur', 'Nom'), cm_column('role_utilisateur', 'Type'),
-                            cm_column('lib_GU', 'Groupe'), cm_column('niveau_acces', 'Niveau acces'),
+                            cm_column('nom_utilisateur', 'Nom &amp; Prénom'), cm_column('role_utilisateur', 'Type utilisateur'),
+                            cm_column('lib_GU', 'Groupe'), cm_column('niveau_acces', 'Niveau d\'accès'),
                             cm_column('statut_utilisateur', 'Statut', ['type' => 'badge']), cm_column('login_utilisateur', 'Login'),
                         ],
                         'rows' => $userRows,
                         'row_key' => 'id_utilisateur',
                         'selectable' => true,
-                        'actions' => array_filter([ canEdit() ? [ 'tag' => 'button', 'type' => 'button', 'label' => 'Modifier', 'icon' => 'fa-pen', 'class' => 'cm-btn-action is-edit js-user-edit' ] : null ]),
+                        'actions' => array_filter([
+                            canEdit() ? [ 'tag' => 'button', 'type' => 'button', 'label' => 'Modifier', 'icon' => 'fa-pen', 'class' => 'cm-btn-action is-edit js-user-edit' ] : null,
+                            canDelete() ? [ 'tag' => 'button', 'type' => 'button', 'label' => 'Supprimer', 'icon' => 'fa-trash', 'class' => 'cm-btn-action is-delete js-user-delete' ] : null,
+                            canEdit() ? [ 'tag' => 'button', 'type' => 'button', 'label' => 'Réinitialiser MdP', 'icon' => 'fa-key', 'class' => 'cm-btn-action is-secondary js-user-reset-pwd' ] : null,
+                        ]),
                         'empty_title' => 'Aucun utilisateur',
-                        'empty_message' => 'Aucun enregistrement trouve.',
+                        'empty_message' => 'Aucun enregistrement trouvé.',
                     ]); ?>
                 </form>
                 <?php cm_component('crud/pagination', ['pagination' => $pagination, 'base_url' => $pagerBase, 'param_name' => 'p']); ?>

@@ -60,7 +60,7 @@ $filteredEtudiants = array_filter($etudiants, function ($etudiant) use ($search,
     return $matchesSearch && $matchesPromotion && $matchesNiveau;
 });
 // Pagination
-$perPage = 15;
+$perPage = 10;
 $totalEtudiants = count($filteredEtudiants);
 $totalPages = ($totalEtudiants > 0) ? ceil($totalEtudiants / $perPage) : 1;
 $p = isset($_GET['p']) && is_numeric($_GET['p']) && $_GET['p'] > 0 ? (int) $_GET['p'] : 1;
@@ -103,9 +103,11 @@ $pagination = [
             <table class="cm-table">
                 <thead>
                     <tr>
-                        <th>N° Carte</th>
-                        <th>Nom</th>
-                        <th>Prénom</th>
+                        <th>ID MESRS</th>
+                        <th>N° Carte Étudiant</th>
+                        <th>Nom &amp; Prénom</th>
+                        <th>Date Naissance</th>
+                        <th>Genre</th>
                         <th>Email</th>
                         <th>Promotion</th>
                         <th>Actions</th>
@@ -114,13 +116,13 @@ $pagination = [
                 <tbody>
                     <?php if (empty($etudiantsPage)): ?>
                         <tr>
-                            <td colspan="6">
+                            <td colspan="8">
                                 <?= cm_component('ui/empty-state', [
                                     'title' => '',
                                     'message' => 'Aucun étudiant ne correspond aux critères sélectionnés.',
                                     'icon' => 'fa-users',
                                     'in_table' => true,
-                                    'colspan' => 6
+                                    'colspan' => 8
                                 ]) ?>
                             </td>
                         </tr>
@@ -135,17 +137,27 @@ $pagination = [
                             }
                         ?>
                             <tr>
+                                <td><?= htmlspecialchars($etudiant->num_ident_etud ?? '') ?></td>
                                 <td><?= htmlspecialchars($etudiant->num_carte_etud ?? '') ?></td>
-                                <td><?= htmlspecialchars(strtoupper($etudiant->nom_etu ?? '')) ?></td>
-                                <td><?= htmlspecialchars($etudiant->prenom_etu ?? '') ?></td>
+                                <td><?= htmlspecialchars(strtoupper($etudiant->nom_etu ?? '') . ' ' . ($etudiant->prenom_etu ?? '')) ?></td>
+                                <td><?= htmlspecialchars($etudiant->date_nais_etu ?? '') ?></td>
+                                <td><?= htmlspecialchars($etudiant->libelle_genre ?? '') ?></td>
                                 <td><?= htmlspecialchars($etudiant->email_etu ?? '') ?></td>
                                 <td><?= htmlspecialchars($promoLib) ?></td>
                                 <td>
-                                    <?php if (canView()): ?>
-                                    <a href="?page=dossier_academique&num_etu=<?= urlencode($etudiant->num_carte_etud ?? '') ?>"
-                                       class="cm-btn cm-btn--sm cm-btn--ghost" title="Voir dossier">
-                                        <i class="fas fa-eye"></i>
+                                    <?php if (canEdit()): ?>
+                                    <a href="?page=maj_etudiant&num_etu=<?= urlencode($etudiant->num_carte_etud ?? '') ?>"
+                                       class="cm-btn-action is-edit" title="Modifier">
+                                        <i class="fas fa-pen"></i>
                                     </a>
+                                    <?php endif; ?>
+                                    <?php if (canDelete()): ?>
+                                    <button type="button"
+                                            class="cm-btn-action is-delete"
+                                            data-delete-url="?page=maj_etudiant&action=supprimer&num_etu=<?= urlencode($etudiant->num_carte_etud ?? '') ?>"
+                                            title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                     <?php endif; ?>
                                 </td>
                             </tr>

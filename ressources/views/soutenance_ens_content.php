@@ -37,6 +37,11 @@ $enseignantJury = $controller->getEnseignantJuryForView();
 $professeursTitulaires = $controller->getProfesseursTitulairesForView();
 $salles = $controller->getSallesForView();
 $attributions = $controller->getAttributionsForView();
+usort($attributions, static function ($a, $b): int {
+    $dateA = (string) ($a['date_soutenance'] ?? '');
+    $dateB = (string) ($b['date_soutenance'] ?? '');
+    return strcmp($dateA, $dateB);
+});
 $studentMap = [];
 $studentOptions = [];
 foreach ($etudiants as $etu) {
@@ -125,6 +130,7 @@ $activeYearLabel = \AcademicYear::getActiveLabelFromSession();
 $writeYearLabel = \AcademicYear::getWritableLabelFromSession();
 $allYearsSelected = \AcademicYear::isAllSelectedFromSession();
 $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
+$isAdmin = function_exists('isAdmin') ? isAdmin() : false;
 ?>
 <div class="cm-prd3-screen cm-prd3-crud-screen">
     <div class="">
@@ -180,18 +186,18 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         <th class="cm-data-table__th cm-data-table__th--check">
                             <input type="checkbox" id="cmProgCheckAll" aria-label="Tout sélectionner">
                         </th>
-                        <th class="cm-data-table__th">N</th>
-                        <th class="cm-data-table__th">Etudiant</th>
+                        <th class="cm-data-table__th">N°</th>
+                        <th class="cm-data-table__th">Nom &amp; Prénom Étudiant</th>
                         <th class="cm-data-table__th">Promotion</th>
-                        <th class="cm-data-table__th">Date S.</th>
+                        <th class="cm-data-table__th">Date Soutenance</th>
                         <th class="cm-data-table__th">Heure</th>
                         <th class="cm-data-table__th">Salle</th>
                         <th class="cm-data-table__th">Thème</th>
                         <th class="cm-data-table__th">Président</th>
-                        <th class="cm-data-table__th">Directeur</th>
+                        <th class="cm-data-table__th">Dir. mémoire</th>
                         <th class="cm-data-table__th">Examinateur</th>
-                        <th class="cm-data-table__th">Encadreur</th>
-                        <th class="cm-data-table__th">Maître stage</th>
+                        <th class="cm-data-table__th">Encadreur Péda.</th>
+                        <th class="cm-data-table__th">Maître de stage</th>
                         <th class="cm-data-table__th is-center">Actions</th>
                     </tr>
                 </thead>
@@ -272,18 +278,10 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                                 </td>
                                 <td class="cm-data-table__td is-center">
                                     <div class="cm-table-actions">
-                                        <?php if (function_exists('canEdit') ? canEdit() : true): ?>
-                                            <button type="button" class="cm-btn-action is-edit cm-prog-edit"
-                                                data-id="<?php echo $idAttribution; ?>" title="Modifier">
-                                                <i class="fas fa-pen" aria-hidden="true"></i>
-                                            </button>
-                                        <?php endif; ?>
-                                        <?php if (function_exists('canDelete') ? canDelete() : true): ?>
-                                            <button type="button" class="cm-btn-action is-delete cm-prog-delete"
-                                                data-id="<?php echo $idAttribution; ?>" title="Supprimer">
-                                                <i class="fas fa-trash" aria-hidden="true"></i>
-                                            </button>
-                                        <?php endif; ?>
+                                        <a href="?page=<?= htmlspecialchars($currentPageSlug, ENT_QUOTES, 'UTF-8') ?>&action=voir&id=<?= $idAttribution ?>"
+                                            class="cm-btn-action is-info" title="Voir détails">
+                                            <i class="fas fa-eye" aria-hidden="true"></i>
+                                        </a>
                                     </div>
                                 </td>
                             </tr>

@@ -75,14 +75,14 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
                 ['name' => 'matricule', 'label' => 'N° Matricule', 'type' => 'text', 'required' => true, 'value_key' => 'matricule_enseignant'],
                 ['name' => 'nom', 'label' => 'Nom', 'type' => 'text', 'required' => true, 'value_key' => 'nom_enseignant'],
                 ['name' => 'prenom', 'label' => 'Prénom', 'type' => 'text', 'required' => true, 'value_key' => 'prenom_enseignant'],
-                ['name' => 'genre', 'label' => 'Genre', 'type' => 'select', 'required' => true, 'options' => ['M' => 'M', 'F' => 'F'], 'value_key' => 'genre'],
-                ['name' => 'id_specialite', 'label' => 'Spécialité', 'type' => 'select', 'required' => true, 'options' => $specialitesOptions, 'value_key' => 'id_specialite'],
+                ['name' => 'genre', 'label' => 'Genre', 'type' => 'text', 'required' => true, 'value_key' => 'genre', 'attrs' => ['size' => 1, 'maxlength' => 1]],
+                ['name' => 'id_specialite', 'label' => 'Spécialité', 'type' => 'select-search', 'required' => true, 'options' => $specialitesOptions, 'value_key' => 'id_specialite'],
                 ['name' => 'id_grade', 'label' => 'Grade', 'type' => 'select', 'required' => true, 'options' => $gradesOptions, 'value_key' => 'id_grade'],
-                ['name' => 'date_occupation', 'label' => 'Date occupation', 'type' => 'date', 'required' => true, 'value_key' => 'date_occupation'],
+                ['name' => 'date_occupation', 'label' => 'Date occupation poste', 'type' => 'date', 'required' => true, 'value_key' => 'date_occupation', 'attrs' => ['size' => 10, 'maxlength' => 10]],
                 ['name' => 'email', 'label' => 'E-mail', 'type' => 'email', 'required' => true, 'value_key' => 'mail_enseignant'],
-                ['name' => 'telephone', 'label' => 'Téléphone', 'type' => 'text', 'required' => true, 'value_key' => 'tel_enseignant'],
+                ['name' => 'telephone', 'label' => 'Téléphone', 'type' => 'text', 'required' => true, 'value_key' => 'tel_enseignant', 'attrs' => ['size' => 10, 'maxlength' => 10]],
                 ['name' => 'id_fonction', 'label' => 'Fonction', 'type' => 'select', 'required' => true, 'options' => $fonctionsOptions, 'value_key' => 'id_fonction'],
-                ['name' => 'date_fonction', 'label' => 'Date fonction', 'type' => 'date', 'required' => true, 'value_key' => 'date_fonction'],
+                ['name' => 'date_fonction', 'label' => 'Date fonction', 'type' => 'date', 'required' => true, 'value_key' => 'date_fonction', 'attrs' => ['size' => 10, 'maxlength' => 10]],
                 [
                     'name' => 'type_enseignant',
                     'label' => 'Type enseignant',
@@ -97,8 +97,15 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
             ],
             'columns' => [
                 ['key' => 'matricule_enseignant', 'label' => 'N° Matricule'],
-                ['key' => 'nom_enseignant', 'label' => 'Nom'],
-                ['key' => 'prenom_enseignant', 'label' => 'Prénom'],
+                [
+                    'key' => 'nom_prenom',
+                    'label' => 'Nom & Prénom',
+                    'value' => static function ($row) {
+                        $nom = is_object($row) ? (string) ($row->nom_enseignant ?? '') : (string) ($row['nom_enseignant'] ?? '');
+                        $prenom = is_object($row) ? (string) ($row->prenom_enseignant ?? '') : (string) ($row['prenom_enseignant'] ?? '');
+                        return trim($nom . ' ' . $prenom);
+                    },
+                ],
                 ['key' => 'lib_specialite', 'label' => 'Spécialité'],
                 ['key' => 'lib_grade', 'label' => 'Grade'],
                 ['key' => 'lib_fonction', 'label' => 'Fonction'],
@@ -131,18 +138,25 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
                 ['name' => 'matricule', 'label' => 'N° Matricule', 'type' => 'text', 'required' => true, 'value_key' => 'matricule_pers_admin'],
                 ['name' => 'nom', 'label' => 'Nom', 'type' => 'text', 'required' => true, 'value_key' => 'nom_pers_admin'],
                 ['name' => 'prenom', 'label' => 'Prénom', 'type' => 'text', 'required' => true, 'value_key' => 'prenom_pers_admin'],
-                ['name' => 'genre', 'label' => 'Genre', 'type' => 'select', 'required' => true, 'options' => ['M' => 'M', 'F' => 'F'], 'value_key' => 'genre'],
-                ['name' => 'date_embauche', 'label' => "Date d'embauche", 'type' => 'date', 'required' => true, 'value_key' => 'date_embauche'],
+                ['name' => 'genre', 'label' => 'Genre', 'type' => 'text', 'required' => true, 'value_key' => 'genre', 'attrs' => ['size' => 1, 'maxlength' => 1]],
+                ['name' => 'date_embauche', 'label' => "Date d'embauche", 'type' => 'date', 'required' => true, 'value_key' => 'date_embauche', 'attrs' => ['size' => 10, 'maxlength' => 10]],
                 ['name' => 'poste', 'label' => 'Poste', 'type' => 'select', 'required' => true, 'options' => $fonctionsOptions, 'value_key' => 'poste'],
-                ['name' => 'date_occupation', 'label' => 'Date occupation', 'type' => 'date', 'required' => true, 'value_key' => 'date_occupation'],
+                ['name' => 'date_occupation', 'label' => 'Date occupation poste', 'type' => 'date', 'required' => true, 'value_key' => 'date_occupation', 'attrs' => ['size' => 10, 'maxlength' => 10]],
                 ['name' => 'email', 'label' => 'E-mail', 'type' => 'email', 'required' => true, 'value_key' => 'email_pers_admin'],
-                ['name' => 'telephone', 'label' => 'Téléphone', 'type' => 'text', 'required' => true, 'value_key' => 'tel_pers_admin'],
+                ['name' => 'telephone', 'label' => 'Téléphone', 'type' => 'text', 'required' => true, 'value_key' => 'tel_pers_admin', 'attrs' => ['size' => 10, 'maxlength' => 10]],
             ],
             'columns' => [
                 ['key' => 'matricule_pers_admin', 'label' => 'N° Matricule'],
-                ['key' => 'nom_pers_admin', 'label' => 'Nom'],
-                ['key' => 'prenom_pers_admin', 'label' => 'Prénom'],
-                ['key' => 'genre', 'label' => 'Genre', 'class' => 'cm-col-genre'],
+                [
+                    'key' => 'nom_prenom',
+                    'label' => 'Nom & Prénom',
+                    'value' => static function ($row) {
+                        $nom = is_object($row) ? (string) ($row->nom_pers_admin ?? '') : (string) ($row['nom_pers_admin'] ?? '');
+                        $prenom = is_object($row) ? (string) ($row->prenom_pers_admin ?? '') : (string) ($row['prenom_pers_admin'] ?? '');
+                        return trim($nom . ' ' . $prenom);
+                    },
+                ],
+                ['key' => 'genre', 'label' => 'Genre'],
                 ['key' => 'email_pers_admin', 'label' => 'E-mail'],
                 ['key' => 'tel_pers_admin', 'label' => 'Téléphone'],
                 ['key' => 'poste', 'label' => 'Poste'],

@@ -264,19 +264,19 @@ try {
                 <?php if (canView('gestion_utilisateurs')): ?>
                 <a class="cm-btn is-info" href="?page=gestion_utilisateurs" data-cm-ajax-link="true">
                     <i class="fas fa-users-cog" aria-hidden="true"></i>
-                    Gerer les utilisateurs
+                    Gérer utilisateurs
                 </a>
                 <?php endif; ?>
 
                 <?php if (canView('piste_audit')): ?>
                 <a class="cm-btn is-primary" href="?page=piste_audit" data-cm-ajax-link="true">
                     <i class="fas fa-shield-halved" aria-hidden="true"></i>
-                    Piste d audit
+                    Piste audit
                 </a>
                 <?php endif; ?>
 
                 <?php if (canView('parametres_generaux')): ?>
-                <a class="cm-btn is-success" href="?page=parametres_generaux" data-cm-ajax-link="true">
+                <a class="cm-btn is-primary" href="?page=parametres_generaux" data-cm-ajax-link="true">
                     <i class="fas fa-sliders" aria-hidden="true"></i>
                     Parametrage
                 </a>
@@ -312,10 +312,10 @@ try {
                 ]) ?>
 
                 <div class="cm-flex cm-flex-gap-sm">
-                    <button type="submit" class="cm-btn cm-btn--primary">
+                    <button type="submit" class="cm-btn is-primary is-sm">
                         <i class="fas fa-filter cm-mr-sm"></i> Filtrer
                     </button>
-                    <a href="?page=dashboard" class="cm-btn cm-btn--outline">
+                    <a href="?page=dashboard" class="cm-btn is-light is-sm">
                         Réinitialiser
                     </a>
                 </div>
@@ -324,33 +324,29 @@ try {
             <table class="cm-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Nom</th>
-                        <th>Prénom</th>
+                        <th>Nom &amp; Prénom</th>
                         <th class="cm-text-center">Jurys</th>
-                        <th class="cm-text-center">Encadrees</th>
-                        <th class="cm-text-center">Dirigees</th>
+                        <th class="cm-text-center">Encadrées</th>
+                        <th class="cm-text-center">Dirigées</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($enseignantsJuryData)): ?>
                         <tr>
-                            <td colspan="6">
+                            <td colspan="4">
                                 <?= cm_component('ui/empty-state', [
                                     'title' => '',
-                                    'message' => 'Aucun enseignant n a participe a un jury pour les critères sélectionnés.',
+                                    'message' => 'Aucun enseignant n\'a participé à un jury pour les critères sélectionnés.',
                                     'icon' => 'fa-users',
                                     'in_table' => true,
-                                    'colspan' => 6
+                                    'colspan' => 4
                                 ]) ?>
                             </td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($enseignantsJuryData as $ens): ?>
                             <tr>
-                                <td><?= htmlspecialchars($ens['id_enseignant'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                <td><?= htmlspecialchars(strtoupper($ens['nom_enseignant'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
-                                <td><?= htmlspecialchars($ens['prenom_enseignant'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                <td><?= htmlspecialchars(strtoupper($ens['nom_enseignant'] ?? '') . ' ' . ($ens['prenom_enseignant'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                                 <td class="cm-text-center">
                                     <span class="cm-badge cm-badge--primary"><?= (int) ($ens['nb_soutenances_jury'] ?? 0) ?></span>
                                 </td>

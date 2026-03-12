@@ -268,10 +268,14 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                                 Sauvegarde auto
                             </button>
                             <button class="cm-btn is-info" type="button" id="cmCrPreviewBtn">
-                                <i class="fas fa-print" aria-hidden="true"></i>
-                                Imprimer / Apercu
+                                <i class="fas fa-eye" aria-hidden="true"></i>
+                                Aperçu
                             </button>
-                            <button class="cm-btn is-success" type="submit" id="cmCrSubmitBtn">
+                            <button class="cm-btn is-light" type="button" id="cmCrPrintBtn" onclick="window.print()">
+                                <i class="fas fa-print" aria-hidden="true"></i>
+                                Imprimer
+                            </button>
+                            <button class="cm-btn is-primary" type="submit" id="cmCrSubmitBtn">
                                 <i class="fas fa-check" aria-hidden="true"></i>
                                 Enregistrer PDF
                             </button>

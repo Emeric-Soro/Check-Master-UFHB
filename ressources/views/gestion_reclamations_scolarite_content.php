@@ -136,16 +136,18 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             ]);
             ?>
             <div class="cm-form-buttons">
-                <?php if (canEdit()): ?>
-                    <button type="submit" class="cm-btn is-success">
-                        <i class="fas fa-check" aria-hidden="true"></i>
-                        Repondre
-                    </button>
-                <?php endif; ?>
-                <button type="button" id="cmResetReclamation" class="cm-btn is-light">
-                    <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                    Réinitialiser
-                </button>
+                <?php
+                $reclamFormActions = [
+                    ['label' => 'Réinitialiser', 'type' => 'button', 'class' => 'cm-btn is-secondary is-sm', 'attrs' => ['id' => 'cmResetReclamation']],
+                ];
+                if (canEdit()) {
+                    $reclamFormActions[] = ['label' => 'Répondre', 'type' => 'submit', 'class' => 'cm-btn is-primary is-sm'];
+                }
+                cm_component('crud/form-actions', [
+                    'cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']],
+                    'actions' => $reclamFormActions,
+                ]);
+                ?>
             </div>
         </form>
     </div>
@@ -166,10 +168,10 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
                     <th class="cm-data-table__th is-checkbox">
                         <input type="checkbox" id="cmCheckAllReclamations" class="cm-checkbox" aria-label="Sélectionner toutes les lignes">
                     </th>
-                    <th class="cm-data-table__th">N° Recl.</th>
-                    <th class="cm-data-table__th">Etudiant</th>
+                    <th class="cm-data-table__th">N° Réclamation</th>
+                    <th class="cm-data-table__th">Nom &amp; Prénom Étudiant</th>
                     <th class="cm-data-table__th">Objet</th>
-                    <th class="cm-data-table__th">Date Recl.</th>
+                    <th class="cm-data-table__th">Date Réclamation</th>
                     <th class="cm-data-table__th">Statut</th>
                     <th class="cm-data-table__th">Actions</th>
                 </tr>

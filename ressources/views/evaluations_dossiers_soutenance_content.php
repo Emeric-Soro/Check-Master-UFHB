@@ -202,7 +202,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                         <i class="fas fa-eye" aria-hidden="true"></i>
                         Voir rapport
                     </a>
-                    <button class="cm-btn is-success" type="submit">
+                    <button class="cm-btn is-primary" type="submit">
                         <i class="fas fa-check" aria-hidden="true"></i>
                         Soumettre decision
                     </button>
@@ -226,14 +226,14 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                         <th class="cm-data-table__th cm-data-table__th--check">
                             <input type="checkbox" id="cmEvalCheckAll" aria-label="Tout sélectionner">
                         </th>
-                        <th class="cm-data-table__th">N Rap</th>
-                        <th class="cm-data-table__th">Etudiant</th>
+                        <th class="cm-data-table__th">N° Rapport</th>
+                        <th class="cm-data-table__th">Nom &amp; Prénom</th>
                         <th class="cm-data-table__th">Promotion</th>
-                        <th class="cm-data-table__th">Theme</th>
-                        <th class="cm-data-table__th">Ma decision</th>
+                        <th class="cm-data-table__th">Thème</th>
+                        <th class="cm-data-table__th">Ma décision</th>
                         <th class="cm-data-table__th">Mon commentaire</th>
-                        <th class="cm-data-table__th">Date</th>
-                        <th class="cm-data-table__th is-center is-actions">Act</th>
+                        <th class="cm-data-table__th">Date décision</th>
+                        <th class="cm-data-table__th is-center is-actions">Actions</th>
                     </tr>
                     </thead>
                     <tbody id="cmEvaluationDossiersBody">
@@ -529,7 +529,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
     }
     if (exportBtn) {
         exportBtn.addEventListener('click', function () {
-            const headers = ['N Rap', 'Etudiant', 'Theme', 'Decision', 'Commentaire', 'Date'];
+            const headers = ['N° Rapport', 'Nom & Prénom', 'Thème', 'Ma décision', 'Mon commentaire', 'Date décision'];
             const csvRows = [headers.join(';')];
             getVisibleRows().forEach(function (row) {
                 const cols = row.querySelectorAll('.cm-data-table__td');

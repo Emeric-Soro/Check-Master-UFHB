@@ -142,6 +142,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         'required' => true,
                         'value' => date('Y-m-d'),
                         'control_class' => 'cm-field-sm',
+                        'attrs' => ['size' => '10'],
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_heure',
@@ -149,8 +150,8 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         'label' => 'Heure',
                         'required' => true,
                         'value' => date('H:i'),
-                        'attrs' => ['placeholder' => 'HH:MM'],
-                        'control_class' => 'cm-field-sm',
+                        'attrs' => ['placeholder' => 'HH:MM', 'size' => '5'],
+                        'control_class' => 'cm-field-xs',
                     ]);
                     cm_component('form/select', [
                         'name' => 'cm_prog_salle',
@@ -218,18 +219,18 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                     ?>
                 </div>
 
-                <div class="cm-form-buttons">
-                    <button class="cm-btn is-light" type="button" id="cmProgResetBtn">
-                        <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                        Réinitialiser
-                    </button>
-                    <?php if ((function_exists('canCreate') && canCreate()) || (function_exists('canEdit') && canEdit())): ?>
-                        <button class="cm-btn is-success" type="submit" id="cmProgSubmitBtn">
-                            <i class="fas fa-check" aria-hidden="true"></i>
-                            Programmer
-                        </button>
-                    <?php endif; ?>
-                </div>
+                <?php
+                $progFormActions = [
+                    ['label' => 'Réinitialiser', 'type' => 'button', 'class' => 'cm-btn is-secondary is-sm', 'icon' => 'fa-rotate-left', 'attrs' => ['id' => 'cmProgResetBtn']],
+                ];
+                if ((function_exists('canCreate') && canCreate()) || (function_exists('canEdit') && canEdit())) {
+                    $progFormActions[] = ['label' => 'Programmer', 'type' => 'submit', 'class' => 'cm-btn is-primary is-sm', 'icon' => 'fa-check', 'attrs' => ['id' => 'cmProgSubmitBtn']];
+                }
+                cm_component('crud/form-actions', [
+                    'cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']],
+                    'actions' => $progFormActions,
+                ]);
+                ?>
             </form>
         </div>
         <div class="cm-barre-intermediaire">
@@ -240,6 +241,9 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 'limit' => $perPage,
                 'can_delete' => canDelete(),
                 'can_view' => canView(),
+                'custom_actions' => [
+                    ['label' => 'Planning', 'class' => 'cm-btn is-info is-sm', 'tag' => 'a', 'href' => '?page=programmation_soutenance&view=planning'],
+                ],
             ]); ?>
         </div>
         <div class="cm-pole-inferieur">
@@ -250,18 +254,16 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         <th class="cm-data-table__th cm-data-table__th--check">
                             <input type="checkbox" id="cmProgCheckAll" aria-label="Tout sélectionner">
                         </th>
-                        <th class="cm-data-table__th">N</th>
-                        <th class="cm-data-table__th">Etudiant</th>
+                        <th class="cm-data-table__th">Nom &amp; Prénom Étudiant</th>
                         <th class="cm-data-table__th">Promotion</th>
-                        <th class="cm-data-table__th">Date S.</th>
+                        <th class="cm-data-table__th">Date Soutenance</th>
                         <th class="cm-data-table__th">Heure</th>
                         <th class="cm-data-table__th">Salle</th>
-                        <th class="cm-data-table__th">Thème</th>
                         <th class="cm-data-table__th">Président</th>
-                        <th class="cm-data-table__th">Directeur</th>
+                        <th class="cm-data-table__th">Dir. mémoire</th>
                         <th class="cm-data-table__th">Examinateur</th>
-                        <th class="cm-data-table__th">Encadreur</th>
-                        <th class="cm-data-table__th">Maître stage</th>
+                        <th class="cm-data-table__th">Encadreur Péda.</th>
+                        <th class="cm-data-table__th">Maître de stage</th>
                         <th class="cm-data-table__th is-center">Actions</th>
                     </tr>
                     </thead>
@@ -269,7 +271,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                     <?php if (empty($rowsToShow)): ?>
                         <?php cm_component('ui/empty-state', [
                             'in_table' => true,
-                            'colspan' => 14,
+                            'colspan' => 12,
                             'title' => '',
                             'message' => 'Aucune soutenance programmee pour le moment.',
                         ]); ?>
@@ -305,7 +307,6 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                                 <td class="cm-data-table__td cm-data-table__td--check">
                                     <input type="checkbox" class="cm-prog-check-row" value="<?php echo $idAttribution; ?>" aria-label="Sélectionner ligne <?php echo $idAttribution; ?>">
                                 </td>
-                                <td class="cm-data-table__td"><?php echo (int) ($pagination['offset'] ?? 0) + $index + 1; ?></td>
                                 <td class="cm-data-table__td">
                                     <?php echo htmlspecialchars($nomEtudiant, ENT_QUOTES, 'UTF-8'); ?><br>
                                     <small><?php echo htmlspecialchars($matricule, ENT_QUOTES, 'UTF-8'); ?></small>
@@ -314,7 +315,6 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($dateDisplay, ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($heureDisplay, ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($salleNom !== '' ? $salleNom : '-', ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td class="cm-data-table__td"><?php echo htmlspecialchars($theme !== '' ? $theme : '-', ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($row['president_nom'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($row['directeur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($row['examinateur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -591,16 +591,16 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
         return apiCall('deleteAttribution', { id: id });
     }
     function exportVisibleRows() {
-        const headers = ['N', 'Etudiant', 'Promotion', 'Date soutenance', 'Heure', 'Salle', 'Thème', 'President', 'Dir.M', 'Exam.', 'Enc.', 'MS'];
+        const headers = ['Etudiant', 'Promotion', 'Date soutenance', 'Heure', 'Salle', 'President', 'Dir. memoire', 'Examinateur', 'Encadreur Ped.', 'Maitre stage'];
         const rows = [headers.join(';')];
         getVisibleRows().forEach(function (row) {
             const cells = row.querySelectorAll('.cm-data-table__td');
-            if (cells.length < 13) {
+            if (cells.length < 11) {
                 return;
             }
             const line = [
-                cells[1].innerText.trim(),
-                cells[2].innerText.trim().replace(/\s+/g, ' '),
+                cells[1].innerText.trim().replace(/\s+/g, ' '),
+                cells[2].innerText.trim(),
                 cells[3].innerText.trim(),
                 cells[4].innerText.trim(),
                 cells[5].innerText.trim(),
@@ -608,9 +608,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 cells[7].innerText.trim(),
                 cells[8].innerText.trim(),
                 cells[9].innerText.trim(),
-                cells[10].innerText.trim(),
-                cells[11].innerText.trim(),
-                cells[12].innerText.trim()
+                cells[10].innerText.trim()
             ].map(function (value) {
                 return '\"' + value.replace(/\"/g, '\"\"') + '\"';
             });

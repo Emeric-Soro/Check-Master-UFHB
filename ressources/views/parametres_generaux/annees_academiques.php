@@ -15,6 +15,17 @@ cm_render_param_crud_view([
     'message_success' => (string) ($GLOBALS['messageSuccess'] ?? ''),
     'message_error' => (string) ($GLOBALS['messageErreur'] ?? ''),
     'search_fields' => ['id_annee_acad', 'date_deb', 'date_fin'],
+    'no_delete' => true,
+    'extra_table_actions' => [
+        [
+            'tag' => 'button',
+            'type' => 'button',
+            'label' => 'Désactiver/Activer',
+            'icon' => 'fa-toggle-on',
+            'class' => 'cm-btn-action is-toggle',
+            'attrs' => ['data-toggle-annee' => '1'],
+        ],
+    ],
     'add_button_name' => 'btn_add_annees_academiques',
     'edit_button_name' => 'btn_modifier_annees_academiques',
     'add_button_label' => 'Ajouter',
@@ -22,7 +33,7 @@ cm_render_param_crud_view([
     'form_fields' => [
         [
             'name' => 'date_debut',
-            'label' => 'Date debut',
+            'label' => 'Date début',
             'type' => 'date',
             'required' => true,
             'value_key' => 'date_deb',
@@ -37,7 +48,7 @@ cm_render_param_crud_view([
     ],
     'columns' => [
         ['key' => 'id_annee_acad', 'label' => 'Code'],
-        ['key' => 'annee_lib', 'label' => 'Année', 'value' => static function ($row): string {
+        ['key' => 'annee_lib', 'label' => 'Année académique', 'value' => static function ($row): string {
             $dateDebut = (string) ($row->date_deb ?? '');
             $dateFin = (string) ($row->date_fin ?? '');
             if ($dateDebut === '' || $dateFin === '') {
@@ -48,7 +59,11 @@ cm_render_param_crud_view([
             $y2 = date('Y', strtotime($dateFin));
             return $y1 . '-' . $y2;
         }],
-        ['key' => 'date_debut', 'label' => 'Date debut', 'source' => 'date_deb'],
+        ['key' => 'date_debut', 'label' => 'Date début', 'source' => 'date_deb'],
         ['key' => 'date_fin', 'label' => 'Date fin'],
+        ['key' => 'statut', 'label' => 'Statut', 'value' => static function ($row): string {
+            $active = (int) ($row->actif ?? $row->statut ?? 0);
+            return $active ? 'Actif' : 'Inactif';
+        }],
     ],
 ]);

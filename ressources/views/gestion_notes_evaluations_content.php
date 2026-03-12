@@ -189,6 +189,8 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                     'readonly' => true,
                     'value' => (string) ($selectedStudent->num_carte_etud ?? ''),
                     'control_class' => 'cm-field-md',
+                    'maxlength' => 15,
+                    'attrs' => ['size' => '15'],
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'nom_display',
@@ -231,16 +233,18 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                 ?>
             </div>
             <div class="cm-form-buttons">
-                <?php if (canCreate() || canEdit()): ?>
-                    <button class="cm-btn is-success" type="submit" name="btn_enregistrer_notes">
-                        <i class="fas fa-check" aria-hidden="true"></i>
-                        Valider
-                    </button>
-                <?php endif; ?>
-                <button class="cm-btn is-light" type="reset" id="cmResetNotes">
-                    <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                    Réinitialiser
-                </button>
+                <?php
+                $notesFormActions = [
+                    ['label' => 'Réinitialiser', 'type' => 'reset', 'class' => 'cm-btn is-secondary is-sm', 'attrs' => ['id' => 'cmResetNotes']],
+                ];
+                if (canCreate() || canEdit()) {
+                    $notesFormActions[] = ['label' => 'Valider', 'type' => 'submit', 'class' => 'cm-btn is-primary is-sm', 'attrs' => ['name' => 'btn_enregistrer_notes']];
+                }
+                cm_component('crud/form-actions', [
+                    'cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']],
+                    'actions' => $notesFormActions,
+                ]);
+                ?>
             </div>
         </form>
     </div>
@@ -261,10 +265,9 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                     <th class="cm-data-table__th is-checkbox">
                         <input type="checkbox" id="cmCheckAllNotes" class="cm-checkbox" aria-label="Sélectionner toutes les lignes">
                     </th>
-                    <th class="cm-data-table__th">N° Etudiant</th>
-                    <th class="cm-data-table__th">Nom</th>
-                    <th class="cm-data-table__th">Prénom</th>
-                    <th class="cm-data-table__th">Année Acad.</th>
+                    <th class="cm-data-table__th">N° Carte Étudiant</th>
+                    <th class="cm-data-table__th">Nom &amp; Prénom</th>
+                    <th class="cm-data-table__th">Année Académique</th>
                     <th class="cm-data-table__th">Moy. M1</th>
                     <th class="cm-data-table__th">Moy. M2</th>
                     <th class="cm-data-table__th">Date saisie</th>
@@ -275,7 +278,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                 <?php if (empty($notesToShow)): ?>
                     <?php cm_component('ui/empty-state', [
                         'in_table' => true,
-                        'colspan' => 9,
+                        'colspan' => 8,
                         'title' => '',
                         'message' => $notesEmptyMessage,
                     ]); ?>
@@ -285,6 +288,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                         $numEtu = (string) ($note->num_carte_etud ?? $note->num_etu ?? '');
                         $nom = (string) ($note->nom_etu ?? '');
                         $prenom = (string) ($note->prenom_etu ?? '');
+                        $nomPrenom = trim($nom . ' ' . $prenom);
                         $m1 = (string) ($note->moyenne_M1 ?? $note->moyenne_m1 ?? '');
                         $m2 = (string) ($note->moyenne_M2 ?? $note->moyenne_m2 ?? '');
                         $anneeNoteId = !empty($note->id_annee_acad) ? (int) $note->id_annee_acad : null;
@@ -304,8 +308,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                                 <input type="checkbox" class="cm-checkbox cm-row-checkbox">
                             </td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="cm-data-table__td"><?php echo htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="cm-data-table__td"><?php echo htmlspecialchars($prenom, ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td class="cm-data-table__td"><?php echo htmlspecialchars($nomPrenom, ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars($anneeNote !== '' ? $anneeNote : '-', ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars($m1, ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars($m2, ENT_QUOTES, 'UTF-8'); ?></td>
@@ -580,7 +583,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
         window.print();
     });
     document.getElementById('cmExportNotes') && document.getElementById('cmExportNotes').addEventListener('click', function () {
-        const headers = ['N° Etudiant', 'Nom', 'Prénom', 'Année Acad.', 'Moy. M1', 'Moy. M2', 'Date saisie'];
+        const headers = ['N° Carte Étudiant', 'Nom & Prénom', 'Année Académique', 'Moy. M1', 'Moy. M2', 'Date saisie'];
         const lines = [headers.join(';')];
         noteRows().forEach(function (row) {
             if (row.style.display === 'none') {

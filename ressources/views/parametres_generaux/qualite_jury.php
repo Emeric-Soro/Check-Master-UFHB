@@ -27,6 +27,8 @@ cm_render_param_crud_view([
             'required' => true,
             'placeholder' => 'Ex: PJ',
             'value_key' => 'code_qltjury',
+            'size' => 'sm',
+            'attrs' => ['maxlength' => '10'],
         ],
         [
             'name' => 'lib_role',

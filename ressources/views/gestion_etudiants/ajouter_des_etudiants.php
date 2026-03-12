@@ -231,7 +231,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                             Annuler
                         </a>
                         <?php if (canEdit()): ?>
-                            <button class="cm-btn is-success" type="submit" name="submit_modifier_etudiant">
+                            <button class="cm-btn is-primary" type="submit" name="submit_modifier_etudiant">
                                 <i class="fas fa-floppy-disk" aria-hidden="true"></i>
                                 Modifier
                             </button>
@@ -242,7 +242,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                             Réinitialiser
                         </button>
                         <?php if (canCreate()): ?>
-                            <button class="cm-btn is-success" type="submit" name="submit_add_etudiant">
+                            <button class="cm-btn is-primary" type="submit" name="submit_add_etudiant">
                                 <i class="fas fa-floppy-disk" aria-hidden="true"></i>
                                 Enregistrer
                             </button>

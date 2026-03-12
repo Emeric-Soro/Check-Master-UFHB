@@ -44,6 +44,7 @@ foreach ($backups as $backup) {
                     'name' => 'backup_name',
                     'label' => 'Nom sauvegarde (optionnel)',
                     'placeholder' => 'Ex: avant_migration',
+                    'value' => 'backup_' . date('Ymd_His'),
                 ]); ?>
             </div>
             <?php cm_component('crud/form-actions', [
@@ -52,7 +53,7 @@ foreach ($backups as $backup) {
                     'type' => 'submit',
                     'label' => 'Creer une sauvegarde',
                     'icon' => 'fa-database',
-                    'class' => 'cm-btn is-success',
+                    'class' => 'cm-btn is-primary',
                 ]],
             ]); ?>
         </form>
@@ -106,9 +107,9 @@ foreach ($backups as $backup) {
             cm_component('crud/data-table', [
                 'id' => 'cmBackupTable',
                 'columns' => [
-                    cm_column('filename', 'Nom fichier'),
+                    cm_column('filename', 'Nom du fichier'),
                     cm_column('size', 'Taille'),
-                    cm_column('created_at', 'Date creation'),
+                    cm_column('created_at', 'Date création'),
                     cm_column('type', 'Type', ['type' => 'badge', 'align' => 'center']),
                 ],
                 'rows' => $rows,

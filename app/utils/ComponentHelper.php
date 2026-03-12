@@ -142,7 +142,7 @@ if (!function_exists('cm_render_param_crud_view')) {
         $searchParam = (string) ($config['search_param'] ?? 'search');
         $limitParam = (string) ($config['limit_param'] ?? 'limit');
         $pageParam = (string) ($config['page_param'] ?? 'p');
-        $perPageOptions = is_array($config['per_page_options'] ?? null) ? $config['per_page_options'] : [10, 25, 50, 100];
+        $perPageOptions = is_array($config['per_page_options'] ?? null) ? $config['per_page_options'] : [5, 10, 25, 50, 100];
         $searchFields = is_array($config['search_fields'] ?? null) ? $config['search_fields'] : [];
         $formFields = is_array($config['form_fields'] ?? null) ? $config['form_fields'] : [];
         $columnDefs = is_array($config['columns'] ?? null) ? $config['columns'] : [];
@@ -404,45 +404,41 @@ if (!function_exists('cm_render_param_crud_view')) {
             ?>
 
             <?php
+            $cancelAction = $isEdit
+                ? ['tag' => 'a', 'href' => $baseUrl, 'label' => 'Annuler', 'class' => 'cm-btn is-light is-sm']
+                : ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']];
             $actions = [];
+            $actions[] = [
+                'tag' => 'button',
+                'type' => 'reset',
+                'label' => 'Réinitialiser',
+                'icon' => 'fa-rotate-left',
+                'class' => 'cm-btn is-secondary is-sm',
+            ];
             if ($isEdit) {
-                $actions[] = [
-                    'tag' => 'a',
-                    'href' => $baseUrl,
-                    'label' => 'Annuler',
-                    'icon' => 'fa-xmark',
-                    'class' => 'cm-btn is-light',
-                ];
                 if (function_exists('canEdit') ? canEdit() : true) {
                     $actions[] = [
                         'tag' => 'button',
                         'type' => 'submit',
                         'label' => $editButtonLabel,
                         'icon' => 'fa-floppy-disk',
-                        'class' => 'cm-btn is-success',
+                        'class' => 'cm-btn is-primary is-sm',
                         'attrs' => ['name' => $editButtonName],
                     ];
                 }
             } else {
-                $actions[] = [
-                    'tag' => 'button',
-                    'type' => 'reset',
-                    'label' => 'Reinitialiser',
-                    'icon' => 'fa-rotate-left',
-                    'class' => 'cm-btn is-light',
-                ];
                 if (function_exists('canCreate') ? canCreate() : true) {
                     $actions[] = [
                         'tag' => 'button',
                         'type' => 'submit',
                         'label' => $addButtonLabel,
                         'icon' => 'fa-floppy-disk',
-                        'class' => 'cm-btn is-success',
+                        'class' => 'cm-btn is-primary is-sm',
                         'attrs' => ['name' => $addButtonName],
                     ];
                 }
             }
-            cm_component('crud/form-actions', ['actions' => $actions]);
+            cm_component('crud/form-actions', ['actions' => $actions, 'cancel_action' => $cancelAction]);
             ?>
         </form>
         <?php
@@ -492,21 +488,21 @@ if (!function_exists('cm_render_param_crud_view')) {
             <div class="cm-toolbar__actions">
                 <?php if (function_exists('canDelete') ? canDelete() : true): ?>
                     <button type="button" id="<?= htmlspecialchars($selectAllBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-info is-sm">
+                        class="cm-btn is-secondary is-sm" data-select-all="1">
                         <span>Tout sélectionner</span>
                     </button>
                     <button type="button" id="<?= htmlspecialchars($deselectAllBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-light is-sm">
+                        class="cm-btn is-secondary is-sm" data-deselect-all="1">
                         <span>Tout désélectionner</span>
                     </button>
                     <button type="button" id="<?= htmlspecialchars($deleteBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-danger is-sm" disabled>
+                        class="cm-btn is-danger is-sm" data-bulk-delete="1" disabled>
                         <span>Supprimer (<span id="<?= htmlspecialchars($selectedCountId, ENT_QUOTES, 'UTF-8') ?>">0</span>)</span>
                     </button>
                 <?php endif; ?>
                 <?php if (function_exists('canView') ? canView() : true): ?>
                     <button type="button" id="<?= htmlspecialchars($printBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-info is-sm">
+                        class="cm-btn is-light is-sm">
                         <span>Imprimer</span>
                     </button>
                     <!-- <button type="button" id="<?= htmlspecialchars($exportBtnId, ENT_QUOTES, 'UTF-8') ?>"
@@ -529,6 +525,8 @@ if (!function_exists('cm_render_param_crud_view')) {
         $toolbarHtml = (string) ob_get_clean();
 
         $tableActions = [];
+        $noDelete = !empty($config['no_delete']);
+        $extraTableActions = is_array($config['extra_table_actions'] ?? null) ? $config['extra_table_actions'] : [];
         if (function_exists('canEdit') ? canEdit() : true) {
             $tableActions[] = [
                 'tag' => 'button',
@@ -538,7 +536,10 @@ if (!function_exists('cm_render_param_crud_view')) {
                 'class' => 'cm-btn-action is-edit',
             ];
         }
-        if (function_exists('canDelete') ? canDelete() : true) {
+        foreach ($extraTableActions as $extraAction) {
+            $tableActions[] = $extraAction;
+        }
+        if (!$noDelete && (function_exists('canDelete') ? canDelete() : true)) {
             $tableActions[] = [
                 'tag' => 'button',
                 'type' => 'button',
@@ -1022,7 +1023,7 @@ if (!function_exists('cm_toolbar')) {
 
         // Pagination
         $limit = (int) ($config['limit'] ?? 10);
-        $limitOptions = is_array($config['limit_options'] ?? null) ? $config['limit_options'] : [10, 25, 50, 100];
+        $limitOptions = is_array($config['limit_options'] ?? null) ? $config['limit_options'] : [5, 10, 25, 50, 100];
         $limitName = (string) ($config['limit_name'] ?? 'limit');
 
         // Actions visibility
@@ -1175,11 +1176,11 @@ if (!function_exists('cm_toolbar')) {
                         <!-- Groupe Sélection -->
                         <div class="cm-toolbar__actions-group" role="group" aria-label="Actions de sélection">
                             <button type="button" id="<?= htmlspecialchars($selectAllId, ENT_QUOTES, 'UTF-8') ?>"
-                                class="cm-btn is-light is-sm" title="Tout sélectionner" data-cm-toolbar-action="select-all">
+                                class="cm-btn is-secondary is-sm" title="Tout sélectionner" data-cm-toolbar-action="select-all">
                                 <span>Tout sélectionner</span>
                             </button>
                             <button type="button" id="<?= htmlspecialchars($deselectAllId, ENT_QUOTES, 'UTF-8') ?>"
-                                class="cm-btn is-light is-sm" title="Tout désélectionner" data-cm-toolbar-action="deselect-all">
+                                class="cm-btn is-secondary is-sm" title="Tout désélectionner" data-cm-toolbar-action="deselect-all">
                                 <span>Tout désélectionner</span>
                             </button>
                         </div>
@@ -1198,7 +1199,7 @@ if (!function_exists('cm_toolbar')) {
                                 <span>Exporter</span>
                             </button> -->
                             <button type="button" id="<?= htmlspecialchars($printBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                                class="cm-btn is-info is-sm" title="Imprimer" data-cm-toolbar-action="print">
+                                class="cm-btn is-light is-sm" title="Imprimer" data-cm-toolbar-action="print">
                                 <span>Imprimer</span>
                             </button>
                         <?php endif; ?>

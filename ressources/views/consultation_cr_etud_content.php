@@ -20,7 +20,10 @@ $compte_rendu = $numEtu !== null ? $etudiantModel->getCompteRendu($numEtu) : nul
             <div class="cm-etu-empty">
                 <i class="fas fa-hourglass-half" aria-hidden="true"></i>
                 <p>Aucun compte rendu n\'est disponible pour le moment.</p>
-                <a href="?page=candidature_soutenance" class="cm-btn is-primary is-sm">Retour à ma candidature</a>
+                <a href="?page=candidature_soutenance" class="cm-btn is-primary is-sm">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    Retour à ma candidature
+                </a>
             </div>
         <?php else: ?>
             <?php
@@ -54,7 +57,10 @@ $compte_rendu = $numEtu !== null ? $etudiantModel->getCompteRendu($numEtu) : nul
 
                 <footer class="cm-etu-doc-card__footer">
                     <span>Numéro étudiant : <strong><?= htmlspecialchars((string) ($compte_rendu['num_etu'] ?? $numEtu ?? 'N/A'), ENT_QUOTES, 'UTF-8') ?></strong></span>
-                    <a href="?page=candidature_soutenance" class="cm-btn is-light is-sm">Retour à ma candidature</a>
+                    <a href="?page=candidature_soutenance" class="cm-btn is-light is-sm">
+                        <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                        Retour à ma candidature
+                    </a>
                 </footer>
             </article>
 

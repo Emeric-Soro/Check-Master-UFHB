@@ -159,7 +159,7 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
                         'type' => 'submit',
                         'label' => 'Appliquer',
                         'icon' => 'fa-search',
-                        'class' => 'cm-btn is-success',
+                        'class' => 'cm-btn is-primary',
                     ],
                 ],
             ]);
@@ -209,24 +209,24 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
             cm_component('crud/data-table', [
                 'id' => 'cmAuditTable',
                 'columns' => [
-                    cm_column('date_creation', 'Date'),
-                    cm_column('action', 'Action'),
-                    cm_column('nom_table', 'Table'),
+                    cm_column('date_creation', 'Date &amp; Heure'),
+                    cm_column('action', 'Action effectuée'),
+                    cm_column('nom_table', 'Table affectée'),
                     cm_column('utilisateur', 'Utilisateur'),
                     cm_column('statut_action', 'Statut', ['type' => 'badge', 'align' => 'center']),
                 ],
                 'rows' => $rows,
                 'row_key' => 'id',
                 'selectable' => false,
-                'actions' => (function_exists('canDelete') ? canDelete() : true) ? [[
+                'actions' => [[
                     'tag' => 'button',
                     'type' => 'button',
-                    'label' => 'Supprimer',
-                    'icon' => 'fa-trash',
-                    'class' => 'cm-btn-action is-delete',
-                ]] : [],
+                    'label' => 'Voir détail',
+                    'icon' => 'fa-eye',
+                    'class' => 'cm-btn-action is-info js-audit-detail',
+                ]],
                 'empty_title' => 'Aucun log',
-                'empty_message' => 'Aucune ligne trouvee pour ces filtres.',
+                'empty_message' => 'Aucune ligne trouvée pour ces filtres.',
             ]);
             ?>
 
@@ -254,7 +254,15 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
     }
 
     table.addEventListener('click', async function (event) {
+        const detailButton = event.target.closest('.js-audit-detail');
         const deleteButton = event.target.closest('.cm-btn-action.is-delete');
+        if (detailButton) {
+            const id = detailButton.getAttribute('data-row-id') || '';
+            if (id !== '') {
+                window.location.href = '?page=piste_audit&action=voir&id=' + encodeURIComponent(id);
+            }
+            return;
+        }
         if (!deleteButton) {
             return;
         }

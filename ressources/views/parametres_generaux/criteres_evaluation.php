@@ -26,21 +26,26 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
             </div>
             <?php
             cm_component('crud/form-actions', [
+                'cancel_action' => [
+                    'label' => 'Annuler',
+                    'type' => 'button',
+                    'class' => 'cm-btn is-light is-sm',
+                    'attrs' => ['data-reset-form' => '1', 'id' => 'cmResetCritereForm'],
+                ],
                 'actions' => [
                     [
                         'tag' => 'button',
-                        'type' => 'button',
+                        'type' => 'reset',
                         'label' => 'Réinitialiser',
                         'icon' => 'fa-rotate-left',
-                        'class' => 'cm-btn is-light',
-                        'attrs' => ['id' => 'cmResetCritereForm'],
+                        'class' => 'cm-btn is-secondary is-sm',
                     ],
                     [
                         'tag' => 'button',
                         'type' => 'submit',
                         'label' => 'Enregistrer',
                         'icon' => 'fa-save',
-                        'class' => 'cm-btn is-success',
+                        'class' => 'cm-btn is-primary is-sm',
                         'attrs' => ['id' => 'cmSubmitCritere'],
                     ],
                 ],
@@ -322,6 +327,10 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
             addBaremeRow('', '');
         });
     }
+    form.addEventListener('reset', function () {
+        setTimeout(resetForm, 0);
+    });
+
     if (resetBtn) {
         resetBtn.addEventListener('click', function () {
             resetForm();
@@ -360,8 +369,8 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
     tableBody.addEventListener('click', async function (event) {
         const editBtn = event.target.closest('.js-edit');
         if (editBtn) {
-            const id = Number(editBtn.getAttribute('data-id') || '0');
-            const row = criteres.find(function (c) { return Number(c.id) === id; });
+            const id = String(editBtn.getAttribute('data-id') || '');
+            const row = criteres.find(function (c) { return String(c.id || '') === id; });
             if (!row) {
                 return;
             }
@@ -380,7 +389,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
 
         const deleteBtn = event.target.closest('.js-delete');
         if (deleteBtn) {
-            const id = Number(deleteBtn.getAttribute('data-id') || '0');
+            const id = String(deleteBtn.getAttribute('data-id') || '');
             if (!id) {
                 return;
             }
@@ -450,4 +459,3 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
     });
 })();
 </script>
-

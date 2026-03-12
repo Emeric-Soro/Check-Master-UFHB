@@ -193,18 +193,19 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
             ]);
             ?>
             <div class="cm-form-buttons">
-                <button type="button" class="cm-btn is-success" id="cmApplyTraitement">
-                    <i class="fas fa-check" aria-hidden="true"></i>
-                    Appliquer le traitement
-                </button>
-                <a href="#" id="cmOpenRapportFromForm" class="cm-btn is-info cm-hidden" target="_blank">
+                <?php
+                cm_component('crud/form-actions', [
+                    'cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']],
+                    'actions' => [
+                        ['label' => 'Réinitialiser', 'type' => 'button', 'class' => 'cm-btn is-secondary is-sm', 'attrs' => ['id' => 'cmResetTraitement']],
+                        ['label' => 'Appliquer le traitement', 'type' => 'button', 'class' => 'cm-btn is-primary is-sm', 'attrs' => ['id' => 'cmApplyTraitement']],
+                    ],
+                ]);
+                ?>
+                <a href="#" id="cmOpenRapportFromForm" class="cm-btn is-info is-sm cm-hidden" target="_blank">
                     <i class="fas fa-eye" aria-hidden="true"></i>
                     Consulter le rapport
                 </a>
-                <button type="button" class="cm-btn is-light" id="cmResetTraitement">
-                    <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                    Réinitialiser
-                </button>
             </div>
         </form>
     </div>
@@ -225,24 +226,22 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                     <th class="cm-data-table__th is-checkbox">
                         <input type="checkbox" id="cmCheckAllCandidatures" class="cm-checkbox" aria-label="Sélectionner toutes les lignes">
                     </th>
-                    <th class="cm-data-table__th">N°C</th>
-                    <th class="cm-data-table__th">N° Etud.</th>
-                    <th class="cm-data-table__th">Nom & Prenom</th>
+                    <th class="cm-data-table__th">N° Carte</th>
+                    <th class="cm-data-table__th">Nom &amp; Prénom</th>
                     <th class="cm-data-table__th">Promotion</th>
-                    <th class="cm-data-table__th">Niveau</th>
-                    <th class="cm-data-table__th">M1</th>
-                    <th class="cm-data-table__th">M2</th>
-                    <th class="cm-data-table__th">Verse</th>
+                    <th class="cm-data-table__th">Moy. M1</th>
+                    <th class="cm-data-table__th">Moy. M2</th>
+                    <th class="cm-data-table__th">Montant versé</th>
                     <th class="cm-data-table__th">Reste</th>
                     <th class="cm-data-table__th">Statut paiement</th>
-                    <th class="cm-data-table__th">Detail</th>
+                    <th class="cm-data-table__th">Actions</th>
                 </tr>
                 </thead>
                 <tbody id="cmCandidaturesTableBody">
                 <?php if (empty($rowsPage)): ?>
                     <?php cm_component('ui/empty-state', [
                         'in_table' => true,
-                        'colspan' => 12,
+                        'colspan' => 10,
                         'title' => '',
                         'message' => 'Aucune candidature verifiee disponible.',
                     ]); ?>
@@ -263,11 +262,9 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                             <td class="cm-data-table__td is-checkbox">
                                 <input type="checkbox" class="cm-checkbox cm-row-checkbox">
                             </td>
-                            <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['id_rapport'], ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['num_etu'], ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['nom_complet'], ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['promotion'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['niveau'], ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo $row['m1'] !== null ? htmlspecialchars(number_format((float) $row['m1'], 2), ENT_QUOTES, 'UTF-8') : '-'; ?></td>
                             <td class="cm-data-table__td"><?php echo $row['m2'] !== null ? htmlspecialchars(number_format((float) $row['m2'], 2), ENT_QUOTES, 'UTF-8') : '-'; ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars(number_format((float) $row['montant_verse'], 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?></td>
@@ -282,7 +279,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                             </td>
                         </tr>
                         <tr id="cmCandDetail_<?php echo (int) $row['id_rapport']; ?>" class="cm-cand-detail-row cm-hidden">
-                            <td class="cm-data-table__td" colspan="12">
+                            <td class="cm-data-table__td" colspan="10">
                                 <div class="cm-grid-4">
                                     <div><strong>Date Cand.</strong><br><?php echo !empty($row['date_candidature']) ? htmlspecialchars(date('d/m/Y', strtotime((string) $row['date_candidature'])), ENT_QUOTES, 'UTF-8') : '-'; ?></div>
                                     <div><strong>Promotion</strong><br><?php echo htmlspecialchars((string) $row['promotion'], ENT_QUOTES, 'UTF-8'); ?></div>
@@ -313,7 +310,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                                         PDF
                                     </a>
                                     <button type="button"
-                                            class="cm-btn is-success cm-pick-traitement"
+                                            class="cm-btn is-primary cm-pick-traitement"
                                             data-id="<?php echo (int) $row['id_rapport']; ?>"
                                             data-etudiant="<?php echo htmlspecialchars((string) $row['nom_complet'], ENT_QUOTES, 'UTF-8'); ?>"
                                             data-date="<?php echo htmlspecialchars($dateCandIso, ENT_QUOTES, 'UTF-8'); ?>"

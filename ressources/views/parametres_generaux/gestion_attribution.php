@@ -106,7 +106,7 @@ $isEditable = function_exists('canEdit') ? (bool) canEdit() : true;
             ['tag' => 'button', 'type' => 'button', 'id' => 'cmAttribUncheckAll', 'label' => 'Tout decocher', 'class' => 'cm-btn is-light is-sm'],
         ];
         if ($selectedGroupeId !== '' && $isEditable) {
-            $attribActions[] = ['tag' => 'button', 'type' => 'submit', 'label' => 'Enregistrer', 'class' => 'cm-btn is-success is-sm', 'attrs' => ['form' => 'cmAttribForm']];
+            $attribActions[] = ['tag' => 'button', 'type' => 'submit', 'label' => 'Enregistrer', 'class' => 'cm-btn is-primary is-sm', 'attrs' => ['form' => 'cmAttribForm']];
         }
         cm_toolbar([
             'screen' => 'gestion_attribution',

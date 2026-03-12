@@ -181,10 +181,11 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
             const ctx = document.getElementById('chartRepartitionRapports');
             if (ctx && typeof Chart !== 'undefined') {
                 new Chart(ctx, {
-                    type: 'doughnut',
+                    type: 'bar',
                     data: {
                         labels: ['Validés', 'En attente', 'Rejetés'],
                         datasets: [{
+                            label: 'Rapports',
                             data: [<?php echo $valides; ?>, <?php echo $enAttente; ?>, <?php echo $rejetes; ?>],
                             backgroundColor: ['#10b981', '#3b82f6', '#ef4444'],
                             borderColor: ['#059669', '#2563eb', '#dc2626'],
@@ -202,13 +203,17 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
                                 callbacks: {
                                     label: function (context) {
                                         const label = context.label || '';
-                                        const value = context.parsed || 0;
+                                        const value = context.parsed.y || 0;
                                         const total = <?php echo $totalRapports; ?>;
                                         const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
                                         return label + ': ' + value + ' (' + percentage + '%)';
                                     }
                                 }
                             }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: { beginAtZero: true, ticks: { precision: 0 } }
                         }
                     }
                 });
@@ -241,7 +246,7 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
                         </a>
                     <?php endif; ?>
                     <?php if (canCreate()): ?>
-                        <a class="cm-btn is-success" href="?page=redaction_compte_rendu" data-cm-ajax-link="true">
+                        <a class="cm-btn is-primary" href="?page=redaction_compte_rendu" data-cm-ajax-link="true">
                             <i class="fas fa-pen-to-square" aria-hidden="true"></i>
                             Rédaction CR
                         </a>
