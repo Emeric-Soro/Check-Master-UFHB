@@ -362,23 +362,3 @@ $studentsPagerBase = '?page=admin_historique&tab=students&' . http_build_query(a
     </div>
 </section>
 
-<style>
-.cm-tab-container { background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: hidden; margin-top: 1rem; }
-.cm-tab-links { display: flex; background: #f8f9fa; border-bottom: 1px solid #eee; padding: 0 1rem; }
-.cm-tab-link { padding: 1rem 1.5rem; color: #666; text-decoration: none; border-bottom: 3px solid transparent; transition: all 0.2s; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; }
-.cm-tab-link:hover { color: var(--cm-primary); background: rgba(0,0,0,0.02); }
-.cm-tab-link.is-active { color: var(--cm-primary); border-bottom-color: var(--cm-primary); background: #fff; }
-.cm-tab-content { padding: 2rem; }
-.cm-timeline { position: relative; padding-left: 2rem; border-left: 2px solid #eee; margin-left: 1rem; }
-.cm-timeline-item { position: relative; margin-bottom: 1.5rem; }
-.cm-timeline-item::before { content: ''; position: absolute; left: -2.45rem; top: 0.25rem; width: 12px; height: 12px; border-radius: 50%; background: var(--cm-primary); border: 2px solid #fff; }
-.cm-timeline-date { font-size: 0.85rem; color: #999; margin-bottom: 0.25rem; }
-.cm-screen-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-.cm-screen-header__title { display: flex; align-items: center; gap: 1rem; }
-.cm-screen-header__title h1 { margin: 0; font-size: 1.5rem; }
-.cm-screen-header__title i { font-size: 1.5rem; color: var(--cm-primary); }
-.cm-mb-6 { margin-bottom: 1.5rem; }
-.cm-mb-4 { margin-bottom: 1rem; }
-.cm-py-8 { padding-top: 2rem; padding-bottom: 2rem; }
-.is-right { text-align: right; }
-</style>
