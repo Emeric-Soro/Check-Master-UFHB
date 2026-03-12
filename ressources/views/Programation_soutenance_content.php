@@ -115,9 +115,7 @@ $allYearsSelected = \AcademicYear::isAllSelectedFromSession();
 $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
 ?>
 <div class="cm-prd3-screen cm-prd3-crud-screen">
-        <div class="">
-            <div class="">
-            </div>
+        <div class="cm-pole-superieur is-compact">
             <form id="cmProgForm" autocomplete="off">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" id="cmProgEditId" value="">
@@ -133,7 +131,15 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         'label' => 'Etudiant',
                         'required' => true,
                         'options' => $studentOptions,
-                        'control_class' => 'cm-field-lg',
+                        'control_class' => 'cm-field-lg cm-size-personne',
+                    ]);
+                    cm_component('form/select', [
+                        'name' => 'cm_prog_salle',
+                        'id' => 'cmProgSalle',
+                        'label' => 'Salle',
+                        'required' => true,
+                        'options' => $salleOptions,
+                        'control_class' => 'cm-field-md cm-size-salle',
                     ]);
                     cm_component('form/input-date', [
                         'name' => 'cm_prog_date',
@@ -141,7 +147,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         'label' => 'Date soutenance',
                         'required' => true,
                         'value' => date('Y-m-d'),
-                        'control_class' => 'cm-field-sm',
+                        'control_class' => 'cm-field-sm cm-size-date',
                         'attrs' => ['size' => '10'],
                     ]);
                     cm_component('form/input-text', [
@@ -150,33 +156,22 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         'label' => 'Heure',
                         'required' => true,
                         'value' => date('H:i'),
-                        'attrs' => ['placeholder' => 'HH:MM', 'size' => '5'],
-                        'control_class' => 'cm-field-xs',
-                    ]);
-                    cm_component('form/select', [
-                        'name' => 'cm_prog_salle',
-                        'id' => 'cmProgSalle',
-                        'label' => 'Salle',
-                        'required' => true,
-                        'options' => $salleOptions,
-                        'control_class' => 'cm-field-md',
+                        'attrs' => ['placeholder' => 'HH:MM', 'size' => '5', 'maxlength' => '5'],
+                        'control_class' => 'cm-field-xs cm-size-heure',
                     ]);
                     ?>
                 </div>
-                <div class="cm-grid-2">
-                    <?php
-                    cm_component('form/input-text', [
-                        'name' => 'cm_prog_theme',
-                        'id' => 'cmProgTheme',
-                        'label' => 'Theme',
-                        'required' => true,
-                        'placeholder' => 'Theme de soutenance',
-                        'control_class' => 'cm-field-xl',
-                    ]);
-                    ?>
-                </div>
-                <div class="">
-                </div>
+                <?php
+                cm_component('form/textarea', [
+                    'name' => 'cm_prog_theme',
+                    'id' => 'cmProgTheme',
+                    'label' => 'Theme',
+                    'required' => true,
+                    'rows' => 2,
+                    'placeholder' => 'Theme de soutenance',
+                    'control_class' => 'cm-field-full cm-size-theme',
+                ]);
+                ?>
                 <div class="cm-grid-3">
                     <?php
                     cm_component('form/select', [
@@ -185,7 +180,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         'label' => 'President',
                         'required' => true,
                         'options' => $presidentOptions,
-                        'control_class' => 'cm-field-lg',
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
                     cm_component('form/select', [
                         'name' => 'cm_prog_examinateur',
@@ -193,28 +188,32 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         'label' => 'Examinateur',
                         'required' => true,
                         'options' => $enseignantOptions,
-                        'control_class' => 'cm-field-lg',
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_directeur',
                         'id' => 'cmProgDirecteur',
                         'label' => 'Dir. mémoire',
                         'readonly' => true,
-                        'control_class' => 'cm-field-lg',
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
+                    ?>
+                </div>
+                <div class="cm-grid-2">
+                    <?php
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_encadreur',
                         'id' => 'cmProgEncadreur',
                         'label' => 'Encadreur P.',
                         'readonly' => true,
-                        'control_class' => 'cm-field-lg',
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_maitre',
                         'id' => 'cmProgMaitreStage',
                         'label' => 'Maître stage',
                         'readonly' => true,
-                        'control_class' => 'cm-field-lg',
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
                     ?>
                 </div>

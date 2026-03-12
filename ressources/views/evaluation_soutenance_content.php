@@ -89,7 +89,7 @@ foreach ($soutenances as $soutenance) {
     <div id="cmEvalSoutAlert"></div>
 
     <div class="cm-crud-wrapper">
-        <div class="cm-pole-superieur">
+        <div class="cm-pole-superieur is-compact">
             <form id="cmEvalSoutForm" method="POST" action="?page=evaluation_soutenance" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" name="action" value="evaluer">
@@ -103,21 +103,27 @@ foreach ($soutenances as $soutenance) {
                         'label' => 'Etudiant',
                         'required' => true,
                         'options' => $soutenanceOptions,
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_eval_promotion',
                         'id' => 'cmEvalPromotion',
                         'label' => 'Promotion',
                         'readonly' => true,
-                    ]);
-                    cm_component('form/textarea', [
-                        'name' => 'cm_eval_theme',
-                        'id' => 'cmEvalTheme',
-                        'label' => 'Theme',
-                        'readonly' => true,
+                        'control_class' => 'cm-field-sm cm-size-salle',
                     ]);
                     ?>
                 </div>
+                <?php
+                cm_component('form/textarea', [
+                    'name' => 'cm_eval_theme',
+                    'id' => 'cmEvalTheme',
+                    'label' => 'Theme',
+                    'readonly' => true,
+                    'rows' => 2,
+                    'control_class' => 'cm-field-full cm-size-theme',
+                ]);
+                ?>
 
                 <p class="cm-text-sm cm-text-muted cm-m-0" id="cmEvalSelectedLabel">Soutenance selectionnee: -</p>
                 <div class="cm-grid-3">
@@ -128,6 +134,7 @@ foreach ($soutenances as $soutenance) {
                         'label' => 'President du jury',
                         'required' => true,
                         'readonly' => true,
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_examinateur',
@@ -135,24 +142,32 @@ foreach ($soutenances as $soutenance) {
                         'label' => 'Examinateur',
                         'required' => true,
                         'readonly' => true,
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_directeur',
                         'id' => 'cmProgDirecteur',
                         'label' => 'Directeur de mémoire',
                         'readonly' => true,
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
+                    ?>
+                </div>
+                <div class="cm-grid-2">
+                    <?php
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_encadreur',
                         'id' => 'cmProgEncadreur',
                         'label' => 'Encadreur Pédagogique.',
                         'readonly' => true,
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_maitre',
                         'id' => 'cmProgMaitreStage',
                         'label' => 'Maître stage',
                         'readonly' => true,
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
                     ?>
                 </div>
@@ -177,32 +192,39 @@ foreach ($soutenances as $soutenance) {
                 ]);
                 ?>
 
-                <div class="cm-grid-2" style="margin-left: auto; max-width: 600px;">
+                <div class="cm-grid-2">
                     <div class="cm-form-group">
                         <?php cm_component('form/select', [
                             'name' => 'cm_eval_decision',
                             'id' => 'cmEvalDecision',
                             'label' => 'Decision',
                             'options' => ['admis' => 'Admis', 'ajourne' => 'Ajourne'],
+                            'control_class' => 'cm-field-sm cm-size-salle',
                         ]); ?>
                     </div>
 
                     <div class="cm-form-group">
                         <label class="cm-form-label" for="cmEvalComment">Commentaire general</label>
-                        <textarea id="cmEvalComment" name="commentaire_general" class="cm-form-control"
+                        <textarea id="cmEvalComment" name="commentaire_general" class="cm-form-control cm-field-full cm-size-commentaire"
                             rows="2"></textarea>
                     </div>
                 </div>
 
-                <div class="cm-form-buttons" style="display: flex; justify-content: space-between; width: 100%;">
-                    <button class="cm-btn is-light" type="button" id="cmEvalResetBtn">
-                        <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                        Reinitialiser
+                <div class="cm-form-buttons has-cancel is-dense">
+                    <button class="cm-btn is-light" type="button" id="cmEvalCancelBtn" onclick="document.getElementById('cmEvalResetBtn').click();">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                        Annuler
                     </button>
-                    <button class="cm-btn is-success" type="submit" id="cmEvalSubmitBtn">
-                        <i class="fas fa-check" aria-hidden="true"></i>
-                        Enregistrer evaluation
-                    </button>
+                    <div class="cm-form-buttons__right">
+                        <button class="cm-btn is-light" type="button" id="cmEvalResetBtn">
+                            <i class="fas fa-rotate-left" aria-hidden="true"></i>
+                            Reinitialiser
+                        </button>
+                        <button class="cm-btn is-success" type="submit" id="cmEvalSubmitBtn">
+                            <i class="fas fa-check" aria-hidden="true"></i>
+                            Enregistrer evaluation
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

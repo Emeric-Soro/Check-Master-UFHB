@@ -133,9 +133,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
 $isAdmin = function_exists('isAdmin') ? isAdmin() : false;
 ?>
 <div class="cm-prd3-screen cm-prd3-crud-screen">
-    <div class="">
-        <div class="">
-        </div>
+    <div class="cm-pole-superieur is-compact">
         <form id="cmProgForm" autocomplete="off">
             <?php cm_component('form/csrf-token'); ?>
             <input type="hidden" id="cmProgEditId" value="">
@@ -143,17 +141,16 @@ $isAdmin = function_exists('isAdmin') ? isAdmin() : false;
             <input type="hidden" id="cmProgEncadreurId" value="">
             <input type="hidden" id="cmProgMaitreId" value="">
 
-            <div class="cm-grid-4">
+            <div class="cm-grid-2">
                 <?php if ($isAdmin): ?>
-                    <div class="cm-mb-md" style="max-width: 380px;">
-                        <?= cm_component('form/select', [
-                            'name' => 'id_enseignant_selected',
-                            'label' => 'Enseignant à consulter',
-                            'options' => $enseignantJuryOptions,
-                            'selected' => (string) ($enseignantSelectionne ?? ''),
-                            'placeholder' => 'Sélectionner un enseignant'
-                        ]) ?>
-                    </div>
+                    <?php cm_component('form/select', [
+                        'name' => 'id_enseignant_selected',
+                        'label' => 'Enseignant à consulter',
+                        'options' => $enseignantJuryOptions,
+                        'selected' => (string) ($enseignantSelectionne ?? ''),
+                        'placeholder' => 'Sélectionner un enseignant',
+                        'control_class' => 'cm-field-lg cm-size-personne',
+                    ]); ?>
                 <?php endif; ?>
                 <?php
                 cm_component('form/select', [
@@ -162,7 +159,7 @@ $isAdmin = function_exists('isAdmin') ? isAdmin() : false;
                     'label' => 'Enseignant',
                     'required' => true,
                     'options' => $enseignantJuryOptions,
-                    'control_class' => 'cm-field-lg',
+                    'control_class' => 'cm-field-lg cm-size-personne',
                 ]);
                 ?>
             </div>

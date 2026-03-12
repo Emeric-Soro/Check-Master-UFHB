@@ -21,7 +21,10 @@ class AuditController {
 
             // Paramètres de pagination
             $page = isset($_GET['page_num']) ? max(1, intval($_GET['page_num'])) : 1;
-            $perPage = 50;
+            $perPage = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
+            if (!in_array($perPage, [5, 10, 25, 50, 100], true)) {
+                $perPage = 10;
+            }
             $offset = ($page - 1) * $perPage;
 
             // Paramètres de filtrage
@@ -47,7 +50,7 @@ class AuditController {
             error_log("Erreur dans AuditController::index(): " . $e->getMessage());
             $GLOBALS['auditLog'] = [];
             $GLOBALS['page'] = 1;
-            $GLOBALS['perPage'] = 50;
+            $GLOBALS['perPage'] = 10;
             $GLOBALS['totalPages'] = 1;
             $GLOBALS['totalLogs'] = 0;
             $GLOBALS['error'] = "Une erreur s'est produite lors du chargement des logs d'audit.";

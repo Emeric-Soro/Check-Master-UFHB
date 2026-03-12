@@ -353,7 +353,11 @@ if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !can
     //============================GESTION MENUS==================================
     public function gestionMenus()
     {
-        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
+        $permissionCode = (string) ($_GET['page'] ?? 'parametres_generaux');
+        if (!in_array($permissionCode, ['parametres_generaux', 'parametres_specifiques'], true)) {
+            $permissionCode = 'parametres_generaux';
+        }
+        if (!canCreate($permissionCode) && !canEdit($permissionCode) && !canDelete($permissionCode)) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);

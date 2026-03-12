@@ -50,7 +50,17 @@ class EvaluationSoutenanceService
     private function getStudentAcademicYearId(string $numEtu): ?int
     {
         try {
-            $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM inscriptions WHERE num_carte_etud = ? ORDER BY date_inscription DESC, num_versement DESC LIMIT 1 ORDER BY date_inscription DESC, id_inscription DESC LIMIT 1");
+            $orderParts = [];
+            if ($this->columnExists('inscriptions', 'date_inscription')) {
+                $orderParts[] = 'date_inscription DESC';
+            }
+            if ($this->columnExists('inscriptions', 'num_versement')) {
+                $orderParts[] = 'num_versement DESC';
+            }
+            $orderParts[] = 'id_annee_acad DESC';
+            $orderBy = ' ORDER BY ' . implode(', ', array_unique($orderParts));
+
+            $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM inscriptions WHERE num_carte_etud = ?" . $orderBy . " LIMIT 1");
             $stmt->execute([$numEtu]);
             $value = $stmt->fetchColumn();
             if (is_numeric($value) && (int) $value > 0) {
@@ -125,6 +135,31 @@ class EvaluationSoutenanceService
             $this->tableExistsCache[$tableName] = false;
             return false;
         }
+    }
+
+    private function critereCodeSelect(string $alias = 'c'): string
+    {
+        if ($this->columnExists('critere_evaluation', 'code_critere')) {
+            return $alias . '.code_critere AS code_critere';
+        }
+
+        return $alias . '.id_critere AS code_critere';
+    }
+
+    private function normalizeCriteriaRows(array $rows): array
+    {
+        $normalized = [];
+        foreach ($rows as $row) {
+            $row['id_critere'] = (string) ($row['id_critere'] ?? '');
+            $row['code_critere'] = (string) ($row['code_critere'] ?? $row['id_critere'] ?? '');
+            $row['lib_critere'] = (string) ($row['lib_critere'] ?? '');
+            $row['bareme_max'] = isset($row['bareme_max']) && $row['bareme_max'] !== null
+                ? (float) $row['bareme_max']
+                : null;
+            $normalized[] = $row;
+        }
+
+        return $normalized;
     }
 
     private function columnExists($tableName, $columnName)
@@ -324,7 +359,7 @@ class EvaluationSoutenanceService
 
         if ($this->tableExists('bareme_critere')) {
             $sql = "
-                SELECT c.id_critere, c.code_critere, c.lib_critere, bc.bareme AS bareme_max
+                SELECT c.id_critere, " . $this->critereCodeSelect('c') . ", c.lib_critere, bc.bareme AS bareme_max
                 FROM critere_evaluation c
                 INNER JOIN bareme_critere bc ON c.id_critere = bc.id_critere
                 WHERE bc.id_annee_acad = ?
@@ -332,19 +367,19 @@ class EvaluationSoutenanceService
             ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$idAnneeAcad]);
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $this->normalizeCriteriaRows($stmt->fetchAll(PDO::FETCH_ASSOC));
             if (!empty($rows)) {
                 return $rows;
             }
 
             $stmt = $this->pdo->query("
-                SELECT c.id_critere, c.code_critere, c.lib_critere, bc.bareme AS bareme_max
+                SELECT c.id_critere, " . $this->critereCodeSelect('c') . ", c.lib_critere, bc.bareme AS bareme_max
                 FROM critere_evaluation c
                 INNER JOIN bareme_critere bc ON c.id_critere = bc.id_critere
                 WHERE bc.id_annee_acad = (SELECT MAX(id_annee_acad) FROM bareme_critere)
                 ORDER BY c.id_critere
             ");
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $this->normalizeCriteriaRows($stmt->fetchAll(PDO::FETCH_ASSOC));
             if (!empty($rows)) {
                 return $rows;
             }
@@ -352,7 +387,7 @@ class EvaluationSoutenanceService
 
         if ($this->tableExists('correspondre')) {
             $sql = "
-                SELECT c.id_critere, c.code_critere, c.lib_critere, cr.bareme AS bareme_max
+                SELECT c.id_critere, " . $this->critereCodeSelect('c') . ", c.lib_critere, cr.bareme AS bareme_max
                 FROM critere_evaluation c
                 INNER JOIN correspondre cr ON c.id_critere = cr.id_critere
                 WHERE cr.id_annee_acad = ?
@@ -360,37 +395,37 @@ class EvaluationSoutenanceService
             ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$idAnneeAcad]);
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $this->normalizeCriteriaRows($stmt->fetchAll(PDO::FETCH_ASSOC));
             if (!empty($rows)) {
                 return $rows;
             }
 
             $stmt = $this->pdo->query("
-                SELECT c.id_critere, c.code_critere, c.lib_critere, cr.bareme AS bareme_max
+                SELECT c.id_critere, " . $this->critereCodeSelect('c') . ", c.lib_critere, cr.bareme AS bareme_max
                 FROM critere_evaluation c
                 INNER JOIN correspondre cr ON c.id_critere = cr.id_critere
                 WHERE cr.id_annee_acad = (SELECT MAX(id_annee_acad) FROM correspondre)
                 ORDER BY c.id_critere
             ");
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $this->normalizeCriteriaRows($stmt->fetchAll(PDO::FETCH_ASSOC));
             if (!empty($rows)) {
                 return $rows;
             }
         }
 
         $stmt = $this->pdo->query("
-            SELECT c.id_critere, c.code_critere, c.lib_critere, NULL AS bareme_max
+            SELECT c.id_critere, " . $this->critereCodeSelect('c') . ", c.lib_critere, NULL AS bareme_max
             FROM critere_evaluation c
             ORDER BY c.id_critere
         ");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->normalizeCriteriaRows($stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
     private function getBaremeForCritere($idCritere, $idAnneeAcad)
     {
-        $idCritere = (int) $idCritere;
+        $idCritere = trim((string) $idCritere);
         $idAnneeAcad = (string) $idAnneeAcad;
-        if ($idCritere <= 0) {
+        if ($idCritere === '') {
             throw new Exception('Critere invalide');
         }
 
@@ -580,8 +615,8 @@ class EvaluationSoutenanceService
             $result = [];
             foreach ($rows as $row) {
                 $result[] = [
-                    'id_critere' => (int) ($row->id_critere ?? 0),
-                    'code_critere' => (string) ($row->code_critere ?? ''),
+                    'id_critere' => (string) ($row->id_critere ?? ''),
+                    'code_critere' => (string) ($row->code_critere ?? $row->id_critere ?? ''),
                     'lib_critere' => (string) ($row->lib_critere ?? ''),
                     'bareme_max' => null,
                 ];
@@ -677,10 +712,14 @@ class EvaluationSoutenanceService
 
             $notesValides = [];
             foreach ($criteres as $idCritere => $note) {
+                $idCritere = trim((string) $idCritere);
                 if ($note === '' || $note === null || !is_numeric($note)) {
                     continue;
                 }
-                $notesValides[(int) $idCritere] = (float) $note;
+                if ($idCritere === '') {
+                    continue;
+                }
+                $notesValides[$idCritere] = (float) $note;
             }
 
             if (empty($notesValides)) {
@@ -735,7 +774,7 @@ class EvaluationSoutenanceService
                 throw new Exception('Une note ne peut pas etre negative');
             }
 
-            $bareme = $this->getBaremeForCritere((int) $idCritere, $idAnneeAcad);
+            $bareme = $this->getBaremeForCritere((string) $idCritere, $idAnneeAcad);
             if ($note > $bareme) {
                 throw new Exception('La note du critere ' . $idCritere . ' depasse le bareme (' . $bareme . ')');
             }

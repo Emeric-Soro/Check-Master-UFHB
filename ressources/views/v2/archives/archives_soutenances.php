@@ -14,9 +14,6 @@ $filters     = $data['filters'] ?? [];
     <!-- En-tête -->
     <div class="cm-page-header cm-mb-5">
         <div>
-            <h1 class="cm-page-title">
-                <i class="fas fa-graduation-cap cm-mr-2"></i>Archives Soutenances
-            </h1>
             <p class="cm-page-subtitle">
                 Historique des soutenances de l'année archivée
             </p>

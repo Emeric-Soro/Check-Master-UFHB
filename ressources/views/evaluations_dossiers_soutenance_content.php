@@ -149,6 +149,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                         'required' => true,
                         'options' => $dossierOptions,
                         'selected' => $selectedDetailId > 0 ? (string) $selectedDetailId : '',
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
                     cm_component('form/select', [
                         'name' => 'decision',
@@ -159,31 +160,37 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                             'valider' => 'Valider',
                             'rejeter' => 'Rejeter',
                         ],
+                        'control_class' => 'cm-field-sm cm-size-salle',
                     ]);
                     ?>
                 </div>
-                <div class="cm-grid-3">
+                <div class="cm-grid-2">
                     <?php
                     cm_component('form/input-text', [
                         'name' => 'cm_etudiant_info',
                         'id' => 'cmDecisionEtudiant',
                         'label' => 'Etudiant',
                         'readonly' => true,
-                    ]);
-                    cm_component('form/input-text', [
-                        'name' => 'cm_theme_info',
-                        'id' => 'cmDecisionTheme',
-                        'label' => 'Theme',
-                        'readonly' => true,
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_statut_info',
                         'id' => 'cmDecisionStatut',
                         'label' => 'Statut actuel',
                         'readonly' => true,
+                        'control_class' => 'cm-field-md cm-size-salle',
                     ]);
                     ?>
                 </div>
+                <?php
+                cm_component('form/input-text', [
+                    'name' => 'cm_theme_info',
+                    'id' => 'cmDecisionTheme',
+                    'label' => 'Theme',
+                    'readonly' => true,
+                    'control_class' => 'cm-field-full cm-size-theme',
+                ]);
+                ?>
                 <?php
                 cm_component('form/textarea', [
                     'name' => 'commentaire',

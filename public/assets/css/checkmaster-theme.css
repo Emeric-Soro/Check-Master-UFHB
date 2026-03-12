@@ -18,8 +18,8 @@
     --cm-btn-success-hover: #229954;
     --cm-btn-info: #3498db;
     --cm-btn-info-hover: #2e86c1;
-    --cm-btn-light: #ecf0f1;
-    --cm-btn-light-hover: #d5dbdb;
+    --cm-btn-light: #dceaf7;
+    --cm-btn-light-hover: #d1e3f4;
     --cm-btn-warning: #f39c12;
     --cm-btn-danger: #e74c3c;
 
@@ -34,20 +34,20 @@
     --cm-feedback-info-bg: #ebf5fb;
 
     /* Base backgrounds */
-    --cm-app-bg: #dff2ff;
-    --cm-content-bg: #ffffff;
-    --cm-box-bg: #ffffff;
-    --cm-pole-sup-bg: #ffffff;
-    --cm-barre-bg: #f7f9fb;
-    --cm-pole-inf-bg: #ffffff;
+    --cm-app-bg: linear-gradient(180deg, #dff2ff 0%, #d6ecff 52%, #cfe6fb 100%);
+    --cm-content-bg: rgba(237, 246, 255, 0.84);
+    --cm-box-bg: rgba(232, 243, 255, 0.8);
+    --cm-pole-sup-bg: rgba(236, 246, 255, 0.78);
+    --cm-barre-bg: rgba(224, 239, 252, 0.82);
+    --cm-pole-inf-bg: rgba(230, 241, 253, 0.76);
 
     /* Text */
-    --cm-text-main: #1f2d3d;
+    --cm-text-main: #163247;
     --cm-text-muted: #6c757d;
     --cm-text-on-primary: #ffffff;
 
     /* Typography */
-    --cm-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+    --cm-font-family: "Segoe UI Variable Text", "Segoe UI", "Trebuchet MS", Verdana, sans-serif;
     --cm-font-size-xs: 0.75rem;
     --cm-font-size-sm: 0.85rem;
     --cm-font-size-base: 0.95rem;
@@ -82,7 +82,7 @@
     --cm-border-radius-lg: 8px;
     --cm-border-radius-xl: 12px;
     --cm-border-radius-full: 9999px;
-    --cm-border-color: #e0e4e8;
+    --cm-border-color: rgba(26, 82, 118, 0.18);
     --cm-transition-fast: 150ms ease;
     --cm-transition-normal: 250ms ease;
     --cm-transition-slow: 350ms ease;
@@ -102,27 +102,27 @@
     --cm-z-toast: 400;
 
     /* Hub */
-    --cm-hub-tile-bg: #ffffff;
-    --cm-hub-tile-border: #e0e4e8;
+    --cm-hub-tile-bg: rgba(236, 246, 255, 0.82);
+    --cm-hub-tile-border: rgba(26, 82, 118, 0.16);
     --cm-hub-tile-hover-border: var(--cm-primary-light);
     --cm-hub-tile-hover-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
     --cm-hub-tile-icon-bg: var(--cm-primary-lightest);
     --cm-hub-tile-icon-color: var(--cm-primary);
 
     /* Tables */
-    --cm-table-header-bg: #f7f9fb;
-    --cm-table-header-color: var(--cm-primary);
-    --cm-table-row-hover-bg: #f0f4f8;
-    --cm-table-border-color: #e8ecf0;
-    --cm-table-stripe-bg: #fafbfc;
+    --cm-table-header-bg: rgba(26, 82, 118, 0.9);
+    --cm-table-header-color: #f5fbff;
+    --cm-table-row-hover-bg: rgba(128, 181, 223, 0.2);
+    --cm-table-border-color: rgba(26, 82, 118, 0.14);
+    --cm-table-stripe-bg: rgba(214, 230, 245, 0.5);
 
     /* Forms */
-    --cm-input-bg: #ffffff;
-    --cm-input-border: #ced4da;
+    --cm-input-bg: rgba(228, 240, 252, 0.92);
+    --cm-input-border: rgba(26, 82, 118, 0.22);
     --cm-input-focus-border: var(--cm-primary-light);
     --cm-input-focus-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
-    --cm-input-placeholder-color: #adb5bd;
-    --cm-input-disabled-bg: #e9ecef;
+    --cm-input-placeholder-color: #6d89a3;
+    --cm-input-disabled-bg: rgba(214, 229, 244, 0.92);
     --cm-label-color: var(--cm-primary-dark);
     --cm-label-required-color: var(--cm-feedback-danger);
     --cm-field-width-default: 100%;
@@ -144,8 +144,8 @@
     --cm-field-min-width-cand-search: 12.5rem;
 
     /* Cards / panels */
-    --cm-card-bg: #ffffff;
-    --cm-card-border: #e0e4e8;
+    --cm-card-bg: rgba(236, 246, 255, 0.84);
+    --cm-card-border: rgba(26, 82, 118, 0.14);
     --cm-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     --cm-card-radius: var(--cm-border-radius-lg);
 
@@ -172,7 +172,7 @@
 
     /* Login */
     --cm-login-bg: linear-gradient(135deg, var(--cm-primary) 0%, var(--cm-primary-light) 100%);
-    --cm-login-card-bg: #ffffff;
+    --cm-login-card-bg: rgba(237, 246, 255, 0.94);
     --cm-login-card-shadow: 0 8px 32px rgba(26, 82, 118, 0.25);
 
     /* Skeleton */
@@ -211,6 +211,10 @@ body {
     font-size: var(--cm-font-size-base);
     font-weight: var(--cm-font-weight-normal);
     line-height: var(--cm-line-height-normal);
+    letter-spacing: 0.01em;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     color: var(--cm-text-main);
     background: var(--cm-app-bg);
 }

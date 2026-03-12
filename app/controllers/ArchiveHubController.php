@@ -12,7 +12,7 @@ class ArchiveHubController
     private $db;
     private $archiveModel;
     private $anneeModel;
-    private const PER_PAGE = 20;
+    private const PER_PAGE = 10;
 
     public function __construct($db = null)
     {

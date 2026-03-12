@@ -90,7 +90,10 @@ function initializePrintFunctionality() {
 function showPrintPreview() {
     const printWindow = window.open('', '_blank');
     const table = document.querySelector('table');
-    const title = document.querySelector('h1').textContent;
+    const pageHeading = document.querySelector('h1');
+    const title = pageHeading && pageHeading.textContent.trim() !== ''
+        ? pageHeading.textContent.trim()
+        : document.title.replace(/^CheckMaster\s*\|\s*/i, '').trim() || "Piste d'audit";
     
     printWindow.document.write(`
         <!DOCTYPE html>

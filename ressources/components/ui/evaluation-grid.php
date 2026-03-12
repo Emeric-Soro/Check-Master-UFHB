@@ -3,7 +3,7 @@
  * GRILLE D'ÉVALUATION — composant très compact.
  *
  * Props:
- *   criteria          array   [['id'=>int, 'label'=>string, 'abbrev'=>string|null, 'bareme'=>float], ...]
+ *   criteria          array   [['id'=>string|int, 'label'=>string, 'abbrev'=>string|null, 'bareme'=>float], ...]
  *   values            array   map id_critere => note (valeurs pré-remplies)
  *   commentaire       string  valeur du champ commentaire
  *   moyenne           float|string  moyenne déjà calculée (affichée en lecture seule)
@@ -54,7 +54,7 @@ foreach ($criteria as $c) {
 
     <div class="cm-eval-grid__fields-wrap">
         <?php foreach ($criteria as $critere):
-            $cid     = (int) ($critere['id'] ?? 0);
+            $cid     = (string) ($critere['id'] ?? '');
             $label   = (string) ($critere['label'] ?? '');
             $abbrev  = (string) ($critere['abbrev'] ?? '');
             $bareme  = (float) ($critere['bareme'] ?? 0);
@@ -81,7 +81,7 @@ foreach ($criteria as $c) {
                     step="<?= htmlspecialchars($step, ENT_QUOTES, 'UTF-8') ?>"
                     placeholder="—"
                     <?= $readonly ? 'readonly' : '' ?>
-                    data-critere-id="<?= $cid ?>"
+                    data-critere-id="<?= htmlspecialchars($cid, ENT_QUOTES, 'UTF-8') ?>"
                 >
                 <span class="cm-eval-grid__note-unit">/<?= number_format($bareme, 0) ?></span>
             </div>

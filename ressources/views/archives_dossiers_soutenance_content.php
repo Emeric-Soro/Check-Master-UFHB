@@ -182,7 +182,7 @@ function getTimeAgo($date)
 </head>
 
 <body class="font-sans antialiased bg-gray-50">
-    <div class="min-h-screen">
+    <div class="min-h-screen cm-prd3-screen cm-prd3-crud-screen">
         <div class="bg-white shadow-sm border-b border-gray-200">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4">
                 <div class="flex justify-between items-center py-6">
@@ -510,18 +510,21 @@ function getTimeAgo($date)
     </div>
 
     <script>
-        document.getElementById('displayMode').addEventListener('change', function () {
-            const mode = this.value;
-            const cardsView = document.getElementById('cardsView');
-            const tableView = document.getElementById('tableView');
-            if (mode === 'cards') {
-                cardsView.classList.remove('hidden');
-                tableView.classList.add('hidden');
-            } else {
-                cardsView.classList.add('hidden');
-                tableView.classList.remove('hidden');
-            }
-        });
+        const displayMode = document.getElementById('displayMode');
+        if (displayMode) {
+            displayMode.addEventListener('change', function () {
+                const mode = this.value;
+                const cardsView = document.getElementById('cardsView');
+                const tableView = document.getElementById('tableView');
+                if (mode === 'cards') {
+                    cardsView.classList.remove('hidden');
+                    tableView.classList.add('hidden');
+                } else {
+                    cardsView.classList.add('hidden');
+                    tableView.classList.remove('hidden');
+                }
+            });
+        }
 
         function viewDetails(idRapport) {
             window.open(`?page=evaluations_dossiers_soutenance&detail=${idRapport}`, '_blank');

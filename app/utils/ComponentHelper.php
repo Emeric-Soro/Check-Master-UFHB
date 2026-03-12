@@ -626,7 +626,7 @@ if (!function_exists('cm_render_param_crud_view')) {
                 const deselectAllBtn = document.getElementById(<?= json_encode($deselectAllBtnId) ?>);
                 const selectedCount = document.getElementById(<?= json_encode($selectedCountId) ?>);
                 const printBtn = document.getElementById(<?= json_encode($printBtnId) ?>);
-                // const exportBtn = document.getElementById(<?= json_encode($exportBtnId) ?>);
+                const exportBtn = document.getElementById(<?= json_encode($exportBtnId) ?>);
 
                 const navigate = function (url) {
                     if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {

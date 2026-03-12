@@ -7,7 +7,7 @@ $allYearsSelected = \AcademicYear::isAllSelectedFromSession();
 $filtreAnneeAdmin = isset($_GET['id_annee_acad']) && $_GET['id_annee_acad'] !== '' ? (int) $_GET['id_annee_acad'] : \AcademicYear::getSelectedIdFromSession();
 $filtreSessionAdmin = isset($_GET['id_session']) && $_GET['id_session'] !== '' ? (int) $_GET['id_session'] : null;
 $pageNumAdmin = max(1, (int) ($_GET['page_num'] ?? 1));
-$perPageAdmin = 20;
+$perPageAdmin = 10;
 
 try {
     if (!class_exists('Database')) {

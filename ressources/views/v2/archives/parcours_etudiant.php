@@ -7,7 +7,6 @@ $evenements = $data['evenements'] ?? [];
 ?>
 <div class="cm-parcours-etudiant">
     <div class="cm-page-header cm-mb-4">
-        <h1 class="cm-page-title">📍 Parcours de l'Étudiant</h1>
         <p class="cm-page-subtitle">Chronologie complète du parcours</p>
         <a href="?page=fiche_etudiant_archive&id=<?php echo urlencode($matricule); ?>" class="cm-btn cm-btn-outline cm-mt-2">
             <i class="fas fa-arrow-left"></i> Retour à la fiche

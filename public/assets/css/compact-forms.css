@@ -1,0 +1,343 @@
+/* CheckMaster - compact forms aligned with specs_ecrans_v1.1 */
+
+/* Layout surfaces */
+.cm-content-area .cm-legacy-form-panel,
+.cm-content-area .cm-pole-superieur,
+.cm-content-area .cm-barre-intermediaire,
+.cm-content-area .cm-pole-inferieur,
+.cm-content-area .cm-table-wrapper,
+.cm-content-area .cm-card,
+.cm-content-area .bg-white {
+  background: var(--cm-content-bg) !important;
+  border-color: var(--cm-border-color) !important;
+}
+
+.cm-content-area .bg-gray-50 {
+  background: rgba(224, 239, 252, 0.78) !important;
+}
+
+/* Single page scroll model (no nested screen/form scrolls) */
+.cm-content-area.cm-layout-main--locked,
+.cm-content-area .cm-layout-main--locked {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 0.75rem 0.35rem 1rem !important;
+}
+
+.cm-content-area .cm-layout-main > .cm-prd3-screen {
+  flex: 0 0 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.cm-content-area .cm-prd3-screen {
+  overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
+  padding-right: 0 !important;
+}
+
+.cm-content-area .cm-prd3-crud-screen {
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+/* Compact form rhythm */
+.cm-content-area .cm-legacy-form-panel,
+.cm-content-area .cm-pole-superieur {
+  padding: 0.55rem 0.75rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.cm-content-area .cm-form-group {
+  margin-bottom: 0.35rem !important;
+  gap: 0.2rem !important;
+  min-width: 0;
+}
+
+.cm-content-area .cm-label,
+.cm-content-area .cm-form-label {
+  margin-bottom: 0.1rem !important;
+  font-size: 0.83rem !important;
+  line-height: 1.2 !important;
+}
+
+/* Inputs: readable but compact (A.12) */
+.cm-content-area .cm-field-input,
+.cm-content-area .cm-form-control,
+.cm-content-area input[type="text"]:not(.search-input),
+.cm-content-area input[type="email"],
+.cm-content-area input[type="password"],
+.cm-content-area input[type="number"],
+.cm-content-area input[type="date"],
+.cm-content-area input[type="time"],
+.cm-content-area input[type="tel"],
+.cm-content-area select {
+  min-height: 36px !important;
+  height: 36px !important;
+  max-height: 36px !important;
+  padding: 0.32rem 0.55rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25 !important;
+  background: var(--cm-input-bg) !important;
+  border-color: var(--cm-input-border) !important;
+}
+
+.cm-content-area textarea.cm-form-control,
+.cm-content-area textarea.cm-field-input,
+.cm-content-area textarea {
+  min-height: 58px !important;
+  max-height: 110px !important;
+  height: auto !important;
+  padding: 0.38rem 0.55rem !important;
+  font-size: 0.875rem !important;
+}
+
+.cm-content-area .cm-form-control[readonly],
+.cm-content-area .cm-field-input[readonly],
+.cm-content-area input[readonly],
+.cm-content-area textarea[readonly] {
+  background: var(--cm-input-disabled-bg) !important;
+  border-style: dashed !important;
+}
+
+/* Grid system */
+.cm-content-area .cm-form-grid--2,
+.cm-content-area .cm-grid-2 {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 0.45rem 0.65rem !important;
+  margin-bottom: 0.35rem !important;
+}
+
+.cm-content-area .cm-form-grid--3,
+.cm-content-area .cm-grid-3 {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 0.45rem 0.65rem !important;
+  margin-bottom: 0.35rem !important;
+}
+
+.cm-content-area .cm-form-grid--4,
+.cm-content-area .cm-grid-4 {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 0.45rem 0.65rem !important;
+  margin-bottom: 0.35rem !important;
+}
+
+.cm-content-area .cm-form-grid--5,
+.cm-content-area .cm-grid-5 {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 0.45rem 0.65rem !important;
+  margin-bottom: 0.35rem !important;
+}
+
+.cm-content-area .cm-grid-auto,
+.cm-content-area .cm-form-grid-auto {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+  gap: 0.45rem 0.65rem !important;
+  margin-bottom: 0.35rem !important;
+}
+
+/* Semantic field widths from spec A.2 */
+.cm-content-area .cm-size-heure {
+  width: var(--cm-field-width-xs) !important;
+  min-width: var(--cm-field-width-xs) !important;
+  max-width: var(--cm-field-width-xs) !important;
+}
+
+.cm-content-area .cm-size-date {
+  width: var(--cm-field-width-sm) !important;
+  min-width: var(--cm-field-width-sm) !important;
+  max-width: var(--cm-field-width-sm) !important;
+}
+
+.cm-content-area .cm-size-salle {
+  width: var(--cm-field-width-md) !important;
+  min-width: var(--cm-field-width-md) !important;
+  max-width: var(--cm-field-width-md) !important;
+}
+
+.cm-content-area .cm-size-personne {
+  width: var(--cm-field-width-fluid) !important;
+  min-width: var(--cm-field-width-md) !important;
+  max-width: var(--cm-field-width-fluid) !important;
+}
+
+.cm-content-area .cm-size-theme,
+.cm-content-area .cm-size-commentaire {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Buttons */
+.cm-content-area .cm-form-buttons {
+  margin-top: 0.45rem !important;
+  margin-bottom: 0.2rem !important;
+  gap: 0.45rem !important;
+}
+
+.cm-content-area .cm-form-buttons.is-dense {
+  margin-top: 0.35rem !important;
+}
+
+.cm-content-area .cm-btn {
+  min-height: 36px !important;
+  height: 36px !important;
+  padding: 0.34rem 0.78rem !important;
+  font-size: 0.84rem !important;
+}
+
+/* Table priority (A.12) */
+.cm-content-area .cm-prd3-crud-screen .cm-crud-wrapper {
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.35rem !important;
+  overflow: visible !important;
+  height: auto !important;
+  flex: 0 0 auto !important;
+}
+
+.cm-content-area .cm-prd3-crud-screen .cm-pole-superieur {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.cm-content-area .cm-prd6-admin-screen .cm-pole-superieur,
+.cm-content-area .cm-prd6-admin-screen .cm-barre-intermediaire,
+.cm-content-area .cm-prd6-admin-screen .cm-pole-inferieur {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.cm-content-area .cm-table-wrapper {
+  margin-top: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+
+.cm-content-area .cm-table-wrapper.is-mass-select,
+.cm-content-area .cm-prd3-crud-screen .cm-table-wrapper.is-mass-select {
+  max-height: none !important;
+  overflow-y: hidden !important;
+}
+
+.cm-content-area .cm-prd3-crud-screen .cm-table-form .cm-table-wrapper {
+  height: auto !important;
+}
+
+.cm-content-area .cm-prd3-crud-screen .cm-pole-inferieur {
+  min-height: 0 !important;
+  overflow: visible !important;
+  display: block !important;
+}
+
+/* Keep academic year selector visible while scrolling content */
+.cm-content-area .cm-global-topbar {
+  position: sticky !important;
+  top: calc(var(--cm-header-height) + 2px) !important;
+  z-index: 35 !important;
+  padding-top: 0.3rem !important;
+  padding-bottom: 0.3rem !important;
+  margin-bottom: 0.45rem !important;
+  background: var(--cm-content-bg) !important;
+}
+
+.cm-content-area #globalAnneeAcademique {
+  min-height: 36px !important;
+}
+
+.cm-content-area .cm-data-table {
+  width: 100% !important;
+}
+
+.cm-content-area .cm-data-table thead {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+}
+
+.cm-content-area .cm-data-table thead th,
+.cm-content-area .cm-data-table__th {
+  background: var(--cm-table-header-bg) !important;
+  color: var(--cm-table-header-color) !important;
+}
+
+.cm-content-area .cm-data-table tbody tr:nth-child(even) {
+  background: var(--cm-table-stripe-bg) !important;
+}
+
+.cm-content-area .cm-data-table tbody tr:hover {
+  background: var(--cm-table-row-hover-bg) !important;
+}
+
+.cm-content-area .cm-data-table th,
+.cm-content-area .cm-data-table td {
+  padding: 0.45rem 0.62rem !important;
+  font-size: 0.84rem !important;
+  line-height: 1.25 !important;
+}
+
+/* Toolbar and pagination compact */
+.cm-content-area .cm-toolbar,
+.cm-content-area .cm-pagination {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Responsive */
+@media (max-width: 1024px) and (min-width: 768px) {
+  .cm-content-area .cm-grid-4,
+  .cm-content-area .cm-form-grid--4,
+  .cm-content-area .cm-grid-5,
+  .cm-content-area .cm-form-grid--5,
+  .cm-content-area .cm-grid-3,
+  .cm-content-area .cm-form-grid--3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .cm-content-area .cm-prd3-crud-screen .cm-pole-superieur {
+    max-height: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .cm-content-area .cm-form-grid--2,
+  .cm-content-area .cm-grid-2,
+  .cm-content-area .cm-form-grid--3,
+  .cm-content-area .cm-grid-3,
+  .cm-content-area .cm-form-grid--4,
+  .cm-content-area .cm-grid-4,
+  .cm-content-area .cm-form-grid--5,
+  .cm-content-area .cm-grid-5 {
+    grid-template-columns: 1fr !important;
+    gap: 0.45rem !important;
+  }
+
+  .cm-content-area .cm-table-wrapper {
+    max-height: none !important;
+  }
+}
+
+@media print {
+  .cm-content-area .cm-legacy-form-panel,
+  .cm-content-area .cm-pole-superieur,
+  .cm-content-area .cm-barre-intermediaire {
+    display: none !important;
+  }
+
+  .cm-content-area .cm-table-wrapper {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}

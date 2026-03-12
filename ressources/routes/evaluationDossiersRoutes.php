@@ -1,6 +1,6 @@
 <?php
 // Vérifier que la page est définie et correspond à celle attendue
-if (isset($_GET['page']) && $_GET['page'] === 'evaluations_dossiers_soutenance') {
+if (isset($_GET['page']) && in_array($_GET['page'], ['evaluations_dossiers_soutenance', 'evaluation_dossiers'], true)) {
     require_once __DIR__ . '/../../app/config/database.php';
     require_once __DIR__ . '/../../app/controllers/EvaluationDossiersController.php';
     $controller = new EvaluationDossiersController(Database::getConnection());

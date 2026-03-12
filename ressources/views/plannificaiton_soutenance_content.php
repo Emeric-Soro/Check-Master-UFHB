@@ -118,96 +118,96 @@ $planifications = array_values(array_map($normalizePlanificationRow, is_array($p
         </div>
     <?php endif; ?>
 
-    <form method="POST" class="space-y-4 mt-4" id="planificationForm">
+    <form method="POST" id="planificationForm">
         <input type="hidden" name="action" value="planifier" id="formAction">
         <input type="hidden" name="edit_id" value="" id="editId">
 
-        <div class="space-y-4">
-            <!-- Première ligne : Étudiant et Thème -->
-            <div class="cm-form-grid cm-form-grid--2">
-                <!-- Étudiant -->
-                <div class="cm-form-group">
-                    <label class="cm-label">Étudiant <span class="cm-required-star">*</span></label>
-                    <select name="id_programmation" id="etudiant" required onchange="updateTheme(this)"
-                        class="cm-field-input cm-field-lg">
-                        <option value="">Sélectionner un étudiant</option>
-                        <?php if (empty($etudiantsAvecJury)): ?>
-                            <option value="" disabled>Aucun étudiant avec jury attribué</option>
-                        <?php else: ?>
-                            <?php foreach ($etudiantsAvecJury as $etudiant): ?>
-                                <option value="<?= htmlspecialchars($etudiant['id_programmation']) ?>"
-                                    data-theme="<?= htmlspecialchars($etudiant['theme_soutenance'] ?? '') ?>"
-                                    data-statut="<?= htmlspecialchars($etudiant['statut_planification'] ?? 'none') ?>">
-                                    <?= htmlspecialchars($etudiant['nom_complet']) ?>
-                                    (<?= htmlspecialchars($etudiant['matricule_etudiant']) ?>)
-                                    <?php if ($allYearsSelected && !empty($etudiant['promotion_etu'])): ?>
-                                        - <?= htmlspecialchars($etudiant['promotion_etu']) ?>
-                                    <?php endif; ?>
-                                    <?php if (isset($etudiant['statut_planification']) && $etudiant['statut_planification'] === 'complete'): ?>
-                                        - ✅ Planifié
-                                    <?php elseif (isset($etudiant['statut_planification']) && $etudiant['statut_planification'] === 'partial'): ?>
-                                        - ⚠️ Jury assigné
-                                    <?php endif; ?>
-                                </option>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </select>
-                </div>
-
-                <!-- Thème Soutenance -->
-                <div class="cm-form-group">
-                    <label class="cm-label">Thème Soutenance</label>
-                    <div class="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
-                        <span id="theme-display" class="text-gray-500 italic">
-                            Sera affiché selon l'étudiant sélectionné
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Deuxième ligne : Salle, Date et Heure -->
-            <div class="cm-form-grid cm-form-grid--3">
-                <!-- Salle -->
-                <div class="cm-form-group">
-                    <label class="cm-label">Salle <span class="cm-required-star">*</span></label>
-                    <select name="id_salle" id="salle" required
-                        class="cm-field-input cm-field-md">
-                        <option value="">Sélectionner une salle</option>
-                        <?php foreach ($salles as $salle): ?>
-                            <?php
-                            $salleId = $salle['id_salle'] ?? '';
-                            $salleLibelle = $salle['lib_salle'] ?? '';
-                            ?>
-                            <option value="<?= htmlspecialchars((string) $salleId) ?>">
-                                <?= htmlspecialchars((string) $salleLibelle) ?>
+        <!-- Première ligne : Étudiant + Thème -->
+        <div class="cm-grid-2">
+            <div class="cm-form-group">
+                <label class="cm-label">Étudiant <span class="cm-required-star">*</span></label>
+                <select name="id_programmation" id="etudiant" required onchange="updateTheme(this)"
+                    class="cm-field-input cm-field-lg cm-size-personne">
+                    <option value="">Sélectionner un étudiant</option>
+                    <?php if (empty($etudiantsAvecJury)): ?>
+                        <option value="" disabled>Aucun étudiant avec jury attribué</option>
+                    <?php else: ?>
+                        <?php foreach ($etudiantsAvecJury as $etudiant): ?>
+                            <option value="<?= htmlspecialchars($etudiant['id_programmation']) ?>"
+                                data-theme="<?= htmlspecialchars($etudiant['theme_soutenance'] ?? '') ?>"
+                                data-statut="<?= htmlspecialchars($etudiant['statut_planification'] ?? 'none') ?>">
+                                <?= htmlspecialchars($etudiant['nom_complet']) ?>
+                                (<?= htmlspecialchars($etudiant['matricule_etudiant']) ?>)
+                                <?php if ($allYearsSelected && !empty($etudiant['promotion_etu'])): ?>
+                                    - <?= htmlspecialchars($etudiant['promotion_etu']) ?>
+                                <?php endif; ?>
+                                <?php if (isset($etudiant['statut_planification']) && $etudiant['statut_planification'] === 'complete'): ?>
+                                    - ✅ Planifié
+                                <?php elseif (isset($etudiant['statut_planification']) && $etudiant['statut_planification'] === 'partial'): ?>
+                                    - ⚠️ Jury assigné
+                                <?php endif; ?>
                             </option>
                         <?php endforeach; ?>
-                    </select>
-                </div>
+                    <?php endif; ?>
+                </select>
+            </div>
 
-                <!-- Date -->
-                <div class="cm-form-group">
-                    <label class="cm-label">Date <span class="cm-required-star">*</span></label>
-                    <input type="date" name="date_soutenance" id="date" required min="<?= date('Y-m-d') ?>"
-                        class="cm-field-input cm-field-date">
+            <div class="cm-form-group">
+                <label class="cm-label">Thème Soutenance</label>
+                <div class="cm-form-control cm-size-theme" style="display: flex; align-items: center;" aria-readonly="true">
+                    <span id="theme-display" class="text-gray-500 italic">
+                        Sera affiché selon l'étudiant sélectionné
+                    </span>
                 </div>
+            </div>
+        </div>
 
-                <!-- Heure -->
-                <div class="cm-form-group">
-                    <label class="cm-label">Heure <span class="cm-required-star">*</span></label>
-                    <input type="time" name="heure_soutenance" id="heure" required
-                        class="cm-field-input cm-field-sm">
-                </div>
+        <!-- Deuxième ligne : Salle + Date + Heure -->
+        <div class="cm-grid-3">
+            <div class="cm-form-group">
+                <label class="cm-label">Salle <span class="cm-required-star">*</span></label>
+                <select name="id_salle" id="salle" required class="cm-field-input cm-field-md cm-size-salle">
+                    <option value="">Sélectionner une salle</option>
+                    <?php foreach ($salles as $salle): ?>
+                        <?php
+                        $salleId = $salle['id_salle'] ?? '';
+                        $salleLibelle = $salle['lib_salle'] ?? '';
+                        ?>
+                        <option value="<?= htmlspecialchars((string) $salleId) ?>">
+                            <?= htmlspecialchars((string) $salleLibelle) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="cm-form-group">
+                <label class="cm-label">Date <span class="cm-required-star">*</span></label>
+                <input type="date" name="date_soutenance" id="date" required min="<?= date('Y-m-d') ?>"
+                    class="cm-field-input cm-field-sm cm-size-date">
+            </div>
+
+            <div class="cm-form-group">
+                <label class="cm-label">Heure <span class="cm-required-star">*</span></label>
+                <input type="time" name="heure_soutenance" id="heure" required
+                    class="cm-field-input cm-field-xs cm-size-heure">
             </div>
         </div>
 
         <!-- Boutons d'action -->
         <?php if (canCreate() || canEdit()): ?>
-        <div class="cm-form-buttons is-dense" id="buttonContainer">
-            <button type="submit" id="submitBtn" class="cm-btn is-success">
-                <i class="fas fa-calendar-plus mr-2"></i>Planifier
-            </button>
-        </div>
+            <div class="cm-form-buttons has-cancel is-dense" id="buttonContainer">
+                <button type="button" id="cancelBtn" class="cm-btn is-light" onclick="resetForm()">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+                <div class="cm-form-buttons__right">
+                    <button type="button" id="resetBtn" class="cm-btn is-light" onclick="resetForm()">
+                        <i class="fas fa-rotate-left"></i> Réinitialiser
+                    </button>
+                    <button type="submit" id="submitBtn" class="cm-btn is-success">
+                        <i class="fas fa-calendar-plus"></i> Planifier
+                    </button>
+                </div>
+            </div>
         <?php endif; ?>
     </form>
 </div>
@@ -415,22 +415,9 @@ $planifications = array_values(array_map($normalizePlanificationRow, is_array($p
 
         const submitBtn = document.getElementById('submitBtn');
         if (submitBtn) {
-            submitBtn.innerHTML = '<i class="fas fa-edit mr-2"></i>Modifier';
+            submitBtn.innerHTML = '<i class="fas fa-edit"></i> Modifier';
             submitBtn.classList.remove('is-success');
             submitBtn.classList.add('is-warning');
-        }
-
-        // Ajouter un bouton d'annulation si pas déjà présent
-        const buttonContainer = document.getElementById('buttonContainer');
-        if (buttonContainer && !document.getElementById('cancelBtn')) {
-            const cancelBtn = document.createElement('button');
-            cancelBtn.id = 'cancelBtn';
-            cancelBtn.type = 'button';
-            cancelBtn.onclick = resetForm;
-            cancelBtn.className = 'cm-btn is-light';
-            cancelBtn.innerHTML = '<i class="fas fa-times mr-2"></i>Annuler';
-
-            buttonContainer.insertBefore(cancelBtn, submitBtn);
         }
 
         showNotification('Mode modification activé', 'info');
@@ -466,15 +453,9 @@ $planifications = array_values(array_map($normalizePlanificationRow, is_array($p
         // Reset button
         const submitBtn = document.getElementById('submitBtn');
         if (submitBtn) {
-            submitBtn.innerHTML = '<i class="fas fa-calendar-plus mr-2"></i>Planifier';
+            submitBtn.innerHTML = '<i class="fas fa-calendar-plus"></i> Planifier';
             submitBtn.classList.remove('is-warning');
             submitBtn.classList.add('is-success');
-        }
-
-        // Remove cancel button
-        const cancelBtn = document.getElementById('cancelBtn');
-        if (cancelBtn) {
-            cancelBtn.remove();
         }
     }
 
@@ -507,4 +488,3 @@ $planifications = array_values(array_map($normalizePlanificationRow, is_array($p
         }, 3000);
     }
 </script>
-

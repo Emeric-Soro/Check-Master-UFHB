@@ -97,11 +97,11 @@ endif; ?>
 <div class="cm-cand-filters">
     <div class="cm-cand-search">
         <i class="fas fa-search"></i>
-        <input type="text" id="searchInput" placeholder="Rechercher un étudiant...">
+        <input type="text" id="searchInput" class="cm-form-control cm-toolbar-field-lg cm-size-personne" placeholder="Rechercher un étudiant...">
     </div>
     <form method="get" id="filterForm" class="cm-cand-inline-form">
         <input type="hidden" name="page" value="gestion_candidatures_soutenance">
-        <select name="statut" id="statusFilter"
+        <select name="statut" id="statusFilter" class="cm-form-control cm-toolbar-field-sm cm-size-salle"
             onchange="document.getElementById('filterForm').submit()">
             <option value="all" <?php if (($_GET['statut'] ?? 'all') === 'all')
     echo 'selected'; ?>>Tous les
@@ -452,24 +452,30 @@ endif; ?>
 
 <script>
     // Fonction de recherche
-    document.getElementById('searchInput').addEventListener('input', function (e) {
-        const searchTerm = e.target.value.toLowerCase();
-        const items = document.querySelectorAll('.cm-cand-item');
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function (e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('.cm-cand-item');
 
-        items.forEach(item => {
-            const text = item.textContent.toLowerCase();
-            item.style.display = text.includes(searchTerm) ? '' : 'none';
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
         });
-    });
+    }
 
     // Recherche dynamique sur la table d'historique
-    document.getElementById('searchHistoriqueInput').addEventListener('input', function (e) {
-        const searchTerm = e.target.value.toLowerCase();
-        const rows = document.querySelectorAll('#historiqueCandidaturesTable tbody tr');
-        rows.forEach(row => {
-            row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
+    const searchHistoriqueInput = document.getElementById('searchHistoriqueInput');
+    if (searchHistoriqueInput) {
+        searchHistoriqueInput.addEventListener('input', function (e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#historiqueCandidaturesTable tbody tr');
+            rows.forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
+            });
         });
-    });
+    }
 
     // Export CSV
     function exportHistoriqueCSV() {

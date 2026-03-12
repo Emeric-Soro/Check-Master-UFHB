@@ -21,11 +21,96 @@ class ArchivesDossiersSoutenanceService
 {
     private $db;
     private $auditLog;
+    private $tableExistsCache = [];
+    private $columnExistsCache = [];
 
     public function __construct($db)
     {
         $this->db = $db;
         $this->auditLog = new AuditLog($db);
+    }
+
+    private function tableExists(string $table): bool
+    {
+        if (array_key_exists($table, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$table];
+        }
+
+        try {
+            $stmt = $this->db->prepare("SHOW TABLES LIKE ?");
+            $stmt->execute([$table]);
+            $exists = (bool) $stmt->fetchColumn();
+            $this->tableExistsCache[$table] = $exists;
+            return $exists;
+        } catch (\Throwable $e) {
+            $this->tableExistsCache[$table] = false;
+            return false;
+        }
+    }
+
+    private function columnExists(string $table, string $column): bool
+    {
+        $key = strtolower($table . '.' . $column);
+        if (array_key_exists($key, $this->columnExistsCache)) {
+            return $this->columnExistsCache[$key];
+        }
+
+        if (!$this->tableExists($table)) {
+            $this->columnExistsCache[$key] = false;
+            return false;
+        }
+
+        try {
+            $stmt = $this->db->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
+            $stmt->execute([$column]);
+            $exists = (bool) $stmt->fetchColumn();
+            $this->columnExistsCache[$key] = $exists;
+            return $exists;
+        } catch (\Throwable $e) {
+            $this->columnExistsCache[$key] = false;
+            return false;
+        }
+    }
+
+    private function getRapportDateColumn(): ?string
+    {
+        if ($this->columnExists('rapport_etudiants', 'date_rapport')) {
+            return 'date_rapport';
+        }
+        if ($this->columnExists('rapport_etudiants', 'date_redaction_rapport')) {
+            return 'date_redaction_rapport';
+        }
+        if ($this->columnExists('rapport_etudiants', 'date_modification')) {
+            return 'date_modification';
+        }
+
+        return null;
+    }
+
+    private function getRapportDateExpr(string $alias = 'r'): string
+    {
+        $column = $this->getRapportDateColumn();
+        if ($column === null) {
+            return 'NULL';
+        }
+
+        return $alias . '.' . $column;
+    }
+
+    private function getRapportDateSelect(string $alias = 'r'): string
+    {
+        $column = $this->getRapportDateColumn();
+        if ($column === null) {
+            return 'NULL AS date_rapport';
+        }
+
+        return $alias . '.' . $column . ' AS date_rapport';
+    }
+
+    private function getEtudiantNumeroExpr(string $alias = 'e'): string
+    {
+        $column = $this->columnExists('etudiants', 'num_etu') ? 'num_etu' : 'num_carte_etud';
+        return $alias . '.' . $column;
     }
 
     /**
@@ -38,6 +123,9 @@ class ArchivesDossiersSoutenanceService
         try {
             $whereConditions = [];
             $params = [];
+            $rapportDateExpr = $this->getRapportDateExpr('r');
+            $rapportDateSelect = $this->getRapportDateSelect('r');
+            $studentNumberExpr = $this->getEtudiantNumeroExpr('e');
 
             // Filtre par statut
             if (!empty($filtres['statut'])) {
@@ -59,7 +147,7 @@ class ArchivesDossiersSoutenanceService
 
             // Filtre par étudiant
             if (!empty($filtres['etudiant'])) {
-                $whereConditions[] = "(e.nom_etu LIKE :etudiant OR e.prenom_etu LIKE :etudiant OR e.num_etu LIKE :etudiant)";
+                $whereConditions[] = "(e.nom_etu LIKE :etudiant OR e.prenom_etu LIKE :etudiant OR {$studentNumberExpr} LIKE :etudiant)";
                 $params['etudiant'] = '%' . $filtres['etudiant'] . '%';
             }
 
@@ -75,6 +163,9 @@ class ArchivesDossiersSoutenanceService
             }
 
             $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+            $tempsTraitementExpr = $rapportDateExpr === 'NULL'
+                ? 'NULL'
+                : "DATEDIFF(v.date_validation, {$rapportDateExpr})";
 
             $query = "SELECT 
                         v.id_rapport,
@@ -83,13 +174,13 @@ class ArchivesDossiersSoutenanceService
                         v.commentaire_validation,
                         r.nom_rapport,
                         r.theme_rapport,
-                        r.date_rapport,
+                        {$rapportDateSelect},
                         e.promotion_etu,
-                        e.num_etu,
+                        {$studentNumberExpr} AS num_etu,
                         e.nom_etu,
                         e.prenom_etu,
                         e.email_etu,
-                        DATEDIFF(v.date_validation, r.date_rapport) as temps_traitement
+                        {$tempsTraitementExpr} as temps_traitement
                       FROM valider v
                       LEFT JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
                       LEFT JOIN etudiants e ON r.num_etu = e.num_carte_etud
@@ -146,14 +237,19 @@ class ArchivesDossiersSoutenanceService
             $stats['repartition_annees'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Temps moyen de traitement
-            $queryTemps = "SELECT AVG(DATEDIFF(v.date_validation, r.date_rapport)) as temps_moyen
-                          FROM valider v
-                          LEFT JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                          WHERE r.date_rapport IS NOT NULL";
-            $stmtTemps = $this->db->prepare($queryTemps);
-            $stmtTemps->execute();
-            $resultTemps = $stmtTemps->fetch(PDO::FETCH_ASSOC);
-            $stats['temps_moyen_traitement'] = round($resultTemps['temps_moyen'] ?? 0, 1);
+            $rapportDateExpr = $this->getRapportDateExpr('r');
+            if ($rapportDateExpr === 'NULL') {
+                $stats['temps_moyen_traitement'] = 0.0;
+            } else {
+                $queryTemps = "SELECT AVG(DATEDIFF(v.date_validation, {$rapportDateExpr})) as temps_moyen
+                              FROM valider v
+                              LEFT JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
+                              WHERE {$rapportDateExpr} IS NOT NULL";
+                $stmtTemps = $this->db->prepare($queryTemps);
+                $stmtTemps->execute();
+                $resultTemps = $stmtTemps->fetch(PDO::FETCH_ASSOC);
+                $stats['temps_moyen_traitement'] = round($resultTemps['temps_moyen'] ?? 0, 1);
+            }
 
             return $stats;
         } catch (Exception $e) {
@@ -170,12 +266,14 @@ class ArchivesDossiersSoutenanceService
     public function getRapportDetails($idRapport)
     {
         try {
+            $studentNumberExpr = $this->getEtudiantNumeroExpr('e');
             $query = "SELECT 
                         v.*,
                         r.nom_rapport,
                         r.theme_rapport,
-                        r.date_rapport,
+                        " . $this->getRapportDateSelect('r') . ",
                         e.promotion_etu,
+                        {$studentNumberExpr} AS num_etu,
                         e.nom_etu,
                         e.prenom_etu,
                         e.email_etu

@@ -42,7 +42,7 @@ register_shutdown_function(function () {
 
 
 
-include __DIR__ . '/../app/config/database.php';
+require_once __DIR__ . '/../app/config/database.php';
 require_once __DIR__ . '/../app/utils/AcademicYear.php';
 
 // ── Année académique globale ── résolution AVANT chargement des routes/contrôleurs
@@ -82,7 +82,25 @@ include_once __DIR__ . '/../app/utils/FormHelper.php';
 include_once __DIR__ . '/../app/utils/TableHelper.php';
 include_once __DIR__ . '/../app/utils/PaginationHelper.php';
 
+use CheckMaster\Security\PermissionContextFactory;
 use CheckMaster\Security\RoutePermissionService;
+
+$legacyPageAliases = [
+    'maj_etudiant' => [
+        'page' => 'gestion_etudiants',
+        'action' => 'ajouter_des_etudiants',
+    ],
+    'repertoire_documents' => [
+        'page' => 'repertoire_enseignant',
+    ],
+];
+
+if (isset($_GET['page']) && isset($legacyPageAliases[(string) $_GET['page']])) {
+    foreach ($legacyPageAliases[(string) $_GET['page']] as $key => $value) {
+        $_GET[$key] = $value;
+        $_REQUEST[$key] = $value;
+    }
+}
 
 if (!isset($_SESSION['id_utilisateur'])) {
     header('Location: page_connexion.php');
@@ -108,34 +126,28 @@ if (!isset($_SESSION['id_utilisateur'])) {
         }
     }
 
-    // NOUVEAU : Initialiser le middleware de permissions
     $permissionMiddleware = new PermissionMiddleware();
+    $routePermissionService = new RoutePermissionService(Database::getConnection());
+    $permissionContextFactory = new PermissionContextFactory(Database::getConnection());
+    $currentMenuSlugForGate = isset($_GET['page']) ? (string) $_GET['page'] : '';
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-    // NOUVEAU : Gate centralisé (Couche 1) - Sécurité backend globale pour les routes legacy
-    $corePages = ['dashboard', 'dashboard_admin', 'profil', 'access_denied'];
-    $currentMenuSlugForGate = isset($_GET['page']) ? $_GET['page'] : '';
+    if ($currentMenuSlugForGate !== '' && !$routePermissionService->canAccessLegacy((int) $_SESSION['id_GU'], $_GET, $_POST, $method)) {
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
-    if (!empty($currentMenuSlugForGate) && !in_array($currentMenuSlugForGate, $corePages) && !isAdmin()) {
-        $routePermissionService = new RoutePermissionService(Database::getConnection());
-        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-
-        if (!$routePermissionService->canAccessLegacy((int) $_SESSION['id_GU'], $_GET, $_POST, $method)) {
-            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-
-            if ($isAjax) {
-                http_response_code(403);
-                header('Content-Type: application/json; charset=UTF-8');
-                echo json_encode(['success' => false, 'message' => 'Accès refusé. Permissions insuffisantes.']);
-                exit;
-            }
-
-            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
-            $_SESSION['error_type'] = 'permission_denied';
-
-            $redirect = 'layout.php?page=access_denied';
-            header('Location: ' . $redirect);
+        if ($isAjax) {
+            http_response_code(403);
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode(['success' => false, 'message' => 'Accès refusé. Permissions insuffisantes.']);
             exit;
         }
+
+        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+        $_SESSION['error_type'] = 'permission_denied';
+
+        $redirect = 'layout.php?page=access_denied';
+        header('Location: ' . $redirect);
+        exit;
     }
 }
 
@@ -152,7 +164,10 @@ include __DIR__ . '/../ressources/routes/dossierAcademiqueRoutes.php';
 include __DIR__ . '/../ressources/routes/verificationRapportsRoutes.php';
 include __DIR__ . '/../ressources/routes/gestionReclamationsScolariteRoutes.php';
 include __DIR__ . '/../ressources/routes/evaluationDossiersRoutes.php';
+include __DIR__ . '/../ressources/routes/ProgrammationSoutenanceRoutes.php';
+include __DIR__ . '/../ressources/routes/plannificationSoutenanceRoutes.php';
 include __DIR__ . '/../ressources/routes/gestionDossiersCandidaturesRoutes.php';
+include __DIR__ . '/../ressources/routes/archivesDossiersSoutenanceRoutes.php';
 include __DIR__ . '/../ressources/routes/sauvegardeRestaurationRoutes.php';
 include __DIR__ . '/../ressources/routes/notesResultatsRoutes.php';
 include __DIR__ . '/../ressources/routes/archivesDossiersSoutenanceRoutes.php';
@@ -171,6 +186,9 @@ $menuHierarchique = $menuController->genererMenuHierarchique($_SESSION['id_GU'])
 // Déterminer la page actuelle et le label
 $currentMenuSlug = isset($_GET['page']) ? $_GET['page'] : '';
 $currentPageLabel = '';
+$GLOBALS['caps'] = isset($_SESSION['id_GU'])
+    ? $permissionContextFactory->forCurrentRequest((int) $_SESSION['id_GU'], $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'GET')
+    : ['view' => false, 'create' => false, 'edit' => false, 'delete' => false, 'slug' => ''];
 
 // Canonicalisation désactivée pour les pages legacy migrées:
 // on garde l'URL courante pour éviter les doubles redirections et préserver la navigation AJAX.
@@ -230,6 +248,51 @@ $contentFile = '';
 // IMPORTANT: chemin absolu (car layout peut être appelé via /public/app/layout.php)
 $partialsBasePath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'ressources' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR;
 switch ($currentMenuSlug) {
+    case 'profil':
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['update_password'])) {
+            $authController = new AuthController(Database::getConnection());
+            $passwordUpdated = $authController->updatePassword(
+                (string) ($_POST['currentPassword'] ?? ''),
+                (string) ($_POST['newPassword'] ?? ''),
+                (string) ($_POST['confirmPassword'] ?? '')
+            );
+            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+            if ($passwordUpdated) {
+                $_SESSION['password_success'] = (string) ($GLOBALS['messageSuccess'] ?? 'Mot de passe mis à jour avec succès.');
+
+                if ($isAjax) {
+                    header('Content-Type: application/json; charset=UTF-8');
+                    echo json_encode([
+                        'success' => true,
+                        'redirect' => 'layout.php?page=profil&tab=password',
+                    ]);
+                    exit;
+                }
+
+                header('Location: layout.php?page=profil&tab=password');
+                exit;
+            }
+
+            $_SESSION['password_error'] = (string) ($GLOBALS['messageErreur'] ?? 'Erreur lors de la mise à jour du mot de passe.');
+
+            if ($isAjax) {
+                http_response_code(422);
+                header('Content-Type: application/json; charset=UTF-8');
+                echo json_encode([
+                    'success' => false,
+                    'message' => $_SESSION['password_error'],
+                ]);
+                exit;
+            }
+
+            header('Location: layout.php?page=profil&tab=password');
+            exit;
+        }
+
+        $contentFile = $partialsBasePath . 'profil_content.php';
+        $currentPageLabel = 'Mon profil';
+        break;
     case 'parametres_generaux':
     case 'parametres_specifiques':
         // On charge le contrôleur manuellement pour être sûr qu'il s'exécute
@@ -643,6 +706,50 @@ switch ($currentMenuSlug) {
         break;
 }
 
+$canonicalActionLabels = [
+    'gestion_etudiants:ajouter_des_etudiants' => 'Mise à jour étudiant',
+    'parametres_generaux:annees_academiques' => 'Gestion des années académiques',
+];
+$canonicalPageLabels = [
+    'admin_historique' => 'Historique et archivage',
+    'consultation_cr_etud' => 'Mon compte rendu',
+    'candidature_soutenance' => 'Ma candidature à la soutenance',
+    'dashboard' => 'Tableau de bord — Administration',
+    'dashboard_commission' => 'Tableau de bord — Commission',
+    'dashboard_enseignant' => 'Espace enseignant — Participations jurys',
+    'dashboard_scolarite' => 'Tableau de bord scolarité',
+    'edition_bulletin' => 'Édition des bulletins',
+    'evaluation_dossiers' => 'Évaluation des dossiers',
+    'gestion_dossiers_candidatures' => 'Gestion des dossiers de candidatures',
+    'gestion_notes_evaluations' => 'Gestion des notes et évaluations',
+    'gestion_reclamations' => 'Mes réclamations',
+    'gestion_reclamations_scolarite' => 'Gestion des réclamations',
+    'gestion_scolarite' => 'Inscriptions / Paiements',
+    'gestion_utilisateurs' => 'Gestion des utilisateurs',
+    'maj_enseignant' => 'Mise à jour enseignant',
+    'maj_personnel_admin' => 'Mise à jour personnel administratif',
+    'mise_en_ligne_memoire' => 'Mise en ligne des mémoires',
+    'parametres_generaux' => 'Paramètres généraux',
+    'parametres_specifiques' => 'Paramètres spécifiques',
+    'piste_audit' => "Piste d'audit",
+    'processus_validation' => 'Suivi de validation des rapports',
+    'profil' => 'Mon profil',
+    'programmation_ens' => 'Mes soutenances — Programme',
+    'programmation_soutenance' => 'Programmation des soutenances',
+    'redaction_compte_rendu' => 'Rédaction du compte rendu',
+    'reception_rapport_com' => 'Réception des rapports',
+    'repertoire_enseignant' => 'Répertoire des documents',
+    'sauvegarde_restauration' => 'Sauvegardes et restauration',
+    'tableau_bord_enseignant' => 'Mon tableau de bord — Enseignant',
+];
+$labelKey = $currentMenuSlug . ($currentAction !== null ? ':' . $currentAction : '');
+if (isset($canonicalActionLabels[$labelKey])) {
+    $currentPageLabel = $canonicalActionLabels[$labelKey];
+} elseif (isset($canonicalPageLabels[$currentMenuSlug])) {
+    $currentPageLabel = $canonicalPageLabels[$currentMenuSlug];
+}
+$GLOBALS['currentPageLabel'] = $currentPageLabel;
+
 // Debug : log de la page demandée
 if (isset($_GET['page'])) {
     error_log('PAGE DEMANDEE : ' . $_GET['page']);
@@ -907,6 +1014,8 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         href="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('css/utilities.css') : 'assets/css/utilities.css', ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet"
         href="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('css/responsive.css') : 'assets/css/responsive.css', ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="stylesheet"
+        href="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('css/compact-forms.css') : 'assets/css/compact-forms.css', ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="shortcut icon"
         href="<?php echo htmlspecialchars($publicPrefix . 'image/logo_cm_sbg.png', ENT_QUOTES, 'UTF-8'); ?>"
         type="image/x-icon">
@@ -960,17 +1069,17 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         .cm-content-area form .cm-form-control:not(textarea),
         .cm-content-area form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not(.cm-etu-input):not(.search-input),
         .cm-content-area form select:not(.cm-etu-select) {
-            min-height: 32px;
-            padding-top: 0.28rem;
-            padding-bottom: 0.28rem;
-            font-size: 0.84rem;
+            min-height: 36px;
+            padding-top: 0.34rem;
+            padding-bottom: 0.34rem;
+            font-size: 0.875rem;
         }
 
         .cm-content-area form textarea.cm-form-control,
         .cm-content-area form textarea:not(.cm-etu-textarea):not(.verification-comment) {
-            min-height: 70px;
-            padding: 0.4rem 0.55rem;
-            font-size: 0.84rem;
+            min-height: 72px;
+            padding: 0.45rem 0.6rem;
+            font-size: 0.875rem;
         }
 
         .cm-content-area form input[type="date"]:not(.cm-etu-input),
@@ -1069,42 +1178,10 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         .cm-eval-top-row .cm-form-control,
         .cm-eval-top-row select,
         .cm-eval-top-row input[type="text"] {
-            min-height: 28px;
-            height: 28px;
-            padding: 0.18rem 0.4rem;
-            font-size: 0.8rem;
-        }
-
-        .cm-eval-jury-col {
-            display: flex;
-            flex-direction: column;
-            gap: 0.2rem;
-            width: 100%;
-        }
-
-        /* Encadré grille */
-        .cm-eval-grille-box {
-            border: 1px solid var(--cm-color-border, #d1d5db);
-            border-radius: 6px;
-            overflow: hidden;
-            background: #fff;
-        }
-
-        .cm-eval-grille-header {
-            background: var(--cm-color-bg-secondary, #f3f4f6);
-            border-bottom: 1px solid var(--cm-color-border, #d1d5db);
-            padding: 0.28rem 0.5rem;
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            color: var(--cm-color-text, #111827);
-        }
-
-        /* Table critères */
-        .cm-eval-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8rem;
+            min-height: 36px;
+            height: 36px;
+            padding: 0.32rem 0.52rem;
+            font-size: 0.875rem;
         }
 
         .cm-eval-table thead tr {
@@ -1119,7 +1196,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         }
 
         .cm-eval-table th {
-            font-size: 0.68rem;
+            font-size: 0.76rem;
             font-weight: 600;
             color: var(--cm-color-text-muted, #6b7280);
             text-transform: uppercase;
@@ -1157,10 +1234,10 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
 
         /* Input note dans la table */
         .cm-eval-note-input {
-            width: 2rem;
-            min-width: 2rem;
-            padding: 0.06rem 0.2rem;
-            font-size: 0.72rem;
+            width: 3.1rem;
+            min-width: 3.1rem;
+            padding: 0.2rem 0.3rem;
+            font-size: 0.875rem;
             border: 1px solid var(--cm-color-border, #d1d5db);
             border-radius: 4px;
             text-align: right;
@@ -1174,7 +1251,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
 
         .cm-eval-note-max {
             margin-left: 0.2rem;
-            font-size: 0.72rem;
+            font-size: 0.8rem;
             color: var(--cm-color-text-muted, #6b7280);
         }
 
@@ -1237,7 +1314,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         }
 
         .cm-eval-jury-col .cm-form-label {
-            font-size: 0.66rem;
+            font-size: 0.78rem;
             margin-bottom: 0.1rem;
             color: var(--cm-color-text-muted, #6b7280);
         }
@@ -1245,10 +1322,10 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         .cm-eval-jury-col .cm-form-control,
         .cm-eval-jury-col input[type="text"] {
             width: 100%;
-            font-size: 0.74rem;
-            padding: 0.12rem 0.3rem;
-            min-height: 24px;
-            height: 24px;
+            font-size: 0.875rem;
+            padding: 0.32rem 0.52rem;
+            min-height: 36px;
+            height: 36px;
             background: var(--cm-color-bg-secondary, #f9fafb);
         }
 
@@ -1404,7 +1481,6 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
                 <button class="cm-navbar__toggle" id="sidebarToggle" aria-label="Ouvrir/fermer le menu">
                     <i class="fas fa-bars" aria-hidden="true"></i>
                 </button>
-                <h1 class="cm-navbar__app-name"><?php echo htmlspecialchars($currentPageLabel); ?></h1>
             </div>
             <div class="cm-navbar__right">
                 <div class="cm-navbar__user" id="userDropdown" tabindex="0" aria-label="Menu utilisateur">
@@ -1440,14 +1516,12 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             // sont calculées en haut du fichier (après database.php) et $_SESSION['global_annee_id'] est déjà défini. ?>
 
 
-            <div class="cm-global-topbar cm-flex cm-flex-between cm-flex-center cm-px-lg cm-py-sm cm-bg-white"
-                style="border-bottom: 1px solid var(--cm-border-color); margin-bottom: var(--cm-spacing-md);">
-                <button type="button" class="cm-btn cm-btn--outline cm-btn--sm" onclick="history.back()">
+            <div class="cm-global-topbar">
+                <button type="button" class="cm-btn is-light is-sm" onclick="history.back()">
                     <i class="fas fa-arrow-left"></i> Retour
                 </button>
-                <div class="cm-flex cm-flex-center cm-flex-gap-sm">
-                    <label for="globalAnneeAcademique" class="cm-text-sm cm-text-semibold cm-m-0"
-                        style="margin-bottom:0;">Année Académique :</label>
+                <div class="cm-global-topbar__year">
+                    <label for="globalAnneeAcademique" class="cm-global-topbar__label cm-text-sm cm-text-semibold cm-m-0">Année académique</label>
                     <?php
                     $yearQueryBase = $_GET;
                     unset(
@@ -1458,9 +1532,8 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
                         $yearQueryBase['bulletin_annee']
                     );
                     ?>
-                    <select id="globalAnneeAcademique" class="cm-form-control cm-select--sm"
-                        onchange="window.location.href=this.value"
-                        style="width: auto; padding: 2px 8px; font-size: 0.8rem; height: 30px;">
+                    <select id="globalAnneeAcademique" class="cm-form-control cm-form-select cm-select--sm"
+                        onchange="window.location.href=this.value">
                         <?php $allYearsQuery = $yearQueryBase;
                         $allYearsQuery['global_annee_id'] = AcademicYear::getAllQueryValue(); ?>
                         <option value="?<?= htmlspecialchars(http_build_query($allYearsQuery), ENT_QUOTES, 'UTF-8') ?>"
@@ -1477,11 +1550,11 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
                         <?php endforeach; ?>
                     </select>
                     <?php if ($currentGlobalYearIsAll && $writableGlobalYear !== ''): ?>
-                        <span class="cm-text-xs cm-text-muted" title="Affichage global sur toutes les années">
+                        <span class="cm-global-topbar__hint cm-text-xs cm-text-muted" title="Affichage global sur toutes les années">
                             Affichage global. Écritures: <?= htmlspecialchars($writableGlobalYear, ENT_QUOTES, 'UTF-8') ?>
                         </span>
                     <?php elseif ($currentGlobalYearId !== null && $activeGlobalYearId !== null && (int) $currentGlobalYearId !== (int) $activeGlobalYearId): ?>
-                        <span class="cm-text-xs cm-text-muted" title="Consultation historique uniquement">
+                        <span class="cm-global-topbar__hint cm-text-xs cm-text-muted" title="Consultation historique uniquement">
                             Consultation: <?= htmlspecialchars($currentGlobalYear, ENT_QUOTES, 'UTF-8') ?>
                         </span>
                     <?php endif; ?>

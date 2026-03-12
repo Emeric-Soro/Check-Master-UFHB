@@ -9,7 +9,6 @@ $filters = $data['filters'] ?? [];
 ?>
 <div class="cm-archive-etudiants">
     <div class="cm-page-header cm-mb-4">
-        <h1 class="cm-page-title">👨‍🎓 Archives Étudiants</h1>
         <p class="cm-page-subtitle">Consultation et recherche des étudiants par année académique</p>
     </div>
 

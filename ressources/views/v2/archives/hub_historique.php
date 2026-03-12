@@ -17,7 +17,7 @@ $derniersEtudiants = $data['derniers_etudiants'] ?? [];
 $students = $data['students'] ?? [];
 $studentsTotal = $data['students_total'] ?? 0;
 $studentsPage = $data['students_page'] ?? 1;
-$studentsPerPage = $data['students_per_page'] ?? 20;
+$studentsPerPage = $data['students_per_page'] ?? 10;
 $studentsTotalPages = $data['students_total_pages'] ?? 1;
 $studentsSearch = $data['students_search'] ?? '';
 $studentsStatut = $data['students_statut'] ?? '';
@@ -25,6 +25,7 @@ $studentsStatut = $data['students_statut'] ?? '';
 $juries = $data['juries'] ?? [];
 $juriesTotal = $data['juries_total'] ?? 0;
 $juriesPage = $data['juries_page'] ?? 1;
+$juriesPerPage = $data['juries_per_page'] ?? 10;
 $juriesTotalPages = $data['juries_total_pages'] ?? 1;
 
 $globalStats = $data['global_stats'] ?? [];
@@ -284,7 +285,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 'search_value' => $studentsSearch,
                 'search_placeholder' => 'Nom, matricule, thème...',
                 'limit' => $studentsPerPage,
-                'limit_options' => [10, 20, 50, 100],
+                'limit_options' => [5, 10, 25, 50, 100],
                 'can_delete' => false,
                 'can_view' => true,
                 'show_actions' => false,
@@ -372,7 +373,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             <?php elseif ($activeTab === 'jurys'): ?>
             <!-- =============== ONGLET: JURYS =============== -->
             <?php
-            $juriesPager = cm_paginate(max($juriesTotal, 1), 20, $juriesPage);
+            $juriesPager = cm_paginate(max($juriesTotal, 1), $juriesPerPage, $juriesPage);
             $juriesPager['last'] = $juriesTotalPages;
             $juriesPagerBase = $tabBase . '&tab=jurys';
             ?>
@@ -405,7 +406,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         </td></tr>
                         <?php else: ?>
                             <?php
-                            $jRowNum = ($juriesPage - 1) * 20;
+                            $jRowNum = ($juriesPage - 1) * $juriesPerPage;
                             foreach ($juries as $jury):
                                 $jRowNum++;
                                 $dateRaw = (string) ($jury['date_soutenance'] ?? '');

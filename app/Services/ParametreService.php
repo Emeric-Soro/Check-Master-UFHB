@@ -1136,6 +1136,11 @@ class ParametreService
     {
         $messageErreur = '';
         $messageSuccess = '';
+        $redirectPage = (string) ($get['page'] ?? 'parametres_generaux');
+        if (!in_array($redirectPage, ['parametres_generaux', 'parametres_specifiques'], true)) {
+            $redirectPage = 'parametres_generaux';
+        }
+        $redirectBase = '?page=' . $redirectPage . '&action=gestion_menus';
 
         if (isset($get['success'])) {
             $successMessages = [
@@ -1171,11 +1176,11 @@ class ParametreService
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             if (!\CheckMaster\Core\Csrf::validate($post['csrf_token'] ?? null)) {
-                header('Location: ?page=parametres_generaux&action=gestion_menus&error=csrf');
+                header('Location: ' . $redirectBase . '&error=csrf');
                 exit;
             }
             if (!$isEditable) {
-                header('Location: ?page=parametres_generaux&action=gestion_menus&error=readonly');
+                header('Location: ' . $redirectBase . '&error=readonly');
                 exit;
             }
 
@@ -1191,7 +1196,7 @@ class ParametreService
                         'ordre_categorie' => (int) ($post['ordre_categorie'] ?? 0),
                         'actif' => isset($post['actif']) ? 1 : 0,
                     ]);
-                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=category_created');
+                    header('Location: ' . $redirectBase . '&success=category_created');
                     exit;
                 } elseif ($op === 'update_category') {
                     $id = (int) ($post['id_categorie'] ?? 0);
@@ -1202,19 +1207,19 @@ class ParametreService
                         'ordre_categorie' => (int) ($post['ordre_categorie'] ?? 0),
                         'actif' => isset($post['actif']) ? 1 : 0,
                     ]);
-                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=category_updated');
+                    header('Location: ' . $redirectBase . '&success=category_updated');
                     exit;
                 } elseif ($op === 'deactivate_category') {
                     $id = (int) ($post['id_categorie'] ?? 0);
                     $pdo->prepare("UPDATE categories_fonctionnalites SET actif = 0 WHERE id_categorie = ?")->execute([$id]);
                     $pdo->prepare("UPDATE fonctionnalites SET actif = 0 WHERE id_categorie = ?")->execute([$id]);
-                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=category_deactivated');
+                    header('Location: ' . $redirectBase . '&success=category_deactivated');
                     exit;
                 } elseif ($op === 'activate_category') {
                     $id = (int) ($post['id_categorie'] ?? 0);
                     $pdo->prepare("UPDATE categories_fonctionnalites SET actif = 1 WHERE id_categorie = ?")->execute([$id]);
                     $pdo->prepare("UPDATE fonctionnalites SET actif = 1 WHERE id_categorie = ?")->execute([$id]);
-                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=category_activated');
+                    header('Location: ' . $redirectBase . '&success=category_activated');
                     exit;
                 } elseif ($op === 'create_fonctionnalite') {
                     $idCategorie = (int) ($post['id_categorie'] ?? 0);
@@ -1249,7 +1254,7 @@ class ParametreService
                         'page_parente' => $pageParente,
                         'actif' => $actif,
                     ]);
-                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=item_created');
+                    header('Location: ' . $redirectBase . '&success=item_created');
                     exit;
                 } elseif ($op === 'update_fonctionnalite') {
                     $id = (int) ($post['id_fonctionnalite'] ?? 0);
@@ -1275,22 +1280,22 @@ class ParametreService
                         'page_parente' => $pageParente,
                         'actif' => isset($post['actif']) ? 1 : 0,
                     ]);
-                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=item_updated');
+                    header('Location: ' . $redirectBase . '&success=item_updated');
                     exit;
                 } elseif ($op === 'deactivate_fonctionnalite') {
                     $id = (int) ($post['id_fonctionnalite'] ?? 0);
                     $pdo->prepare("UPDATE fonctionnalites SET actif = 0 WHERE id_fonctionnalite = ?")->execute([$id]);
-                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=item_deactivated');
+                    header('Location: ' . $redirectBase . '&success=item_deactivated');
                     exit;
                 } elseif ($op === 'activate_fonctionnalite') {
                     $id = (int) ($post['id_fonctionnalite'] ?? 0);
                     $pdo->prepare("UPDATE fonctionnalites SET actif = 1 WHERE id_fonctionnalite = ?")->execute([$id]);
-                    header('Location: ?page=parametres_generaux&action=gestion_menus&success=item_activated');
+                    header('Location: ' . $redirectBase . '&success=item_activated');
                     exit;
                 }
             } catch (Throwable $e) {
                 $errorMsg = urlencode($e->getMessage());
-                header('Location: ?page=parametres_generaux&action=gestion_menus&error=exception&msg=' . $errorMsg);
+                header('Location: ' . $redirectBase . '&error=exception&msg=' . $errorMsg);
                 exit;
             }
         }
@@ -1589,10 +1594,10 @@ class ParametreService
             }
         } elseif (isset($post['btn_add_bareme_critere']) || isset($post['btn_modifier_bareme_critere'])) {
             $idAnnee = (int) ($post['id_annee_acad'] ?? 0);
-            $idCritere = (int) ($post['id_critere'] ?? 0);
+            $idCritere = trim((string) ($post['id_critere'] ?? ''));
             $bareme = (int) ($post['bareme'] ?? 0);
 
-            if ($idAnnee <= 0 || $idCritere <= 0 || $bareme <= 0) {
+            if ($idAnnee <= 0 || $idCritere === '' || $bareme <= 0) {
                 $messageErreur = 'Veuillez renseigner une année, un critère et un barème valides.';
             } else {
                 try {
@@ -1650,7 +1655,7 @@ class ParametreService
                 $stmt->execute([$decoded['id_annee_acad'], $decoded['id_critere']]);
                 $baremeAModifier = $stmt->fetch(PDO::FETCH_OBJ) ?: null;
                 if ($baremeAModifier !== null) {
-                    $baremeAModifier->bareme_pk = $this->encodeBaremePk((int) $baremeAModifier->id_annee_acad, (int) $baremeAModifier->id_critere);
+                    $baremeAModifier->bareme_pk = $this->encodeBaremePk((int) $baremeAModifier->id_annee_acad, (string) $baremeAModifier->id_critere);
                 }
             }
         }
@@ -1660,7 +1665,7 @@ class ParametreService
                 bc.id_annee_acad,
                 bc.id_critere,
                 bc.bareme,
-                ce.code_critere,
+                " . $this->getCritereCodeSelect('ce') . ",
                 ce.lib_critere,
                 CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) AS lib_annee
              FROM bareme_critere bc
@@ -1670,7 +1675,7 @@ class ParametreService
         );
         $listeBaremes = $stmtList->fetchAll(PDO::FETCH_OBJ);
         foreach ($listeBaremes as $row) {
-            $row->bareme_pk = $this->encodeBaremePk((int) ($row->id_annee_acad ?? 0), (int) ($row->id_critere ?? 0));
+            $row->bareme_pk = $this->encodeBaremePk((int) ($row->id_annee_acad ?? 0), (string) ($row->id_critere ?? ''));
         }
 
         $listeAnnees = $this->db->query(
@@ -1684,7 +1689,7 @@ class ParametreService
         }
 
         $listeCriteres = $this->db->query(
-            'SELECT id_critere, code_critere, lib_critere
+            'SELECT id_critere, ' . $this->getCritereCodeSelect() . ', lib_critere
              FROM critere_evaluation
              ORDER BY lib_critere ASC'
         )->fetchAll(PDO::FETCH_OBJ);
@@ -1842,6 +1847,27 @@ class ParametreService
         return (bool) $stmt->fetchColumn();
     }
 
+    private function columnExists(string $table, string $column): bool
+    {
+        if (!$this->tableExists($table)) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare('SHOW COLUMNS FROM ' . $this->quoteIdentifier($table) . ' LIKE ?');
+        $stmt->execute([$column]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    private function getCritereCodeSelect(string $alias = ''): string
+    {
+        $prefix = $alias !== '' ? $alias . '.' : '';
+        if ($this->columnExists('critere_evaluation', 'code_critere')) {
+            return $prefix . 'code_critere AS code_critere';
+        }
+
+        return $prefix . 'id_critere AS code_critere';
+    }
+
     private function fetchReferentielRow(string $table, string $idColumn, $id): ?object
     {
         $sql = "SELECT * FROM {$this->quoteIdentifier($table)}
@@ -1885,8 +1911,12 @@ class ParametreService
         return '`' . $identifier . '`';
     }
 
-    private function encodeBaremePk(int $idAnnee, int $idCritere): string
+    private function encodeBaremePk(int $idAnnee, string $idCritere): string
     {
+        $idCritere = trim($idCritere);
+        if ($idCritere === '') {
+            throw new Exception('Critère invalide pour la clé de barème.');
+        }
         return $idAnnee . ':' . $idCritere;
     }
 
@@ -1898,8 +1928,8 @@ class ParametreService
         }
 
         $idAnnee = (int) $parts[0];
-        $idCritere = (int) $parts[1];
-        if ($idAnnee <= 0 || $idCritere <= 0) {
+        $idCritere = trim($parts[1]);
+        if ($idAnnee <= 0 || $idCritere === '') {
             return null;
         }
 

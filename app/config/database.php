@@ -1,4 +1,6 @@
 <?php
+
+if (!class_exists('Database', false)) {
 class Database {
     // Configuration de la base de données (sans Docker)
     private static $host = 'localhost';
@@ -30,4 +32,5 @@ class Database {
             die("Erreur de connexion à la base de données.");
         }
     }
+}
 }
