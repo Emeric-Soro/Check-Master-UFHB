@@ -214,7 +214,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
         'id_prefix' => 'cmCandidatures',
         'search_value' => $_GET['search'] ?? '',
         'limit' => $perPage,
-        'allowed_limits' => $allowedLimits,
+        'limit_options' => $allowedLimits,
         'can_delete' => canDelete(),
         'can_view' => canView(),
     ]); ?>

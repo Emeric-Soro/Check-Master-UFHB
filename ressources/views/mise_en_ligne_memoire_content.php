@@ -134,22 +134,15 @@ foreach ($etudiants as $etudiant) {
                     </div>
                 </div>
 
-                <div class="cm-form-actions" style="display: flex; justify-content: space-between; margin-top: 10px;">
-                    <button type="button" class="cm-btn is-light is-sm" data-reset-form="1">
-                        <i class="fas fa-times" aria-hidden="true"></i>
-                        Annuler
-                    </button>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button type="button" class="cm-btn is-secondary is-sm" id="cmMemoireResetBtn">
-                            <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                            Réinitialiser
-                        </button>
-                        <button type="submit" class="cm-btn is-primary is-sm" id="cmMemoireSubmitBtn">
-                            <i class="fas fa-check" aria-hidden="true"></i>
-                            Valider l'opération
-                        </button>
-                    </div>
-                </div>
+                <?php
+                cm_component('crud/form-actions', [
+                    'cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']],
+                    'actions' => [
+                        ['label' => 'Réinitialiser', 'type' => 'button', 'class' => 'cm-btn is-secondary is-sm', 'attrs' => ['id' => 'cmMemoireResetBtn']],
+                        ['label' => "Valider l'opération", 'type' => 'submit', 'class' => 'cm-btn is-primary is-sm', 'attrs' => ['id' => 'cmMemoireSubmitBtn']],
+                    ],
+                ]);
+                ?>
             </form>
         </div>
 

@@ -193,20 +193,15 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     'placeholder' => 'Saisissez votre commentaire...',
                 ]);
                 ?>
-                <div class="cm-form-buttons is-dense">
-                    <a id="cmVoirRapportBtn"
-                       class="cm-btn is-info"
-                       href="#"
-                       target="_blank"
-                       rel="noopener">
-                        <i class="fas fa-eye" aria-hidden="true"></i>
-                        Voir rapport
-                    </a>
-                    <button class="cm-btn is-primary" type="submit">
-                        <i class="fas fa-check" aria-hidden="true"></i>
-                        Soumettre decision
-                    </button>
-                </div>
+                <?php
+                cm_component('crud/form-actions', [
+                    'cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']],
+                    'actions' => [
+                        ['tag' => 'a', 'href' => '#', 'label' => 'Voir rapport', 'icon' => 'fa-eye', 'class' => 'cm-btn is-info is-sm', 'attrs' => ['id' => 'cmVoirRapportBtn', 'target' => '_blank', 'rel' => 'noopener']],
+                        ['tag' => 'button', 'type' => 'submit', 'label' => 'Soumettre decision', 'icon' => 'fa-check', 'class' => 'cm-btn is-primary is-sm'],
+                    ],
+                ]);
+                ?>
             </form>
         </div>
         <?php cm_toolbar([
@@ -214,7 +209,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
             'id_prefix' => 'cmEval',
             'search_value' => $_GET['search'] ?? '',
             'limit' => $perPage,
-            'allowed_limits' => $allowedLimits,
+            'limit_options' => [5, 10, 25, 50, 100],
             'can_delete' => canDelete(),
             'can_view' => canView(),
         ]); ?>

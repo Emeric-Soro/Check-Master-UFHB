@@ -178,6 +178,7 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
             'id_prefix' => 'audit',
             'search_value' => $filters['search'],
             'limit' => $perPage,
+            'limit_options' => [5, 10, 25, 50, 100],
             'show_actions' => false,
             'custom_actions' => array_values(array_filter([
                 [

@@ -200,6 +200,7 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
                     'id_prefix' => 'users',
                     'search_value' => $filters['search'],
                     'limit' => $limit,
+                    'limit_options' => [5, 10, 25, 50, 100],
                     'can_delete' => canDelete(),
                     'can_view' => canView(),
                 ]); ?>

@@ -95,6 +95,7 @@ $pagination = [
         'id_prefix' => 'etudiants',
         'search_value' => $search,
         'limit' => $perPage,
+        'limit_options' => [5, 10, 25, 50, 100],
         'can_delete' => canDelete(),
         'can_view' => canView(),
     ]); ?>

@@ -68,6 +68,7 @@ unset($_SESSION['message']);
             'id_prefix' => 'cmReclamation',
             'search_value' => $_GET['search'] ?? '',
             'limit' => 10,
+            'limit_options' => [5, 10, 25, 50, 100],
             'can_delete' => canDelete(),
             'can_view' => canView(),
         ]); ?>

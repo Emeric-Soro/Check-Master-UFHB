@@ -239,6 +239,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 'id_prefix' => 'prog_sout',
                 'search_value' => $_GET['search'] ?? '',
                 'limit' => $perPage,
+                'limit_options' => [5, 10, 25, 50, 100],
                 'can_delete' => canDelete(),
                 'can_view' => canView(),
                 'custom_actions' => [

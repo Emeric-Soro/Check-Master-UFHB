@@ -103,7 +103,7 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
                     'value' => static function ($row) {
                         $nom = is_object($row) ? (string) ($row->nom_enseignant ?? '') : (string) ($row['nom_enseignant'] ?? '');
                         $prenom = is_object($row) ? (string) ($row->prenom_enseignant ?? '') : (string) ($row['prenom_enseignant'] ?? '');
-                        return trim($nom . ' ' . $prenom);
+                        return htmlspecialchars(strtoupper($nom) . ' ' . $prenom, ENT_QUOTES, 'UTF-8');
                     },
                 ],
                 ['key' => 'lib_specialite', 'label' => 'Spécialité'],
@@ -153,7 +153,7 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
                     'value' => static function ($row) {
                         $nom = is_object($row) ? (string) ($row->nom_pers_admin ?? '') : (string) ($row['nom_pers_admin'] ?? '');
                         $prenom = is_object($row) ? (string) ($row->prenom_pers_admin ?? '') : (string) ($row['prenom_pers_admin'] ?? '');
-                        return trim($nom . ' ' . $prenom);
+                        return htmlspecialchars(strtoupper($nom) . ' ' . $prenom, ENT_QUOTES, 'UTF-8');
                     },
                 ],
                 ['key' => 'genre', 'label' => 'Genre'],

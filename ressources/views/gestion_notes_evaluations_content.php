@@ -253,7 +253,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
         'id_prefix' => 'cmNotes',
         'search_value' => $_GET['search'] ?? '',
         'limit' => $notesPerPage,
-        'allowed_limits' => $allowedLimits,
+        'limit_options' => $allowedLimits,
         'can_delete' => canDelete(),
         'can_view' => canView(),
     ]); ?>

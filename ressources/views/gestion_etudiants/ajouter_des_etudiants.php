@@ -223,32 +223,30 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                     ]);
                     ?>
                 </div>
-                <div class="cm-form-buttons">
-                    <?php if (is_object($etudiantAModifier)): ?>
-                        <a class="cm-btn is-light"
-                            href="?page=gestion_etudiants&action=ajouter_des_etudiants<?php echo $preservedListParams; ?>">
-                            <i class="fas fa-xmark" aria-hidden="true"></i>
-                            Annuler
-                        </a>
-                        <?php if (canEdit()): ?>
-                            <button class="cm-btn is-primary" type="submit" name="submit_modifier_etudiant">
-                                <i class="fas fa-floppy-disk" aria-hidden="true"></i>
-                                Modifier
-                            </button>
-                        <?php endif; ?>
-                    <?php else: ?>
-                        <button class="cm-btn is-light" type="reset">
-                            <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                            Réinitialiser
-                        </button>
-                        <?php if (canCreate()): ?>
-                            <button class="cm-btn is-primary" type="submit" name="submit_add_etudiant">
-                                <i class="fas fa-floppy-disk" aria-hidden="true"></i>
-                                Enregistrer
-                            </button>
-                        <?php endif; ?>
-                    <?php endif; ?>
-                </div>
+                <?php
+                if (is_object($etudiantAModifier)) {
+                    $cancelHref = '?page=gestion_etudiants&action=ajouter_des_etudiants' . $preservedListParams;
+                    $cancelAction = ['label' => 'Annuler', 'tag' => 'a', 'class' => 'cm-btn is-light is-sm', 'href' => $cancelHref];
+                    $submitActions = [
+                        ['label' => 'Réinitialiser', 'type' => 'reset', 'class' => 'cm-btn is-secondary is-sm'],
+                    ];
+                    if (canEdit()) {
+                        $submitActions[] = ['label' => 'Modifier', 'type' => 'submit', 'name' => 'submit_modifier_etudiant', 'class' => 'cm-btn is-primary is-sm'];
+                    }
+                } else {
+                    $cancelAction = ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']];
+                    $submitActions = [
+                        ['label' => 'Réinitialiser', 'type' => 'reset', 'class' => 'cm-btn is-secondary is-sm'],
+                    ];
+                    if (canCreate()) {
+                        $submitActions[] = ['label' => 'Enregistrer', 'type' => 'submit', 'name' => 'submit_add_etudiant', 'class' => 'cm-btn is-primary is-sm'];
+                    }
+                }
+                cm_component('crud/form-actions', [
+                    'cancel_action' => $cancelAction,
+                    'actions' => $submitActions,
+                ]);
+                ?>
             </form>
         </div>
         <?php cm_toolbar([
@@ -276,8 +274,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                                 <?php endif; ?>
                                 <th class="cm-data-table__th cm-col-id" data-sort-field="id_mesrs">ID MESRS</th>
                                 <th class="cm-data-table__th cm-col-id" data-sort-field="num_etu">N° Carte Etud.</th>
-                                <th class="cm-data-table__th" data-sort-field="nom">Nom</th>
-                                <th class="cm-data-table__th" data-sort-field="prenom">Prénom</th>
+                                <th class="cm-data-table__th" data-sort-field="nom">Nom &amp; Prénom</th>
                                 <th class="cm-data-table__th cm-col-date" data-sort-field="date_naiss">Date Nais.</th>
                                 <th class="cm-data-table__th cm-col-genre" data-sort-field="genre">Genre</th>
                                 <th class="cm-data-table__th" data-sort-field="email">Email</th>
@@ -291,7 +288,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                             <?php if (empty($listeEtudiants)): ?>
                                 <?php cm_component('ui/empty-state', [
                                     'in_table' => true,
-                                    'colspan' => (canEdit() || canDelete()) ? (canEdit() ? 10 : 9) : (canEdit() ? 9 : 8),
+                                    'colspan' => (canEdit() || canDelete()) ? (canEdit() ? 9 : 8) : (canEdit() ? 8 : 7),
                                     'title' => '',
                                     'message' => 'Aucun enregistrement disponible pour cette page.',
                                 ]); ?>
@@ -329,10 +326,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                                         <td class="cm-data-table__td cm-col-id">
                                             <?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>
                                         </td>
-                                        <td class="cm-data-table__td"><?php echo htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'); ?>
-                                        </td>
-                                        <td class="cm-data-table__td">
-                                            <?php echo htmlspecialchars($prenom, ENT_QUOTES, 'UTF-8'); ?>
+                                        <td class="cm-data-table__td"><?php echo htmlspecialchars(strtoupper($nom) . ' ' . $prenom, ENT_QUOTES, 'UTF-8'); ?>
                                         </td>
                                         <td class="cm-data-table__td cm-col-date">
                                             <?php echo htmlspecialchars($dateNaiss, ENT_QUOTES, 'UTF-8'); ?>
