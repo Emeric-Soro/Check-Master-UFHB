@@ -47,31 +47,8 @@ function traduireStatut($statut)
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vérification des rapports étudiants</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-            --danger-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-            --info-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-            --card-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            --hover-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-        }
-
-        body {
-            min-height: 100vh;
-        }
-
-        .stat-card {
+        .verif-candidatures .stat-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 16px;
@@ -345,9 +322,8 @@ function traduireStatut($statut)
             }
         }
     </style>
-</head>
 
-<body class="min-h-screen p-4 md:p-8" style="background-color: #DFF2FF;">
+<div class="cm-prd3-screen verif-candidatures cm-p-4">
     <?php
     // Afficher les messages de session
     if (isset($_SESSION['message']) && !empty($_SESSION['message'])) {
@@ -861,7 +837,5 @@ function traduireStatut($statut)
             }, 3000);
         }
     </script>
-</body>
-
-</html>
+</div>
 

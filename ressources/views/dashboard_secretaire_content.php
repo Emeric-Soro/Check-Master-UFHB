@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <?php
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/controllers/DashboardScolariteController.php';
@@ -54,21 +53,7 @@ $totalInscriptions = array_sum(array_column($inscriptionsParNiveau, 'total'));
 // Calculer les nouvelles inscriptions du mois (simulation - à adapter selon vos besoins)
 $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
 ?>
-<html lang="fr">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tableau de Bord Secrétariat</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-            /* bg-gray-100 */
-        }
-
+<style>
         /* Styles personnalisés pour les dégradés et les couleurs spécifiques */
         .sidebar-bg {
             background: linear-gradient(135deg, #7c3aed, #9a67ea);
@@ -145,11 +130,8 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
             flex-direction: column;
         }
     </style>
-</head>
 
-<body class="flex min-h-screen" style="background-color: #DFF2FF;">
-
-
+<div class="cm-prd3-screen">
 
     <!-- Contenu principal -->
     <main class="flex-1 p-6 md:p-8">
@@ -506,6 +488,5 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
             });
         });
     </script>
-</body>
-
+</div>
 </html>
