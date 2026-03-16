@@ -277,7 +277,8 @@ if (!function_exists('cm_render_param_crud_view')) {
                     continue;
                 }
                 if (isset($def['value']) && is_callable($def['value'])) {
-                    $normalized[$key] = (string) $def['value']($row);
+                    $computedValue = $def['value']($row);
+                    $normalized[$key] = is_array($computedValue) ? $computedValue : (string) $computedValue;
                 } else {
                     $sourceKey = (string) ($def['source'] ?? $key);
                     $normalized[$key] = (string) $rowValue($row, $sourceKey, '');
@@ -1938,9 +1939,14 @@ if (!function_exists('cm_data_table_selectable')) {
                             </th>
                         <?php endif; ?>
                         <?php foreach ($columns as $col): ?>
+                            <?php
+                            $headerLabel = function_exists('cm_table_header_label')
+                                ? cm_table_header_label((string) ($col['label'] ?? ''))
+                                : (string) ($col['label'] ?? '');
+                            ?>
                             <th class="cm-data-table__th <?= htmlspecialchars($col['class'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                 <?= !empty($col['style']) ? 'style="' . htmlspecialchars($col['style'], ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
-                                <?= htmlspecialchars($col['label'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                                <?= htmlspecialchars($headerLabel, ENT_QUOTES, 'UTF-8') ?>
                             </th>
                         <?php endforeach; ?>
                         <?php if (!empty($actions)): ?>

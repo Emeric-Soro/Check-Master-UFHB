@@ -3,23 +3,19 @@ namespace CheckMaster\Services;
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/AuditLog.php';
-require_once __DIR__ . '/../models/Action.php';
 
 use AuditLog;
-use Action;
 use PDO;
 
 class AuditService
 {
     private $db;
     private $auditLog;
-    private $action;
 
     public function __construct($db)
     {
         $this->db = $db;
         $this->auditLog = new AuditLog($db);
-        $this->action = new Action($db);
     }
 
     /**
@@ -27,7 +23,10 @@ class AuditService
      */
     public function getAllActions()
     {
-        return $this->action->getAllAction();
+        $sql = "SELECT DISTINCT action FROM pister WHERE action IS NOT NULL AND action <> '' ORDER BY action";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
     /**
@@ -103,7 +102,8 @@ class AuditService
             'Heure',
             'Action',
             'Statut',
-            'Table',
+            'Contexte',
+            'ID Utilisateur',
             'Login Utilisateur',
             'Nom Utilisateur'
         ], ';');
@@ -116,6 +116,7 @@ class AuditService
                 $log['action'],
                 $log['statut_action'],
                 $log['nom_table'],
+                $log['id_utilisateur'] ?? 'N/A',
                 $log['login_utilisateur'] ?? 'N/A',
                 $log['nom_utilisateur'] ?? 'N/A'
             ], ';');
@@ -154,7 +155,7 @@ class AuditService
             return ['success' => false, 'message' => 'invalid_id'];
         }
 
-        $sql = "DELETE FROM pister WHERE id = ?";
+        $sql = "DELETE FROM pister WHERE id_piste = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$logId]);
 
@@ -186,6 +187,207 @@ class AuditService
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /**
+     * Extraire les filtres de l'historique utilisateur (écran profil).
+     */
+    public function extractUserHistoryFilters(array $params)
+    {
+        return [
+            'date_debut' => trim((string) ($params['history_date_debut'] ?? '')),
+            'date_fin' => trim((string) ($params['history_date_fin'] ?? '')),
+            'statut' => trim((string) ($params['history_statut'] ?? '')),
+            'search' => trim((string) ($params['history_search'] ?? '')),
+        ];
+    }
+
+    /**
+     * Récupérer l'historique d'audit d'un utilisateur connecté avec pagination.
+     */
+    public function getUserAuditHistory($userId, array $filters, $offset, $limit)
+    {
+        $userId = (int) $userId;
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $limit = max(1, min(100, (int) $limit));
+        $offset = max(0, (int) $offset);
+
+        $sql = "SELECT p.*, u.login_utilisateur, u.nom_utilisateur
+                FROM pister p
+                LEFT JOIN utilisateur u ON p.id_utilisateur = u.id_utilisateur
+                WHERE p.id_utilisateur = ?";
+        $params = [$userId];
+
+        $this->applyUserHistoryFilters($sql, $params, $filters);
+
+        $sql .= " ORDER BY p.date_creation DESC LIMIT " . intval($limit) . " OFFSET " . intval($offset);
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Compter les lignes d'historique d'un utilisateur connecté.
+     */
+    public function getTotalUserAuditHistory($userId, array $filters)
+    {
+        $userId = (int) $userId;
+        if ($userId <= 0) {
+            return 0;
+        }
+
+        $sql = "SELECT COUNT(*)
+                FROM pister p
+                LEFT JOIN utilisateur u ON p.id_utilisateur = u.id_utilisateur
+                WHERE p.id_utilisateur = ?";
+        $params = [$userId];
+
+        $this->applyUserHistoryFilters($sql, $params, $filters);
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Journaliser l'action HTTP courante dans la piste d'audit.
+     * Le format est compact pour respecter les tailles existantes.
+     */
+    public function logRequestActivity($userId, array $get, array $post, $method)
+    {
+        $userId = (int) $userId;
+        if ($userId <= 0) {
+            return false;
+        }
+
+        $page = trim((string) ($get['page'] ?? ''));
+        if ($page === '') {
+            return false;
+        }
+
+        $method = strtoupper(trim((string) $method));
+        if ($method === '') {
+            $method = 'GET';
+        }
+
+        $actionToken = $this->resolveRequestActionToken($get, $post, $method);
+        $tabToken = trim((string) ($get['tab'] ?? ''));
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+            && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+        $standardPayload = $this->resolveStandardAuditPayload($page, $actionToken, $method, $get);
+        if (is_array($standardPayload)) {
+            $actionLabel = $this->truncateForColumn((string) ($standardPayload['action'] ?? ''), 60);
+            $tableLabel = $this->truncateForColumn((string) ($standardPayload['nom_table'] ?? ''), 50);
+            return $this->auditLog->logAction($userId, $actionLabel, $tableLabel, 'Succès');
+        }
+
+        // Fallback: journalisation compacte technique pour conserver la traçabilité fine.
+        $actionParts = [$method, $page];
+        if ($actionToken !== '') {
+            $actionParts[] = 'act:' . $actionToken;
+        }
+        if ($tabToken !== '') {
+            $actionParts[] = 'tab:' . $tabToken;
+        }
+        $actionLabel = $this->truncateForColumn(implode(' | ', $actionParts), 60);
+
+        $contextParts = [$isAjax ? 'xhr' : 'ui', 'page=' . $page];
+        if ($actionToken !== '') {
+            $contextParts[] = 'action=' . $actionToken;
+        }
+        if ($tabToken !== '') {
+            $contextParts[] = 'tab=' . $tabToken;
+        }
+        $contextLabel = $this->truncateForColumn(implode(' | ', $contextParts), 50);
+
+        return $this->auditLog->logAction($userId, $actionLabel, $contextLabel, 'Succès');
+    }
+
+    /**
+     * Déterminer une action d'audit normalisée alignée sur le PRD.
+     *
+     * @return array{action:string,nom_table:string}|null
+     */
+    private function resolveStandardAuditPayload($page, $actionToken, $method, array $get)
+    {
+        $page = strtolower(trim((string) $page));
+        $actionToken = strtolower(trim((string) $actionToken));
+        $method = strtoupper(trim((string) $method));
+
+        $actionFromGet = strtolower(trim((string) ($get['action'] ?? '')));
+        $modalAction = strtolower(trim((string) ($get['modalAction'] ?? '')));
+        if ($actionToken === '' && $actionFromGet !== '') {
+            $actionToken = $actionFromGet;
+        }
+        if ($actionToken === '' && $modalAction !== '') {
+            $actionToken = $modalAction;
+        }
+
+        $isArchivePage = $this->isArchivePage($page);
+        $targetTable = $this->resolveAuditTableFromPage($page);
+
+        $isExport = $actionToken !== '' && (str_contains($actionToken, 'export') || str_contains($actionToken, 'download'));
+        $isPrint = $actionToken !== '' && (str_contains($actionToken, 'imprimer') || str_contains($actionToken, 'print'));
+        $isCloseYear = $actionToken !== '' && (str_contains($actionToken, 'cloture') || str_contains($actionToken, 'close'))
+            && (str_contains($actionToken, 'annee') || $page === 'parametres_generaux');
+
+        if ($isCloseYear) {
+            return ['action' => 'Clôture année', 'nom_table' => 'annee_academique'];
+        }
+
+        if ($isExport) {
+            return ['action' => 'Exportation', 'nom_table' => 'exports_conformite'];
+        }
+
+        if ($isPrint) {
+            return ['action' => 'Impression', 'nom_table' => $targetTable];
+        }
+
+        if ($method === 'GET' && $isArchivePage) {
+            return ['action' => 'Consultation archive', 'nom_table' => 'archives_documents'];
+        }
+
+        if (($isArchivePage && $method === 'POST') || str_contains($actionToken, 'archive')) {
+            return ['action' => 'Archivage', 'nom_table' => 'archives_documents'];
+        }
+
+        if ($actionToken === 'valider') {
+            return ['action' => 'Validation', 'nom_table' => 'valider'];
+        }
+
+        if ($actionToken === 'rejeter') {
+            return ['action' => 'Rejet', 'nom_table' => 'valider'];
+        }
+
+        if ($actionToken !== '' && str_contains($actionToken, 'eval')) {
+            return ['action' => 'Evaluation', 'nom_table' => 'evaluer'];
+        }
+
+        if ($actionToken !== '' && (str_contains($actionToken, 'depot') || str_contains($actionToken, 'deposer'))) {
+            return ['action' => 'Dépôt', 'nom_table' => 'deposer'];
+        }
+
+        if ($actionToken !== '' && (str_contains($actionToken, 'add') || str_contains($actionToken, 'create'))) {
+            return ['action' => 'Création', 'nom_table' => $targetTable];
+        }
+
+        if (
+            $actionToken !== ''
+            && (str_contains($actionToken, 'delete') || str_contains($actionToken, 'remove') || str_contains($actionToken, 'supp'))
+        ) {
+            return ['action' => 'Suppression', 'nom_table' => $targetTable];
+        }
+
+        if ($actionToken !== '' || $method === 'POST') {
+            return ['action' => 'Modification', 'nom_table' => $targetTable];
+        }
+
+        return null;
     }
 
     /**
@@ -233,5 +435,169 @@ class AuditService
             $params[] = $searchTerm;
             $params[] = $searchTerm;
         }
+    }
+
+    /**
+     * Appliquer les filtres de l'historique utilisateur (profil).
+     */
+    private function applyUserHistoryFilters(&$sql, &$params, array $filters)
+    {
+        if (!empty($filters['date_debut'])) {
+            $sql .= " AND DATE(p.date_creation) >= ?";
+            $params[] = $filters['date_debut'];
+        }
+
+        if (!empty($filters['date_fin'])) {
+            $sql .= " AND DATE(p.date_creation) <= ?";
+            $params[] = $filters['date_fin'];
+        }
+
+        if (!empty($filters['statut'])) {
+            $sql .= " AND p.statut_action = ?";
+            $params[] = $filters['statut'];
+        }
+
+        if (!empty($filters['search'])) {
+            $sql .= " AND (p.action LIKE ? OR p.nom_table LIKE ?)";
+            $searchTerm = '%' . $filters['search'] . '%';
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+    }
+
+    /**
+     * Résoudre un token d'action compact à partir de la requête courante.
+     */
+    private function resolveRequestActionToken(array $get, array $post, $method)
+    {
+        if (isset($get['action']) && trim((string) $get['action']) !== '') {
+            return trim((string) $get['action']);
+        }
+
+        if (isset($post['action']) && trim((string) $post['action']) !== '') {
+            return trim((string) $post['action']);
+        }
+
+        if (isset($get['modalAction']) && trim((string) $get['modalAction']) !== '') {
+            return trim((string) $get['modalAction']);
+        }
+
+        if (strtoupper((string) $method) !== 'POST') {
+            return '';
+        }
+
+        $markers = [
+            'btn_add_utilisateur' => 'btn_add_utilisateur',
+            'btn_add_multiple' => 'btn_add_multiple',
+            'btn_modifier_utilisateur' => 'btn_modifier_utilisateur',
+            'submit_enable_multiple' => 'submit_enable_multiple',
+            'submit_disable_multiple' => 'submit_disable_multiple',
+            'submit_send_access' => 'submit_send_access',
+            'submit_add_etudiant' => 'submit_add_etudiant',
+            'submit_modifier_etudiant' => 'submit_modifier_etudiant',
+            'btn_add_enseignant' => 'btn_add_enseignant',
+            'btn_modifier_enseignant' => 'btn_modifier_enseignant',
+            'btn_add_pers_admin' => 'btn_add_pers_admin',
+            'btn_modifier_pers_admin' => 'btn_modifier_pers_admin',
+            'submit_delete_multiple' => 'submit_delete_multiple',
+            'btn_enregistrer_notes' => 'btn_enregistrer_notes',
+            'update_password' => 'update_password',
+            'valider' => 'valider',
+            'rejeter' => 'rejeter',
+        ];
+
+        foreach ($markers as $key => $value) {
+            if (array_key_exists($key, $post)) {
+                return $value;
+            }
+        }
+
+        if (isset($post['selected_ids'])) {
+            return 'selected_ids';
+        }
+
+        if (isset($post['nouveau_statut'])) {
+            return 'repondre_reclamation';
+        }
+
+        return '';
+    }
+
+    private function isArchivePage($page)
+    {
+        $page = strtolower(trim((string) $page));
+        if ($page === '') {
+            return false;
+        }
+
+        if (str_starts_with($page, 'archives_')) {
+            return true;
+        }
+
+        return in_array($page, [
+            'admin_historique',
+            'hub_historique',
+            'archive_comptes_rendus',
+            'archive_documents',
+            'archive_history',
+            'parcours_etudiant',
+            'fiche_etudiant_archive',
+            'fiche_soutenance',
+        ], true);
+    }
+
+    private function resolveAuditTableFromPage($page)
+    {
+        $page = strtolower(trim((string) $page));
+
+        $map = [
+            'profil' => 'utilisateur',
+            'gestion_utilisateurs' => 'utilisateur',
+            'piste_audit' => 'pister',
+            'gestion_scolarite' => 'inscriptions',
+            'gestion_etudiants' => 'inscriptions',
+            'gestion_notes_evaluations' => 'notes',
+            'evaluation_dossiers' => 'evaluer',
+            'evaluation_soutenance' => 'evaluer',
+            'redaction_compte_rendu' => 'compte_rendu',
+            'consultation_cr_etud' => 'compte_rendu',
+            'dashboard' => 'tableau_de_bord',
+            'dashboard_commission' => 'tableau_de_bord',
+            'dashboard_enseignant' => 'tableau_de_bord',
+            'dashboard_scolarite' => 'tableau_de_bord',
+        ];
+
+        if (isset($map[$page])) {
+            return $map[$page];
+        }
+
+        if ($this->isArchivePage($page)) {
+            return 'archives_documents';
+        }
+
+        return $page !== '' ? $page : 'systeme';
+    }
+
+    /**
+     * Tronquer une chaîne pour respecter une colonne SQL fixe.
+     */
+    private function truncateForColumn($value, $maxLength)
+    {
+        $value = trim((string) preg_replace('/\s+/', ' ', (string) $value));
+        $maxLength = max(1, (int) $maxLength);
+
+        if ($value === '') {
+            return '-';
+        }
+
+        if (strlen($value) <= $maxLength) {
+            return $value;
+        }
+
+        if ($maxLength <= 3) {
+            return substr($value, 0, $maxLength);
+        }
+
+        return rtrim(substr($value, 0, $maxLength - 3)) . '...';
     }
 }

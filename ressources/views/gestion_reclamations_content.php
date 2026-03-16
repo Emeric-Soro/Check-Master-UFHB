@@ -34,7 +34,15 @@ unset($_SESSION['message']);
             <?php endif; ?>
 
             <div id="cmReclamationFormSection" style="display:none;" class="cm-mt-md">
-                <form method="POST" action="?page=gestion_reclamations&action=soumettre_reclamation" id="cmReclamationForm">
+                <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmReclamationForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="POST" action="?page=gestion_reclamations&action=soumettre_reclamation" id="cmReclamationForm">
                     <?php cm_component('form/csrf-token'); ?>
                     <div class="cm-grid-2">
                         <?php cm_component('form/input-text', [

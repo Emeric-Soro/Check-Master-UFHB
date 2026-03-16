@@ -98,7 +98,15 @@ $flash = $messageMap[$messageKey] ?? null;
 
                         <div class="cm-etu-report-item__actions">
                             <?php if ($peutDeposer): ?>
-                                <form method="POST" action="?page=gestion_rapports" class="cm-etu-inline-form">
+                                <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="POST" action="?page=gestion_rapports" class="cm-etu-inline-form">
                                     <input type="hidden" name="action" value="deposer_rapport">
                                     <input type="hidden" name="id_rapport" value="<?= $rapportId ?>">
                                     <button type="submit" class="cm-btn is-success is-sm">
@@ -195,3 +203,4 @@ $flash = $messageMap[$messageKey] ?? null;
     });
 })();
 </script>
+

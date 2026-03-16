@@ -89,7 +89,15 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
     <div class="cm-pole-superieur">
         <div class="">
         </div>
-        <form id="cmReclamationForm" method="POST">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmReclamationForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="cmReclamationForm" method="POST">
             <?php cm_component('form/csrf-token'); ?>
             <input type="hidden" id="cmReclamationId" value="">
             <div class="cm-grid-4">
@@ -479,3 +487,4 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
     updateSelectionState();
 })();
 </script>
+

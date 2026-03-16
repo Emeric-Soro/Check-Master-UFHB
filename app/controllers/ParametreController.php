@@ -397,6 +397,28 @@ if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !can
     }
     //============================FIN GESTION REFERENTIEL SIMPLE==================================
 
+    //============================GESTION FRAIS INSCRIPTION==================================
+    public function gestionFraisInscription()
+    {
+        if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
+
+        $result = $this->service->gestionFraisInscription($_POST, $_GET, $_SESSION['id_utilisateur']);
+        foreach ($result as $key => $value) {
+            $GLOBALS[$key] = $value;
+        }
+    }
+    //============================FIN GESTION FRAIS INSCRIPTION==================================
+
     //============================GESTION BAREME CRITERE==================================
     public function gestionBaremeCritere()
     {
@@ -418,6 +440,29 @@ if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !can
         }
     }
     //============================FIN GESTION BAREME CRITERE==================================
+
+
+    //============================SCHEMA TABLES (COUVERTURE PARAMETRES)==================================
+    public function gestionSchemaTables()
+    {
+        if (!canView('parametres_generaux') && !canView('parametres_specifiques')) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'accéder à cet écran."]);
+                exit;
+            }
+            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'accéder à cet écran.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
+
+        $result = $this->service->gestionSchemaTables($_GET);
+        foreach ($result as $key => $value) {
+            $GLOBALS[$key] = $value;
+        }
+    }
+    //============================FIN SCHEMA TABLES==================================
 
 
     //==============================GESTION SALLES==============================

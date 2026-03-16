@@ -1,5 +1,4 @@
 <?php
-$caps = getPermissionCaps('profil');
 $nomUser = (string) ($_SESSION['nom_utilisateur'] ?? '');
 $loginUser = (string) ($_SESSION['login_utilisateur'] ?? '');
 $statutUser = (string) ($_SESSION['statut_utilisateur'] ?? '');
@@ -17,11 +16,25 @@ $telephone = (string) ($_SESSION['telephone'] ?? '');
 $poste = (string) ($_SESSION['poste'] ?? '');
 $dateEmbauche = (string) ($_SESSION['date_embauche'] ?? '');
 
-$currentTab = ((string) ($_GET['tab'] ?? '')) === 'password' ? 'password' : 'profile';
+$requestedTab = (string) ($_GET['tab'] ?? 'profile');
+$allowedTabs = ['profile', 'password', 'history'];
+$currentTab = in_array($requestedTab, $allowedTabs, true) ? $requestedTab : 'profile';
 
 $passwordError = (string) ($_SESSION['password_error'] ?? '');
 $passwordSuccess = (string) ($_SESSION['password_success'] ?? '');
 unset($_SESSION['password_error'], $_SESSION['password_success']);
+
+$historyLogs = is_array($GLOBALS['profileAuditHistory'] ?? null) ? $GLOBALS['profileAuditHistory'] : [];
+$historyFilters = is_array($GLOBALS['profileAuditHistoryFilters'] ?? null) ? $GLOBALS['profileAuditHistoryFilters'] : [
+    'date_debut' => '',
+    'date_fin' => '',
+    'statut' => '',
+    'search' => '',
+];
+$historyPage = max(1, (int) ($GLOBALS['profileAuditHistoryPage'] ?? 1));
+$historyPerPage = max(1, (int) ($GLOBALS['profileAuditHistoryPerPage'] ?? 10));
+$historyTotalPages = max(1, (int) ($GLOBALS['profileAuditHistoryTotalPages'] ?? 1));
+$historyTotal = max(0, (int) ($GLOBALS['profileAuditHistoryTotal'] ?? count($historyLogs)));
 
 $badgeStatut = strtolower($statutUser) === 'actif' ? ['label' => 'Actif', 'type' => 'success'] : ['label' => 'Inactif', 'type' => 'danger'];
 $isEnseignant = in_array($libTypeUtilisateur, ['Enseignant simple', 'Enseignant administratif'], true);
@@ -39,7 +52,7 @@ ob_start();
 ?>
 <section class="cm-profile-card">
     <header class="cm-profile-card__header">
-        <h3 class="cm-profile-card__title">Informations du compte</h3>
+
     </header>
     <div class="cm-profile-grid">
         <?= $renderField('Nom utilisateur', $nomUser) ?>
@@ -58,7 +71,7 @@ ob_start();
 
 <section class="cm-profile-card">
     <header class="cm-profile-card__header">
-        <h3 class="cm-profile-card__title">Détails professionnels</h3>
+
     </header>
     <div class="cm-profile-grid">
         <?php if ($isEnseignant): ?>
@@ -77,15 +90,6 @@ ob_start();
         <?php endif; ?>
     </div>
 </section>
-
-<div class="cm-form-buttons">
-    <div class="cm-form-buttons__right">
-        <button type="button" class="cm-btn is-primary is-sm" data-edit-profile="1">
-            <i class="fas fa-pen" aria-hidden="true"></i>
-            Modifier mes informations
-        </button>
-    </div>
-</div>
 <?php
 $profileTabHtml = (string) ob_get_clean();
 
@@ -93,7 +97,7 @@ ob_start();
 ?>
 <section class="cm-profile-card">
     <header class="cm-profile-card__header">
-        <h3 class="cm-profile-card__title">Changer le mot de passe</h3>
+
     </header>
 
     <?php if ($passwordSuccess !== ''): ?>
@@ -106,7 +110,6 @@ ob_start();
     <form action="?page=profil&tab=password" method="POST" class="cm-profile-password-form" data-cm-ajax-form="true">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(\CheckMaster\Core\Csrf::token(), ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="id_utilisateur" value="<?php echo (int) ($_SESSION['id_utilisateur'] ?? 0); ?>">
-        <input type="hidden" name="action" value="update_password">
 
         <div class="cm-profile-grid">
             <div>
@@ -138,16 +141,136 @@ ob_start();
             </div>
         </div>
 
-        <?php cm_component('crud/form-actions', [
-            'actions' => [
-                ['label' => 'Réinitialiser', 'type' => 'reset', 'class' => 'cm-btn is-secondary is-sm'],
-                ['label' => 'Changer le mot de passe', 'type' => 'submit', 'class' => 'cm-btn is-primary is-sm', 'attrs' => ['name' => 'update_password']],
-            ],
-        ]); ?>
+        <div class="cm-form-buttons">
+            <button type="submit" name="update_password" class="cm-btn is-success">
+                <i class="fas fa-save"></i>
+                <span>Mettre à jour le mot de passe</span>
+            </button>
+        </div>
     </form>
 </section>
 <?php
 $passwordTabHtml = (string) ob_get_clean();
+
+ob_start();
+?>
+<section class="cm-profile-card">
+    <header class="cm-profile-card__header"></header>
+    <form method="GET" class="cm-profile-history-filters">
+        <input type="hidden" name="page" value="profil">
+        <input type="hidden" name="tab" value="history">
+        <div class="cm-grid-4">
+            <?php cm_component('form/input-date', [
+                'name' => 'history_date_debut',
+                'label' => 'Date début',
+                'value' => (string) ($historyFilters['date_debut'] ?? ''),
+            ]); ?>
+            <?php cm_component('form/input-date', [
+                'name' => 'history_date_fin',
+                'label' => 'Date fin',
+                'value' => (string) ($historyFilters['date_fin'] ?? ''),
+            ]); ?>
+            <?php cm_component('form/select', [
+                'name' => 'history_statut',
+                'label' => 'Statut',
+                'options' => [
+                    '' => '-- Tous --',
+                    'Succès' => 'Succès',
+                    'Erreur' => 'Erreur',
+                ],
+                'selected' => (string) ($historyFilters['statut'] ?? ''),
+            ]); ?>
+            <?php cm_component('form/select', [
+                'name' => 'history_limit',
+                'label' => 'Lignes',
+                'options' => [
+                    '10' => '10',
+                    '25' => '25',
+                    '50' => '50',
+                ],
+                'selected' => (string) $historyPerPage,
+            ]); ?>
+        </div>
+        <div class="cm-grid-1">
+            <?php cm_component('form/input-text', [
+                'name' => 'history_search',
+                'label' => 'Recherche',
+                'value' => (string) ($historyFilters['search'] ?? ''),
+                'placeholder' => 'Action ou contexte...',
+            ]); ?>
+        </div>
+        <div class="cm-form-buttons">
+            <a href="?page=profil&tab=history" class="cm-btn is-light">Réinitialiser</a>
+            <button type="submit" class="cm-btn is-primary">Filtrer</button>
+        </div>
+    </form>
+</section>
+
+<?php
+$historyRows = [];
+foreach ($historyLogs as $log) {
+    $dateCreation = (string) ($log['date_creation'] ?? '');
+    $dateText = $dateCreation !== '' ? date('d/m/Y H:i:s', strtotime($dateCreation)) : '-';
+    $statut = (string) ($log['statut_action'] ?? '');
+    $badgeType = 'info';
+    if (strcasecmp($statut, 'Succès') === 0 || strcasecmp($statut, 'Succes') === 0) {
+        $badgeType = 'success';
+    } elseif (strcasecmp($statut, 'Erreur') === 0 || strcasecmp($statut, 'Echec') === 0) {
+        $badgeType = 'danger';
+    }
+
+    $historyRows[] = [
+        'id' => (string) ($log['id_piste'] ?? ''),
+        'date_creation' => $dateText,
+        'action' => function_exists('cm_audit_humanize_action')
+            ? cm_audit_humanize_action($log)
+            : (string) ($log['action'] ?? '-'),
+        'contexte' => function_exists('cm_audit_humanize_context')
+            ? cm_audit_humanize_context($log)
+            : (string) ($log['nom_table'] ?? '-'),
+        'statut_action' => ['label' => $statut === '' ? '-' : $statut, 'type' => $badgeType],
+    ];
+}
+
+$historyPagination = cm_paginate($historyTotal, $historyPerPage, $historyPage);
+$historyPagination['last'] = $historyTotalPages;
+$historyQuery = array_filter([
+    'page' => 'profil',
+    'tab' => 'history',
+    'history_date_debut' => (string) ($historyFilters['date_debut'] ?? ''),
+    'history_date_fin' => (string) ($historyFilters['date_fin'] ?? ''),
+    'history_statut' => (string) ($historyFilters['statut'] ?? ''),
+    'history_search' => (string) ($historyFilters['search'] ?? ''),
+    'history_limit' => (string) $historyPerPage,
+], static function ($value) {
+    return $value !== '';
+});
+$historyPagerBase = '?' . http_build_query($historyQuery);
+?>
+<section class="cm-profile-card">
+    <?php cm_component('crud/data-table', [
+        'id' => 'cmProfileAuditHistoryTable',
+        'columns' => [
+            cm_column('date_creation', 'Date &amp; heure'),
+            cm_column('action', 'Action'),
+            cm_column('contexte', 'Contexte'),
+            cm_column('statut_action', 'Statut', ['type' => 'badge', 'align' => 'center']),
+        ],
+        'rows' => $historyRows,
+        'row_key' => 'id',
+        'selectable' => false,
+        'empty_title' => 'Aucune action tracée',
+        'empty_message' => 'Votre historique est vide pour les filtres sélectionnés.',
+    ]); ?>
+
+    <?php cm_component('crud/pagination', [
+        'pagination' => $historyPagination,
+        'base_url' => $historyPagerBase,
+        'param_name' => 'history_page',
+    ]); ?>
+</section>
+<?php
+$historyTabHtml = (string) ob_get_clean();
 ?>
 
 <section class="cm-profile-screen">
@@ -155,15 +278,12 @@ $passwordTabHtml = (string) ob_get_clean();
         'tabs' => [
             ['id' => 'profile', 'label' => 'Informations'],
             ['id' => 'password', 'label' => 'Mot de passe'],
+            ['id' => 'history', 'label' => 'Historique'],
         ],
         'active' => $currentTab,
     ]); ?>
 
     <?php cm_component('tabs/tab-content', ['id' => 'profile', 'active' => $currentTab === 'profile', 'content' => $profileTabHtml]); ?>
-    <?php
-    $passwordContent = $caps['edit']
-        ? $passwordTabHtml
-        : showNoPermissionMessage('modifier', 'profil');
-    cm_component('tabs/tab-content', ['id' => 'password', 'active' => $currentTab === 'password', 'content' => $passwordContent]);
-    ?>
+    <?php cm_component('tabs/tab-content', ['id' => 'password', 'active' => $currentTab === 'password', 'content' => $passwordTabHtml]); ?>
+    <?php cm_component('tabs/tab-content', ['id' => 'history', 'active' => $currentTab === 'history', 'content' => $historyTabHtml]); ?>
 </section>

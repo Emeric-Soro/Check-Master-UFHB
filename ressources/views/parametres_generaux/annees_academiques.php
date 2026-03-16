@@ -1,5 +1,22 @@
 <?php
 $pageSlug = (string) ($_GET['page'] ?? 'parametres_generaux');
+$anneesList = is_array($GLOBALS['listeAnnees'] ?? null) ? $GLOBALS['listeAnnees'] : [];
+$today = date('Y-m-d');
+$activeYearId = null;
+
+foreach ($anneesList as $anneeRow) {
+    $dateDebut = (string) ($anneeRow->date_deb ?? '');
+    $dateFin = (string) ($anneeRow->date_fin ?? '');
+    if ($dateDebut !== '' && $dateFin !== '' && $today >= $dateDebut && $today <= $dateFin) {
+        $activeYearId = (string) ($anneeRow->id_annee_acad ?? '');
+        break;
+    }
+}
+
+if ($activeYearId === '' || $activeYearId === null) {
+    $fallback = $anneesList[0] ?? null;
+    $activeYearId = (string) ($fallback->id_annee_acad ?? '');
+}
 
 cm_render_param_crud_view([
     'page_slug' => $pageSlug,
@@ -10,22 +27,12 @@ cm_render_param_crud_view([
     'form_title_edit' => '',
     'id_key' => 'id_annee_acad',
     'id_param' => 'id_annee_acad',
-    'list' => is_array($GLOBALS['listeAnnees'] ?? null) ? $GLOBALS['listeAnnees'] : [],
+    'list' => $anneesList,
     'edit' => $GLOBALS['annee_a_modifier'] ?? null,
     'message_success' => (string) ($GLOBALS['messageSuccess'] ?? ''),
     'message_error' => (string) ($GLOBALS['messageErreur'] ?? ''),
     'search_fields' => ['id_annee_acad', 'date_deb', 'date_fin'],
     'no_delete' => true,
-    'extra_table_actions' => [
-        [
-            'tag' => 'button',
-            'type' => 'button',
-            'label' => 'Désactiver/Activer',
-            'icon' => 'fa-toggle-on',
-            'class' => 'cm-btn-action is-toggle',
-            'attrs' => ['data-toggle-annee' => '1'],
-        ],
-    ],
     'add_button_name' => 'btn_add_annees_academiques',
     'edit_button_name' => 'btn_modifier_annees_academiques',
     'add_button_label' => 'Ajouter',
@@ -61,9 +68,12 @@ cm_render_param_crud_view([
         }],
         ['key' => 'date_debut', 'label' => 'Date début', 'source' => 'date_deb'],
         ['key' => 'date_fin', 'label' => 'Date fin'],
-        ['key' => 'statut', 'label' => 'Statut', 'value' => static function ($row): string {
-            $active = (int) ($row->actif ?? $row->statut ?? 0);
-            return $active ? 'Actif' : 'Inactif';
+        ['key' => 'statut', 'label' => 'Statut', 'type' => 'badge', 'value' => static function ($row) use ($activeYearId): array {
+            $isActive = (string) ($row->id_annee_acad ?? '') === $activeYearId;
+            return [
+                'label' => $isActive ? 'Actif' : 'Inactif',
+                'type' => $isActive ? 'success' : 'warning',
+            ];
         }],
     ],
 ]);

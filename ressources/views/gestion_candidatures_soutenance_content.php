@@ -99,7 +99,15 @@ endif; ?>
         <i class="fas fa-search"></i>
         <input type="text" id="searchInput" class="cm-form-control cm-toolbar-field-lg cm-size-personne" placeholder="Rechercher un étudiant...">
     </div>
-    <form method="get" id="filterForm" class="cm-cand-inline-form">
+    <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#filterForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="get" id="filterForm" class="cm-cand-inline-form">
         <input type="hidden" name="page" value="gestion_candidatures_soutenance">
         <select name="statut" id="statusFilter" class="cm-form-control cm-toolbar-field-sm cm-size-salle"
             onchange="document.getElementById('filterForm').submit()">
@@ -577,3 +585,4 @@ endif; ?>
     }
     highlightActiveStep(<?php echo (int)$etape; ?>);
 </script>
+

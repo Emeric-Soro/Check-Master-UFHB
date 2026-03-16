@@ -32,7 +32,9 @@ if (empty($columns) && !empty($headers)) {
 
                 <?php foreach ($columns as $column): ?>
                 <?php
-                $label = (string) ($column['label'] ?? '');
+                $label = function_exists('cm_table_header_label')
+                    ? cm_table_header_label((string) ($column['label'] ?? ''))
+                    : (string) ($column['label'] ?? '');
                 $align = (string) ($column['align'] ?? 'left');
                 $colClass = (string) ($column['class'] ?? '');
                 $thClass = 'cm-data-table__th is-' . htmlspecialchars($align, ENT_QUOTES, 'UTF-8');

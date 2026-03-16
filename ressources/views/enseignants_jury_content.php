@@ -62,7 +62,7 @@ try {
         $whereConditions[] = "EXISTS (
             SELECT 1
             FROM inscriptions i2
-            WHERE i2.id_etudiant = ps2.num_etud
+            WHERE i2.num_carte_etud = ps2.num_etud
               AND i2.id_annee_acad = :id_annee_acad
         )";
         $params[':id_annee_acad'] = $filtreAnneeAdmin;
@@ -213,7 +213,15 @@ if (!empty($searchTerm)) {
 
         </div>
         <div class="cm-card__body">
-            <form method="GET" class="cm-grid-4 cm-mb-0" style="align-items: end;">
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="GET" class="cm-grid-4 cm-mb-0" style="align-items: end;">
                 <input type="hidden" name="page" value="enseignants_jury">
                 <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars((string) ($filtreAnneeAdmin ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                 <?= cm_component('form/select', [
@@ -377,3 +385,4 @@ function downloadCSV(csv, filename) {
     document.body.removeChild(downloadLink);
 }
 </script>
+

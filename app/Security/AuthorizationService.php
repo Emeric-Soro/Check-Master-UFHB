@@ -104,6 +104,38 @@ final class AuthorizationService
 
         $featureId = $resolved['id_fonctionnalite'];
         if (!is_int($featureId) || $featureId <= 0) {
+            $feature = $resolved['fonctionnalite'] ?? null;
+
+            if ($feature === null) {
+                $slug = isset($resolved['slug_permission']) ? (string) $resolved['slug_permission'] : '';
+                if ($slug !== '') {
+                    $feature = $this->findFeature($slug);
+                }
+            }
+
+            if ($feature === null) {
+                $page = isset($get['page']) && is_string($get['page']) ? (string) $get['page'] : '';
+                if ($page !== '') {
+                    $feature = $this->findFeature($page);
+                }
+            }
+
+            if ($feature !== null && isset($feature->id_fonctionnalite)) {
+                $featureId = (int) $feature->id_fonctionnalite;
+            }
+        }
+
+        if (!is_int($featureId) || $featureId <= 0) {
+            error_log(sprintf(
+                '[AuthorizationService] canAccessLegacyRequest denied: group=%d method=%s page=%s action=%s reason=%s pattern=%s slug=%s',
+                $groupId,
+                strtoupper($method ?: 'GET'),
+                (string) ($get['page'] ?? ''),
+                (string) ($get['action'] ?? $post['action'] ?? ''),
+                (string) ($resolved['reason'] ?? ''),
+                (string) ($resolved['pattern'] ?? ''),
+                (string) ($resolved['slug_permission'] ?? '')
+            ));
             return false;
         }
 

@@ -30,7 +30,15 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
         <?php if ($errorMessage !== ''): ?>
             <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $errorMessage]); ?>
         <?php endif; ?>
-        <form id="stageInfoForm" method="POST" action="?page=candidature_soutenance&action=info_stage"
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#stageInfoForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="stageInfoForm" method="POST" action="?page=candidature_soutenance&action=info_stage"
             class="cm-etu-form" novalidate>
             <div class="cm-etu-grid cm-etu-grid--2">
                 <div class="cm-etu-field">

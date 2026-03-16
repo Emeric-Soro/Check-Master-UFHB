@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/AuditService.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
+        require_once __DIR__ . '/../utils/FormHelper.php';
 
 use CheckMaster\Services\AuditService;
 
@@ -102,6 +103,19 @@ class AuditController {
             header('Location: ?page=piste_audit&error=invalid_method');
             exit;
         }
+
+        try {
+            cm_csrf_verify($_POST['csrf_token'] ?? '');
+        } catch (Exception $e) {
+            $_SESSION['error_message'] = $e->getMessage();
+            header('Location: ?page=piste_audit&error=csrf_failed');
+            exit;
+        }
+
+        if (!canDelete('piste_audit')) {
+            header('Location: ?page=piste_audit&error=invalid_method');
+            exit;
+        }
         if (!canDelete('piste_audit')) {
             $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
             header('Location: ?page=piste_audit&error=permission_denied');
@@ -128,6 +142,19 @@ class AuditController {
 
     public function deleteSingleLog() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=piste_audit&error=invalid_method');
+            exit;
+        }
+
+        try {
+            cm_csrf_verify($_POST['csrf_token'] ?? '');
+        } catch (Exception $e) {
+            $_SESSION['error_message'] = $e->getMessage();
+            header('Location: ?page=piste_audit&error=csrf_failed');
+            exit;
+        }
+
+        if (!canDelete('piste_audit')) {
             header('Location: ?page=piste_audit&error=invalid_method');
             exit;
         }

@@ -47,6 +47,7 @@ try {
     $teacherName = trim($enseignant->nom_enseignant . ' ' . $enseignant->prenom_enseignant);
 
     // Récupérer les filtres
+    $filtreAnnee = isset($_GET['id_annee_acad']) && $_GET['id_annee_acad'] !== '' ? (int) $_GET['id_annee_acad'] : null;
     $filtreSession = isset($_GET['id_session']) && $_GET['id_session'] !== '' ? (int) $_GET['id_session'] : null;
     $filtreQualiteJury = isset($_GET['id_qualite_jury']) && $_GET['id_qualite_jury'] !== '' ? (int) $_GET['id_qualite_jury'] : null;
 
@@ -58,6 +59,11 @@ try {
     // Construire la requête des soutenances
     $whereSoutenances = ["CAST(ej.id_enseignant AS CHAR) = :id_enseignant", "ps.date_soutenance IS NOT NULL"];
     $paramsSoutenances = [':id_enseignant' => $teacherId];
+
+    if ($filtreAnnee !== null) {
+        $whereSoutenances[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+        $paramsSoutenances[':id_annee_acad'] = $filtreAnnee;
+    }
 
     if ($filtreSession !== null) {
         $whereSoutenances[] = "ps.id_session = :id_session";

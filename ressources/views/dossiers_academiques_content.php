@@ -260,7 +260,15 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                     <span class="font-medium">Chargement des données...</span>
                 </div>
             </div>
-            <form id="dossierForm" method="POST" action="?page=dossiers_academiques&action=enregistrer_dossier">
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#dossierForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="dossierForm" method="POST" action="?page=dossiers_academiques&action=enregistrer_dossier">
                 <input type="hidden" name="num_etu" id="modalNumEtu">
                 <!-- Informations personnelles -->
                 <div class="mb-6">
@@ -480,3 +488,4 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
         }
     </script>
 </div>
+

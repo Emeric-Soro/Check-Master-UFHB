@@ -213,6 +213,7 @@ $addFeature([
     'routes' => [
         ['pattern' => 'page=profil', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=profil&tab=password', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=profil&tab=history', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=profil&tab=password', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=profil&action=update_password&tab=password', 'method' => 'POST', 'crud' => 'modifier'],
     ],
@@ -765,8 +766,13 @@ $addFeature([
         ['pattern' => 'page=programmation_soutenance&action=updateAttribution', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=programmation_soutenance&action=deleteAttribution', 'method' => 'POST', 'crud' => 'supprimer'],
         ['pattern' => 'page=programmation_soutenance&action=getPlanningPreview', 'method' => 'GET', 'crud' => 'voir'],
-        ['pattern' => 'page=programmation_soutenance&action=generatePlanningPdf', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=programmation_soutenance&action=generatePlanningPdf', 'method' => 'POST', 'crud' => 'voir'],
         ['pattern' => 'page=programmation_soutenance&action=getDayDetails', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=programmation_soutenance&action=downloadPlanningPdf', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=programation_soutenance&action=getPlanningPreview', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=programation_soutenance&action=generatePlanningPdf', 'method' => 'POST', 'crud' => 'voir'],
+        ['pattern' => 'page=programation_soutenance&action=getDayDetails', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=programation_soutenance&action=downloadPlanningPdf', 'method' => 'GET', 'crud' => 'voir'],
     ],
 ]);
 
@@ -981,10 +987,6 @@ $paramCrud('semestres', 'semestres', 'Semestres', 'PARAM_SEMESTRES', [
 $paramCrud('niveaux_acces', 'niveaux_acces', 'Niveaux accès', 'PARAM_NIV_ACCES', [
     'existing_codes' => ['PARAM_NIV_ACCES'],
 ]);
-$paramCrud('traitements', 'traitements', 'Traitements', 'PARAM_TRAITEMENTS', [
-    'existing_codes' => ['PARAM_TRAITEMENTS'],
-    'page_aliases' => ['parametres_generaux', 'parametres_specifiques'],
-]);
 $paramCrud('entreprises', 'entreprises', 'Entreprises', 'PARAM_ENTREPRISES', [
     'existing_codes' => ['PARAM_ENTREPRISES'],
     'page_aliases' => ['parametres_generaux', 'parametres_specifiques'],
@@ -1026,6 +1028,12 @@ $paramCrud('maitre_stage', 'maitre_stage', 'Maître de stage', 'PARAM_MAITRE_STA
 ]);
 $paramCrud('type_enseignant', 'type_enseignant', 'Type enseignant', 'PARAM_TYPE_ENSEIGNANT', [
     'page_aliases' => ['parametres_generaux', 'parametres_specifiques'],
+]);
+$paramCrud('schema_tables', 'schema_tables', 'Couverture tables/colonnes', 'PARAM_SCHEMA_TABLES', [
+    'page_aliases' => ['parametres_generaux', 'parametres_specifiques'],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+    ],
 ]);
 
 return [

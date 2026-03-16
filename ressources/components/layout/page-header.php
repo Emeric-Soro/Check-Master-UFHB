@@ -1,15 +1,21 @@
 <?php
+$title = (string) ($title ?? '');
+$subtitle = (string) ($subtitle ?? '');
+$icon = (string) ($icon ?? '');
+$annee = (string) ($annee ?? '');
 $breadcrumbs = is_array($breadcrumbs ?? null) ? $breadcrumbs : [];
 
-if (empty($breadcrumbs)) {
+if ($title === '' && empty($breadcrumbs)) {
     return;
 }
 ?>
 <section class="cm-page-header">
+    <?php if (!empty($breadcrumbs)): ?>
     <nav class="cm-breadcrumb" aria-label="Fil d Ariane">
         <ol class="cm-breadcrumb__list">
             <?php foreach ($breadcrumbs as $i => $crumb): ?>
                 <?php
+                if (!is_array($crumb)) continue;
                 $label = (string) ($crumb['label'] ?? '');
                 $url = (string) ($crumb['url'] ?? '');
                 $is_last = ($i === count($breadcrumbs) - 1);
@@ -27,4 +33,5 @@ if (empty($breadcrumbs)) {
             <?php endforeach; ?>
         </ol>
     </nav>
+    <?php endif; ?>
 </section>

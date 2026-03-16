@@ -16,7 +16,7 @@ use PDO;
  * - etudiants (num_carte_etud PK, nom_etu, prenom_etu, email_etu, ...)
  * - enseignants (id_enseignant varchar PK, nom_enseignant, prenom_enseignant, ...)
  * - enseignant_jury (num_soutenance, id_enseignant, id_qualite_jury, date_composer_jury)
- * - qualite_jury (id_role_jury PK, code_qltjury, lib_role)
+ * - qualite_jury (id_role_jury PK, lib_role)
  * - rapport_etudiants (id_rapport PK, num_etu, theme_rapport, chemin_fichier, statut_rapport, ...)
  * - compte_rendu (id_CR PK, num_etu, nom_CR, contenu_CR, chemin_fichier_pdf, date_CR)
  * - compte_rendu_rapport (id_CR FK, id_rapport FK — composite PK, SEULEMENT 2 colonnes)
@@ -80,9 +80,13 @@ class PlanningDataUtils
         if ($sessionId !== null) {
             $sql .= ' AND ps.id_session = :sessionId';
             $params['sessionId'] = $sessionId;
-        } elseif ($dateFrom !== null && $dateTo !== null) {
-            $sql .= ' AND ps.date_soutenance BETWEEN :from AND :to';
+        }
+        if ($dateFrom !== null) {
+            $sql .= ' AND ps.date_soutenance >= :from';
             $params['from'] = $dateFrom;
+        }
+        if ($dateTo !== null) {
+            $sql .= ' AND ps.date_soutenance <= :to';
             $params['to'] = $dateTo;
         }
 
@@ -90,6 +94,46 @@ class PlanningDataUtils
 
         $stmt = $this->db->pdo()->prepare($sql);
         $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return is_array($rows) ? $rows : [];
+    }
+
+    /**
+     * Récupère un ensemble ciblé de soutenances par identifiants.
+     *
+     * @param array<int, string> $soutenanceIds
+     * @return array<int, array<string, mixed>>
+     */
+    public function getSoutenancesByIds(array $soutenanceIds): array
+    {
+        $ids = array_values(array_filter(array_map(static fn ($id): string => trim((string) $id), $soutenanceIds), static fn (string $id): bool => $id !== ''));
+        if (empty($ids)) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $sql = "SELECT ps.*,
+                       ps.heure_soutenance AS heure_debut,
+                       ps.theme_soutenance AS theme_soutenance,
+                       e.nom_etu AS nom_etudiant,
+                       e.prenom_etu AS prenom_etudiant,
+                       e.num_carte_etud AS matricule_etudiant,
+                       e.email_etu AS email_etudiant,
+                       sa.lib_salle,
+                       s.lib_session,
+                       COALESCE(ent.lib_long_entreprise, 'N/A') AS entreprise_accueil
+                FROM programmer_soutenance ps
+                INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
+                LEFT JOIN session s ON s.id_session = ps.id_session
+                LEFT JOIN informations_stage ist ON ist.num_etu = ps.num_etud
+                LEFT JOIN entreprises ent ON ent.id_entreprise = ist.id_entreprise
+                WHERE ps.num_soutenance IN ({$placeholders})
+                ORDER BY ps.date_soutenance ASC, ps.heure_soutenance ASC";
+
+        $stmt = $this->db->pdo()->prepare($sql);
+        $stmt->execute($ids);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return is_array($rows) ? $rows : [];
@@ -104,7 +148,7 @@ class PlanningDataUtils
     public function getJuryDetails(string $numSoutenance): array
     {
         $sql = 'SELECT ej.id_enseignant, ens.nom_enseignant, ens.prenom_enseignant,
-                       qj.lib_role, qj.code_qltjury
+                       qj.lib_role
                 FROM enseignant_jury ej
                 INNER JOIN enseignants ens ON ens.id_enseignant = ej.id_enseignant
                 INNER JOIN qualite_jury qj ON qj.id_role_jury = ej.id_qualite_jury
@@ -284,7 +328,7 @@ class PlanningDataUtils
              INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud
              LEFT JOIN inscriptions i ON i.id_inscription = (
                  SELECT i2.id_inscription FROM inscriptions i2
-                 WHERE i2.id_etudiant = e.num_carte_etud
+                 WHERE i2.num_carte_etud = e.num_carte_etud
                  ORDER BY i2.date_inscription DESC, i2.id_inscription DESC LIMIT 1
              )
              LEFT JOIN session s ON s.id_session = ps.id_session
@@ -433,7 +477,7 @@ class PlanningDataUtils
              INNER JOIN etudiants e ON e.num_carte_etud = r.num_etu
              LEFT JOIN inscriptions i ON i.id_inscription = (
                  SELECT i2.id_inscription FROM inscriptions i2 
-                  WHERE i2.id_etudiant = e.num_carte_etud 
+                  WHERE i2.num_carte_etud = e.num_carte_etud 
                   ORDER BY i2.date_inscription DESC LIMIT 1
               )
              LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
@@ -462,7 +506,7 @@ class PlanningDataUtils
              FROM etudiants e
              LEFT JOIN inscriptions i ON i.id_inscription = (
                  SELECT i2.id_inscription FROM inscriptions i2 
-                 WHERE i2.id_etudiant = e.num_carte_etud 
+                 WHERE i2.num_carte_etud = e.num_carte_etud 
                  ORDER BY i2.date_inscription DESC LIMIT 1
              )
              LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niveau

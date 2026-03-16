@@ -90,7 +90,32 @@ foreach ($soutenances as $soutenance) {
 
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur is-compact">
-            <form id="cmEvalSoutForm" method="POST" action="?page=evaluation_soutenance" data-cm-ajax-form="true">
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmEvalSoutForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+
+.cm-eval-sout-toolbar .cm-toolbar-left {
+    flex: 1 1 20rem !important;
+}
+
+.cm-eval-sout-toolbar .cm-toolbar-center {
+    flex: 1 1 28rem !important;
+}
+
+.cm-eval-sout-toolbar .cm-toolbar-right {
+    flex: 0 0 auto !important;
+}
+
+.cm-eval-sout-toolbar .cm-toolbar-left .cm-toolbar-field-lg {
+    min-width: 13rem !important;
+    max-width: 18rem !important;
+}
+</style>
+<form id="cmEvalSoutForm" method="POST" action="?page=evaluation_soutenance" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" name="action" value="evaluer">
                 <input type="hidden" name="num_etu" id="cmEvalNumEtu" value="">
@@ -230,7 +255,7 @@ foreach ($soutenances as $soutenance) {
         </div>
 
         <div class="cm-barre-intermediaire">
-            <div class="cm-toolbar">
+            <div class="cm-toolbar cm-eval-sout-toolbar">
                 <div class="cm-toolbar-left">
                     <label for="cmEvalSoutLimit"><strong>Afficher:</strong></label>
                     <select id="cmEvalSoutLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
@@ -402,17 +427,19 @@ foreach ($soutenances as $soutenance) {
 
 <script>
     (function () {
-        const criteresInit = <?php echo json_encode($criteres, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
         const soutenances = <?php echo json_encode($soutenances, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
         const anneeSelect = document.getElementById('cmEvalAnnee');
         const soutenanceSelect = document.getElementById('cmEvalSoutenanceSelect');
         const numEtuInput = document.getElementById('cmEvalNumEtu');
         const moyenneInput = document.getElementById('cmEvalMoyenne');
         const decisionSelect = document.getElementById('cmEvalDecision');
+        const promotionInput = document.getElementById('cmEvalPromotion');
         const themeInput = document.getElementById('cmEvalTheme');
-        const salleInput = document.getElementById('cmEvalSalle');
-        const dateTimeInput = document.getElementById('cmEvalDateTime');
-        const juryInput = document.getElementById('cmEvalJury');
+        const presidentInput = document.getElementById('cmProgPresident');
+        const examinateurInput = document.getElementById('cmProgExaminateur');
+        const directeurInput = document.getElementById('cmProgDirecteur');
+        const encadreurInput = document.getElementById('cmProgEncadreur');
+        const maitreStageInput = document.getElementById('cmProgMaitreStage');
         const selectedLabel = document.getElementById('cmEvalSelectedLabel');
         const resetBtn = document.getElementById('cmEvalResetBtn');
         const alertBox = document.getElementById('cmEvalSoutAlert');
@@ -507,6 +534,58 @@ foreach ($soutenances as $soutenance) {
             return 'Insuffisant';
         }
 
+        function formatDateFr(value) {
+            const raw = String(value || '').trim();
+            if (!raw || raw === '0000-00-00' || raw === '0000-00-00 00:00:00') {
+                return '';
+            }
+
+            const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (isoMatch) {
+                return isoMatch[3] + '/' + isoMatch[2] + '/' + isoMatch[1];
+            }
+
+            const parsed = new Date(raw);
+            if (!Number.isNaN(parsed.getTime())) {
+                return parsed.toLocaleDateString('fr-FR');
+            }
+
+            return raw;
+        }
+
+        function formatTimeFr(value) {
+            const raw = String(value || '').trim();
+            if (!raw || raw === '00:00:00' || raw === '00:00' || raw === '00:00:10') {
+                return '';
+            }
+
+            return raw.slice(0, 5);
+        }
+
+        function clearEvaluationGrid() {
+            document.querySelectorAll('#cmEval .cm-eval-grid__note-field').forEach(function (input) {
+                input.value = '';
+                input.classList.remove('is-invalid');
+            });
+            recalcMoyenne();
+        }
+
+        function resetSoutenanceInfo() {
+            if (promotionInput) promotionInput.value = '';
+            if (themeInput) themeInput.value = '';
+            if (presidentInput) presidentInput.value = '';
+            if (examinateurInput) examinateurInput.value = '';
+            if (directeurInput) directeurInput.value = '';
+            if (encadreurInput) encadreurInput.value = '';
+            if (maitreStageInput) maitreStageInput.value = '';
+            if (selectedLabel) selectedLabel.textContent = 'Soutenance selectionnee: -';
+            const commentaireEl = document.getElementById('cmEvalComment');
+            if (commentaireEl) {
+                commentaireEl.value = '';
+            }
+            clearEvaluationGrid();
+        }
+
         function recalcMoyenne() {
             const evalGrid = document.getElementById('cmEval');
             if (!evalGrid) { return; }
@@ -549,25 +628,25 @@ foreach ($soutenances as $soutenance) {
         function fillSoutenanceInfo(numEtu) {
             const info = getSoutenanceByNumEtu(numEtu);
             if (!info) {
-                if (themeInput) themeInput.value = '';
-                if (salleInput) salleInput.value = '';
-                if (dateTimeInput) dateTimeInput.value = '';
-                if (juryInput) juryInput.value = '';
-                if (selectedLabel) selectedLabel.textContent = 'Soutenance selectionnee: -';
+                resetSoutenanceInfo();
                 return;
             }
 
-            if (themeInput) themeInput.value = info.theme_soutenance || '';
-            if (salleInput) salleInput.value = info.nom_salle || '';
+            clearEvaluationGrid();
 
-            const datePart = info.date_soutenance ? new Date(info.date_soutenance).toLocaleDateString('fr-FR') : '';
-            const heurePart = info.heure_soutenance ? String(info.heure_soutenance).slice(0, 5) : '';
-            if (dateTimeInput) dateTimeInput.value = (datePart + ' ' + heurePart).trim();
-            if (juryInput) {
-                juryInput.value = ((info.president_nom || '-') + ' / ' + (info.examinateur_nom || '-'));
-            }
+            if (promotionInput) promotionInput.value = info.promotion_label || info.promotion_etu || '';
+            if (themeInput) themeInput.value = info.theme_soutenance || '';
+            if (presidentInput) presidentInput.value = info.president_nom || '';
+            if (examinateurInput) examinateurInput.value = info.examinateur_nom || '';
+            if (directeurInput) directeurInput.value = info.directeur_nom || '';
+            if (encadreurInput) encadreurInput.value = info.encadreur_nom || '';
+            if (maitreStageInput) maitreStageInput.value = info.maitre_stage_nom || '';
+
+            const datePart = formatDateFr(info.date_soutenance);
+            const heurePart = formatTimeFr(info.heure_soutenance);
+            const dateHeure = [datePart, heurePart].filter(Boolean).join(' ');
             if (selectedLabel) {
-                selectedLabel.textContent = 'Soutenance selectionnee: ' + (info.nom_etudiant || 'Etudiant') + ' - ' + (datePart || '-');
+                selectedLabel.textContent = 'Soutenance selectionnee: ' + (info.nom_etudiant || 'Etudiant') + ' - ' + (dateHeure || '-');
             }
 
             const commentaireEl = document.getElementById('cmEvalComment');
@@ -594,11 +673,7 @@ foreach ($soutenances as $soutenance) {
                         recalcMoyenne();
                     });
             } else {
-                document.querySelectorAll('#cmEval .cm-eval-grid__note-field').forEach(function (input) {
-                    input.value = '';
-                    input.classList.remove('is-invalid');
-                });
-                recalcMoyenne();
+                clearEvaluationGrid();
             }
         }
 
@@ -708,18 +783,8 @@ foreach ($soutenances as $soutenance) {
                 if (numEtuInput) {
                     numEtuInput.value = '';
                 }
-                if (themeInput) themeInput.value = '';
-                if (salleInput) salleInput.value = '';
-                if (dateTimeInput) dateTimeInput.value = '';
-                if (juryInput) juryInput.value = '';
                 if (decisionSelect) decisionSelect.value = 'admis';
-                const commentaire = document.getElementById('cmEvalComment');
-                if (commentaire) commentaire.value = '';
-                document.querySelectorAll('#cmEval .cm-eval-grid__note-field').forEach(function (input) {
-                    input.value = '';
-                    input.classList.remove('is-invalid');
-                });
-                recalcMoyenne();
+                resetSoutenanceInfo();
             });
         }
 

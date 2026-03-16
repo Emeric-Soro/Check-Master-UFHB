@@ -139,7 +139,7 @@ try {
                      LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
                      LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
                      LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
-                     LEFT JOIN inscriptions i2 ON i2.id_etudiant = e2.num_carte_etud
+                     LEFT JOIN inscriptions i2 ON i2.num_carte_etud = e2.num_carte_etud
                      {$whereClause}
                      GROUP BY ens.id_enseignant
                      HAVING COUNT(DISTINCT ej.num_soutenance) > 0
@@ -164,7 +164,7 @@ try {
             LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
             LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
             LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
-            LEFT JOIN inscriptions i2 ON i2.id_etudiant = e2.num_carte_etud
+            LEFT JOIN inscriptions i2 ON i2.num_carte_etud = e2.num_carte_etud
             {$whereClause}
             GROUP BY ens.id_enseignant, ens.nom_enseignant, ens.prenom_enseignant
             HAVING COUNT(DISTINCT ej.num_soutenance) > 0
@@ -299,7 +299,15 @@ try {
             </a>
         </div>
         <div class="cm-card__body">
-            <form method="GET" class="cm-grid-3 cm-mb-md" style="align-items: end;">
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="GET" class="cm-grid-3 cm-mb-md" style="align-items: end;">
                 <input type="hidden" name="page" value="dashboard">
 
                 <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars((string) (\AcademicYear::getWritableIdFromSession() ?? ''), ENT_QUOTES, 'UTF-8') ?>">
@@ -373,3 +381,4 @@ try {
         </div>
     </div>
 </section>
+

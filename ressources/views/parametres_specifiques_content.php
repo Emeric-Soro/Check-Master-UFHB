@@ -39,6 +39,7 @@ $iconByTitle = [
     'Habilitations' => 'fa-key',
     'Traitements' => 'fa-clipboard-list',
     'Messages Système' => 'fa-envelope',
+    'Structure BD' => 'fa-database',
 ];
 
 $resolveIcon = static function (array $card) use ($iconByTitle): string {

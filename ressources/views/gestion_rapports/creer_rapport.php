@@ -535,6 +535,14 @@ $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON
 </style>
 
 <!-- Hidden form for AJAX submissions -->
+<style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#rapportForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
 <form id="rapportForm" method="POST" action="?page=gestion_rapports" style="display:none;">
     <input type="hidden" name="action" value="save_rapport">
     <?php if ($isEditingExisting): ?>
@@ -1414,3 +1422,4 @@ if (document.readyState === 'loading') {
 }
 })();
 </script>
+

@@ -573,7 +573,15 @@ function traduireStatut($statut)
 
             <?php if (canEdit()): ?>
             <!-- Formulaire PHP pour valider -->
-            <form id="validerForm" method="POST" action="?page=verification_candidatures_soutenance"
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#validerForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="validerForm" method="POST" action="?page=verification_candidatures_soutenance"
                 style="display: none;">
                 <input type="hidden" name="valider" value="1">
                 <input type="hidden" id="validerRapportId" name="id_rapport">
@@ -874,3 +882,4 @@ function traduireStatut($statut)
 </body>
 
 </html>
+

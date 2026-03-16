@@ -7,6 +7,13 @@ if (isset($_GET['page']) && in_array($_GET['page'], ['programmation_soutenance',
         return;
     }
 
+    error_log(sprintf(
+        '[programmationSoutenanceRoutes] dispatch: method=%s page=%s action=%s',
+        (string) ($_SERVER['REQUEST_METHOD'] ?? ''),
+        (string) ($_GET['page'] ?? ''),
+        (string) $action
+    ));
+
     require_once __DIR__ . '/../../app/controllers/ProgrammationSoutenanceController.php';
     $controller = new ProgrammationSoutenanceController();
 
@@ -52,6 +59,10 @@ if (isset($_GET['page']) && in_array($_GET['page'], ['programmation_soutenance',
 
         case 'getDayDetails':
             $controller->getDayDetails();
+            break;
+
+        case 'downloadPlanningPdf':
+            $controller->downloadPlanningPdf();
             break;
 
         default:

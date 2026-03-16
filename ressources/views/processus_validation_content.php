@@ -257,7 +257,15 @@ foreach ($membresCommission as $membre) {
                                             <i class="fas fa-file-pdf" aria-hidden="true"></i>
                                         </a>
                                         <?php if ($canFinalize && (function_exists('canEdit') ? canEdit() : true)): ?>
-                                            <form method="POST"
+                                            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="POST"
                                                   action="?page=processus_validation"
                                                   data-cm-ajax-form="true"
                                                   class="cm-inline-finalize-form"
@@ -367,3 +375,4 @@ foreach ($membresCommission as $membre) {
     });
 })();
 </script>
+

@@ -41,7 +41,15 @@ $oldContent = (string) ($_POST['content'] ?? '');
             </div>
         <?php endif; ?>
 
-        <form method="POST" id="reclamationForm" class="cm-etu-form">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#reclamationForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="POST" id="reclamationForm" class="cm-etu-form">
             <div class="cm-etu-grid cm-etu-grid--2">
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="type">Type de réclamation <span class="cm-required-star">*</span></label>
@@ -151,3 +159,4 @@ $oldContent = (string) ($_POST['content'] ?? '');
     updateCounter();
 })();
 </script>
+

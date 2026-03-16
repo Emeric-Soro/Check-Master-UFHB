@@ -37,7 +37,15 @@ foreach ($backups as $backup) {
             'can_view' => canView(),
         ]); ?>
         <?php if (canCreate()): ?>
-        <form method="POST" action="?page=sauvegarde_restauration&action=create" data-cm-ajax-form="true">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="POST" action="?page=sauvegarde_restauration&action=create" data-cm-ajax-form="true">
             <?php cm_component('form/csrf-token'); ?>
             <div class="cm-grid-2">
                 <?php cm_component('form/input-text', [
@@ -67,15 +75,6 @@ foreach ($backups as $backup) {
             'content' => (string) ob_get_clean(),
         ]);
         ?>
-
-        <?php cm_toolbar([
-            'screen' => 'sauvegarde_restauration',
-            'id_prefix' => 'backup',
-            'search_value' => $_GET['search'] ?? '',
-            'limit' => 10,
-            'can_delete' => canDelete(),
-            'can_view' => canView(),
-        ]); ?>
 
         <div class="cm-pole-inferieur">
             <?php
@@ -211,3 +210,4 @@ foreach ($backups as $backup) {
     });
 })();
 </script>
+

@@ -753,6 +753,15 @@ class ParametreService
         $messageErreur = '';
         $messageSuccess = '';
 
+        if (!$this->traitement->hasTraitementTable()) {
+            return [
+                'traitement_a_modifier' => null,
+                'listeTraitements' => [],
+                'messageErreur' => "Le référentiel des traitements est indisponible: la table 'traitement' n'existe pas dans la base actuelle.",
+                'messageSuccess' => '',
+            ];
+        }
+
         if (isset($post['btn_add_traitement']) || isset($post['btn_modifier_traitement'])) {
             $lib_traitement = $post['lib_traitement'];
             $label_traitement = $post['label_traitement'];
@@ -817,23 +826,34 @@ class ParametreService
         $messageSuccess = '';
 
         if (isset($post['btn_add_entreprise']) || isset($post['btn_modifier_entreprise'])) {
-            $lib_entreprise = $post['lib_entreprise'];
+            $lib_entreprise = trim((string)($post['lib_long_entreprise'] ?? ($post['lib_entreprise'] ?? '')));
+            $lib_court = trim((string)($post['lib_court_en'] ?? ($post['lib_court'] ?? '')));
+            $email = trim((string)($post['email'] ?? ''));
+            $telephone = trim((string)($post['telephone'] ?? ''));
+            $logo = trim((string)($post['logo'] ?? ''));
+            $id_entreprise = isset($post['id_entreprise']) && $post['id_entreprise'] !== '' ? (int)$post['id_entreprise'] : null;
 
-            if (!empty($post['id_entreprise'])) {
-                if ($this->entreprise->updateEntreprise($post['id_entreprise'], $lib_entreprise)) {
-                    $messageSuccess = "Entreprise modifiée avec succès.";
-                    $this->auditLog->logModification($userId, 'entreprise', 'Succès');
-                } else {
-                    $messageErreur = "Erreur lors de la modification de l'entreprise.";
-                    $this->auditLog->logModification($userId, 'entreprise', 'Erreur');
-                }
+            if ($lib_entreprise === '') {
+                $messageErreur = "Le libellé de l'entreprise est obligatoire.";
             } else {
-                if ($this->entreprise->ajouterEntreprise($lib_entreprise)) {
-                    $messageSuccess = "Entreprise ajoutée avec succès.";
-                    $this->auditLog->logCreation($userId, 'entreprise', 'Succès');
+                if ($id_entreprise !== null) {
+                    if ($this->entreprise->updateEntreprise($id_entreprise, $lib_entreprise, $lib_court, $email, $telephone, $logo)) {
+                        $messageSuccess = "Entreprise modifiée avec succès.";
+                        $this->auditLog->logModification($userId, 'entreprise', 'Succès');
+                    } else {
+                        $messageErreur = "Erreur lors de la modification de l'entreprise.";
+                        $this->auditLog->logModification($userId, 'entreprise', 'Erreur');
+                    }
                 } else {
-                    $messageErreur = "Erreur lors de l'ajout de l'entreprise.";
-                    $this->auditLog->logCreation($userId, 'entreprise', 'Erreur');
+                    // Pour l'ajout, on peut avoir besoin d'un ID manuel si non auto-incrémenté
+                    // Le modèle ne gère pas l'ID manuel dans ajouterEntreprise, on vérifie le schéma
+                    if ($this->entreprise->ajouterEntreprise($lib_entreprise, $lib_court, $email, $telephone, $logo)) {
+                        $messageSuccess = "Entreprise ajoutée avec succès.";
+                        $this->auditLog->logCreation($userId, 'entreprise', 'Succès');
+                    } else {
+                        $messageErreur = "Erreur lors de l'ajout de l'entreprise.";
+                        $this->auditLog->logCreation($userId, 'entreprise', 'Erreur');
+                    }
                 }
             }
         }
@@ -1704,6 +1724,342 @@ class ParametreService
         ];
     }
 
+    //============================GESTION FRAIS INSCRIPTION==================================
+    public function gestionFraisInscription(array $post, array $get, string $userId): array
+    {
+        $messageErreur = '';
+        $messageSuccess = '';
+        $fraisAModifier = null;
+
+        if (!$this->tableExists('frais_inscription')) {
+            return [
+                'frais_a_modifier' => null,
+                'listeFraisInscription' => [],
+                'listeAnneesFrais' => [],
+                'listeNiveauxFrais' => [],
+                'messageErreur' => "La table 'frais_inscription' n'existe pas.",
+                'messageSuccess' => '',
+            ];
+        }
+
+        if (isset($post['submit_delete_multiple']) && isset($post['selected_ids']) && is_array($post['selected_ids'])) {
+            $success = true;
+            $stmt = $this->db->prepare('DELETE FROM frais_inscription WHERE id_niv_etude = ? AND id_annee_acad = ?');
+
+            foreach ($post['selected_ids'] as $encodedId) {
+                $decoded = $this->decodeFraisInscriptionPk((string) $encodedId);
+                if ($decoded === null || !$stmt->execute([$decoded['id_niv_etude'], $decoded['id_annee_acad']])) {
+                    $success = false;
+                    break;
+                }
+            }
+
+            if ($success) {
+                $messageSuccess = "Frais d'inscription supprimés avec succès.";
+                $this->auditLog->logSuppression($userId, 'frais_inscription', 'Succès');
+            } else {
+                $messageErreur = "Erreur lors de la suppression des frais d'inscription.";
+                $this->auditLog->logSuppression($userId, 'frais_inscription', 'Erreur');
+            }
+        } elseif (isset($post['btn_add_frais_inscription']) || isset($post['btn_modifier_frais_inscription'])) {
+            $idNiveau = trim((string) ($post['id_niv_etude'] ?? ''));
+            $idAnnee = (int) ($post['id_annee_acad'] ?? 0);
+            $montantRaw = $post['montant'] ?? null;
+            if (is_string($montantRaw)) {
+                $montantRaw = str_replace(',', '.', trim($montantRaw));
+            }
+
+            if ($idNiveau === '' || $idAnnee <= 0 || $montantRaw === null || $montantRaw === '' || !is_numeric((string) $montantRaw)) {
+                $messageErreur = "Veuillez renseigner un niveau, une année et un montant valides.";
+            } else {
+                $montant = (float) $montantRaw;
+                if ($montant < 0) {
+                    $messageErreur = 'Le montant ne peut pas être négatif.';
+                } else {
+                    try {
+                        if (isset($post['btn_modifier_frais_inscription']) && !empty($post['frais_pk'])) {
+                            $oldPk = $this->decodeFraisInscriptionPk((string) $post['frais_pk']);
+                            if ($oldPk === null) {
+                                throw new Exception("Clé de frais d'inscription invalide.");
+                            }
+
+                            $stmt = $this->db->prepare(
+                                'UPDATE frais_inscription
+                                 SET id_niv_etude = ?, id_annee_acad = ?, montant = ?
+                                 WHERE id_niv_etude = ? AND id_annee_acad = ?'
+                            );
+                            $ok = $stmt->execute([$idNiveau, $idAnnee, $montant, $oldPk['id_niv_etude'], $oldPk['id_annee_acad']]);
+
+                            if ($ok) {
+                                $messageSuccess = "Frais d'inscription modifiés avec succès.";
+                                $this->auditLog->logModification($userId, 'frais_inscription', 'Succès');
+                            } else {
+                                $messageErreur = "Erreur lors de la modification des frais d'inscription.";
+                                $this->auditLog->logModification($userId, 'frais_inscription', 'Erreur');
+                            }
+                        } else {
+                            $stmtExists = $this->db->prepare(
+                                'SELECT COUNT(*) FROM frais_inscription WHERE id_niv_etude = ? AND id_annee_acad = ?'
+                            );
+                            $stmtExists->execute([$idNiveau, $idAnnee]);
+                            $alreadyExists = ((int) $stmtExists->fetchColumn()) > 0;
+
+                            if ($alreadyExists) {
+                                $stmt = $this->db->prepare(
+                                    'UPDATE frais_inscription SET montant = ? WHERE id_niv_etude = ? AND id_annee_acad = ?'
+                                );
+                                $ok = $stmt->execute([$montant, $idNiveau, $idAnnee]);
+                                if ($ok) {
+                                    $messageSuccess = "Frais d'inscription mis à jour avec succès.";
+                                    $this->auditLog->logModification($userId, 'frais_inscription', 'Succès');
+                                } else {
+                                    $messageErreur = "Erreur lors de la mise à jour des frais d'inscription.";
+                                    $this->auditLog->logModification($userId, 'frais_inscription', 'Erreur');
+                                }
+                            } else {
+                                $stmt = $this->db->prepare(
+                                    'INSERT INTO frais_inscription (id_niv_etude, id_annee_acad, montant) VALUES (?, ?, ?)'
+                                );
+                                $ok = $stmt->execute([$idNiveau, $idAnnee, $montant]);
+                                if ($ok) {
+                                    $messageSuccess = "Frais d'inscription ajoutés avec succès.";
+                                    $this->auditLog->logCreation($userId, 'frais_inscription', 'Succès');
+                                } else {
+                                    $messageErreur = "Erreur lors de l'ajout des frais d'inscription.";
+                                    $this->auditLog->logCreation($userId, 'frais_inscription', 'Erreur');
+                                }
+                            }
+                        }
+                    } catch (Throwable $e) {
+                        $messageErreur = 'Erreur base de données: ' . $e->getMessage();
+                        $this->auditLog->logModification($userId, 'frais_inscription', 'Erreur');
+                    }
+                }
+            }
+        }
+
+        if (isset($get['frais_pk']) && trim((string) $get['frais_pk']) !== '') {
+            $decoded = $this->decodeFraisInscriptionPk((string) $get['frais_pk']);
+            if ($decoded !== null) {
+                $stmt = $this->db->prepare(
+                    'SELECT fi.id_niv_etude, fi.id_annee_acad, fi.montant,
+                            ne.lib_niv_etude,
+                            CONCAT(YEAR(aa.date_deb), "-", YEAR(aa.date_fin)) AS lib_annee
+                     FROM frais_inscription fi
+                     LEFT JOIN niveau_etude ne ON ne.id_niv_etude = fi.id_niv_etude
+                     LEFT JOIN annee_academique aa ON aa.id_annee_acad = fi.id_annee_acad
+                     WHERE fi.id_niv_etude = ? AND fi.id_annee_acad = ?
+                     LIMIT 1'
+                );
+                $stmt->execute([$decoded['id_niv_etude'], $decoded['id_annee_acad']]);
+                $fraisAModifier = $stmt->fetch(PDO::FETCH_OBJ) ?: null;
+                if ($fraisAModifier !== null) {
+                    $fraisAModifier->frais_pk = $this->encodeFraisInscriptionPk(
+                        (string) ($fraisAModifier->id_niv_etude ?? ''),
+                        (int) ($fraisAModifier->id_annee_acad ?? 0)
+                    );
+                }
+            }
+        }
+
+        $stmtList = $this->db->query(
+            'SELECT fi.id_niv_etude, fi.id_annee_acad, fi.montant,
+                    ne.lib_niv_etude,
+                    CONCAT(YEAR(aa.date_deb), "-", YEAR(aa.date_fin)) AS lib_annee
+             FROM frais_inscription fi
+             LEFT JOIN niveau_etude ne ON ne.id_niv_etude = fi.id_niv_etude
+             LEFT JOIN annee_academique aa ON aa.id_annee_acad = fi.id_annee_acad
+             ORDER BY fi.id_annee_acad DESC, ne.lib_niv_etude ASC, fi.id_niv_etude ASC'
+        );
+        $listeFrais = $stmtList ? $stmtList->fetchAll(PDO::FETCH_OBJ) : [];
+        foreach ($listeFrais as $row) {
+            $row->frais_pk = $this->encodeFraisInscriptionPk(
+                (string) ($row->id_niv_etude ?? ''),
+                (int) ($row->id_annee_acad ?? 0)
+            );
+        }
+
+        $listeAnnees = $this->db->query(
+            'SELECT id_annee_acad, date_deb, date_fin
+             FROM annee_academique
+             ORDER BY id_annee_acad DESC'
+        )->fetchAll(PDO::FETCH_OBJ);
+        foreach ($listeAnnees as $annee) {
+            $annee->lib_annee = date('Y', strtotime((string) ($annee->date_deb ?? ''))) . '-' . date('Y', strtotime((string) ($annee->date_fin ?? '')));
+        }
+
+        $listeNiveaux = $this->db->query(
+            'SELECT id_niv_etude, lib_niv_etude
+             FROM niveau_etude
+             ORDER BY lib_niv_etude ASC'
+        )->fetchAll(PDO::FETCH_OBJ);
+
+        return [
+            'frais_a_modifier' => $fraisAModifier,
+            'listeFraisInscription' => $listeFrais,
+            'listeAnneesFrais' => $listeAnnees,
+            'listeNiveauxFrais' => $listeNiveaux,
+            'messageErreur' => $messageErreur,
+            'messageSuccess' => $messageSuccess,
+        ];
+    }
+
+    public function gestionSchemaTables(array $get): array
+    {
+        $tables = [];
+        $columnsByTable = [];
+        $messageErreur = '';
+
+        $managedColumnsMap = $this->getManagedTableColumnsMap();
+        $managedActionMap = $this->getManagedTableActionMap();
+
+        try {
+            $stmtTables = $this->db->query('SHOW TABLES');
+            $tableRows = $stmtTables ? $stmtTables->fetchAll(PDO::FETCH_NUM) : [];
+
+            foreach ($tableRows as $tableRow) {
+                $tableName = trim((string) ($tableRow[0] ?? ''));
+                if ($tableName === '') {
+                    continue;
+                }
+
+                $stmtColumns = $this->db->query('SHOW COLUMNS FROM ' . $this->quoteIdentifier($tableName));
+                $columnRows = $stmtColumns ? $stmtColumns->fetchAll(PDO::FETCH_ASSOC) : [];
+                $columnsByTable[$tableName] = $columnRows;
+
+                $dbColumns = array_values(array_filter(array_map(static function ($column): string {
+                    return trim((string) ($column['Field'] ?? ''));
+                }, $columnRows), static function (string $column): bool {
+                    return $column !== '';
+                }));
+
+                $configuredColumns = array_values(array_unique($managedColumnsMap[$tableName] ?? []));
+                $coveredColumns = array_values(array_intersect($dbColumns, $configuredColumns));
+                $missingColumns = array_values(array_diff($dbColumns, $coveredColumns));
+
+                $tables[] = [
+                    'table_name' => $tableName,
+                    'columns_count' => count($dbColumns),
+                    'is_managed' => isset($managedColumnsMap[$tableName]),
+                    'managed_action' => $managedActionMap[$tableName] ?? '',
+                    'covered_count' => count($coveredColumns),
+                    'missing_count' => count($missingColumns),
+                    'missing_columns_preview' => implode(', ', array_slice($missingColumns, 0, 5)),
+                ];
+            }
+
+            usort($tables, static function (array $a, array $b): int {
+                return strcmp((string) ($a['table_name'] ?? ''), (string) ($b['table_name'] ?? ''));
+            });
+        } catch (Throwable $e) {
+            $messageErreur = 'Erreur lors du chargement de la structure des tables: ' . $e->getMessage();
+        }
+
+        $selectedTable = trim((string) ($get['table'] ?? ''));
+        if ($selectedTable === '' && !empty($tables)) {
+            $selectedTable = (string) ($tables[0]['table_name'] ?? '');
+        }
+
+        $selectedColumns = $columnsByTable[$selectedTable] ?? [];
+        $coveredSet = array_flip($managedColumnsMap[$selectedTable] ?? []);
+        foreach ($selectedColumns as &$column) {
+            $field = trim((string) ($column['Field'] ?? ''));
+            $column['is_covered'] = isset($coveredSet[$field]);
+        }
+        unset($column);
+
+        return [
+            'schemaTables' => $tables,
+            'schemaSelectedTable' => $selectedTable,
+            'schemaSelectedColumns' => $selectedColumns,
+            'schemaManagedActionMap' => $managedActionMap,
+            'messageErreur' => $messageErreur,
+            'messageSuccess' => '',
+        ];
+    }
+
+    private function getManagedTableActionMap(): array
+    {
+        return [
+            'action' => 'actions',
+            'annee_academique' => 'annees_academiques',
+            'app_settings' => 'app_settings',
+            'bareme_critere' => 'bareme_critere',
+            'categories_fonctionnalites' => 'gestion_menus',
+            'critere_evaluation' => 'criteres_evaluation',
+            'decisions_jury' => 'decisions_jury',
+            'domaine' => 'domaine',
+            'entreprises' => 'entreprises',
+            'etablissement_origine' => 'etablissement_origine',
+            'filiere' => 'filieres',
+            'frais_inscription' => 'frais_inscription',
+            'fonction' => 'fonctions',
+            'fonctionnalites' => 'gestion_menus',
+            'genre' => 'genre',
+            'grade' => 'grades',
+            'groupe_utilisateur' => 'fonction_utilisateur',
+            'maitre_de_stage' => 'maitre_stage',
+            'mentions' => 'mentions',
+            'messages' => 'messages',
+            'mode_paiement' => 'mode_paiement',
+            'niveau_acces_donnees' => 'niveaux_acces',
+            'niveau_approbation' => 'niveaux_approbation',
+            'niveau_etude' => 'niveaux_etude',
+            'permissions' => 'gestion_attribution',
+            'qualite_jury' => 'qualite_jury',
+            'route_actions' => 'gestion_menus',
+            'salles' => 'salles',
+            'semestre' => 'semestres',
+            'session' => 'session',
+            'specialite' => 'specialites',
+            'statut_jury' => 'statut_jury',
+            'statut_reclamation' => 'statut_reclamation',
+            'type_enseignant' => 'type_enseignant',
+            'type_utilisateur' => 'fonction_utilisateur',
+        ];
+    }
+
+    private function getManagedTableColumnsMap(): array
+    {
+        return [
+            'action' => ['id_action', 'lib_action'],
+            'annee_academique' => ['id_annee_acad', 'date_deb', 'date_fin'],
+            'app_settings' => ['setting_key', 'setting_value', 'is_sensitive'],
+            'bareme_critere' => ['id_annee_acad', 'id_critere', 'bareme'],
+            'categories_fonctionnalites' => ['id_categorie', 'code_categorie', 'lib_categorie', 'description_categorie', 'icone_categorie', 'ordre_categorie', 'actif'],
+            'critere_evaluation' => ['id_critere', 'code_critere', 'lib_critere', 'bareme'],
+            'decisions_jury' => ['id_decision', 'lib_decision', 'description', 'actif'],
+            'domaine' => ['id_domaine', 'lib_domaine'],
+            'entreprises' => ['id_entreprise', 'lib_long_entreprise', 'lib_court_en', 'logo', 'email', 'telephone'],
+            'etablissement_origine' => ['id_etablissement', 'libelle_long', 'libelle_court'],
+            'filiere' => ['id_filiere', 'lib_filiere'],
+            'frais_inscription' => ['id_niv_etude', 'id_annee_acad', 'montant'],
+            'fonction' => ['id_fonction', 'lib_fonction', 'origine_entreprise'],
+            'fonctionnalites' => ['id_fonctionnalite', 'id_categorie', 'code_fonctionnalite', 'lib_fonctionnalite', 'label_fonctionnalite', 'description_fonctionnalite', 'url_fonctionnalite', 'icone_fonctionnalite', 'ordre_fonctionnalite', 'est_sous_page', 'page_parente', 'actif'],
+            'genre' => ['id_genre', 'libelle_genre'],
+            'grade' => ['id_grade', 'lib_grade'],
+            'groupe_utilisateur' => ['id_GU', 'lib_GU', 'id_type_utilisateur'],
+            'maitre_de_stage' => ['id_maitre_stage', 'Nom', 'prenom', 'email', 'telephone', 'id_entreprise', 'id_fonction'],
+            'mentions' => ['id_mention', 'lib_mention', 'actif'],
+            'messages' => ['id_message', 'contenu_message', 'lib_message', 'type_message'],
+            'mode_paiement' => ['id_mode_paiement', 'code_mode_paiement', 'libelle_mode_paement'],
+            'niveau_acces_donnees' => ['id_niveau_acces_donnees', 'lib_niveau_acces_donnees'],
+            'niveau_approbation' => ['id_niveau_approbation', 'lib_niveau_approbation'],
+            'niveau_etude' => ['id_niv_etude', 'lib_niv_etude'],
+            'permissions' => ['id_GU', 'id_fonctionnalite', 'peut_voir', 'peut_creer', 'peut_modifier', 'peut_supprimer'],
+            'qualite_jury' => ['id_qualite_jury', 'lib_qualite', 'code_qltjury', 'lib_role'],
+            'route_actions' => ['id_route_action', 'id_fonctionnalite', 'route_pattern', 'http_method', 'action_crud', 'is_public', 'actif'],
+            'salles' => ['id_salle', 'nom_salle', 'capacite'],
+            'semestre' => ['id_semestre', 'code_semestre', 'lib_semestre'],
+            'session' => ['id_session', 'lib_session'],
+            'specialite' => ['id_specialite', 'lib_specialite'],
+            'statut_jury' => ['id_statut_jury', 'lib_statut_jury'],
+            'statut_reclamation' => ['id_statut_reclamation', 'libelle_statut_reclamation'],
+            'type_enseignant' => ['id_type_enseignant', 'libelle'],
+            'type_utilisateur' => ['id_type_utilisateur', 'lib_type_utilisateur'],
+        ];
+    }
+
     private function getReferentielSimpleConfig(string $action): ?array
     {
         $configs = [
@@ -1826,6 +2182,53 @@ class ParametreService
                 'order_by' => 'Nom ASC, prenom ASC',
                 'audit_entity' => 'maitre_de_stage',
             ],
+            'entreprises' => [
+                'table' => 'entreprises',
+                'id_column' => 'id_entreprise',
+                'id_param' => 'id_entreprise',
+                'fields' => ['lib_long_entreprise', 'lib_court_en', 'logo', 'email', 'telephone'],
+                'required_fields' => ['lib_long_entreprise', 'lib_court_en'],
+                'order_by' => 'lib_long_entreprise ASC',
+                'audit_entity' => 'entreprise',
+            ],
+            'specialites' => [
+                'table' => 'specialite',
+                'id_column' => 'id_specialite',
+                'id_param' => 'id_specialite',
+                'fields' => ['lib_specialite'],
+                'required_fields' => ['lib_specialite'],
+                'order_by' => 'lib_specialite ASC',
+                'audit_entity' => 'specialite',
+            ],
+            'actions' => [
+                'table' => 'action',
+                'id_column' => 'id_action',
+                'id_param' => 'id_action',
+                'fields' => ['lib_action'],
+                'required_fields' => ['lib_action'],
+                'order_by' => 'lib_action ASC',
+                'audit_entity' => 'action',
+            ],
+            'fonctions' => [
+                'table' => 'fonction',
+                'id_column' => 'id_fonction',
+                'id_param' => 'id_fonction',
+                'fields' => ['id_fonction', 'lib_fonction', 'origine_entreprise'],
+                'required_fields' => ['id_fonction', 'lib_fonction'],
+                'bool_fields' => ['origine_entreprise'],
+                'allow_manual_id' => true,
+                'order_by' => 'lib_fonction ASC',
+                'audit_entity' => 'fonction',
+            ],
+            'messages' => [
+                'table' => 'messages',
+                'id_column' => 'id_message',
+                'id_param' => 'id_message',
+                'fields' => ['contenu_message', 'lib_message', 'type_message'],
+                'required_fields' => ['contenu_message', 'lib_message', 'type_message'],
+                'order_by' => 'lib_message ASC',
+                'audit_entity' => 'messages',
+            ],
             'type_enseignant' => [
                 'table' => 'type_enseignant',
                 'id_column' => 'id_type_enseignant',
@@ -1936,6 +2339,35 @@ class ParametreService
         return [
             'id_annee_acad' => $idAnnee,
             'id_critere' => $idCritere,
+        ];
+    }
+
+    private function encodeFraisInscriptionPk(string $idNiveau, int $idAnnee): string
+    {
+        $idNiveau = trim($idNiveau);
+        if ($idNiveau === '' || $idAnnee <= 0) {
+            throw new Exception("Clé de frais d'inscription invalide.");
+        }
+
+        return $idNiveau . ':' . $idAnnee;
+    }
+
+    private function decodeFraisInscriptionPk(string $encoded): ?array
+    {
+        $parts = explode(':', trim($encoded), 2);
+        if (count($parts) !== 2) {
+            return null;
+        }
+
+        $idNiveau = trim((string) $parts[0]);
+        $idAnnee = (int) $parts[1];
+        if ($idNiveau === '' || $idAnnee <= 0) {
+            return null;
+        }
+
+        return [
+            'id_niv_etude' => $idNiveau,
+            'id_annee_acad' => $idAnnee,
         ];
     }
 

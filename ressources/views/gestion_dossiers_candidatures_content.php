@@ -148,7 +148,15 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
     <div class="cm-pole-superieur">
         <div class="">
         </div>
-        <form id="cmTraitementForm" onsubmit="return false;">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmTraitementForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="cmTraitementForm" onsubmit="return false;">
             <input type="hidden" id="cmSelectedRapportId" value="">
             <input type="hidden" id="cmSelectedRapportUrl" value="">
             <div class="cm-grid-4">
@@ -550,3 +558,4 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
     updateSelectionState();
 })();
 </script>
+

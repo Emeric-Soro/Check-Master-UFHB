@@ -27,39 +27,44 @@ class RedactionCompteRenduService
 
     private function getRapportsValidesForSelectedYear(): array
     {
-        $selectedYearId = $this->getSelectedYearId();
+        try {
+            $selectedYearId = $this->getSelectedYearId();
 
-        $sql = "
-            SELECT r.id_rapport, r.num_etu, r.theme_rapport, e.prenom_etu, e.nom_etu, v2.decision_validation, ins.id_annee_acad
-            FROM rapport_etudiants r
-            JOIN etudiants e ON r.num_etu = e.num_carte_etud
-            LEFT JOIN LATERAL (
-                        SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement, i2.date_inscription
-                        FROM inscriptions i2 
-                        WHERE i2.num_carte_etud = e.num_carte_etud 
-                        ORDER BY i2.date_inscription DESC, i2.num_versement DESC LIMIT 1
-                    ) ins ON TRUE
-            JOIN (
-                SELECT id_rapport, MAX(date_validation) AS last_validation
-                FROM valider
-                GROUP BY id_rapport
-            ) v1 ON r.id_rapport = v1.id_rapport
-            JOIN valider v2 ON v2.id_rapport = v1.id_rapport AND v2.date_validation = v1.last_validation
-            LEFT JOIN compte_rendu_rapport crr ON r.id_rapport = crr.id_rapport
-            WHERE v2.decision_validation IN ('valider', 'rejeter')
-              AND crr.id_rapport IS NULL
-        ";
+            $sql = "
+                SELECT r.id_rapport, r.num_etu, r.theme_rapport, e.prenom_etu, e.nom_etu, v2.decision_validation, ins.id_annee_acad
+                FROM rapport_etudiants r
+                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                LEFT JOIN inscriptions ins ON (ins.num_carte_etud, ins.id_annee_acad, ins.num_versement) = (
+                            SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement
+                            FROM inscriptions i2 
+                            WHERE i2.num_carte_etud = e.num_carte_etud 
+                            ORDER BY i2.date_inscription DESC, i2.num_versement DESC LIMIT 1
+                        )
+                JOIN (
+                    SELECT id_rapport, MAX(date_validation) AS last_validation
+                    FROM valider
+                    GROUP BY id_rapport
+                ) v1 ON r.id_rapport = v1.id_rapport
+                JOIN valider v2 ON v2.id_rapport = v1.id_rapport AND v2.date_validation = v1.last_validation
+                LEFT JOIN compte_rendu_rapport crr ON r.id_rapport = crr.id_rapport
+                WHERE v2.decision_validation IN ('valider', 'rejeter')
+                  AND crr.id_rapport IS NULL
+            ";
 
-        $params = [];
-        if ($selectedYearId !== null && $selectedYearId > 0) {
-            $sql .= " AND ins.id_annee_acad = :id_annee_acad";
-            $params[':id_annee_acad'] = $selectedYearId;
+            $params = [];
+            if ($selectedYearId !== null && $selectedYearId > 0) {
+                $sql .= " AND ins.id_annee_acad = :id_annee_acad";
+                $params[':id_annee_acad'] = $selectedYearId;
+            }
+
+            $sql .= " ORDER BY v2.decision_validation DESC, r.theme_rapport";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        } catch (\PDOException $e) {
+            error_log("Erreur lors de la récupération des rapports validés : " . $e->getMessage());
+            return [];
         }
-
-        $sql .= " ORDER BY v2.decision_validation DESC, r.theme_rapport";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
     }
 
     /**

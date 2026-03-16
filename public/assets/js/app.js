@@ -221,11 +221,18 @@
         document.title = incomingTitle.textContent;
       }
 
-      // Update navbar title from incoming page
-      var incomingNavbarTitle = incomingDocument.querySelector('.cm-navbar__app-name');
-      var currentNavbarTitle = document.querySelector('.cm-navbar__app-name');
+      // Update navbar page title from incoming page
+      var incomingNavbarTitle = incomingDocument.querySelector('.cm-navbar__page-title');
+      var currentNavbarTitle = document.querySelector('.cm-navbar__page-title');
       if (incomingNavbarTitle && currentNavbarTitle) {
         currentNavbarTitle.textContent = incomingNavbarTitle.textContent;
+      }
+
+      var incomingNavbarRight = incomingDocument.querySelector('.cm-navbar__right');
+      var currentNavbarRight = document.querySelector('.cm-navbar__right');
+      if (incomingNavbarRight && currentNavbarRight) {
+        currentNavbarRight.className = incomingNavbarRight.className;
+        currentNavbarRight.innerHTML = incomingNavbarRight.innerHTML;
       }
 
       executeInlineScripts(currentMain);

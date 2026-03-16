@@ -15,7 +15,15 @@ function js(string $s): string { return htmlspecialchars(json_encode($s, JSON_UN
 function renderToggleForm(string $formAction, string $op, string $idField, int $idValue, string $confirmMessage, string $confirmType, string $confirmText, string $btnClass, string $icon, string $label, bool $disabled): void
 {
     ?>
-    <form method="POST" action="<?= h($formAction) ?>" class="cm-flex me-2" data-cm-confirm-message="<?= h($confirmMessage) ?>" data-cm-confirm-type="<?= h($confirmType) ?>" data-cm-confirm-text="<?= h($confirmText) ?>">
+    <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="POST" action="<?= h($formAction) ?>" class="cm-flex me-2" data-cm-confirm-message="<?= h($confirmMessage) ?>" data-cm-confirm-type="<?= h($confirmType) ?>" data-cm-confirm-text="<?= h($confirmText) ?>">
         <?php cm_component('form/csrf-token'); ?>
         <input type="hidden" name="op" value="<?= h($op) ?>">
         <input type="hidden" name="<?= h($idField) ?>" value="<?= $idValue ?>">
@@ -27,6 +35,71 @@ function renderToggleForm(string $formAction, string $op, string $idField, int $
     <?php
 }
 ?>
+<style>
+/* Écran gestion menus: forcer le tableau à tenir dans la largeur visible */
+#cmMenuTree {
+    width: 100%;
+    table-layout: fixed;
+}
+
+#cmMenuTree th:nth-child(1),
+#cmMenuTree td:nth-child(1) { width: 92px; }
+#cmMenuTree th:nth-child(2),
+#cmMenuTree td:nth-child(2) { width: 170px; }
+#cmMenuTree th:nth-child(5),
+#cmMenuTree td:nth-child(5) { width: 74px; }
+#cmMenuTree th:nth-child(6),
+#cmMenuTree td:nth-child(6) { width: 92px; }
+#cmMenuTree th:nth-child(7),
+#cmMenuTree td:nth-child(7) { width: 240px; }
+
+#cmMenuTree th,
+#cmMenuTree td {
+    vertical-align: middle;
+}
+
+#cmMenuTree td:nth-child(3),
+#cmMenuTree td:nth-child(4) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#cmMenuTree .cm-table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.35rem;
+}
+
+#cmMenuTree .cm-table-actions form {
+    margin: 0;
+}
+
+#cmMenuTree .cm-table-actions .cm-btn {
+    min-height: 34px !important;
+    height: 34px !important;
+    padding: 0.28rem 0.55rem !important;
+    font-size: 0.8rem !important;
+}
+
+@media (max-width: 1280px) {
+    #cmMenuTree th:nth-child(2),
+    #cmMenuTree td:nth-child(2) { width: 145px; }
+
+    #cmMenuTree th:nth-child(7),
+    #cmMenuTree td:nth-child(7) { width: 200px; }
+
+    #cmMenuTree .cm-table-actions .cm-btn span {
+        display: none;
+    }
+
+    #cmMenuTree .cm-table-actions .cm-btn {
+        min-width: 34px;
+        padding: 0.28rem 0.45rem !important;
+    }
+}
+</style>
 <section class="cm-prd3-crud-screen cm-prd6-admin-screen cm-screen-scrollable">
     <?php if ($messageSuccess): ?><?php cm_component('ui/alert-box', ['type' => 'success', 'message' => $messageSuccess]); ?><?php endif; ?>
     <?php if ($messageErreur): ?><?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $messageErreur]); ?><?php endif; ?>
@@ -186,3 +259,4 @@ function renderToggleForm(string $formAction, string $op, string $idField, int $
     document.addEventListener('click', function (e) { var btn = e.target && e.target.closest ? e.target.closest('.toggleRow') : null; if (!btn) { return; } var target = btn.getAttribute('data-target'); var rows = target ? document.querySelectorAll('tr.childRow[data-parent="' + target + '"]') : []; var icon = btn.querySelector('.toggleIcon'); var isHidden = rows.length > 0 ? rows[0].classList.contains('cm-hidden') : true; rows.forEach(function (row) { row.classList.toggle('cm-hidden', !isHidden); }); if (icon) { icon.textContent = isHidden ? '-' : '+'; } });
 })();
 </script>
+

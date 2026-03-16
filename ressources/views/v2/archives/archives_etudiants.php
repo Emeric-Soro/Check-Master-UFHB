@@ -15,7 +15,15 @@ $filters = $data['filters'] ?? [];
     <!-- Filtres -->
     <div class="cm-card cm-mb-4">
         <div class="cm-card-body">
-            <form method="GET" class="cm-grid-4 cm-gap-3">
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="GET" class="cm-grid-4 cm-gap-3">
                 <input type="hidden" name="page" value="archives_etudiants">
                 
                 <div class="cm-form-group">
@@ -143,3 +151,4 @@ $filters = $data['filters'] ?? [];
         </table>
     </div>
 </div>
+

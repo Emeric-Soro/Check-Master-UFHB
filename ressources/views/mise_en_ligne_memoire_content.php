@@ -84,7 +84,32 @@ foreach ($etudiants as $etudiant) {
         <!-- Formulaire de mise en ligne -->
         <div class="cm-pole-superieur">
             <div class="cm-text-md cm-text-semibold cm-mb-md">Mise en ligne de mémoire</div>
-            <form id="cmMemoireForm" method="POST" action="?page=mise_en_ligne_memoire" enctype="multipart/form-data"
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmMemoireForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+
+.cm-memoire-toolbar .cm-toolbar-left {
+    flex: 1 1 20rem !important;
+}
+
+.cm-memoire-toolbar .cm-toolbar-center {
+    flex: 1 1 26rem !important;
+}
+
+.cm-memoire-toolbar .cm-toolbar-right {
+    flex: 0 0 auto !important;
+}
+
+.cm-memoire-toolbar .cm-toolbar-left .cm-toolbar-field-lg {
+    min-width: 13rem !important;
+    max-width: 18rem !important;
+}
+</style>
+<form id="cmMemoireForm" method="POST" action="?page=mise_en_ligne_memoire" enctype="multipart/form-data"
                 data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" name="action" value="upload_memoire">
@@ -148,7 +173,7 @@ foreach ($etudiants as $etudiant) {
 
         <!-- Barre d'outils -->
         <div class="cm-barre-intermediaire">
-            <div class="cm-toolbar">
+            <div class="cm-toolbar cm-memoire-toolbar">
                 <div class="cm-toolbar-left">
                     <label for="cmMemoireLimit"><strong>Afficher:</strong></label>
                     <select id="cmMemoireLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"

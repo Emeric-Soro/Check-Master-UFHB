@@ -157,6 +157,34 @@ $versementPagination = function_exists('cm_paginate')
 $versementsToShow = array_slice($listeVersement, (int) ($versementPagination['offset'] ?? 0), $versementsParPage);
 $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsParPage;
 ?>
+<style>
+/* Ajustements demandés: écran Gestion scolarité uniquement */
+#cmPaiementForm #cmNiveau {
+    width: 10ch !important; /* "Master 2" */
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+
+#cmPaiementForm #cmNumVersement {
+    width: 3.5ch !important; /* 1 caractère utile */
+    min-width: 3.5ch !important;
+    max-width: 3.5ch !important;
+}
+
+#cmPaiementForm #cmNumVersement {
+    text-align: center;
+    padding-left: 0.2rem !important;
+    padding-right: 0.2rem !important;
+}
+
+#cmPaiementForm .cm-form-group:has(#cmNiveau),
+#cmPaiementForm .cm-form-group:has(#cmNumVersement) {
+    justify-self: start;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+}
+</style>
 <div class="cm-prd3-screen cm-prd3-crud-screen">
     <?php
     cm_component('layout/page-header', [
@@ -185,7 +213,15 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
     <?php endif; ?>
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur is-compact">
-            <form id="cmPaiementForm" method="POST" action="?page=gestion_scolarite&action=enregistrer_paiement">
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmPaiementForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="cmPaiementForm" method="POST" action="?page=gestion_scolarite&action=enregistrer_paiement">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" id="cmIsNewInscription" name="is_new_inscription" value="">
                 <!-- Ligne 1: Niveau, Année A., Frais Scolarité -->
@@ -887,3 +923,4 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
         updateFraisFromNiveau();
     })();
 </script>
+

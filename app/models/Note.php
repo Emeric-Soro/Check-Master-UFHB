@@ -49,7 +49,7 @@ class Note
 
             if ($existing) {
                 // Mise à jour
-                return $this->updateNote($existing->id, $moyenneM1, $moyenneM2);
+                return $this->updateNote($numEtu, $moyenneM1, $moyenneM2);
             } else {
                 // Création
                 return $this->createNote($numEtu, $moyenneM1, $moyenneM2, $anneeAcadId);
@@ -101,15 +101,15 @@ class Note
     /**
      * Mettre à jour une note existante
      */
-    private function updateNote($noteId, $moyenneM1, $moyenneM2)
+    private function updateNote($numEtu, $moyenneM1, $moyenneM2)
     {
         try {
             $query = "UPDATE notes 
                      SET moyenne_M1 = ?, moyenne_M2 = ?
-                     WHERE id = ?";
+                     WHERE num_etu = ?";
 
             $stmt = $this->db->prepare($query);
-            return $stmt->execute([$moyenneM1, $moyenneM2, $noteId]);
+            return $stmt->execute([$moyenneM1, $moyenneM2, $numEtu]);
         } catch (PDOException $e) {
             error_log("Erreur lors de la mise à jour de la note: " . $e->getMessage());
             return false;
@@ -119,12 +119,12 @@ class Note
     /**
      * Supprimer une note
      */
-    public function deleteNote($noteId)
+    public function deleteNote($numEtu)
     {
         try {
-            $query = "DELETE FROM notes WHERE id = ?";
+            $query = "DELETE FROM notes WHERE num_etu = ?";
             $stmt = $this->db->prepare($query);
-            return $stmt->execute([$noteId]);
+            return $stmt->execute([$numEtu]);
         } catch (PDOException $e) {
             error_log("Erreur lors de la suppression de la note: " . $e->getMessage());
             return false;
@@ -193,23 +193,23 @@ class Note
                      INNER JOIN etudiants e ON n.num_etu = e.num_carte_etud
                      LEFT JOIN annee_academique a ON n.id_annee_acad = a.id_annee_acad
                      LEFT JOIN (
-                        SELECT i1.id_etudiant, i1.id_niveau
+                        SELECT i1.num_carte_etud, i1.id_niv_etude
                         FROM inscriptions i1
                         INNER JOIN (
-                            SELECT id_etudiant, MAX(id_inscription) AS max_id
+                            SELECT num_carte_etud, MAX(num_versement) AS max_v
                             FROM inscriptions
-                            GROUP BY id_etudiant
-                        ) latest ON latest.id_etudiant = i1.id_etudiant
-                               AND latest.max_id = i1.id_inscription
-                        ) ins ON ins.id_etudiant = e.num_carte_etud
-                     WHERE ins.id_niveau = ?
+                            GROUP BY num_carte_etud
+                        ) latest ON latest.num_carte_etud = i1.num_carte_etud
+                               AND latest.max_v = i1.num_versement
+                        ) ins ON ins.num_carte_etud = e.num_carte_etud
+                     WHERE ins.id_niv_etude = ?
                      ORDER BY e.nom_etu, e.prenom_etu";
 
             $params = [$niveauId];
             if ($anneeAcadId !== null && $anneeAcadId !== '' && (int) $anneeAcadId > 0) {
                 $query = str_replace(
-                    'WHERE ins.id_niveau = ?',
-                    'WHERE n.id_annee_acad = ? AND ins.id_niveau = ?',
+                    'WHERE ins.id_niv_etude = ?',
+                    'WHERE n.id_annee_acad = ? AND ins.id_niv_etude = ?',
                     $query
                 );
                 $params = [(int) $anneeAcadId, $niveauId];
@@ -266,13 +266,13 @@ class Note
             $anneeAcadId = $latestNote->id_annee_acad;
 
             // 2. Trouver le niveau via l'inscription
-            $queryNiveau = "SELECT id_niveau FROM inscriptions WHERE id_etudiant = ? ORDER BY id_inscription DESC LIMIT 1";
+            $queryNiveau = "SELECT id_niv_etude FROM inscriptions WHERE num_carte_etud = ? ORDER BY num_versement DESC LIMIT 1";
             $stmtNiv = $this->db->prepare($queryNiveau);
             $stmtNiv->execute([$studentId]);
             $niveau = $stmtNiv->fetch(PDO::FETCH_OBJ);
             if (!$niveau) return (object)['classement' => null, 'total' => 0];
 
-            $niveauId = $niveau->id_niveau;
+            $niveauId = $niveau->id_niv_etude;
 
             // 3. Récupérer toutes les moyennes du même niveau et même année
             // On calcule la moyenne (M1+M2)/2 pour le classement
@@ -313,7 +313,7 @@ class Note
                      FROM semestre s
                      INNER JOIN inscriptions i ON s.id_niv_etude = i.id_niv_etude
                      WHERE i.num_carte_etud = ?
-                     ORDER BY i.id_inscription DESC, s.id_semestre ASC";
+                     ORDER BY i.num_versement DESC, s.id_semestre ASC";
             
             $stmt = $this->db->prepare($query);
             $stmt->execute([$studentId]);

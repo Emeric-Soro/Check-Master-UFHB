@@ -134,7 +134,15 @@ $isAdmin = function_exists('isAdmin') ? isAdmin() : false;
 ?>
 <div class="cm-prd3-screen cm-prd3-crud-screen">
     <div class="cm-pole-superieur is-compact">
-        <form id="cmProgForm" autocomplete="off">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmProgForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="cmProgForm" autocomplete="off">
             <?php cm_component('form/csrf-token'); ?>
             <input type="hidden" id="cmProgEditId" value="">
             <input type="hidden" id="cmProgDirecteurId" value="">
@@ -726,3 +734,4 @@ $isAdmin = function_exists('isAdmin') ? isAdmin() : false;
         applySearch();
     })();
 </script>
+

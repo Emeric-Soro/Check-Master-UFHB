@@ -73,7 +73,7 @@
     /* Layout */
     --cm-sidebar-width: 300px;
     --cm-sidebar-width-tablet: 220px;
-    --cm-header-height: 56px;
+    --cm-header-height: 48px;
     --cm-panel-width: 400px;
     --cm-content-max-width: 1400px;
 
@@ -134,13 +134,13 @@
     --cm-field-width-fluid: min(100%, 21.25rem);
     --cm-field-width-fluid-wide: min(100%, 32.5rem);
     --cm-field-width-compact: clamp(10.5rem, 35%, 21.25rem);
-    --cm-field-width-toolbar-search: clamp(13.75rem, 34vw, 32.5rem);
-    --cm-field-width-toolbar-search-mobile: 13.75rem;
-    --cm-field-max-width-toolbar-search: 21.875rem;
+    --cm-field-width-toolbar-search: clamp(11.5rem, 22vw, 16rem);
+    --cm-field-width-toolbar-search-mobile: 10.5rem;
+    --cm-field-max-width-toolbar-search: 16rem;
     --cm-field-min-width-toolbar-select: 5.625rem;
-    --cm-field-min-width-toolbar-lg: 17.5rem;
-    --cm-field-max-width-toolbar-lg: 21.875rem;
-    --cm-field-min-width-toolbar-lg-mobile: 11.25rem;
+    --cm-field-min-width-toolbar-lg: 11.5rem;
+    --cm-field-max-width-toolbar-lg: 16rem;
+    --cm-field-min-width-toolbar-lg-mobile: 10.5rem;
     --cm-field-min-width-cand-search: 12.5rem;
 
     /* Cards / panels */
@@ -244,7 +244,7 @@ a:hover {
 .cm-content-area {
     margin-left: var(--cm-sidebar-width);
     height: 100vh;
-    padding-top: var(--cm-header-height);
+    padding-top: calc(var(--cm-header-height) + 1.5rem);
     display: flex;
     flex-direction: column;
     transition: margin-left var(--cm-transition-normal);
@@ -260,7 +260,7 @@ a:hover {
     left: var(--cm-sidebar-width);
     right: 0;
     height: var(--cm-header-height);
-    background: var(--cm-content-bg);
+    ;
     border-bottom: 1px solid var(--cm-border-color);
     display: flex;
     align-items: center;
@@ -316,9 +316,9 @@ body.cm-app-body.is-collapsed .cm-navbar {
 
 .cm-navbar__toggle,
 .cm-navbar__icon-btn {
-    border: 1px solid var(--cm-border-color);
+
     border-radius: var(--cm-border-radius);
-    background: var(--cm-content-bg);
+    ;
     color: var(--cm-primary);
     width: 34px;
     height: 34px;
@@ -378,8 +378,8 @@ body.cm-app-body.is-collapsed .cm-navbar {
     top: calc(100% + var(--cm-spacing-xs));
     right: 0;
     min-width: 190px;
-    background: var(--cm-content-bg);
-    border: 1px solid var(--cm-border-color);
+    ;
+
     border-radius: var(--cm-border-radius);
     box-shadow: var(--cm-shadow-lg);
     z-index: var(--cm-z-dropdown);
@@ -427,7 +427,7 @@ body.cm-app-body.is-collapsed .cm-navbar {
 }
 
 .cm-calendar-day {
-    border: 1px solid var(--cm-border-color);
+
     border-radius: var(--cm-border-radius-lg);
     padding: var(--cm-spacing-md);
     cursor: pointer;
@@ -507,7 +507,7 @@ body.cm-app-body.is-collapsed .cm-navbar {
 }
 
 .cm-planning-modal {
-    background: var(--cm-content-bg);
+    ;
     border-radius: var(--cm-border-radius-xl);
     box-shadow: var(--cm-shadow-lg);
     padding: var(--cm-spacing-xl);

@@ -108,6 +108,49 @@ $editNiveauValue = (string) ($utilisateurEdit->id_niv_acces_donnee ?? '');
 $editStatutValue = (string) ($utilisateurEdit->statut_utilisateur ?? 'Actif');
 $editNomValue = (string) ($utilisateurEdit->nom_utilisateur ?? '');
 $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
+
+$editTypeLabel = strtolower(trim((string) ($typeOptions[$editTypeValue] ?? '')));
+$initialNameOptions = [];
+if ($editTypeLabel !== '') {
+    if (strpos($editTypeLabel, 'etudiant') !== false) {
+        foreach ($etudiantsNonUtilisateurs as $row) {
+            $label = trim((string) (($row->nom_etu ?? '') . ' ' . ($row->prenom_etu ?? '')));
+            if ($label === '') {
+                continue;
+            }
+            $initialNameOptions[] = [
+                'id' => (string) ($row->num_etu ?? ''),
+                'label' => $label,
+                'email' => trim((string) ($row->email_etu ?? '')),
+            ];
+        }
+    } elseif (strpos($editTypeLabel, 'enseignant') !== false) {
+        foreach ($enseignantsNonUtilisateurs as $row) {
+            $label = trim((string) (($row->nom_enseignant ?? '') . ' ' . ($row->prenom_enseignant ?? '')));
+            if ($label === '') {
+                continue;
+            }
+            $initialNameOptions[] = [
+                'id' => (string) ($row->id_enseignant ?? ''),
+                'label' => $label,
+                'email' => trim((string) ($row->mail_enseignant ?? '')),
+            ];
+        }
+    } elseif (strpos($editTypeLabel, 'personnel') !== false || strpos($editTypeLabel, 'administratif') !== false) {
+        foreach ($personnelNonUtilisateurs as $row) {
+            $label = trim((string) (($row->nom_pers_admin ?? '') . ' ' . ($row->prenom_pers_admin ?? '')));
+            if ($label === '') {
+                continue;
+            }
+            $initialNameOptions[] = [
+                'id' => (string) ($row->id_pers_admin ?? ''),
+                'label' => $label,
+                'email' => trim((string) ($row->email_pers_admin ?? '')),
+            ];
+        }
+    }
+}
+$showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
 ?>
 <?php if (!canView()): ?>
     <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => "Vous n'avez pas l'autorisation d'accéder à cette page."]); ?>
@@ -124,13 +167,21 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
     <div class="cm-crud-wrapper">
         <?php if ($isMassMode): ?>
             <?php ob_start(); ?>
-            <form method="POST" action="?page=gestion_utilisateurs" id="cmUsersMassForm" data-cm-ajax-form="true">
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmUsersMassForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="POST" action="?page=gestion_utilisateurs" id="cmUsersMassForm" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <div class="cm-grid-4">
                     <?php cm_component('form/select', ['name' => 'id_type_utilisateur', 'label' => 'Type utilisateur', 'required' => true, 'options' => $typeOptions, 'control_class' => 'cm-field-md']); ?>
                     <?php cm_component('form/select', ['name' => 'id_GU', 'label' => 'Groupe utilisateur', 'required' => true, 'options' => $groupOptions, 'control_class' => 'cm-field-md']); ?>
-                    <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'control_class' => 'cm-field-md']); ?>
-                    <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif'], 'selected' => 'Actif', 'control_class' => 'cm-field-md']); ?>
+                    <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'control_class' => 'cm-field-lg']); ?>
+                    <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif'], 'selected' => 'Actif', 'control_class' => 'cm-field-sm']); ?>
                 </div>
                 <div class="cm-form-group">
                     <label class="cm-form-label">Selection des personnes</label>
@@ -175,10 +226,10 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="cm-form-group" id="cmUserNameTextWrap"><?php cm_component('form/input-text', ['name' => 'nom_utilisateur', 'id' => 'cmNomUtilisateurText', 'label' => 'Nom utilisateur', 'required' => true, 'value' => $editNomValue, 'placeholder' => 'Nom complet', 'control_class' => 'cm-field-lg']); ?></div>
-                    <div class="cm-form-group cm-hidden" id="cmUserNameSelectWrap"><label for="cmNomUtilisateurSelect" class="cm-form-label">Nom utilisateur</label><select id="cmNomUtilisateurSelect" class="cm-form-control cm-field-lg"></select></div>
-                    <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'id' => 'cmNiveauAcces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'selected' => $editNiveauValue !== '' ? $editNiveauValue : (string) array_key_first($niveauOptions), 'control_class' => 'cm-field-md']); ?>
-                    <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'id' => 'cmStatutUtilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif', 'Suspendu' => 'Suspendu'], 'selected' => $editStatutValue, 'control_class' => 'cm-field-md']); ?>
+                    <div class="cm-form-group<?= $showNameSelectInitially ? ' cm-user-name-hidden' : '' ?>" id="cmUserNameTextWrap"><?php cm_component('form/input-text', ['name' => $showNameSelectInitially ? '' : 'nom_utilisateur', 'id' => 'cmNomUtilisateurText', 'label' => 'Nom utilisateur', 'required' => true, 'value' => $editNomValue, 'placeholder' => 'Nom complet', 'control_class' => 'cm-field-lg']); ?></div>
+                    <div class="cm-form-group<?= $showNameSelectInitially ? '' : ' cm-user-name-hidden' ?>" id="cmUserNameSelectWrap"><label for="cmNomUtilisateurSelect" class="cm-form-label">Nom utilisateur</label><select id="cmNomUtilisateurSelect" class="cm-form-control cm-field-lg"<?= $showNameSelectInitially ? ' name="nom_utilisateur"' : '' ?>><?php foreach ($initialNameOptions as $index => $option): ?><option value="<?= htmlspecialchars($option['label'], ENT_QUOTES, 'UTF-8') ?>" data-source-id="<?= htmlspecialchars($option['id'], ENT_QUOTES, 'UTF-8') ?>" data-source-email="<?= htmlspecialchars($option['email'], ENT_QUOTES, 'UTF-8') ?>" <?= ($option['label'] === $editNomValue || ($editNomValue === '' && $index === 0)) ? 'selected' : '' ?>><?= htmlspecialchars($option['email'] !== '' ? $option['label'] : ($option['label'] . ' (sans email)'), ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select></div>
+                    <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'id' => 'cmNiveauAcces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'selected' => $editNiveauValue !== '' ? $editNiveauValue : (string) array_key_first($niveauOptions), 'control_class' => 'cm-field-lg']); ?>
+                    <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'id' => 'cmStatutUtilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif', 'Suspendu' => 'Suspendu'], 'selected' => $editStatutValue, 'control_class' => 'cm-field-sm']); ?>
                     <?php cm_component('form/input-text', ['name' => 'login_utilisateur', 'id' => 'cmLoginUtilisateur', 'label' => 'Login', 'required' => true, 'value' => $editLoginValue, 'placeholder' => 'login', 'control_class' => 'cm-field-md']); ?>
                 </div>
                 <div class="cm-form-group"><small id="cmLoginHint" class="cm-text-muted"></small></div>
@@ -203,6 +254,16 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
                     'limit_options' => [5, 10, 25, 50, 100],
                     'can_delete' => canDelete(),
                     'can_view' => canView(),
+                    'custom_actions' => array_filter([
+                        canEdit() ? [
+                            'tag' => 'button',
+                            'type' => 'button',
+                            'id' => 'cmUsersSendAccess',
+                            'label' => 'Envoyer accès',
+                            'class' => 'cm-btn is-info is-sm',
+                            'attrs' => ['title' => 'Envoyer les identifiants'],
+                        ] : null,
+                    ]),
                 ]); ?>
             </form>
 
@@ -225,7 +286,6 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
                         'actions' => array_filter([
                             canEdit() ? [ 'tag' => 'button', 'type' => 'button', 'label' => 'Modifier', 'icon' => 'fa-pen', 'class' => 'cm-btn-action is-edit js-user-edit' ] : null,
                             canDelete() ? [ 'tag' => 'button', 'type' => 'button', 'label' => 'Supprimer', 'icon' => 'fa-trash', 'class' => 'cm-btn-action is-delete js-user-delete' ] : null,
-                            canEdit() ? [ 'tag' => 'button', 'type' => 'button', 'label' => 'Réinitialiser MdP', 'icon' => 'fa-key', 'class' => 'cm-btn-action is-secondary js-user-reset-pwd' ] : null,
                         ]),
                         'empty_title' => 'Aucun utilisateur',
                         'empty_message' => 'Aucun enregistrement trouvé.',
@@ -237,6 +297,99 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
     </div>
 </section>
 <?php endif; ?>
+
+<style>
+.cm-prd3-crud-screen #cmUserNameTextWrap.cm-user-name-hidden,
+.cm-prd3-crud-screen #cmUserNameSelectWrap.cm-user-name-hidden {
+    display: none !important;
+}
+
+#users_toolbar .cm-toolbar.cm-toolbar--unified {
+    gap: 0.35rem !important;
+    padding: 0.2rem 0.35rem !important;
+    flex-wrap: wrap !important;
+    overflow-x: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+#users_toolbar .cm-toolbar-left,
+#users_toolbar .cm-toolbar-center,
+#users_toolbar .cm-toolbar-right {
+    gap: 0.35rem !important;
+    min-width: 0;
+}
+
+#users_toolbar .cm-toolbar-left {
+    flex: 0 0 auto !important;
+}
+
+#users_toolbar .cm-toolbar-center {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+}
+
+#users_toolbar .cm-toolbar-right {
+    flex: 1 1 auto !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    margin-left: 0 !important;
+}
+
+#users_toolbar .cm-toolbar__actions-group {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.35rem !important;
+}
+
+#users_toolbar .cm-toolbar__search-icon {
+    display: none !important;
+}
+
+#users_toolbar .cm-toolbar__search-wrap {
+    width: clamp(8.5rem, 14vw, 11rem) !important;
+    min-width: 8.5rem !important;
+    max-width: 11rem !important;
+}
+
+#users_toolbar .cm-toolbar-field-lg,
+#users_toolbar .cm-toolbar__search-wrap input {
+    min-width: 8.5rem !important;
+    max-width: 11rem !important;
+    height: 1.85rem !important;
+    font-size: 0.8rem !important;
+    padding: 0.3rem 0.45rem !important;
+    padding-left: 0.45rem !important;
+}
+
+#users_toolbar .cm-toolbar-field-xs,
+#users_toolbar .cm-toolbar select.is-sm,
+#users_toolbar .cm-toolbar .cm-btn {
+    height: 1.85rem !important;
+    font-size: 0.8rem !important;
+}
+
+#users_toolbar .cm-toolbar .cm-btn {
+    min-height: 1.85rem !important;
+    padding: 0.28rem 0.5rem !important;
+    line-height: 1.1 !important;
+}
+
+#users_toolbar .cm-toolbar__control span,
+#users_toolbar .cm-toolbar .cm-btn span {
+    font-size: 0.8rem !important;
+}
+
+#users_toolbar .cm-toolbar .cm-dropdown__toggle,
+#users_toolbar .cm-toolbar .cm-form-control,
+#users_toolbar .cm-toolbar select.is-sm {
+    min-height: 1.85rem !important;
+}
+
+#users_toolbar {
+    overflow-x: hidden !important;
+}
+</style>
 
 <script>
 (function () {
@@ -299,13 +452,13 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
         });
     }
     function getSelectedSourceEmail() {
-        if (!nomSelect || nomSelectWrap.classList.contains('cm-hidden') || !nomSelect.selectedOptions.length) {
+        if (!nomSelect || nomSelectWrap.classList.contains('cm-user-name-hidden') || !nomSelect.selectedOptions.length) {
             return '';
         }
         return nomSelect.selectedOptions[0].getAttribute('data-source-email') || '';
     }
     function syncSourceMetadata() {
-        if (nomSelect && !nomSelectWrap.classList.contains('cm-hidden') && nomSelect.selectedOptions.length) {
+        if (nomSelect && !nomSelectWrap.classList.contains('cm-user-name-hidden') && nomSelect.selectedOptions.length) {
             const selectedOption = nomSelect.selectedOptions[0];
             if (sourceIdInput) sourceIdInput.value = selectedOption.getAttribute('data-source-id') || '';
             if (sourceEmailInput) sourceEmailInput.value = selectedOption.getAttribute('data-source-email') || '';
@@ -334,16 +487,16 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
         if (list && list.length) {
             populateNameSelect(list);
             nomText.removeAttribute('name'); nomSelect.setAttribute('name', 'nom_utilisateur');
-            nomTextWrap.classList.add('cm-hidden');
-            nomSelectWrap.classList.remove('cm-hidden');
+            nomTextWrap.classList.add('cm-user-name-hidden');
+            nomSelectWrap.classList.remove('cm-user-name-hidden');
             nomText.value = nomSelect.value || nomText.value || '';
             syncSourceMetadata();
             applySuggestedLogin();
         } else {
             if (nomSelect.value) nomText.value = nomSelect.value;
             nomSelect.removeAttribute('name'); nomText.setAttribute('name', 'nom_utilisateur');
-            nomTextWrap.classList.remove('cm-hidden');
-            nomSelectWrap.classList.add('cm-hidden');
+            nomTextWrap.classList.remove('cm-user-name-hidden');
+            nomSelectWrap.classList.add('cm-user-name-hidden');
             syncSourceMetadata();
             applySuggestedLogin();
         }
@@ -364,7 +517,7 @@ $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
             return;
         }
         const sourceEmail = String(getSelectedSourceEmail() || '').trim();
-        const currentName = !nomSelectWrap.classList.contains('cm-hidden') ? nomSelect.value : nomText.value;
+        const currentName = !nomSelectWrap.classList.contains('cm-user-name-hidden') ? nomSelect.value : nomText.value;
         const suggestedLogin = sourceEmail || generateLoginFromName(currentName);
         initialLoginSynced = true;
         loginInput.value = suggestedLogin;

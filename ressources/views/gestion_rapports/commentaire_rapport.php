@@ -46,7 +46,15 @@ $filterSearch = (string) ($_GET['search'] ?? '');
         <?php endif; ?>
 
         <!-- Filtres -->
-        <form method="GET" class="cm-etu-toolbar">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="GET" class="cm-etu-toolbar">
             <input type="hidden" name="page" value="gestion_rapports">
             <input type="hidden" name="action" value="commentaire_rapport">
 
@@ -192,3 +200,4 @@ $filterSearch = (string) ($_GET['search'] ?? '');
         modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
     })();
 </script>
+

@@ -622,7 +622,15 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <div class="cm-card-body">
                     <div class="cm-grid-2 cm-gap-4">
                         <div>
-                            <form method="POST" action="?page=admin_historique&action=import" enctype="multipart/form-data" data-cm-ajax-form="true">
+                            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="POST" action="?page=admin_historique&action=import" enctype="multipart/form-data" data-cm-ajax-form="true">
                                 <?php cm_component('form/csrf-token'); ?>
                                 <div class="cm-mb-3">
                                     <?php cm_component('form/file-upload', [
@@ -717,3 +725,4 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     });
 })();
 </script>
+

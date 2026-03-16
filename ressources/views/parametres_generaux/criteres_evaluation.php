@@ -6,7 +6,15 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
         <?php
         ob_start();
         ?>
-        <form id="cmCritereForm" class="cm-form" autocomplete="off">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmCritereForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="cmCritereForm" class="cm-form" autocomplete="off">
             <div class="cm-grid-2">
                 <?php cm_component('form/input-text', [
                     'name' => 'lib_critere',
@@ -112,7 +120,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
 
 <script>
 (function () {
-    const routeBase = '?page=criteres_evaluation&action=';
+    const routeBase = '?page=parametres_specifiques&action=criteres_evaluation&ajaxAction=';
     const yearsFilter = document.getElementById('cmCritToolbar_filter_annee');
     const searchInput = document.getElementById('cmCritToolbar_search');
     const toolbarId = 'cmCritToolbar_toolbar';
@@ -459,3 +467,4 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
     });
 })();
 </script>
+

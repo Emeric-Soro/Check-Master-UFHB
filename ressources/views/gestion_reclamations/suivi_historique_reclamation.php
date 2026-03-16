@@ -35,7 +35,15 @@ $totalPages = (int) ($totalPages ?? 1);
         <?php endif; ?>
 
         <!-- Filtres -->
-        <form method="GET" class="cm-etu-toolbar">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="GET" class="cm-etu-toolbar">
             <input type="hidden" name="page" value="gestion_reclamations">
             <input type="hidden" name="action" value="suivi_historique_reclamation">
 
@@ -245,3 +253,4 @@ $totalPages = (int) ($totalPages ?? 1);
         modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
     })();
 </script>
+

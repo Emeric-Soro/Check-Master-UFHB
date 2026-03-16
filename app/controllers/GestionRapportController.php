@@ -9,7 +9,7 @@ require_once __DIR__ . '/../models/Entreprise.php';
 require_once __DIR__ . '/../Services/GestionRapportService.php';
 require_once __DIR__ . '/../Support/Database.php';
 require_once __DIR__ . '/../Services/Document/RapportPdfGeneratorService.php';
-require_once __DIR__ . '/../Utils/PlanningDataUtils.php';
+require_once __DIR__ . '/../utils/PlanningDataUtils.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 
 

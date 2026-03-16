@@ -1,7 +1,10 @@
 <?php
-use CheckMaster\Core\Csrf;
+require_once __DIR__ . '/../../app/Core/Autoload.php';
 
-$csrfToken = Csrf::token();
+\CheckMaster\Core\Bootstrap::init();
+\CheckMaster\Core\Session::start();
+
+$csrfToken = \CheckMaster\Core\Csrf::token();
 $errorMessage = isset($_SESSION['error']) ? htmlspecialchars((string) $_SESSION['error']) : '';
 ?>
 <!DOCTYPE html>

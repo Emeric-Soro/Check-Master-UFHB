@@ -135,7 +135,15 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     <div style="font-size:1.6rem;font-weight:700;"><?php echo $rejetes; ?></div>
                 </div>
             </div>
-            <form id="cmEvaluationDecisionForm"
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmEvaluationDecisionForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="cmEvaluationDecisionForm"
                   method="POST"
                   action="?page=<?php echo htmlspecialchars(urlencode($currentPageSlug), ENT_QUOTES, 'UTF-8'); ?>&action=traiter_decision">
                 <?php cm_component('form/csrf-token'); ?>
@@ -569,3 +577,4 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
     applySearch();
 })();
 </script>
+

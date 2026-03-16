@@ -147,29 +147,61 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
     <?php endif; ?>
     <div class="cm-crud-wrapper">
     <div class="cm-pole-superieur">
-        <div class="">
-        </div>
-        <div class="cm-grid-2">
-            <?php
-            $niveauOptions = [];
-            foreach ($niveaux as $niveau) {
-                $niveauOptions[(int) ($niveau->id_niv_etude ?? 0)] = (string) ($niveau->lib_niv_etude ?? 'Niveau');
-            }
-            cm_component('form/select', [
-                'name' => 'cm_niveau_filter',
-                'id' => 'cmNiveauFilter',
-                'label' => 'Niveau',
-                'options' => $niveauOptions,
-                'selected' => (string) ($selectedNiveau ?? ''),
-                'control_class' => 'cm-field-md',
-            ]);
-            echo '<input type="hidden" name="cm_annee_filter" id="cmAnneeFilter" value="' . htmlspecialchars((string) ($effectiveAnneeId ?? ''), ENT_QUOTES, 'UTF-8') . '">';
-            ?>
-        </div>
-        <form id="cmNotesForm" method="POST" action="<?php echo htmlspecialchars($formAction, ENT_QUOTES, 'UTF-8'); ?>">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmNotesForm .cm-notes-form-grid {
+    grid-template-columns: minmax(0, 2.8fr) minmax(0, 0.8fr) minmax(0, 0.8fr) !important;
+    gap: 0.75rem 1rem !important;
+    align-items: end !important;
+}
+
+#cmNotesForm .cm-form-group:has(#cmStudentPicker_hidden) {
+    grid-column: 1 / -1;
+    width: 100% !important;
+    max-width: none !important;
+}
+
+#cmNotesForm .cm-form-group:has(#cmStudentPicker_hidden) .cm-select-search,
+#cmNotesForm .cm-form-group:has(#cmStudentPicker_hidden) .cm-select-search__input {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+#cmNotesForm #cmStudentPicker_wrapper .cm-select-search__input {
+    --cm-field-width: 80%;
+    --cm-field-max-width: none;
+    width: 80% !important;
+    max-width: none !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Dropdown en overlay: ne pousse plus les champs M1/M2 vers le bas */
+#cmNotesForm #cmStudentPicker_wrapper {
+    position: relative;
+}
+
+#cmNotesForm #cmStudentPicker_wrapper .cm-select-search__list {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% - var(--cm-spacing-xs));
+    z-index: 1200;
+    border: 1px solid var(--cm-border-color);
+    box-shadow: var(--cm-shadow-lg);
+}
+
+#cmNotesForm .cm-form-group:has(#cmMoyenneM1),
+#cmNotesForm .cm-form-group:has(#cmMoyenneM2) {
+    max-width: 10rem;
+}
+</style>
+<form id="cmNotesForm" method="POST" action="<?php echo htmlspecialchars($formAction, ENT_QUOTES, 'UTF-8'); ?>">
             <?php cm_component('form/csrf-token'); ?>
             <input type="hidden" name="id_annee_acad" id="cmAnneeHidden" value="<?php echo htmlspecialchars((string) ($formAnneeId ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-            <div class="cm-grid-4">
+            <input type="hidden" name="cm_annee_filter" id="cmAnneeFilter" value="<?php echo htmlspecialchars((string) ($effectiveAnneeId ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+            <div class="cm-grid-3 cm-notes-form-grid">
                 <?php
                 echo '<input type="hidden" name="annee_display" value="' . htmlspecialchars((string) $displayAnneeLabel, ENT_QUOTES, 'UTF-8') . '">';
                 cm_component('form/select-search', [
@@ -180,32 +212,9 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                     'selected' => $selectedStudentId,
                     'required' => true,
                     'placeholder' => '-- Sélectionner un étudiant --',
-                    'control_class' => 'cm-field-lg',
-                ]);
-                cm_component('form/input-text', [
-                    'name' => 'num_etu_display',
-                    'id' => 'cmNumEtuDisplay',
-                    'label' => 'N° Carte',
-                    'readonly' => true,
-                    'value' => (string) ($selectedStudent->num_carte_etud ?? ''),
-                    'control_class' => 'cm-field-md',
-                    'maxlength' => 15,
-                    'attrs' => ['size' => '15'],
-                ]);
-                cm_component('form/input-text', [
-                    'name' => 'nom_display',
-                    'id' => 'cmNomDisplay',
-                    'label' => 'Nom',
-                    'readonly' => true,
-                    'value' => (string) ($selectedStudent->nom_etu ?? ''),
-                    'control_class' => 'cm-field-lg',
-                ]);
-                cm_component('form/input-text', [
-                    'name' => 'prenom_display',
-                    'id' => 'cmPrenomDisplay',
-                    'label' => 'Prénom',
-                    'readonly' => true,
-                    'value' => (string) ($selectedStudent->prenom_etu ?? ''),
+                    'search_placeholder' => 'Rechercher un étudiant...',
+                    'show_selected_label' => false,
+                    'min_search' => 0,
                     'control_class' => 'cm-field-lg',
                 ]);
                 cm_component('form/input-number', [
@@ -350,14 +359,10 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
 <script>
 (function () {
     const studentCatalog = <?php echo json_encode($studentCatalog, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-    const niveauFilter = document.getElementById('cmNiveauFilter');
     const anneeFilter = document.getElementById('cmAnneeFilter');
     const notesLimit = document.getElementById('cmNotesLimit');
     const studentHidden = document.getElementById('cmStudentPicker_hidden');
     const anneeHiddenInput = document.getElementById('cmAnneeHidden');
-    const numDisplay = document.getElementById('cmNumEtuDisplay');
-    const nomDisplay = document.getElementById('cmNomDisplay');
-    const prenomDisplay = document.getElementById('cmPrenomDisplay');
     const m1Field = document.getElementById('cmMoyenneM1');
     const m2Field = document.getElementById('cmMoyenneM2');
     const notesForm = document.getElementById('cmNotesForm');
@@ -375,40 +380,6 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
     const navigateWithParams = function (params) {
         navigate('?' + params.toString());
     };
-    const syncStudentFields = function () {
-        const id = studentHidden ? studentHidden.value : '';
-        const data = studentCatalog[id];
-        if (!data) {
-            numDisplay.value = '';
-            nomDisplay.value = '';
-            prenomDisplay.value = '';
-            return;
-        }
-        numDisplay.value = data.num || '';
-        nomDisplay.value = data.nom || '';
-        prenomDisplay.value = data.prenom || '';
-    };
-    const reloadByFilters = function () {
-        const niveau = niveauFilter ? niveauFilter.value : '';
-        const annee = anneeFilter ? anneeFilter.value : '';
-        const params = new URLSearchParams(window.location.search);
-        params.set('page', 'gestion_notes_evaluations');
-        if (niveau) {
-            params.set('niveau', niveau);
-        } else {
-            params.delete('niveau');
-        }
-        if (annee) {
-            params.set('annee', annee);
-        } else {
-            params.delete('annee');
-        }
-        params.delete('student');
-        params.delete('action');
-        navigateWithParams(params);
-    };
-    niveauFilter && niveauFilter.addEventListener('change', reloadByFilters);
-    anneeFilter && anneeFilter.addEventListener('change', reloadByFilters);
     if (notesLimit) {
         notesLimit.addEventListener('change', function () {
             const params = new URLSearchParams(window.location.search);
@@ -420,13 +391,11 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
     }
     if (studentHidden) {
         studentHidden.addEventListener('change', function () {
-            syncStudentFields();
-            if (!niveauFilter || !studentHidden.value || !niveauFilter.value) {
+            if (!studentHidden.value) {
                 return;
             }
             const params = new URLSearchParams(window.location.search);
             params.set('page', 'gestion_notes_evaluations');
-            params.set('niveau', niveauFilter.value);
             if (anneeFilter && anneeFilter.value) {
                 params.set('annee', anneeFilter.value);
             } else {
@@ -475,15 +444,6 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
         }
         if (anneeHiddenInput) {
             anneeHiddenInput.value = anneeId || initialFormAnneeId || '';
-        }
-        if (numDisplay) {
-            numDisplay.value = num;
-        }
-        if (nomDisplay) {
-            nomDisplay.value = nom;
-        }
-        if (prenomDisplay) {
-            prenomDisplay.value = prenom;
         }
         if (m1Field) {
             m1Field.value = m1;
@@ -603,7 +563,6 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
         link.click();
         document.body.removeChild(link);
     });
-    syncStudentFields();
     updateSelectionState();
 })();
 </script>

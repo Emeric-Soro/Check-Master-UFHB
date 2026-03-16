@@ -118,7 +118,15 @@ $planifications = array_values(array_map($normalizePlanificationRow, is_array($p
         </div>
     <?php endif; ?>
 
-    <form method="POST" id="planificationForm">
+    <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#planificationForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="POST" id="planificationForm">
         <input type="hidden" name="action" value="planifier" id="formAction">
         <input type="hidden" name="edit_id" value="" id="editId">
 
@@ -488,3 +496,4 @@ $planifications = array_values(array_map($normalizePlanificationRow, is_array($p
         }, 3000);
     }
 </script>
+
