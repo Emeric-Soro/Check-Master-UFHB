@@ -7,11 +7,17 @@ require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
 require_once __DIR__ . '/../utils/PlanningDataUtils.php';
 require_once __DIR__ . '/../Support/Database.php';
 
+use App\Services\Document\PdfGeneratorService;
+use App\Services\Document\PlanningGeneratorService;
+use App\Support\Database as AppDatabase;
+use App\Utils\PlanningDataUtils;
 use CheckMaster\Services\ProgrammationSoutenanceService;
 
 class ProgrammationSoutenanceController
 {
     private $service;
+    private ?PlanningGeneratorService $planningGeneratorService = null;
+    private ?PlanningDataUtils $planningDataUtils = null;
 
     public function __construct()
     {
@@ -292,6 +298,432 @@ class ProgrammationSoutenanceController
                 'message' => 'Erreur lors de la suppression : ' . $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Prévisualisation synthétique du planning (mode legacy).
+     * Retourne le total et le nombre de soutenances par date.
+     */
+    public function getPlanningPreview()
+    {
+        if (!canView('programmation_soutenance')) {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => "Vous n'avez pas l'autorisation d'accéder à cette ressource.",
+            ], 403);
+            return;
+        }
+
+        try {
+            $sessionId = isset($_GET['session_id']) && $_GET['session_id'] !== '' ? (int) $_GET['session_id'] : null;
+            $dateFrom = isset($_GET['date_from']) && $_GET['date_from'] !== '' ? (string) $_GET['date_from'] : null;
+            $dateTo = isset($_GET['date_to']) && $_GET['date_to'] !== '' ? (string) $_GET['date_to'] : null;
+
+            $soutenances = $this->getPlanningDataUtils()->getSoutenancesForPlanning($sessionId, $dateFrom, $dateTo);
+            $groupedByDate = [];
+            foreach ($soutenances as $row) {
+                $date = (string) ($row['date_soutenance'] ?? '');
+                if ($date === '') {
+                    continue;
+                }
+                if (!isset($groupedByDate[$date])) {
+                    $groupedByDate[$date] = [
+                        'count' => 0,
+                        'conflits' => 0,
+                    ];
+                }
+                $groupedByDate[$date]['count']++;
+            }
+
+            $conflits = $this->buildSalleConflicts($soutenances);
+            foreach ($conflits as $conflict) {
+                $date = (string) ($conflict['date_soutenance'] ?? '');
+                if ($date !== '' && isset($groupedByDate[$date])) {
+                    $groupedByDate[$date]['conflits']++;
+                }
+            }
+
+            ksort($groupedByDate);
+
+            $this->jsonResponse([
+                'success' => true,
+                'data' => [
+                    'total_soutenances' => count($soutenances),
+                    'dates' => $groupedByDate,
+                ],
+            ]);
+        } catch (Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Erreur lors de la prévisualisation du planning.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Détails d'une journée (mode legacy).
+     */
+    public function getDayDetails()
+    {
+        if (!canView('programmation_soutenance')) {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => "Vous n'avez pas l'autorisation d'accéder à cette ressource.",
+            ], 403);
+            return;
+        }
+
+        $date = trim((string) ($_GET['date'] ?? ''));
+        if ($date === '') {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Date requise.',
+            ], 400);
+            return;
+        }
+
+        try {
+            $soutenances = $this->getPlanningDataUtils()->getSoutenancesForPlanning(null, $date, $date);
+            $salles = [];
+
+            foreach ($soutenances as &$row) {
+                $libSalle = trim((string) ($row['lib_salle'] ?? ''));
+                if ($libSalle !== '') {
+                    $salles[$libSalle] = true;
+                }
+
+                $juryDetails = $this->getPlanningDataUtils()->getJuryDetails((string) ($row['num_soutenance'] ?? ''));
+                $row['jury'] = $this->flattenJuryDetails($juryDetails);
+            }
+            unset($row);
+
+            $this->jsonResponse([
+                'success' => true,
+                'data' => [
+                    'date' => $date,
+                    'soutenances' => $soutenances,
+                    'salles_utilisees' => array_keys($salles),
+                    'conflicts' => $this->buildSalleConflicts($soutenances),
+                ],
+            ]);
+        } catch (Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Erreur lors du chargement du détail de la journée.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Génération PDF de planning basé sur une sélection de soutenances.
+     */
+    public function generatePlanningPdf()
+    {
+        error_log('[generatePlanningPdf] Request received. Method: ' . ($_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN'));
+        
+        if (!canView('programmation_soutenance')) {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => "Vous n'avez pas l'autorisation d'effectuer cette action.",
+            ], 403);
+            return;
+        }
+
+        try {
+            $input = $this->readRequestInput();
+            error_log('[generatePlanningPdf] Input: ' . json_encode($input));
+            
+            $selectedIds = $this->normalizeSelectedIds($input['selected_ids'] ?? $input['selectedIds'] ?? []);
+            error_log('[generatePlanningPdf] Selected IDs: ' . json_encode($selectedIds));
+
+            if (empty($selectedIds)) {
+                $sessionId = isset($input['session_id']) && $input['session_id'] !== '' ? (int) $input['session_id'] : null;
+                $dateFrom = isset($input['date_from']) && $input['date_from'] !== '' ? (string) $input['date_from'] : null;
+                $dateTo = isset($input['date_to']) && $input['date_to'] !== '' ? (string) $input['date_to'] : null;
+
+                if ($dateFrom === null && $dateTo === null) {
+                    $this->jsonResponse([
+                        'success' => false,
+                        'error' => 'Aucune soutenance sélectionnée.',
+                        'error_code' => 'no_selection',
+                    ], 400);
+                    return;
+                }
+
+                $rows = $this->getPlanningDataUtils()->getSoutenancesForPlanning($sessionId, $dateFrom, $dateTo);
+                $selectedIds = array_values(array_filter(array_map(
+                    static fn (array $row): string => trim((string) ($row['num_soutenance'] ?? '')),
+                    $rows
+                ), static fn (string $id): bool => $id !== ''));
+
+                if (empty($selectedIds)) {
+                    $this->jsonResponse([
+                        'success' => false,
+                        'error' => 'Aucune soutenance trouvée pour la période sélectionnée.',
+                        'error_code' => 'no_soutenances_found',
+                    ], 400);
+                    return;
+                }
+            }
+
+            $userId = (int) ($_SESSION['id_utilisateur'] ?? 0);
+            $result = $this->getPlanningGeneratorService()->generateFromSelectedSoutenances($selectedIds, $userId);
+
+            if (!($result['success'] ?? false)) {
+                $status = match ((string) ($result['error_code'] ?? '')) {
+                    'missing_soutenances' => 409,
+                    'generation_failed' => 500,
+                    default => 400,
+                };
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => (string) ($result['error'] ?? 'Erreur lors de la génération du planning PDF.'),
+                    'error_code' => (string) ($result['error_code'] ?? 'generation_failed'),
+                    'missing_ids' => $result['missing_ids'] ?? [],
+                ], $status);
+                return;
+            }
+
+            $path = (string) ($result['path'] ?? '');
+            $downloadUrl = '?page=programmation_soutenance&action=downloadPlanningPdf&file=' . urlencode($this->encodeFileToken($path));
+
+            $this->jsonResponse([
+                'success' => true,
+                'reference' => (string) ($result['reference'] ?? ''),
+                'download_url' => $downloadUrl,
+            ]);
+        } catch (Exception $e) {
+            error_log(sprintf(
+                '[ProgrammationSoutenanceController] generatePlanningPdf failed: %s in %s:%d',
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine()
+            ));
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Erreur lors de la génération du planning PDF.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Téléchargement sécurisé d'un planning PDF généré.
+     */
+    public function downloadPlanningPdf()
+    {
+        if (!canView('programmation_soutenance')) {
+            http_response_code(403);
+            echo 'Accès refusé.';
+            return;
+        }
+
+        $token = trim((string) ($_GET['file'] ?? ''));
+        $decoded = $this->decodeFileToken($token);
+        if ($decoded === null || $decoded === '') {
+            http_response_code(400);
+            echo 'Fichier invalide.';
+            return;
+        }
+
+        $realPath = realpath($decoded);
+        $basePlanningDir = realpath(__DIR__ . '/../../storage/planning');
+        if ($realPath === false || $basePlanningDir === false) {
+            http_response_code(404);
+            echo 'Fichier introuvable.';
+            return;
+        }
+
+        $normalizedPath = str_replace('\\', '/', $realPath);
+        $normalizedBase = rtrim(str_replace('\\', '/', $basePlanningDir), '/') . '/';
+        if (!str_starts_with($normalizedPath, $normalizedBase) || !is_file($realPath) || strtolower((string) pathinfo($realPath, PATHINFO_EXTENSION)) !== 'pdf') {
+            http_response_code(403);
+            echo 'Accès au fichier refusé.';
+            return;
+        }
+
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . basename($realPath) . '"');
+        header('Content-Length: ' . filesize($realPath));
+        readfile($realPath);
+    }
+
+    private function getPlanningGeneratorService(): PlanningGeneratorService
+    {
+        if ($this->planningGeneratorService instanceof PlanningGeneratorService) {
+            return $this->planningGeneratorService;
+        }
+
+        $db = new AppDatabase();
+        $pdfGenerator = new PdfGeneratorService(
+            __DIR__ . '/../../storage',
+            __DIR__ . '/../../public/assets/img/logo.png'
+        );
+
+        $this->planningDataUtils = new PlanningDataUtils($db);
+        $this->planningGeneratorService = new PlanningGeneratorService(
+            $pdfGenerator,
+            $this->planningDataUtils,
+            $db
+        );
+
+        return $this->planningGeneratorService;
+    }
+
+    private function getPlanningDataUtils(): PlanningDataUtils
+    {
+        if ($this->planningDataUtils instanceof PlanningDataUtils) {
+            return $this->planningDataUtils;
+        }
+        $db = new AppDatabase();
+        $this->planningDataUtils = new PlanningDataUtils($db);
+        return $this->planningDataUtils;
+    }
+
+    private function readRequestInput(?string $rawInput = null): array
+    {
+        if (isset($GLOBALS['decoded_json_input']) && is_array($GLOBALS['decoded_json_input'])) {
+            return $GLOBALS['decoded_json_input'];
+        }
+
+        $raw = $rawInput;
+        if ($raw === null || $raw === '') {
+            $raw = file_get_contents('php://input');
+        }
+        error_log('[readRequestInput] Raw input: ' . ($raw ?? 'NULL'));
+        $json = is_string($raw) && $raw !== '' ? json_decode($raw, true) : null;
+        if (is_array($json)) {
+            return $json;
+        }
+
+        return is_array($_POST) ? $_POST : [];
+    }
+
+    /**
+     * @param mixed $raw
+     * @return array<int, string>
+     */
+    private function normalizeSelectedIds($raw): array
+    {
+        $ids = [];
+        if (is_string($raw) && $raw !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                $raw = $decoded;
+            } else {
+                $raw = array_map('trim', explode(',', $raw));
+            }
+        }
+
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        foreach ($raw as $id) {
+            $value = trim((string) $id);
+            if ($value === '' || !preg_match('/^[A-Za-z0-9_-]+$/', $value)) {
+                continue;
+            }
+            $ids[$value] = $value;
+        }
+
+        return array_values($ids);
+    }
+
+    private function jsonResponse(array $payload, int $status = 200): void
+    {
+        http_response_code($status);
+        header('Content-Type: application/json');
+        echo json_encode($payload);
+        error_log('[jsonResponse] Sent response: ' . json_encode(['status' => $status, 'payload' => $payload]));
+        exit;
+    }
+
+    private function flattenJuryDetails(array $juryDetails): string
+    {
+        $segments = [];
+        if (!empty($juryDetails['president'])) {
+            $segments[] = 'Président: ' . (string) $juryDetails['president'];
+        }
+        if (!empty($juryDetails['examinateur'])) {
+            $segments[] = 'Examinateur: ' . implode(', ', (array) $juryDetails['examinateur']);
+        }
+        if (!empty($juryDetails['directeur'])) {
+            $segments[] = 'Directeur: ' . (string) $juryDetails['directeur'];
+        }
+        if (!empty($juryDetails['encadreur'])) {
+            $segments[] = 'Encadreur: ' . (string) $juryDetails['encadreur'];
+        }
+        if (!empty($juryDetails['maitre_stage'])) {
+            $segments[] = 'Maître de stage: ' . (string) $juryDetails['maitre_stage'];
+        }
+
+        return implode(' | ', $segments);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $soutenances
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildSalleConflicts(array $soutenances): array
+    {
+        $bySlot = [];
+        foreach ($soutenances as $row) {
+            $date = (string) ($row['date_soutenance'] ?? '');
+            $heure = substr((string) ($row['heure_soutenance'] ?? $row['heure_debut'] ?? ''), 0, 5);
+            $salle = trim((string) ($row['lib_salle'] ?? ''));
+            if ($date === '' || $heure === '' || $salle === '') {
+                continue;
+            }
+            $normalizedSalle = function_exists('mb_strtolower')
+                ? mb_strtolower($salle, 'UTF-8')
+                : strtolower($salle);
+            $slot = $date . '|' . $heure . '|' . $normalizedSalle;
+            if (!isset($bySlot[$slot])) {
+                $bySlot[$slot] = [
+                    'date_soutenance' => $date,
+                    'heure_soutenance' => $heure,
+                    'lib_salle' => $salle,
+                    'count' => 0,
+                ];
+            }
+            $bySlot[$slot]['count']++;
+        }
+
+        $conflicts = [];
+        foreach ($bySlot as $slot) {
+            if ((int) ($slot['count'] ?? 0) <= 1) {
+                continue;
+            }
+            $conflicts[] = [
+                'type' => 'Salle en double',
+                'date_soutenance' => (string) ($slot['date_soutenance'] ?? ''),
+                'heure_soutenance' => (string) ($slot['heure_soutenance'] ?? ''),
+                'lib_salle' => (string) ($slot['lib_salle'] ?? ''),
+            ];
+        }
+
+        return $conflicts;
+    }
+
+    private function encodeFileToken(string $path): string
+    {
+        return rtrim(strtr(base64_encode($path), '+/', '-_'), '=');
+    }
+
+    private function decodeFileToken(string $token): ?string
+    {
+        if ($token === '') {
+            return null;
+        }
+
+        $normalized = strtr($token, '-_', '+/');
+        $padding = strlen($normalized) % 4;
+        if ($padding > 0) {
+            $normalized .= str_repeat('=', 4 - $padding);
+        }
+
+        $decoded = base64_decode($normalized, true);
+        return is_string($decoded) ? $decoded : null;
     }
 }
 ?>

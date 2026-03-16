@@ -6,7 +6,7 @@ $center_html = (string) ($center_html ?? '');
 $right_html = (string) ($right_html ?? '');
 
 $per_page = isset($per_page) ? max(1, (int) $per_page) : null;
-$per_page_options = is_array($per_page_options ?? null) ? $per_page_options : [10, 25, 50, 100];
+$per_page_options = is_array($per_page_options ?? null) ? $per_page_options : [5, 10, 25, 50, 100];
 $search_name = (string) ($search_name ?? 'search');
 $search_value = (string) ($search_value ?? '');
 $search_placeholder = (string) ($search_placeholder ?? 'Rechercher...');

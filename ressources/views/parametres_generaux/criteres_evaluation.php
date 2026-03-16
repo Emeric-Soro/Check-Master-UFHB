@@ -6,7 +6,15 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
         <?php
         ob_start();
         ?>
-        <form id="cmCritereForm" class="cm-form" autocomplete="off">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmCritereForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="cmCritereForm" class="cm-form" autocomplete="off">
             <div class="cm-grid-2">
                 <?php cm_component('form/input-text', [
                     'name' => 'lib_critere',
@@ -26,21 +34,26 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
             </div>
             <?php
             cm_component('crud/form-actions', [
+                'cancel_action' => [
+                    'label' => 'Annuler',
+                    'type' => 'button',
+                    'class' => 'cm-btn is-light is-sm',
+                    'attrs' => ['data-reset-form' => '1', 'id' => 'cmResetCritereForm'],
+                ],
                 'actions' => [
                     [
                         'tag' => 'button',
-                        'type' => 'button',
+                        'type' => 'reset',
                         'label' => 'Réinitialiser',
                         'icon' => 'fa-rotate-left',
-                        'class' => 'cm-btn is-light',
-                        'attrs' => ['id' => 'cmResetCritereForm'],
+                        'class' => 'cm-btn is-secondary is-sm',
                     ],
                     [
                         'tag' => 'button',
                         'type' => 'submit',
                         'label' => 'Enregistrer',
                         'icon' => 'fa-save',
-                        'class' => 'cm-btn is-success',
+                        'class' => 'cm-btn is-primary is-sm',
                         'attrs' => ['id' => 'cmSubmitCritere'],
                     ],
                 ],
@@ -107,7 +120,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
 
 <script>
 (function () {
-    const routeBase = '?page=criteres_evaluation&action=';
+    const routeBase = '?page=parametres_specifiques&action=criteres_evaluation&ajaxAction=';
     const yearsFilter = document.getElementById('cmCritToolbar_filter_annee');
     const searchInput = document.getElementById('cmCritToolbar_search');
     const toolbarId = 'cmCritToolbar_toolbar';
@@ -322,6 +335,10 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
             addBaremeRow('', '');
         });
     }
+    form.addEventListener('reset', function () {
+        setTimeout(resetForm, 0);
+    });
+
     if (resetBtn) {
         resetBtn.addEventListener('click', function () {
             resetForm();
@@ -360,8 +377,8 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
     tableBody.addEventListener('click', async function (event) {
         const editBtn = event.target.closest('.js-edit');
         if (editBtn) {
-            const id = Number(editBtn.getAttribute('data-id') || '0');
-            const row = criteres.find(function (c) { return Number(c.id) === id; });
+            const id = String(editBtn.getAttribute('data-id') || '');
+            const row = criteres.find(function (c) { return String(c.id || '') === id; });
             if (!row) {
                 return;
             }
@@ -380,7 +397,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
 
         const deleteBtn = event.target.closest('.js-delete');
         if (deleteBtn) {
-            const id = Number(deleteBtn.getAttribute('data-id') || '0');
+            const id = String(deleteBtn.getAttribute('data-id') || '');
             if (!id) {
                 return;
             }

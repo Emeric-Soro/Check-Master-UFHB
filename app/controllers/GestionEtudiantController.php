@@ -27,7 +27,7 @@ class GestionEtudiantController
         try {
             $currentPage = isset($_GET['p']) ? (int) $_GET['p'] : 1;
             $itemsPerPage = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
-            if (!in_array($itemsPerPage, [2, 5, 10, 25, 50, 100])) {
+            if (!in_array($itemsPerPage, [5, 10, 25, 50, 100], true)) {
                 $itemsPerPage = 10; // Valeur par défaut si invalide
             }
             $etudiant_a_modifier = null;

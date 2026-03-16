@@ -153,6 +153,7 @@ foreach ($normalized_options as $option) {
 
     const options = Array.from(list.querySelectorAll('.cm-select-search__option'));
     const placeholder = <?= json_encode((string) $placeholder) ?>;
+    const selectedLabel = <?= json_encode((string) $selected_label) ?>;
     const keepSelectedInInput = <?= json_encode($show_search && !$show_selected_label) ?>;
 
     const resetFilteredOptions = function () {

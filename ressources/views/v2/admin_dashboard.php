@@ -7,7 +7,7 @@ $allYearsSelected = \AcademicYear::isAllSelectedFromSession();
 $filtreAnneeAdmin = isset($_GET['id_annee_acad']) && $_GET['id_annee_acad'] !== '' ? (int) $_GET['id_annee_acad'] : \AcademicYear::getSelectedIdFromSession();
 $filtreSessionAdmin = isset($_GET['id_session']) && $_GET['id_session'] !== '' ? (int) $_GET['id_session'] : null;
 $pageNumAdmin = max(1, (int) ($_GET['page_num'] ?? 1));
-$perPageAdmin = 20;
+$perPageAdmin = 10;
 
 try {
     if (!class_exists('Database')) {
@@ -139,7 +139,7 @@ try {
                      LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
                      LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
                      LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
-                     LEFT JOIN inscriptions i2 ON i2.id_etudiant = e2.num_carte_etud
+                     LEFT JOIN inscriptions i2 ON i2.num_carte_etud = e2.num_carte_etud
                      {$whereClause}
                      GROUP BY ens.id_enseignant
                      HAVING COUNT(DISTINCT ej.num_soutenance) > 0
@@ -164,7 +164,7 @@ try {
             LEFT JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
             LEFT JOIN programmer_soutenance ps2 ON ps2.num_etud = r.num_etu
             LEFT JOIN etudiants e2 ON e2.num_carte_etud = ps2.num_etud
-            LEFT JOIN inscriptions i2 ON i2.id_etudiant = e2.num_carte_etud
+            LEFT JOIN inscriptions i2 ON i2.num_carte_etud = e2.num_carte_etud
             {$whereClause}
             GROUP BY ens.id_enseignant, ens.nom_enseignant, ens.prenom_enseignant
             HAVING COUNT(DISTINCT ej.num_soutenance) > 0
@@ -264,19 +264,19 @@ try {
                 <?php if (canView('gestion_utilisateurs')): ?>
                 <a class="cm-btn is-info" href="?page=gestion_utilisateurs" data-cm-ajax-link="true">
                     <i class="fas fa-users-cog" aria-hidden="true"></i>
-                    Gerer les utilisateurs
+                    Gérer utilisateurs
                 </a>
                 <?php endif; ?>
 
                 <?php if (canView('piste_audit')): ?>
                 <a class="cm-btn is-primary" href="?page=piste_audit" data-cm-ajax-link="true">
                     <i class="fas fa-shield-halved" aria-hidden="true"></i>
-                    Piste d audit
+                    Piste audit
                 </a>
                 <?php endif; ?>
 
                 <?php if (canView('parametres_generaux')): ?>
-                <a class="cm-btn is-success" href="?page=parametres_generaux" data-cm-ajax-link="true">
+                <a class="cm-btn is-primary" href="?page=parametres_generaux" data-cm-ajax-link="true">
                     <i class="fas fa-sliders" aria-hidden="true"></i>
                     Parametrage
                 </a>
@@ -299,7 +299,15 @@ try {
             </a>
         </div>
         <div class="cm-card__body">
-            <form method="GET" class="cm-grid-3 cm-mb-md" style="align-items: end;">
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="GET" class="cm-grid-3 cm-mb-md" style="align-items: end;">
                 <input type="hidden" name="page" value="dashboard">
 
                 <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars((string) (\AcademicYear::getWritableIdFromSession() ?? ''), ENT_QUOTES, 'UTF-8') ?>">
@@ -312,10 +320,10 @@ try {
                 ]) ?>
 
                 <div class="cm-flex cm-flex-gap-sm">
-                    <button type="submit" class="cm-btn cm-btn--primary">
+                    <button type="submit" class="cm-btn is-primary is-sm">
                         <i class="fas fa-filter cm-mr-sm"></i> Filtrer
                     </button>
-                    <a href="?page=dashboard" class="cm-btn cm-btn--outline">
+                    <a href="?page=dashboard" class="cm-btn is-light is-sm">
                         Réinitialiser
                     </a>
                 </div>
@@ -324,33 +332,29 @@ try {
             <table class="cm-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Nom</th>
-                        <th>Prénom</th>
+                        <th>Nom &amp; Prénom</th>
                         <th class="cm-text-center">Jurys</th>
-                        <th class="cm-text-center">Encadrees</th>
-                        <th class="cm-text-center">Dirigees</th>
+                        <th class="cm-text-center">Encadrées</th>
+                        <th class="cm-text-center">Dirigées</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($enseignantsJuryData)): ?>
                         <tr>
-                            <td colspan="6">
+                            <td colspan="4">
                                 <?= cm_component('ui/empty-state', [
                                     'title' => '',
-                                    'message' => 'Aucun enseignant n a participe a un jury pour les critères sélectionnés.',
+                                    'message' => 'Aucun enseignant n\'a participé à un jury pour les critères sélectionnés.',
                                     'icon' => 'fa-users',
                                     'in_table' => true,
-                                    'colspan' => 6
+                                    'colspan' => 4
                                 ]) ?>
                             </td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($enseignantsJuryData as $ens): ?>
                             <tr>
-                                <td><?= htmlspecialchars($ens['id_enseignant'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                <td><?= htmlspecialchars(strtoupper($ens['nom_enseignant'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
-                                <td><?= htmlspecialchars($ens['prenom_enseignant'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                <td><?= htmlspecialchars(strtoupper($ens['nom_enseignant'] ?? '') . ' ' . ($ens['prenom_enseignant'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                                 <td class="cm-text-center">
                                     <span class="cm-badge cm-badge--primary"><?= (int) ($ens['nb_soutenances_jury'] ?? 0) ?></span>
                                 </td>
@@ -377,3 +381,4 @@ try {
         </div>
     </div>
 </section>
+

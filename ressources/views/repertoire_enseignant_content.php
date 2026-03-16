@@ -29,7 +29,7 @@ function fileExistsSafe(?string $path, string $base): bool {
 $tabs = [
     ['id' => 'rapports', 'label' => 'Rapports (' . $tabCounts['rapports'] . ')'],
     ['id' => 'comptes_rendus', 'label' => 'Comptes-rendus (' . $tabCounts['comptes_rendus'] . ')'],
-    ['id' => 'memoires', 'label' => 'Memoires (' . $tabCounts['memoires'] . ')'],
+    ['id' => 'memoires', 'label' => 'Mémoires (' . $tabCounts['memoires'] . ')'],
 ];
 $baseUrlParams = http_build_query([
     'page' => 'repertoire_enseignant',
@@ -63,13 +63,13 @@ $baseUrlParams = http_build_query([
         <table class="cm-table">
             <thead>
                 <tr>
-                    <th>Etudiant</th>
+                    <th>Nom &amp; Prénom Étudiant</th>
                     <th>N° Carte</th>
-                    <th>Theme</th>
+                    <th>Thème</th>
                     <th>Statut</th>
-                    <th>Date</th>
-                    <th>Annee</th>
-                    <th>Periode</th>
+                    <th>Date dépôt</th>
+                    <th>Année acad.</th>
+                    <th>Période/Session</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -105,8 +105,12 @@ $baseUrlParams = http_build_query([
                             <td><?= htmlspecialchars($item['lib_session'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
                             <td>
                                 <?php if (fileExistsSafe($item['chemin_fichier'] ?? null, $uploadsBase)): ?>
+                                    <a href="?page=voir_rapport&id=<?= urlencode((string) ($item['id_rapport'] ?? '')) ?>"
+                                       class="cm-btn cm-btn--sm cm-btn--ghost" title="Voir">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
                                     <a href="?page=download&file=<?= urlencode($item['chemin_fichier']) ?>" 
-                                       class="cm-btn cm-btn--sm cm-btn--ghost" title="Telecharger">
+                                       class="cm-btn cm-btn--sm cm-btn--ghost" title="Télécharger">
                                         <i class="fas fa-download"></i>
                                     </a>
                                 <?php else: ?>
@@ -133,23 +137,24 @@ $baseUrlParams = http_build_query([
         <table class="cm-table">
             <thead>
                 <tr>
-                    <th>Etudiant</th>
-                    <th>N° Carte</th>
-                    <th>Titre CR</th>
-                    <th>Date</th>
+                    <th>Nom CR</th>
+                    <th>Rapports inclus</th>
+                    <th>Rédigé par</th>
+                    <th>Date rédaction</th>
+                    <th>Statut</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($items)): ?>
                     <tr>
-                        <td colspan="5">
+                        <td colspan="6">
                             <?= cm_component('ui/empty-state', [
                                 'title' => '',
-                                'message' => 'Aucun compte-rendu trouve pour les critères sélectionnés.',
+                                'message' => 'Aucun compte-rendu trouvé pour les critères sélectionnés.',
                                 'icon' => 'fa-file-contract',
                                 'in_table' => true,
-                                'colspan' => 5
+                                'colspan' => 6
                             ]) ?>
                         </td>
                     </tr>
@@ -157,15 +162,25 @@ $baseUrlParams = http_build_query([
                     <?php foreach ($items as $item): ?>
                         <tr>
                             <td>
-                                <?= htmlspecialchars(strtoupper($item['nom_etu'] ?? '') . ' ' . ($item['prenom_etu'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                <?= htmlspecialchars(truncate($item['nom_CR'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
                             </td>
-                            <td><?= htmlspecialchars($item['num_carte_etud'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                            <td><?= htmlspecialchars(truncate($item['nom_CR'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                            <td><?= htmlspecialchars($item['rapports_inclus'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
+                            <td><?= htmlspecialchars(strtoupper($item['nom_etu'] ?? '') . ' ' . ($item['prenom_etu'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                             <td><?= formatDate($item['date_CR'] ?? null) ?></td>
                             <td>
+                                <?php $statutCR = $item['statut_CR'] ?? ''; ?>
+                                <span class="cm-badge cm-badge--<?= $statutCR === 'Publié' ? 'success' : 'warning' ?>">
+                                    <?= htmlspecialchars($statutCR !== '' ? $statutCR : 'Brouillon', ENT_QUOTES, 'UTF-8') ?>
+                                </span>
+                            </td>
+                            <td>
+                                <a href="?page=voir_cr&id=<?= urlencode((string) ($item['id_CR'] ?? '')) ?>"
+                                   class="cm-btn cm-btn--sm cm-btn--ghost" title="Voir">
+                                    <i class="fas fa-eye"></i>
+                                </a>
                                 <?php if (fileExistsSafe($item['chemin_fichier_pdf'] ?? null, $uploadsBase)): ?>
                                     <a href="?page=download&file=<?= urlencode($item['chemin_fichier_pdf']) ?>" 
-                                       class="cm-btn cm-btn--sm cm-btn--ghost" title="Telecharger PDF">
+                                       class="cm-btn cm-btn--sm cm-btn--ghost" title="Télécharger PDF">
                                         <i class="fas fa-download"></i>
                                     </a>
                                 <?php else: ?>
@@ -192,26 +207,25 @@ $baseUrlParams = http_build_query([
         <table class="cm-table">
             <thead>
                 <tr>
-                    <th>Etudiant</th>
+                    <th>Nom &amp; Prénom</th>
                     <th>N° Carte</th>
-                    <th>Theme</th>
-                    <th>Date soutenance</th>
-                    <th>Heure</th>
-                    <th>Periode</th>
-                    <th>Annee</th>
-                    <th>Note</th>
+                    <th>Thème</th>
+                    <th>Date dépôt</th>
+                    <th>Taille (Mo)</th>
+                    <th>Année acad.</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($items)): ?>
                     <tr>
-                        <td colspan="8">
+                        <td colspan="7">
                             <?= cm_component('ui/empty-state', [
                                 'title' => '',
-                                'message' => 'Aucune soutenance trouvee pour les critères sélectionnés.',
+                                'message' => 'Aucun mémoire trouvé pour les critères sélectionnés.',
                                 'icon' => 'fa-graduation-cap',
                                 'in_table' => true,
-                                'colspan' => 8
+                                'colspan' => 7
                             ]) ?>
                         </td>
                     </tr>
@@ -223,15 +237,24 @@ $baseUrlParams = http_build_query([
                             </td>
                             <td><?= htmlspecialchars($item['num_carte_etud'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                             <td><?= htmlspecialchars(truncate($item['theme_soutenance'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
-                            <td><?= formatDate($item['date_soutenance'] ?? null) ?></td>
-                            <td><?= !empty($item['heure_soutenance']) ? htmlspecialchars(substr($item['heure_soutenance'], 0, 5), ENT_QUOTES, 'UTF-8') : '—' ?></td>
-                            <td><?= htmlspecialchars($item['lib_session'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
+                            <td><?= formatDate($item['date_depot_memoire'] ?? $item['date_soutenance'] ?? null) ?></td>
+                            <td><?= htmlspecialchars(!empty($item['taille_fichier']) ? number_format((float) $item['taille_fichier'] / 1048576, 2) . ' Mo' : '—', ENT_QUOTES, 'UTF-8') ?></td>
                             <td><?= htmlspecialchars($item['annee_academique'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
                             <td>
-                                <?php 
-                                $note = (float) ($item['note_memoire'] ?? 0);
-                                echo $note > 0 ? number_format($note, 2, ',', ' ') : '—';
-                                ?>
+                                <a href="?page=voir_memoire&id=<?= urlencode((string) ($item['id_memoire'] ?? $item['num_soutenance'] ?? '')) ?>"
+                                   class="cm-btn cm-btn--sm cm-btn--ghost" title="Voir">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <?php if (fileExistsSafe($item['chemin_fichier_memoire'] ?? null, $uploadsBase)): ?>
+                                    <a href="?page=download&file=<?= urlencode($item['chemin_fichier_memoire']) ?>"
+                                       class="cm-btn cm-btn--sm cm-btn--ghost" title="Télécharger">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="cm-text-muted" title="Fichier non disponible">
+                                        <i class="fas fa-ban"></i>
+                                    </span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

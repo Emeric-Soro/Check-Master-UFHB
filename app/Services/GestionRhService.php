@@ -77,10 +77,12 @@ class GestionRhService
         $date_fonction = $data['date_fonction'] ?? null;
         $type_enseignant = $data['type_enseignant'];
 
-        if (!empty($data['id_enseignant'])) {
+        $id_enseignant = trim((string) ($data['id_enseignant'] ?? $data['matricule'] ?? ''));
+
+        if ($id_enseignant !== '') {
             // Modification
             if ($this->enseignantModel->modifierEnseignant(
-                $data['id_enseignant'], $nom, $prenom, $email,
+                $id_enseignant, $nom, $prenom, $email,
                 $id_grade, $id_specialite, $id_fonction, $date_grade, $date_fonction, $type_enseignant
             )) {
                 $this->auditLog->logModification($userId, 'enseignant', 'Succès');
@@ -91,7 +93,6 @@ class GestionRhService
         }
 
         // Ajout
-        $id_enseignant = $data['id_enseignant'] ?? null;
         if ($this->enseignantModel->ajouterEnseignant(
             $id_enseignant, $nom, $prenom, $email, $id_grade,
             $id_specialite, $id_fonction, $date_grade, $date_fonction, $type_enseignant

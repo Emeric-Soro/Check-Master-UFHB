@@ -402,7 +402,15 @@ foreach ($timeline_steps as $i => $step) {
 
         <!-- Formulaire de modification -->
         <?php if (canEdit()): ?>
-            <form method="POST" action="?page=admin_historique&action=update_student" class="cm-mt-4">
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="POST" action="?page=admin_historique&action=update_student" class="cm-mt-4">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" name="num_etu" value="<?php echo htmlspecialchars($studentFile['num_etu']); ?>">
 

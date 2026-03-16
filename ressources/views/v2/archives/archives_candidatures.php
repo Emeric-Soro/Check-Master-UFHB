@@ -17,9 +17,6 @@ $stats        = $data['stats'] ?? null;
     <!-- En-tête -->
     <div class="cm-page-header cm-mb-5">
         <div>
-            <h1 class="cm-page-title">
-                <i class="fas fa-clipboard-list cm-mr-2"></i>Archives Candidatures
-            </h1>
             <p class="cm-page-subtitle">
                 Historique des candidatures de l'année archivée
             </p>

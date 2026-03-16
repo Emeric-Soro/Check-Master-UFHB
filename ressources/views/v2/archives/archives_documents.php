@@ -17,9 +17,6 @@ $pvFinaux = array_filter($documents, fn($d) => ($d['type_doc'] ?? '') === 'pv_fi
     <!-- En-tête -->
     <div class="cm-page-header cm-mb-5">
         <div>
-            <h1 class="cm-page-title">
-                <i class="fas fa-folder-open cm-mr-2"></i>Archives Documents
-            </h1>
             <p class="cm-page-subtitle">
                 Rapports, comptes rendus et PV finaux de l'année archivée
             </p>

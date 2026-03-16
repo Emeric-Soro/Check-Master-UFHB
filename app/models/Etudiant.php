@@ -30,6 +30,27 @@ class Etudiant
         }
     }
 
+    /**
+     * Certaines bases stockent `promotion_etu` comme libellé (2025-2026),
+     * d'autres comme identifiant d'année (22625). On accepte les deux.
+     *
+     * @return array<int, string>
+     */
+    private function getAcademicYearPromotionValues($id_annee_acad)
+    {
+        $values = [];
+        $id = (int) $id_annee_acad;
+        if ($id > 0) {
+            $values[] = (string) $id;
+            $label = $this->getAcademicYearLabelById($id);
+            if ($label !== '' && !in_array($label, $values, true)) {
+                $values[] = $label;
+            }
+        }
+
+        return $values;
+    }
+
     public function getAllEtudiants($id_annee_acad = null)
     {
         try {
@@ -38,30 +59,34 @@ class Etudiant
                             a.date_deb, a.date_fin, g.libelle_genre,
                             i.id_annee_acad, i.id_niv_etude
                      FROM etudiants e 
-                     LEFT JOIN LATERAL (
-                         SELECT i2.num_carte_etud, i2.id_annee_acad, i2.id_niv_etude, i2.date_inscription
+                     LEFT JOIN inscriptions i ON (i.num_carte_etud, i.id_annee_acad, i.num_versement) = (
+                         SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement
                          FROM inscriptions i2 
                          WHERE i2.num_carte_etud = e.num_carte_etud 
-                         ORDER BY i2.id_annee_acad DESC, i2.date_inscription DESC 
+                         ORDER BY i2.id_annee_acad DESC, i2.date_inscription DESC, i2.num_versement DESC
                          LIMIT 1
-                     ) i ON TRUE
+                     )
                      LEFT JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude 
                      LEFT JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
                      LEFT JOIN genre g ON e.id_genre = g.id_genre";
 
             $params = [];
             if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
+                $promotionValues = $this->getAcademicYearPromotionValues((int) $id_annee_acad);
                 $query .= " WHERE (i.id_annee_acad = ? 
                             OR EXISTS (
                                 SELECT 1
                                 FROM inscriptions i3
                                 WHERE i3.num_carte_etud = e.num_carte_etud
                                   AND i3.id_annee_acad = ?
-                            )
-                            OR e.promotion_etu = ?)";
+                            )";
                 $params[] = (int) $id_annee_acad;
                 $params[] = (int) $id_annee_acad;
-                $params[] = (string) $id_annee_acad; // promotion_etu est varchar donc on cast en string
+                foreach ($promotionValues as $promotionValue) {
+                    $query .= " OR e.promotion_etu = ?";
+                    $params[] = $promotionValue;
+                }
+                $query .= ")";
             }
 
             $query .= " ORDER BY e.promotion_etu DESC, e.nom_etu, e.prenom_etu";
@@ -87,14 +112,14 @@ class Etudiant
                         a.date_fin,
                         g.libelle_genre
                       FROM etudiants e
-                      LEFT JOIN LATERAL (
-                          SELECT i2.num_carte_etud, i2.id_annee_acad, i2.id_niv_etude, i2.date_inscription
+                      LEFT JOIN inscriptions i ON (i.num_carte_etud, i.id_annee_acad, i.num_versement) = (
+                          SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement
                           FROM inscriptions i2
                           WHERE i2.num_carte_etud = e.num_carte_etud
                           " . (($id_annee_acad !== null && (int) $id_annee_acad > 0) ? "AND i2.id_annee_acad = :annee_lookup " : "") . "
-                          ORDER BY i2.id_annee_acad DESC, i2.date_inscription DESC
+                          ORDER BY i2.id_annee_acad DESC, i2.date_inscription DESC, i2.num_versement DESC
                           LIMIT 1
-                      ) i ON TRUE
+                      )
                       LEFT JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                       LEFT JOIN annee_academique a ON a.id_annee_acad = i.id_annee_acad
                       LEFT JOIN genre g ON e.id_genre = g.id_genre
@@ -102,7 +127,7 @@ class Etudiant
 
             $yearLabel = '';
             if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
-                $yearLabel = $this->getAcademicYearLabelById($id_annee_acad);
+                $promotionValues = $this->getAcademicYearPromotionValues((int) $id_annee_acad);
                 $query .= " AND (
                                 i.id_annee_acad = :annee_filter
                                 OR EXISTS (
@@ -111,8 +136,9 @@ class Etudiant
                                     WHERE i3.num_carte_etud = e.num_carte_etud
                                       AND i3.id_annee_acad = :annee_exists
                                 )";
-                if ($yearLabel !== '') {
-                    $query .= " OR e.promotion_etu = :annee_label";
+                foreach ($promotionValues as $index => $promotionValue) {
+                    $paramName = ':annee_promotion_' . $index;
+                    $query .= " OR e.promotion_etu = {$paramName}";
                 }
                 $query .= ")";
             }
@@ -123,8 +149,8 @@ class Etudiant
                 $stmt->bindValue(':annee_lookup', (int) $id_annee_acad, PDO::PARAM_INT);
                 $stmt->bindValue(':annee_filter', (int) $id_annee_acad, PDO::PARAM_INT);
                 $stmt->bindValue(':annee_exists', (int) $id_annee_acad, PDO::PARAM_INT);
-                if ($yearLabel !== '') {
-                    $stmt->bindValue(':annee_label', $yearLabel, PDO::PARAM_STR);
+                foreach ($promotionValues as $index => $promotionValue) {
+                    $stmt->bindValue(':annee_promotion_' . $index, $promotionValue, PDO::PARAM_STR);
                 }
             }
             $stmt->execute();
@@ -928,7 +954,7 @@ class Etudiant
                 FROM notes n
                 WHERE n.num_etu = :matricule
                 " . (($idAnneeFromBase !== null && $idAnneeFromBase > 0) ? "AND n.id_annee_acad = :id_annee" : "") . "
-                ORDER BY n.id DESC
+                ORDER BY n.date_creation DESC
                 LIMIT 1
             ");
             $stmtNotes->execute($yearParams);

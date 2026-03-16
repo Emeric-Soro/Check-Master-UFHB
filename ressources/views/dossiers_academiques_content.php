@@ -42,14 +42,7 @@ $totalItems = count($etudiants);
 $totalPages = ceil($totalItems / $itemsPerPage);
 $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liste des dossiers académiques</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
+<style>
         .cm-dossier-filters {
             gap: 0.65rem;
         }
@@ -80,8 +73,7 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
             max-width: 10rem;
         }
     </style>
-</head>
-<body class="min-h-screen font-sans" style="background: linear-gradient(135deg, #DFF2FF 0%, #C8E8FF 100%);">
+<div class="cm-prd3-screen min-h-screen font-sans" style="background: linear-gradient(135deg, #DFF2FF 0%, #C8E8FF 100%);">
     <div class="max-w-5xl mx-auto py-10 ">
 
         <!-- Messages de succès/erreur en haut -->
@@ -268,7 +260,15 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                     <span class="font-medium">Chargement des données...</span>
                 </div>
             </div>
-            <form id="dossierForm" method="POST" action="?page=dossiers_academiques&action=enregistrer_dossier">
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#dossierForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="dossierForm" method="POST" action="?page=dossiers_academiques&action=enregistrer_dossier">
                 <input type="hidden" name="num_etu" id="modalNumEtu">
                 <!-- Informations personnelles -->
                 <div class="mb-6">
@@ -487,5 +487,5 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
             };
         }
     </script>
-</body>
-</html>
+</div>
+

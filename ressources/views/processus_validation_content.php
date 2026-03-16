@@ -191,12 +191,12 @@ foreach ($membresCommission as $membre) {
                 <table class="cm-data-table" id="cmProcessTable">
                     <thead>
                     <tr>
-                        <th class="cm-data-table__th">Rapport</th>
-                        <th class="cm-data-table__th">Etudiant</th>
+                        <th class="cm-data-table__th">N° Rapport</th>
+                        <th class="cm-data-table__th">Nom &amp; Prénom</th>
                         <th class="cm-data-table__th">Promotion</th>
                         <th class="cm-data-table__th">Statut global</th>
                         <th class="cm-data-table__th">Votes</th>
-                        <th class="cm-data-table__th">Date approb.</th>
+                        <th class="cm-data-table__th">Date approbation</th>
                         <th class="cm-data-table__th is-center">Actions</th>
                     </tr>
                     </thead>
@@ -234,7 +234,7 @@ foreach ($membresCommission as $membre) {
                             $canFinalize = !empty($vote['total_votes']) && (int) $vote['total_votes'] >= 4 && empty($vote['finalise']);
                             ?>
                             <tr class="cm-data-table__row" data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
-                                <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($rapport['nom_rapport'] ?? 'Rapport'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="cm-data-table__td">#<?php echo $idRapport; ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($etudiant, ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($rapport['promotion_etu'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td">
@@ -246,11 +246,26 @@ foreach ($membresCommission as $membre) {
                                     <div class="cm-table-actions" style="justify-content:center;">
                                         <a class="cm-btn-action is-view"
                                            href="?page=evaluation_dossiers&detail=<?php echo urlencode((string) $idRapport); ?>"
-                                           title="Consulter">
+                                           title="Voir détails">
                                             <i class="fas fa-eye" aria-hidden="true"></i>
                                         </a>
+                                        <a class="cm-btn-action is-view"
+                                           href="?page=processus_validation&fichier=<?php echo urlencode((string) $idRapport); ?>"
+                                           target="_blank"
+                                           rel="noopener"
+                                           title="Voir rapport">
+                                            <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                                        </a>
                                         <?php if ($canFinalize && (function_exists('canEdit') ? canEdit() : true)): ?>
-                                            <form method="POST"
+                                            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="POST"
                                                   action="?page=processus_validation"
                                                   data-cm-ajax-form="true"
                                                   class="cm-inline-finalize-form"
@@ -263,7 +278,7 @@ foreach ($membresCommission as $membre) {
                                                        class="cm-form-control is-sm"
                                                        placeholder="Commentaire"
                                                        style="width:120px;">
-                                                <button type="submit" class="cm-btn is-success is-sm">
+                                                <button type="submit" class="cm-btn is-primary is-sm">
                                                     <i class="fas fa-check" aria-hidden="true"></i>
                                                     Finaliser
                                                 </button>
@@ -314,7 +329,7 @@ foreach ($membresCommission as $membre) {
     }
     if (exportBtn) {
         exportBtn.addEventListener('click', function () {
-            const headers = ['Rapport', 'Etudiant', 'Promotion', 'Statut', 'Votes', 'Date approbation'];
+            const headers = ['N° Rapport', 'Nom & Prénom', 'Promotion', 'Statut', 'Votes', 'Date approbation'];
             const csvRows = [headers.join(';')];
             tableRows.forEach(function (row) {
                 if (row.style.display === 'none') {
@@ -360,3 +375,4 @@ foreach ($membresCommission as $membre) {
     });
 })();
 </script>
+

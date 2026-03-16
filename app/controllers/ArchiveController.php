@@ -33,7 +33,7 @@ class ArchiveController
             $statut    = $_GET['statut'] ?? null;
             $search    = $_GET['search'] ?? null;
             $page      = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
-            $perPage   = 20;
+            $perPage   = 10;
             
             // Delegate to service
             $data = $this->service->getIndexData($tab, $anneeAcad, $statut, $search, $page, $perPage);

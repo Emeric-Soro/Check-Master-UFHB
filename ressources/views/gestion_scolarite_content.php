@@ -157,6 +157,34 @@ $versementPagination = function_exists('cm_paginate')
 $versementsToShow = array_slice($listeVersement, (int) ($versementPagination['offset'] ?? 0), $versementsParPage);
 $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsParPage;
 ?>
+<style>
+/* Ajustements demandés: écran Gestion scolarité uniquement */
+#cmPaiementForm #cmNiveau {
+    width: 10ch !important; /* "Master 2" */
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+
+#cmPaiementForm #cmNumVersement {
+    width: 3.5ch !important; /* 1 caractère utile */
+    min-width: 3.5ch !important;
+    max-width: 3.5ch !important;
+}
+
+#cmPaiementForm #cmNumVersement {
+    text-align: center;
+    padding-left: 0.2rem !important;
+    padding-right: 0.2rem !important;
+}
+
+#cmPaiementForm .cm-form-group:has(#cmNiveau),
+#cmPaiementForm .cm-form-group:has(#cmNumVersement) {
+    justify-self: start;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+}
+</style>
 <div class="cm-prd3-screen cm-prd3-crud-screen">
     <?php
     cm_component('layout/page-header', [
@@ -185,7 +213,15 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
     <?php endif; ?>
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur is-compact">
-            <form id="cmPaiementForm" method="POST" action="?page=gestion_scolarite&action=enregistrer_paiement">
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmPaiementForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="cmPaiementForm" method="POST" action="?page=gestion_scolarite&action=enregistrer_paiement">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" id="cmIsNewInscription" name="is_new_inscription" value="">
                 <!-- Ligne 1: Niveau, Année A., Frais Scolarité -->
@@ -235,6 +271,8 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                         'label' => 'Identifiant',
                         'readonly' => true,
                         'control_class' => 'cm-field-md',
+                        'maxlength' => 15,
+                        'attrs' => ['size' => '15'],
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'num_carte_display',
@@ -242,6 +280,8 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                         'label' => 'N° Carte',
                         'readonly' => true,
                         'control_class' => 'cm-field-md',
+                        'maxlength' => 15,
+                        'attrs' => ['size' => '15'],
                     ]);
                     ?>
                 </div>
@@ -254,6 +294,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                         'label' => 'N° Vers.',
                         'readonly' => true,
                         'control_class' => 'cm-field-sm',
+                        'attrs' => ['size' => '2', 'maxlength' => '2'],
                     ]);
                     cm_component('form/input-date', [
                         'name' => 'date_versement_display',
@@ -262,6 +303,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                         'value' => date('Y-m-d'),
                         'required' => true,
                         'control_class' => 'cm-field-sm',
+                        'attrs' => ['size' => '10', 'maxlength' => '10'],
                     ]);
                     cm_component('form/input-number', [
                         'name' => 'montant_versement',
@@ -312,18 +354,19 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                 </div>
                 <!-- Hidden field -->
                 <input type="hidden" id="cmInfoEtudiant" name="cmInfoEtudiant" value="">
-                <div class="cm-form-buttons is-dense">
-                    <?php if (canCreate() || canEdit()): ?>
-                        <button class="cm-btn is-success" type="submit">
-                            <i class="fas fa-check" aria-hidden="true"></i>
-                            Valider
-                        </button>
-                    <?php endif; ?>
-                    <button class="cm-btn is-light" type="reset" id="cmResetPaiement">
-                        <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                        Réinitialiser
-                    </button>
-                </div>
+                <?php
+                $paiementFormActions = [
+                    ['label' => 'Réinitialiser', 'type' => 'reset', 'class' => 'cm-btn is-secondary is-sm', 'attrs' => ['id' => 'cmResetPaiement']],
+                ];
+                if (canCreate() || canEdit()) {
+                    $paiementFormActions[] = ['label' => 'Valider', 'type' => 'submit', 'class' => 'cm-btn is-primary is-sm'];
+                }
+                cm_component('crud/form-actions', [
+                    'cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']],
+                    'actions' => $paiementFormActions,
+                    'dense' => true,
+                ]);
+                ?>
             </form>
         </div>
         <?php
@@ -361,16 +404,16 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                                 <input type="checkbox" id="cmCheckAllVersements" class="cm-checkbox"
                                     aria-label="Sélectionner toutes les lignes">
                             </th>
-                            <th class="cm-data-table__th">N° Etud.</th>
-                            <th class="cm-data-table__th">Nom & Prenom</th>
-                            <th class="cm-data-table__th">N° Vers.</th>
-                            <th class="cm-data-table__th">Date Vers.</th>
+                            <th class="cm-data-table__th">ID MESRS</th>
+                            <th class="cm-data-table__th">Nom &amp; Prénom</th>
+                            <th class="cm-data-table__th">N° Versement</th>
+                            <th class="cm-data-table__th">Date Versement</th>
                             <th class="cm-data-table__th">Année Acad.</th>
-                            <th class="cm-data-table__th">Montant verse</th>
+                            <th class="cm-data-table__th">Montant versé</th>
                             <th class="cm-data-table__th">Reste</th>
                             <th class="cm-data-table__th">Solde</th>
-                            <th class="cm-data-table__th">Mode paie.</th>
-                            <th class="cm-data-table__th">N° M.P</th>
+                            <th class="cm-data-table__th">Mode paiement</th>
+                            <th class="cm-data-table__th">N° Moyen Paiement</th>
                             <th class="cm-data-table__th">Actions</th>
                         </tr>
                     </thead>
@@ -880,3 +923,4 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
         updateFraisFromNiveau();
     })();
 </script>
+

@@ -7,7 +7,7 @@
  */
 
 ob_start();
-require __DIR__ . '/../layout.php';
+require_once __DIR__ . '/../layout.php';
 $html = (string) ob_get_clean();
 
 // Réécriture des chemins d'assets pour fonctionner sous /public/app/

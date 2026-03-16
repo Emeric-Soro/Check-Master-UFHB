@@ -1,62 +1,77 @@
 <?php
 // Routes pour la programmation de soutenance
 
-require_once __DIR__ . '/../../app/controllers/ProgrammationSoutenanceController.php';
+if (isset($_GET['page']) && in_array($_GET['page'], ['programmation_soutenance', 'programation_soutenance'], true)) {
+    $action = $_GET['action'] ?? '';
+    if ($action === '') {
+        return;
+    }
 
-$controller = new ProgrammationSoutenanceController();
-$action = $_GET['action'] ?? '';
+    error_log(sprintf(
+        '[programmationSoutenanceRoutes] dispatch: method=%s page=%s action=%s',
+        (string) ($_SERVER['REQUEST_METHOD'] ?? ''),
+        (string) ($_GET['page'] ?? ''),
+        (string) $action
+    ));
 
-switch ($action) {
-    case 'getEtudiants':
-        $controller->getEtudiants();
-        break;
+    require_once __DIR__ . '/../../app/controllers/ProgrammationSoutenanceController.php';
+    $controller = new ProgrammationSoutenanceController();
 
-    case 'getEnseignants':
-        $controller->getEnseignants();
-        break;
+    switch ($action) {
+        case 'getEtudiants':
+            $controller->getEtudiants();
+            break;
 
-    case 'getProfesseursTitulaires':
-        $controller->getProfesseursTitulaires();
-        break;
-    case 'getSalles':
-        $controller->getSalles();
-        break;
+        case 'getEnseignants':
+            $controller->getEnseignants();
+            break;
 
-    case 'getAttributions':
-        $controller->getAttributions();
-        break;
+        case 'getProfesseursTitulaires':
+            $controller->getProfesseursTitulaires();
+            break;
+        case 'getSalles':
+            $controller->getSalles();
+            break;
 
-    case 'createAttribution':
-        $controller->createAttribution();
-        break;
+        case 'getAttributions':
+            $controller->getAttributions();
+            break;
 
-    case 'updateAttribution':
-        $controller->updateAttribution();
-        break;
+        case 'createAttribution':
+            $controller->createAttribution();
+            break;
 
-    case 'deleteAttribution':
-        $controller->deleteAttribution();
-        break;
+        case 'updateAttribution':
+            $controller->updateAttribution();
+            break;
 
-    case 'getPlanningPreview':
-        $controller->getPlanningPreview();
-        break;
+        case 'deleteAttribution':
+            $controller->deleteAttribution();
+            break;
 
-    case 'generatePlanningPdf':
-        $controller->generatePlanningPdf();
-        break;
+        case 'getPlanningPreview':
+            $controller->getPlanningPreview();
+            break;
 
-    case 'getDayDetails':
-        $controller->getDayDetails();
-        break;
+        case 'generatePlanningPdf':
+            $controller->generatePlanningPdf();
+            break;
 
-    default:
-        header('Content-Type: application/json');
-        http_response_code(400);
-        echo json_encode([
-            'success' => false,
-            'message' => 'Action non reconnue'
-        ]);
-        break;
+        case 'getDayDetails':
+            $controller->getDayDetails();
+            break;
+
+        case 'downloadPlanningPdf':
+            $controller->downloadPlanningPdf();
+            break;
+
+        default:
+            header('Content-Type: application/json');
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Action non reconnue'
+            ]);
+            break;
+    }
 }
-?>

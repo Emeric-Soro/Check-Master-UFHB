@@ -58,11 +58,11 @@ function traduireStatut($statut)
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-            --danger-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-            --info-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --primary-gradient: linear-gradient(135deg, #1a5276 0%, #2471a3 100%);
+            --success-gradient: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            --warning-gradient: linear-gradient(135deg, #f39c12 0%, #d68910 100%);
+            --danger-gradient: linear-gradient(135deg, #e74c3c 0%, #cb4335 100%);
+            --info-gradient: linear-gradient(135deg, #3498db 0%, #2e86c1 100%);
             --card-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
             --hover-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
         }
@@ -107,7 +107,7 @@ function traduireStatut($statut)
 
         .search-container {
             position: relative;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(223, 242, 255, 0.92);
             border-radius: 14px;
             padding: 0.3rem 0.4rem;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -190,7 +190,7 @@ function traduireStatut($statut)
         }
 
         .table td {
-            padding: 1.2rem 1rem;
+            padding: 0.65rem 0.75rem;
             border-bottom: 1px solid #f1f5f9;
             vertical-align: middle;
         }
@@ -206,10 +206,10 @@ function traduireStatut($statut)
 
 
         .action-btn {
-            padding: 0.6rem 1.2rem;
+            padding: 0.45rem 0.78rem;
             border: none;
             border-radius: 12px;
-            font-size: 0.8rem;
+            font-size: 0.76rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -219,7 +219,7 @@ function traduireStatut($statut)
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 100px;
+            min-width: 84px;
         }
 
         .action-btn:hover {
@@ -298,7 +298,7 @@ function traduireStatut($statut)
         }
 
         .modal-content {
-            background: white;
+            background: rgba(223, 242, 255, 0.97);
             border-radius: 20px;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
         }
@@ -383,7 +383,7 @@ function traduireStatut($statut)
         </script>';
     }
     ?>
-    <div class="max-w-7xl mx-auto">
+    <div class="max-w-7xl mx-auto cm-prd3-screen cm-prd3-crud-screen">
         <!-- Header Section -->
         <div class="glass-card rounded-2xl p-6 md:p-8 mb-8 fade-in">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
@@ -568,11 +568,20 @@ function traduireStatut($statut)
     <div id="confirmModal" class="cm-legacy-panel fixed inset-0 hidden z-50 items-center justify-center p-4">
         <div class="modal-content bg-white max-w-md w-full rounded-xl shadow-2xl p-6 transform transition-all duration-300 scale-95 opacity-0"
             id="confirmModalContent">
+            <h3 id="confirmModalTitle" class="text-base font-semibold text-gray-800 mb-4"></h3>
 
 
             <?php if (canEdit()): ?>
             <!-- Formulaire PHP pour valider -->
-            <form id="validerForm" method="POST" action="?page=verification_candidatures_soutenance"
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#validerForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="validerForm" method="POST" action="?page=verification_candidatures_soutenance"
                 style="display: none;">
                 <input type="hidden" name="valider" value="1">
                 <input type="hidden" id="validerRapportId" name="id_rapport">
@@ -630,14 +639,16 @@ function traduireStatut($statut)
     <script>
         // Recherche dynamique dans le tableau
         const searchInput = document.getElementById('searchInput');
-        searchInput.addEventListener('input', function () {
-            const term = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#rapportsTable tbody tr');
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(term) ? '' : 'none';
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                const term = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#rapportsTable tbody tr');
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(term) ? '' : 'none';
+                });
             });
-        });
+        }
 
         // Remplace les fonctions validerRapport/rejeterRapport par ouverture de modale
         let pendingAction = null;
@@ -659,8 +670,11 @@ function traduireStatut($statut)
             pendingRapportId = idRapport;
 
             // Change le titre selon l'action
-            document.getElementById('confirmModalTitle').textContent = (action === 'valider') ?
-                'Confirmer l\'approbation du rapport ?' : 'Confirmer la désapprobation du rapport ?';
+            const modalTitle = document.getElementById('confirmModalTitle');
+            if (modalTitle) {
+                modalTitle.textContent = (action === 'valider') ?
+                    'Confirmer l\'approbation du rapport ?' : 'Confirmer la désapprobation du rapport ?';
+            }
 
             // Afficher le bon formulaire selon l'action
             const validerForm = document.getElementById('validerForm');
@@ -724,15 +738,19 @@ function traduireStatut($statut)
         }
 
         // Gestion des formulaires PHP
-        document.getElementById('validerForm').addEventListener('submit', function (e) {
-            console.log('Formulaire de validation soumis');
-            // Le formulaire sera soumis normalement via POST
-        });
+        const validerForm = document.getElementById('validerForm');
+        if (validerForm) {
+            validerForm.addEventListener('submit', function () {
+                console.log('Formulaire de validation soumis');
+            });
+        }
 
-        document.getElementById('rejeterForm').addEventListener('submit', function (e) {
-            console.log('Formulaire de rejet soumis');
-            // Le formulaire sera soumis normalement via POST
-        });
+        const rejeterForm = document.getElementById('rejeterForm');
+        if (rejeterForm) {
+            rejeterForm.addEventListener('submit', function () {
+                console.log('Formulaire de rejet soumis');
+            });
+        }
 
         // Fonction pour voir les détails d'un rapport
         function voirDetail(idRapport) {

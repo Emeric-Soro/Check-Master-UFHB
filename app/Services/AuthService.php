@@ -129,10 +129,32 @@ class AuthService
 
     public function updatePassword($idUtilisateur, $currentPassword, $newPassword, $confirmPassword)
     {
+        $idUtilisateur = (int) $idUtilisateur;
+        $currentPassword = (string) $currentPassword;
+        $newPassword = (string) $newPassword;
+        $confirmPassword = (string) $confirmPassword;
+
+        if ($idUtilisateur <= 0) {
+            return ['success' => false, 'message' => 'Session utilisateur invalide. Veuillez vous reconnecter.'];
+        }
+
+        if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Tous les champs mot de passe sont obligatoires.'];
+        }
+
         $utilisateur = new Utilisateur($this->db);
         $user = $utilisateur->getUtilisateurById($idUtilisateur);
+        if (!$user || !isset($user->mdp_utilisateur)) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Utilisateur introuvable.'];
+        }
 
-        if (!password_verify($currentPassword, $user->mdp_utilisateur)) {
+        $storedPassword = (string) $user->mdp_utilisateur;
+        $isCurrentPasswordValid = password_verify($currentPassword, $storedPassword)
+            || hash_equals($storedPassword, $currentPassword);
+
+        if (!$isCurrentPasswordValid) {
             $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
             return ['success' => false, 'message' => 'Le mot de passe actuel est incorrect.'];
         }
@@ -142,7 +164,9 @@ class AuthService
             return ['success' => false, 'message' => 'Les mots de passe ne correspondent pas.'];
         }
 
-        if (password_verify($newPassword, $user->mdp_utilisateur)) {
+        $isSameAsCurrent = password_verify($newPassword, $storedPassword)
+            || hash_equals($storedPassword, $newPassword);
+        if ($isSameAsCurrent) {
             $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
             return ['success' => false, 'message' => 'Le nouveau mot de passe doit être différent de l\'ancien.'];
         }

@@ -132,20 +132,21 @@ $statusOptions = [
                             <input type="checkbox" id="cmReceptionCheckAll" aria-label="Tout sélectionner">
                         </th>
                         <th class="cm-data-table__th">Nouv.</th>
-                        <th class="cm-data-table__th">N Rap</th>
-                        <th class="cm-data-table__th">N Etud</th>
-                        <th class="cm-data-table__th">Nom & Prenom</th>
+                        <th class="cm-data-table__th">N° Rapport</th>
+                        <th class="cm-data-table__th">N° Carte</th>
+                        <th class="cm-data-table__th">Nom &amp; Prénom</th>
                         <th class="cm-data-table__th">Nom rapport</th>
-                        <th class="cm-data-table__th">Theme</th>
-                        <th class="cm-data-table__th">Dt Depot</th>
+                        <th class="cm-data-table__th">Thème</th>
+                        <th class="cm-data-table__th">Date dépôt</th>
                         <th class="cm-data-table__th">Statut</th>
+                        <th class="cm-data-table__th is-center">Actions</th>
                     </tr>
                     </thead>
                     <tbody id="cmReceptionTableBody">
                     <?php if (empty($rowsToShow)): ?>
                         <?php cm_component('ui/empty-state', [
                             'in_table' => true,
-                            'colspan' => 9,
+                            'colspan' => 10,
                             'title' => '',
                             'message' => 'Aucun rapport ne correspond aux filtres.',
                         ]); ?>
@@ -186,9 +187,9 @@ $statusOptions = [
                                 </td>
                                 <td class="cm-data-table__td">
                                     <?php if ($isNouveau): ?>
-                                        <span style="color:#d62728;font-size:1.1rem;line-height:1;" title="Nouveau">*</span>
+                                        <?php cm_component('ui/badge', ['type' => 'warning', 'text' => 'Nouveau']); ?>
                                     <?php else: ?>
-                                        <span style="color:#9aa5b1;font-size:1.1rem;line-height:1;">-</span>
+                                        <span class="cm-text-muted">—</span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="cm-data-table__td"><?php echo $idRapport; ?></td>
@@ -199,6 +200,25 @@ $statusOptions = [
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($dateDepot, ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="cm-data-table__td">
                                     <?php cm_component('ui/badge', ['text' => $statutLabel, 'type' => $badgeType]); ?>
+                                </td>
+                                <td class="cm-data-table__td is-center">
+                                    <div class="cm-table-actions">
+                                        <?php if (canView()): ?>
+                                            <a class="cm-btn-action is-view"
+                                               href="?page=evaluation_dossiers&detail=<?php echo urlencode((string) $idRapport); ?>"
+                                               title="Voir rapport">
+                                                <i class="fas fa-eye" aria-hidden="true"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if (canEdit()): ?>
+                                            <a class="cm-btn is-info is-sm"
+                                               href="?page=evaluation_dossiers&detail=<?php echo urlencode((string) $idRapport); ?>"
+                                               title="Transmettre à l'évaluation">
+                                                <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                                                <span>Transmettre</span>
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -344,11 +364,11 @@ $statusOptions = [
     }
     if (exportBtn) {
         exportBtn.addEventListener('click', function () {
-            const headers = ['Nouveau', 'N Rap', 'N Etud', 'Nom Prenom', 'Nom rapport', 'Theme', 'Date depot', 'Statut'];
+            const headers = ['Nouveau', 'N° Rapport', 'N° Carte', 'Nom & Prénom', 'Nom rapport', 'Thème', 'Date dépôt', 'Statut', 'Actions'];
             const csvRows = [headers.join(';')];
             getVisibleRows().forEach(function (row) {
                 const cols = row.querySelectorAll('.cm-data-table__td');
-                if (cols.length < 9) {
+                if (cols.length < 10) {
                     return;
                 }
                 const line = [

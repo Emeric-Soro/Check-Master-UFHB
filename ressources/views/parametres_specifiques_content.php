@@ -27,6 +27,9 @@ $filteredCards = array_values(array_filter($cards, static function ($card): bool
 $iconByTitle = [
     'Critères' => 'fa-list-check',
     'Barème Critère' => 'fa-scale-balanced',
+    'Critères + Barème' => 'fa-list-check',
+    'Critères et Barème' => 'fa-list-check',
+    'Critères Barème' => 'fa-list-check',
     'Salles' => 'fa-door-open',
     'Entreprises' => 'fa-building',
     'Spécialités' => 'fa-user-graduate',
@@ -36,6 +39,7 @@ $iconByTitle = [
     'Habilitations' => 'fa-key',
     'Traitements' => 'fa-clipboard-list',
     'Messages Système' => 'fa-envelope',
+    'Structure BD' => 'fa-database',
 ];
 
 $resolveIcon = static function (array $card) use ($iconByTitle): string {

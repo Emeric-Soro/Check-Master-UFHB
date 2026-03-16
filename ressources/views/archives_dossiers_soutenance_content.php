@@ -48,15 +48,7 @@ function getTimeAgo($date)
     return floor($time / 86400) . 'j';
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archives des Dossiers de Soutenance</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
+<style>
         :root {
             --blue: #0F4C75;
             --blue-light: #3282B8;
@@ -179,10 +171,9 @@ function getTimeAgo($date)
             font-size: 0.84rem;
         }
     </style>
-</head>
 
-<body class="font-sans antialiased bg-gray-50">
-    <div class="min-h-screen">
+<div class="cm-prd3-screen">
+    <div class="min-h-screen cm-prd3-crud-screen">
         <div class="bg-white shadow-sm border-b border-gray-200">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4">
                 <div class="flex justify-between items-center py-6">
@@ -510,18 +501,21 @@ function getTimeAgo($date)
     </div>
 
     <script>
-        document.getElementById('displayMode').addEventListener('change', function () {
-            const mode = this.value;
-            const cardsView = document.getElementById('cardsView');
-            const tableView = document.getElementById('tableView');
-            if (mode === 'cards') {
-                cardsView.classList.remove('hidden');
-                tableView.classList.add('hidden');
-            } else {
-                cardsView.classList.add('hidden');
-                tableView.classList.remove('hidden');
-            }
-        });
+        const displayMode = document.getElementById('displayMode');
+        if (displayMode) {
+            displayMode.addEventListener('change', function () {
+                const mode = this.value;
+                const cardsView = document.getElementById('cardsView');
+                const tableView = document.getElementById('tableView');
+                if (mode === 'cards') {
+                    cardsView.classList.remove('hidden');
+                    tableView.classList.add('hidden');
+                } else {
+                    cardsView.classList.add('hidden');
+                    tableView.classList.remove('hidden');
+                }
+            });
+        }
 
         function viewDetails(idRapport) {
             window.open(`?page=evaluations_dossiers_soutenance&detail=${idRapport}`, '_blank');
@@ -551,6 +545,4 @@ function getTimeAgo($date)
             });
         });
     </script>
-</body>
-
-</html>
+</div>

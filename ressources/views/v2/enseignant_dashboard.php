@@ -17,7 +17,13 @@ if (strpos($libGU, 'admin') !== false) {
 }
 
 $allYearsSelected = \AcademicYear::isAllSelectedFromSession();
-$filtreAnnee = isset($_GET['id_annee_acad']) && $_GET['id_annee_acad'] !== '' ? (int) $_GET['id_annee_acad'] : \AcademicYear::getSelectedIdFromSession();
+$hasAnneeFilterParam = array_key_exists('id_annee_acad', $_GET);
+if ($hasAnneeFilterParam) {
+    $rawAnneeFilter = trim((string) $_GET['id_annee_acad']);
+    $filtreAnnee = $rawAnneeFilter !== '' ? (int) $rawAnneeFilter : null;
+} else {
+    $filtreAnnee = \AcademicYear::getSelectedIdFromSession();
+}
 $filtreSession = isset($_GET['id_session']) && $_GET['id_session'] !== '' ? (int) $_GET['id_session'] : null;
 $filtreQualiteJury = isset($_GET['id_qualite_jury']) && $_GET['id_qualite_jury'] !== '' ? (int) $_GET['id_qualite_jury'] : null;
 $enseignantSelectionne = isset($_GET['id_enseignant_selected']) && $_GET['id_enseignant_selected'] !== '' ? (int) $_GET['id_enseignant_selected'] : null;
@@ -48,7 +54,7 @@ try {
         if ($yearLabel === '') {
             $yearLabel = date('Y', strtotime((string) $anneeActive->date_deb)) . '-' . date('Y', strtotime((string) $anneeActive->date_fin));
         }
-        if ($filtreAnnee === null && !$allYearsSelected) {
+        if (($filtreAnnee === null || $filtreAnnee <= 0) && !$allYearsSelected && !$hasAnneeFilterParam) {
             $filtreAnnee = (int) ($anneeActive->id_annee_acad ?? 0);
         }
     }
@@ -107,7 +113,7 @@ try {
         $params = [':id_enseignant' => $teacherId];
 
         if ($filtreAnnee !== null) {
-            $whereConditions[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+            $whereConditions[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
             $params[':id_annee_acad'] = $filtreAnnee;
         }
 
@@ -133,7 +139,7 @@ try {
                         LEFT JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance
                         LEFT JOIN etudiants e ON e.num_carte_etud = ps.num_etud
                         WHERE 1=1
-                        " . ($filtreAnnee !== null ? "AND (ej.num_soutenance IS NULL OR EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad))" : "") . "
+                        " . ($filtreAnnee !== null ? "AND (ej.num_soutenance IS NULL OR EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad))" : "") . "
                         " . ($filtreSession !== null ? "AND (ej.num_soutenance IS NULL OR ps.id_session = :id_session)" : "") . "
                         " . ($filtreQualiteJury !== null ? "AND (ej.num_soutenance IS NULL OR ej.id_qualite_jury = :id_qualite_jury)" : "") . "
                         GROUP BY qj.id_role_jury, qj.lib_role
@@ -147,7 +153,7 @@ try {
         $paramsEtudiants = [':id_enseignant' => $teacherId];
         
         if ($filtreAnnee !== null) {
-            $whereEtudiants[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+            $whereEtudiants[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
             $paramsEtudiants[':id_annee_acad'] = $filtreAnnee;
         }
         
@@ -188,7 +194,11 @@ try {
                             (SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ')
                              FROM {$juryTable} ej 
                              JOIN enseignants en ON en.id_enseignant = ej.id_enseignant
-                             WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = 5) AS maitre_stage
+                             WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = 5) AS membre_jury_maitre_stage,
+                            (SELECT CONCAT(ms.Nom, ' ', COALESCE(ms.prenom, '')) 
+                             FROM informations_stage ist 
+                             JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage 
+                             WHERE ist.num_etu = e.num_carte_etud LIMIT 1) AS maitre_stage_reel
                         FROM {$juryTable} ej_main
                         JOIN {$progTable} ps ON ps.num_soutenance = ej_main.num_soutenance
                         JOIN etudiants e ON e.num_carte_etud = ps.num_etud
@@ -263,9 +273,9 @@ try {
         $whereStudents = "CAST(a.id_enseignant AS CHAR) = :id_enseignant AND a.role IN ('encadrant', 'directeur')";
 
         if ($filtreAnnee !== null) {
-            $whereReports .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
-            $whereSoutenances .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
-            $whereStudents .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
+            $whereReports .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
+            $whereSoutenances .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+            $whereStudents .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
         }
 
         if ($filtreSession !== null) {
@@ -293,7 +303,7 @@ try {
         ];
         $paramsNext = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) {
-            $whereNext[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+            $whereNext[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
             $paramsNext[':id_annee_acad'] = $filtreAnnee;
         }
         if ($filtreSession !== null) {
@@ -315,7 +325,7 @@ try {
         $whereRecentReports = ["CAST(a.id_enseignant AS CHAR) = :id_enseignant"];
         $paramsRecentReports = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) {
-            $whereRecentReports[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
+            $whereRecentReports[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
             $paramsRecentReports[':id_annee_acad'] = $filtreAnnee;
         }
         $stmtRecentReports = $pdo->prepare("SELECT r.theme_rapport, r.date_redaction_rapport FROM affecter a INNER JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport WHERE " . implode(' AND ', $whereRecentReports) . " ORDER BY r.date_redaction_rapport DESC LIMIT 5");
@@ -335,7 +345,7 @@ try {
         $whereRecentSout = ["CAST(ej.id_enseignant AS CHAR) = :id_enseignant"];
         $paramsRecentSout = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) {
-            $whereRecentSout[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+            $whereRecentSout[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
             $paramsRecentSout[':id_annee_acad'] = $filtreAnnee;
         }
         if ($filtreSession !== null) {
@@ -417,24 +427,49 @@ function normalizeRoleName(string $role): string {
     <?php endif; ?>
 
     <div class="cm-card cm-mb-md">
-        <form method="GET" style="align-items: end;">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="GET" style="align-items: end;">
             <input type="hidden" name="page" value="tableau_bord_enseignant">
 
-            <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars((string) (\AcademicYear::getWritableIdFromSession() ?? ''), ENT_QUOTES, 'UTF-8') ?>">
-
-            <?php if ($isAdmin): ?>
+            <?php if (!empty($enseignantOptions)): ?>
                 <div class="cm-mb-md" style="max-width: 380px;">
                     <?= cm_component('form/select', [
                         'name' => 'id_enseignant_selected',
-                        'label' => 'Enseignant à consulter',
+                        'label' => 'Enseignant',
                         'options' => $enseignantOptions,
                         'selected' => (string)($enseignantSelectionne ?? ''),
                         'placeholder' => 'Sélectionner un enseignant'
                     ]) ?>
                 </div>
+            <?php else: ?>
+                <div class="cm-mb-md" style="max-width: 380px;">
+                    <div class="cm-form-group">
+                        <label class="cm-form-label">Enseignant</label>
+                        <select class="cm-form-control cm-field-md" disabled>
+                            <option value="<?= htmlspecialchars($teacherId, ENT_QUOTES, 'UTF-8') ?>" selected>
+                                <?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?>
+                            </option>
+                        </select>
+                    </div>
+                </div>
             <?php endif; ?>
 
             <div class="cm-grid-3 cm-mb-md">
+                <?= cm_component('form/select', [
+                    'name' => 'id_annee_acad',
+                    'label' => 'Année académique',
+                    'options' => $anneeOptions,
+                    'selected' => (string)($filtreAnnee ?? ''),
+                    'placeholder' => 'Toutes les années'
+                ]) ?>
+
                 <?= cm_component('form/select', [
                     'name' => 'id_session',
                     'label' => 'Session',
@@ -452,10 +487,10 @@ function normalizeRoleName(string $role): string {
                 ]) ?> -->
 
                 <div class="cm-flex cm-flex-gap-sm">
-                    <button type="submit" class="cm-btn cm-btn--primary">
+                    <button type="submit" class="cm-btn is-primary is-sm">
                         <i class="fas fa-filter cm-mr-sm"></i> Filtrer
                     </button>
-                    <a href="?page=tableau_bord_enseignant" class="cm-btn cm-btn--outline">
+                    <a href="?page=tableau_bord_enseignant" class="cm-btn is-light is-sm">
                         Réinitialiser
                     </a>
                 </div>
@@ -551,7 +586,8 @@ function normalizeRoleName(string $role): string {
                                 <th>Directeur mémoire</th>
                                 <th>Examinateur</th>
                                 <th>Encadrant</th>
-                                <th>Maître de stage</th>
+                                <th>Maître de stage (Jury)</th>
+                                <th>Maître de stage (Entreprise)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -587,11 +623,12 @@ function normalizeRoleName(string $role): string {
                                         }
                                     ?>><?= htmlspecialchars($encadrant, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
                                     <td <?php 
-                                        $maitre = $etudiant['maitre_stage'] ?? '';
-                                        if ($maitre !== '' && stripos($maitre, $teacherFullName) !== false) {
+                                        $maitreJury = $etudiant['membre_jury_maitre_stage'] ?? '';
+                                        if ($maitreJury !== '' && stripos($maitreJury, $teacherFullName) !== false) {
                                             echo 'style="background-color: #e3f2fd; font-weight: bold;"';
                                         }
-                                    ?>><?= htmlspecialchars($maitre, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
+                                    ?>><?= htmlspecialchars($maitreJury, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
+                                    <td><?= htmlspecialchars($etudiant['maitre_stage_reel'] ?? '-', ENT_QUOTES, 'UTF-8') ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -655,6 +692,7 @@ function normalizeRoleName(string $role): string {
                 <div class="cm-mt-md">
                     <?php 
                         $exportParams = [
+                            'id_annee_acad' => $filtreAnnee,
                             'id_session' => $filtreSession, 
                             'id_qualite_jury' => $filtreQualiteJury
                         ];

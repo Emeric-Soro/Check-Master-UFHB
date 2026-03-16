@@ -54,6 +54,16 @@ if (!function_exists('cm_column')) {
     }
 }
 
+if (!function_exists('cm_table_header_label')) {
+    /**
+     * Normalize a header label so accidental pre-encoding like "&amp;" still renders as "&".
+     */
+    function cm_table_header_label(string $label): string
+    {
+        return html_entity_decode($label, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+}
+
 if (!function_exists('cm_action_column')) {
     /**
      * Define the standard action column.

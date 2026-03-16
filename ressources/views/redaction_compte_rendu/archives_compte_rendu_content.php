@@ -29,7 +29,15 @@ $baseUrl = '?page=archive_comptes_rendus'
 ?>
 <div class="cm-prd3-screen cm-prd3-crud-screen">
     <div id="cmArchiveAlert"></div>
-    <form id="cmArchiveCsrfForm" style="display:none;">
+    <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmArchiveCsrfForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="cmArchiveCsrfForm" style="display:none;">
         <?php cm_component('form/csrf-token'); ?>
     </form>
     <div class="cm-crud-wrapper">
@@ -292,3 +300,4 @@ $baseUrl = '?page=archive_comptes_rendus'
     updateDeleteState();
 })();
 </script>
+

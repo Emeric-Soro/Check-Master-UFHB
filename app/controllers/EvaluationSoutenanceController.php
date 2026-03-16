@@ -4,7 +4,7 @@ require_once __DIR__ . '/../models/CritereEvaluation.php';
 require_once __DIR__ . '/../Services/EvaluationSoutenanceService.php';
 require_once __DIR__ . '/../Support/Database.php';
 require_once __DIR__ . '/../Services/Document/PvFinalGeneratorService.php';
-require_once __DIR__ . '/../Utils/PlanningDataUtils.php';
+require_once __DIR__ . '/../utils/PlanningDataUtils.php';
 require_once __DIR__ . '/../models/CritereEvaluation.php';
 require_once __DIR__ . '/../Services/EvaluationSoutenanceService.php';
 

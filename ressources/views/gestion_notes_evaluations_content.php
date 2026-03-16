@@ -147,29 +147,61 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
     <?php endif; ?>
     <div class="cm-crud-wrapper">
     <div class="cm-pole-superieur">
-        <div class="">
-        </div>
-        <div class="cm-grid-2">
-            <?php
-            $niveauOptions = [];
-            foreach ($niveaux as $niveau) {
-                $niveauOptions[(int) ($niveau->id_niv_etude ?? 0)] = (string) ($niveau->lib_niv_etude ?? 'Niveau');
-            }
-            cm_component('form/select', [
-                'name' => 'cm_niveau_filter',
-                'id' => 'cmNiveauFilter',
-                'label' => 'Niveau',
-                'options' => $niveauOptions,
-                'selected' => (string) ($selectedNiveau ?? ''),
-                'control_class' => 'cm-field-md',
-            ]);
-            echo '<input type="hidden" name="cm_annee_filter" id="cmAnneeFilter" value="' . htmlspecialchars((string) ($effectiveAnneeId ?? ''), ENT_QUOTES, 'UTF-8') . '">';
-            ?>
-        </div>
-        <form id="cmNotesForm" method="POST" action="<?php echo htmlspecialchars($formAction, ENT_QUOTES, 'UTF-8'); ?>">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmNotesForm .cm-notes-form-grid {
+    grid-template-columns: minmax(0, 2.8fr) minmax(0, 0.8fr) minmax(0, 0.8fr) !important;
+    gap: 0.75rem 1rem !important;
+    align-items: end !important;
+}
+
+#cmNotesForm .cm-form-group:has(#cmStudentPicker_hidden) {
+    grid-column: 1 / -1;
+    width: 100% !important;
+    max-width: none !important;
+}
+
+#cmNotesForm .cm-form-group:has(#cmStudentPicker_hidden) .cm-select-search,
+#cmNotesForm .cm-form-group:has(#cmStudentPicker_hidden) .cm-select-search__input {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+#cmNotesForm #cmStudentPicker_wrapper .cm-select-search__input {
+    --cm-field-width: 80%;
+    --cm-field-max-width: none;
+    width: 80% !important;
+    max-width: none !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Dropdown en overlay: ne pousse plus les champs M1/M2 vers le bas */
+#cmNotesForm #cmStudentPicker_wrapper {
+    position: relative;
+}
+
+#cmNotesForm #cmStudentPicker_wrapper .cm-select-search__list {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% - var(--cm-spacing-xs));
+    z-index: 1200;
+    border: 1px solid var(--cm-border-color);
+    box-shadow: var(--cm-shadow-lg);
+}
+
+#cmNotesForm .cm-form-group:has(#cmMoyenneM1),
+#cmNotesForm .cm-form-group:has(#cmMoyenneM2) {
+    max-width: 10rem;
+}
+</style>
+<form id="cmNotesForm" method="POST" action="<?php echo htmlspecialchars($formAction, ENT_QUOTES, 'UTF-8'); ?>">
             <?php cm_component('form/csrf-token'); ?>
             <input type="hidden" name="id_annee_acad" id="cmAnneeHidden" value="<?php echo htmlspecialchars((string) ($formAnneeId ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-            <div class="cm-grid-4">
+            <input type="hidden" name="cm_annee_filter" id="cmAnneeFilter" value="<?php echo htmlspecialchars((string) ($effectiveAnneeId ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+            <div class="cm-grid-3 cm-notes-form-grid">
                 <?php
                 echo '<input type="hidden" name="annee_display" value="' . htmlspecialchars((string) $displayAnneeLabel, ENT_QUOTES, 'UTF-8') . '">';
                 cm_component('form/select-search', [
@@ -180,30 +212,9 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                     'selected' => $selectedStudentId,
                     'required' => true,
                     'placeholder' => '-- Sélectionner un étudiant --',
-                    'control_class' => 'cm-field-lg',
-                ]);
-                cm_component('form/input-text', [
-                    'name' => 'num_etu_display',
-                    'id' => 'cmNumEtuDisplay',
-                    'label' => 'N° Carte',
-                    'readonly' => true,
-                    'value' => (string) ($selectedStudent->num_carte_etud ?? ''),
-                    'control_class' => 'cm-field-md',
-                ]);
-                cm_component('form/input-text', [
-                    'name' => 'nom_display',
-                    'id' => 'cmNomDisplay',
-                    'label' => 'Nom',
-                    'readonly' => true,
-                    'value' => (string) ($selectedStudent->nom_etu ?? ''),
-                    'control_class' => 'cm-field-lg',
-                ]);
-                cm_component('form/input-text', [
-                    'name' => 'prenom_display',
-                    'id' => 'cmPrenomDisplay',
-                    'label' => 'Prénom',
-                    'readonly' => true,
-                    'value' => (string) ($selectedStudent->prenom_etu ?? ''),
+                    'search_placeholder' => 'Rechercher un étudiant...',
+                    'show_selected_label' => false,
+                    'min_search' => 0,
                     'control_class' => 'cm-field-lg',
                 ]);
                 cm_component('form/input-number', [
@@ -231,16 +242,18 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                 ?>
             </div>
             <div class="cm-form-buttons">
-                <?php if (canCreate() || canEdit()): ?>
-                    <button class="cm-btn is-success" type="submit" name="btn_enregistrer_notes">
-                        <i class="fas fa-check" aria-hidden="true"></i>
-                        Valider
-                    </button>
-                <?php endif; ?>
-                <button class="cm-btn is-light" type="reset" id="cmResetNotes">
-                    <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                    Réinitialiser
-                </button>
+                <?php
+                $notesFormActions = [
+                    ['label' => 'Réinitialiser', 'type' => 'reset', 'class' => 'cm-btn is-secondary is-sm', 'attrs' => ['id' => 'cmResetNotes']],
+                ];
+                if (canCreate() || canEdit()) {
+                    $notesFormActions[] = ['label' => 'Valider', 'type' => 'submit', 'class' => 'cm-btn is-primary is-sm', 'attrs' => ['name' => 'btn_enregistrer_notes']];
+                }
+                cm_component('crud/form-actions', [
+                    'cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']],
+                    'actions' => $notesFormActions,
+                ]);
+                ?>
             </div>
         </form>
     </div>
@@ -249,7 +262,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
         'id_prefix' => 'cmNotes',
         'search_value' => $_GET['search'] ?? '',
         'limit' => $notesPerPage,
-        'allowed_limits' => $allowedLimits,
+        'limit_options' => $allowedLimits,
         'can_delete' => canDelete(),
         'can_view' => canView(),
     ]); ?>
@@ -261,10 +274,9 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                     <th class="cm-data-table__th is-checkbox">
                         <input type="checkbox" id="cmCheckAllNotes" class="cm-checkbox" aria-label="Sélectionner toutes les lignes">
                     </th>
-                    <th class="cm-data-table__th">N° Etudiant</th>
-                    <th class="cm-data-table__th">Nom</th>
-                    <th class="cm-data-table__th">Prénom</th>
-                    <th class="cm-data-table__th">Année Acad.</th>
+                    <th class="cm-data-table__th">N° Carte Étudiant</th>
+                    <th class="cm-data-table__th">Nom &amp; Prénom</th>
+                    <th class="cm-data-table__th">Année Académique</th>
                     <th class="cm-data-table__th">Moy. M1</th>
                     <th class="cm-data-table__th">Moy. M2</th>
                     <th class="cm-data-table__th">Date saisie</th>
@@ -275,7 +287,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                 <?php if (empty($notesToShow)): ?>
                     <?php cm_component('ui/empty-state', [
                         'in_table' => true,
-                        'colspan' => 9,
+                        'colspan' => 8,
                         'title' => '',
                         'message' => $notesEmptyMessage,
                     ]); ?>
@@ -285,6 +297,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                         $numEtu = (string) ($note->num_carte_etud ?? $note->num_etu ?? '');
                         $nom = (string) ($note->nom_etu ?? '');
                         $prenom = (string) ($note->prenom_etu ?? '');
+                        $nomPrenom = trim($nom . ' ' . $prenom);
                         $m1 = (string) ($note->moyenne_M1 ?? $note->moyenne_m1 ?? '');
                         $m2 = (string) ($note->moyenne_M2 ?? $note->moyenne_m2 ?? '');
                         $anneeNoteId = !empty($note->id_annee_acad) ? (int) $note->id_annee_acad : null;
@@ -304,8 +317,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                                 <input type="checkbox" class="cm-checkbox cm-row-checkbox">
                             </td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="cm-data-table__td"><?php echo htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="cm-data-table__td"><?php echo htmlspecialchars($prenom, ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td class="cm-data-table__td"><?php echo htmlspecialchars($nomPrenom, ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars($anneeNote !== '' ? $anneeNote : '-', ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars($m1, ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="cm-data-table__td"><?php echo htmlspecialchars($m2, ENT_QUOTES, 'UTF-8'); ?></td>
@@ -347,14 +359,10 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
 <script>
 (function () {
     const studentCatalog = <?php echo json_encode($studentCatalog, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-    const niveauFilter = document.getElementById('cmNiveauFilter');
     const anneeFilter = document.getElementById('cmAnneeFilter');
     const notesLimit = document.getElementById('cmNotesLimit');
     const studentHidden = document.getElementById('cmStudentPicker_hidden');
     const anneeHiddenInput = document.getElementById('cmAnneeHidden');
-    const numDisplay = document.getElementById('cmNumEtuDisplay');
-    const nomDisplay = document.getElementById('cmNomDisplay');
-    const prenomDisplay = document.getElementById('cmPrenomDisplay');
     const m1Field = document.getElementById('cmMoyenneM1');
     const m2Field = document.getElementById('cmMoyenneM2');
     const notesForm = document.getElementById('cmNotesForm');
@@ -372,40 +380,6 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
     const navigateWithParams = function (params) {
         navigate('?' + params.toString());
     };
-    const syncStudentFields = function () {
-        const id = studentHidden ? studentHidden.value : '';
-        const data = studentCatalog[id];
-        if (!data) {
-            numDisplay.value = '';
-            nomDisplay.value = '';
-            prenomDisplay.value = '';
-            return;
-        }
-        numDisplay.value = data.num || '';
-        nomDisplay.value = data.nom || '';
-        prenomDisplay.value = data.prenom || '';
-    };
-    const reloadByFilters = function () {
-        const niveau = niveauFilter ? niveauFilter.value : '';
-        const annee = anneeFilter ? anneeFilter.value : '';
-        const params = new URLSearchParams(window.location.search);
-        params.set('page', 'gestion_notes_evaluations');
-        if (niveau) {
-            params.set('niveau', niveau);
-        } else {
-            params.delete('niveau');
-        }
-        if (annee) {
-            params.set('annee', annee);
-        } else {
-            params.delete('annee');
-        }
-        params.delete('student');
-        params.delete('action');
-        navigateWithParams(params);
-    };
-    niveauFilter && niveauFilter.addEventListener('change', reloadByFilters);
-    anneeFilter && anneeFilter.addEventListener('change', reloadByFilters);
     if (notesLimit) {
         notesLimit.addEventListener('change', function () {
             const params = new URLSearchParams(window.location.search);
@@ -417,13 +391,11 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
     }
     if (studentHidden) {
         studentHidden.addEventListener('change', function () {
-            syncStudentFields();
-            if (!niveauFilter || !studentHidden.value || !niveauFilter.value) {
+            if (!studentHidden.value) {
                 return;
             }
             const params = new URLSearchParams(window.location.search);
             params.set('page', 'gestion_notes_evaluations');
-            params.set('niveau', niveauFilter.value);
             if (anneeFilter && anneeFilter.value) {
                 params.set('annee', anneeFilter.value);
             } else {
@@ -472,15 +444,6 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
         }
         if (anneeHiddenInput) {
             anneeHiddenInput.value = anneeId || initialFormAnneeId || '';
-        }
-        if (numDisplay) {
-            numDisplay.value = num;
-        }
-        if (nomDisplay) {
-            nomDisplay.value = nom;
-        }
-        if (prenomDisplay) {
-            prenomDisplay.value = prenom;
         }
         if (m1Field) {
             m1Field.value = m1;
@@ -580,7 +543,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
         window.print();
     });
     document.getElementById('cmExportNotes') && document.getElementById('cmExportNotes').addEventListener('click', function () {
-        const headers = ['N° Etudiant', 'Nom', 'Prénom', 'Année Acad.', 'Moy. M1', 'Moy. M2', 'Date saisie'];
+        const headers = ['N° Carte Étudiant', 'Nom & Prénom', 'Année Académique', 'Moy. M1', 'Moy. M2', 'Date saisie'];
         const lines = [headers.join(';')];
         noteRows().forEach(function (row) {
             if (row.style.display === 'none') {
@@ -600,7 +563,6 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
         link.click();
         document.body.removeChild(link);
     });
-    syncStudentFields();
     updateSelectionState();
 })();
 </script>

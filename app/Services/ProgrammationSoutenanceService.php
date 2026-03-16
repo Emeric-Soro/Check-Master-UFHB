@@ -35,7 +35,7 @@ class ProgrammationSoutenanceService
     private function getStudentAcademicYearId(string $studentId): ?int
     {
         try {
-            $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM inscriptions WHERE num_carte_etud = ? ORDER BY date_inscription DESC, num_versement DESC LIMIT 1 ORDER BY date_inscription DESC, id_inscription DESC LIMIT 1");
+            $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM inscriptions WHERE num_carte_etud = ? ORDER BY date_inscription DESC, num_versement DESC, id_inscription DESC LIMIT 1");
             $stmt->execute([$studentId]);
             $value = $stmt->fetchColumn();
             return is_numeric($value) ? (int) $value : null;
@@ -203,6 +203,30 @@ class ProgrammationSoutenanceService
         return strtolower(trim($normalized));
     }
 
+    private function roleLabelMatches(string $label, array $needles): bool
+    {
+        $rawLabel = function_exists('mb_strtolower')
+            ? mb_strtolower(trim($label), 'UTF-8')
+            : strtolower(trim($label));
+        $normalizedLabel = $this->normalizeRoleName($label);
+
+        foreach ($needles as $needle) {
+            $rawNeedle = function_exists('mb_strtolower')
+                ? mb_strtolower($needle, 'UTF-8')
+                : strtolower($needle);
+            $normalizedNeedle = $this->normalizeRoleName($needle);
+
+            if (
+                strpos($rawLabel, $rawNeedle) !== false
+                || strpos($normalizedLabel, $normalizedNeedle) !== false
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function getRoleIds()
     {
         if (is_array($this->roleIdsCache)) {
@@ -219,20 +243,20 @@ class ProgrammationSoutenanceService
             $sql = "SELECT id_role_jury, lib_role FROM {$rolesTable}";
             $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
             foreach ($rows as $row) {
-                $id = (int) ($row['id_role_jury'] ?? 0);
-                if ($id <= 0) {
+                $id = $row['id_role_jury'] ?? '';
+                if ($id === '') {
                     continue;
                 }
-                $label = $this->normalizeRoleName($row['lib_role'] ?? '');
-                if (strpos($label, 'president') !== false) {
+                $label = (string) ($row['lib_role'] ?? '');
+                if ($this->roleLabelMatches($label, ['president', 'président'])) {
                     $this->roleIdsCache['president'] = $id;
-                } elseif (strpos($label, 'examinateur') !== false) {
+                } elseif ($this->roleLabelMatches($label, ['examinateur'])) {
                     $this->roleIdsCache['examinateur'] = $id;
-                } elseif (strpos($label, 'directeur') !== false) {
+                } elseif ($this->roleLabelMatches($label, ['directeur'])) {
                     $this->roleIdsCache['directeur'] = $id;
-                } elseif (strpos($label, 'encadr') !== false) {
+                } elseif ($this->roleLabelMatches($label, ['encadrant', 'encadreur', 'encadr'])) {
                     $this->roleIdsCache['encadreur'] = $id;
-                } elseif (strpos($label, 'maitre') !== false || strpos($label, 'maitre') !== false) {
+                } elseif ($this->roleLabelMatches($label, ['maitre', 'maître'])) {
                     $this->roleIdsCache['maitre_stage'] = $id;
                 }
             }
@@ -260,37 +284,39 @@ class ProgrammationSoutenanceService
     private function juryIdExpr($roleKey, $progAlias = 'p')
     {
         $roleIds = $this->getRoleIds();
-        $roleId = (int) ($roleIds[$roleKey] ?? 0);
+        $roleId = $roleIds[$roleKey] ?? '';
         $juryTable = $this->getJuryTable();
         $progTable = $this->getProgrammationTable();
-        if ($roleId <= 0 || $juryTable === null || $progTable === null) {
+        if ($roleId === '' || $juryTable === null || $progTable === null) {
             return 'NULL';
         }
         $juryRefCol = $this->getJuryRefColumn($juryTable);
         $progJuryCol = $this->getProgrammationJuryColumn($progTable);
+        $roleIdEscaped = $this->pdo->quote((string)$roleId);
         return "(SELECT cj.id_enseignant
                  FROM {$juryTable} cj
                  WHERE cj.{$juryRefCol} = {$progAlias}.{$progJuryCol}
-                 AND cj.id_qualite_jury = {$roleId}
+                 AND cj.id_qualite_jury = {$roleIdEscaped}
                  LIMIT 1)";
     }
 
     private function juryNameExpr($roleKey, $progAlias = 'p')
     {
         $roleIds = $this->getRoleIds();
-        $roleId = (int) ($roleIds[$roleKey] ?? 0);
+        $roleId = $roleIds[$roleKey] ?? '';
         $juryTable = $this->getJuryTable();
         $progTable = $this->getProgrammationTable();
-        if ($roleId <= 0 || $juryTable === null || $progTable === null) {
+        if ($roleId === '' || $juryTable === null || $progTable === null) {
             return 'NULL';
         }
         $juryRefCol = $this->getJuryRefColumn($juryTable);
         $progJuryCol = $this->getProgrammationJuryColumn($progTable);
+        $roleIdEscaped = $this->pdo->quote((string)$roleId);
         return "(SELECT CONCAT(ens.prenom_enseignant, ' ', ens.nom_enseignant)
                  FROM {$juryTable} cj
                  JOIN enseignants ens ON cj.id_enseignant = ens.id_enseignant
                  WHERE cj.{$juryRefCol} = {$progAlias}.{$progJuryCol}
-                 AND cj.id_qualite_jury = {$roleId}
+                 AND cj.id_qualite_jury = {$roleIdEscaped}
                  LIMIT 1)";
     }
 
@@ -317,6 +343,7 @@ class ProgrammationSoutenanceService
                     e.promotion_etu,
                     e.promotion_etu as lib_specialite,
                     r.theme_rapport,
+                    ist.id_maitre_stage,
                     CONCAT(ms.prenom, ' ', ms.Nom) as maitre_stage_nom,
                     ms.email as maitre_stage_email,
                     (SELECT CONCAT(ens_dir.prenom_enseignant, ' ', ens_dir.nom_enseignant)
@@ -485,10 +512,20 @@ class ProgrammationSoutenanceService
             $presidentNom = $this->juryNameExpr('president', 'p');
             $examinateurId = $this->juryIdExpr('examinateur', 'p');
             $examinateurNom = $this->juryNameExpr('examinateur', 'p');
+            $directeurId = $this->juryIdExpr('directeur', 'p');
+            $directeurNom = $this->juryNameExpr('directeur', 'p');
+            $encadreurId = $this->juryIdExpr('encadreur', 'p');
+            $encadreurNom = $this->juryNameExpr('encadreur', 'p');
+            $maitreId = $this->juryIdExpr('maitre_stage', 'p');
+            $maitreNom = $this->juryNameExpr('maitre_stage', 'p');
+            $yearSelect = $this->columnExists($progTable, 'id_annee_acad')
+                ? 'p.id_annee_acad as id_annee_acad,'
+                : 'NULL as id_annee_acad,';
 
             $sql = "
                 SELECT
                     p.{$idCol} as id_attribution,
+                    {$yearSelect}
                     p.theme_soutenance,
                     p.date_soutenance,
                     p.heure_soutenance,
@@ -502,51 +539,29 @@ class ProgrammationSoutenanceService
                     {$presidentNom} as president_nom,
                     {$examinateurId} as examinateur_id,
                     {$examinateurNom} as examinateur_nom,
-                    (SELECT af_dir.id_enseignant
-                     FROM affecter af_dir
-                     WHERE af_dir.id_rapport = r.id_rapport
-                     AND LOWER(af_dir.role) LIKE 'directeur%'
-                     LIMIT 1) as directeur_id,
-                    (SELECT CONCAT(ens_dir.prenom_enseignant, ' ', ens_dir.nom_enseignant)
-                     FROM affecter af_dir
-                     JOIN enseignants ens_dir ON af_dir.id_enseignant = ens_dir.id_enseignant
-                     WHERE af_dir.id_rapport = r.id_rapport
-                     AND LOWER(af_dir.role) LIKE 'directeur%'
-                     LIMIT 1) as directeur_nom,
-                    (SELECT af_enc.id_enseignant
-                     FROM affecter af_enc
-                     WHERE af_enc.id_rapport = r.id_rapport
-                     AND LOWER(af_enc.role) LIKE 'encadr%'
-                     LIMIT 1) as encadreur_id,
-                    (SELECT CONCAT(ens_enc.prenom_enseignant, ' ', ens_enc.nom_enseignant)
-                     FROM affecter af_enc
-                     JOIN enseignants ens_enc ON af_enc.id_enseignant = ens_enc.id_enseignant
-                     WHERE af_enc.id_rapport = r.id_rapport
-                     AND LOWER(af_enc.role) LIKE 'encadr%'
-                     LIMIT 1) as encadreur_nom,
-                    NULL as maitre_stage_id,
-                    CONCAT(ms.prenom, ' ', ms.Nom) as maitre_stage_nom
+                    {$directeurId} as directeur_id,
+                    {$directeurNom} as directeur_nom,
+                    {$encadreurId} as encadreur_id,
+                    {$encadreurNom} as encadreur_nom,
+                    {$maitreId} as maitre_stage_id,
+                    COALESCE({$maitreNom}, CONCAT(ms.prenom, ' ', ms.Nom)) as maitre_stage_nom,
+                    COALESCE({$maitreId}, ist.id_maitre_stage) as maitre_stage_ref
                 FROM {$progTable} p
                 LEFT JOIN etudiants e ON p.num_etud = e.num_carte_etud
-                LEFT JOIN (
-                    SELECT rr1.*
-                    FROM rapport_etudiants rr1
-                    INNER JOIN (
-                        SELECT num_etu, MAX(id_rapport) AS max_id_rapport
-                        FROM rapport_etudiants
-                        GROUP BY num_etu
-                    ) rr2 ON rr1.id_rapport = rr2.max_id_rapport
-                ) r ON r.num_etu = e.num_carte_etud
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
                 LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
                 LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
-                $sql .= " WHERE EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+                if ($this->columnExists($progTable, 'id_annee_acad')) {
+                    $sql .= " WHERE p.id_annee_acad = :id_annee_acad";
+                } else {
+                    $sql .= " WHERE EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+                }
             }
 
-            $sql .= " ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC";
+            $sql .= " ORDER BY p.date_soutenance ASC, p.heure_soutenance ASC";
 
             $stmt = $this->pdo->prepare($sql);
             if ($selectedYearId !== null && $selectedYearId > 0) {
@@ -825,10 +840,10 @@ class ProgrammationSoutenanceService
         ];
 
         foreach ($members as $field => $roleKey) {
-            $enseignantId = (int) ($data[$field] ?? 0);
-            $roleId = (int) ($roleIds[$roleKey] ?? 0);
-            if ($enseignantId > 0 && $roleId > 0) {
-                $stmt->execute([(string) $juryRef, $enseignantId, $roleId]);
+            $enseignantId = $data[$field] ?? '';
+            $roleId = $roleIds[$roleKey] ?? '';
+            if ($enseignantId !== '' && $roleId !== '') {
+                $stmt->execute([(string) $juryRef, (string)$enseignantId, (string)$roleId]);
             }
         }
     }

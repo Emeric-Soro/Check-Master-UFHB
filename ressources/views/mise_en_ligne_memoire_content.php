@@ -84,7 +84,32 @@ foreach ($etudiants as $etudiant) {
         <!-- Formulaire de mise en ligne -->
         <div class="cm-pole-superieur">
             <div class="cm-text-md cm-text-semibold cm-mb-md">Mise en ligne de mémoire</div>
-            <form id="cmMemoireForm" method="POST" action="?page=mise_en_ligne_memoire" enctype="multipart/form-data"
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmMemoireForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+
+.cm-memoire-toolbar .cm-toolbar-left {
+    flex: 1 1 20rem !important;
+}
+
+.cm-memoire-toolbar .cm-toolbar-center {
+    flex: 1 1 26rem !important;
+}
+
+.cm-memoire-toolbar .cm-toolbar-right {
+    flex: 0 0 auto !important;
+}
+
+.cm-memoire-toolbar .cm-toolbar-left .cm-toolbar-field-lg {
+    min-width: 13rem !important;
+    max-width: 18rem !important;
+}
+</style>
+<form id="cmMemoireForm" method="POST" action="?page=mise_en_ligne_memoire" enctype="multipart/form-data"
                 data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" name="action" value="upload_memoire">
@@ -104,6 +129,8 @@ foreach ($etudiants as $etudiant) {
                         'id' => 'cmMemoirePromotion',
                         'label' => 'Promotion',
                         'readonly' => true,
+                        'maxlength' => 9,
+                        'attrs' => ['size' => '9'],
                     ]);
                     cm_component('form/textarea', [
                         'name' => 'cm_memoire_theme',
@@ -132,23 +159,21 @@ foreach ($etudiants as $etudiant) {
                     </div>
                 </div>
 
-                <div class="cm-form-actions" style="display: flex; justify-content: space-between; margin-top: 10px;">
-                    <button type="button" class="cm-btn is-light" id="cmMemoireResetBtn">
-                        <i class="fas fa-undo" aria-hidden="true"></i>
-                        Réinitialiser
-                    </button>
-                    <button type="submit" class="cm-btn is-success" id="cmMemoireSubmitBtn">
-                        <i class="fas fa-check" aria-hidden="true"></i>
-                        Valider l'opération
-                    </button>
-
-                </div>
+                <?php
+                cm_component('crud/form-actions', [
+                    'cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']],
+                    'actions' => [
+                        ['label' => 'Réinitialiser', 'type' => 'button', 'class' => 'cm-btn is-secondary is-sm', 'attrs' => ['id' => 'cmMemoireResetBtn']],
+                        ['label' => "Valider l'opération", 'type' => 'submit', 'class' => 'cm-btn is-primary is-sm', 'attrs' => ['id' => 'cmMemoireSubmitBtn']],
+                    ],
+                ]);
+                ?>
             </form>
         </div>
 
         <!-- Barre d'outils -->
         <div class="cm-barre-intermediaire">
-            <div class="cm-toolbar">
+            <div class="cm-toolbar cm-memoire-toolbar">
                 <div class="cm-toolbar-left">
                     <label for="cmMemoireLimit"><strong>Afficher:</strong></label>
                     <select id="cmMemoireLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
@@ -166,26 +191,31 @@ foreach ($etudiants as $etudiant) {
                 </div>
 
                 <div class="cm-toolbar-center">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmMemoireSelectAllBtn">
+                    <button type="button" class="cm-btn is-secondary is-sm" id="cmMemoireSelectAllBtn"
+                        data-select-all="1">
                         <i class="fas fa-square-check" aria-hidden="true"></i>
-                        Select. tout
+                        Tout sélectionner
                     </button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmMemoireDeselectBtn">
+                    <button type="button" class="cm-btn is-secondary is-sm" id="cmMemoireDeselectBtn"
+                        data-deselect-all="1">
                         <i class="fas fa-square" aria-hidden="true"></i>
-                        Deselect.
+                        Tout désélectionner
                     </button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmMemoireDeleteBtn" disabled>
+                    <button type="button" class="cm-btn is-danger is-sm" id="cmMemoireDeleteBtn"
+                        data-bulk-delete="1" disabled>
                         <i class="fas fa-trash" aria-hidden="true"></i>
                         Supprimer (0)
                     </button>
                 </div>
 
                 <div class="cm-toolbar-right">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmMemoireExport">
+                    <button type="button" class="cm-btn is-secondary is-sm" id="cmMemoireExport"
+                        data-export="1">
                         <i class="fas fa-file-export" aria-hidden="true"></i>
-                        Export
+                        Exporter
                     </button>
-                    <button type="button" class="cm-btn is-info is-sm" id="cmMemoirePrint">
+                    <button type="button" class="cm-btn is-light is-sm" id="cmMemoirePrint"
+                        data-print="1" onclick="window.print()">
                         <i class="fas fa-print" aria-hidden="true"></i>
                         Imprimer
                     </button>
@@ -203,12 +233,12 @@ foreach ($etudiants as $etudiant) {
                                 <input type="checkbox" id="cmMemoireCheckAll" aria-label="Tout selectionner">
                             </th>
                             <th class="cm-data-table__th">N°</th>
-                            <th class="cm-data-table__th">Etudiant</th>
+                            <th class="cm-data-table__th">Nom &amp; Prénom Étudiant</th>
                             <th class="cm-data-table__th">Promotion</th>
                             <th class="cm-data-table__th">Thème</th>
                             <th class="cm-data-table__th">Fichier</th>
                             <th class="cm-data-table__th">Date dépôt</th>
-                            <th class="cm-data-table__th">Taille</th>
+                            <th class="cm-data-table__th">Taille (Mo)</th>
                             <th class="cm-data-table__th is-center">Actions</th>
                         </tr>
                     </thead>
@@ -267,10 +297,10 @@ foreach ($etudiants as $etudiant) {
                                     </td>
                                     <td class="cm-data-table__td is-center">
                                         <div class="cm-table-actions">
-                                            <button type="button" class="cm-btn-action is-view cm-memoire-view"
+                                            <button type="button" class="cm-btn-action is-edit cm-memoire-edit"
                                                 data-num-etu="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>"
-                                                title="Télécharger">
-                                                <i class="fas fa-download" aria-hidden="true"></i>
+                                                title="Modifier">
+                                                <i class="fas fa-pen" aria-hidden="true"></i>
                                             </button>
                                             <?php if (function_exists('canDelete') ? canDelete() : true): ?>
                                                 <button type="button" class="cm-btn-action is-delete cm-memoire-delete-one"
@@ -279,6 +309,11 @@ foreach ($etudiants as $etudiant) {
                                                     <i class="fas fa-trash" aria-hidden="true"></i>
                                                 </button>
                                             <?php endif; ?>
+                                            <button type="button" class="cm-btn-action is-view cm-memoire-view"
+                                                data-num-etu="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>"
+                                                title="Télécharger">
+                                                <i class="fas fa-download" aria-hidden="true"></i>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>

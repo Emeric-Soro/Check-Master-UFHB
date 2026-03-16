@@ -169,7 +169,15 @@ $studentsPagerBase = '?page=admin_historique&tab=students&' . http_build_query(a
             <?php elseif ($currentTab === 'students'): ?>
                 <!-- STUDENTS TAB -->
                 <div class="cm-toolbar cm-mb-4">
-                    <form method="GET" class="cm-toolbar__search">
+                    <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="GET" class="cm-toolbar__search">
                         <input type="hidden" name="page" value="admin_historique">
                         <input type="hidden" name="tab" value="students">
                         <input type="hidden" name="annee" value="<?= htmlspecialchars($filters['annee'] ?? '') ?>">
@@ -382,3 +390,4 @@ $studentsPagerBase = '?page=admin_historique&tab=students&' . http_build_query(a
 .cm-py-8 { padding-top: 2rem; padding-bottom: 2rem; }
 .is-right { text-align: right; }
 </style>
+

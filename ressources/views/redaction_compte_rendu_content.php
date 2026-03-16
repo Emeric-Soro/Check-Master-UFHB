@@ -228,7 +228,37 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                 <div class="cm-card cm-p-md cm-cr-workspace-panel">
 
 
-                    <form id="cmCompteRenduForm" method="POST" action="?page=redaction_compte_rendu" data-cm-ajax-form="true">
+                    <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmCompteRenduForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+
+#cmCompteRenduForm .cm-form-buttons.cm-cr-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.25rem, 1fr));
+    gap: 0.55rem;
+    justify-content: stretch;
+    align-items: stretch;
+}
+
+#cmCompteRenduForm .cm-form-buttons.cm-cr-actions .cm-btn {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+    line-height: 1.15;
+    justify-content: center;
+    text-align: center;
+}
+
+#cmCompteRenduForm .cm-form-buttons.cm-cr-actions .cm-btn i {
+    flex: 0 0 auto;
+}
+</style>
+<form id="cmCompteRenduForm" method="POST" action="?page=redaction_compte_rendu" data-cm-ajax-form="true">
                         <?php cm_component('form/csrf-token'); ?>
                         <input type="hidden" name="num_etu" id="cmCrNumEtu" value="">
                         <input type="hidden" name="cm_reports_payload" id="cmCrReportsPayload" value="">
@@ -258,7 +288,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                             <span id="cmCrLastSaveLabel">Derniere sauvegarde: --:--</span>
                         </div>
 
-                        <div class="cm-form-buttons">
+                        <div class="cm-form-buttons cm-cr-actions">
                             <button class="cm-btn is-info" type="button" id="cmCrSaveDraftBtn">
                                 <i class="fas fa-save" aria-hidden="true"></i>
                                 Sauv. brouillon
@@ -268,10 +298,14 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                                 Sauvegarde auto
                             </button>
                             <button class="cm-btn is-info" type="button" id="cmCrPreviewBtn">
-                                <i class="fas fa-print" aria-hidden="true"></i>
-                                Imprimer / Apercu
+                                <i class="fas fa-eye" aria-hidden="true"></i>
+                                Aperçu
                             </button>
-                            <button class="cm-btn is-success" type="submit" id="cmCrSubmitBtn">
+                            <button class="cm-btn is-light" type="button" id="cmCrPrintBtn" onclick="window.print()">
+                                <i class="fas fa-print" aria-hidden="true"></i>
+                                Imprimer
+                            </button>
+                            <button class="cm-btn is-primary" type="submit" id="cmCrSubmitBtn">
                                 <i class="fas fa-check" aria-hidden="true"></i>
                                 Enregistrer PDF
                             </button>
@@ -616,3 +650,4 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     renderSelected();
 })();
 </script>
+

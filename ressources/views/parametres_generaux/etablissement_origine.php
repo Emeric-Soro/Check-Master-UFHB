@@ -35,6 +35,8 @@ cm_render_param_crud_view([
             'required' => true,
             'placeholder' => 'Ex: UFHB',
             'value_key' => 'libelle_court',
+            'size' => 'sm',
+            'attrs' => ['maxlength' => '20'],
         ],
     ],
     'columns' => [

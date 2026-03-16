@@ -650,7 +650,7 @@ class GestionUtilisateurService
             $emailService = new \EmailService();
             
             // Build the dynamic variables
-            $login_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/public/page_connexion.php';
+            $login_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/public/app/index.php?_path=/login';
             
             $password_row = '';
             if ($motDePasse) {

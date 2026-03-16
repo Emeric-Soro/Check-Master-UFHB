@@ -81,7 +81,7 @@ cm_component('layout/page-header', [
     <?php
     cm_component('dashboard/stat-widget', [
         'value' => number_format((int) ($stats['etudiants'] ?? 0), 0, ',', ' '),
-        'label' => 'Total étudiants',
+        'label' => 'Total étudiants inscrits',
         'subtitle' => 'Étudiants inscrits',
         'icon' => 'fa-users',
         'color' => 'primary',
@@ -185,7 +185,7 @@ cm_component('layout/page-header', [
         <div class="cm-chart-container__body">
             <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
                 <?php if (canCreate()): ?>
-                    <a class="cm-btn is-info" href="?page=gestion_etudiants&action=ajouter_des_etudiants">
+                    <a class="cm-btn is-info" href="?page=maj_etudiant">
                         <i class="fas fa-user-graduate" aria-hidden="true"></i>
                         Gérer les étudiants
                     </a>
