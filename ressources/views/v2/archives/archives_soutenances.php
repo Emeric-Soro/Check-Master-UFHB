@@ -14,9 +14,6 @@ $filters     = $data['filters'] ?? [];
     <!-- En-tête -->
     <div class="cm-page-header cm-mb-5">
         <div>
-            <h1 class="cm-page-title">
-                <i class="fas fa-graduation-cap cm-mr-2"></i>Archives Soutenances
-            </h1>
             <p class="cm-page-subtitle">
                 Historique des soutenances de l'année archivée
             </p>
@@ -34,7 +31,15 @@ $filters     = $data['filters'] ?? [];
     <!-- Filtres -->
     <div class="cm-card cm-mb-4">
         <div class="cm-card-body">
-            <form method="GET" class="cm-flex cm-gap-3 cm-flex-wrap cm-items-end">
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="GET" class="cm-flex cm-gap-3 cm-flex-wrap cm-items-end">
                 <input type="hidden" name="page" value="archives_soutenances">
 
                 <div class="cm-form-group cm-mb-0">
@@ -143,3 +148,4 @@ $filters     = $data['filters'] ?? [];
         </div>
     <?php endif; ?>
 </div>
+

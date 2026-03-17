@@ -135,7 +135,15 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     <div style="font-size:1.6rem;font-weight:700;"><?php echo $rejetes; ?></div>
                 </div>
             </div>
-            <form id="cmEvaluationDecisionForm"
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmEvaluationDecisionForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="cmEvaluationDecisionForm"
                   method="POST"
                   action="?page=<?php echo htmlspecialchars(urlencode($currentPageSlug), ENT_QUOTES, 'UTF-8'); ?>&action=traiter_decision">
                 <?php cm_component('form/csrf-token'); ?>
@@ -149,6 +157,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                         'required' => true,
                         'options' => $dossierOptions,
                         'selected' => $selectedDetailId > 0 ? (string) $selectedDetailId : '',
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
                     cm_component('form/select', [
                         'name' => 'decision',
@@ -159,31 +168,37 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                             'valider' => 'Valider',
                             'rejeter' => 'Rejeter',
                         ],
+                        'control_class' => 'cm-field-sm cm-size-salle',
                     ]);
                     ?>
                 </div>
-                <div class="cm-grid-3">
+                <div class="cm-grid-2">
                     <?php
                     cm_component('form/input-text', [
                         'name' => 'cm_etudiant_info',
                         'id' => 'cmDecisionEtudiant',
                         'label' => 'Etudiant',
                         'readonly' => true,
-                    ]);
-                    cm_component('form/input-text', [
-                        'name' => 'cm_theme_info',
-                        'id' => 'cmDecisionTheme',
-                        'label' => 'Theme',
-                        'readonly' => true,
+                        'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_statut_info',
                         'id' => 'cmDecisionStatut',
                         'label' => 'Statut actuel',
                         'readonly' => true,
+                        'control_class' => 'cm-field-md cm-size-salle',
                     ]);
                     ?>
                 </div>
+                <?php
+                cm_component('form/input-text', [
+                    'name' => 'cm_theme_info',
+                    'id' => 'cmDecisionTheme',
+                    'label' => 'Theme',
+                    'readonly' => true,
+                    'control_class' => 'cm-field-full cm-size-theme',
+                ]);
+                ?>
                 <?php
                 cm_component('form/textarea', [
                     'name' => 'commentaire',
@@ -193,20 +208,15 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     'placeholder' => 'Saisissez votre commentaire...',
                 ]);
                 ?>
-                <div class="cm-form-buttons is-dense">
-                    <a id="cmVoirRapportBtn"
-                       class="cm-btn is-info"
-                       href="#"
-                       target="_blank"
-                       rel="noopener">
-                        <i class="fas fa-eye" aria-hidden="true"></i>
-                        Voir rapport
-                    </a>
-                    <button class="cm-btn is-success" type="submit">
-                        <i class="fas fa-check" aria-hidden="true"></i>
-                        Soumettre decision
-                    </button>
-                </div>
+                <?php
+                cm_component('crud/form-actions', [
+                    'cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']],
+                    'actions' => [
+                        ['tag' => 'a', 'href' => '#', 'label' => 'Voir rapport', 'icon' => 'fa-eye', 'class' => 'cm-btn is-info is-sm', 'attrs' => ['id' => 'cmVoirRapportBtn', 'target' => '_blank', 'rel' => 'noopener']],
+                        ['tag' => 'button', 'type' => 'submit', 'label' => 'Soumettre decision', 'icon' => 'fa-check', 'class' => 'cm-btn is-primary is-sm'],
+                    ],
+                ]);
+                ?>
             </form>
         </div>
         <?php cm_toolbar([
@@ -214,7 +224,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
             'id_prefix' => 'cmEval',
             'search_value' => $_GET['search'] ?? '',
             'limit' => $perPage,
-            'allowed_limits' => $allowedLimits,
+            'limit_options' => [5, 10, 25, 50, 100],
             'can_delete' => canDelete(),
             'can_view' => canView(),
         ]); ?>
@@ -226,14 +236,14 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                         <th class="cm-data-table__th cm-data-table__th--check">
                             <input type="checkbox" id="cmEvalCheckAll" aria-label="Tout sélectionner">
                         </th>
-                        <th class="cm-data-table__th">N Rap</th>
-                        <th class="cm-data-table__th">Etudiant</th>
+                        <th class="cm-data-table__th">N° Rapport</th>
+                        <th class="cm-data-table__th">Nom &amp; Prénom</th>
                         <th class="cm-data-table__th">Promotion</th>
-                        <th class="cm-data-table__th">Theme</th>
-                        <th class="cm-data-table__th">Ma decision</th>
+                        <th class="cm-data-table__th">Thème</th>
+                        <th class="cm-data-table__th">Ma décision</th>
                         <th class="cm-data-table__th">Mon commentaire</th>
-                        <th class="cm-data-table__th">Date</th>
-                        <th class="cm-data-table__th is-center is-actions">Act</th>
+                        <th class="cm-data-table__th">Date décision</th>
+                        <th class="cm-data-table__th is-center is-actions">Actions</th>
                     </tr>
                     </thead>
                     <tbody id="cmEvaluationDossiersBody">
@@ -529,7 +539,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
     }
     if (exportBtn) {
         exportBtn.addEventListener('click', function () {
-            const headers = ['N Rap', 'Etudiant', 'Theme', 'Decision', 'Commentaire', 'Date'];
+            const headers = ['N° Rapport', 'Nom & Prénom', 'Thème', 'Ma décision', 'Mon commentaire', 'Date décision'];
             const csvRows = [headers.join(';')];
             getVisibleRows().forEach(function (row) {
                 const cols = row.querySelectorAll('.cm-data-table__td');
@@ -567,3 +577,4 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
     applySearch();
 })();
 </script>
+

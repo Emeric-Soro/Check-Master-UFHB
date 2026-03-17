@@ -30,7 +30,15 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
         <?php if ($errorMessage !== ''): ?>
             <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $errorMessage]); ?>
         <?php endif; ?>
-        <form id="stageInfoForm" method="POST" action="?page=candidature_soutenance&action=info_stage"
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#stageInfoForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="stageInfoForm" method="POST" action="?page=candidature_soutenance&action=info_stage"
             class="cm-etu-form" novalidate>
             <div class="cm-etu-grid cm-etu-grid--2">
                 <div class="cm-etu-field">
@@ -39,7 +47,7 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
                     <p class="cm-etu-help">Choisissez ou tapez pour ajouter</p>
                     <div class="cm-etu-autocomplete">
                         <input type="text" id="entreprise" name="entreprise" class="cm-etu-input cm-field-lg"
-                            autocomplete="off" required
+                            autocomplete="off" required maxlength="50"
                             value="<?= htmlspecialchars($entrepriseValue, ENT_QUOTES, 'UTF-8') ?>"
                             placeholder="Ex: Orange Côte d'Ivoire">
                         <div id="entrepriseSuggestions" class="cm-etu-autocomplete__list" aria-live="polite"></div>
@@ -51,7 +59,7 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
                     <p class="cm-etu-help">Sélectionnez d'abord une entreprise, puis choisissez ou ajoutez</p>
                     <div class="cm-etu-autocomplete">
                         <input type="text" id="encadrant" name="encadrant" class="cm-etu-input cm-field-lg"
-                            autocomplete="off" required
+                            autocomplete="off" required maxlength="35"
                             value="<?= htmlspecialchars($encadrantValue, ENT_QUOTES, 'UTF-8') ?>"
                             placeholder="Ex: Koné Seydou">
                         <div id="encadrantSuggestions" class="cm-etu-autocomplete__list" aria-live="polite"></div>
@@ -60,20 +68,20 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="date_debut">Date de début <span
                             class="cm-required-star">*</span></label>
-                    <input type="date" id="date_debut" name="date_debut" class="cm-etu-input cm-field-sm" required
+                    <input type="date" id="date_debut" name="date_debut" class="cm-etu-input cm-field-sm" size="10" required
                         max="<?= date('Y-m-d') ?>"
                         value="<?= htmlspecialchars($dateDebutValue, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="date_fin">Date de fin <span
                             class="cm-required-star">*</span></label>
-                    <input type="date" id="date_fin" name="date_fin" class="cm-etu-input cm-field-sm" required
+                    <input type="date" id="date_fin" name="date_fin" class="cm-etu-input cm-field-sm" size="10" required
                         max="<?= date('Y-m-d') ?>" value="<?= htmlspecialchars($dateFinValue, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
-                <div class="cm-etu-field">
+                <div class="cm-etu-field" style="grid-column: 1/-1;">
                     <label class="cm-etu-label" for="sujet">Thème du rapport <span
                             class="cm-required-star">*</span></label>
-                    <input type="text" id="sujet" name="sujet" class="cm-etu-input cm-field-xl" required maxlength="150"
+                    <input type="text" id="sujet" name="sujet" class="cm-etu-input cm-field-full" required maxlength="150"
                         value="<?= htmlspecialchars($sujetValue, ENT_QUOTES, 'UTF-8') ?>"
                         placeholder="Ex: Mise en place d'une API REST sécurisée">
                 </div>
@@ -81,14 +89,14 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
                     <label class="cm-etu-label" for="email_encadrant">Email Maître de Stage <span
                             class="cm-required-star">*</span></label>
                     <input type="email" id="email_encadrant" name="email_encadrant" class="cm-etu-input cm-field-lg"
-                        required value="<?= htmlspecialchars($emailEncadrantValue, ENT_QUOTES, 'UTF-8') ?>"
+                        required maxlength="50" value="<?= htmlspecialchars($emailEncadrantValue, ENT_QUOTES, 'UTF-8') ?>"
                         placeholder="email@entreprise.ci">
                 </div>
                 <div class="cm-etu-field">
                     <label class="cm-etu-label" for="telephone_encadrant">Téléphone Maître de Stage <span
                             class="cm-required-star">*</span></label>
                     <input type="tel" id="telephone_encadrant" name="telephone_encadrant"
-                        class="cm-etu-input cm-field-md" required
+                        class="cm-etu-input cm-field-sm" size="10" required
                         value="<?= htmlspecialchars($telephoneEncadrantValue, ENT_QUOTES, 'UTF-8') ?>"
                         placeholder="+225 07 00 00 00 00">
                 </div>
@@ -96,7 +104,7 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
             <p id="stageDateError" class="cm-etu-error" aria-live="assertive"></p>
             <div class="cm-etu-actions">
                 <?php if (canEdit()): ?>
-                    <button type="submit" name="btn_enregistrer" value="1" class="cm-btn is-success">
+                    <button type="submit" name="btn_enregistrer" value="1" class="cm-btn is-primary">
                         <i class="fas fa-pen" aria-hidden="true"></i>
                         <span>Rédiger mon rapport</span>
                     </button>

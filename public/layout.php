@@ -42,7 +42,7 @@ register_shutdown_function(function () {
 
 
 
-include __DIR__ . '/../app/config/database.php';
+require_once __DIR__ . '/../app/config/database.php';
 require_once __DIR__ . '/../app/utils/AcademicYear.php';
 
 // ── Année académique globale ── résolution AVANT chargement des routes/contrôleurs
@@ -81,8 +81,28 @@ include_once __DIR__ . '/../app/utils/ComponentHelper.php';
 include_once __DIR__ . '/../app/utils/FormHelper.php';
 include_once __DIR__ . '/../app/utils/TableHelper.php';
 include_once __DIR__ . '/../app/utils/PaginationHelper.php';
+include_once __DIR__ . '/../app/utils/AuditPresentationHelper.php';
+require_once __DIR__ . '/../app/Services/AuditService.php';
 
+use CheckMaster\Security\PermissionContextFactory;
 use CheckMaster\Security\RoutePermissionService;
+
+$legacyPageAliases = [
+    'maj_etudiant' => [
+        'page' => 'gestion_etudiants',
+        'action' => 'ajouter_des_etudiants',
+    ],
+    'repertoire_documents' => [
+        'page' => 'repertoire_enseignant',
+    ],
+];
+
+if (isset($_GET['page']) && isset($legacyPageAliases[(string) $_GET['page']])) {
+    foreach ($legacyPageAliases[(string) $_GET['page']] as $key => $value) {
+        $_GET[$key] = $value;
+        $_REQUEST[$key] = $value;
+    }
+}
 
 if (!isset($_SESSION['id_utilisateur'])) {
     header('Location: page_connexion.php');
@@ -90,7 +110,18 @@ if (!isset($_SESSION['id_utilisateur'])) {
 } else {
     // Protection CSRF globale pour toutes les actions POST du legacy.
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-        if (!Csrf::validate($_POST['csrf_token'] ?? null)) {
+        $csrfToken = $_POST['csrf_token'] ?? null;
+        if ($csrfToken === null && strpos((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'application/json') !== false) {
+            $rawJsonInput = file_get_contents('php://input');
+            $jsonInput = json_decode($rawJsonInput, true);
+            if (is_array($jsonInput)) {
+                $csrfToken = $jsonInput['csrf_token'] ?? null;
+                // On stocke le JSON décodé pour que le contrôleur puisse y accéder sans relire php://input
+                $GLOBALS['decoded_json_input'] = $jsonInput;
+            }
+        }
+
+        if (!Csrf::validate($csrfToken)) {
             // AJAX
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
@@ -108,34 +139,35 @@ if (!isset($_SESSION['id_utilisateur'])) {
         }
     }
 
-    // NOUVEAU : Initialiser le middleware de permissions
     $permissionMiddleware = new PermissionMiddleware();
+    $routePermissionService = new RoutePermissionService(Database::getConnection());
+    $permissionContextFactory = new PermissionContextFactory(Database::getConnection());
+    $currentMenuSlugForGate = isset($_GET['page']) ? (string) $_GET['page'] : '';
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-    // NOUVEAU : Gate centralisé (Couche 1) - Sécurité backend globale pour les routes legacy
-    $corePages = ['dashboard', 'dashboard_admin', 'profil', 'access_denied'];
-    $currentMenuSlugForGate = isset($_GET['page']) ? $_GET['page'] : '';
+    $isOwnPasswordUpdate = $currentMenuSlugForGate === 'profil'
+        && $method === 'POST'
+        && (
+            isset($_POST['update_password'])
+            || (string) ($_POST['action'] ?? '') === 'update_password'
+        );
 
-    if (!empty($currentMenuSlugForGate) && !in_array($currentMenuSlugForGate, $corePages) && !isAdmin()) {
-        $routePermissionService = new RoutePermissionService(Database::getConnection());
-        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    if ($currentMenuSlugForGate !== '' && !$isOwnPasswordUpdate && !$routePermissionService->canAccessLegacy((int) $_SESSION['id_GU'], $_GET, $_POST, $method)) {
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
-        if (!$routePermissionService->canAccessLegacy((int) $_SESSION['id_GU'], $_GET, $_POST, $method)) {
-            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-
-            if ($isAjax) {
-                http_response_code(403);
-                header('Content-Type: application/json; charset=UTF-8');
-                echo json_encode(['success' => false, 'message' => 'Accès refusé. Permissions insuffisantes.']);
-                exit;
-            }
-
-            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
-            $_SESSION['error_type'] = 'permission_denied';
-
-            $redirect = 'layout.php?page=access_denied';
-            header('Location: ' . $redirect);
+        if ($isAjax) {
+            http_response_code(403);
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode(['success' => false, 'message' => 'Accès refusé. Permissions insuffisantes.']);
             exit;
         }
+
+        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+        $_SESSION['error_type'] = 'permission_denied';
+
+        $redirect = 'layout.php?page=access_denied';
+        header('Location: ' . $redirect);
+        exit;
     }
 }
 
@@ -152,7 +184,10 @@ include __DIR__ . '/../ressources/routes/dossierAcademiqueRoutes.php';
 include __DIR__ . '/../ressources/routes/verificationRapportsRoutes.php';
 include __DIR__ . '/../ressources/routes/gestionReclamationsScolariteRoutes.php';
 include __DIR__ . '/../ressources/routes/evaluationDossiersRoutes.php';
+include __DIR__ . '/../ressources/routes/programmationSoutenanceRoutes.php';
+include __DIR__ . '/../ressources/routes/plannificationSoutenanceRoutes.php';
 include __DIR__ . '/../ressources/routes/gestionDossiersCandidaturesRoutes.php';
+include __DIR__ . '/../ressources/routes/archivesDossiersSoutenanceRoutes.php';
 include __DIR__ . '/../ressources/routes/sauvegardeRestaurationRoutes.php';
 include __DIR__ . '/../ressources/routes/notesResultatsRoutes.php';
 include __DIR__ . '/../ressources/routes/archivesDossiersSoutenanceRoutes.php';
@@ -171,6 +206,9 @@ $menuHierarchique = $menuController->genererMenuHierarchique($_SESSION['id_GU'])
 // Déterminer la page actuelle et le label
 $currentMenuSlug = isset($_GET['page']) ? $_GET['page'] : '';
 $currentPageLabel = '';
+$GLOBALS['caps'] = isset($_SESSION['id_GU'])
+    ? $permissionContextFactory->forCurrentRequest((int) $_SESSION['id_GU'], $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'GET')
+    : ['view' => false, 'create' => false, 'edit' => false, 'delete' => false, 'slug' => ''];
 
 // Canonicalisation désactivée pour les pages legacy migrées:
 // on garde l'URL courante pour éviter les doubles redirections et préserver la navigation AJAX.
@@ -227,9 +265,120 @@ $menuHTML = $menuView->afficherMenuHierarchique($menuHierarchique, $currentMenuS
 
 $currentAction = null;
 $contentFile = '';
+$auditService = null;
 // IMPORTANT: chemin absolu (car layout peut être appelé via /public/app/layout.php)
 $partialsBasePath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'ressources' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR;
 switch ($currentMenuSlug) {
+    case 'profil':
+        if ($auditService === null) {
+            try {
+                $auditService = new \CheckMaster\Services\AuditService(Database::getConnection());
+            } catch (\Throwable $e) {
+                error_log('Layout profil: initialisation AuditService impossible: ' . $e->getMessage());
+            }
+        }
+
+        $isPasswordUpdateRequest = (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST')
+            && (
+                isset($_POST['update_password'])
+                || (string) ($_POST['action'] ?? '') === 'update_password'
+            );
+
+        if ($isPasswordUpdateRequest) {
+            $currentPassword = (string) ($_POST['currentPassword'] ?? $_POST['current_password'] ?? '');
+            $newPassword = (string) ($_POST['newPassword'] ?? $_POST['new_password'] ?? '');
+            $confirmPassword = (string) ($_POST['confirmPassword'] ?? $_POST['confirm_password'] ?? '');
+            $authController = new AuthController(Database::getConnection());
+            $passwordUpdated = $authController->updatePassword(
+                $currentPassword,
+                $newPassword,
+                $confirmPassword
+            );
+            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+            if ($passwordUpdated) {
+                $_SESSION['password_success'] = (string) ($GLOBALS['messageSuccess'] ?? 'Mot de passe mis à jour avec succès.');
+                if ($auditService instanceof \CheckMaster\Services\AuditService) {
+                    $auditService->logRequestActivity((int) ($_SESSION['id_utilisateur'] ?? 0), $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'POST');
+                }
+
+                if ($isAjax) {
+                    header('Content-Type: application/json; charset=UTF-8');
+                    echo json_encode([
+                        'success' => true,
+                        'redirect' => 'layout.php?page=profil&tab=password',
+                    ]);
+                    exit;
+                }
+
+                header('Location: layout.php?page=profil&tab=password');
+                exit;
+            }
+
+            $_SESSION['password_error'] = (string) ($GLOBALS['messageErreur'] ?? 'Erreur lors de la mise à jour du mot de passe.');
+            if ($auditService instanceof \CheckMaster\Services\AuditService) {
+                $auditService->logRequestActivity((int) ($_SESSION['id_utilisateur'] ?? 0), $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'POST');
+            }
+
+            if ($isAjax) {
+                http_response_code(422);
+                header('Content-Type: application/json; charset=UTF-8');
+                echo json_encode([
+                    'success' => false,
+                    'message' => $_SESSION['password_error'],
+                ]);
+                exit;
+            }
+
+            header('Location: layout.php?page=profil&tab=password');
+            exit;
+        }
+
+        $historyPage = isset($_GET['history_page']) ? max(1, (int) $_GET['history_page']) : 1;
+        $historyPerPage = isset($_GET['history_limit']) ? (int) $_GET['history_limit'] : 10;
+        if (!in_array($historyPerPage, [10, 25, 50], true)) {
+            $historyPerPage = 10;
+        }
+
+        $historyFilters = [
+            'date_debut' => '',
+            'date_fin' => '',
+            'statut' => '',
+            'search' => '',
+        ];
+        $historyRows = [];
+        $historyTotal = 0;
+        $historyTotalPages = 1;
+
+        if ($auditService instanceof \CheckMaster\Services\AuditService) {
+            try {
+                $historyFilters = $auditService->extractUserHistoryFilters($_GET);
+                $historyUserId = (int) ($_SESSION['id_utilisateur'] ?? 0);
+                $historyOffset = ($historyPage - 1) * $historyPerPage;
+                $historyRows = $auditService->getUserAuditHistory($historyUserId, $historyFilters, $historyOffset, $historyPerPage);
+                $historyTotal = $auditService->getTotalUserAuditHistory($historyUserId, $historyFilters);
+                $historyTotalPages = max(1, (int) ceil($historyTotal / $historyPerPage));
+
+                if ($historyPage > $historyTotalPages) {
+                    $historyPage = $historyTotalPages;
+                    $historyOffset = ($historyPage - 1) * $historyPerPage;
+                    $historyRows = $auditService->getUserAuditHistory($historyUserId, $historyFilters, $historyOffset, $historyPerPage);
+                }
+            } catch (\Throwable $e) {
+                error_log('Layout profil: chargement historique utilisateur impossible: ' . $e->getMessage());
+            }
+        }
+
+        $GLOBALS['profileAuditHistory'] = $historyRows;
+        $GLOBALS['profileAuditHistoryFilters'] = $historyFilters;
+        $GLOBALS['profileAuditHistoryPage'] = $historyPage;
+        $GLOBALS['profileAuditHistoryPerPage'] = $historyPerPage;
+        $GLOBALS['profileAuditHistoryTotalPages'] = $historyTotalPages;
+        $GLOBALS['profileAuditHistoryTotal'] = $historyTotal;
+
+        $contentFile = $partialsBasePath . 'profil_content.php';
+        $currentPageLabel = 'Mon profil';
+        break;
     case 'parametres_generaux':
     case 'parametres_specifiques':
         // On charge le contrôleur manuellement pour être sûr qu'il s'exécute
@@ -238,6 +387,16 @@ switch ($currentMenuSlug) {
 
         if (isset($_GET['action'])) {
             $currentAction = $_GET['action'];
+
+            if ($currentAction === 'traitements') {
+                $contentFile = $currentMenuSlug === 'parametres_generaux'
+                    ? $partialsBasePath . 'parametres_generaux_content.php'
+                    : $partialsBasePath . 'parametres_specifiques_content.php';
+                $currentPageLabel = $currentMenuSlug === 'parametres_generaux'
+                    ? 'Paramètres Généraux'
+                    : 'Paramètres Spécifiques';
+                break;
+            }
 
             // Mapping manuel des actions vers les méthodes du contrôleur
             // Cela remplace le routeur s'il fait défaut
@@ -249,14 +408,15 @@ switch ($currentMenuSlug) {
                 'etablissement_origine' => 'gestionReferentielSimple',
                 'session' => 'gestionReferentielSimple',
                 'mode_paiement' => 'gestionReferentielSimple',
+                'frais_inscription' => 'gestionFraisInscription',
                 'statut_reclamation' => 'gestionReferentielSimple',
                 'domaine' => 'gestionReferentielSimple',
                 'mentions' => 'gestionReferentielSimple',
                 'filieres' => 'gestionReferentielSimple',
                 'grades' => 'gestionGrade',
-                'fonctions' => 'gestionFonction',
+                'fonctions' => 'gestionReferentielSimple',
                 'fonction_utilisateur' => 'gestionFonctionUtilisateur',
-                'specialites' => 'gestionSpecialite',
+                'specialites' => 'gestionReferentielSimple',
                 'niveaux_etude' => 'gestionNiveauEtude',
                 'ue' => 'gestionUe',
                 'ecue' => 'gestionEcue',
@@ -268,10 +428,10 @@ switch ($currentMenuSlug) {
                 'bareme_critere' => 'gestionBaremeCritere',
                 'maitre_stage' => 'gestionReferentielSimple',
                 'type_enseignant' => 'gestionReferentielSimple',
-                'traitements' => 'gestionTraitement',
                 'entreprises' => 'gestionEntreprise',
-                'actions' => 'gestionAction',
-                'messages' => 'gestionMessagerie',
+                'actions' => 'gestionReferentielSimple',
+                'messages' => 'gestionReferentielSimple',
+                'schema_tables' => 'gestionSchemaTables',
                 'gestion_attribution' => 'gestionAttribution',
                 'gestion_menus' => 'gestionMenus'
             ];
@@ -349,18 +509,18 @@ switch ($currentMenuSlug) {
     case 'gestion_etudiants':
         include __DIR__ . '/../ressources/routes/gestionEtudiantRoutes.php';
         if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'imprimer_recu' && isset($_GET['id_inscription'])) {
-            $id_inscription = (int) $_GET['id_inscription'];
+            $id_inscription = (string) $_GET['id_inscription'];
             // Anti-IDOR: si étudiant, ne permettre que ses propres documents
             if (isset($_SESSION['id_GU']) && (int) $_SESSION['id_GU'] === 13) {
                 require_once __DIR__ . '/../app/models/Scolarite.php';
                 $scolarite = new Scolarite(Database::getConnection());
                 $inscription = $scolarite->getInscriptionById($id_inscription);
-                if (!$inscription || (int) $inscription['id_etudiant'] !== (int) ($_SESSION['num_etu'] ?? 0)) {
+                if (!$inscription || (string) ($inscription['num_carte_etud'] ?? '') !== (string) ($_SESSION['num_etu'] ?? '')) {
                     header('Location: layout.php?page=access_denied');
                     exit;
                 }
             }
-            // RecuGeneratorService, PdfGeneratorService, Database, RecuDataUtils : autoloadés par Composer (PSR-4)
+            require_once __DIR__ . '/../app/utils/RecuDataUtils.php';
             $dbWrapper = new \App\Support\Database();
             $recuDataUtils = new \App\Utils\RecuDataUtils($dbWrapper);
             $pdfGen = new \App\Services\Document\PdfGeneratorService(
@@ -368,22 +528,9 @@ switch ($currentMenuSlug) {
                 __DIR__ . '/../public/assets/img/logo.png'
             );
             $recuService = new \App\Services\Document\RecuGeneratorService($pdfGen, $recuDataUtils, $dbWrapper);
-            // Chercher le versement lié à l'inscription
-            $pdo = $dbWrapper->pdo();
-            // Parser l'ID composite (format: num_carte_etud-id_annee_acad-num_versement)
             $parts = explode('-', $id_inscription);
             if (count($parts) >= 3) {
-                $num_versement = array_pop($parts);
-                $id_annee_acad = array_pop($parts);
-                $num_carte_etud = implode('-', $parts);
-                $stmtV = $pdo->prepare('SELECT num_versement, CONCAT(num_carte_etud, \'-\', id_annee_acad, \'-\', num_versement) as id_versement FROM inscriptions WHERE num_carte_etud = :num AND id_annee_acad = :annee ORDER BY num_versement DESC LIMIT 1');
-                $stmtV->execute([':num' => $num_carte_etud, ':annee' => $id_annee_acad]);
-                $versementRow = $stmtV->fetch(\PDO::FETCH_ASSOC);
-            } else {
-                $versementRow = false;
-            }
-            if ($versementRow) {
-                $result = $recuService->generate((int) $versementRow['id_versement'], (int) ($_SESSION['id_utilisateur'] ?? 0));
+                $result = $recuService->generate($id_inscription, (int) ($_SESSION['id_utilisateur'] ?? 0));
                 if ($result['success'] && !empty($result['path']) && file_exists($result['path'])) {
                     header('Content-Type: application/pdf');
                     header('Content-Disposition: inline; filename="recu_paiement_' . $id_inscription . '.pdf"');
@@ -461,18 +608,18 @@ switch ($currentMenuSlug) {
         break;
     case 'gestion_scolarite':
         if (isset($_GET['action']) && $_GET['action'] === 'imprimer_recu' && isset($_GET['id'])) {
-            $id_versement = (int) $_GET['id'];
+            $id_versement = (string) $_GET['id'];
             // Anti-IDOR: si étudiant, ne permettre que ses propres versements
             if (isset($_SESSION['id_GU']) && (int) $_SESSION['id_GU'] === 13) {
                 require_once __DIR__ . '/../app/models/Scolarite.php';
                 $scolarite = new Scolarite(Database::getConnection());
                 $versement = $scolarite->getVersementById($id_versement);
-                if (!$versement || $versement['id_etudiant'] !== ($_SESSION['num_etu'] ?? '')) {
+                if (!$versement || (string) ($versement['num_carte_etud'] ?? '') !== (string) ($_SESSION['num_etu'] ?? '')) {
                     header('Location: layout.php?page=access_denied');
                     exit;
                 }
             }
-            // RecuGeneratorService, PdfGeneratorService, Database, RecuDataUtils : autoloadés par Composer (PSR-4)
+            require_once __DIR__ . '/../app/utils/RecuDataUtils.php';
             $dbWrapper = new \App\Support\Database();
             $recuDataUtils = new \App\Utils\RecuDataUtils($dbWrapper);
             $pdfGen = new \App\Services\Document\PdfGeneratorService(
@@ -643,6 +790,84 @@ switch ($currentMenuSlug) {
         break;
 }
 
+$canonicalActionLabels = [
+    'gestion_etudiants:ajouter_des_etudiants' => 'Mise à jour étudiant',
+    'parametres_generaux:annees_academiques' => 'Gestion des années académiques',
+    'parametres_generaux:frais_inscription' => "Gestion des frais d'inscription",
+];
+$canonicalPageLabels = [
+    'admin_historique' => 'Historique et archivage',
+    'consultation_cr_etud' => 'Mon compte rendu',
+    'candidature_soutenance' => 'Ma candidature à la soutenance',
+    'dashboard' => 'Tableau de bord — Administration',
+    'dashboard_commission' => 'Tableau de bord — Commission',
+    'dashboard_enseignant' => 'Espace enseignant — Participations jurys',
+    'dashboard_scolarite' => 'Tableau de bord scolarité',
+    'edition_bulletin' => 'Édition des bulletins',
+    'evaluation_dossiers' => 'Évaluation des dossiers',
+    'gestion_dossiers_candidatures' => 'Gestion des dossiers de candidatures',
+    'gestion_notes_evaluations' => 'Gestion des notes et évaluations',
+    'gestion_reclamations' => 'Mes réclamations',
+    'gestion_reclamations_scolarite' => 'Gestion des réclamations',
+    'gestion_scolarite' => 'Inscriptions / Paiements',
+    'gestion_utilisateurs' => 'Gestion des utilisateurs',
+    'maj_enseignant' => 'Mise à jour enseignant',
+    'maj_personnel_admin' => 'Mise à jour personnel administratif',
+    'mise_en_ligne_memoire' => 'Mise en ligne des mémoires',
+    'parametres_generaux' => 'Paramètres généraux',
+    'parametres_specifiques' => 'Paramètres spécifiques',
+    'piste_audit' => "Piste d'audit",
+    'processus_validation' => 'Suivi de validation des rapports',
+    'profil' => 'Mon profil',
+    'programmation_ens' => 'Mes soutenances — Programme',
+    'programmation_soutenance' => 'Programmation des soutenances',
+    'redaction_compte_rendu' => 'Rédaction du compte rendu',
+    'reception_rapport_com' => 'Réception des rapports',
+    'repertoire_enseignant' => 'Répertoire des documents',
+    'sauvegarde_restauration' => 'Sauvegardes et restauration',
+    'tableau_bord_enseignant' => 'Mon tableau de bord — Enseignant',
+];
+$labelKey = $currentMenuSlug . ($currentAction !== null ? ':' . $currentAction : '');
+if (isset($canonicalActionLabels[$labelKey])) {
+    $currentPageLabel = $canonicalActionLabels[$labelKey];
+} elseif (isset($canonicalPageLabels[$currentMenuSlug])) {
+    $currentPageLabel = $canonicalPageLabels[$currentMenuSlug];
+}
+$GLOBALS['currentPageLabel'] = $currentPageLabel;
+
+if ($auditService === null) {
+    try {
+        $auditService = new \CheckMaster\Services\AuditService(Database::getConnection());
+    } catch (\Throwable $e) {
+        error_log('Layout: initialisation AuditService impossible: ' . $e->getMessage());
+    }
+}
+
+if (
+    $auditService instanceof \CheckMaster\Services\AuditService
+    && isset($_SESSION['id_utilisateur'])
+    && !defined('CM_REQUEST_AUDIT_LOGGED')
+) {
+    define('CM_REQUEST_AUDIT_LOGGED', true);
+    $auditService->logRequestActivity(
+        (int) $_SESSION['id_utilisateur'],
+        $_GET,
+        $_POST,
+        $_SERVER['REQUEST_METHOD'] ?? 'GET'
+    );
+}
+
+$isEtudiantEnvironment = strtolower(trim((string) ($_SESSION['type_utilisateur'] ?? ''))) === 'etudiant';
+$isSoutenanceContext = strpos((string) $currentMenuSlug, 'soutenance') !== false
+    || in_array((string) $currentMenuSlug, ['programmation_ens'], true);
+$hideAcademicYearOnNavbar = in_array((string) $currentMenuSlug, ['parametres_generaux', 'parametres_specifiques'], true)
+    && empty($_GET['action']);
+$lockAcademicYearOnNavbar = !$hideAcademicYearOnNavbar 
+    && ($isEtudiantEnvironment || ($isSoutenanceContext && !in_array((string)$currentMenuSlug, ['programmation_soutenance', 'programation_soutenance'], true)));
+$navbarAcademicYearLabel = $currentGlobalYearIsAll
+    ? AcademicYear::getAllLabel()
+    : ($currentGlobalYear !== '' ? $currentGlobalYear : ($writableGlobalYear !== '' ? $writableGlobalYear : $activeGlobalYear));
+
 // Debug : log de la page demandée
 if (isset($_GET['page'])) {
     error_log('PAGE DEMANDEE : ' . $_GET['page']);
@@ -667,6 +892,12 @@ $cardPGeneraux = [
         'description' => 'L1, L2, M1, M2.',
         'link' => '?page=parametres_generaux&action=niveaux_etude',
         'icon' => 'fa-layer-group'
+    ],
+    [
+        'title' => 'Frais d\'Inscription',
+        'description' => 'Montants par année et niveau.',
+        'link' => '?page=parametres_generaux&action=frais_inscription',
+        'icon' => 'fa-money-bill-wave'
     ],
     [
         'title' => 'Semestres',
@@ -823,16 +1054,16 @@ $cardPSpecifiques = [
         'icon' => 'fa-key'
     ],
     [
-        'title' => 'Traitements',
-        'description' => 'Actions techniques.',
-        'link' => '?page=parametres_specifiques&action=traitements',
-        'icon' => 'fa-clipboard-list'
-    ],
-    [
         'title' => 'Messages Système',
         'description' => 'Libellés d\'erreurs.',
         'link' => '?page=parametres_specifiques&action=messages',
         'icon' => 'fa-envelope'
+    ],
+    [
+        'title' => 'Structure BD',
+        'description' => 'Couverture tables/colonnes dans les écrans paramètres.',
+        'link' => '?page=parametres_specifiques&action=schema_tables',
+        'icon' => 'fa-database'
     ]
 ];
 $cardReclamation = [
@@ -907,6 +1138,8 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         href="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('css/utilities.css') : 'assets/css/utilities.css', ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet"
         href="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('css/responsive.css') : 'assets/css/responsive.css', ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="stylesheet"
+        href="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('css/compact-forms.css') : 'assets/css/compact-forms.css', ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="shortcut icon"
         href="<?php echo htmlspecialchars($publicPrefix . 'image/logo_cm_sbg.png', ENT_QUOTES, 'UTF-8'); ?>"
         type="image/x-icon">
@@ -934,7 +1167,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
 
         .cm-content-area .cm-form-group.cm-field--email,
         .cm-content-area .cm-form-group.cm-field--password {
-            max-width: 20rem;
+            max-width: 30rem;
         }
 
         .cm-content-area .cm-form-group.cm-field--textarea,
@@ -960,17 +1193,17 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         .cm-content-area form .cm-form-control:not(textarea),
         .cm-content-area form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not(.cm-etu-input):not(.search-input),
         .cm-content-area form select:not(.cm-etu-select) {
-            min-height: 32px;
-            padding-top: 0.28rem;
-            padding-bottom: 0.28rem;
-            font-size: 0.84rem;
+            min-height: 36px;
+            padding-top: 0.34rem;
+            padding-bottom: 0.34rem;
+            font-size: 0.875rem;
         }
 
         .cm-content-area form textarea.cm-form-control,
         .cm-content-area form textarea:not(.cm-etu-textarea):not(.verification-comment) {
-            min-height: 70px;
-            padding: 0.4rem 0.55rem;
-            font-size: 0.84rem;
+            min-height: 72px;
+            padding: 0.45rem 0.6rem;
+            font-size: 0.875rem;
         }
 
         .cm-content-area form input[type="date"]:not(.cm-etu-input),
@@ -1069,42 +1302,10 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         .cm-eval-top-row .cm-form-control,
         .cm-eval-top-row select,
         .cm-eval-top-row input[type="text"] {
-            min-height: 28px;
-            height: 28px;
-            padding: 0.18rem 0.4rem;
-            font-size: 0.8rem;
-        }
-
-        .cm-eval-jury-col {
-            display: flex;
-            flex-direction: column;
-            gap: 0.2rem;
-            width: 100%;
-        }
-
-        /* Encadré grille */
-        .cm-eval-grille-box {
-            border: 1px solid var(--cm-color-border, #d1d5db);
-            border-radius: 6px;
-            overflow: hidden;
-            background: #fff;
-        }
-
-        .cm-eval-grille-header {
-            background: var(--cm-color-bg-secondary, #f3f4f6);
-            border-bottom: 1px solid var(--cm-color-border, #d1d5db);
-            padding: 0.28rem 0.5rem;
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            color: var(--cm-color-text, #111827);
-        }
-
-        /* Table critères */
-        .cm-eval-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8rem;
+            min-height: 36px;
+            height: 36px;
+            padding: 0.32rem 0.52rem;
+            font-size: 0.875rem;
         }
 
         .cm-eval-table thead tr {
@@ -1119,7 +1320,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         }
 
         .cm-eval-table th {
-            font-size: 0.68rem;
+            font-size: 0.76rem;
             font-weight: 600;
             color: var(--cm-color-text-muted, #6b7280);
             text-transform: uppercase;
@@ -1157,10 +1358,10 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
 
         /* Input note dans la table */
         .cm-eval-note-input {
-            width: 2rem;
-            min-width: 2rem;
-            padding: 0.06rem 0.2rem;
-            font-size: 0.72rem;
+            width: 3.1rem;
+            min-width: 3.1rem;
+            padding: 0.2rem 0.3rem;
+            font-size: 0.875rem;
             border: 1px solid var(--cm-color-border, #d1d5db);
             border-radius: 4px;
             text-align: right;
@@ -1174,7 +1375,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
 
         .cm-eval-note-max {
             margin-left: 0.2rem;
-            font-size: 0.72rem;
+            font-size: 0.8rem;
             color: var(--cm-color-text-muted, #6b7280);
         }
 
@@ -1237,7 +1438,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         }
 
         .cm-eval-jury-col .cm-form-label {
-            font-size: 0.66rem;
+            font-size: 0.78rem;
             margin-bottom: 0.1rem;
             color: var(--cm-color-text-muted, #6b7280);
         }
@@ -1245,10 +1446,10 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         .cm-eval-jury-col .cm-form-control,
         .cm-eval-jury-col input[type="text"] {
             width: 100%;
-            font-size: 0.74rem;
-            padding: 0.12rem 0.3rem;
-            min-height: 24px;
-            height: 24px;
+            font-size: 0.875rem;
+            padding: 0.32rem 0.52rem;
+            min-height: 36px;
+            height: 36px;
             background: var(--cm-color-bg-secondary, #f9fafb);
         }
 
@@ -1300,6 +1501,11 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             align-items: end;
         }
 
+        /* Ligne 2 (Identifiant, Carte, Nom, Prenom): élargir Identifiant + Carte + Prenom */
+        .cm-content-area .cm-ajout-etudiant-form .cm-grid-4:has(input[name="identifiant_mesrs"]) {
+            grid-template-columns: 1.35fr 1.35fr 1fr 1.35fr;
+        }
+
         /* Taille confortable pour tous les champs */
         .cm-content-area .cm-ajout-etudiant-form .cm-form-control:not(textarea),
         .cm-content-area .cm-ajout-etudiant-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
@@ -1318,7 +1524,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
 
         /* Promotion : un peu plus large */
         .cm-content-area .cm-ajout-etudiant-form .cm-form-group:has(select[name="promotion_etu"]) {
-            width: 11rem;
+            width: 8.5rem;
             flex-shrink: 0;
         }
 
@@ -1330,14 +1536,24 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
 
         /* Genre : compact */
         .cm-content-area .cm-ajout-etudiant-form .cm-form-group:has(select[name="genre_etu"]) {
-            width: 11rem;
+            width: 3.6rem;
+            min-width: 3.6rem;
+            max-width: 3.6rem;
             flex-shrink: 0;
+        }
+
+        .cm-content-area .cm-ajout-etudiant-form .cm-form-group:has(select[name="genre_etu"]) .cm-form-label {
+            display: inline-flex;
+            align-items: flex-start;
+            gap: 0.2rem;
+            white-space: nowrap;
         }
 
         /* Email : prend le reste */
         .cm-content-area .cm-ajout-etudiant-form .cm-form-group:has(input[name="email_etu"]) {
-            flex: 1 1 16rem;
-            min-width: 16rem;
+            flex: 1 1 30rem;
+            min-width: 30rem;
+            max-width: 40rem;
         }
 
         /* Ligne 3 reprend le même modèle flex */
@@ -1367,6 +1583,263 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
                 width: 100%;
             }
         }
+
+        /* Ajustements barre haute: titre de page + année académique */
+        .cm-navbar__left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+
+        .cm-navbar__page-title {
+            display: block;
+            flex: 1 1 auto;
+            max-width: none;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--cm-primary-dark);
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .cm-navbar__right {
+            width: auto;
+            flex: 0 0 auto;
+            margin-left: auto;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .cm-navbar__right.is-empty {
+            display: none;
+        }
+
+        .cm-navbar__year-selector {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.2rem;
+            margin-left: 0;
+            margin-top: 0.15rem;
+            font-size: 0.82rem;
+            width: 15ch;
+        }
+
+        .cm-sidebar__user-summary {
+            width: 100%;
+            margin-bottom: 0.55rem;
+            padding: 0.45rem 0.55rem;
+            color: #fff;
+            text-align: left;
+        }
+
+        .cm-sidebar__user-name {
+            display: block;
+            font-weight: 700;
+            font-size: 0.9rem;
+            line-height: 1.2;
+        }
+
+        .cm-sidebar__user-role {
+            display: block;
+            margin-top: 0.1rem;
+            opacity: 0.9;
+            font-size: 0.8rem;
+            line-height: 1.2;
+        }
+
+        .cm-navbar__year-selector label {
+            color: var(--cm-text-muted);
+            margin: 0;
+            font-size: 0.74rem;
+            font-weight: 500;
+            text-align: left;
+            line-height: 1.1;
+        }
+
+        .cm-navbar__year-selector .cm-navbar__year-display,
+        .cm-navbar__year-selector #globalAnneeAcademique {
+            width: 100%;
+            min-width: 100%;
+            max-width: 100%;
+            font-size: 0.78rem;
+            min-height: 30px;
+            height: 30px;
+            padding: 0.2rem 0.35rem;
+            text-align: center;
+            text-align-last: center;
+            box-shadow: none !important;
+            filter: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            border: 1px solid var(--cm-input-border);
+            background-color: var(--cm-input-bg);
+            outline: none;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .cm-navbar__year-selector .cm-navbar__year-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--cm-primary-dark);
+            cursor: default;
+            user-select: none;
+        }
+
+        .cm-navbar__year-selector #globalAnneeAcademique:focus,
+        .cm-navbar__year-selector #globalAnneeAcademique:active {
+            box-shadow: none !important;
+            filter: none !important;
+            outline: none;
+        }
+
+        .cm-navbar__year-selector #globalAnneeAcademique option {
+            text-align: center;
+        }
+
+        /* Empêche la scrollbar de passer derrière le header */
+        #cmLayoutMain {
+            margin-top: var(--cm-header-height);
+            height: calc(100vh - var(--cm-header-height));
+            padding-top: 0.8rem;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-gutter: stable;
+        }
+
+        /* Scrollbar visible sur tous les tableaux (sans exception) */
+        .cm-content-area .cm-table-wrapper,
+        .cm-content-area .cm-table-responsive,
+        .cm-content-area .cm-prd3-crud-screen .cm-table-wrapper,
+        .cm-content-area .cm-prd6-admin-screen .cm-table-wrapper {
+            display: block !important;
+            height: clamp(180px, 46vh, 560px) !important;
+            min-height: 180px !important;
+            max-height: 560px !important;
+            overflow-x: scroll !important;
+            overflow-y: scroll !important;
+            scrollbar-gutter: stable both-edges !important;
+            scrollbar-width: auto !important;
+            scrollbar-color: #2a8fd4 #d6e6f5 !important;
+        }
+
+        .cm-content-area .cm-table-wrapper::-webkit-scrollbar,
+        .cm-content-area .cm-table-responsive::-webkit-scrollbar,
+        .cm-content-area .cm-prd3-crud-screen .cm-table-wrapper::-webkit-scrollbar,
+        .cm-content-area .cm-prd6-admin-screen .cm-table-wrapper::-webkit-scrollbar {
+            width: 12px !important;
+            height: 12px !important;
+        }
+
+        .cm-content-area .cm-table-wrapper::-webkit-scrollbar-track,
+        .cm-content-area .cm-table-responsive::-webkit-scrollbar-track,
+        .cm-content-area .cm-prd3-crud-screen .cm-table-wrapper::-webkit-scrollbar-track,
+        .cm-content-area .cm-prd6-admin-screen .cm-table-wrapper::-webkit-scrollbar-track {
+            background: rgba(214, 230, 245, 0.65) !important;
+        }
+
+        .cm-content-area .cm-table-wrapper::-webkit-scrollbar-thumb,
+        .cm-content-area .cm-table-responsive::-webkit-scrollbar-thumb,
+        .cm-content-area .cm-prd3-crud-screen .cm-table-wrapper::-webkit-scrollbar-thumb,
+        .cm-content-area .cm-prd6-admin-screen .cm-table-wrapper::-webkit-scrollbar-thumb {
+            background: #2a8fd4 !important;
+            border-radius: 8px !important;
+            border: 2px solid rgba(214, 230, 245, 0.65) !important;
+        }
+
+        /* Toolbar unifiée sur une seule ligne sur tous les écrans CRUD */
+        .cm-content-area .cm-barre-intermediaire {
+            overflow-x: hidden !important;
+            overflow-y: visible !important;
+            scrollbar-gutter: stable both-edges !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .cm-content-area .cm-barre-intermediaire .cm-toolbar {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 0.35rem !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            box-sizing: border-box !important;
+            overflow-x: visible !important;
+            overflow-y: visible !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .cm-content-area .cm-barre-intermediaire .cm-toolbar-left,
+        .cm-content-area .cm-barre-intermediaire .cm-toolbar-center,
+        .cm-content-area .cm-barre-intermediaire .cm-toolbar-right {
+            display: flex !important;
+            align-items: center !important;
+            flex-wrap: wrap !important;
+            width: auto !important;
+            min-width: 0 !important;
+            gap: 0.35rem !important;
+        }
+
+        .cm-content-area .cm-barre-intermediaire .cm-toolbar-left {
+            flex: 1 1 18rem !important;
+        }
+
+        .cm-content-area .cm-barre-intermediaire .cm-toolbar-center {
+            flex: 1 1 auto !important;
+            justify-content: flex-start !important;
+        }
+
+        .cm-content-area .cm-barre-intermediaire .cm-toolbar-right {
+            flex: 0 0 auto !important;
+            justify-content: flex-end !important;
+            margin-left: auto !important;
+        }
+
+        .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-btn {
+            white-space: nowrap !important;
+        }
+
+        .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-toolbar__search-wrap,
+        .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-toolbar-field-lg {
+            width: clamp(11.5rem, 22vw, 16rem) !important;
+            min-width: 11.5rem !important;
+            max-width: 16rem !important;
+        }
+
+        @media (max-width: 900px) {
+            .cm-navbar__page-title {
+                max-width: calc(100vw - 12rem);
+                font-size: 0.92rem;
+                white-space: normal;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                line-height: 1.15;
+            }
+
+            .cm-navbar__year-selector {
+                margin-left: 0.35rem;
+                width: 12ch;
+            }
+
+            .cm-navbar__year-selector .cm-navbar__year-display,
+            .cm-navbar__year-selector #globalAnneeAcademique {
+                width: 100%;
+                min-width: 100%;
+                max-width: 100%;
+            }
+        }
+
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/fr.js"></script>
@@ -1387,6 +1860,10 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             <?php echo $menuHTML; ?>
         </nav>
         <div class="cm-sidebar__footer">
+            <div class="cm-sidebar__user-summary">
+                <span class="cm-sidebar__user-name"><?php echo htmlspecialchars($_SESSION['nom_utilisateur']) ?></span>
+                <span class="cm-sidebar__user-role"><?php echo htmlspecialchars($_SESSION['lib_GU']) ?></span>
+            </div>
             <form action="index.php?_path=/logout" method="POST" id="logoutForm" class="cm-w-full">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Csrf::token()); ?>">
                 <button type="submit" form="logoutForm"
@@ -1401,30 +1878,53 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
     <div class="cm-main-wrapper" id="mainWrapper">
         <header class="cm-navbar" id="cmNavbar">
             <div class="cm-navbar__left">
+                <button type="button" class="cm-navbar__toggle" id="backButton" aria-label="Retour" title="Retour" style="padding:0.5rem; margin-right:0.5rem; color:var(--cm-primary-dark); font-weight:700;" onclick="history.back()">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                </button>
                 <button class="cm-navbar__toggle" id="sidebarToggle" aria-label="Ouvrir/fermer le menu">
                     <i class="fas fa-bars" aria-hidden="true"></i>
                 </button>
-                <h1 class="cm-navbar__app-name"><?php echo htmlspecialchars($currentPageLabel); ?></h1>
+                <span class="cm-navbar__page-title"><?= htmlspecialchars((string) ($currentPageLabel ?? 'CheckMaster'), ENT_QUOTES, 'UTF-8') ?></span>
             </div>
-            <div class="cm-navbar__right">
-                <div class="cm-navbar__user" id="userDropdown" tabindex="0" aria-label="Menu utilisateur">
-                    <div class="cm-navbar__user-info">
-                        <span
-                            class="cm-navbar__username"><?php echo htmlspecialchars($_SESSION['nom_utilisateur']) ?></span>
-                        <small
-                            class="cm-navbar__user-role cm-text-muted"><?php echo htmlspecialchars($_SESSION['lib_GU']) ?></small>
+            <div class="cm-navbar__right<?= $hideAcademicYearOnNavbar ? ' is-empty' : '' ?>">
+                <?php if (!$hideAcademicYearOnNavbar): ?>
+                    <div class="cm-navbar__year-selector<?= $lockAcademicYearOnNavbar ? ' is-readonly' : '' ?>">
+                        <label for="globalAnneeAcademique">Année académique</label>
+                        <?php if ($lockAcademicYearOnNavbar): ?>
+                            <div class="cm-navbar__year-display" aria-readonly="true" title="<?= htmlspecialchars((string) $navbarAcademicYearLabel, ENT_QUOTES, 'UTF-8') ?>">
+                                <?= htmlspecialchars((string) $navbarAcademicYearLabel, ENT_QUOTES, 'UTF-8') ?>
+                            </div>
+                        <?php else: ?>
+                            <?php
+                            $yearQueryBase = $_GET;
+                            unset(
+                                $yearQueryBase['global_annee'],
+                                $yearQueryBase['global_annee_id'],
+                                $yearQueryBase['annee'],
+                                $yearQueryBase['id_annee_acad'],
+                                $yearQueryBase['bulletin_annee']
+                            );
+                            ?>
+                            <select id="globalAnneeAcademique" class="cm-form-control cm-form-select"
+                                onchange="window.location.href=this.value">
+                                <?php $allYearsQuery = $yearQueryBase;
+                                $allYearsQuery['global_annee_id'] = AcademicYear::getAllQueryValue(); ?>
+                                <option value="?<?= htmlspecialchars(http_build_query($allYearsQuery), ENT_QUOTES, 'UTF-8') ?>"
+                                    <?= $currentGlobalYearIsAll ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars(AcademicYear::getAllLabel(), ENT_QUOTES, 'UTF-8') ?>
+                                </option>
+                                <?php foreach ($globalAcademicYears as $id => $label): ?>
+                                    <?php $yearQuery = $yearQueryBase;
+                                    $yearQuery['global_annee_id'] = $id; ?>
+                                    <option value="?<?= htmlspecialchars(http_build_query($yearQuery), ENT_QUOTES, 'UTF-8') ?>"
+                                        <?= (!$currentGlobalYearIsAll && (int) $currentGlobalYearId === (int) $id) ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($label) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        <?php endif; ?>
                     </div>
-                    <i class="fas fa-chevron-down cm-navbar__chevron" aria-hidden="true"></i>
-                    <div class="cm-navbar__dropdown" id="userDropdownMenu">
-                        <a href="?page=profil" class="cm-navbar__dropdown-item">
-                            <i class="fas fa-user" aria-hidden="true"></i> Mon profil
-                        </a>
-                        <a href="#" class="cm-navbar__dropdown-item is-danger"
-                            onclick="document.getElementById('logoutForm').submit(); return false;">
-                            <i class="fas fa-right-from-bracket" aria-hidden="true"></i> Déconnexion
-                        </a>
-                    </div>
-                </div>
+                <?php endif; ?>
             </div>
         </header>
 
@@ -1439,54 +1939,6 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             <?php // Les variables $globalAcademicYears, $currentGlobalYear, $currentGlobalYearId
             // sont calculées en haut du fichier (après database.php) et $_SESSION['global_annee_id'] est déjà défini. ?>
 
-
-            <div class="cm-global-topbar cm-flex cm-flex-between cm-flex-center cm-px-lg cm-py-sm cm-bg-white"
-                style="border-bottom: 1px solid var(--cm-border-color); margin-bottom: var(--cm-spacing-md);">
-                <button type="button" class="cm-btn cm-btn--outline cm-btn--sm" onclick="history.back()">
-                    <i class="fas fa-arrow-left"></i> Retour
-                </button>
-                <div class="cm-flex cm-flex-center cm-flex-gap-sm">
-                    <label for="globalAnneeAcademique" class="cm-text-sm cm-text-semibold cm-m-0"
-                        style="margin-bottom:0;">Année Académique :</label>
-                    <?php
-                    $yearQueryBase = $_GET;
-                    unset(
-                        $yearQueryBase['global_annee'],
-                        $yearQueryBase['global_annee_id'],
-                        $yearQueryBase['annee'],
-                        $yearQueryBase['id_annee_acad'],
-                        $yearQueryBase['bulletin_annee']
-                    );
-                    ?>
-                    <select id="globalAnneeAcademique" class="cm-form-control cm-select--sm"
-                        onchange="window.location.href=this.value"
-                        style="width: auto; padding: 2px 8px; font-size: 0.8rem; height: 30px;">
-                        <?php $allYearsQuery = $yearQueryBase;
-                        $allYearsQuery['global_annee_id'] = AcademicYear::getAllQueryValue(); ?>
-                        <option value="?<?= htmlspecialchars(http_build_query($allYearsQuery), ENT_QUOTES, 'UTF-8') ?>"
-                            <?= $currentGlobalYearIsAll ? 'selected' : '' ?>>
-                            <?= htmlspecialchars(AcademicYear::getAllLabel(), ENT_QUOTES, 'UTF-8') ?>
-                        </option>
-                        <?php foreach ($globalAcademicYears as $id => $label): ?>
-                            <?php $yearQuery = $yearQueryBase;
-                            $yearQuery['global_annee_id'] = $id; ?>
-                            <option value="?<?= htmlspecialchars(http_build_query($yearQuery), ENT_QUOTES, 'UTF-8') ?>"
-                                <?= (!$currentGlobalYearIsAll && (int) $currentGlobalYearId === (int) $id) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($label) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <?php if ($currentGlobalYearIsAll && $writableGlobalYear !== ''): ?>
-                        <span class="cm-text-xs cm-text-muted" title="Affichage global sur toutes les années">
-                            Affichage global. Écritures: <?= htmlspecialchars($writableGlobalYear, ENT_QUOTES, 'UTF-8') ?>
-                        </span>
-                    <?php elseif ($currentGlobalYearId !== null && $activeGlobalYearId !== null && (int) $currentGlobalYearId !== (int) $activeGlobalYearId): ?>
-                        <span class="cm-text-xs cm-text-muted" title="Consultation historique uniquement">
-                            Consultation: <?= htmlspecialchars($currentGlobalYear, ENT_QUOTES, 'UTF-8') ?>
-                        </span>
-                    <?php endif; ?>
-                </div>
-            </div>
 
             <?php
             // Si $contentFile est explicitement null, le contenu a déjà été géré par un service

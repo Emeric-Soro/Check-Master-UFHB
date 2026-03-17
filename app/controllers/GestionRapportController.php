@@ -9,7 +9,7 @@ require_once __DIR__ . '/../models/Entreprise.php';
 require_once __DIR__ . '/../Services/GestionRapportService.php';
 require_once __DIR__ . '/../Support/Database.php';
 require_once __DIR__ . '/../Services/Document/RapportPdfGeneratorService.php';
-require_once __DIR__ . '/../Utils/PlanningDataUtils.php';
+require_once __DIR__ . '/../utils/PlanningDataUtils.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 
 
@@ -146,6 +146,7 @@ class GestionRapportController
             unset($_SESSION['erreurs_form']);
 
             // Rendre toutes les données disponibles globalement pour la vue
+            // (layout.php inclut la vue via $contentFile — ne PAS faire require_once ici)
             $GLOBALS['rapport'] = $rapport;
             $GLOBALS['isEditMode'] = $isEditMode;
             $GLOBALS['contenuRapport'] = $contenuRapport;

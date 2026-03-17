@@ -51,7 +51,7 @@ class PlanificationSoutenanceController
      */
     public function planifierSoutenance()
     {
-        if (!canCreate('plannification_soutenance') && !canEdit('plannification_soutenance')) {
+        if (!canCreate('planification_soutenance') && !canEdit('planification_soutenance')) {
             header('Content-Type: application/json');
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -72,7 +72,7 @@ class PlanificationSoutenanceController
      */
     public function supprimerPlanification()
     {
-        if (!canDelete('plannification_soutenance')) {
+        if (!canDelete('planification_soutenance')) {
             header('Content-Type: application/json');
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);

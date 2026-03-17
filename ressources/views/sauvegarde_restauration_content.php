@@ -37,13 +37,22 @@ foreach ($backups as $backup) {
             'can_view' => canView(),
         ]); ?>
         <?php if (canCreate()): ?>
-        <form method="POST" action="?page=sauvegarde_restauration&action=create" data-cm-ajax-form="true">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="POST" action="?page=sauvegarde_restauration&action=create" data-cm-ajax-form="true">
             <?php cm_component('form/csrf-token'); ?>
             <div class="cm-grid-2">
                 <?php cm_component('form/input-text', [
                     'name' => 'backup_name',
                     'label' => 'Nom sauvegarde (optionnel)',
                     'placeholder' => 'Ex: avant_migration',
+                    'value' => 'backup_' . date('Ymd_His'),
                 ]); ?>
             </div>
             <?php cm_component('crud/form-actions', [
@@ -52,7 +61,7 @@ foreach ($backups as $backup) {
                     'type' => 'submit',
                     'label' => 'Creer une sauvegarde',
                     'icon' => 'fa-database',
-                    'class' => 'cm-btn is-success',
+                    'class' => 'cm-btn is-primary',
                 ]],
             ]); ?>
         </form>
@@ -66,15 +75,6 @@ foreach ($backups as $backup) {
             'content' => (string) ob_get_clean(),
         ]);
         ?>
-
-        <?php cm_toolbar([
-            'screen' => 'sauvegarde_restauration',
-            'id_prefix' => 'backup',
-            'search_value' => $_GET['search'] ?? '',
-            'limit' => 10,
-            'can_delete' => canDelete(),
-            'can_view' => canView(),
-        ]); ?>
 
         <div class="cm-pole-inferieur">
             <?php
@@ -106,9 +106,9 @@ foreach ($backups as $backup) {
             cm_component('crud/data-table', [
                 'id' => 'cmBackupTable',
                 'columns' => [
-                    cm_column('filename', 'Nom fichier'),
+                    cm_column('filename', 'Nom du fichier'),
                     cm_column('size', 'Taille'),
-                    cm_column('created_at', 'Date creation'),
+                    cm_column('created_at', 'Date création'),
                     cm_column('type', 'Type', ['type' => 'badge', 'align' => 'center']),
                 ],
                 'rows' => $rows,
@@ -210,3 +210,4 @@ foreach ($backups as $backup) {
     });
 })();
 </script>
+

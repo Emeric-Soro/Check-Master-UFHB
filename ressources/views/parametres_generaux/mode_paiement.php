@@ -27,6 +27,8 @@ cm_render_param_crud_view([
             'required' => true,
             'placeholder' => 'Ex: ES',
             'value_key' => 'code_mode_paiement',
+            'size' => 'sm',
+            'attrs' => ['maxlength' => '10'],
         ],
         [
             'name' => 'libelle_mode_paement',

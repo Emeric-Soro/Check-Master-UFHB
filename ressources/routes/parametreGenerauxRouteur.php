@@ -30,7 +30,10 @@ if ($_GET['page'] === 'parametres_generaux') {
                 $controller->gestionFonctionUtilisateur();
                 break;
             case 'specialites':
-                $controller->gestionSpecialite();
+            case 'entreprises':
+            case 'actions':
+            case 'fonctions':
+                $controller->gestionReferentielSimple();
                 break;
             case 'niveaux_etude':
                 $controller->gestionNiveauEtude();
@@ -56,17 +59,8 @@ if ($_GET['page'] === 'parametres_generaux') {
             case 'traitements':
                 $controller->gestionTraitement();
                 break;
-            case 'entreprises':
-                $controller->gestionEntreprise();
-                break;
-            case 'actions':
-                $controller->gestionAction();
-                break;
-            case 'fonctions':
-                $controller->gestionFonction();
-                break;
             case 'messages':
-                $controller->gestionMessagerie();
+                $controller->gestionReferentielSimple();
                 break;
             case 'gestion_attribution':
                 $controller->gestionAttribution();

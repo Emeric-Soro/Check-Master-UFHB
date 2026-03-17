@@ -4,6 +4,8 @@ class Permission
 {
     private $pdo;
 
+    private static $hasSlugPermissionColumn = null;
+
     public function __construct($pdo)
     {
         $this->pdo = $pdo;
@@ -45,6 +47,26 @@ class Permission
         return $result ? (bool) $result->$type_permission : false;
     }
 
+    public function checkPermissionBySlug($id_GU, $slug_permission, $type_permission = 'peut_voir')
+    {
+        if (!$this->hasSlugPermissionColumn()) {
+            return false;
+        }
+
+        $sql = "SELECT p.$type_permission
+                FROM permissions p
+                INNER JOIN fonctionnalites f ON p.id_fonctionnalite = f.id_fonctionnalite
+                WHERE p.id_GU = :id_GU AND f.slug_permission = :slug_permission";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindParam(':id_GU', $id_GU, PDO::PARAM_INT);
+        $stmt->bindParam(':slug_permission', $slug_permission, PDO::PARAM_STR);
+        $stmt->execute();
+
+        $result = $stmt->fetch(PDO::FETCH_OBJ);
+        return $result ? (bool) $result->$type_permission : false;
+    }
+
     /**
      * Récupérer toutes les permissions d'un groupe pour une fonctionnalité
      */
@@ -61,12 +83,32 @@ class Permission
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
+    public function getPermissionsBySlug($id_GU, $slug_permission)
+    {
+        if (!$this->hasSlugPermissionColumn()) {
+            return false;
+        }
+
+        $sql = "SELECT p.*
+                FROM permissions p
+                INNER JOIN fonctionnalites f ON p.id_fonctionnalite = f.id_fonctionnalite
+                WHERE p.id_GU = :id_GU AND f.slug_permission = :slug_permission";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindParam(':id_GU', $id_GU, PDO::PARAM_INT);
+        $stmt->bindParam(':slug_permission', $slug_permission, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_OBJ);
+    }
+
     /**
      * Récupérer toutes les permissions d'un groupe
      */
     public function getAllPermissionsForGroupe($id_GU)
     {
-        $sql = "SELECT p.*, f.code_fonctionnalite, f.lib_fonctionnalite, c.lib_categorie
+        $slugSelect = $this->hasSlugPermissionColumn() ? ', f.slug_permission' : '';
+        $sql = "SELECT p.*, f.code_fonctionnalite, f.lib_fonctionnalite{$slugSelect}, c.lib_categorie
                 FROM permissions p
                 INNER JOIN fonctionnalites f ON p.id_fonctionnalite = f.id_fonctionnalite
                 INNER JOIN categories_fonctionnalites c ON f.id_categorie = c.id_categorie
@@ -184,5 +226,21 @@ class Permission
         $stmt->bindParam(':id_GU', $id_GU, PDO::PARAM_INT);
         $stmt->bindParam(':id_categorie', $id_categorie, PDO::PARAM_INT);
         return $stmt->execute();
+    }
+
+    private function hasSlugPermissionColumn()
+    {
+        if (self::$hasSlugPermissionColumn !== null) {
+            return self::$hasSlugPermissionColumn;
+        }
+
+        try {
+            $stmt = $this->pdo->query("SHOW COLUMNS FROM fonctionnalites LIKE 'slug_permission'");
+            self::$hasSlugPermissionColumn = (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            self::$hasSlugPermissionColumn = false;
+        }
+
+        return self::$hasSlugPermissionColumn;
     }
 }

@@ -21,6 +21,16 @@ cm_render_param_crud_view([
     'edit_button_label' => 'Modifier',
     'form_fields' => [
         [
+            'name' => 'id_genre',
+            'label' => 'Code genre',
+            'type' => 'text',
+            'required' => true,
+            'placeholder' => 'Ex: M',
+            'value_key' => 'id_genre',
+            'size' => 'xs',
+            'attrs' => ['maxlength' => '1'],
+        ],
+        [
             'name' => 'libelle_genre',
             'label' => 'Libellé genre',
             'type' => 'text',

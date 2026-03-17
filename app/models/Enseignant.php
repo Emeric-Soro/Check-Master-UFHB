@@ -59,7 +59,7 @@ class Enseignant{
     public function setTypeEnseignant($type_enseignant) { $this->type_enseignant = $type_enseignant; }
     // Méthodes CRUD
     public function getAllEnseignants() {
-        $query = "SELECT e.*, f.lib_fonction,f.id_fonction, g.lib_grade, g.id_grade, s.lib_specialite,
+        $query = "SELECT e.*, e.id_enseignant AS matricule_enseignant, f.lib_fonction,f.id_fonction, g.lib_grade, g.id_grade, s.lib_specialite,
                         a.date_grade, o.date_occupation
                  FROM enseignants e 
                  LEFT JOIN avoir a ON e.id_enseignant = a.id_enseignant
@@ -74,7 +74,7 @@ class Enseignant{
     }
 
     public function getEnseignantById($id) {
-        $query = "SELECT e.*, f.lib_fonction,f.id_fonction, g.lib_grade, g.id_grade, s.lib_specialite,
+        $query = "SELECT e.*, e.id_enseignant AS matricule_enseignant, f.lib_fonction,f.id_fonction, g.lib_grade, g.id_grade, s.lib_specialite,
                         a.date_grade, o.date_occupation
                  FROM enseignants e 
                  LEFT JOIN avoir a ON e.id_enseignant = a.id_enseignant
@@ -90,7 +90,7 @@ class Enseignant{
     }
 
     public function getEnseignantByLogin($login) {
-        $query = "SELECT e.*, f.lib_fonction,f.id_fonction, g.lib_grade, g.id_grade, s.lib_specialite,
+        $query = "SELECT e.*, e.id_enseignant AS matricule_enseignant, f.lib_fonction,f.id_fonction, g.lib_grade, g.id_grade, s.lib_specialite,
                         a.date_grade, o.date_occupation
                  FROM enseignants e 
                  LEFT JOIN avoir a ON e.id_enseignant = a.id_enseignant

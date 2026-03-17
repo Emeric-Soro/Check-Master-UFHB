@@ -45,7 +45,7 @@ class NotesService
                 SELECT i.id_niv_etude
                 FROM inscriptions i
                 WHERE i.num_carte_etud = ?
-                ORDER BY i.date_inscription DESC, i.id_inscription DESC
+                ORDER BY i.date_inscription DESC, i.num_versement DESC
                 LIMIT 1
             ");
             $stmt->execute([$studentId]);

@@ -19,6 +19,97 @@ class CriteresEvaluationService
         $this->critereModel = new CritereEvaluation($db);
     }
 
+    private function normalizeCritereTokens(string $libelle): array
+    {
+        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $libelle);
+        if ($ascii === false) {
+            $ascii = $libelle;
+        }
+
+        $ascii = strtoupper((string) $ascii);
+        $ascii = preg_replace('/[^A-Z0-9]+/', ' ', $ascii);
+        $ascii = trim((string) preg_replace('/\s+/', ' ', (string) $ascii));
+
+        return [
+            'words' => $ascii === '' ? [] : preg_split('/\s+/', $ascii),
+            'compact' => str_replace(' ', '', $ascii),
+        ];
+    }
+
+    private function addCritereCandidate(array &$candidates, string $candidate): void
+    {
+        $candidate = strtoupper((string) preg_replace('/[^A-Z0-9]+/', '', $candidate));
+        if ($candidate === '') {
+            return;
+        }
+        if (strlen($candidate) === 1) {
+            $candidate .= 'X';
+        }
+        $candidate = substr($candidate, 0, 2);
+        if (!in_array($candidate, $candidates, true)) {
+            $candidates[] = $candidate;
+        }
+    }
+
+    private function critereCodeExists(string $codeCritere, ?string $excludeId = null): bool
+    {
+        $codeCritere = trim(strtoupper($codeCritere));
+        if ($codeCritere === '') {
+            return false;
+        }
+
+        $critere = $this->critereModel->getCritereByCode($codeCritere);
+        if (!$critere) {
+            return false;
+        }
+
+        if ($excludeId !== null && (string) ($critere->id_critere ?? '') === $excludeId) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function generateCritereCode(string $libelle, ?string $excludeId = null): string
+    {
+        $tokens = $this->normalizeCritereTokens($libelle);
+        $words = is_array($tokens['words']) ? $tokens['words'] : [];
+        $compact = (string) ($tokens['compact'] ?? '');
+        $candidates = [];
+
+        if (count($words) >= 2) {
+            $this->addCritereCandidate($candidates, substr((string) $words[0], 0, 1) . substr((string) $words[1], 0, 1));
+        }
+        if ($compact !== '') {
+            $this->addCritereCandidate($candidates, substr($compact, 0, 2));
+        }
+        foreach ($words as $word) {
+            $this->addCritereCandidate($candidates, substr((string) $word, 0, 2));
+        }
+        for ($i = 0, $len = strlen($compact); $i < max($len - 1, 0); $i++) {
+            $this->addCritereCandidate($candidates, substr($compact, $i, 2));
+        }
+
+        foreach ($candidates as $candidate) {
+            if (!$this->critereCodeExists($candidate, $excludeId)) {
+                return $candidate;
+            }
+        }
+
+        $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        $alphabetLength = strlen($alphabet);
+        for ($i = 0; $i < $alphabetLength; $i++) {
+            for ($j = 0; $j < $alphabetLength; $j++) {
+                $candidate = $alphabet[$i] . $alphabet[$j];
+                if (!$this->critereCodeExists($candidate, $excludeId)) {
+                    return $candidate;
+                }
+            }
+        }
+
+        throw new Exception("Impossible de générer un code critère disponible.");
+    }
+
     /**
      * Récupérer toutes les années académiques
      * @return array
@@ -80,10 +171,10 @@ class CriteresEvaluationService
     /**
      * Créer un nouveau critère d'évaluation avec ses barèmes
      * @param array $input Données du critère (libelle, baremes)
-     * @return int ID du critère créé
+     * @return string ID du critère créé
      * @throws Exception
      */
-    public function createCritere(array $input): int
+    public function createCritere(array $input): string
     {
         if (!isset($input['libelle']) || empty(trim($input['libelle']))) {
             throw new Exception('Le libellé du critère est requis');
@@ -99,12 +190,18 @@ class CriteresEvaluationService
         $this->db->beginTransaction();
 
         try {
-            // Insérer le critère via le modèle
-            $code_critere = strtoupper(substr($input['libelle'], 0, 2));
-            if (!$this->critereModel->creerCritere($code_critere, trim($input['libelle']))) {
+            $libelle = trim((string) $input['libelle']);
+            $codeCritere = $this->generateCritereCode($libelle);
+
+            if (!$this->critereModel->creerCritere($codeCritere, $libelle)) {
                 throw new Exception('Erreur lors de la création du critère');
             }
-            $critereId = $this->db->lastInsertId();
+
+            $critere = $this->critereModel->getCritereByCode($codeCritere);
+            $critereId = (string) ($critere->id_critere ?? $codeCritere);
+            if ($critereId === '') {
+                throw new Exception("Impossible de récupérer l'identifiant du critère créé");
+            }
 
             // Insérer les barèmes
             $stmtBareme = $this->db->prepare("INSERT INTO bareme_critere (id_critere, id_annee_acad, bareme) VALUES (?, ?, ?)");
@@ -124,7 +221,7 @@ class CriteresEvaluationService
             }
 
             $this->db->commit();
-            return (int) $critereId;
+            return $critereId;
         } catch (Exception $e) {
             $this->db->rollBack();
             throw $e;
@@ -156,15 +253,17 @@ class CriteresEvaluationService
         $this->db->beginTransaction();
 
         try {
-            // Mettre à jour le critère via le modèle
-            $code_critere = strtoupper(substr($input['libelle'], 0, 2));
-            if (!$this->critereModel->modifierCritere($input['id'], $code_critere, trim($input['libelle']))) {
+            $critereId = trim((string) $input['id']);
+            $libelle = trim((string) $input['libelle']);
+            $codeCritere = $this->generateCritereCode($libelle, $critereId);
+
+            if (!$this->critereModel->modifierCritere($critereId, $codeCritere, $libelle)) {
                 throw new Exception('Erreur lors de la modification du critère');
             }
 
             // Supprimer les anciens barèmes
             $stmtDelete = $this->db->prepare("DELETE FROM bareme_critere WHERE id_critere = ?");
-            $stmtDelete->execute([$input['id']]);
+            $stmtDelete->execute([$critereId]);
 
             // Insérer les nouveaux barèmes
             $stmtBareme = $this->db->prepare("INSERT INTO bareme_critere (id_critere, id_annee_acad, bareme) VALUES (?, ?, ?)");
@@ -176,7 +275,7 @@ class CriteresEvaluationService
                     $bareme['bareme'] !== ''
                 ) {
                     $stmtBareme->execute([
-                        $input['id'],
+                        $critereId,
                         $bareme['annee_id'],
                         (int) $bareme['bareme']
                     ]);
@@ -204,18 +303,20 @@ class CriteresEvaluationService
         $this->db->beginTransaction();
 
         try {
+            $critereId = trim((string) $input['id']);
+
             // Vérifier si le critère existe
-            $critere = $this->critereModel->getCritereById($input['id']);
+            $critere = $this->critereModel->getCritereById($critereId);
             if (!$critere) {
                 throw new Exception('Critère non trouvé');
             }
 
             // Supprimer les barèmes associés
             $stmtBaremes = $this->db->prepare("DELETE FROM bareme_critere WHERE id_critere = ?");
-            $stmtBaremes->execute([$input['id']]);
+            $stmtBaremes->execute([$critereId]);
 
             // Supprimer le critère via le modèle
-            if (!$this->critereModel->supprimerCritere($input['id'])) {
+            if (!$this->critereModel->supprimerCritere($critereId)) {
                 throw new Exception('Erreur lors de la suppression du critère');
             }
 
@@ -229,10 +330,10 @@ class CriteresEvaluationService
     /**
      * Valider que les totaux des barèmes par année ne dépassent pas 20 points
      * @param array $nouveauxBaremes Nouveaux barèmes à valider
-     * @param int|null $critereIdExclure ID du critère à exclure (pour les modifications)
+     * @param string|null $critereIdExclure ID du critère à exclure (pour les modifications)
      * @throws Exception
      */
-    private function validateBaremesTotaux(array $nouveauxBaremes, ?int $critereIdExclure = null): void
+    private function validateBaremesTotaux(array $nouveauxBaremes, ?string $critereIdExclure = null): void
     {
         // Récupérer les totaux actuels par année (en excluant le critère en cours de modification si applicable)
         $sqlExclusion = $critereIdExclure ? " AND bc.id_critere != ?" : "";

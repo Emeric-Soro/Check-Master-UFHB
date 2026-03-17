@@ -17,10 +17,16 @@ if (strpos($libGU, 'admin') !== false) {
 }
 
 $allYearsSelected = \AcademicYear::isAllSelectedFromSession();
-$filtreAnnee = isset($_GET['id_annee_acad']) && $_GET['id_annee_acad'] !== '' ? (int) $_GET['id_annee_acad'] : \AcademicYear::getSelectedIdFromSession();
+$hasAnneeFilterParam = array_key_exists('id_annee_acad', $_GET);
+if ($hasAnneeFilterParam) {
+    $rawAnneeFilter = trim((string) $_GET['id_annee_acad']);
+    $filtreAnnee = $rawAnneeFilter !== '' ? (int) $rawAnneeFilter : null;
+} else {
+    $filtreAnnee = \AcademicYear::getSelectedIdFromSession();
+}
 $filtreSession = isset($_GET['id_session']) && $_GET['id_session'] !== '' ? (int) $_GET['id_session'] : null;
 $filtreQualiteJury = isset($_GET['id_qualite_jury']) && $_GET['id_qualite_jury'] !== '' ? (int) $_GET['id_qualite_jury'] : null;
-$enseignantSelectionne = isset($_GET['id_enseignant_selected']) && $_GET['id_enseignant_selected'] !== '' ? (int) $_GET['id_enseignant_selected'] : null;
+$enseignantSelectionne = isset($_GET['id_enseignant_selected']) && $_GET['id_enseignant_selected'] !== '' ? (string) $_GET['id_enseignant_selected'] : null;
 
 $anneeOptions = [];
 $sessionOptions = [];
@@ -29,6 +35,22 @@ $enseignantOptions = [];
 $qualitesJury = [];
 $listeEtudiants = [];
 $soutenancesProgrammees = [];
+$inscriptionsHasNumCarte = false;
+$inscriptionsHasNumIdent = false;
+$inscriptionYearExistsFor = static function (string $studentExpr) use (&$inscriptionsHasNumCarte, &$inscriptionsHasNumIdent): string {
+    $links = [];
+    if ($inscriptionsHasNumCarte) {
+        $links[] = "i.num_carte_etud = {$studentExpr}";
+    }
+    if ($inscriptionsHasNumIdent) {
+        $links[] = "i.num_ident_etud = {$studentExpr}";
+    }
+    if (empty($links)) {
+        $links[] = "i.num_carte_etud = {$studentExpr}";
+    }
+
+    return "EXISTS (SELECT 1 FROM inscriptions i WHERE (" . implode(' OR ', $links) . ") AND i.id_annee_acad = :id_annee_acad)";
+};
 
 try {
     if (!class_exists('Database')) {
@@ -42,13 +64,17 @@ try {
     }
 
     $pdo = Database::getConnection();
+
+    $inscriptionsHasNumCarte = (bool) $pdo->query("SHOW COLUMNS FROM inscriptions LIKE 'num_carte_etud'")->fetchColumn();
+    $inscriptionsHasNumIdent = (bool) $pdo->query("SHOW COLUMNS FROM inscriptions LIKE 'num_ident_etud'")->fetchColumn();
+
     $anneeModel = new AnneeAcademique($pdo);
     $anneeActive = $anneeModel->getAnneeAcademiqueActive();
     if ($anneeActive && is_object($anneeActive) && !empty($anneeActive->date_deb) && !empty($anneeActive->date_fin)) {
         if ($yearLabel === '') {
             $yearLabel = date('Y', strtotime((string) $anneeActive->date_deb)) . '-' . date('Y', strtotime((string) $anneeActive->date_fin));
         }
-        if ($filtreAnnee === null && !$allYearsSelected) {
+        if (($filtreAnnee === null || $filtreAnnee <= 0) && !$allYearsSelected && !$hasAnneeFilterParam) {
             $filtreAnnee = (int) ($anneeActive->id_annee_acad ?? 0);
         }
     }
@@ -66,23 +92,29 @@ try {
     // Déterminer quel enseignant afficher
     if ($isAdmin && $enseignantSelectionne !== null) {
         // Admin a sélectionné un enseignant
-        $enseignant = $enseignantModel->getEnseignantById($enseignantSelectionne);
-        if ($enseignant && is_object($enseignant)) {
-            $teacherId = (string) ($enseignant->id_enseignant ?? '');
-            $fullName = trim((string) ($enseignant->nom_enseignant ?? '') . ' ' . (string) ($enseignant->prenom_enseignant ?? ''));
-            if ($fullName !== '') {
-                $teacherName = $fullName;
+        try {
+            $enseignant = $enseignantModel->getEnseignantById($enseignantSelectionne);
+            if ($enseignant && is_object($enseignant)) {
+                $teacherId = (string) ($enseignant->id_enseignant ?? '');
+                $fullName = trim((string) ($enseignant->nom_enseignant ?? '') . ' ' . (string) ($enseignant->prenom_enseignant ?? ''));
+                if ($fullName !== '') {
+                    $teacherName = $fullName;
+                }
             }
+        } catch (Throwable $e) {
         }
     } else {
         // Enseignant connecté ou admin sans sélection
-        $enseignant = $enseignantModel->getEnseignantByLogin((string) ($_SESSION['login_utilisateur'] ?? ''));
-        if ($enseignant && is_object($enseignant)) {
-            $teacherId = (string) ($enseignant->id_enseignant ?? '');
-            $fullName = trim((string) ($enseignant->nom_enseignant ?? '') . ' ' . (string) ($enseignant->prenom_enseignant ?? ''));
-            if ($fullName !== '') {
-                $teacherName = $fullName;
+        try {
+            $enseignant = $enseignantModel->getEnseignantByLogin((string) ($_SESSION['login_utilisateur'] ?? ''));
+            if ($enseignant && is_object($enseignant)) {
+                $teacherId = (string) ($enseignant->id_enseignant ?? '');
+                $fullName = trim((string) ($enseignant->nom_enseignant ?? '') . ' ' . (string) ($enseignant->prenom_enseignant ?? ''));
+                if ($fullName !== '') {
+                    $teacherName = $fullName;
+                }
             }
+        } catch (Throwable $e) {
         }
     }
 
@@ -107,7 +139,7 @@ try {
         $params = [':id_enseignant' => $teacherId];
 
         if ($filtreAnnee !== null) {
-            $whereConditions[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+            $whereConditions[] = $inscriptionYearExistsFor('e.num_carte_etud');
             $params[':id_annee_acad'] = $filtreAnnee;
         }
 
@@ -121,33 +153,54 @@ try {
             $params[':id_qualite_jury'] = $filtreQualiteJury;
         }
 
-        $whereClause = implode(' AND ', $whereConditions);
-
-        // Utiliser un LEFT JOIN pour avoir tous les rôles même avec compte 0
+        // Calcul des statistiques par rôle sur la même base que le tableau (mêmes jointures/filtres).
         $sqlQualites = "SELECT
                             qj.id_role_jury,
                             qj.lib_role,
-                            COUNT(DISTINCT ej.num_soutenance) AS total
+                            COALESCE(s.total, 0) AS total
                         FROM {$rolesTable} qj
-                        LEFT JOIN {$juryTable} ej ON qj.id_role_jury = ej.id_qualite_jury AND CAST(ej.id_enseignant AS CHAR) = :id_enseignant
-                        LEFT JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance
-                        LEFT JOIN etudiants e ON e.num_carte_etud = ps.num_etud
-                        WHERE 1=1
-                        " . ($filtreAnnee !== null ? "AND (ej.num_soutenance IS NULL OR EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad))" : "") . "
-                        " . ($filtreSession !== null ? "AND (ej.num_soutenance IS NULL OR ps.id_session = :id_session)" : "") . "
-                        " . ($filtreQualiteJury !== null ? "AND (ej.num_soutenance IS NULL OR ej.id_qualite_jury = :id_qualite_jury)" : "") . "
-                        GROUP BY qj.id_role_jury, qj.lib_role
+                        LEFT JOIN (
+                            SELECT
+                                ej.id_qualite_jury,
+                                COUNT(DISTINCT ps.num_soutenance) AS total
+                            FROM {$juryTable} ej
+                            JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance
+                            JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                            WHERE CAST(ej.id_enseignant AS CHAR) = :id_enseignant
+                            " . ($filtreAnnee !== null ? "AND " . $inscriptionYearExistsFor('e.num_carte_etud') : "") . "
+                            " . ($filtreSession !== null ? "AND ps.id_session = :id_session" : "") . "
+                            " . ($filtreQualiteJury !== null ? "AND ej.id_qualite_jury = :id_qualite_jury" : "") . "
+                            GROUP BY ej.id_qualite_jury
+                        ) s ON s.id_qualite_jury = qj.id_role_jury
                         ORDER BY qj.id_role_jury";
         $stmtQualites = $pdo->prepare($sqlQualites);
         $stmtQualites->execute($params);
         $qualitesJury = $stmtQualites->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        // Extraire les ID des rôles depuis les résultats
+        $roleIds = [];
+        foreach ($qualitesJury as $qualite) {
+            $lib = strtolower($qualite['lib_role'] ?? '');
+            $id = $qualite['id_role_jury'] ?? '';
+            if (strpos($lib, 'president') !== false || strpos($lib, 'président') !== false) {
+                $roleIds['president'] = $id;
+            } elseif (strpos($lib, 'directeur') !== false) {
+                $roleIds['directeur'] = $id;
+            } elseif (strpos($lib, 'examina') !== false) {
+                $roleIds['examinateur'] = $id;
+            } elseif (strpos($lib, 'encadr') !== false) {
+                $roleIds['encadrant'] = $id;
+            } elseif (strpos($lib, 'maitre') !== false || strpos($lib, 'stage') !== false) {
+                $roleIds['maitre_stage'] = $id;
+            }
+        }
 
         // Tableau des étudiants avec tous les rôles de jury
         $whereEtudiants = ["CAST(ej_main.id_enseignant AS CHAR) = :id_enseignant"];
         $paramsEtudiants = [':id_enseignant' => $teacherId];
         
         if ($filtreAnnee !== null) {
-            $whereEtudiants[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+            $whereEtudiants[] = $inscriptionYearExistsFor('e.num_carte_etud');
             $paramsEtudiants[':id_annee_acad'] = $filtreAnnee;
         }
         
@@ -163,37 +216,46 @@ try {
         
         $whereEtudiantsClause = implode(' AND ', $whereEtudiants);
 
-        $sqlEtudiants = "SELECT DISTINCT
+        // Construire dynamiquement les sous-requêtes pour chaque rôle
+        $presidentSubquery = !empty($roleIds['president']) 
+            ? "(SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ') FROM {$juryTable} ej JOIN enseignants en ON en.id_enseignant = ej.id_enseignant WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = '" . addslashes($roleIds['president']) . "')" 
+            : "NULL";
+        $directeurSubquery = !empty($roleIds['directeur']) 
+            ? "(SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ') FROM {$juryTable} ej JOIN enseignants en ON en.id_enseignant = ej.id_enseignant WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = '" . addslashes($roleIds['directeur']) . "')" 
+            : "NULL";
+        $examinateurSubquery = !empty($roleIds['examinateur']) 
+            ? "(SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ') FROM {$juryTable} ej JOIN enseignants en ON en.id_enseignant = ej.id_enseignant WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = '" . addslashes($roleIds['examinateur']) . "')" 
+            : "NULL";
+        $encadrantSubquery = !empty($roleIds['encadrant']) 
+            ? "(SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ') FROM {$juryTable} ej JOIN enseignants en ON en.id_enseignant = ej.id_enseignant WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = '" . addslashes($roleIds['encadrant']) . "')" 
+            : "NULL";
+        $maitreSubquery = !empty($roleIds['maitre_stage']) 
+            ? "(SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ') FROM {$juryTable} ej JOIN enseignants en ON en.id_enseignant = ej.id_enseignant WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = '" . addslashes($roleIds['maitre_stage']) . "')" 
+            : "NULL";
+
+        $sqlEtudiants = "SELECT
+                            ps.num_soutenance,
                             e.num_carte_etud,
                             e.nom_etu AS nom_etud,
                             e.prenom_etu AS prenom_etud,
-                            ps.theme_soutenance,
-                            ps.num_soutenance,
-                            (SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ')
-                             FROM {$juryTable} ej 
-                             JOIN enseignants en ON en.id_enseignant = ej.id_enseignant
-                             WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = 1) AS president,
-                            (SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ')
-                             FROM {$juryTable} ej 
-                             JOIN enseignants en ON en.id_enseignant = ej.id_enseignant
-                             WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = 2) AS directeur_memoire,
-                            (SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ')
-                             FROM {$juryTable} ej 
-                             JOIN enseignants en ON en.id_enseignant = ej.id_enseignant
-                             WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = 3) AS examinateur,
-                            (SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ')
-                             FROM {$juryTable} ej 
-                             JOIN enseignants en ON en.id_enseignant = ej.id_enseignant
-                             WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = 4) AS encadrant,
-                            (SELECT GROUP_CONCAT(CONCAT(en.nom_enseignant, ' ', en.prenom_enseignant) SEPARATOR ', ')
-                             FROM {$juryTable} ej 
-                             JOIN enseignants en ON en.id_enseignant = ej.id_enseignant
-                             WHERE ej.num_soutenance = ps.num_soutenance AND ej.id_qualite_jury = 5) AS maitre_stage
+                            MAX(ps.theme_soutenance) AS theme_soutenance,
+                            {$presidentSubquery} AS president,
+                            {$directeurSubquery} AS directeur_memoire,
+                            {$examinateurSubquery} AS examinateur,
+                            {$encadrantSubquery} AS encadrant,
+                            {$maitreSubquery} AS membre_jury_maitre_stage,
+                            (SELECT CONCAT(ms.Nom, ' ', COALESCE(ms.prenom, ''))
+                             FROM informations_stage ist
+                             JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
+                             WHERE ist.num_etu = e.num_carte_etud LIMIT 1) AS maitre_stage_reel,
+                            MAX(ps.date_soutenance) AS date_soutenance,
+                            MAX(ps.heure_soutenance) AS heure_soutenance
                         FROM {$juryTable} ej_main
                         JOIN {$progTable} ps ON ps.num_soutenance = ej_main.num_soutenance
                         JOIN etudiants e ON e.num_carte_etud = ps.num_etud
                         WHERE {$whereEtudiantsClause}
-                        ORDER BY e.nom_etu, e.prenom_etu";
+                        GROUP BY ps.num_soutenance, e.num_carte_etud, e.nom_etu, e.prenom_etu
+                        ORDER BY MAX(ps.date_soutenance) DESC, MAX(ps.heure_soutenance) DESC, e.nom_etu, e.prenom_etu";
         
         $stmtEtudiants = $pdo->prepare($sqlEtudiants);
         $stmtEtudiants->execute($paramsEtudiants);
@@ -258,14 +320,31 @@ try {
         $progTable = $pdo->query("SHOW TABLES LIKE 'programmer_soutenance'")->fetchColumn() ? 'programmer_soutenance' : 'programmer';
         $juryTable = $pdo->query("SHOW TABLES LIKE 'enseignant_jury'")->fetchColumn() ? 'enseignant_jury' : 'composer_jury';
 
+        $inscriptionsHasNumCarte = (bool) $pdo->query("SHOW COLUMNS FROM inscriptions LIKE 'num_carte_etud'")->fetchColumn();
+        $inscriptionsHasNumIdent = (bool) $pdo->query("SHOW COLUMNS FROM inscriptions LIKE 'num_ident_etud'")->fetchColumn();
+        $inscriptionYearExistsFor = static function (string $studentExpr) use ($inscriptionsHasNumCarte, $inscriptionsHasNumIdent): string {
+            $links = [];
+            if ($inscriptionsHasNumCarte) {
+                $links[] = "i.num_carte_etud = {$studentExpr}";
+            }
+            if ($inscriptionsHasNumIdent) {
+                $links[] = "i.num_ident_etud = {$studentExpr}";
+            }
+            if (empty($links)) {
+                $links[] = "i.num_carte_etud = {$studentExpr}";
+            }
+
+            return "EXISTS (SELECT 1 FROM inscriptions i WHERE (" . implode(' OR ', $links) . ") AND i.id_annee_acad = :id_annee_acad)";
+        };
+
         $whereReports = "CAST(a.id_enseignant AS CHAR) = :id_enseignant AND r.statut_rapport IN ('en_attente', 'en_cours')";
         $whereSoutenances = "CAST(ej.id_enseignant AS CHAR) = :id_enseignant AND CONCAT(ps.date_soutenance, ' ', COALESCE(ps.heure_soutenance, '00:00:00')) >= NOW()";
         $whereStudents = "CAST(a.id_enseignant AS CHAR) = :id_enseignant AND a.role IN ('encadrant', 'directeur')";
 
         if ($filtreAnnee !== null) {
-            $whereReports .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
-            $whereSoutenances .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
-            $whereStudents .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
+            $whereReports .= " AND " . $inscriptionYearExistsFor('r.num_etu');
+            $whereSoutenances .= " AND " . $inscriptionYearExistsFor('e.num_carte_etud');
+            $whereStudents .= " AND " . $inscriptionYearExistsFor('r.num_etu');
         }
 
         if ($filtreSession !== null) {
@@ -293,7 +372,7 @@ try {
         ];
         $paramsNext = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) {
-            $whereNext[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+            $whereNext[] = $inscriptionYearExistsFor('e.num_carte_etud');
             $paramsNext[':id_annee_acad'] = $filtreAnnee;
         }
         if ($filtreSession !== null) {
@@ -315,7 +394,7 @@ try {
         $whereRecentReports = ["CAST(a.id_enseignant AS CHAR) = :id_enseignant"];
         $paramsRecentReports = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) {
-            $whereRecentReports[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = r.num_etu AND i.id_annee_acad = :id_annee_acad)";
+            $whereRecentReports[] = $inscriptionYearExistsFor('r.num_etu');
             $paramsRecentReports[':id_annee_acad'] = $filtreAnnee;
         }
         $stmtRecentReports = $pdo->prepare("SELECT r.theme_rapport, r.date_redaction_rapport FROM affecter a INNER JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport WHERE " . implode(' AND ', $whereRecentReports) . " ORDER BY r.date_redaction_rapport DESC LIMIT 5");
@@ -335,7 +414,7 @@ try {
         $whereRecentSout = ["CAST(ej.id_enseignant AS CHAR) = :id_enseignant"];
         $paramsRecentSout = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) {
-            $whereRecentSout[] = "EXISTS (SELECT 1 FROM inscriptions i WHERE i.id_etudiant = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+            $whereRecentSout[] = $inscriptionYearExistsFor('e.num_carte_etud');
             $paramsRecentSout[':id_annee_acad'] = $filtreAnnee;
         }
         if ($filtreSession !== null) {
@@ -400,10 +479,10 @@ function normalizeRoleName(string $role): string {
     <?php if ($isAdmin): ?>
         <div class="cm-card cm-mb-md">
             <div class="cm-card__body">
-                <div class="cm-flex cm-items-center cm-flex-gap-md">
-                    <i class="fas fa-user-shield cm-text-2xl"></i>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-user-shield" style="font-size: 24px;"></i>
                     <div>
-                        <p class="cm-mt-1 cm-text-sm cm-m-0">
+                        <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">
                             <?php if ($enseignantSelectionne !== null): ?>
                                 Consultation des données de : <strong><?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?></strong>
                             <?php else: ?>
@@ -417,24 +496,49 @@ function normalizeRoleName(string $role): string {
     <?php endif; ?>
 
     <div class="cm-card cm-mb-md">
-        <form method="GET" class="cm-items-end">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="GET" style="align-items: end;">
             <input type="hidden" name="page" value="tableau_bord_enseignant">
 
-            <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars((string) (\AcademicYear::getWritableIdFromSession() ?? ''), ENT_QUOTES, 'UTF-8') ?>">
-
-            <?php if ($isAdmin): ?>
-                <div class="cm-mb-md cm-max-w-md">
+            <?php if (!empty($enseignantOptions)): ?>
+                <div class="cm-mb-md" style="max-width: 380px;">
                     <?= cm_component('form/select', [
                         'name' => 'id_enseignant_selected',
-                        'label' => 'Enseignant à consulter',
+                        'label' => 'Enseignant',
                         'options' => $enseignantOptions,
                         'selected' => (string)($enseignantSelectionne ?? ''),
                         'placeholder' => 'Sélectionner un enseignant'
                     ]) ?>
                 </div>
+            <?php else: ?>
+                <div class="cm-mb-md" style="max-width: 380px;">
+                    <div class="cm-form-group">
+                        <label class="cm-form-label">Enseignant</label>
+                        <select class="cm-form-control cm-field-md" disabled>
+                            <option value="<?= htmlspecialchars($teacherId, ENT_QUOTES, 'UTF-8') ?>" selected>
+                                <?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?>
+                            </option>
+                        </select>
+                    </div>
+                </div>
             <?php endif; ?>
 
             <div class="cm-grid-3 cm-mb-md">
+                <?= cm_component('form/select', [
+                    'name' => 'id_annee_acad',
+                    'label' => 'Année académique',
+                    'options' => $anneeOptions,
+                    'selected' => (string)($filtreAnnee ?? ''),
+                    'placeholder' => 'Toutes les années'
+                ]) ?>
+
                 <?= cm_component('form/select', [
                     'name' => 'id_session',
                     'label' => 'Session',
@@ -452,10 +556,10 @@ function normalizeRoleName(string $role): string {
                 ]) ?> -->
 
                 <div class="cm-flex cm-flex-gap-sm">
-                    <button type="submit" class="cm-btn cm-btn--primary">
+                    <button type="submit" class="cm-btn is-primary is-sm">
                         <i class="fas fa-filter cm-mr-sm"></i> Filtrer
                     </button>
-                    <a href="?page=tableau_bord_enseignant" class="cm-btn cm-btn--outline">
+                    <a href="?page=tableau_bord_enseignant" class="cm-btn is-light is-sm">
                         Réinitialiser
                     </a>
                 </div>
@@ -463,20 +567,7 @@ function normalizeRoleName(string $role): string {
         </form>
     </div>
 
-    <!-- <div class="cm-grid-4">
-        <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format((int) $stats['soutenances_planifiees'], 0, ',', ' '), 'label' => 'Soutenances à venir', 'icon' => 'fa-calendar-check', 'color' => 'info']); ?>
-            <?php if (!empty($soutenancesProgrammees)): ?>
-                <a class="cm-stat-card__link" href="#section-soutenances-a-venir" onclick="document.getElementById('section-soutenances-a-venir').scrollIntoView({behavior: 'smooth', block: 'start'}); return false;">Voir ▸</a>
-            <?php endif; ?>
-        </div>
-        <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format((int) $stats['etudiants_encadres'], 0, ',', ' '), 'label' => 'Étudiants encadrés', 'icon' => 'fa-users', 'color' => 'success']); ?>
-        </div>
-        <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => (string) $stats['prochaine_soutenance'], 'label' => 'Prochaine soutenance', 'icon' => 'fa-clock', 'color' => 'primary']); ?>
-        </div>
-    </div> -->
+   
 
     <?php if (!empty($qualitesJury) && $teacherId !== ''): ?>
         <div class="cm-card cm-mt-md">
@@ -540,7 +631,7 @@ function normalizeRoleName(string $role): string {
                 </h3>
             </div>
             <div class="cm-card__body">
-                <div class="cm-table-responsive">
+                <div style="overflow-x: auto;">
                     <table class="cm-table">
                         <thead>
                             <tr>
@@ -551,7 +642,8 @@ function normalizeRoleName(string $role): string {
                                 <th>Directeur mémoire</th>
                                 <th>Examinateur</th>
                                 <th>Encadrant</th>
-                                <th>Maître de stage</th>
+                                <th>Maître de stage (Jury)</th>
+                                <th>Maître de stage (Entreprise)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -565,33 +657,34 @@ function normalizeRoleName(string $role): string {
                                     <td <?php 
                                         $president = $etudiant['president'] ?? '';
                                         if ($president !== '' && stripos($president, $teacherFullName) !== false) {
-                                            echo 'class="cm-highlight-row"';
+                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
                                         }
                                     ?>><?= htmlspecialchars($president, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
                                     <td <?php 
                                         $directeur = $etudiant['directeur_memoire'] ?? '';
                                         if ($directeur !== '' && stripos($directeur, $teacherFullName) !== false) {
-                                            echo 'class="cm-highlight-row"';
+                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
                                         }
                                     ?>><?= htmlspecialchars($directeur, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
                                     <td <?php 
                                         $examinateur = $etudiant['examinateur'] ?? '';
                                         if ($examinateur !== '' && stripos($examinateur, $teacherFullName) !== false) {
-                                            echo 'class="cm-highlight-row"';
+                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
                                         }
                                     ?>><?= htmlspecialchars($examinateur, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
                                     <td <?php 
                                         $encadrant = $etudiant['encadrant'] ?? '';
                                         if ($encadrant !== '' && stripos($encadrant, $teacherFullName) !== false) {
-                                            echo 'class="cm-highlight-row"';
+                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
                                         }
                                     ?>><?= htmlspecialchars($encadrant, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
                                     <td <?php 
-                                        $maitre = $etudiant['maitre_stage'] ?? '';
-                                        if ($maitre !== '' && stripos($maitre, $teacherFullName) !== false) {
-                                            echo 'class="cm-highlight-row"';
+                                        $maitreJury = $etudiant['membre_jury_maitre_stage'] ?? '';
+                                        if ($maitreJury !== '' && stripos($maitreJury, $teacherFullName) !== false) {
+                                            echo 'style="background-color: #e3f2fd; font-weight: bold;"';
                                         }
-                                    ?>><?= htmlspecialchars($maitre, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
+                                    ?>><?= htmlspecialchars($maitreJury, ENT_QUOTES, 'UTF-8') ?: '-' ?></td>
+                                    <td><?= htmlspecialchars($etudiant['maitre_stage_reel'] ?? '-', ENT_QUOTES, 'UTF-8') ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -617,7 +710,7 @@ function normalizeRoleName(string $role): string {
                 </small></p>
             </div>
             <div class="cm-card__body">
-                <div class="cm-table-responsive">
+                <div style="overflow-x: auto;">
                     <table class="cm-table">
                         <thead>
                             <tr>
@@ -655,6 +748,7 @@ function normalizeRoleName(string $role): string {
                 <div class="cm-mt-md">
                     <?php 
                         $exportParams = [
+                            'id_annee_acad' => $filtreAnnee,
                             'id_session' => $filtreSession, 
                             'id_qualite_jury' => $filtreQualiteJury
                         ];

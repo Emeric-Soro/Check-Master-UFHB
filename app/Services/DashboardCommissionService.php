@@ -427,7 +427,7 @@ class DashboardCommissionService
                         ens.prenom_enseignant
                       FROM valider v
                       LEFT JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                      LEFT JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                      LEFT JOIN etudiants e ON r.num_etu = e.num_ident_etud
                       LEFT JOIN enseignants ens ON v.id_enseignant = ens.id_enseignant
                       ORDER BY v.date_validation DESC
                       LIMIT 10";
@@ -463,7 +463,7 @@ class DashboardCommissionService
                         " . ($dateExpr === 'NULL' ? 'NULL' : "DATEDIFF(v.date_validation, $dateExpr)") . " as temps_traitement
                       FROM valider v
                       LEFT JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                      LEFT JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                      LEFT JOIN etudiants e ON r.num_etu = e.num_ident_etud
                       LEFT JOIN enseignants ens ON v.id_enseignant = ens.id_enseignant
                       ORDER BY v.date_validation DESC
                       LIMIT 20";

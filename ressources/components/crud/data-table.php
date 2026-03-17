@@ -5,18 +5,13 @@ $id = (string) ($id ?? 'cmDataTable');
 $headers = is_array($headers ?? null) ? $headers : [];
 $columns = is_array($columns ?? null) ? $columns : [];
 $rows = is_array($rows ?? null) ? $rows : [];
-$empty_title = (string) ($empty_title ?? 'Aucune donnee');
-$empty_message = (string) ($empty_message ?? 'Aucune ligne a afficher.');
+$empty_title = (string) ($empty_title ?? 'Aucune donnée');
+$empty_message = (string) ($empty_message ?? 'Aucune ligne à afficher.');
 $table_class = (string) ($table_class ?? 'cm-data-table');
 $wrapper_class = (string) ($wrapper_class ?? 'cm-table-wrapper');
 $selectable = !empty($selectable);
 $row_key = (string) ($row_key ?? 'id');
 $actions = is_array($actions ?? null) ? $actions : [];
-$dense = !empty($dense);
-
-if ($dense && strpos($table_class, 'cm-data-table--compact') === false) {
-    $table_class .= ' cm-data-table--compact';
-}
 
 if (empty($columns) && !empty($headers)) {
     $columns = [];
@@ -37,7 +32,9 @@ if (empty($columns) && !empty($headers)) {
 
                 <?php foreach ($columns as $column): ?>
                 <?php
-                $label = (string) ($column['label'] ?? '');
+                $label = function_exists('cm_table_header_label')
+                    ? cm_table_header_label((string) ($column['label'] ?? ''))
+                    : (string) ($column['label'] ?? '');
                 $align = (string) ($column['align'] ?? 'left');
                 $colClass = (string) ($column['class'] ?? '');
                 $thClass = 'cm-data-table__th is-' . htmlspecialchars($align, ENT_QUOTES, 'UTF-8');
@@ -70,10 +67,10 @@ if (empty($columns) && !empty($headers)) {
                     <?php if ($selectable): ?>
                     <?php $rowId = (string) ($rowData[$row_key] ?? ''); ?>
                     <td class="cm-data-table__td cm-data-table__td--check">
-                        <input type="checkbox"
-                               class="cm-table-check-row"
+                        <input type="checkbox" 
+                               class="cm-table-check-row" 
                                value="<?= htmlspecialchars($rowId, ENT_QUOTES, 'UTF-8') ?>"
-                               aria-label="Selectionner la ligne">
+                               aria-label="Sélectionner la ligne">
                     </td>
                     <?php endif; ?>
 
@@ -103,10 +100,10 @@ if (empty($columns) && !empty($headers)) {
                     ?>
                     <td class="<?= $tdClass ?>">
                         <?php if ($type === 'badge'): ?>
-                            <?php
+                            <?php 
                             $badgeType = is_array($value) ? (string) ($value['type'] ?? 'info') : 'info';
                             $badgeText = is_array($value) ? (string) ($value['label'] ?? '') : $rendered;
-                            cm_component('ui/badge', ['text' => $badgeText, 'type' => $badgeType]);
+                            cm_component('ui/badge', ['text' => $badgeText, 'type' => $badgeType]); 
                             ?>
                         <?php else: ?>
                             <?= htmlspecialchars($rendered, ENT_QUOTES, 'UTF-8') ?>

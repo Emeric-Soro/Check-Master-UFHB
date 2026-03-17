@@ -54,6 +54,12 @@ $totalInscriptions = array_sum(array_column($inscriptionsParNiveau, 'total'));
 $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
 ?>
 <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            /* bg-gray-100 */
+        }
+
         /* Styles personnalisés pour les dégradés et les couleurs spécifiques */
         .sidebar-bg {
             background: linear-gradient(135deg, #7c3aed, #9a67ea);
@@ -133,8 +139,9 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
 
 <div class="cm-prd3-screen">
 
+
+
     <!-- Contenu principal -->
-    <main class="flex-1 p-6 md:p-8">
         <!-- En-tête -->
         <header class="flex items-center justify-between mb-8">
 
@@ -448,7 +455,6 @@ $nouvellesInscriptionsMois = $stats['nouvelles_inscriptions'] ?? 0;
                 </div>
             </div>
         </div>
-    </main>
 
     <script>
         // Fonctionnalité de filtrage des réclamations

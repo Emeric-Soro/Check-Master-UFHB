@@ -181,10 +181,11 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
             const ctx = document.getElementById('chartRepartitionRapports');
             if (ctx && typeof Chart !== 'undefined') {
                 new Chart(ctx, {
-                    type: 'doughnut',
+                    type: 'bar',
                     data: {
                         labels: ['Validés', 'En attente', 'Rejetés'],
                         datasets: [{
+                            label: 'Rapports',
                             data: [<?php echo $valides; ?>, <?php echo $enAttente; ?>, <?php echo $rejetes; ?>],
                             backgroundColor: ['#10b981', '#3b82f6', '#ef4444'],
                             borderColor: ['#059669', '#2563eb', '#dc2626'],
@@ -202,13 +203,17 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
                                 callbacks: {
                                     label: function (context) {
                                         const label = context.label || '';
-                                        const value = context.parsed || 0;
+                                        const value = context.parsed.y || 0;
                                         const total = <?php echo $totalRapports; ?>;
                                         const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
                                         return label + ': ' + value + ' (' + percentage + '%)';
                                     }
                                 }
                             }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: { beginAtZero: true, ticks: { precision: 0 } }
                         }
                     }
                 });
@@ -241,7 +246,7 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
                         </a>
                     <?php endif; ?>
                     <?php if (canCreate()): ?>
-                        <a class="cm-btn is-success" href="?page=redaction_compte_rendu" data-cm-ajax-link="true">
+                        <a class="cm-btn is-primary" href="?page=redaction_compte_rendu" data-cm-ajax-link="true">
                             <i class="fas fa-pen-to-square" aria-hidden="true"></i>
                             Rédaction CR
                         </a>
@@ -256,4 +261,52 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
             </div>
         </div>
     </div>
+
+    <?php if (!empty($rapportsDetails)): ?>
+        <div class="cm-card cm-mt-md">
+            <div class="cm-card__header cm-flex-between">
+                <h3 class="cm-card__title"><i class="fas fa-file-lines cm-mr-sm"></i>Derniers rapports traités</h3>
+                <?php if (canView()): ?>
+                    <a href="?page=processus_validation" class="cm-btn cm-btn--primary cm-btn--sm" data-cm-ajax-link="true">
+                        <i class="fas fa-external-link-alt cm-mr-sm"></i> Voir tout
+                    </a>
+                <?php endif; ?>
+            </div>
+            <div class="cm-card__body">
+                <div style="overflow-x:auto">
+                    <table class="cm-table">
+                        <thead>
+                            <tr>
+                                <th>Étudiant</th>
+                                <th>Thème / Titre</th>
+                                <th>Validé par</th>
+                                <th>Date</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($rapportsDetails as $r):
+                                $statut = strtolower((string) ($r['statut'] ?? ''));
+                                $badgeClass = $statut === 'valider' ? 'cm-badge--success' : ($statut === 'rejeter' ? 'cm-badge--danger' : 'cm-badge--info');
+                                $label = $statut === 'valider' ? 'Validé' : ($statut === 'rejeter' ? 'Rejeté' : ucfirst($statut));
+                                ?>
+                                <tr>
+                                    <td><?= htmlspecialchars(trim(($r['nom_etudiant'] ?? '') . ' ' . ($r['prenom_etudiant'] ?? '')), ENT_QUOTES, 'UTF-8') ?>
+                                    </td>
+                                    <td><small><?= htmlspecialchars($r['titre'] ?? '', ENT_QUOTES, 'UTF-8') ?></small></td>
+                                    <td><?= htmlspecialchars(trim(($r['nom_enseignant'] ?? '') . ' ' . ($r['prenom_enseignant'] ?? '')), ENT_QUOTES, 'UTF-8') ?>
+                                    </td>
+                                    <td><?= !empty($r['date_validation']) ? htmlspecialchars(date('d/m/Y', strtotime((string) $r['date_validation'])), ENT_QUOTES, 'UTF-8') : '-' ?>
+                                    </td>
+                                    <td><span
+                                            class="cm-badge <?= $badgeClass ?>"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 </section>

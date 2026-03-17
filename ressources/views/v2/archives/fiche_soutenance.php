@@ -41,7 +41,7 @@ $evaluations = $data['evaluations'] ?? [];
         </div>
     <?php else: ?>
 
-        <div class="cm-grid-2 cm-gap-4 cm-mb-4">
+        <div class="cm-grid-2 cm-gap-4 cm-mb-4" style="grid-template-columns: 1fr 1fr;">
 
             <!-- Infos soutenance -->
             <div class="cm-card">
@@ -52,7 +52,7 @@ $evaluations = $data['evaluations'] ?? [];
                     <table class="cm-table">
                         <tbody>
                             <tr>
-                                <th class="cm-text-muted">Étudiant</th>
+                                <th class="cm-text-muted" style="width:40%">Étudiant</th>
                                 <td>
                                     <a href="?page=fiche_etudiant_archive&matricule=<?= urlencode($soutenance['num_carte_etud']) ?>">
                                         <?= htmlspecialchars($soutenance['etudiant'] ?? '—') ?>

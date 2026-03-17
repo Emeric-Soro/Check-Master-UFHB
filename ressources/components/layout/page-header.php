@@ -1,28 +1,21 @@
 <?php
 $title = (string) ($title ?? '');
 $subtitle = (string) ($subtitle ?? '');
-$annee = (string) ($annee ?? '');
-if ($annee === '' && session_status() === PHP_SESSION_ACTIVE) {
-    $annee = trim((string) ($_SESSION['global_annee_selected'] ?? ''));
-}
-$breadcrumbs = is_array($breadcrumbs ?? null) ? $breadcrumbs : [];
 $icon = (string) ($icon ?? '');
-$show_title = !isset($show_title_group) || (bool) $show_title_group;
+$annee = (string) ($annee ?? '');
+$breadcrumbs = is_array($breadcrumbs ?? null) ? $breadcrumbs : [];
 
-$has_title = $show_title && ($title !== '' || $subtitle !== '' || $icon !== '');
-$has_year = $annee !== '';
-$has_breadcrumbs = !empty($breadcrumbs);
-
-if (!$has_title && !$has_year && !$has_breadcrumbs) {
+if ($title === '' && empty($breadcrumbs)) {
     return;
 }
 ?>
 <section class="cm-page-header">
-    <?php if ($has_breadcrumbs): ?>
+    <?php if (!empty($breadcrumbs)): ?>
     <nav class="cm-breadcrumb" aria-label="Fil d Ariane">
         <ol class="cm-breadcrumb__list">
             <?php foreach ($breadcrumbs as $i => $crumb): ?>
                 <?php
+                if (!is_array($crumb)) continue;
                 $label = (string) ($crumb['label'] ?? '');
                 $url = (string) ($crumb['url'] ?? '');
                 $is_last = ($i === count($breadcrumbs) - 1);

@@ -3,7 +3,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/InscriptionService.php';
 require_once __DIR__ . '/../Support/Database.php';
 require_once __DIR__ . '/../Services/Document/RecuGeneratorService.php';
-require_once __DIR__ . '/../Utils/RecuDataUtils.php';
+require_once __DIR__ . '/../utils/RecuDataUtils.php';
 
 use CheckMaster\Services\InscriptionService;
 
@@ -46,29 +46,11 @@ class InscriptionController
                     );
                     $recuService = new \App\Services\Document\RecuGeneratorService($pdfGenerator, $recuDataUtils, $db);
 
-                    // FIXME: La table 'versements' n'existe plus dans la nouvelle structure.
-                    // Les versements sont maintenant intégrés dans la table inscriptions (num_versement).
-                    // RecuDataUtils a aussi des bugs (variables $data non définies).
-                    // TODO: Refactoriser pour utiliser la clé composite (num_carte_etud, id_annee_acad, num_versement)
-
                     // Parser l'ID composite (format: num_carte_etud-id_annee_acad-num_versement)
-                    $id_inscription = $_GET['id_inscription'];
+                    $id_inscription = (string) $_GET['id_inscription'];
                     $parts = explode('-', $id_inscription);
                     if (count($parts) >= 3) {
-                        $num_versement = array_pop($parts);
-                        $id_annee_acad = array_pop($parts);
-                        $num_carte_etud = implode('-', $parts);
-                        $pdo = $db->pdo();
-                        $stmtV = $pdo->prepare('SELECT CONCAT(num_carte_etud, \'-\', id_annee_acad, \'-\', num_versement) as id_versement FROM inscriptions WHERE num_carte_etud = :num AND id_annee_acad = :annee AND num_versement = :vers');
-                        $stmtV->execute([':num' => $num_carte_etud, ':annee' => $id_annee_acad, ':vers' => $num_versement]);
-                        $versementRow = $stmtV->fetch(\PDO::FETCH_ASSOC);
-                    } else {
-                        $versementRow = null;
-                    }
-
-                    if ($versementRow) {
-                        $versementId = (int) $versementRow['id_versement'];
-                        $result = $recuService->generate($versementId, $_SESSION['id_utilisateur']);
+                        $result = $recuService->generate($id_inscription, (int) $_SESSION['id_utilisateur']);
                         if ($result['success'] && !empty($result['path']) && file_exists($result['path'])) {
                             header('Content-Type: application/pdf');
                             header('Content-Disposition: inline; filename="recu_' . ($inscription['num_carte_etud'] ?? 'inconnu') . '_' . ($inscription['id_annee_acad'] ?? 'inconnu') . '.pdf"');

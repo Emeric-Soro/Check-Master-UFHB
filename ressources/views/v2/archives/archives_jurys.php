@@ -13,9 +13,6 @@ $stats_jurys = $data['stats_jurys'] ?? [];
     <!-- En-tête -->
     <div class="cm-page-header cm-mb-5">
         <div>
-            <h1 class="cm-page-title">
-                <i class="fas fa-chalkboard-teacher cm-mr-2"></i>Archives Jurys
-            </h1>
             <p class="cm-page-subtitle">
                 Statistiques de participation des enseignants aux jurys de soutenance
             </p>

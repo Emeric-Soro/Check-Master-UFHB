@@ -106,7 +106,7 @@ $isEditable = function_exists('canEdit') ? (bool) canEdit() : true;
             ['tag' => 'button', 'type' => 'button', 'id' => 'cmAttribUncheckAll', 'label' => 'Tout decocher', 'class' => 'cm-btn is-light is-sm'],
         ];
         if ($selectedGroupeId !== '' && $isEditable) {
-            $attribActions[] = ['tag' => 'button', 'type' => 'submit', 'label' => 'Enregistrer', 'class' => 'cm-btn is-success is-sm', 'attrs' => ['form' => 'cmAttribForm']];
+            $attribActions[] = ['tag' => 'button', 'type' => 'submit', 'label' => 'Enregistrer', 'class' => 'cm-btn is-primary is-sm', 'attrs' => ['form' => 'cmAttribForm']];
         }
         cm_toolbar([
             'screen' => 'gestion_attribution',
@@ -125,7 +125,15 @@ $isEditable = function_exists('canEdit') ? (bool) canEdit() : true;
                     'message' => 'Sélectionnez un type puis un groupe pour modifier les permissions.',
                 ]); ?>
             <?php else: ?>
-            <form id="cmAttribForm" method="POST" action="<?= htmlspecialchars($baseActionUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-table-form" data-cm-ajax-form="true">
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmAttribForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="cmAttribForm" method="POST" action="<?= htmlspecialchars($baseActionUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-table-form" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" name="id_GU" value="<?= htmlspecialchars($selectedGroupeId, ENT_QUOTES, 'UTF-8') ?>">
 
@@ -335,3 +343,4 @@ $isEditable = function_exists('canEdit') ? (bool) canEdit() : true;
     });
 })();
 </script>
+

@@ -7,7 +7,14 @@ $dashboardData = $dashboardController->getDashboardData();
 
 $stats = is_array($dashboardData['stats'] ?? null) ? $dashboardData['stats'] : [];
 $inscriptionsParNiveau = is_array($dashboardData['inscriptionsParNiveau'] ?? null) ? $dashboardData['inscriptionsParNiveau'] : [];
+$nouvellesInscriptionsDetail = is_array($dashboardData['nouvelles_inscriptions_detail'] ?? null) ? $dashboardData['nouvelles_inscriptions_detail'] : [];
+$paiementsEnAttenteDetail = is_array($dashboardData['paiements_en_attente_detail'] ?? null) ? $dashboardData['paiements_en_attente_detail'] : [];
 $selectedYearId = !empty($_SESSION['global_annee_id']) ? (int) $_SESSION['global_annee_id'] : null;
+
+$kpiNouvellesInscriptionsUrl = '?page=gestion_scolarite';
+if ((int) ($stats['nouvelles_inscriptions'] ?? 0) === 1 && !empty($nouvellesInscriptionsDetail[0]['num_etu'])) {
+    $kpiNouvellesInscriptionsUrl .= '&search=' . urlencode((string) $nouvellesInscriptionsDetail[0]['num_etu']);
+}
 
 $anneeLabel = trim((string) ($_SESSION['global_annee_selected'] ?? ''));
 if (!empty($GLOBALS['anneeAcademiqueActive']) && is_object($GLOBALS['anneeAcademiqueActive'])) {
@@ -78,36 +85,58 @@ cm_component('layout/page-header', [
 ?>
 
 <div class="cm-dashboard-grid">
-    <?php
-    cm_component('dashboard/stat-widget', [
-        'value' => number_format((int) ($stats['etudiants'] ?? 0), 0, ',', ' '),
-        'label' => 'Total étudiants',
-        'subtitle' => 'Étudiants inscrits',
-        'icon' => 'fa-users',
-        'color' => 'primary',
-    ]);
-    cm_component('dashboard/stat-widget', [
-        'value' => number_format((int) ($stats['nouvelles_inscriptions'] ?? 0), 0, ',', ' '),
-        'label' => 'Inscriptions en cours',
-        'subtitle' => 'Nouvelles inscriptions (7j)',
-        'icon' => 'fa-user-plus',
-        'color' => 'info',
-    ]);
-    cm_component('dashboard/stat-widget', [
-        'value' => number_format((float) ($stats['montant_percu'] ?? 0), 0, ',', ' ') . ' FCFA',
-        'label' => 'Montant total perçu',
-        'subtitle' => 'Versements enregistrés',
-        'icon' => 'fa-money-bill-wave',
-        'color' => 'success',
-    ]);
-    cm_component('dashboard/stat-widget', [
-        'value' => number_format((int) ($stats['reclamations_en_attente'] ?? 0), 0, ',', ' '),
-        'label' => 'Alertes groupées',
-        'subtitle' => 'Réclamations + reste à payer',
-        'icon' => 'fa-triangle-exclamation',
-        'color' => 'warning',
-    ]);
-    ?>
+    <div>
+        <?php cm_component('dashboard/stat-widget', [
+            'value' => number_format((int) ($stats['etudiants'] ?? 0), 0, ',', ' '),
+            'label' => 'Total étudiants inscrits',
+            'subtitle' => 'Étudiants inscrits',
+            'icon' => 'fa-users',
+            'color' => 'primary',
+        ]); ?>
+        <?php if (canView()): ?>
+            <a class="cm-stat-card__link" href="?page=maj_etudiant" data-cm-ajax-link="true">Voir ▸</a>
+        <?php endif; ?>
+    </div>
+
+    <div>
+        <?php cm_component('dashboard/stat-widget', [
+            'value' => number_format((int) ($stats['nouvelles_inscriptions'] ?? 0), 0, ',', ' '),
+            'label' => 'Inscriptions en cours',
+            'subtitle' => 'Nouvelles inscriptions (7j)',
+            'icon' => 'fa-user-plus',
+            'color' => 'info',
+        ]); ?>
+        <?php if (canView()): ?>
+            <a class="cm-stat-card__link" href="<?= htmlspecialchars($kpiNouvellesInscriptionsUrl, ENT_QUOTES, 'UTF-8') ?>"
+                data-cm-ajax-link="true">Voir ▸</a>
+        <?php endif; ?>
+    </div>
+
+    <div>
+        <?php cm_component('dashboard/stat-widget', [
+            'value' => number_format((float) ($stats['montant_percu'] ?? 0), 0, ',', ' ') . ' FCFA',
+            'label' => 'Montant total perçu',
+            'subtitle' => 'Versements enregistrés',
+            'icon' => 'fa-money-bill-wave',
+            'color' => 'success',
+        ]); ?>
+        <?php if (canView()): ?>
+            <a class="cm-stat-card__link" href="?page=gestion_scolarite" data-cm-ajax-link="true">Voir ▸</a>
+        <?php endif; ?>
+    </div>
+
+    <div>
+        <?php cm_component('dashboard/stat-widget', [
+            'value' => number_format((int) ($stats['reclamations_en_attente'] ?? 0), 0, ',', ' '),
+            'label' => 'Alertes groupées',
+            'subtitle' => 'Réclamations + reste à payer',
+            'icon' => 'fa-triangle-exclamation',
+            'color' => 'warning',
+        ]); ?>
+        <?php if (canView()): ?>
+            <a class="cm-stat-card__link" href="?page=gestion_reclamations_scolarite" data-cm-ajax-link="true">Voir ▸</a>
+        <?php endif; ?>
+    </div>
 </div>
 
 <div class="cm-grid-2 cm-mb-lg">
@@ -179,13 +208,12 @@ cm_component('layout/page-header', [
 
     <div class="cm-chart-container">
         <div class="cm-chart-container__header">
-
-            <p class="cm-chart-container__subtitle">Accès direct aux opérations de scolarite</p>
+            <p class="cm-chart-container__subtitle">Accès direct aux opérations de scolarité</p>
         </div>
         <div class="cm-chart-container__body">
             <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
                 <?php if (canCreate()): ?>
-                    <a class="cm-btn is-info" href="?page=gestion_etudiants&action=ajouter_des_etudiants">
+                    <a class="cm-btn is-info" href="?page=maj_etudiant">
                         <i class="fas fa-user-graduate" aria-hidden="true"></i>
                         Gérer les étudiants
                     </a>
@@ -205,3 +233,43 @@ cm_component('layout/page-header', [
             </div>
         </div>
     </div>
+</div>
+
+<?php if (!empty($paiementsEnAttenteDetail)): ?>
+    <div class="cm-card cm-mt-md">
+        <div class="cm-card__header cm-flex-between">
+            <h3 class="cm-card__title"><i class="fas fa-clock cm-mr-sm"></i>Paiements en attente</h3>
+            <?php if (canView()): ?>
+                <a class="cm-stat-card__link" href="?page=gestion_scolarite" data-cm-ajax-link="true">Voir ▸</a>
+            <?php endif; ?>
+        </div>
+        <div class="cm-card__body">
+            <div style="overflow-x:auto">
+                <table class="cm-table">
+                    <thead>
+                        <tr>
+                            <th>Nom / Prénom</th>
+                            <th>Niveau</th>
+                            <th>Montant versé (FCFA)</th>
+                            <th>Reste à payer (FCFA)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($paiementsEnAttenteDetail as $row): ?>
+                            <tr>
+                                <td><?= htmlspecialchars(trim(($row['nom_etudiant'] ?? '') . ' ' . ($row['prenom_etudiant'] ?? '')), ENT_QUOTES, 'UTF-8') ?>
+                                </td>
+                                <td><?= htmlspecialchars($row['libelle_niveau'] ?? $row['id_niv_etude'] ?? '-', ENT_QUOTES, 'UTF-8') ?>
+                                </td>
+                                <td><?= number_format((float) ($row['montant_verser'] ?? 0), 0, ',', ' ') ?></td>
+                                <td class="cm-text-danger">
+                                    <?= number_format((float) ($row['reste_a_payer'] ?? 0), 0, ',', ' ') ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>

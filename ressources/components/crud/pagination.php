@@ -21,9 +21,7 @@ $build_url = static function (int $page) use ($base_url, $param_name): string {
 ?>
 <nav class="cm-pagination" role="navigation" aria-label="Pagination" data-cm-ajax-pagination="true">
     <div class="cm-pagination__info">
-        Affichage de <?= (int) ($pagination['offset'] ?? 0) + 1 ?> a
-        <?= min(((int) ($pagination['offset'] ?? 0) + (int) ($pagination['per_page'] ?? 0)), (int) ($pagination['total'] ?? 0)) ?> sur
-        <?= (int) ($pagination['total'] ?? 0) ?> entrees
+        Affichage <?= (int) ($pagination['offset'] ?? 0) + 1 ?>–<?= min(((int) ($pagination['offset'] ?? 0) + (int) ($pagination['per_page'] ?? 0)), (int) ($pagination['total'] ?? 0)) ?> sur <?= (int) ($pagination['total'] ?? 0) ?> résultats
     </div>
 
     <ul class="cm-pagination__list">
@@ -32,7 +30,8 @@ $build_url = static function (int $page) use ($base_url, $param_name): string {
                class="cm-pagination__link"
                aria-label="Page precedente"
                data-cm-ajax-link="true">
-                <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                <span aria-hidden="true">←</span>
+                <span>Précédent</span>
             </a>
         </li>
 
@@ -60,7 +59,8 @@ $build_url = static function (int $page) use ($base_url, $param_name): string {
                class="cm-pagination__link"
                aria-label="Page suivante"
                data-cm-ajax-link="true">
-                <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                <span>Suivant</span>
+                <span aria-hidden="true">→</span>
             </a>
         </li>
     </ul>

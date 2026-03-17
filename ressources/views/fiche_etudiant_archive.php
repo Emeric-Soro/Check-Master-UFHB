@@ -402,7 +402,15 @@ foreach ($timeline_steps as $i => $step) {
 
         <!-- Formulaire de modification -->
         <?php if (canEdit()): ?>
-            <form method="POST" action="?page=admin_historique&action=update_student" class="cm-mt-4">
+            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="POST" action="?page=admin_historique&action=update_student" class="cm-mt-4">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" name="num_etu" value="<?php echo htmlspecialchars($studentFile['num_etu']); ?>">
 
@@ -463,3 +471,136 @@ foreach ($timeline_steps as $i => $step) {
     </div>
 </div>
 
+<style>
+    /* Timeline Design System */
+    .cm-timeline-vertical {
+        position: relative;
+        padding-left: var(--cm-space-8);
+    }
+
+    .cm-timeline-vertical::before {
+        content: '';
+        position: absolute;
+        left: calc(var(--cm-space-4) - 1px);
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--cm-border);
+    }
+
+    .cm-timeline-item {
+        position: relative;
+        padding-bottom: var(--cm-space-6);
+    }
+
+    .cm-timeline-marker {
+        position: absolute;
+        left: calc(var(--cm-space-4) * -1 - var(--cm-space-4));
+        width: var(--cm-space-8);
+        height: var(--cm-space-8);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--cm-bg-white);
+        border: 2px solid var(--cm-border);
+        font-size: var(--cm-text-sm);
+    }
+
+    .cm-timeline-completed .cm-timeline-marker {
+        border-color: var(--cm-success);
+        color: var(--cm-success);
+        background: var(--cm-success-light);
+    }
+
+    .cm-timeline-pending .cm-timeline-marker {
+        border-color: var(--cm-gray-300);
+        color: var(--cm-gray-400);
+    }
+
+    .cm-timeline-content {
+        padding-left: var(--cm-space-4);
+    }
+
+    .cm-timeline-title {
+        font-weight: 600;
+        margin-bottom: var(--cm-space-1);
+    }
+
+    .cm-timeline-date {
+        font-size: var(--cm-text-sm);
+        color: var(--cm-text-muted);
+    }
+
+    /* Description List */
+    .cm-dl {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cm-space-3);
+    }
+
+    .cm-dl-item {
+        display: flex;
+        gap: var(--cm-space-4);
+    }
+
+    .cm-dl-item dt {
+        font-weight: 500;
+        color: var(--cm-text-muted);
+        min-width: 120px;
+    }
+
+    .cm-dl-item dd {
+        color: var(--cm-text);
+    }
+
+    /* Progress Bars */
+    .cm-progress-row {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cm-space-2);
+    }
+
+    .cm-progress-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .cm-progress-value {
+        font-weight: 600;
+    }
+
+    .cm-progress-bar {
+        height: 8px;
+        background: var(--cm-gray-200);
+        border-radius: var(--cm-radius-full);
+        overflow: hidden;
+    }
+
+    .cm-progress-bar-lg {
+        height: 12px;
+    }
+
+    .cm-progress-fill {
+        height: 100%;
+        border-radius: var(--cm-radius-full);
+        transition: width 0.3s ease;
+    }
+
+    .cm-progress-row-highlight {
+        padding-top: var(--cm-space-4);
+        border-top: 1px solid var(--cm-border);
+    }
+
+    /* Additional badge colors */
+    .cm-badge-purple {
+        background: #9333ea;
+        color: white;
+    }
+
+    /* Background colors for progress */
+    .cm-bg-gray {
+        background: var(--cm-gray-300);
+    }
+</style>

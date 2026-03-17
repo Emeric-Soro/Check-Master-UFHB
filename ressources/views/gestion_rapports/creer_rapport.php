@@ -1,7 +1,6 @@
 <?php
 // permissions_helper déjà inclus par layout.php
 
-// Récupérer les variables globales définies par le controller
 $rapport = $GLOBALS['rapport'] ?? null;
 $rapport = is_array($rapport) ? $rapport : [];
 $isEditMode = $GLOBALS['isEditMode'] ?? false;
@@ -10,7 +9,6 @@ $contenuRapport = is_string($contenuRapport) ? $contenuRapport : '';
 $erreurs = $GLOBALS['erreurs'] ?? [];
 $erreurs = is_array($erreurs) ? $erreurs : [];
 
-// Determiner si c'est une edition ou création
 $isEditingExisting = $isEditMode && is_array($rapport) && !empty($rapport);
 $isReadOnly = !empty($GLOBALS['rapportDejaDepose']);
 
@@ -39,11 +37,7 @@ $nomCompletEtu = trim($nomEtu . ' ' . $prenomEtu);
 $stageInfo = $GLOBALS['stage_info'] ?? [];
 $stageInfo = is_array($stageInfo) ? $stageInfo : [];
 
-// Infos stage
-$stageInfo = $GLOBALS['stage_info'] ?? [];
-$stageInfo = is_array($stageInfo) ? $stageInfo : [];
-
-$rapportId         = (string) ($rapport['id_rapport'] ?? '');
+$rapportId = (string) ($rapport['id_rapport'] ?? '');
 $nomRapportInitial = (string) ($rapport['nom_rapport'] ?? '');
 $themeRapportInitial = (string) ($rapport['theme_rapport'] ?? '');
 if ($themeRapportInitial === '' && isset($stageInfo['sujet_stage'])) {
@@ -541,6 +535,14 @@ $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON
 </style>
 
 <!-- Hidden form for AJAX submissions -->
+<style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#rapportForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
 <form id="rapportForm" method="POST" action="?page=gestion_rapports" style="display:none;">
     <input type="hidden" name="action" value="save_rapport">
     <?php if ($isEditingExisting): ?>
@@ -657,86 +659,31 @@ $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON
 <div id="fmNotifications"></div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var logoUfhb = '<?= $logoUfhb ?>';
-        var logoCiv = '<?= $logoCiv ?>';
-        var isReadOnly = <?= $isReadOnly ? 'true' : 'false' ?>;
-        var isEditMode = <?= $isEditingExisting ? 'true' : 'false' ?>;
+(function () {
+function initRapportEditorPage() {
+    var isReadOnly = <?= $isReadOnly ? 'true' : 'false' ?>;
+    var editorMeta = <?= json_encode($editorMeta, $jsFlags) ?>;
+    var rawContent = <?= json_encode($contenuRapport, $jsFlags) ?>;
 
-        console.log('État de l\'éditeur:', {
-            isReadOnly: isReadOnly,
-            isEditMode: isEditMode,
-            contenuRapportLength: <?= strlen($contenuRapport) ?>
-        });
+    var rapportForm = document.getElementById('rapportForm');
+    var saveBtn = document.getElementById('saveBtn');
+    var deposerBtn = document.getElementById('deposerBtn');
+    var previewPdfBtn = document.getElementById('previewPdfBtn');
+    var downloadPdfBtn = document.getElementById('downloadPdfBtn');
+    var titleInput = document.getElementById('reportTitleInput');
+    var wordCountEl = document.getElementById('wordCount');
+    var saveStatusEl = document.getElementById('saveStatus');
+    var pdfLoading = document.getElementById('pdfLoading');
+    var reportEndpoint = window.location.pathname + '?page=gestion_rapports';
+    var editorTextarea = document.getElementById('jodit-editor');
+    var joditEditor = null;
+    var fallbackEditorMode = false;
 
-        var tabBtns         = document.querySelectorAll('.cm-etu-tab-btn');
-        var tabPanes        = document.querySelectorAll('.cm-etu-tab-pane');
-        var updatePreviewBtn = document.getElementById('updatePreviewBtn');
-        var coverPreview    = document.getElementById('coverPreview');
-        var previewBtn      = document.getElementById('previewBtn');
-        var previewModal    = document.getElementById('previewModal');
-        var closePreviewModal = document.getElementById('closePreviewModal');
-        var fullPreview     = document.getElementById('fullPreview');
-        var pdfLoading      = document.getElementById('pdfLoading');
-        var saveBtn         = document.getElementById('saveBtn');
-        var exportBtn       = document.getElementById('exportBtn');
-        var deposerBtn      = document.getElementById('deposerBtn');
-        var rapportForm     = document.getElementById('rapportForm');
-        var wordCounter     = document.getElementById('wordCounter');
-        var autosaveStatus  = document.getElementById('autosaveStatus');
+    if (!rapportForm || rapportForm.getAttribute('data-cm-rapport-editor-init') === '1') {
+        return;
+    }
 
-        var joditEditor = Jodit.make('#jodit-editor', {
-            height: 500,
-            language: 'fr',
-            placeholder: 'Commencez a rediger le corps de votre rapport ici...',
-            toolbarButtonSize: 'middle',
-            readonly: isReadOnly,
-            toolbarAdaptive: false,
-            askBeforePasteHTML: false,
-            askBeforePasteFromWord: false,
-            buttons: [
-                'source', '|',
-                'bold', 'italic', 'underline', 'strikethrough', '|',
-                'font', 'fontsize', 'brush', 'paragraph', '|',
-                'ul', 'ol', 'indent', 'outdent', '|',
-                'align', 'undo', 'redo', '|',
-                'table', 'link', 'image', '|',
-                'hr', 'copyformat', 'fullsize', 'print'
-            ],
-            uploader: { insertImageAsBase64URI: true },
-            defaultFontSize: '12pt',
-            defaultFontName: 'Times New Roman'
-        });
-
-        // Charger le contenu du rapport dans l'éditeur
-        <?php if ($isEditingExisting && !empty($contenuRapport)): ?>
-        console.log('Mode édition: chargement du contenu existant');
-        // Nettoyer le contenu pour enlever les éventuelles pages de couverture dupliquées
-        var rawContent = <?= json_encode($contenuRapport) ?>;
-        // Extraire uniquement le contenu après la dernière balise de page-break
-        var tempDiv = document.createElement('div');
-        tempDiv.innerHTML = rawContent;
-        
-        // Chercher tous les div avec page-break
-        var pageBreaks = tempDiv.querySelectorAll('div[style*="page-break"]');
-        var cleanContent = rawContent;
-        
-        if (pageBreaks.length > 0) {
-            // Prendre le contenu après le dernier page-break
-            var lastBreak = pageBreaks[pageBreaks.length - 1];
-            var nextSibling = lastBreak.nextElementSibling;
-            
-            if (nextSibling) {
-                // Récupérer le contenu à partir de cet élément
-                cleanContent = nextSibling.innerHTML || nextSibling.textContent || '';
-            }
-        }
-        
-        joditEditor.value = cleanContent || getInitialBodyContent();
-        <?php else: ?>
-        console.log('Mode création: initialisation avec le contenu par défaut');
-        joditEditor.value = getInitialBodyContent();
-        <?php endif; ?>
+    rapportForm.setAttribute('data-cm-rapport-editor-init', '1');
 
     if (rapportForm) {
         rapportForm.setAttribute('action', reportEndpoint);
@@ -1204,59 +1151,12 @@ $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON
         return Promise.resolve(window.confirm('Voulez-vous vraiment déposer ce rapport ? Cette action est irréversible.'));
     }
 
-        // Save report
-        if (saveBtn) {
-            saveBtn.addEventListener('click', function () {
-                var nomRapport = document.getElementById('nom_rapport').value.trim();
-                var titreTheme = document.getElementById('titre_theme').value.trim();
+    /* ── Notifications ── */
 
-                if (!nomRapport) { showNotification('error', 'Veuillez saisir le nom du rapport'); return; }
-                if (!titreTheme) { showNotification('error', 'Veuillez saisir le titre du theme'); return; }
-
-                // IMPORTANT: Sauvegarder uniquement le contenu de l'éditeur, SANS la page de couverture
-                // La page de couverture sera générée à la demande pour l'aperçu et l'export PDF
-                var contentOnly = '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
-
-                document.getElementById('nom_rapport_hidden').value = nomRapport;
-                document.getElementById('theme_rapport_hidden').value = titreTheme +
-                    (document.getElementById('sous_titre').value ? ' : ' + document.getElementById('sous_titre').value : '');
-                document.getElementById('contenu_rapport').value = contentOnly;
-                document.getElementById('cover_data').value = JSON.stringify(getCoverData());
-
-                var formData = new FormData(rapportForm);
-                saveBtn.disabled = true;
-
-                fetch(window.location.href, {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                    .then(function (response) { return response.json(); })
-                    .then(function (result) {
-                        if (!result.success) {
-                            showNotification('error', result.message || 'Echec de la sauvegarde.');
-                            return;
-                        }
-                        if (result.rapport_id) {
-                            var reportId = String(result.rapport_id);
-                            var editIdField = rapportForm.querySelector('input[name="edit_id"]');
-                            if (editIdField) editIdField.value = reportId;
-                            document.getElementById('payloadReportId').value = reportId;
-                            var currentUrl = new URL(window.location.href);
-                            currentUrl.searchParams.set('edit', reportId);
-                            window.history.replaceState({}, '', currentUrl.toString());
-                        }
-                        autosaveStatus.textContent = 'Sauvegarde a ' + nowLabel();
-                        lastSnapshot = snapshot();
-                        showNotification('success', result.message || 'Rapport enregistre avec succes.');
-                    })
-                    .catch(function () {
-                        showNotification('error', 'Erreur reseau lors de la sauvegarde.');
-                    })
-                    .finally(function () {
-                        saveBtn.disabled = false;
-                    });
-            });
+    function showNotification(type, message) {
+        if (typeof window.cmToast === 'function') {
+            window.cmToast({ type: type, title: type === 'success' ? 'Succès' : 'Erreur', message: message });
+            return;
         }
         var container = document.getElementById('fmNotifications');
         if (!container) return;
@@ -1398,59 +1298,101 @@ $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON
             });
         }
 
-                // Sauvegarder uniquement le contenu de l'éditeur, SANS la page de couverture
-                var contentOnly = '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
+        // Download PDF button (footer)
+        if (downloadPdfBtn) {
+            downloadPdfBtn.addEventListener('click', function () {
+                pdfLoading.classList.add('is-visible');
+                downloadPdfBtn.disabled = true;
+                ensurePersistedForOutput()
+                    .then(function (reportId) {
+                        if (!reportId) throw new Error('Veuillez enregistrer le rapport d\'abord.');
+                        return exportPdf(reportId);
+                    })
+                    .then(function () {
+                        showNotification('success', 'PDF téléchargé avec succès.');
+                    })
+                    .catch(function (error) {
+                        showNotification('error', error.message || 'Erreur PDF.');
+                    })
+                    .finally(function () {
+                        pdfLoading.classList.remove('is-visible');
+                        downloadPdfBtn.disabled = false;
+                    });
+            });
+        }
 
-                document.getElementById('nom_rapport_hidden').value = document.getElementById('nom_rapport').value;
-                document.getElementById('theme_rapport_hidden').value = document.getElementById('titre_theme').value;
-                document.getElementById('contenu_rapport').value = contentOnly;
-                rapportForm.querySelector('input[name="action"]').value = 'deposer_rapport';
-                rapportForm.submit();
+        // Preview PDF button (footer) — opens backend PDF in new tab
+        if (previewPdfBtn) {
+            previewPdfBtn.addEventListener('click', function () {
+                console.log('[previewPdf] Button clicked');
+                previewPdfBtn.disabled = true;
+                var previewWindow = window.open('', '_blank');
+                if (previewWindow && previewWindow.document) {
+                    previewWindow.document.write('<!DOCTYPE html><title>Aperçu PDF</title><p style="font-family:Arial,sans-serif;padding:16px;">Generation du PDF...</p>');
+                    previewWindow.document.close();
+                }
+                ensurePersistedForOutput()
+                    .then(function (reportId) {
+                        console.log('[previewPdf] Got reportId:', reportId);
+                        if (!reportId) throw new Error('Veuillez enregistrer le rapport d\'abord.');
+                        return previewPdf(reportId, previewWindow);
+                    })
+                    .catch(function (error) {
+                        console.error('[previewPdf] Error:', error);
+                        if (previewWindow && !previewWindow.closed) {
+                            previewWindow.close();
+                        }
+                        showNotification('error', error.message || 'Erreur aperçu.');
+                    })
+                    .finally(function () {
+                        previewPdfBtn.disabled = false;
+                    });
+            });
+        }
+
+        // Deposit button
+        if (deposerBtn) {
+            deposerBtn.addEventListener('click', function (event) {
+                event.preventDefault();
+                console.log('[deposit] Button clicked');
+                if (deposerBtn.disabled) return;
+                requestDepositConfirmation()
+                    .then(function (confirmed) {
+                        console.log('[deposit] Confirmed:', confirmed);
+                        if (!confirmed) return null;
+                        deposerBtn.disabled = true;
+                        return ensurePersistedForOutput();
+                    })
+                    .then(function (reportId) {
+                        console.log('[deposit] Got reportId:', reportId);
+                        if (!reportId) return null;
+                        applyFormPayload('deposer_rapport');
+                        syncReportId(reportId);
+                        console.log('[deposit] Submitting form');
+                        rapportForm.submit();
+                        return null;
+                    })
+                    .catch(function (error) {
+                        console.error('[deposit] Error:', error);
+                        deposerBtn.disabled = false;
+                        showNotification('error', error.message || 'Erreur lors du dépôt.');
+                    });
             });
         }
 
         // Auto-save every 60 seconds
         if (!isReadOnly) {
-            setInterval(function () {
-                var current = snapshot();
-                if (current !== lastSnapshot) {
-                    var nomRapport = document.getElementById('nom_rapport').value.trim();
-                    var titreTheme = document.getElementById('titre_theme').value.trim();
-                    if (!nomRapport || !titreTheme) return;
-
-                    // Sauvegarder uniquement le contenu de l'éditeur, SANS la page de couverture
-                    var contentOnly = '<div style="font-family: Times New Roman, serif; padding: 15mm 20mm;">' + joditEditor.value + '</div>';
-
-                    document.getElementById('nom_rapport_hidden').value = nomRapport;
-                    document.getElementById('theme_rapport_hidden').value = titreTheme;
-                    document.getElementById('contenu_rapport').value = contentOnly;
-                    document.getElementById('cover_data').value = JSON.stringify(getCoverData());
-
-                    var formData = new FormData(rapportForm);
-                    formData.set('action', 'save_rapport');
-
-                    fetch(window.location.href, {
-                        method: 'POST',
-                        body: formData,
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    })
-                        .then(function (response) { return response.json(); })
-                        .then(function (result) {
-                            if (result.success) {
-                                autosaveStatus.textContent = 'Sauvegarde automatiquement a ' + nowLabel();
-                                lastSnapshot = snapshot();
-                                if (result.rapport_id) {
-                                    var reportId = String(result.rapport_id);
-                                    var editIdField = rapportForm.querySelector('input[name="edit_id"]');
-                                    if (editIdField) editIdField.value = reportId;
-                                    document.getElementById('payloadReportId').value = reportId;
-                                    var currentUrl = new URL(window.location.href);
-                                    currentUrl.searchParams.set('edit', reportId);
-                                    window.history.replaceState({}, '', currentUrl.toString());
-                                }
-                            }
-                        })
-                        .catch(function () { /* silently fail */ });
+            window.setInterval(function () {
+                var currentSnapshot = snapshot();
+                if (requiresMigrationSave || currentSnapshot !== lastSnapshot) {
+                    persistDraft({
+                        pendingMessage: 'Auto-save…',
+                        successPrefix: 'Auto-save à ',
+                        silentSuccess: true,
+                        silentError: true,
+                        failureMessage: 'Échec auto-save à ' + nowLabel(),
+                        disableButton: false
+                    }).catch(function () {});
                 }
             }, 60000);
         }
@@ -1480,3 +1422,4 @@ if (document.readyState === 'loading') {
 }
 })();
 </script>
+

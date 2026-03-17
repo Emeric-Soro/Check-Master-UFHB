@@ -17,7 +17,7 @@ $derniersEtudiants = $data['derniers_etudiants'] ?? [];
 $students = $data['students'] ?? [];
 $studentsTotal = $data['students_total'] ?? 0;
 $studentsPage = $data['students_page'] ?? 1;
-$studentsPerPage = $data['students_per_page'] ?? 20;
+$studentsPerPage = $data['students_per_page'] ?? 10;
 $studentsTotalPages = $data['students_total_pages'] ?? 1;
 $studentsSearch = $data['students_search'] ?? '';
 $studentsStatut = $data['students_statut'] ?? '';
@@ -25,6 +25,7 @@ $studentsStatut = $data['students_statut'] ?? '';
 $juries = $data['juries'] ?? [];
 $juriesTotal = $data['juries_total'] ?? 0;
 $juriesPage = $data['juries_page'] ?? 1;
+$juriesPerPage = $data['juries_per_page'] ?? 10;
 $juriesTotalPages = $data['juries_total_pages'] ?? 1;
 
 $globalStats = $data['global_stats'] ?? [];
@@ -284,7 +285,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 'search_value' => $studentsSearch,
                 'search_placeholder' => 'Nom, matricule, thème...',
                 'limit' => $studentsPerPage,
-                'limit_options' => [10, 20, 50, 100],
+                'limit_options' => [5, 10, 25, 50, 100],
                 'can_delete' => false,
                 'can_view' => true,
                 'show_actions' => false,
@@ -323,7 +324,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <tbody>
                         <?php if (empty($students)): ?>
                         <tr><td colspan="8" class="cm-data-table__td is-center cm-p-5">
-                            <i class="fas fa-inbox cm-text-muted cm-text-3xl cm-mb-2 cm-d-block"></i>
+                            <i class="fas fa-inbox cm-text-muted cm-text-3xl cm-mb-2" style="display: block;"></i>
                             <span class="cm-text-muted">Aucun étudiant trouvé pour les critères sélectionnés.</span>
                         </td></tr>
                         <?php else: ?>
@@ -341,7 +342,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 <td class="cm-data-table__td cm-text-muted"><?= $rowNum ?></td>
                                 <td class="cm-data-table__td"><code><?= htmlspecialchars((string) ($student['matricule'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></code></td>
                                 <td class="cm-data-table__td cm-font-semibold"><?= htmlspecialchars(trim(($student['nom'] ?? '') . ' ' . ($student['prenoms'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
-                                <td class="cm-data-table__td cm-max-w-sm">
+                                <td class="cm-data-table__td" style="max-width: 250px;">
                                     <span class="cm-text-ellipsis" title="<?= htmlspecialchars((string) ($student['theme'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                                         <?= htmlspecialchars((string) ($student['theme'] ?? '-'), ENT_QUOTES, 'UTF-8') ?>
                                     </span>
@@ -372,7 +373,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             <?php elseif ($activeTab === 'jurys'): ?>
             <!-- =============== ONGLET: JURYS =============== -->
             <?php
-            $juriesPager = cm_paginate(max($juriesTotal, 1), 20, $juriesPage);
+            $juriesPager = cm_paginate(max($juriesTotal, 1), $juriesPerPage, $juriesPage);
             $juriesPager['last'] = $juriesTotalPages;
             $juriesPagerBase = $tabBase . '&tab=jurys';
             ?>
@@ -400,12 +401,12 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <tbody>
                         <?php if (empty($juries)): ?>
                         <tr><td colspan="8" class="cm-data-table__td is-center cm-p-5">
-                            <i class="fas fa-users-slash cm-text-muted cm-text-3xl cm-mb-2 cm-d-block"></i>
+                            <i class="fas fa-users-slash cm-text-muted cm-text-3xl cm-mb-2" style="display: block;"></i>
                             <span class="cm-text-muted">Aucun jury trouvé pour cette année académique.</span>
                         </td></tr>
                         <?php else: ?>
                             <?php
-                            $jRowNum = ($juriesPage - 1) * 20;
+                            $jRowNum = ($juriesPage - 1) * $juriesPerPage;
                             foreach ($juries as $jury):
                                 $jRowNum++;
                                 $dateRaw = (string) ($jury['date_soutenance'] ?? '');
@@ -420,7 +421,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                     <?= htmlspecialchars((string) ($jury['etudiant_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?>
                                     <br><small class="cm-text-muted"><?= htmlspecialchars((string) ($jury['etudiant_matricule'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small>
                                 </td>
-                                <td class="cm-data-table__td cm-max-w-sm">
+                                <td class="cm-data-table__td" style="max-width: 200px;">
                                     <span class="cm-text-ellipsis" title="<?= htmlspecialchars((string) ($jury['theme_soutenance'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                                         <?= htmlspecialchars((string) ($jury['theme_soutenance'] ?? '-'), ENT_QUOTES, 'UTF-8') ?>
                                     </span>
@@ -621,7 +622,15 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <div class="cm-card-body">
                     <div class="cm-grid-2 cm-gap-4">
                         <div>
-                            <form method="POST" action="?page=admin_historique&action=import" enctype="multipart/form-data" data-cm-ajax-form="true">
+                            <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+.cm-content-area form .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form method="POST" action="?page=admin_historique&action=import" enctype="multipart/form-data" data-cm-ajax-form="true">
                                 <?php cm_component('form/csrf-token'); ?>
                                 <div class="cm-mb-3">
                                     <?php cm_component('form/file-upload', [
@@ -716,3 +725,4 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     });
 })();
 </script>
+

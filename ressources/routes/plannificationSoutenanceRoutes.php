@@ -1,32 +1,35 @@
 <?php
 // Routes pour la planification des soutenances
 
-// Inclure le contrôleur
-require_once __DIR__ . '/../app/controllers/PlanificationSoutenanceController.php';
+if (isset($_GET['page']) && in_array($_GET['page'], ['planification_soutenance', 'plannification_soutenance'], true)) {
+    $action = $_GET['action'] ?? '';
+    if ($action === '') {
+        return;
+    }
 
-// Créer une instance du contrôleur
-$controller = new PlanificationSoutenanceController();
+    require_once __DIR__ . '/../../app/controllers/PlanificationSoutenanceController.php';
+    $controller = new PlanificationSoutenanceController();
 
-// Récupérer l'action demandée
-$action = $_GET['action'] ?? '';
+    switch ($action) {
+        case 'planifierSoutenance':
+            $controller->planifierSoutenance();
+            break;
 
-// Router les actions
-switch ($action) {
-    case 'planifierSoutenance':
-        $controller->planifierSoutenance();
-        break;
+        case 'supprimerPlanification':
+            $controller->supprimerPlanification();
+            break;
 
-    case 'supprimerPlanification':
-        $controller->supprimerPlanification();
-        break;
+        case 'getPlanification':
+            $controller->getPlanification();
+            break;
 
-    case 'getPlanification':
-        $controller->getPlanification();
-        break;
-
-    default:
-        // Action par défaut - afficher la page
-        include __DIR__ . '/../ressources/views/plannificaiton_soutenance_content.php';
-        break;
+        default:
+            header('Content-Type: application/json');
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Action non reconnue'
+            ]);
+            break;
+    }
 }
-?>

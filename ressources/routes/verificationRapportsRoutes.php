@@ -1,5 +1,5 @@
 <?php
-if (isset($_GET['page']) && $_GET['page'] === 'verification_candidatures_soutenance') {
+if (isset($_GET['page']) && in_array($_GET['page'], ['verification_candidatures_soutenance', 'verification_candidatures'], true)) {
 
     require_once __DIR__ . '/../../app/controllers/VerificationRapportsController.php';
     require_once __DIR__ . '/../../app/models/Approuver.php';

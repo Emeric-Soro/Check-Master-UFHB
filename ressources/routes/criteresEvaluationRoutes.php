@@ -1,38 +1,67 @@
 <?php
 require_once __DIR__ . '/../../app/controllers/CriteresEvaluationController.php';
 
-if (isset($_GET['page']) && $_GET['page'] === 'criteres_evaluation') {
-    $controller = new CriteresEvaluationController();
+$page = (string) ($_GET['page'] ?? '');
+$action = (string) ($_GET['action'] ?? '');
 
-    // Action pour charger les années académiques (AJAX)
-    if (isset($_GET['action']) && $_GET['action'] === 'getAnnees') {
-        $controller->getAnneesAcademiques();
-        exit;
+$isLegacyCriteriaPage = ($page === 'criteres_evaluation');
+$isParametresCriteriaPage = ($page === 'parametres_specifiques' && $action === 'criteres_evaluation');
+
+if ($isLegacyCriteriaPage || $isParametresCriteriaPage) {
+    $controller = new CriteresEvaluationController();
+    $ajaxAction = '';
+
+    if ($isParametresCriteriaPage) {
+        $ajaxAction = (string) ($_GET['ajaxAction'] ?? '');
+    } elseif (in_array($action, ['getAnnees', 'getCriteres', 'createCritere', 'updateCritere', 'deleteCritere'], true)) {
+        $ajaxAction = $action;
     }
-    // Action pour charger les critères (AJAX)
-    elseif (isset($_GET['action']) && $_GET['action'] === 'getCriteres') {
-        $controller->getCriteres();
-        exit;
+
+    if ($ajaxAction !== '') {
+        switch ($ajaxAction) {
+            case 'getAnnees':
+                $controller->getAnneesAcademiques();
+                exit;
+            case 'getCriteres':
+                $controller->getCriteres();
+                exit;
+            case 'createCritere':
+                if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+                    http_response_code(405);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => 'Méthode non autorisée']);
+                    exit;
+                }
+                $controller->createCritere();
+                exit;
+            case 'updateCritere':
+                if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+                    http_response_code(405);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => 'Méthode non autorisée']);
+                    exit;
+                }
+                $controller->updateCritere();
+                exit;
+            case 'deleteCritere':
+                if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+                    http_response_code(405);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => 'Méthode non autorisée']);
+                    exit;
+                }
+                $controller->deleteCritere();
+                exit;
+            default:
+                http_response_code(404);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Action inconnue']);
+                exit;
+        }
     }
-    // Action pour créer un critère (AJAX)
-    elseif (isset($_GET['action']) && $_GET['action'] === 'createCritere' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-        $controller->createCritere();
-        exit;
-    }
-    // Action pour modifier un critère (AJAX)
-    elseif (isset($_GET['action']) && $_GET['action'] === 'updateCritere' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-        $controller->updateCritere();
-        exit;
-    }
-    // Action pour supprimer un critère (AJAX)
-    elseif (isset($_GET['action']) && $_GET['action'] === 'deleteCritere' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-        $controller->deleteCritere();
-        exit;
-    }
+
     // Action par défaut : afficher la page
-    else {
-        $controller->index();
-    }
+    $controller->index();
 }
 
 // Route de test pour les critères d'évaluation

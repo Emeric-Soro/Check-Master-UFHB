@@ -1,83 +1,47 @@
 <?php
 /**
- * Middleware de vérification des permissions
- * Vérifie que l'utilisateur a les droits nécessaires pour accéder aux pages et effectuer des actions
+ * Middleware de vérification des permissions.
+ * Conserve l'API legacy mais délègue la décision effective à AuthorizationService.
  */
 
-require_once __DIR__ . '/../models/Permission.php';
-require_once __DIR__ . '/../models/Fonctionnalite.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../Core/Autoload.php';
+
+use CheckMaster\Security\AuthorizationService;
+use CheckMaster\Security\PermissionRegistry;
 
 class PermissionMiddleware
 {
-    private $permissionModel;
-    private $fonctionnaliteModel;
     private $pdo;
+    private $authorizationService;
 
     public function __construct()
     {
         $this->pdo = Database::getConnection();
-        $this->permissionModel = new Permission($this->pdo);
-        $this->fonctionnaliteModel = new Fonctionnalite($this->pdo);
+        $this->authorizationService = new AuthorizationService($this->pdo);
     }
 
-    /**
-     * Vérifie si l'utilisateur a accès à une page
-     * @param string $page - Le code de la page (ex: 'dashboard', 'gestion_etudiants')
-     * @param int $idGroupe - L'ID du groupe utilisateur
-     * @param string $action - L'action CRUD: 'voir', 'creer', 'modifier', 'supprimer'
-     * @return bool
-     */
     public function checkPageAccess($page, $idGroupe, $action = 'voir')
     {
-        // Pages publiques qui ne nécessitent pas de vérification
-        $publicPages = ['page_connexion', 'logout', 'reset_password'];
-        if (in_array($page, $publicPages)) {
-            return true;
+        $page = is_string($page) ? trim($page) : '';
+        $action = in_array($action, ['voir', 'creer', 'modifier', 'supprimer'], true) ? $action : 'voir';
+
+        if ($page === '') {
+            $page = (string) ($_GET['page'] ?? '');
         }
 
-        // Admin: règle “données” via libellé du groupe
-        if ($this->isAdminGroup((int) $idGroupe)) {
-            return true;
+        if ($page !== '') {
+            foreach (PermissionRegistry::publicRoutes() as $route) {
+                $pattern = (string) ($route['pattern'] ?? '');
+                if ($pattern === 'page=' . $page) {
+                    return true;
+                }
+            }
         }
 
-        // Récupérer la fonctionnalité par son URL (correspondant au paramètre ?page=)
-        $fonctionnalite = $this->fonctionnaliteModel->getFonctionnaliteByUrl($page);
-
-        if (!$fonctionnalite) {
-            error_log("PermissionMiddleware: Fonctionnalité non trouvée pour l'URL '$page'");
-            return false;
-        }
-
-        // Récupérer toutes les permissions pour cette fonctionnalité
-        $permission = $this->permissionModel->getPermissions($idGroupe, $fonctionnalite->id_fonctionnalite);
-
-        if (!$permission) {
-            error_log("PermissionMiddleware: Aucune permission trouvée pour groupe $idGroupe, fonctionnalité {$fonctionnalite->id_fonctionnalite}");
-            return false;
-        }
-
-        // Vérifier le droit spécifique selon l'action
-        switch ($action) {
-            case 'voir':
-                return (bool) $permission->peut_voir;
-            case 'creer':
-                return (bool) $permission->peut_creer;
-            case 'modifier':
-                return (bool) $permission->peut_modifier;
-            case 'supprimer':
-                return (bool) $permission->peut_supprimer;
-            default:
-                return false;
-        }
+        return $this->authorizationService->checkFeaturePermission((int) $idGroupe, $page, $action);
     }
 
-    /**
-     * Vérifie l'accès et redirige si refusé
-     * @param string $page
-     * @param int $idGroupe
-     * @param string $action
-     */
     public function requirePermission($page, $idGroupe, $action = 'voir')
     {
         if (!$this->checkPageAccess($page, $idGroupe, $action)) {
@@ -85,154 +49,56 @@ class PermissionMiddleware
         }
     }
 
-    /**
-     * Détecte automatiquement l'action CRUD depuis la requête HTTP
-     * @return string - 'voir', 'creer', 'modifier', ou 'supprimer'
-     */
     public function detectAction()
     {
-        // Vérifier le paramètre 'action' dans l'URL
-        if (isset($_GET['action'])) {
-            $action = strtolower($_GET['action']);
-
-            // Mapping des actions communes
-            if (strpos($action, 'ajouter') !== false || strpos($action, 'create') !== false || strpos($action, 'new') !== false) {
-                return 'creer';
-            }
-            if (strpos($action, 'modifier') !== false || strpos($action, 'edit') !== false || strpos($action, 'update') !== false) {
-                return 'modifier';
-            }
-            if (strpos($action, 'supprimer') !== false || strpos($action, 'delete') !== false || strpos($action, 'remove') !== false) {
-                return 'supprimer';
-            }
-        }
-
-        // Vérifier les soumissions de formulaires POST
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (isset($_POST['submit_add']) || isset($_POST['submit_create']) || isset($_POST['submit_ajouter'])) {
-                return 'creer';
-            }
-            if (isset($_POST['submit_edit']) || isset($_POST['submit_update']) || isset($_POST['submit_modifier'])) {
-                return 'modifier';
-            }
-            if (isset($_POST['submit_delete']) || isset($_POST['submit_supprimer']) || isset($_POST['submit_delete_multiple'])) {
-                return 'supprimer';
-            }
-        }
-
-        // Si on a un ID dans l'URL et pas de POST, c'est probablement une visualisation
-        if (isset($_GET['id']) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-            return 'voir';
-        }
-
-        // Par défaut, c'est une visualisation
-        return 'voir';
+        $resolved = $this->authorizationService->resolveLegacyRequest($_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'GET');
+        return (string) ($resolved['action'] ?? 'voir');
     }
 
-    /**
-     * Bloque l'accès et affiche un message d'erreur
-     * @param string $action
-     */
     private function denyAccess($action = 'voir')
     {
         $messages = [
             'voir' => 'Vous n\'avez pas l\'autorisation d\'accéder à cette page.',
             'creer' => 'Vous n\'avez pas l\'autorisation de créer des éléments sur cette page.',
             'modifier' => 'Vous n\'avez pas l\'autorisation de modifier des éléments sur cette page.',
-            'supprimer' => 'Vous n\'avez pas l\'autorisation de supprimer des éléments sur cette page.'
+            'supprimer' => 'Vous n\'avez pas l\'autorisation de supprimer des éléments sur cette page.',
         ];
 
-        $message = isset($messages[$action]) ? $messages[$action] : $messages['voir'];
-
-        // Stocker le message dans la session
-        $_SESSION['error_message'] = $message;
+        $_SESSION['error_message'] = $messages[$action] ?? $messages['voir'];
         $_SESSION['error_type'] = 'permission_denied';
-
-        // Rediriger vers la page d'accueil ou la page précédente
-        if (isset($_SESSION['id_GU']) && $this->isAdminGroup((int) $_SESSION['id_GU'])) {
-            // Pour l'admin, rediriger vers le dashboard
-            header('Location: layout.php?page=dashboard_admin&error=permission');
-        } else {
-            // Pour les autres, rediriger vers leur dashboard
-            header('Location: layout.php?page=dashboard&error=permission');
-        }
+        header('Location: layout.php?page=access_denied');
         exit;
     }
 
-    /**
-     * Vérifie l'accès pour une action spécifique via code
-     * @param string $codeFonctionnalite
-     * @param int $idGroupe
-     * @param string $action
-     * @return bool
-     */
     public function checkPermissionByCode($codeFonctionnalite, $idGroupe, $action = 'voir')
     {
-        // Administrateur a tous les droits (règle données)
-        if ($this->isAdminGroup((int) $idGroupe)) {
-            return true;
-        }
-
-        return $this->permissionModel->checkPermissionByCode($idGroupe, $codeFonctionnalite, $action);
+        return $this->authorizationService->checkFeaturePermission((int) $idGroupe, (string) $codeFonctionnalite, (string) $action);
     }
 
     private function isAdminGroup(int $idGroupe): bool
     {
-        try {
-            $stmt = $this->pdo->prepare("SELECT lib_GU FROM groupe_utilisateur WHERE id_GU = ?");
-            $stmt->execute([$idGroupe]);
-            $lib = $stmt->fetchColumn();
-            if (!is_string($lib)) {
-                return false;
-            }
-            $lib = strtolower(trim($lib));
-            return $lib === 'administrateur' || $lib === 'admin';
-        } catch (Exception $e) {
-            return false;
-        }
+        $groups = PermissionRegistry::groups();
+        return isset($groups['administrateur']) && (int) $groups['administrateur'] === $idGroupe;
     }
 
-    /**
-     * Récupère toutes les permissions d'un groupe
-     * @param int $idGroupe
-     * @return array
-     */
     public function getGroupePermissions($idGroupe)
     {
-        return $this->permissionModel->getAllPermissionsForGroupe($idGroupe);
+        require_once __DIR__ . '/../models/Permission.php';
+        $permissionModel = new Permission($this->pdo);
+        return $permissionModel->getAllPermissionsForGroupe($idGroupe);
     }
 
-    /**
-     * Vérifie si l'utilisateur peut accéder à une sous-page
-     * @param string $pageParente
-     * @param string $sousPage
-     * @param int $idGroupe
-     * @param string $action
-     * @return bool
-     */
     public function checkSousPageAccess($pageParente, $sousPage, $idGroupe, $action = 'voir')
     {
-        // Vérifier d'abord l'accès à la page parente
-        if (!$this->checkPageAccess($pageParente, $idGroupe, 'voir')) {
-            return false;
-        }
-
-        // Vérifier l'accès à la sous-page
-        return $this->checkPageAccess($sousPage, $idGroupe, $action);
+        return $this->checkPageAccess($pageParente, $idGroupe, 'voir')
+            && $this->checkPageAccess($sousPage, $idGroupe, $action);
     }
 
-    /**
-     * Log une tentative d'accès non autorisé
-     * @param int $idUtilisateur
-     * @param string $page
-     * @param string $action
-     */
     public function logUnauthorizedAccess($idUtilisateur, $page, $action)
     {
         require_once __DIR__ . '/../models/AuditLog.php';
         $auditLog = new AuditLog($this->pdo);
-
-        $details = "Tentative d'accès non autorisé - Page: $page, Action: $action";
+        $details = "Tentative d'accès non autorisé - Page: {$page}, Action: {$action}";
         $auditLog->logAction($idUtilisateur, 'acces_refuse', 'permission', 'Erreur', $details);
     }
 }

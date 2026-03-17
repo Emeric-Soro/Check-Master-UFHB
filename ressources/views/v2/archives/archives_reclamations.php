@@ -16,9 +16,6 @@ $stats        = $data['stats'] ?? null;
     <!-- En-tête -->
     <div class="cm-page-header cm-mb-5">
         <div>
-            <h1 class="cm-page-title">
-                <i class="fas fa-exclamation-circle cm-mr-2"></i>Archives Réclamations
-            </h1>
             <p class="cm-page-subtitle">
                 Historique des réclamations de l'année archivée
             </p>

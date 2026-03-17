@@ -60,7 +60,9 @@ class AuditLog {
             $statut = 'Erreur';
         }
 
-        $sql = "INSERT INTO pister (id_utilisateur, action, nom_table, statut_action) VALUES (?, ?, ?, ?)";
+        $sql = "INSERT INTO pister (id_utilisateur, action, nom_table, statut_action, date_creation) VALUES (?, ?, ?, ?, NOW())";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$id_utilisateur, $action, $nom_table, $statut]);
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([$id_utilisateur, $action, $nom_table, $statut]);
     }

@@ -89,7 +89,15 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
     <div class="cm-pole-superieur">
         <div class="">
         </div>
-        <form id="cmReclamationForm" method="POST">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmReclamationForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="cmReclamationForm" method="POST">
             <?php cm_component('form/csrf-token'); ?>
             <input type="hidden" id="cmReclamationId" value="">
             <div class="cm-grid-4">
@@ -136,16 +144,18 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             ]);
             ?>
             <div class="cm-form-buttons">
-                <?php if (canEdit()): ?>
-                    <button type="submit" class="cm-btn is-success">
-                        <i class="fas fa-check" aria-hidden="true"></i>
-                        Repondre
-                    </button>
-                <?php endif; ?>
-                <button type="button" id="cmResetReclamation" class="cm-btn is-light">
-                    <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                    Réinitialiser
-                </button>
+                <?php
+                $reclamFormActions = [
+                    ['label' => 'Réinitialiser', 'type' => 'button', 'class' => 'cm-btn is-secondary is-sm', 'attrs' => ['id' => 'cmResetReclamation']],
+                ];
+                if (canEdit()) {
+                    $reclamFormActions[] = ['label' => 'Répondre', 'type' => 'submit', 'class' => 'cm-btn is-primary is-sm'];
+                }
+                cm_component('crud/form-actions', [
+                    'cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']],
+                    'actions' => $reclamFormActions,
+                ]);
+                ?>
             </div>
         </form>
     </div>
@@ -154,7 +164,7 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
         'id_prefix' => 'cmReclamations',
         'search_value' => $_GET['search'] ?? '',
         'limit' => $reclamationsPerPage,
-        'allowed_limits' => $allowedLimits,
+        'limit_options' => $allowedLimits,
         'can_delete' => canDelete(),
         'can_view' => canView(),
     ]); ?>
@@ -166,10 +176,10 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
                     <th class="cm-data-table__th is-checkbox">
                         <input type="checkbox" id="cmCheckAllReclamations" class="cm-checkbox" aria-label="Sélectionner toutes les lignes">
                     </th>
-                    <th class="cm-data-table__th">N° Recl.</th>
-                    <th class="cm-data-table__th">Etudiant</th>
+                    <th class="cm-data-table__th">N° Réclamation</th>
+                    <th class="cm-data-table__th">Nom &amp; Prénom Étudiant</th>
                     <th class="cm-data-table__th">Objet</th>
-                    <th class="cm-data-table__th">Date Recl.</th>
+                    <th class="cm-data-table__th">Date Réclamation</th>
                     <th class="cm-data-table__th">Statut</th>
                     <th class="cm-data-table__th">Actions</th>
                 </tr>
@@ -477,3 +487,4 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
     updateSelectionState();
 })();
 </script>
+

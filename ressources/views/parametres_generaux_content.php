@@ -5,6 +5,14 @@ if (!function_exists('canView')) {
 
 $cards = isset($cardPGeneraux) && is_array($cardPGeneraux) ? $cardPGeneraux : [];
 
+// Remove "Années Académiques" — it has its own dedicated page
+$cards = array_values(array_filter($cards, static function ($card): bool {
+    $title = strtolower(trim((string) ($card['title'] ?? '')));
+    return strpos($title, 'années académiques') === false
+        && strpos($title, 'annees academiques') === false
+        && strpos($title, 'année académique') === false;
+}));
+
 $iconByTitle = [
     'Années Académiques' => 'fa-calendar-alt',
     'App Settings' => 'fa-sliders',

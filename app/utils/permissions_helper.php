@@ -1,246 +1,180 @@
 <?php
 /**
- * Helper functions pour vérifier les permissions dans les vues
- * Facilite l'affichage conditionnel des boutons et actions selon les droits CRUD
+ * Helpers de compatibilité pour les permissions.
+ * Toute la décision runtime est centralisée dans AuthorizationService.
  */
 
-/**
- * Vérifie si l'utilisateur peut voir la page/élément
- * @param string $codeFonctionnalite
- * @return bool
- */
+require_once __DIR__ . '/../Core/Autoload.php';
+require_once __DIR__ . '/../config/database.php';
+
+use CheckMaster\Security\AuthorizationService;
+use CheckMaster\Security\PermissionContextFactory;
+use CheckMaster\Security\PermissionRegistry;
+
+if (!function_exists('cm_authorization_service')) {
+    function cm_authorization_service(): AuthorizationService
+    {
+        static $service = null;
+        if (!$service instanceof AuthorizationService) {
+            $service = new AuthorizationService(Database::getConnection());
+        }
+
+        return $service;
+    }
+}
+
+if (!function_exists('cm_permission_context_factory')) {
+    function cm_permission_context_factory(): PermissionContextFactory
+    {
+        static $factory = null;
+        if (!$factory instanceof PermissionContextFactory) {
+            $factory = new PermissionContextFactory(Database::getConnection());
+        }
+
+        return $factory;
+    }
+}
+
+if (!function_exists('cm_current_permission_identifier')) {
+    function cm_current_permission_identifier(): string
+    {
+        $resolved = cm_authorization_service()->resolveLegacyRequest($_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'GET');
+        if (!empty($resolved['slug_permission'])) {
+            return (string) $resolved['slug_permission'];
+        }
+
+        return (string) ($_GET['page'] ?? '');
+    }
+}
+
 if (!function_exists('canView')) {
     function canView($codeFonctionnalite = null)
     {
-    if (!isset($_SESSION['id_GU'])) {
-        return false;
-    }
-
-    // Admin (règle données via libellé)
-    if (isAdmin()) {
-        return true;
-    }
-
-    if ($codeFonctionnalite === null) {
-        $codeFonctionnalite = $_GET['page'] ?? '';
-        if ($codeFonctionnalite !== '' && isset($_GET['action']) && is_string($_GET['action']) && $_GET['action'] !== '') {
-            $codeFonctionnalite .= '&action=' . $_GET['action'];
+        if (!isset($_SESSION['id_GU'])) {
+            return false;
         }
-    }
 
-    global $permissionMiddleware;
-    if (!isset($permissionMiddleware)) {
-        require_once __DIR__ . '/../middlewares/PermissionMiddleware.php';
-        $permissionMiddleware = new PermissionMiddleware();
-    }
-
-        return $permissionMiddleware->checkPageAccess($codeFonctionnalite, $_SESSION['id_GU'], 'voir');
+        $identifier = $codeFonctionnalite !== null ? (string) $codeFonctionnalite : cm_current_permission_identifier();
+        return cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'voir');
     }
 }
 
-/**
- * Vérifie si l'utilisateur peut créer des éléments
- * @param string $codeFonctionnalite
- * @return bool
- */
 if (!function_exists('canCreate')) {
     function canCreate($codeFonctionnalite = null)
     {
-    if (!isset($_SESSION['id_GU'])) {
-        return false;
-    }
-
-    // Admin (règle données via libellé)
-    if (isAdmin()) {
-        return true;
-    }
-
-    if ($codeFonctionnalite === null) {
-        $codeFonctionnalite = $_GET['page'] ?? '';
-        if ($codeFonctionnalite !== '' && isset($_GET['action']) && is_string($_GET['action']) && $_GET['action'] !== '') {
-            $codeFonctionnalite .= '&action=' . $_GET['action'];
+        if (!isset($_SESSION['id_GU'])) {
+            return false;
         }
-    }
 
-    global $permissionMiddleware;
-    if (!isset($permissionMiddleware)) {
-        require_once __DIR__ . '/../middlewares/PermissionMiddleware.php';
-        $permissionMiddleware = new PermissionMiddleware();
-    }
-
-        return $permissionMiddleware->checkPageAccess($codeFonctionnalite, $_SESSION['id_GU'], 'creer');
+        $identifier = $codeFonctionnalite !== null ? (string) $codeFonctionnalite : cm_current_permission_identifier();
+        return cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'creer');
     }
 }
 
-/**
- * Vérifie si l'utilisateur peut modifier des éléments
- * @param string $codeFonctionnalite
- * @return bool
- */
 if (!function_exists('canEdit')) {
     function canEdit($codeFonctionnalite = null)
     {
-    if (!isset($_SESSION['id_GU'])) {
-        return false;
-    }
-
-    // Admin (règle données via libellé)
-    if (isAdmin()) {
-        return true;
-    }
-
-    if ($codeFonctionnalite === null) {
-        $codeFonctionnalite = $_GET['page'] ?? '';
-        if ($codeFonctionnalite !== '' && isset($_GET['action']) && is_string($_GET['action']) && $_GET['action'] !== '') {
-            $codeFonctionnalite .= '&action=' . $_GET['action'];
+        if (!isset($_SESSION['id_GU'])) {
+            return false;
         }
-    }
 
-    global $permissionMiddleware;
-    if (!isset($permissionMiddleware)) {
-        require_once __DIR__ . '/../middlewares/PermissionMiddleware.php';
-        $permissionMiddleware = new PermissionMiddleware();
-    }
-
-        return $permissionMiddleware->checkPageAccess($codeFonctionnalite, $_SESSION['id_GU'], 'modifier');
+        $identifier = $codeFonctionnalite !== null ? (string) $codeFonctionnalite : cm_current_permission_identifier();
+        return cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'modifier');
     }
 }
 
-/**
- * Vérifie si l'utilisateur peut supprimer des éléments
- * @param string $codeFonctionnalite
- * @return bool
- */
 if (!function_exists('canDelete')) {
     function canDelete($codeFonctionnalite = null)
     {
-    if (!isset($_SESSION['id_GU'])) {
-        return false;
-    }
-
-    // Admin (règle données via libellé)
-    if (isAdmin()) {
-        return true;
-    }
-
-    if ($codeFonctionnalite === null) {
-        $codeFonctionnalite = $_GET['page'] ?? '';
-        if ($codeFonctionnalite !== '' && isset($_GET['action']) && is_string($_GET['action']) && $_GET['action'] !== '') {
-            $codeFonctionnalite .= '&action=' . $_GET['action'];
+        if (!isset($_SESSION['id_GU'])) {
+            return false;
         }
-    }
 
-    global $permissionMiddleware;
-    if (!isset($permissionMiddleware)) {
-        require_once __DIR__ . '/../middlewares/PermissionMiddleware.php';
-        $permissionMiddleware = new PermissionMiddleware();
-    }
-
-        return $permissionMiddleware->checkPageAccess($codeFonctionnalite, $_SESSION['id_GU'], 'supprimer');
+        $identifier = $codeFonctionnalite !== null ? (string) $codeFonctionnalite : cm_current_permission_identifier();
+        return cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'supprimer');
     }
 }
 
-/**
- * Affiche un bouton seulement si l'utilisateur a la permission
- * @param string $action - 'creer', 'modifier', 'supprimer'
- * @param string $buttonHtml - Le HTML du bouton
- * @param string $codeFonctionnalite - Code de la fonctionnalité (optionnel)
- * @return string
- */
 if (!function_exists('showIfCan')) {
     function showIfCan($action, $buttonHtml, $codeFonctionnalite = null)
     {
-    $canPerformAction = false;
+        $canPerformAction = false;
 
-    switch ($action) {
-        case 'creer':
-        case 'create':
-            $canPerformAction = canCreate($codeFonctionnalite);
-            break;
-        case 'modifier':
-        case 'edit':
-            $canPerformAction = canEdit($codeFonctionnalite);
-            break;
-        case 'supprimer':
-        case 'delete':
-            $canPerformAction = canDelete($codeFonctionnalite);
-            break;
-        case 'voir':
-        case 'view':
-            $canPerformAction = canView($codeFonctionnalite);
-            break;
-    }
+        switch ($action) {
+            case 'creer':
+            case 'create':
+                $canPerformAction = canCreate($codeFonctionnalite);
+                break;
+            case 'modifier':
+            case 'edit':
+                $canPerformAction = canEdit($codeFonctionnalite);
+                break;
+            case 'supprimer':
+            case 'delete':
+                $canPerformAction = canDelete($codeFonctionnalite);
+                break;
+            case 'voir':
+            case 'view':
+                $canPerformAction = canView($codeFonctionnalite);
+                break;
+        }
 
         return $canPerformAction ? $buttonHtml : '';
     }
 }
 
-/**
- * Affiche un message si l'utilisateur n'a pas la permission
- * @param string $action
- * @param string $codeFonctionnalite
- * @return string
- */
 if (!function_exists('showNoPermissionMessage')) {
     function showNoPermissionMessage($action = 'voir', $codeFonctionnalite = null)
     {
-    $messages = [
-        'voir' => 'Vous n\'avez pas l\'autorisation d\'accéder à cette page.',
-        'creer' => 'Vous n\'avez pas l\'autorisation de créer des éléments.',
-        'modifier' => 'Vous n\'avez pas l\'autorisation de modifier des éléments.',
-        'supprimer' => 'Vous n\'avez pas l\'autorisation de supprimer des éléments.'
-    ];
+        $messages = [
+            'voir' => 'Vous n\'avez pas l\'autorisation d\'accéder à cette page.',
+            'creer' => 'Vous n\'avez pas l\'autorisation de créer des éléments.',
+            'modifier' => 'Vous n\'avez pas l\'autorisation de modifier des éléments.',
+            'supprimer' => 'Vous n\'avez pas l\'autorisation de supprimer des éléments.',
+        ];
 
-    $message = isset($messages[$action]) ? $messages[$action] : $messages['voir'];
+        $message = isset($messages[$action]) ? $messages[$action] : $messages['voir'];
 
-    return '<div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+        return '<div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-yellow-700">' . htmlspecialchars($message) . '</p>
+                        </div>
                     </div>
-                    <div class="ml-3">
-                        <p class="text-sm text-yellow-700">' . htmlspecialchars($message) . '</p>
-                    </div>
-                </div>
-            </div>';
+                </div>';
     }
 }
 
-/**
- * Récupère toutes les permissions de l'utilisateur pour la page courante
- * @param string $codeFonctionnalite
- * @return array ['peut_voir', 'peut_creer', 'peut_modifier', 'peut_supprimer']
- */
 if (!function_exists('getCurrentPermissions')) {
     function getCurrentPermissions($codeFonctionnalite = null)
     {
-    if ($codeFonctionnalite === null) {
-        $codeFonctionnalite = $_GET['page'] ?? '';
-        if ($codeFonctionnalite !== '' && isset($_GET['action']) && is_string($_GET['action']) && $_GET['action'] !== '') {
-            $codeFonctionnalite .= '&action=' . $_GET['action'];
-        }
-    }
+        $identifier = $codeFonctionnalite !== null ? (string) $codeFonctionnalite : cm_current_permission_identifier();
+        $caps = cm_permission_context_factory()->forFeature((int) ($_SESSION['id_GU'] ?? 0), $identifier);
 
-    return [
-        'peut_voir' => canView($codeFonctionnalite),
-        'peut_creer' => canCreate($codeFonctionnalite),
-        'peut_modifier' => canEdit($codeFonctionnalite),
-        'peut_supprimer' => canDelete($codeFonctionnalite)
+        return [
+            'peut_voir' => $caps['view'],
+            'peut_creer' => $caps['create'],
+            'peut_modifier' => $caps['edit'],
+            'peut_supprimer' => $caps['delete'],
         ];
     }
 }
 
-/**
- * Vérifie si l'utilisateur est administrateur
- * @return bool
- */
+if (!function_exists('getPermissionCaps')) {
+    function getPermissionCaps($codeFonctionnalite = null)
+    {
+        $identifier = $codeFonctionnalite !== null ? (string) $codeFonctionnalite : cm_current_permission_identifier();
+        return cm_permission_context_factory()->forFeature((int) ($_SESSION['id_GU'] ?? 0), $identifier);
+    }
+}
+
 if (!function_exists('isAdmin')) {
     function isAdmin()
     {
-    if (!isset($_SESSION['lib_GU']) || !is_string($_SESSION['lib_GU'])) {
-        return false;
-    }
-    $lib = strtolower(trim($_SESSION['lib_GU']));
-        return $lib === 'administrateur' || $lib === 'admin';
+        $adminGroupId = PermissionRegistry::groups()['administrateur'] ?? null;
+        return isset($_SESSION['id_GU']) && $adminGroupId !== null && (int) $_SESSION['id_GU'] === (int) $adminGroupId;
     }
 }

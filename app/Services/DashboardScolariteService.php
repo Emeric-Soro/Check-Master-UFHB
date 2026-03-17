@@ -98,7 +98,10 @@ class DashboardScolariteService
 
             return [
                 'stats' => $stats,
-                'inscriptionsParNiveau' => $inscriptionsParNiveau
+                'inscriptionsParNiveau' => $inscriptionsParNiveau,
+                'nouvelles_inscriptions_detail' => $this->getNouvellesInscriptionsDetail($selectedYearId),
+                'paiements_en_attente_detail' => $this->getPaiementsEnAttenteDetail($selectedYearId),
+                'reclamations_recentes_detail' => $this->getReclamationsRecentesDetail(),
             ];
 
         } catch (PDOException $e) {
@@ -153,9 +156,11 @@ class DashboardScolariteService
             $reste_a_payer = isset($etudiant['reste_a_payer']) ? floatval($etudiant['reste_a_payer']) : 0;
             $montant_paye = isset($etudiant['montant_paye']) ? floatval($etudiant['montant_paye']) : 0;
 
+            // Ajouter le montant versé, peu importe si paiement complet ou partiel
+            $montantTotalPerçu += $montant_paye;
+
             if ($reste_a_payer <= 0) {
                 $complete++;
-                $montantTotalPerçu += $montant_paye;
             } else {
                 $partial++;
                 $montantEnAttente += $reste_a_payer;
@@ -169,5 +174,94 @@ class DashboardScolariteService
         $stats['montant_total_paiements'] = $montantTotalPerçu + $montantEnAttente;
 
         return $stats;
+    }
+
+    private function getNouvellesInscriptionsDetail(?int $selectedYearId): array
+    {
+        try {
+            $yearCond = $selectedYearId ? 'AND i.id_annee_acad = :annee' : '';
+            $params = [];
+            if ($selectedYearId) {
+                $params[':annee'] = $selectedYearId;
+            }
+            $sql = "SELECT i.num_carte_etud AS num_etu,
+                         e.nom_etu AS nom_etudiant,
+                         e.prenom_etu AS prenom_etudiant,
+                         i.id_niv_etude,
+                         MIN(i.date_inscription) as date_inscription,
+                         SUM(i.montant_verser) as montant_verser
+                    FROM inscriptions i
+                    JOIN etudiants e ON e.num_ident_etud = i.num_carte_etud
+                    WHERE i.date_inscription >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                    $yearCond
+                      GROUP BY i.num_carte_etud, i.id_annee_acad, e.nom_etu, e.prenom_etu, i.id_niv_etude
+                    ORDER BY date_inscription DESC
+                    LIMIT 10";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    private function getPaiementsEnAttenteDetail(?int $selectedYearId): array
+    {
+        try {
+            $yearCond = $selectedYearId ? 'AND i.id_annee_acad = :annee' : '';
+            $params = [];
+            if ($selectedYearId) {
+                $params[':annee'] = $selectedYearId;
+            }
+            $sql = "SELECT i.num_carte_etud AS num_etu,
+                      e.nom_etu AS nom_etudiant,
+                      e.prenom_etu AS prenom_etudiant,
+                      i.id_niv_etude,
+                      i.montant_verser,
+                      i.solde AS reste_a_payer,
+                      i.date_inscription
+                    FROM inscriptions i
+                    JOIN etudiants e ON e.num_ident_etud = i.num_carte_etud
+                    WHERE i.solde > 0
+                    $yearCond
+                  ORDER BY i.date_inscription ASC, i.num_carte_etud ASC, i.num_versement ASC
+                  LIMIT 5";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    private function getReclamationsRecentesDetail(): array
+    {
+        try {
+            $sql = "SELECT r.objet_reclamation,
+                           r.date_creation AS date_reclamation,
+                           e.nom_etu AS nom_etudiant,
+                           e.prenom_etu AS prenom_etudiant,
+                           COALESCE(
+                               sr.libelle_statut_reclamation,
+                               CASE r.statut_reclamation
+                                   WHEN 1 THEN 'En attente'
+                                   WHEN 2 THEN 'En cours'
+                                   WHEN 3 THEN 'Résolue'
+                                   WHEN 4 THEN 'Rejetée'
+                                   ELSE CAST(r.statut_reclamation AS CHAR)
+                               END
+                              ) as libelle_statut,
+                              r.statut_reclamation as statut_reclamation
+                    FROM reclamations r
+                    LEFT JOIN etudiants e ON e.num_ident_etud = r.num_carte_etud
+                    LEFT JOIN statut_reclamation sr ON sr.id_statut_reclamation = r.statut_reclamation
+                    ORDER BY r.date_creation DESC
+                    LIMIT 10";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 }

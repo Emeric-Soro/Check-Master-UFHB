@@ -4,6 +4,8 @@ class Fonctionnalite
 {
     private $pdo;
 
+    private static $hasSlugPermissionColumn = null;
+
     public function __construct($pdo)
     {
         $this->pdo = $pdo;
@@ -48,23 +50,64 @@ class Fonctionnalite
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
+    public function getFonctionnaliteBySlugPermission($slug_permission)
+    {
+        if (!$this->hasSlugPermissionColumn()) {
+            return false;
+        }
+
+        $sql = "SELECT * FROM fonctionnalites WHERE slug_permission = :slug_permission";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindParam(':slug_permission', $slug_permission, PDO::PARAM_STR);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_OBJ);
+    }
+
+    public function getFonctionnaliteByIdentifier($identifier)
+    {
+        $identifier = trim((string) $identifier);
+        if ($identifier === '') {
+            return false;
+        }
+
+        $feature = $this->getFonctionnaliteBySlugPermission($identifier);
+        if ($feature) {
+            return $feature;
+        }
+
+        $feature = $this->getFonctionnaliteByCode($identifier);
+        if ($feature) {
+            return $feature;
+        }
+
+        return $this->getFonctionnaliteByUrl($identifier);
+    }
+
     /**
      * Récupérer une fonctionnalité par son URL
-     * Supporte les formats: ?page=dashboard ou dashboard
+     * Supporte les formats: ?page=dashboard, page=dashboard ou dashboard
      */
     public function getFonctionnaliteByUrl($url_fonctionnalite)
     {
-        // Nettoyer l'URL pour la comparaison (retirer ?page= si présent)
-        $cleanUrl = str_replace('?page=', '', $url_fonctionnalite);
+        $rawUrl = trim((string) $url_fonctionnalite);
+        $pageUrl = strpos($rawUrl, '?page=') === 0 ? $rawUrl : '?page=' . ltrim($rawUrl, '?');
+        $pageOnly = preg_replace('/^\??page=/', '', $rawUrl);
 
-        $sql = "SELECT * FROM fonctionnalites 
-                WHERE url_fonctionnalite = :url1 
-                OR url_fonctionnalite = :url2
-                OR REPLACE(url_fonctionnalite, '?page=', '') = :url3";
+        $sql = "SELECT * FROM fonctionnalites
+                WHERE url_fonctionnalite IN (:raw_url, :page_url)
+                   OR REPLACE(url_fonctionnalite, '?page=', '') = :page_only
+                ORDER BY (url_fonctionnalite = :raw_url_exact) DESC,
+                         (url_fonctionnalite = :page_url_exact) DESC,
+                         actif DESC,
+                         id_fonctionnalite ASC
+                LIMIT 1";
+
         $stmt = $this->pdo->prepare($sql);
-        $stmt->bindValue(':url1', $url_fonctionnalite, PDO::PARAM_STR);
-        $stmt->bindValue(':url2', '?page=' . $url_fonctionnalite, PDO::PARAM_STR);
-        $stmt->bindValue(':url3', $cleanUrl, PDO::PARAM_STR);
+        $stmt->bindValue(':raw_url', $rawUrl, PDO::PARAM_STR);
+        $stmt->bindValue(':page_url', $pageUrl, PDO::PARAM_STR);
+        $stmt->bindValue(':page_only', $pageOnly, PDO::PARAM_STR);
+        $stmt->bindValue(':raw_url_exact', $rawUrl, PDO::PARAM_STR);
+        $stmt->bindValue(':page_url_exact', $pageUrl, PDO::PARAM_STR);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
@@ -129,12 +172,42 @@ class Fonctionnalite
      */
     public function createFonctionnalite($data)
     {
-        $sql = "INSERT INTO fonctionnalites 
-                (id_categorie, code_fonctionnalite, lib_fonctionnalite, label_fonctionnalite, 
-                 description_fonctionnalite, url_fonctionnalite, icone_fonctionnalite, 
-                 ordre_fonctionnalite, est_sous_page, page_parente, actif) 
-                VALUES (:id_categorie, :code, :lib, :label, :description, :url, :icone, 
-                        :ordre, :est_sous_page, :page_parente, :actif)";
+        $hasSlug = $this->hasSlugPermissionColumn();
+        $columns = [
+            'id_categorie',
+            'code_fonctionnalite',
+            'lib_fonctionnalite',
+            'label_fonctionnalite',
+            'description_fonctionnalite',
+            'url_fonctionnalite',
+            'icone_fonctionnalite',
+            'ordre_fonctionnalite',
+            'est_sous_page',
+            'page_parente',
+            'actif',
+        ];
+
+        $values = [
+            ':id_categorie',
+            ':code',
+            ':lib',
+            ':label',
+            ':description',
+            ':url',
+            ':icone',
+            ':ordre',
+            ':est_sous_page',
+            ':page_parente',
+            ':actif',
+        ];
+
+        if ($hasSlug) {
+            $columns[] = 'slug_permission';
+            $values[] = ':slug_permission';
+        }
+
+        $sql = "INSERT INTO fonctionnalites (" . implode(', ', $columns) . ")
+                VALUES (" . implode(', ', $values) . ")";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':id_categorie', $data['id_categorie'], PDO::PARAM_INT);
@@ -148,6 +221,10 @@ class Fonctionnalite
         $stmt->bindParam(':est_sous_page', $data['est_sous_page'], PDO::PARAM_BOOL);
         $stmt->bindParam(':page_parente', $data['page_parente']);
         $stmt->bindParam(':actif', $data['actif'], PDO::PARAM_BOOL);
+        if ($hasSlug) {
+            $slugPermission = $data['slug_permission'] ?? $data['code_fonctionnalite'];
+            $stmt->bindParam(':slug_permission', $slugPermission);
+        }
 
         return $stmt->execute();
     }
@@ -157,14 +234,23 @@ class Fonctionnalite
      */
     public function updateFonctionnalite($id_fonctionnalite, $data)
     {
+        $set = [
+            'lib_fonctionnalite = :lib',
+            'label_fonctionnalite = :label',
+            'description_fonctionnalite = :description',
+            'url_fonctionnalite = :url',
+            'icone_fonctionnalite = :icone',
+            'ordre_fonctionnalite = :ordre',
+            'actif = :actif',
+        ];
+
+        $hasSlug = $this->hasSlugPermissionColumn() && array_key_exists('slug_permission', $data);
+        if ($hasSlug) {
+            $set[] = 'slug_permission = :slug_permission';
+        }
+
         $sql = "UPDATE fonctionnalites 
-                SET lib_fonctionnalite = :lib, 
-                    label_fonctionnalite = :label, 
-                    description_fonctionnalite = :description, 
-                    url_fonctionnalite = :url, 
-                    icone_fonctionnalite = :icone, 
-                    ordre_fonctionnalite = :ordre, 
-                    actif = :actif
+                SET " . implode(', ', $set) . "
                 WHERE id_fonctionnalite = :id_fonctionnalite";
 
         $stmt = $this->pdo->prepare($sql);
@@ -176,6 +262,9 @@ class Fonctionnalite
         $stmt->bindParam(':icone', $data['icone_fonctionnalite']);
         $stmt->bindParam(':ordre', $data['ordre_fonctionnalite'], PDO::PARAM_INT);
         $stmt->bindParam(':actif', $data['actif'], PDO::PARAM_BOOL);
+        if ($hasSlug) {
+            $stmt->bindParam(':slug_permission', $data['slug_permission']);
+        }
 
         return $stmt->execute();
     }
@@ -205,6 +294,11 @@ class Fonctionnalite
             $set[] = "code_fonctionnalite = :code";
         }
 
+        $hasSlug = $this->hasSlugPermissionColumn() && array_key_exists('slug_permission', $data);
+        if ($hasSlug) {
+            $set[] = "slug_permission = :slug_permission";
+        }
+
         $sql = "UPDATE fonctionnalites SET " . implode(", ", $set) . " WHERE id_fonctionnalite = :id_fonctionnalite";
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':id_fonctionnalite', $id_fonctionnalite, PDO::PARAM_INT);
@@ -221,6 +315,9 @@ class Fonctionnalite
         if ($hasCode) {
             $stmt->bindParam(':code', $data['code_fonctionnalite']);
         }
+        if ($hasSlug) {
+            $stmt->bindParam(':slug_permission', $data['slug_permission']);
+        }
         return $stmt->execute();
     }
 
@@ -233,5 +330,28 @@ class Fonctionnalite
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':id_fonctionnalite', $id_fonctionnalite, PDO::PARAM_INT);
         return $stmt->execute();
+    }
+
+    private function hasSlugPermissionColumn()
+    {
+        if (self::$hasSlugPermissionColumn !== null) {
+            return self::$hasSlugPermissionColumn;
+        }
+
+        try {
+            $stmt = $this->pdo->query("SHOW COLUMNS FROM fonctionnalites LIKE 'slug_permission'");
+            self::$hasSlugPermissionColumn = (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            self::$hasSlugPermissionColumn = false;
+        }
+
+        return self::$hasSlugPermissionColumn;
+    }
+
+    private function assertUniqueClickableUrl($url, $excludeId = null)
+    {
+        // L'audit applicatif contient volontairement plusieurs entrées de menu
+        // pointant vers la même URL. On ne bloque donc plus ces doublons ici.
+        return;
     }
 }

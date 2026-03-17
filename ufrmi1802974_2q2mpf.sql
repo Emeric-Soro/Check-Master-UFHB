@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : mar. 10 mars 2026 à 22:59
+-- Généré le : lun. 16 mars 2026 à 17:24
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.3.6
 
@@ -25,48 +25,6 @@ SET time_zone = "+00:00";
 --
 -- Base de données : `ufrmi1802974_2q2mpf`
 --
-
-DELIMITER $$
---
--- Procédures
---
-DROP PROCEDURE IF EXISTS `add_user_fk` $$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `add_user_fk` ()   BEGIN
-    DECLARE fk1 INT DEFAULT 0;
-    DECLARE fk2 INT DEFAULT 0;
-    DECLARE fk3 INT DEFAULT 0;
-    
-    -- Vérifier si les FK existent
-    SELECT COUNT(*) INTO fk1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS 
-    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'utilisateur' AND CONSTRAINT_NAME = 'fk_utilisateur_etudiant';
-    
-    SELECT COUNT(*) INTO fk2 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS 
-    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'utilisateur' AND CONSTRAINT_NAME = 'fk_utilisateur_enseignant';
-    
-    SELECT COUNT(*) INTO fk3 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS 
-    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'utilisateur' AND CONSTRAINT_NAME = 'fk_utilisateur_pers_admin';
-    
-    IF fk1 = 0 THEN
-        ALTER TABLE utilisateur ADD CONSTRAINT fk_utilisateur_etudiant
-            FOREIGN KEY (num_etu) REFERENCES etudiants(num_etu) 
-            ON DELETE SET NULL ON UPDATE CASCADE;
-    END IF;
-    
-    IF fk2 = 0 THEN
-        ALTER TABLE utilisateur ADD CONSTRAINT fk_utilisateur_enseignant
-            FOREIGN KEY (matricule_ens) REFERENCES enseignants(matricule_ens) 
-            ON DELETE SET NULL ON UPDATE CASCADE;
-    END IF;
-    
-    IF fk3 = 0 THEN
-        ALTER TABLE utilisateur ADD CONSTRAINT fk_utilisateur_pers_admin
-            FOREIGN KEY (matricule_admin) REFERENCES personnel_admin(matricule_admin) 
-            ON DELETE SET NULL ON UPDATE CASCADE;
-    END IF;
-END$$
-
-DELIMITER;
 
 -- --------------------------------------------------------
 
@@ -307,7 +265,37 @@ CREATE TABLE IF NOT EXISTS `auth_rate_limits` (
     `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uniq_action_ip_identifier` (`action`, `ip`, `identifier`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 4 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `auth_rate_limits`
+--
+
+INSERT INTO
+    `auth_rate_limits` (
+        `id`,
+        `action`,
+        `ip`,
+        `identifier`,
+        `attempts`,
+        `window_start`,
+        `last_attempt`,
+        `blocked_until`,
+        `created_at`,
+        `updated_at`
+    )
+VALUES (
+        1,
+        'login',
+        '::1',
+        '-',
+        3,
+        '2026-03-11 16:17:43',
+        '2026-03-11 16:18:08',
+        NULL,
+        '2026-03-11 16:17:43',
+        '2026-03-11 16:18:08'
+    );
 
 -- --------------------------------------------------------
 
@@ -3823,10 +3811,20 @@ INSERT INTO
         `promotion_etu`
     )
 VALUES (
-        'CI0114284687',
-        'ASSJ2304030001',
-        'Asseko-Nkogho',
-        'Jean-Alphonse Chris Ange Emmanuel',
+        '161213861/CISS',
+        '161213861/CISS',
+        'Cissé',
+        'Kadidja  ',
+        NULL,
+        'F',
+        NULL,
+        '22625'
+    ),
+    (
+        'DEGG2506030001',
+        'CI0106187064',
+        'Degny',
+        'Gilles Alfred Emmanuel',
         NULL,
         'M',
         NULL,
@@ -3841,6 +3839,26 @@ VALUES (
         'M',
         NULL,
         '21918'
+    ),
+    (
+        'KOBT1112030001',
+        'CI0112272430',
+        'Kobenan',
+        'Tamyao Moye JeanBaptiste',
+        NULL,
+        'M',
+        NULL,
+        '22625'
+    ),
+    (
+        'KOUC3001030002',
+        'CI0112272431',
+        'Koutoua',
+        'Christopher Isaac William',
+        NULL,
+        'M',
+        NULL,
+        '22625'
     ),
     (
         'CI0112272440',
@@ -3881,6 +3899,26 @@ VALUES (
         'M',
         NULL,
         '22019'
+    ),
+    (
+        'NIAN2010020001',
+        'CI0113272986',
+        'Niamké',
+        'N\'Dédé Ange Joseph',
+        NULL,
+        'M',
+        NULL,
+        '22625'
+    ),
+    (
+        'NKUS2509030001',
+        'CI0113273196',
+        'Nkurikiyé',
+        'Shime Don Divin',
+        NULL,
+        'M',
+        NULL,
+        '22625'
     ),
     (
         'CI0113273286',
@@ -4041,6 +4079,16 @@ VALUES (
         'M',
         NULL,
         '21817'
+    ),
+    (
+        'ASSJ2304030001',
+        'CI0114284687',
+        'Asseko-Nkogho',
+        'Jean-Alphonse Chris Ange Emmanuel',
+        NULL,
+        'M',
+        NULL,
+        '22625'
     ),
     (
         'CI0114285095',
@@ -4271,6 +4319,16 @@ VALUES (
         'M',
         NULL,
         '22221'
+    ),
+    (
+        'KOFA2802040001',
+        'CI0115301569',
+        'Koffi',
+        'Amonnin Daniel Elie',
+        NULL,
+        'M',
+        NULL,
+        '22625'
     ),
     (
         'CI0115301657',
@@ -5269,16 +5327,6 @@ VALUES (
         'Kossivi Joël ',
         NULL,
         'M',
-        NULL,
-        '22625'
-    ),
-    (
-        '161213861/CISS',
-        'CI0121398966',
-        'Cissé',
-        'Kadidja  ',
-        NULL,
-        'F',
         NULL,
         '22625'
     ),
@@ -8623,34 +8671,34 @@ VALUES (
         '21615'
     ),
     (
-        'CI0112272435',
+        'COUA0404990001',
         'CI2200000324',
-        'Kra',
-        'Yao Ghislain ',
+        'Coulibaly',
+        'Aminatou  ',
         NULL,
-        'M',
+        'F',
         NULL,
-        '21615'
+        '22625'
     ),
     (
-        'CI2200000311',
+        'OULP1309030001',
         'CI2200000325',
-        'Lavri',
-        'Djava Aristide Alain',
+        'Oulaï',
+        'Paul-Ivan Yann Idriss',
         NULL,
         'M',
         NULL,
-        '21615'
+        '22625'
     ),
     (
-        'CI0111272409',
+        'SEKT1011030002',
         'CI2200000326',
-        'Mohamed',
-        'Ibrahim Charles ',
+        'Sékongo',
+        'Tchéfigué Sherazade Gaëlle',
         NULL,
-        'M',
+        'F',
         NULL,
-        '21615'
+        '22625'
     ),
     (
         'CI2200000312',
@@ -8823,102 +8871,12 @@ VALUES (
         '22625'
     ),
     (
-        'CI2200000324',
-        'COUA0404990001',
-        'Coulibaly',
-        'Aminatou  ',
-        NULL,
-        'F',
-        NULL,
-        '22625'
-    ),
-    (
-        'CI0106187064',
-        'DEGG2506030001',
-        'Degny',
-        'Gilles Alfred Emmanuel',
-        NULL,
-        'M',
-        NULL,
-        '22625'
-    ),
-    (
         'KEUF2403950001',
         'DIAY0801030001',
         'Diahou',
         'Yapo Charles-Emmanuel ',
         NULL,
         'M',
-        NULL,
-        '22625'
-    ),
-    (
-        'CI0112272430',
-        'KOBT1112030001',
-        'Kobenan',
-        'Tamyao Moye JeanBaptiste',
-        NULL,
-        'M',
-        NULL,
-        '22625'
-    ),
-    (
-        'CI0115301569',
-        'KOFA2802040001',
-        'Koffi',
-        'Amonnin Daniel Elie',
-        NULL,
-        'M',
-        NULL,
-        '22625'
-    ),
-    (
-        'CI0112272431',
-        'KOUC3001030002',
-        'Koutoua',
-        'Christopher Isaac William',
-        NULL,
-        'M',
-        NULL,
-        '22625'
-    ),
-    (
-        'CI0113272986',
-        'NIAN2010020001',
-        'Niamké',
-        'N\'Dédé Ange Joseph',
-        NULL,
-        'M',
-        NULL,
-        '22625'
-    ),
-    (
-        'CI0113273196',
-        'NKUS2509030001',
-        'Nkurikiyé',
-        'Shime Don Divin',
-        NULL,
-        'M',
-        NULL,
-        '22625'
-    ),
-    (
-        'CI2200000325',
-        'OULP1309030001',
-        'Oulaï',
-        'Paul-Ivan Yann Idriss',
-        NULL,
-        'M',
-        NULL,
-        '22625'
-    ),
-    (
-        'CI2200000326',
-        'SEKT1011030002',
-        'Sékongo',
-        'Tchéfigué Sherazade Gaëlle',
-        NULL,
-        'F',
         NULL,
         '22625'
     ),
@@ -9084,6 +9042,7 @@ CREATE TABLE IF NOT EXISTS `fonctionnalites` (
     `id_fonctionnalite` int NOT NULL AUTO_INCREMENT,
     `id_categorie` int NOT NULL,
     `code_fonctionnalite` varchar(50) NOT NULL,
+    `slug_permission` varchar(100) NOT NULL,
     `lib_fonctionnalite` varchar(100) NOT NULL,
     `label_fonctionnalite` varchar(150) DEFAULT NULL,
     `description_fonctionnalite` text,
@@ -9096,8 +9055,9 @@ CREATE TABLE IF NOT EXISTS `fonctionnalites` (
     `date_creation` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id_fonctionnalite`),
     UNIQUE KEY `code_fonctionnalite` (`code_fonctionnalite`),
+    UNIQUE KEY `uq_fonctionnalites_slug_permission` (`slug_permission`),
     KEY `id_categorie` (`id_categorie`)
-) ENGINE = InnoDB AUTO_INCREMENT = 126 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 158 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `fonctionnalites`
@@ -9108,6 +9068,7 @@ INSERT INTO
         `id_fonctionnalite`,
         `id_categorie`,
         `code_fonctionnalite`,
+        `slug_permission`,
         `lib_fonctionnalite`,
         `label_fonctionnalite`,
         `description_fonctionnalite`,
@@ -9123,6 +9084,7 @@ VALUES (
         2,
         15,
         'DASH_ENSEIGNANT',
+        'dashboard_enseignant',
         'Dashboard Enseignant',
         'Mon espace enseignant',
         NULL,
@@ -9138,6 +9100,7 @@ VALUES (
         21,
         15,
         'CR_HUB',
+        'cr_hub',
         'Comptes Rendus',
         'Mes comptes rendus',
         NULL,
@@ -9153,6 +9116,7 @@ VALUES (
         22,
         15,
         'CR_REDACTION',
+        'cr_redaction',
         'Rédaction',
         'Rédiger CR',
         NULL,
@@ -9168,6 +9132,7 @@ VALUES (
         23,
         15,
         'CR_BROUILLONS',
+        'cr_brouillons',
         'Brouillons',
         'Mes brouillons',
         NULL,
@@ -9183,6 +9148,7 @@ VALUES (
         24,
         15,
         'CR_ARCHIVES',
+        'cr_archives',
         'Archives',
         'CR archivés',
         NULL,
@@ -9198,6 +9164,7 @@ VALUES (
         30,
         16,
         'PARAM_HUB',
+        'parametres_generaux',
         'Paramètres Généraux',
         'Paramètres Géneraux',
         '',
@@ -9213,6 +9180,7 @@ VALUES (
         31,
         16,
         'PARAM_ACTIONS',
+        'actions',
         'Actions Système',
         'Actions',
         NULL,
@@ -9228,6 +9196,7 @@ VALUES (
         32,
         16,
         'PARAM_ANNEES',
+        'filieres',
         'Années Académiques',
         'Années',
         NULL,
@@ -9243,6 +9212,7 @@ VALUES (
         33,
         16,
         'PARAM_CRITERES',
+        'param_criteres',
         'Critères Évaluation',
         'Critères',
         NULL,
@@ -9258,6 +9228,7 @@ VALUES (
         34,
         16,
         'PARAM_ECUE',
+        'ecue',
         'ECUE',
         'Éléments UE',
         NULL,
@@ -9273,6 +9244,7 @@ VALUES (
         35,
         16,
         'PARAM_ENTREPRISES',
+        'entreprises',
         'Entreprises',
         'Base entreprises',
         NULL,
@@ -9288,6 +9260,7 @@ VALUES (
         36,
         16,
         'PARAM_FONCTIONS',
+        'fonctions',
         'Fonctions Personnel',
         'Fonctions',
         NULL,
@@ -9303,6 +9276,7 @@ VALUES (
         37,
         16,
         'PARAM_FONC_USER',
+        'fonction_utilisateur',
         'Fonctions Utilisateurs',
         'Rôles',
         NULL,
@@ -9318,6 +9292,7 @@ VALUES (
         38,
         16,
         'PARAM_ATTRIB',
+        'gestion_attribution',
         'Gestion Attributions',
         'Permissions',
         NULL,
@@ -9333,6 +9308,7 @@ VALUES (
         39,
         16,
         'PARAM_GRADES',
+        'grades',
         'Grades Enseignants',
         'Grades',
         NULL,
@@ -9348,6 +9324,7 @@ VALUES (
         40,
         16,
         'PARAM_MESSAGES',
+        'messages',
         'Messages Système',
         'Messages',
         NULL,
@@ -9363,6 +9340,7 @@ VALUES (
         41,
         16,
         'PARAM_NIV_ACCES',
+        'niveaux_acces',
         'Niveaux Accès',
         'Accès',
         NULL,
@@ -9378,6 +9356,7 @@ VALUES (
         42,
         16,
         'PARAM_NIV_APPRO',
+        'niveaux_approbation',
         'Niveaux Approbation',
         'Workflow',
         NULL,
@@ -9393,6 +9372,7 @@ VALUES (
         43,
         16,
         'PARAM_NIV_ETUDE',
+        'niveaux_etude',
         'Niveaux Étude',
         'M1/M2',
         NULL,
@@ -9408,6 +9388,7 @@ VALUES (
         44,
         16,
         'PARAM_SALLES',
+        'salles',
         'Salles',
         'Salles soutenance',
         NULL,
@@ -9423,6 +9404,7 @@ VALUES (
         45,
         16,
         'PARAM_SEMESTRES',
+        'semestres',
         'Semestres',
         'Semestres',
         NULL,
@@ -9438,6 +9420,7 @@ VALUES (
         46,
         16,
         'PARAM_SPECIALITES',
+        'specialites',
         'Spécialités',
         'Spécialités',
         NULL,
@@ -9453,6 +9436,7 @@ VALUES (
         47,
         16,
         'PARAM_STATUT_JURY',
+        'statut_jury',
         'Statuts Jury',
         'Rôles jury',
         NULL,
@@ -9468,6 +9452,7 @@ VALUES (
         48,
         16,
         'PARAM_TRAITEMENTS',
+        'traitements',
         'Traitements Menu',
         'Menu actuel',
         NULL,
@@ -9483,6 +9468,7 @@ VALUES (
         49,
         16,
         'PARAM_UE',
+        'ue',
         'UE',
         'Unités Enseignement',
         NULL,
@@ -9498,6 +9484,7 @@ VALUES (
         50,
         16,
         'SYS_UTILISATEURS',
+        'gestion_utilisateurs',
         'Gestion Utilisateurs',
         'Utilisateurs',
         NULL,
@@ -9513,6 +9500,7 @@ VALUES (
         51,
         16,
         'SYS_AUDIT',
+        'piste_audit',
         'Piste Audit',
         'Journal audit',
         NULL,
@@ -9528,6 +9516,7 @@ VALUES (
         52,
         16,
         'SYS_BACKUP',
+        'sauvegarde_restauration',
         'Sauvegarde/Restauration',
         'Backup',
         '',
@@ -9543,8 +9532,9 @@ VALUES (
         55,
         16,
         'SYS_HISTORIQUE',
+        'admin_historique',
         'Historique et Archivage',
-        'Import de donées',
+        'Import de données',
         'Historique et archivage des données',
         '?page=admin_historique',
         'fas fa-archive',
@@ -9558,6 +9548,7 @@ VALUES (
         73,
         25,
         'COM_ESPACES',
+        'com_espaces',
         'Espaces',
         'Espaces',
         '',
@@ -9573,6 +9564,7 @@ VALUES (
         74,
         16,
         'ADM_DASHBOARD',
+        'dashboard',
         'Dashboard',
         'Dashboard',
         '',
@@ -9588,6 +9580,7 @@ VALUES (
         75,
         16,
         'ADM_PARAMETRAGE',
+        'adm_parametrage',
         'Paramétrage',
         'Paramétrage',
         '',
@@ -9603,6 +9596,7 @@ VALUES (
         76,
         16,
         'ADM_SECURITE',
+        'adm_securite',
         'Sécurité',
         'Sécurité',
         '',
@@ -9618,6 +9612,7 @@ VALUES (
         78,
         16,
         'ADM_REFERENTIEL',
+        'adm_referentiel',
         'Référentiel',
         'Référentiel',
         '',
@@ -9633,6 +9628,7 @@ VALUES (
         79,
         24,
         'PROFIL',
+        'profil',
         'Mon Profil',
         'Mon profil',
         'Consulter et modifier mon profil utilisateur, changer mon mot de passe',
@@ -9648,6 +9644,7 @@ VALUES (
         81,
         16,
         'PARAM_SPEC',
+        'parametres_specifiques',
         'Spécifiques',
         'Paramètres Spécifiques',
         'Gestion des UE, ECUE, Salles et Menus',
@@ -9663,6 +9660,7 @@ VALUES (
         91,
         14,
         'ETUD_RAPPORT',
+        'gestion_rapports',
         'Mes rapports',
         'Mes rapports',
         '',
@@ -9678,6 +9676,7 @@ VALUES (
         93,
         13,
         'DASH_SCOLARITE',
+        'dashboard_scolarite',
         'Tableau de bord scolarité',
         'Tableau de bord scolarité',
         '',
@@ -9693,6 +9692,7 @@ VALUES (
         94,
         13,
         'SCOLA_GEST_ETUDIANT',
+        'gestion_etudiants',
         'Gestion des étudiants',
         'Gestion des étudiants',
         '',
@@ -9708,6 +9708,7 @@ VALUES (
         95,
         13,
         'MAJ_ETUDIANT',
+        'maj_etudiant',
         'Mise à jour étudiant',
         'Mise à jour étudiant',
         '',
@@ -9723,6 +9724,7 @@ VALUES (
         96,
         13,
         'INSCRIPTION_ETUDIANT',
+        'gestion_scolarite',
         'Inscription étudiant',
         'Inscription étudiant',
         '',
@@ -9738,6 +9740,7 @@ VALUES (
         97,
         13,
         'MOYENNE_ETUDIANT',
+        'gestion_notes_evaluations',
         'Saisie des moyennes',
         'Saisie des moyennes',
         '',
@@ -9753,6 +9756,7 @@ VALUES (
         98,
         13,
         'SCOLA_GEST_CANDIDATURE',
+        'scola_gest_candidature',
         'Gestion des candidatures',
         'Gestion des candidatures',
         '',
@@ -9768,6 +9772,7 @@ VALUES (
         99,
         13,
         'DOSSIER_CANDIDATURE',
+        'gestion_dossiers_candidatures',
         'Dossiers de candidatures',
         'Dossiers de candidatures',
         '',
@@ -9783,6 +9788,7 @@ VALUES (
         100,
         13,
         'RECLAMATION_ETUDIANT',
+        'gestion_reclamations_scolarite',
         'Reclamations',
         'Reclamations',
         '',
@@ -9798,6 +9804,7 @@ VALUES (
         101,
         14,
         'ETU_CANDIDATURE',
+        'candidature_soutenance',
         'Candidature',
         'Candidature',
         '',
@@ -9813,6 +9820,7 @@ VALUES (
         102,
         14,
         'ETU_RECLAMATION',
+        'gestion_reclamations',
         'Reclamations',
         'Reclamations',
         '',
@@ -9828,6 +9836,7 @@ VALUES (
         103,
         14,
         'ETU_CONSULTATION_CR',
+        'consultation_cr_etud',
         'Consultation du compte rendu',
         'Consultation du compte rendu',
         '',
@@ -9843,6 +9852,7 @@ VALUES (
         104,
         15,
         'COM_DASHBOARD',
+        'dashboard_commission',
         'Tableau de bord commission',
         'Tableau de bord commission',
         '',
@@ -9858,6 +9868,7 @@ VALUES (
         105,
         15,
         'COM_GEST_RAPPORT',
+        'com_gest_rapport',
         'Gestion des rapports de stage',
         'Gestion des rapports de stage',
         '',
@@ -9873,6 +9884,7 @@ VALUES (
         106,
         15,
         'COM_RECEPTION_RAPPORT',
+        'reception_rapport_com',
         'Reception des rapports de stage',
         'Reception des rapports de stage',
         '',
@@ -9888,6 +9900,7 @@ VALUES (
         107,
         15,
         'ANA_APP_RAPPORT',
+        'evaluations_dossiers_soutenance',
         'analyse et approbation des rapports',
         'analyse et approbation des rapports',
         '',
@@ -9903,6 +9916,7 @@ VALUES (
         108,
         15,
         'SUIVI_VALIDATION_COM',
+        'processus_validation',
         'Suivi d\'avancement',
         'Suivi d\'avancement',
         '',
@@ -9918,6 +9932,7 @@ VALUES (
         109,
         15,
         'COM_REDACTION_CR',
+        'redaction_compte_rendu',
         'redaction du CR',
         'redaction du CR',
         '',
@@ -9933,6 +9948,7 @@ VALUES (
         110,
         17,
         'SOUT_COMPOS_JURY',
+        'programmation_soutenance',
         'Composition de jury',
         'Composition de jury',
         '',
@@ -9948,6 +9964,7 @@ VALUES (
         111,
         17,
         'SOUT_EVALUATION',
+        'evaluation_soutenance',
         'Evaluation Soutenance',
         'Evaluation Soutenance',
         '',
@@ -9963,6 +9980,7 @@ VALUES (
         112,
         17,
         'SOUT_EDITION_BULLETIN',
+        'edition_bulletin',
         'Edition des bulletins',
         'Edition des bulletins',
         '',
@@ -9978,6 +9996,7 @@ VALUES (
         113,
         16,
         'ADMIN_ANNEE_ACADEMIQUE',
+        'annees_academiques',
         'Ouverture/Fermeture AC',
         'Ouverture/Fermeture AC',
         '',
@@ -9993,6 +10012,7 @@ VALUES (
         114,
         16,
         'MAJ_ENSEIGNANT',
+        'maj_enseignant',
         'Mise a jour enseignant',
         'Mise a jour enseignant',
         '',
@@ -10008,6 +10028,7 @@ VALUES (
         115,
         16,
         'MAJ_PERSONNEL_ADMIN',
+        'maj_personnel_admin',
         'mise a jour personnel administratif',
         'mise a jour personnel administratif',
         '',
@@ -10023,6 +10044,7 @@ VALUES (
         116,
         25,
         'ENS_DASHBOARD',
+        'tableau_bord_enseignant',
         'Tableau de bord enseignant',
         'Tableau de bord enseignant',
         '',
@@ -10037,6 +10059,7 @@ VALUES (
     (
         117,
         25,
+        'repertoire_enseignant',
         'repertoire_enseignant',
         'Repertoire documents',
         'Repertoire documents',
@@ -10053,6 +10076,7 @@ VALUES (
         124,
         25,
         'ENV_ENSEIGNANT',
+        'programmation_ens',
         'Programmation Enseignant',
         'Programmation Enseignant',
         '',
@@ -10068,6 +10092,7 @@ VALUES (
         125,
         13,
         'SCOLARITE',
+        'mise_en_ligne_memoire',
         'Mise en ligne memoire',
         'Mise en ligne memoire',
         '',
@@ -10109,11 +10134,11 @@ INSERT INTO
         `id_annee_acad`,
         `montant`
     )
-VALUES ('M2', 22221, 950.00),
-    ('M2', 22322, 950.00),
-    ('M2', 22423, 950.00),
-    ('M2', 22524, 950.00),
-    ('M2', 22625, 950.00);
+VALUES ('M2', 22120, 950000.00),
+    ('M2', 22322, 950000.00),
+    ('M2', 22423, 1025000.00),
+    ('M2', 22524, 1025000.00),
+    ('M2', 22625, 1025000.00);
 
 -- --------------------------------------------------------
 
@@ -10289,10 +10314,10 @@ VALUES (
         '0008-11-24 00:00:00',
         '0008-11-24 00:00:00',
         'M2',
-        300.00,
+        300000.00,
         'ES',
         NULL,
-        725.00,
+        725000.00,
         NULL
     ),
     (
@@ -10302,10 +10327,10 @@ VALUES (
         '2010-07-24 00:00:00',
         '2010-07-24 00:00:00',
         'M2',
-        300.00,
+        300000.00,
         'ES',
         NULL,
-        425.00,
+        425000.00,
         NULL
     ),
     (
@@ -10315,10 +10340,10 @@ VALUES (
         '2012-03-24 00:00:00',
         '2012-03-24 00:00:00',
         'M2',
-        250.00,
+        250000.00,
         'ES',
         NULL,
-        175.00,
+        175000.00,
         NULL
     ),
     (
@@ -10328,7 +10353,7 @@ VALUES (
         '0001-05-25 00:00:00',
         '0001-05-25 00:00:00',
         'M2',
-        175.00,
+        175000.00,
         'ES',
         NULL,
         0.00,
@@ -10341,10 +10366,10 @@ VALUES (
         '0000-00-00 00:00:00',
         '0000-00-00 00:00:00',
         'M2',
-        450.00,
+        450000.00,
         'ES',
         NULL,
-        575.00,
+        575000.00,
         NULL
     ),
     (
@@ -10354,10 +10379,10 @@ VALUES (
         '0000-00-00 00:00:00',
         '0000-00-00 00:00:00',
         'M2',
-        100.00,
+        100000.00,
         'ES',
         NULL,
-        475.00,
+        475000.00,
         NULL
     ),
     (
@@ -10367,10 +10392,10 @@ VALUES (
         '0002-12-24 00:00:00',
         '0002-12-24 00:00:00',
         'M2',
-        175.00,
+        175000.00,
         'ES',
         NULL,
-        300.00,
+        300000.00,
         NULL
     ),
     (
@@ -10380,7 +10405,7 @@ VALUES (
         '0000-00-00 00:00:00',
         '0000-00-00 00:00:00',
         'M2',
-        300.00,
+        300000.00,
         'ES',
         NULL,
         0.00,
@@ -10393,1843 +10418,1856 @@ VALUES (
         '2026-03-10 22:17:14',
         '2026-03-10 22:17:14',
         'M2',
-        450.00,
+        450000.00,
+        NULL,
+        '',
+        575000.00,
+        NULL
+    ),
+    (
+        '162004707/YAO ',
+        22524,
+        1,
+        '2012-12-24 00:00:00',
+        '2012-12-24 00:00:00',
+        'M2',
+        500000.00,
+        'ES',
+        NULL,
+        525000.00,
+        NULL
+    ),
+    (
+        '162004707/YAO ',
+        22524,
+        2,
+        '0002-05-25 00:00:00',
+        '0002-05-25 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        275000.00,
+        NULL
+    ),
+    (
+        '162004707/YAO ',
+        22524,
+        3,
+        '0000-00-00 00:00:00',
+        '0000-00-00 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '163118420/DJEC',
+        22423,
+        1,
+        '0001-01-23 00:00:00',
+        '0001-01-23 00:00:00',
+        'M2',
+        500000.00,
+        'ES',
+        NULL,
+        525000.00,
+        NULL
+    ),
+    (
+        '163118420/DJEC',
+        22423,
+        2,
+        '0003-01-23 00:00:00',
+        '0003-01-23 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        250000.00,
+        NULL
+    ),
+    (
+        '163118420/DJEC',
+        22423,
+        3,
+        '0001-01-24 00:00:00',
+        '0001-01-24 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '163304342/TRAB',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        750000.00,
+        NULL
+    ),
+    (
+        '163304342/TRAB',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        450000.00,
+        NULL
+    ),
+    (
+        '163304342/TRAB',
+        22524,
+        3,
+        '2012-03-24 00:00:00',
+        '2012-03-24 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        200000.00,
+        NULL
+    ),
+    (
+        '163304342/TRAB',
+        22524,
+        4,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        200000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '164012210/LAGO',
+        22423,
+        1,
+        '0002-02-23 00:00:00',
+        '0002-02-23 00:00:00',
+        'M2',
+        600000.00,
+        'ES',
+        NULL,
+        425000.00,
+        NULL
+    ),
+    (
+        '164012210/LAGO',
+        22423,
+        2,
+        '0003-02-23 00:00:00',
+        '0003-02-23 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        200000.00,
+        NULL
+    ),
+    (
+        '164012210/LAGO',
+        22423,
+        3,
+        '0000-00-00 00:00:00',
+        '0000-00-00 00:00:00',
+        'M2',
+        200000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '164201727/KINH',
+        22423,
+        1,
+        '2010-03-22 00:00:00',
+        '2010-03-22 00:00:00',
+        'M2',
+        350000.00,
+        'ES',
+        NULL,
+        675000.00,
+        NULL
+    ),
+    (
+        '164201727/KINH',
+        22423,
+        2,
+        '0001-03-23 00:00:00',
+        '0001-03-23 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        375000.00,
+        NULL
+    ),
+    (
+        '164201727/KINH',
+        22423,
+        3,
+        '0003-03-23 00:00:00',
+        '0003-03-23 00:00:00',
+        'M2',
+        200000.00,
+        'ES',
+        NULL,
+        175000.00,
+        NULL
+    ),
+    (
+        '164201727/KINH',
+        22423,
+        4,
+        '0001-03-24 00:00:00',
+        '0001-03-24 00:00:00',
+        'M2',
+        175000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '165101454/GNOG',
+        22322,
+        1,
+        '0000-00-00 00:00:00',
+        '0000-00-00 00:00:00',
+        'M2',
+        375000.00,
+        'ES',
+        NULL,
+        650000.00,
+        NULL
+    ),
+    (
+        '165101454/GNOG',
+        22322,
+        2,
+        '0003-07-22 00:00:00',
+        '0003-07-22 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        400000.00,
+        NULL
+    ),
+    (
+        '165101454/GNOG',
+        22322,
+        3,
+        '0008-12-21 00:00:00',
+        '0008-12-21 00:00:00',
+        'M2',
+        400000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '171201836/BAKA',
+        22423,
+        1,
+        '0001-01-23 00:00:00',
+        '0001-01-23 00:00:00',
+        'M2',
+        500000.00,
+        'ES',
+        NULL,
+        525000.00,
+        NULL
+    ),
+    (
+        '171201836/BAKA',
+        22423,
+        2,
+        '2011-01-23 00:00:00',
+        '2011-01-23 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        275000.00,
+        NULL
+    ),
+    (
+        '171201836/BAKA',
+        22423,
+        3,
+        '0001-01-24 00:00:00',
+        '0001-01-24 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '171203302/COUL',
+        22423,
+        1,
+        '0001-01-23 00:00:00',
+        '0001-01-23 00:00:00',
+        'M2',
+        500000.00,
+        'ES',
+        NULL,
+        525000.00,
+        NULL
+    ),
+    (
+        '171203302/COUL',
+        22423,
+        2,
+        '2011-01-23 00:00:00',
+        '2011-01-23 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        275000.00,
+        NULL
+    ),
+    (
+        '171203302/COUL',
+        22423,
+        3,
+        '0001-01-24 00:00:00',
+        '0001-01-24 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '171205456/FAMI',
+        22524,
+        1,
+        '2010-11-24 00:00:00',
+        '2010-11-24 00:00:00',
+        'M2',
+        500000.00,
+        'ES',
+        NULL,
+        525000.00,
+        NULL
+    ),
+    (
+        '171205456/FAMI',
+        22524,
+        2,
+        '0000-00-00 00:00:00',
+        '0000-00-00 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        275000.00,
+        NULL
+    ),
+    (
+        '171205456/FAMI',
+        22524,
+        3,
+        '0001-10-25 00:00:00',
+        '0001-10-25 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '171211638/OUAT',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        375000.00,
+        'ES',
+        NULL,
+        650000.00,
+        NULL
+    ),
+    (
+        '171211638/OUAT',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        350000.00,
+        NULL
+    ),
+    (
+        '171211638/OUAT',
+        22524,
+        3,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        350000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '171211865/OUAT',
+        22423,
+        1,
+        '2010-01-22 00:00:00',
+        '2010-01-22 00:00:00',
+        'M2',
+        450000.00,
+        'ES',
+        NULL,
+        575000.00,
+        NULL
+    ),
+    (
+        '171211865/OUAT',
+        22423,
+        2,
+        '0002-01-23 00:00:00',
+        '0002-01-23 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        350000.00,
+        NULL
+    ),
+    (
+        '171211865/OUAT',
+        22423,
+        3,
+        '0003-01-23 00:00:00',
+        '0003-01-23 00:00:00',
+        'M2',
+        150000.00,
+        'ES',
+        NULL,
+        200000.00,
+        NULL
+    ),
+    (
+        '171211865/OUAT',
+        22423,
+        4,
+        '0004-10-23 00:00:00',
+        '0004-10-23 00:00:00',
+        'M2',
+        200000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '172202802/SOUL',
+        22423,
+        1,
+        '2010-03-22 00:00:00',
+        '2010-03-22 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        725000.00,
+        NULL
+    ),
+    (
+        '172202802/SOUL',
+        22423,
+        2,
+        '0001-03-23 00:00:00',
+        '0001-03-23 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        425000.00,
+        NULL
+    ),
+    (
+        '172202802/SOUL',
+        22423,
+        3,
+        '0003-03-23 00:00:00',
+        '0003-03-23 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        125000.00,
+        NULL
+    ),
+    (
+        '172202802/SOUL',
+        22423,
+        4,
+        '0001-03-24 00:00:00',
+        '0001-03-24 00:00:00',
+        'M2',
+        125000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '172307062/YAO-',
+        22423,
+        1,
+        '2010-03-22 00:00:00',
+        '2010-03-22 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        775000.00,
+        NULL
+    ),
+    (
+        '172307062/YAO-',
+        22423,
+        2,
+        '0001-03-23 00:00:00',
+        '0001-03-23 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        525000.00,
+        NULL
+    ),
+    (
+        '172307062/YAO-',
+        22423,
+        3,
+        '0003-03-23 00:00:00',
+        '0003-03-23 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        275000.00,
+        NULL
+    ),
+    (
+        '172307062/YAO-',
+        22423,
+        4,
+        '0001-03-24 00:00:00',
+        '0001-03-24 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '174023275/KOUA',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        725000.00,
+        NULL
+    ),
+    (
+        '174023275/KOUA',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        175000.00,
+        'ES',
+        NULL,
+        550000.00,
+        NULL
+    ),
+    (
+        '174023275/KOUA',
+        22524,
+        3,
+        '2012-03-24 00:00:00',
+        '2012-03-24 00:00:00',
+        'M2',
+        350000.00,
+        'ES',
+        NULL,
+        200000.00,
+        NULL
+    ),
+    (
+        '174023275/KOUA',
+        22524,
+        4,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        200000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '174030395/N\'GU',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        725000.00,
+        NULL
+    ),
+    (
+        '174030395/N\'GU',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        425000.00,
+        NULL
+    ),
+    (
+        '174030395/N\'GU',
+        22524,
+        3,
+        '2012-03-24 00:00:00',
+        '2012-03-24 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        175000.00,
+        NULL
+    ),
+    (
+        '174030395/N\'GU',
+        22524,
+        4,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        175000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '175100747/BOKA',
+        22423,
+        1,
+        '2010-01-22 00:00:00',
+        '2010-01-22 00:00:00',
+        'M2',
+        550000.00,
+        'ES',
+        NULL,
+        475000.00,
+        NULL
+    ),
+    (
+        '175100747/BOKA',
+        22423,
+        2,
+        '0001-02-23 00:00:00',
+        '0001-02-23 00:00:00',
+        'M2',
+        475000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '181201355/ANOM',
+        22524,
+        1,
+        '2012-07-24 00:00:00',
+        '2012-07-24 00:00:00',
+        'M2',
+        650000.00,
+        'ES',
+        NULL,
+        375000.00,
+        NULL
+    ),
+    (
+        '181201355/ANOM',
+        22524,
+        2,
+        '0001-09-25 00:00:00',
+        '0001-09-25 00:00:00',
+        'M2',
+        375000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '181201526/ASSI',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        200000.00,
+        'ES',
+        NULL,
+        825000.00,
+        NULL
+    ),
+    (
+        '181201526/ASSI',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        525000.00,
+        NULL
+    ),
+    (
+        '181201526/ASSI',
+        22524,
+        3,
+        '2012-03-24 00:00:00',
+        '2012-03-24 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        300000.00,
+        NULL
+    ),
+    (
+        '181201526/ASSI',
+        22524,
+        4,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '181206875/KADI',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        325000.00,
+        'ES',
+        NULL,
+        700000.00,
+        NULL
+    ),
+    (
+        '181206875/KADI',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        400000.00,
+        'ES',
+        NULL,
+        300000.00,
+        NULL
+    ),
+    (
+        '181206875/KADI',
+        22524,
+        3,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '181214844/YAO ',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        750000.00,
+        NULL
+    ),
+    (
+        '181214844/YAO ',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        500000.00,
+        NULL
+    ),
+    (
+        '181214844/YAO ',
+        22524,
+        3,
+        '2012-03-24 00:00:00',
+        '2012-03-24 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        250000.00,
+        NULL
+    ),
+    (
+        '181214844/YAO ',
+        22524,
+        4,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '183302736/MALA',
+        22524,
+        1,
+        '2012-12-24 00:00:00',
+        '2012-12-24 00:00:00',
+        'M2',
+        500000.00,
+        'ES',
+        NULL,
+        525000.00,
+        NULL
+    ),
+    (
+        '183302736/MALA',
+        22524,
+        2,
+        '0002-05-25 00:00:00',
+        '0002-05-25 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        275000.00,
+        NULL
+    ),
+    (
+        '183302736/MALA',
+        22524,
+        3,
+        '0000-00-00 00:00:00',
+        '0000-00-00 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '184027328/LODI',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        775000.00,
+        NULL
+    ),
+    (
+        '184027328/LODI',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        500000.00,
+        'ES',
+        NULL,
+        275000.00,
+        NULL
+    ),
+    (
+        '184027328/LODI',
+        22524,
+        3,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '184907031/TOUR',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        800000.00,
+        NULL
+    ),
+    (
+        '184907031/TOUR',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        575000.00,
+        NULL
+    ),
+    (
+        '184907031/TOUR',
+        22524,
+        3,
+        '2012-03-24 00:00:00',
+        '2012-03-24 00:00:00',
+        'M2',
+        350000.00,
+        'ES',
+        NULL,
+        225000.00,
+        NULL
+    ),
+    (
+        '184907031/TOUR',
+        22524,
+        4,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '193105002/COUL',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        725000.00,
+        NULL
+    ),
+    (
+        '193105002/COUL',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        425000.00,
+        NULL
+    ),
+    (
+        '193105002/COUL',
+        22524,
+        3,
+        '2012-03-24 00:00:00',
+        '2012-03-24 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        200000.00,
+        NULL
+    ),
+    (
+        '193105002/COUL',
+        22524,
+        4,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        200000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '193202273/KOFF',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        725000.00,
+        NULL
+    ),
+    (
+        '193202273/KOFF',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        425000.00,
+        NULL
+    ),
+    (
+        '193202273/KOFF',
+        22524,
+        3,
+        '2012-03-24 00:00:00',
+        '2012-03-24 00:00:00',
+        'M2',
+        200000.00,
+        'ES',
+        NULL,
+        225000.00,
+        NULL
+    ),
+    (
+        '193202273/KOFF',
+        22524,
+        4,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '194801187/SORO',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        350000.00,
+        'ES',
+        NULL,
+        675000.00,
+        NULL
+    ),
+    (
+        '194801187/SORO',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        450000.00,
+        NULL
+    ),
+    (
+        '194801187/SORO',
+        22524,
+        3,
+        '2012-03-24 00:00:00',
+        '2012-03-24 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        225000.00,
+        NULL
+    ),
+    (
+        '194801187/SORO',
+        22524,
+        4,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '201205164/COUL',
+        22524,
+        1,
+        '2012-12-24 00:00:00',
+        '2012-12-24 00:00:00',
+        'M2',
+        525000.00,
+        'ES',
+        NULL,
+        500000.00,
+        NULL
+    ),
+    (
+        '201205164/COUL',
+        22524,
+        2,
+        '0002-05-25 00:00:00',
+        '0002-05-25 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        250000.00,
+        NULL
+    ),
+    (
+        '201205164/COUL',
+        22524,
+        3,
+        '0000-00-00 00:00:00',
+        '0000-00-00 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '203107762/DOUA',
+        22524,
+        1,
+        '2012-12-24 00:00:00',
+        '2012-12-24 00:00:00',
+        'M2',
+        500000.00,
+        'ES',
+        NULL,
+        525000.00,
+        NULL
+    ),
+    (
+        '203107762/DOUA',
+        22524,
+        2,
+        '0002-05-25 00:00:00',
+        '0002-05-25 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        250000.00,
+        NULL
+    ),
+    (
+        '203107762/DOUA',
+        22524,
+        3,
+        '0000-00-00 00:00:00',
+        '0000-00-00 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        '203123140/TRAO',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        725000.00,
+        NULL
+    ),
+    (
+        '203123140/TRAO',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        475000.00,
+        NULL
+    ),
+    (
+        '203123140/TRAO',
+        22524,
+        3,
+        '2012-03-24 00:00:00',
+        '2012-03-24 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        225000.00,
+        NULL
+    ),
+    (
+        '203123140/TRAO',
+        22524,
+        4,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        125000.00,
+        'ES',
+        NULL,
+        100000.00,
+        NULL
+    ),
+    (
+        'ADOL1109970001',
+        22423,
+        1,
+        '0001-01-23 00:00:00',
+        '0001-01-23 00:00:00',
+        'M2',
+        450000.00,
+        'ES',
+        NULL,
+        575000.00,
+        NULL
+    ),
+    (
+        'ADOL1109970001',
+        22423,
+        2,
+        '2011-01-23 00:00:00',
+        '2011-01-23 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        275000.00,
+        NULL
+    ),
+    (
+        'ADOL1109970001',
+        22423,
+        3,
+        '0001-01-24 00:00:00',
+        '0001-01-24 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        'CI0114277408',
+        22423,
+        1,
+        '0001-01-23 00:00:00',
+        '0001-01-23 00:00:00',
+        'M2',
+        550000.00,
+        'ES',
+        NULL,
+        475000.00,
+        NULL
+    ),
+    (
+        'CI0114277408',
+        22423,
+        2,
+        '2011-01-23 00:00:00',
+        '2011-01-23 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        200000.00,
+        NULL
+    ),
+    (
+        'CI0114277408',
+        22423,
+        3,
+        '0001-01-24 00:00:00',
+        '0001-01-24 00:00:00',
+        'M2',
+        200000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        'CI0116311179',
+        22221,
+        1,
+        '0008-12-21 00:00:00',
+        '0008-12-21 00:00:00',
+        'M2',
+        450000.00,
+        'ES',
+        NULL,
+        500000.00,
+        NULL
+    ),
+    (
+        'CI0116311179',
+        22221,
+        2,
+        '0000-00-00 00:00:00',
+        '0000-00-00 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        250000.00,
+        NULL
+    ),
+    (
+        'CI0116311179',
+        22221,
+        3,
+        '0003-07-22 00:00:00',
+        '0003-07-22 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        'CI0120394713',
+        22423,
+        1,
+        '2011-01-23 00:00:00',
+        '2011-01-23 00:00:00',
+        'M2',
+        600000.00,
+        'ES',
+        NULL,
+        425000.00,
+        NULL
+    ),
+    (
+        'CI0120394713',
+        22423,
+        2,
+        '0001-01-24 00:00:00',
+        '0001-01-24 00:00:00',
+        'M2',
+        425000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        'CI2200000001',
+        22423,
+        1,
+        '0002-10-23 00:00:00',
+        '0002-10-23 00:00:00',
+        'M2',
+        500000.00,
+        'ES',
+        NULL,
+        525000.00,
+        NULL
+    ),
+    (
+        'CI2200000001',
+        22423,
+        2,
+        '0004-05-23 00:00:00',
+        '0004-05-23 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        250000.00,
+        NULL
+    ),
+    (
+        'CI2200000001',
+        22423,
+        3,
+        '0006-10-23 00:00:00',
+        '0006-10-23 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        'CI2200000002',
+        22423,
+        1,
+        '2012-01-22 00:00:00',
+        '2012-01-22 00:00:00',
+        'M2',
+        400000.00,
+        'ES',
+        NULL,
+        625000.00,
+        NULL
+    ),
+    (
+        'CI2200000002',
+        22423,
+        2,
+        '0002-01-23 00:00:00',
+        '0002-01-23 00:00:00',
+        'M2',
+        400000.00,
+        'ES',
+        NULL,
+        225000.00,
+        NULL
+    ),
+    (
+        'CI2200000002',
+        22423,
+        3,
+        '0003-03-23 00:00:00',
+        '0003-03-23 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        'CI2200000004',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        725000.00,
+        NULL
+    ),
+    (
+        'CI2200000004',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        500000.00,
+        NULL
+    ),
+    (
+        'CI2200000004',
+        22524,
+        3,
+        '2012-03-24 00:00:00',
+        '2012-03-24 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        200000.00,
+        NULL
+    ),
+    (
+        'CI2200000004',
+        22524,
+        4,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        200000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        'CI2200000005',
+        22524,
+        1,
+        '0008-11-24 00:00:00',
+        '0008-11-24 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        725000.00,
+        NULL
+    ),
+    (
+        'CI2200000005',
+        22524,
+        2,
+        '2010-07-24 00:00:00',
+        '2010-07-24 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        500000.00,
+        NULL
+    ),
+    (
+        'CI2200000005',
+        22524,
+        3,
+        '2012-03-24 00:00:00',
+        '2012-03-24 00:00:00',
+        'M2',
+        350000.00,
+        'ES',
+        NULL,
+        150000.00,
+        NULL
+    ),
+    (
+        'CI2200000005',
+        22524,
+        4,
+        '0001-05-25 00:00:00',
+        '0001-05-25 00:00:00',
+        'M2',
+        150000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        'DIAM2310950002',
+        22322,
+        1,
+        '2010-10-21 00:00:00',
+        '2010-10-21 00:00:00',
+        'M2',
+        200000.00,
+        'ES',
+        NULL,
+        825000.00,
+        NULL
+    ),
+    (
+        'DIAM2310950002',
+        22322,
+        2,
+        '0003-05-22 00:00:00',
+        '0003-05-22 00:00:00',
+        'M2',
+        200000.00,
+        'ES',
+        NULL,
+        625000.00,
+        NULL
+    ),
+    (
+        'DIAM2310950002',
+        22322,
+        3,
+        '0006-10-22 00:00:00',
+        '0006-10-22 00:00:00',
+        'M2',
+        350000.00,
+        'ES',
+        NULL,
+        275000.00,
+        NULL
+    ),
+    (
+        'DIAM2310950002',
+        22322,
+        4,
+        '0007-10-22 00:00:00',
+        '0007-10-22 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        'DOUK1312960001',
+        22221,
+        1,
+        '0008-12-21 00:00:00',
+        '0008-12-21 00:00:00',
+        'M2',
+        250000.00,
+        'ES',
+        NULL,
+        700000.00,
+        NULL
+    ),
+    (
+        'DOUK1312960001',
+        22221,
+        2,
+        '0000-00-00 00:00:00',
+        '0000-00-00 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        400000.00,
+        NULL
+    ),
+    (
+        'DOUK1312960001',
+        22221,
+        3,
+        '0003-07-22 00:00:00',
+        '0003-07-22 00:00:00',
+        'M2',
+        400000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        'KONS2208970001',
+        22423,
+        1,
+        '2010-03-22 00:00:00',
+        '2010-03-22 00:00:00',
+        'M2',
+        350000.00,
+        'ES',
+        NULL,
+        675000.00,
+        NULL
+    ),
+    (
+        'KONS2208970001',
+        22423,
+        2,
+        '0001-03-23 00:00:00',
+        '0001-03-23 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        450000.00,
+        NULL
+    ),
+    (
+        'KONS2208970001',
+        22423,
+        3,
+        '0003-03-23 00:00:00',
+        '0003-03-23 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        225000.00,
+        NULL
+    ),
+    (
+        'KONS2208970001',
+        22423,
+        4,
+        '0001-03-24 00:00:00',
+        '0001-03-24 00:00:00',
+        'M2',
+        225000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        'KOUA0705950007',
+        22423,
+        1,
+        '0001-01-23 00:00:00',
+        '0001-01-23 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        725000.00,
+        NULL
+    ),
+    (
+        'KOUA0705950007',
+        22423,
+        2,
+        '0003-01-23 00:00:00',
+        '0003-01-23 00:00:00',
+        'M2',
+        375000.00,
+        'ES',
+        NULL,
+        350000.00,
+        NULL
+    ),
+    (
+        'KOUA0705950007',
+        22423,
+        3,
+        '0001-01-24 00:00:00',
+        '0001-01-24 00:00:00',
+        'M2',
+        350000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        'SORD2606950002',
+        22423,
+        1,
+        '2011-02-22 00:00:00',
+        '2011-02-22 00:00:00',
+        'M2',
+        450000.00,
+        'ES',
+        NULL,
+        575000.00,
+        NULL
+    ),
+    (
+        'SORD2606950002',
+        22423,
+        2,
+        '0001-02-23 00:00:00',
+        '0001-02-23 00:00:00',
+        'M2',
+        300000.00,
+        'ES',
+        NULL,
+        275000.00,
+        NULL
+    ),
+    (
+        'SORD2606950002',
+        22423,
+        3,
+        '0003-02-23 00:00:00',
+        '0003-02-23 00:00:00',
+        'M2',
+        275000.00,
+        'ES',
+        NULL,
+        0.00,
+        NULL
+    ),
+    (
+        'THIR2401050001',
+        22625,
+        1,
+        '2026-03-16 15:42:29',
+        '2026-03-16 15:42:29',
+        'M2',
+        450000.00,
         'Es',
         '',
-        500.00,
-        NULL
-    ),
-    (
-        '162004707/YAO ',
-        22524,
-        1,
-        '2012-12-24 00:00:00',
-        '2012-12-24 00:00:00',
-        'M2',
-        500.00,
-        'ES',
-        NULL,
-        525.00,
-        NULL
-    ),
-    (
-        '162004707/YAO ',
-        22524,
-        2,
-        '0002-05-25 00:00:00',
-        '0002-05-25 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        275.00,
-        NULL
-    ),
-    (
-        '162004707/YAO ',
-        22524,
-        3,
-        '0000-00-00 00:00:00',
-        '0000-00-00 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '163118420/DJEC',
-        22423,
-        1,
-        '0001-01-23 00:00:00',
-        '0001-01-23 00:00:00',
-        'M2',
-        500.00,
-        'ES',
-        NULL,
-        525.00,
-        NULL
-    ),
-    (
-        '163118420/DJEC',
-        22423,
-        2,
-        '0003-01-23 00:00:00',
-        '0003-01-23 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        250.00,
-        NULL
-    ),
-    (
-        '163118420/DJEC',
-        22423,
-        3,
-        '0001-01-24 00:00:00',
-        '0001-01-24 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '163304342/TRAB',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        750.00,
-        NULL
-    ),
-    (
-        '163304342/TRAB',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        450.00,
-        NULL
-    ),
-    (
-        '163304342/TRAB',
-        22524,
-        3,
-        '2012-03-24 00:00:00',
-        '2012-03-24 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        200.00,
-        NULL
-    ),
-    (
-        '163304342/TRAB',
-        22524,
-        4,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        200.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '164012210/LAGO',
-        22423,
-        1,
-        '0002-02-23 00:00:00',
-        '0002-02-23 00:00:00',
-        'M2',
-        600.00,
-        'ES',
-        NULL,
-        425.00,
-        NULL
-    ),
-    (
-        '164012210/LAGO',
-        22423,
-        2,
-        '0003-02-23 00:00:00',
-        '0003-02-23 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        200.00,
-        NULL
-    ),
-    (
-        '164012210/LAGO',
-        22423,
-        3,
-        '0000-00-00 00:00:00',
-        '0000-00-00 00:00:00',
-        'M2',
-        200.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '164201727/KINH',
-        22423,
-        1,
-        '2010-03-22 00:00:00',
-        '2010-03-22 00:00:00',
-        'M2',
-        350.00,
-        'ES',
-        NULL,
-        675.00,
-        NULL
-    ),
-    (
-        '164201727/KINH',
-        22423,
-        2,
-        '0001-03-23 00:00:00',
-        '0001-03-23 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        375.00,
-        NULL
-    ),
-    (
-        '164201727/KINH',
-        22423,
-        3,
-        '0003-03-23 00:00:00',
-        '0003-03-23 00:00:00',
-        'M2',
-        200.00,
-        'ES',
-        NULL,
-        175.00,
-        NULL
-    ),
-    (
-        '164201727/KINH',
-        22423,
-        4,
-        '0001-03-24 00:00:00',
-        '0001-03-24 00:00:00',
-        'M2',
-        175.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '165101454/GNOG',
-        22322,
-        1,
-        '0000-00-00 00:00:00',
-        '0000-00-00 00:00:00',
-        'M2',
-        375.00,
-        'ES',
-        NULL,
-        650.00,
-        NULL
-    ),
-    (
-        '165101454/GNOG',
-        22322,
-        2,
-        '0003-07-22 00:00:00',
-        '0003-07-22 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        400.00,
-        NULL
-    ),
-    (
-        '165101454/GNOG',
-        22322,
-        3,
-        '0008-12-21 00:00:00',
-        '0008-12-21 00:00:00',
-        'M2',
-        400.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '171201836/BAKA',
-        22423,
-        1,
-        '0001-01-23 00:00:00',
-        '0001-01-23 00:00:00',
-        'M2',
-        500.00,
-        'ES',
-        NULL,
-        525.00,
-        NULL
-    ),
-    (
-        '171201836/BAKA',
-        22423,
-        2,
-        '2011-01-23 00:00:00',
-        '2011-01-23 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        275.00,
-        NULL
-    ),
-    (
-        '171201836/BAKA',
-        22423,
-        3,
-        '0001-01-24 00:00:00',
-        '0001-01-24 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '171203302/COUL',
-        22423,
-        1,
-        '0001-01-23 00:00:00',
-        '0001-01-23 00:00:00',
-        'M2',
-        500.00,
-        'ES',
-        NULL,
-        525.00,
-        NULL
-    ),
-    (
-        '171203302/COUL',
-        22423,
-        2,
-        '2011-01-23 00:00:00',
-        '2011-01-23 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        275.00,
-        NULL
-    ),
-    (
-        '171203302/COUL',
-        22423,
-        3,
-        '0001-01-24 00:00:00',
-        '0001-01-24 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '171205456/FAMI',
-        22524,
-        1,
-        '2010-11-24 00:00:00',
-        '2010-11-24 00:00:00',
-        'M2',
-        500.00,
-        'ES',
-        NULL,
-        525.00,
-        NULL
-    ),
-    (
-        '171205456/FAMI',
-        22524,
-        2,
-        '0000-00-00 00:00:00',
-        '0000-00-00 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        275.00,
-        NULL
-    ),
-    (
-        '171205456/FAMI',
-        22524,
-        3,
-        '0001-10-25 00:00:00',
-        '0001-10-25 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '171211638/OUAT',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        375.00,
-        'ES',
-        NULL,
-        650.00,
-        NULL
-    ),
-    (
-        '171211638/OUAT',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        350.00,
-        NULL
-    ),
-    (
-        '171211638/OUAT',
-        22524,
-        3,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        350.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '171211865/OUAT',
-        22423,
-        1,
-        '2010-01-22 00:00:00',
-        '2010-01-22 00:00:00',
-        'M2',
-        450.00,
-        'ES',
-        NULL,
-        575.00,
-        NULL
-    ),
-    (
-        '171211865/OUAT',
-        22423,
-        2,
-        '0002-01-23 00:00:00',
-        '0002-01-23 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        350.00,
-        NULL
-    ),
-    (
-        '171211865/OUAT',
-        22423,
-        3,
-        '0003-01-23 00:00:00',
-        '0003-01-23 00:00:00',
-        'M2',
-        150.00,
-        'ES',
-        NULL,
-        200.00,
-        NULL
-    ),
-    (
-        '171211865/OUAT',
-        22423,
-        4,
-        '0004-10-23 00:00:00',
-        '0004-10-23 00:00:00',
-        'M2',
-        200.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '172202802/SOUL',
-        22423,
-        1,
-        '2010-03-22 00:00:00',
-        '2010-03-22 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        725.00,
-        NULL
-    ),
-    (
-        '172202802/SOUL',
-        22423,
-        2,
-        '0001-03-23 00:00:00',
-        '0001-03-23 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        425.00,
-        NULL
-    ),
-    (
-        '172202802/SOUL',
-        22423,
-        3,
-        '0003-03-23 00:00:00',
-        '0003-03-23 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        125.00,
-        NULL
-    ),
-    (
-        '172202802/SOUL',
-        22423,
-        4,
-        '0001-03-24 00:00:00',
-        '0001-03-24 00:00:00',
-        'M2',
-        125.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '172307062/YAO-',
-        22423,
-        1,
-        '2010-03-22 00:00:00',
-        '2010-03-22 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        775.00,
-        NULL
-    ),
-    (
-        '172307062/YAO-',
-        22423,
-        2,
-        '0001-03-23 00:00:00',
-        '0001-03-23 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        525.00,
-        NULL
-    ),
-    (
-        '172307062/YAO-',
-        22423,
-        3,
-        '0003-03-23 00:00:00',
-        '0003-03-23 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        275.00,
-        NULL
-    ),
-    (
-        '172307062/YAO-',
-        22423,
-        4,
-        '0001-03-24 00:00:00',
-        '0001-03-24 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '174023275/KOUA',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        725.00,
-        NULL
-    ),
-    (
-        '174023275/KOUA',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        175.00,
-        'ES',
-        NULL,
-        550.00,
-        NULL
-    ),
-    (
-        '174023275/KOUA',
-        22524,
-        3,
-        '2012-03-24 00:00:00',
-        '2012-03-24 00:00:00',
-        'M2',
-        350.00,
-        'ES',
-        NULL,
-        200.00,
-        NULL
-    ),
-    (
-        '174023275/KOUA',
-        22524,
-        4,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        200.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '174030395/N\'GU',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        725.00,
-        NULL
-    ),
-    (
-        '174030395/N\'GU',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        425.00,
-        NULL
-    ),
-    (
-        '174030395/N\'GU',
-        22524,
-        3,
-        '2012-03-24 00:00:00',
-        '2012-03-24 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        175.00,
-        NULL
-    ),
-    (
-        '174030395/N\'GU',
-        22524,
-        4,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        175.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '175100747/BOKA',
-        22423,
-        1,
-        '2010-01-22 00:00:00',
-        '2010-01-22 00:00:00',
-        'M2',
-        550.00,
-        'ES',
-        NULL,
-        475.00,
-        NULL
-    ),
-    (
-        '175100747/BOKA',
-        22423,
-        2,
-        '0001-02-23 00:00:00',
-        '0001-02-23 00:00:00',
-        'M2',
-        475.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '181201355/ANOM',
-        22524,
-        1,
-        '2012-07-24 00:00:00',
-        '2012-07-24 00:00:00',
-        'M2',
-        650.00,
-        'ES',
-        NULL,
-        375.00,
-        NULL
-    ),
-    (
-        '181201355/ANOM',
-        22524,
-        2,
-        '0001-09-25 00:00:00',
-        '0001-09-25 00:00:00',
-        'M2',
-        375.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '181201526/ASSI',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        200.00,
-        'ES',
-        NULL,
-        825.00,
-        NULL
-    ),
-    (
-        '181201526/ASSI',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        525.00,
-        NULL
-    ),
-    (
-        '181201526/ASSI',
-        22524,
-        3,
-        '2012-03-24 00:00:00',
-        '2012-03-24 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        300.00,
-        NULL
-    ),
-    (
-        '181201526/ASSI',
-        22524,
-        4,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '181206875/KADI',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        325.00,
-        'ES',
-        NULL,
-        700.00,
-        NULL
-    ),
-    (
-        '181206875/KADI',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        400.00,
-        'ES',
-        NULL,
-        300.00,
-        NULL
-    ),
-    (
-        '181206875/KADI',
-        22524,
-        3,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '181214844/YAO ',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        750.00,
-        NULL
-    ),
-    (
-        '181214844/YAO ',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        500.00,
-        NULL
-    ),
-    (
-        '181214844/YAO ',
-        22524,
-        3,
-        '2012-03-24 00:00:00',
-        '2012-03-24 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        250.00,
-        NULL
-    ),
-    (
-        '181214844/YAO ',
-        22524,
-        4,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '183302736/MALA',
-        22524,
-        1,
-        '2012-12-24 00:00:00',
-        '2012-12-24 00:00:00',
-        'M2',
-        500.00,
-        'ES',
-        NULL,
-        525.00,
-        NULL
-    ),
-    (
-        '183302736/MALA',
-        22524,
-        2,
-        '0002-05-25 00:00:00',
-        '0002-05-25 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        275.00,
-        NULL
-    ),
-    (
-        '183302736/MALA',
-        22524,
-        3,
-        '0000-00-00 00:00:00',
-        '0000-00-00 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '184027328/LODI',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        775.00,
-        NULL
-    ),
-    (
-        '184027328/LODI',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        500.00,
-        'ES',
-        NULL,
-        275.00,
-        NULL
-    ),
-    (
-        '184027328/LODI',
-        22524,
-        3,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '184907031/TOUR',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        800.00,
-        NULL
-    ),
-    (
-        '184907031/TOUR',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        575.00,
-        NULL
-    ),
-    (
-        '184907031/TOUR',
-        22524,
-        3,
-        '2012-03-24 00:00:00',
-        '2012-03-24 00:00:00',
-        'M2',
-        350.00,
-        'ES',
-        NULL,
-        225.00,
-        NULL
-    ),
-    (
-        '184907031/TOUR',
-        22524,
-        4,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '193105002/COUL',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        725.00,
-        NULL
-    ),
-    (
-        '193105002/COUL',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        425.00,
-        NULL
-    ),
-    (
-        '193105002/COUL',
-        22524,
-        3,
-        '2012-03-24 00:00:00',
-        '2012-03-24 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        200.00,
-        NULL
-    ),
-    (
-        '193105002/COUL',
-        22524,
-        4,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        200.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '193202273/KOFF',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        725.00,
-        NULL
-    ),
-    (
-        '193202273/KOFF',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        425.00,
-        NULL
-    ),
-    (
-        '193202273/KOFF',
-        22524,
-        3,
-        '2012-03-24 00:00:00',
-        '2012-03-24 00:00:00',
-        'M2',
-        200.00,
-        'ES',
-        NULL,
-        225.00,
-        NULL
-    ),
-    (
-        '193202273/KOFF',
-        22524,
-        4,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '194801187/SORO',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        350.00,
-        'ES',
-        NULL,
-        675.00,
-        NULL
-    ),
-    (
-        '194801187/SORO',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        450.00,
-        NULL
-    ),
-    (
-        '194801187/SORO',
-        22524,
-        3,
-        '2012-03-24 00:00:00',
-        '2012-03-24 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        225.00,
-        NULL
-    ),
-    (
-        '194801187/SORO',
-        22524,
-        4,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '201205164/COUL',
-        22524,
-        1,
-        '2012-12-24 00:00:00',
-        '2012-12-24 00:00:00',
-        'M2',
-        525.00,
-        'ES',
-        NULL,
-        500.00,
-        NULL
-    ),
-    (
-        '201205164/COUL',
-        22524,
-        2,
-        '0002-05-25 00:00:00',
-        '0002-05-25 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        250.00,
-        NULL
-    ),
-    (
-        '201205164/COUL',
-        22524,
-        3,
-        '0000-00-00 00:00:00',
-        '0000-00-00 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '203107762/DOUA',
-        22524,
-        1,
-        '2012-12-24 00:00:00',
-        '2012-12-24 00:00:00',
-        'M2',
-        500.00,
-        'ES',
-        NULL,
-        525.00,
-        NULL
-    ),
-    (
-        '203107762/DOUA',
-        22524,
-        2,
-        '0002-05-25 00:00:00',
-        '0002-05-25 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        250.00,
-        NULL
-    ),
-    (
-        '203107762/DOUA',
-        22524,
-        3,
-        '0000-00-00 00:00:00',
-        '0000-00-00 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        '203123140/TRAO',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        725.00,
-        NULL
-    ),
-    (
-        '203123140/TRAO',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        475.00,
-        NULL
-    ),
-    (
-        '203123140/TRAO',
-        22524,
-        3,
-        '2012-03-24 00:00:00',
-        '2012-03-24 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        225.00,
-        NULL
-    ),
-    (
-        '203123140/TRAO',
-        22524,
-        4,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        125.00,
-        'ES',
-        NULL,
-        100.00,
-        NULL
-    ),
-    (
-        'ADOL1109970001',
-        22423,
-        1,
-        '0001-01-23 00:00:00',
-        '0001-01-23 00:00:00',
-        'M2',
-        450.00,
-        'ES',
-        NULL,
-        575.00,
-        NULL
-    ),
-    (
-        'ADOL1109970001',
-        22423,
-        2,
-        '2011-01-23 00:00:00',
-        '2011-01-23 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        275.00,
-        NULL
-    ),
-    (
-        'ADOL1109970001',
-        22423,
-        3,
-        '0001-01-24 00:00:00',
-        '0001-01-24 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        'CI0114277408',
-        22423,
-        1,
-        '0001-01-23 00:00:00',
-        '0001-01-23 00:00:00',
-        'M2',
-        550.00,
-        'ES',
-        NULL,
-        475.00,
-        NULL
-    ),
-    (
-        'CI0114277408',
-        22423,
-        2,
-        '2011-01-23 00:00:00',
-        '2011-01-23 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        200.00,
-        NULL
-    ),
-    (
-        'CI0114277408',
-        22423,
-        3,
-        '0001-01-24 00:00:00',
-        '0001-01-24 00:00:00',
-        'M2',
-        200.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        'CI0116311179',
-        22221,
-        1,
-        '0008-12-21 00:00:00',
-        '0008-12-21 00:00:00',
-        'M2',
-        450.00,
-        'ES',
-        NULL,
-        500.00,
-        NULL
-    ),
-    (
-        'CI0116311179',
-        22221,
-        2,
-        '0000-00-00 00:00:00',
-        '0000-00-00 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        250.00,
-        NULL
-    ),
-    (
-        'CI0116311179',
-        22221,
-        3,
-        '0003-07-22 00:00:00',
-        '0003-07-22 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        'CI0120394713',
-        22423,
-        1,
-        '2011-01-23 00:00:00',
-        '2011-01-23 00:00:00',
-        'M2',
-        600.00,
-        'ES',
-        NULL,
-        425.00,
-        NULL
-    ),
-    (
-        'CI0120394713',
-        22423,
-        2,
-        '0001-01-24 00:00:00',
-        '0001-01-24 00:00:00',
-        'M2',
-        425.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        'CI2200000001',
-        22423,
-        1,
-        '0002-10-23 00:00:00',
-        '0002-10-23 00:00:00',
-        'M2',
-        500.00,
-        'ES',
-        NULL,
-        525.00,
-        NULL
-    ),
-    (
-        'CI2200000001',
-        22423,
-        2,
-        '0004-05-23 00:00:00',
-        '0004-05-23 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        250.00,
-        NULL
-    ),
-    (
-        'CI2200000001',
-        22423,
-        3,
-        '0006-10-23 00:00:00',
-        '0006-10-23 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        'CI2200000002',
-        22423,
-        1,
-        '2012-01-22 00:00:00',
-        '2012-01-22 00:00:00',
-        'M2',
-        400.00,
-        'ES',
-        NULL,
-        625.00,
-        NULL
-    ),
-    (
-        'CI2200000002',
-        22423,
-        2,
-        '0002-01-23 00:00:00',
-        '0002-01-23 00:00:00',
-        'M2',
-        400.00,
-        'ES',
-        NULL,
-        225.00,
-        NULL
-    ),
-    (
-        'CI2200000002',
-        22423,
-        3,
-        '0003-03-23 00:00:00',
-        '0003-03-23 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        'CI2200000004',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        725.00,
-        NULL
-    ),
-    (
-        'CI2200000004',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        500.00,
-        NULL
-    ),
-    (
-        'CI2200000004',
-        22524,
-        3,
-        '2012-03-24 00:00:00',
-        '2012-03-24 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        200.00,
-        NULL
-    ),
-    (
-        'CI2200000004',
-        22524,
-        4,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        200.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        'CI2200000005',
-        22524,
-        1,
-        '0008-11-24 00:00:00',
-        '0008-11-24 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        725.00,
-        NULL
-    ),
-    (
-        'CI2200000005',
-        22524,
-        2,
-        '2010-07-24 00:00:00',
-        '2010-07-24 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        500.00,
-        NULL
-    ),
-    (
-        'CI2200000005',
-        22524,
-        3,
-        '2012-03-24 00:00:00',
-        '2012-03-24 00:00:00',
-        'M2',
-        350.00,
-        'ES',
-        NULL,
-        150.00,
-        NULL
-    ),
-    (
-        'CI2200000005',
-        22524,
-        4,
-        '0001-05-25 00:00:00',
-        '0001-05-25 00:00:00',
-        'M2',
-        150.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        'DIAM2310950002',
-        22322,
-        1,
-        '2010-10-21 00:00:00',
-        '2010-10-21 00:00:00',
-        'M2',
-        200.00,
-        'ES',
-        NULL,
-        825.00,
-        NULL
-    ),
-    (
-        'DIAM2310950002',
-        22322,
-        2,
-        '0003-05-22 00:00:00',
-        '0003-05-22 00:00:00',
-        'M2',
-        200.00,
-        'ES',
-        NULL,
-        625.00,
-        NULL
-    ),
-    (
-        'DIAM2310950002',
-        22322,
-        3,
-        '0006-10-22 00:00:00',
-        '0006-10-22 00:00:00',
-        'M2',
-        350.00,
-        'ES',
-        NULL,
-        275.00,
-        NULL
-    ),
-    (
-        'DIAM2310950002',
-        22322,
-        4,
-        '0007-10-22 00:00:00',
-        '0007-10-22 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        'DOUK1312960001',
-        22221,
-        1,
-        '0008-12-21 00:00:00',
-        '0008-12-21 00:00:00',
-        'M2',
-        250.00,
-        'ES',
-        NULL,
-        700.00,
-        NULL
-    ),
-    (
-        'DOUK1312960001',
-        22221,
-        2,
-        '0000-00-00 00:00:00',
-        '0000-00-00 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        400.00,
-        NULL
-    ),
-    (
-        'DOUK1312960001',
-        22221,
-        3,
-        '0003-07-22 00:00:00',
-        '0003-07-22 00:00:00',
-        'M2',
-        400.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        'KONS2208970001',
-        22423,
-        1,
-        '2010-03-22 00:00:00',
-        '2010-03-22 00:00:00',
-        'M2',
-        350.00,
-        'ES',
-        NULL,
-        675.00,
-        NULL
-    ),
-    (
-        'KONS2208970001',
-        22423,
-        2,
-        '0001-03-23 00:00:00',
-        '0001-03-23 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        450.00,
-        NULL
-    ),
-    (
-        'KONS2208970001',
-        22423,
-        3,
-        '0003-03-23 00:00:00',
-        '0003-03-23 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        225.00,
-        NULL
-    ),
-    (
-        'KONS2208970001',
-        22423,
-        4,
-        '0001-03-24 00:00:00',
-        '0001-03-24 00:00:00',
-        'M2',
-        225.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        'KOUA0705950007',
-        22423,
-        1,
-        '0001-01-23 00:00:00',
-        '0001-01-23 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        725.00,
-        NULL
-    ),
-    (
-        'KOUA0705950007',
-        22423,
-        2,
-        '0003-01-23 00:00:00',
-        '0003-01-23 00:00:00',
-        'M2',
-        375.00,
-        'ES',
-        NULL,
-        350.00,
-        NULL
-    ),
-    (
-        'KOUA0705950007',
-        22423,
-        3,
-        '0001-01-24 00:00:00',
-        '0001-01-24 00:00:00',
-        'M2',
-        350.00,
-        'ES',
-        NULL,
-        0.00,
-        NULL
-    ),
-    (
-        'SORD2606950002',
-        22423,
-        1,
-        '2011-02-22 00:00:00',
-        '2011-02-22 00:00:00',
-        'M2',
-        450.00,
-        'ES',
-        NULL,
-        575.00,
-        NULL
-    ),
-    (
-        'SORD2606950002',
-        22423,
-        2,
-        '0001-02-23 00:00:00',
-        '0001-02-23 00:00:00',
-        'M2',
-        300.00,
-        'ES',
-        NULL,
-        275.00,
-        NULL
-    ),
-    (
-        'SORD2606950002',
-        22423,
-        3,
-        '0003-02-23 00:00:00',
-        '0003-02-23 00:00:00',
-        'M2',
-        275.00,
-        'ES',
-        NULL,
-        0.00,
+        575000.00,
         NULL
     ),
     (
@@ -12239,10 +12277,10 @@ VALUES (
         '0008-11-24 00:00:00',
         '0008-11-24 00:00:00',
         'M2',
-        300.00,
+        300000.00,
         'ES',
         NULL,
-        725.00,
+        725000.00,
         NULL
     ),
     (
@@ -12252,10 +12290,10 @@ VALUES (
         '2010-07-24 00:00:00',
         '2010-07-24 00:00:00',
         'M2',
-        300.00,
+        300000.00,
         'ES',
         NULL,
-        425.00,
+        425000.00,
         NULL
     ),
     (
@@ -12265,10 +12303,10 @@ VALUES (
         '2012-03-24 00:00:00',
         '2012-03-24 00:00:00',
         'M2',
-        300.00,
+        300000.00,
         'ES',
         NULL,
-        125.00,
+        125000.00,
         NULL
     ),
     (
@@ -12278,7 +12316,7 @@ VALUES (
         '0001-05-25 00:00:00',
         '0001-05-25 00:00:00',
         'M2',
-        125.00,
+        125000.00,
         'ES',
         NULL,
         0.00,
@@ -17083,7 +17121,29 @@ CREATE TABLE IF NOT EXISTS `password_resets` (
     UNIQUE KEY `token` (`token`),
     KEY `email` (`email`),
     KEY `expires_at` (`expires_at`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 2 DEFAULT CHARSET = utf8mb3;
+
+--
+-- Déchargement des données de la table `password_resets`
+--
+
+INSERT INTO
+    `password_resets` (
+        `id`,
+        `email`,
+        `token`,
+        `expires_at`,
+        `used`,
+        `created_at`
+    )
+VALUES (
+        1,
+        'medardwah@gmail.com',
+        'ce69104bc0398b9e74e20a18a860f4a05bfa2d622f56710038b46b936e8793c3',
+        '2026-03-13 11:09:59',
+        0,
+        '2026-03-13 10:09:59'
+    );
 
 -- --------------------------------------------------------
 
@@ -17103,9 +17163,10 @@ CREATE TABLE IF NOT EXISTS `permissions` (
     `peut_supprimer` tinyint(1) NOT NULL DEFAULT '0',
     `date_attribution` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id_permission`),
+    UNIQUE KEY `uq_permissions_group_feature` (`id_GU`, `id_fonctionnalite`),
     KEY `id_GU` (`id_GU`),
     KEY `id_fonctionnalite` (`id_fonctionnalite`)
-) ENGINE = InnoDB AUTO_INCREMENT = 1910 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 4800 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `permissions`
@@ -17123,514 +17184,4794 @@ INSERT INTO
         `date_attribution`
     )
 VALUES (
-        1760,
-        13,
-        101,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-12 17:11:49'
+        2310,
+        9,
+        44,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:50'
     ),
     (
-        1761,
-        13,
-        91,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-12 17:11:49'
+        2311,
+        10,
+        44,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:50'
     ),
     (
-        1762,
-        13,
-        102,
-        1,
-        1,
-        1,
-        1,
-        '2026-02-12 17:11:49'
+        2312,
+        11,
+        44,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:50'
     ),
     (
-        1763,
+        2313,
+        12,
+        44,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:50'
+    ),
+    (
+        2314,
         13,
-        103,
+        44,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:50'
+    ),
+    (
+        2316,
+        6,
+        74,
         1,
         0,
         0,
         0,
-        '2026-02-12 17:11:49'
+        '2026-03-12 12:44:51'
     ),
     (
-        1764,
+        2317,
+        7,
+        74,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2318,
+        8,
+        74,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2319,
+        9,
+        74,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2320,
+        10,
+        74,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2321,
+        11,
+        74,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2322,
+        12,
+        74,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2323,
+        13,
+        74,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2334,
+        6,
+        93,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2335,
+        7,
+        93,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2336,
+        8,
+        93,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2337,
+        9,
+        93,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2338,
+        10,
+        93,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2339,
+        11,
+        93,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2340,
+        12,
+        93,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2341,
+        13,
+        93,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2343,
+        6,
+        104,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2344,
+        7,
+        104,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2345,
+        8,
+        104,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2346,
+        9,
+        104,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2347,
+        10,
+        104,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2348,
+        11,
+        104,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2349,
+        12,
+        104,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2350,
+        13,
+        104,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2352,
+        6,
+        2,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2353,
+        7,
+        2,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2354,
+        8,
+        2,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2355,
+        9,
+        2,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2356,
+        10,
+        2,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2357,
+        11,
+        2,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2358,
+        12,
+        2,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2359,
+        13,
+        2,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2361,
+        6,
+        116,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2362,
+        7,
+        116,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2363,
+        8,
+        116,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2364,
+        9,
+        116,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2365,
+        10,
+        116,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2366,
+        11,
+        116,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2367,
+        12,
+        116,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2368,
+        13,
+        116,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2370,
+        6,
+        79,
+        1,
+        0,
+        1,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2371,
+        7,
+        79,
+        1,
+        0,
+        1,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2372,
+        8,
+        79,
+        1,
+        0,
+        1,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2373,
+        9,
+        79,
+        1,
+        0,
+        1,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2374,
+        10,
+        79,
+        1,
+        0,
+        1,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2375,
+        11,
+        79,
+        1,
+        0,
+        1,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2376,
+        12,
+        79,
+        1,
+        0,
+        1,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2377,
         13,
         79,
         1,
+        0,
         1,
-        1,
-        1,
-        '2026-02-12 17:11:49'
+        0,
+        '2026-03-12 12:44:51'
     ),
     (
-        1804,
+        2379,
+        6,
+        50,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2380,
+        7,
+        50,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2381,
+        8,
+        50,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2382,
+        9,
+        50,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2383,
+        10,
+        50,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2384,
+        11,
+        50,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2385,
         12,
-        117,
-        1,
+        50,
         0,
         0,
         0,
-        '2026-02-27 18:49:53'
+        0,
+        '2026-03-12 12:44:51'
     ),
     (
-        1806,
+        2386,
+        13,
+        50,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2388,
+        6,
+        51,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2389,
+        7,
+        51,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:51'
+    ),
+    (
+        2390,
+        8,
+        51,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2391,
+        9,
+        51,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2392,
+        10,
+        51,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2393,
+        11,
+        51,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2394,
+        12,
+        51,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2395,
+        13,
+        51,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2397,
+        6,
+        52,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2398,
+        7,
+        52,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2399,
+        8,
+        52,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2400,
+        9,
+        52,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2401,
+        10,
+        52,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2402,
+        11,
+        52,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2403,
+        12,
+        52,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2404,
+        13,
+        52,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2406,
+        6,
+        55,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2407,
+        7,
+        55,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2408,
+        8,
+        55,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2409,
+        9,
+        55,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2410,
+        10,
+        55,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2411,
+        11,
+        55,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2412,
+        12,
+        55,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2413,
+        13,
+        55,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2469,
+        6,
+        117,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2470,
+        7,
+        117,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2471,
+        8,
+        117,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2472,
         9,
         117,
         1,
         0,
         0,
         0,
-        '2026-02-27 18:49:53'
+        '2026-03-12 12:44:52'
     ),
     (
-        1807,
+        2473,
         10,
         117,
         1,
         0,
         0,
         0,
-        '2026-02-27 18:49:54'
+        '2026-03-12 12:44:52'
     ),
     (
-        1808,
+        2474,
         11,
         117,
         1,
         0,
         0,
         0,
-        '2026-02-27 18:49:54'
+        '2026-03-12 12:44:52'
     ),
     (
-        1868,
+        2475,
+        12,
+        117,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2476,
+        13,
+        117,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2478,
+        6,
+        124,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2479,
+        7,
+        124,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2480,
+        8,
+        124,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2481,
+        9,
+        124,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2482,
+        10,
+        124,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2483,
+        11,
+        124,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2484,
+        12,
+        124,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2485,
+        13,
+        124,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2496,
+        6,
+        114,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2497,
+        7,
+        114,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2498,
+        8,
+        114,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2499,
+        9,
+        114,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2500,
+        10,
+        114,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2501,
+        11,
+        114,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2502,
+        12,
+        114,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2503,
+        13,
+        114,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2505,
+        6,
+        115,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2506,
+        7,
+        115,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2507,
+        8,
+        115,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2508,
+        9,
+        115,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2509,
+        10,
+        115,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2510,
+        11,
+        115,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2511,
+        12,
+        115,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2512,
+        13,
+        115,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2523,
+        6,
+        96,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2524,
+        7,
+        96,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2525,
+        8,
+        96,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2526,
+        9,
+        96,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2527,
+        10,
+        96,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2528,
+        11,
+        96,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2529,
+        12,
+        96,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2530,
+        13,
+        96,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2532,
+        6,
+        97,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2533,
+        7,
+        97,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2534,
+        8,
+        97,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2535,
+        9,
+        97,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2536,
+        10,
+        97,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2537,
+        11,
+        97,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2538,
+        12,
+        97,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2539,
+        13,
+        97,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2541,
+        6,
+        99,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2542,
+        7,
+        99,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2543,
+        8,
+        99,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2544,
+        9,
+        99,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2545,
+        10,
+        99,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2546,
+        11,
+        99,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2547,
+        12,
+        99,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2548,
+        13,
+        99,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2550,
+        6,
+        100,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2551,
+        7,
+        100,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2552,
+        8,
+        100,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2553,
+        9,
+        100,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2554,
+        10,
+        100,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2555,
+        11,
+        100,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2556,
+        12,
+        100,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2557,
+        13,
+        100,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2559,
+        6,
+        125,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2560,
+        7,
+        125,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2561,
+        8,
+        125,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2562,
+        9,
+        125,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2563,
+        10,
+        125,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2564,
+        11,
+        125,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2565,
+        12,
+        125,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2566,
+        13,
+        125,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2568,
+        6,
+        101,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2569,
+        7,
+        101,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2570,
+        8,
+        101,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2571,
+        9,
+        101,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2572,
+        10,
+        101,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2573,
+        11,
+        101,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2574,
+        12,
+        101,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2575,
+        13,
+        101,
+        1,
+        1,
+        1,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2577,
+        6,
+        102,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2578,
+        7,
+        102,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2579,
+        8,
+        102,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2580,
+        9,
+        102,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2581,
+        10,
+        102,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2582,
+        11,
+        102,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2583,
+        12,
+        102,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2584,
+        13,
+        102,
+        1,
+        1,
+        1,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2586,
+        6,
+        103,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2587,
+        7,
+        103,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2588,
+        8,
+        103,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2589,
+        9,
+        103,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2590,
+        10,
+        103,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2591,
+        11,
+        103,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2592,
+        12,
+        103,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2593,
+        13,
+        103,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2595,
+        6,
+        91,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2596,
+        7,
+        91,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2597,
+        8,
+        91,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2598,
+        9,
+        91,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2599,
+        10,
+        91,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2600,
+        11,
+        91,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2601,
+        12,
+        91,
+        1,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2602,
+        13,
+        91,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2613,
+        6,
+        106,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2614,
+        7,
+        106,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2615,
+        8,
+        106,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2616,
+        9,
+        106,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2617,
+        10,
+        106,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2618,
+        11,
+        106,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2619,
+        12,
+        106,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2620,
+        13,
+        106,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2640,
+        6,
+        107,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2641,
+        7,
+        107,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2642,
+        8,
+        107,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2643,
+        9,
+        107,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2644,
+        10,
+        107,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2645,
+        11,
+        107,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2646,
+        12,
+        107,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2647,
+        13,
+        107,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2649,
+        6,
+        108,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2650,
+        7,
+        108,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2651,
+        8,
+        108,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2652,
+        9,
+        108,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2653,
+        10,
+        108,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2654,
+        11,
+        108,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2655,
+        12,
+        108,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2656,
+        13,
+        108,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2667,
+        6,
+        110,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2668,
+        7,
+        110,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2669,
+        8,
+        110,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2670,
+        9,
+        110,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2671,
+        10,
+        110,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2672,
+        11,
+        110,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2673,
+        12,
+        110,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2674,
+        13,
+        110,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2685,
+        6,
+        111,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2686,
+        7,
+        111,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2687,
+        8,
+        111,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2688,
+        9,
+        111,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2689,
+        10,
+        111,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2690,
+        11,
+        111,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2691,
+        12,
+        111,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2692,
+        13,
+        111,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2694,
+        6,
+        112,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2695,
+        7,
+        112,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2696,
+        8,
+        112,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2697,
+        9,
+        112,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2698,
+        10,
+        112,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2699,
+        11,
+        112,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2700,
+        12,
+        112,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2701,
+        13,
+        112,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2757,
+        6,
+        30,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2758,
+        7,
+        30,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2759,
+        8,
+        30,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2760,
+        9,
+        30,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2761,
+        10,
+        30,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2762,
+        11,
+        30,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2763,
+        12,
+        30,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2764,
+        13,
+        30,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2766,
+        6,
+        81,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2767,
+        7,
+        81,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2768,
+        8,
+        81,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2769,
+        9,
+        81,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2770,
+        10,
+        81,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2771,
+        11,
+        81,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2772,
+        12,
+        81,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2773,
+        13,
+        81,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2775,
+        6,
+        32,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2776,
+        7,
+        32,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2777,
+        8,
+        32,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2778,
+        9,
+        32,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2779,
+        10,
+        32,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2780,
+        11,
+        32,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2781,
+        12,
+        32,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2782,
+        13,
+        32,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2874,
+        6,
+        39,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2875,
+        7,
+        39,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2876,
+        8,
+        39,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2877,
+        9,
+        39,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2878,
+        10,
+        39,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2879,
+        11,
+        39,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2880,
+        12,
+        39,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2881,
+        13,
+        39,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2883,
+        6,
+        37,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2884,
+        7,
+        37,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2885,
+        8,
+        37,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2886,
+        9,
+        37,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2887,
+        10,
+        37,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2888,
+        11,
+        37,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2889,
+        12,
+        37,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2890,
+        13,
+        37,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2892,
+        6,
+        46,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2893,
+        7,
+        46,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2894,
+        8,
+        46,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2895,
+        9,
+        46,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2896,
+        10,
+        46,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2897,
+        11,
+        46,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2898,
+        12,
+        46,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2899,
+        13,
+        46,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2901,
+        6,
+        43,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2902,
+        7,
+        43,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2903,
+        8,
+        43,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2904,
+        9,
+        43,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2905,
+        10,
+        43,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2906,
+        11,
+        43,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2907,
+        12,
+        43,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2908,
+        13,
+        43,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2910,
+        6,
+        49,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2911,
+        7,
+        49,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2912,
+        8,
+        49,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2913,
+        9,
+        49,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2914,
+        10,
+        49,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2915,
+        11,
+        49,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2916,
+        12,
+        49,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2917,
+        13,
+        49,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2919,
+        6,
+        34,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2920,
+        7,
+        34,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2921,
+        8,
+        34,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2922,
+        9,
+        34,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2923,
+        10,
+        34,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2924,
+        11,
+        34,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2925,
+        12,
+        34,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2926,
+        13,
+        34,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2928,
+        6,
+        47,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2929,
+        7,
+        47,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2930,
+        8,
+        47,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2931,
+        9,
+        47,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2932,
+        10,
+        47,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2933,
+        11,
+        47,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2934,
+        12,
+        47,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2935,
+        13,
+        47,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2937,
+        6,
+        42,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2938,
+        7,
+        42,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2939,
+        8,
+        42,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2940,
+        9,
+        42,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2941,
+        10,
+        42,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2942,
+        11,
+        42,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2943,
+        12,
+        42,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2944,
+        13,
+        42,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2946,
+        6,
+        45,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:52'
+    ),
+    (
+        2947,
+        7,
+        45,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2948,
+        8,
+        45,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2949,
+        9,
+        45,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2950,
+        10,
+        45,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2951,
+        11,
+        45,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2952,
+        12,
+        45,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2953,
+        13,
+        45,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2955,
+        6,
+        41,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2956,
+        7,
+        41,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2957,
+        8,
+        41,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2958,
+        9,
+        41,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2959,
+        10,
+        41,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2960,
+        11,
+        41,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2961,
+        12,
+        41,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2962,
+        13,
+        41,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2964,
+        6,
+        48,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2965,
+        7,
+        48,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2966,
+        8,
+        48,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2967,
+        9,
+        48,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2968,
+        10,
+        48,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2969,
+        11,
+        48,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2970,
+        12,
+        48,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2971,
+        13,
+        48,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2973,
+        6,
+        35,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2974,
+        7,
+        35,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2975,
+        8,
+        35,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2976,
+        9,
+        35,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2977,
+        10,
+        35,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2978,
+        11,
+        35,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2979,
+        12,
+        35,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2980,
+        13,
+        35,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2982,
+        6,
+        31,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2983,
+        7,
+        31,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2984,
+        8,
+        31,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2985,
+        9,
+        31,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2986,
+        10,
+        31,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2987,
+        11,
+        31,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2988,
+        12,
+        31,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2989,
+        13,
+        31,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2991,
+        6,
+        36,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2992,
+        7,
+        36,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2993,
+        8,
+        36,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2994,
+        9,
+        36,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2995,
+        10,
+        36,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2996,
+        11,
+        36,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2997,
+        12,
+        36,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        2998,
+        13,
+        36,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3000,
+        6,
+        40,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3001,
+        7,
+        40,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3002,
+        8,
+        40,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3003,
+        9,
+        40,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3004,
+        10,
+        40,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3005,
+        11,
+        40,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3006,
+        12,
+        40,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3007,
+        13,
+        40,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3009,
+        6,
+        38,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3010,
+        7,
+        38,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3011,
+        8,
+        38,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3012,
+        9,
+        38,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3013,
+        10,
+        38,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3014,
+        11,
+        38,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3015,
+        12,
+        38,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3016,
+        13,
+        38,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3027,
+        6,
+        44,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3028,
+        7,
+        44,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3029,
+        8,
+        44,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:44:53'
+    ),
+    (
+        3576,
+        6,
+        113,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:47:56'
+    ),
+    (
+        3577,
+        7,
+        113,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:47:56'
+    ),
+    (
+        3578,
+        8,
+        113,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:47:56'
+    ),
+    (
+        3579,
+        9,
+        113,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:47:56'
+    ),
+    (
+        3580,
+        10,
+        113,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:47:56'
+    ),
+    (
+        3581,
+        11,
+        113,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:47:56'
+    ),
+    (
+        3582,
+        12,
+        113,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:47:56'
+    ),
+    (
+        3583,
+        13,
+        113,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:47:56'
+    ),
+    (
+        3873,
+        6,
+        94,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:50:14'
+    ),
+    (
+        3874,
+        7,
+        94,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:50:14'
+    ),
+    (
+        3875,
+        8,
+        94,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:50:14'
+    ),
+    (
+        3876,
+        9,
+        94,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:50:14'
+    ),
+    (
+        3877,
+        10,
+        94,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:50:14'
+    ),
+    (
+        3878,
+        11,
+        94,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:50:14'
+    ),
+    (
+        3879,
+        12,
+        94,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:50:14'
+    ),
+    (
+        3880,
+        13,
+        94,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:50:14'
+    ),
+    (
+        3909,
+        6,
+        109,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:50:15'
+    ),
+    (
+        3910,
+        7,
+        109,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:50:15'
+    ),
+    (
+        3911,
+        8,
+        109,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:50:15'
+    ),
+    (
+        3912,
+        9,
+        109,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:50:15'
+    ),
+    (
+        3913,
+        10,
+        109,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:50:15'
+    ),
+    (
+        3914,
+        11,
+        109,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 12:50:15'
+    ),
+    (
+        3915,
+        12,
+        109,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:50:15'
+    ),
+    (
+        3916,
+        13,
+        109,
+        0,
+        0,
+        0,
+        0,
+        '2026-03-12 12:50:15'
+    ),
+    (
+        4737,
         5,
         99,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1869,
+        4738,
         5,
         95,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1870,
+        4739,
         5,
         93,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1871,
+        4740,
         5,
         96,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1872,
+        4741,
         5,
         100,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1873,
+        4742,
         5,
         94,
         1,
-        0,
-        0,
-        0,
-        '2026-03-07 22:40:49'
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
     ),
     (
-        1874,
+        4743,
         5,
         98,
         1,
-        0,
-        0,
-        0,
-        '2026-03-07 22:40:49'
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
     ),
     (
-        1875,
+        4744,
         5,
         97,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1876,
+        4745,
         5,
         125,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1877,
+        4746,
         5,
         101,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1878,
+        4747,
         5,
         91,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1879,
+        4748,
         5,
         102,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1880,
+        4749,
         5,
         103,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1881,
+        4750,
         5,
         2,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1882,
+        4751,
+        5,
+        21,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4752,
         5,
         104,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1883,
+        4753,
         5,
         106,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1884,
+        4754,
+        5,
+        22,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4755,
         5,
         107,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1885,
+        4756,
         5,
         105,
         1,
-        0,
-        0,
-        0,
-        '2026-03-07 22:40:49'
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
     ),
     (
-        1886,
+        4757,
+        5,
+        23,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4758,
         5,
         108,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1887,
+        4759,
         5,
         109,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1888,
+        4760,
+        5,
+        24,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4761,
         5,
         110,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1889,
+        4762,
         5,
         111,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1890,
+        4763,
         5,
         112,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1891,
+        4764,
         5,
         116,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1892,
+        4765,
         5,
         124,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1893,
+        4766,
         5,
         117,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1894,
-        5,
-        73,
-        1,
-        1,
-        1,
-        1,
-        '2026-03-07 22:40:49'
-    ),
-    (
-        1895,
+        4767,
         5,
         74,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1896,
+        4768,
         5,
         30,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1897,
+        4769,
         5,
         50,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1898,
+        4770,
         5,
         114,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1899,
+        4771,
         5,
         51,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1900,
+        4772,
+        5,
+        31,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4773,
         5,
         113,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1901,
+        4774,
         5,
         115,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1902,
+        4775,
         5,
         52,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1903,
+        4776,
         5,
         75,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1904,
+        4777,
+        5,
+        32,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4778,
         5,
         81,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1905,
+        4779,
         5,
         76,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1906,
+        4780,
+        5,
+        33,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4781,
         5,
         55,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1907,
+        4782,
+        5,
+        34,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4783,
         5,
         78,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     ),
     (
-        1908,
+        4784,
+        5,
+        35,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4785,
+        5,
+        36,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4786,
+        5,
+        37,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4787,
         5,
         38,
         1,
-        0,
         1,
-        0,
-        '2026-03-07 22:40:49'
+        1,
+        1,
+        '2026-03-12 13:46:25'
     ),
     (
-        1909,
+        4788,
+        5,
+        39,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4789,
+        5,
+        40,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4790,
+        5,
+        41,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4791,
+        5,
+        42,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4792,
+        5,
+        43,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4793,
+        5,
+        44,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4794,
+        5,
+        45,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4795,
+        5,
+        46,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4796,
+        5,
+        47,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4797,
+        5,
+        48,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4798,
+        5,
+        49,
+        1,
+        1,
+        1,
+        1,
+        '2026-03-12 13:46:25'
+    ),
+    (
+        4799,
         5,
         79,
         1,
         1,
         1,
         1,
-        '2026-03-07 22:40:49'
+        '2026-03-12 13:46:25'
     );
 
 -- --------------------------------------------------------
@@ -17673,7 +22014,7 @@ CREATE TABLE IF NOT EXISTS `pister` (
     KEY `idx_table` (`nom_table`),
     KEY `idx_created_at` (`date_creation`),
     KEY `idx_utilisateur_action` (`id_utilisateur`, `action`)
-) ENGINE = InnoDB AUTO_INCREMENT = 2 DEFAULT CHARSET = utf8mb3;
+) ENGINE = InnoDB AUTO_INCREMENT = 464 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `pister`
@@ -17695,6 +22036,3694 @@ VALUES (
         'Succès',
         'inscriptions',
         '2026-03-10 22:17:14'
+    ),
+    (
+        2,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-11 14:37:16'
+    ),
+    (
+        3,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-11 14:48:34'
+    ),
+    (
+        4,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-11 15:43:36'
+    ),
+    (
+        5,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-11 15:53:15'
+    ),
+    (
+        6,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-11 16:20:22'
+    ),
+    (
+        7,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-12 00:47:36'
+    ),
+    (
+        8,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-12 10:37:28'
+    ),
+    (
+        9,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-12 10:40:13'
+    ),
+    (
+        10,
+        5,
+        'Déconnexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-12 12:52:27'
+    ),
+    (
+        11,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-12 12:52:42'
+    ),
+    (
+        12,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 13:36:40'
+    ),
+    (
+        13,
+        5,
+        'Modification',
+        'Succès',
+        'permissions',
+        '2026-03-12 13:45:34'
+    ),
+    (
+        14,
+        5,
+        'Modification',
+        'Succès',
+        'permissions',
+        '2026-03-12 13:46:25'
+    ),
+    (
+        15,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 14:41:36'
+    ),
+    (
+        16,
+        5,
+        'Déconnexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-12 14:45:39'
+    ),
+    (
+        17,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-12 14:45:58'
+    ),
+    (
+        18,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 14:48:29'
+    ),
+    (
+        19,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 14:48:32'
+    ),
+    (
+        20,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 14:48:42'
+    ),
+    (
+        21,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 14:48:46'
+    ),
+    (
+        22,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-12 15:14:34'
+    ),
+    (
+        23,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 15:18:03'
+    ),
+    (
+        24,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 15:45:49'
+    ),
+    (
+        25,
+        5,
+        'Nettoyage',
+        'Succès',
+        'pister',
+        '2026-03-12 15:51:14'
+    ),
+    (
+        26,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 15:51:48'
+    ),
+    (
+        27,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 15:52:38'
+    ),
+    (
+        28,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 15:53:16'
+    ),
+    (
+        29,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 15:56:30'
+    ),
+    (
+        30,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-12 16:09:22'
+    ),
+    (
+        31,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 16:46:47'
+    ),
+    (
+        32,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 18:50:00'
+    ),
+    (
+        33,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-12 19:39:39'
+    ),
+    (
+        34,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 19:43:51'
+    ),
+    (
+        35,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 19:47:27'
+    ),
+    (
+        36,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 19:58:31'
+    ),
+    (
+        37,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 21:43:04'
+    ),
+    (
+        38,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 21:48:09'
+    ),
+    (
+        39,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 23:09:34'
+    ),
+    (
+        40,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-12 23:12:22'
+    ),
+    (
+        41,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-13 07:33:58'
+    ),
+    (
+        42,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-13 07:35:03'
+    ),
+    (
+        43,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-13 07:36:34'
+    ),
+    (
+        44,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-13 09:14:00'
+    ),
+    (
+        45,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-13 09:18:26'
+    ),
+    (
+        46,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-13 09:22:10'
+    ),
+    (
+        47,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-13 09:24:20'
+    ),
+    (
+        48,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-13 09:26:51'
+    ),
+    (
+        49,
+        5,
+        'Nettoyage',
+        'Succès',
+        'pister',
+        '2026-03-13 10:00:49'
+    ),
+    (
+        50,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-13 10:06:20'
+    ),
+    (
+        51,
+        5,
+        'Création',
+        'Erreur',
+        'envoi_acces',
+        '2026-03-13 10:09:49'
+    ),
+    (
+        52,
+        5,
+        'Création',
+        'Succès',
+        'envoi_acces',
+        '2026-03-13 10:10:02'
+    ),
+    (
+        53,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-13 10:18:36'
+    ),
+    (
+        54,
+        5,
+        'Nettoyage',
+        'Succès',
+        'pister',
+        '2026-03-13 10:38:41'
+    ),
+    (
+        55,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-13 10:41:17'
+    ),
+    (
+        56,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-13 10:50:53'
+    ),
+    (
+        57,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-13 11:08:10'
+    ),
+    (
+        58,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-13 11:14:16'
+    ),
+    (
+        59,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-13 11:20:57'
+    ),
+    (
+        60,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-13 13:22:06'
+    ),
+    (
+        61,
+        5,
+        'Modification',
+        'Erreur',
+        'utilisateur',
+        '2026-03-13 15:17:45'
+    ),
+    (
+        62,
+        5,
+        'Modification',
+        'Erreur',
+        'utilisateur',
+        '2026-03-13 15:17:48'
+    ),
+    (
+        63,
+        5,
+        'Modification',
+        'Erreur',
+        'utilisateur',
+        '2026-03-13 15:17:49'
+    ),
+    (
+        64,
+        5,
+        'Modification',
+        'Erreur',
+        'utilisateur',
+        '2026-03-13 15:17:49'
+    ),
+    (
+        65,
+        5,
+        'Modification',
+        'Erreur',
+        'utilisateur',
+        '2026-03-13 15:17:50'
+    ),
+    (
+        66,
+        5,
+        'Modification',
+        'Erreur',
+        'utilisateur',
+        '2026-03-13 15:17:51'
+    ),
+    (
+        67,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-13 20:53:03'
+    ),
+    (
+        68,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-15 01:21:14'
+    ),
+    (
+        69,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-15 05:32:29'
+    ),
+    (
+        71,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-15 11:37:52'
+    ),
+    (
+        72,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-15 12:34:35'
+    ),
+    (
+        73,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-15 12:34:59'
+    ),
+    (
+        74,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-15 14:28:05'
+    ),
+    (
+        75,
+        5,
+        'Nettoyage',
+        'Succès',
+        'pister',
+        '2026-03-15 14:29:04'
+    ),
+    (
+        76,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-15 14:51:15'
+    ),
+    (
+        77,
+        5,
+        'Nettoyage',
+        'Succès',
+        'pister',
+        '2026-03-15 14:51:49'
+    ),
+    (
+        78,
+        5,
+        'Déconnexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-15 15:09:21'
+    ),
+    (
+        79,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-15 15:26:40'
+    ),
+    (
+        80,
+        5,
+        'Création',
+        'Erreur',
+        'notes',
+        '2026-03-15 15:36:46'
+    ),
+    (
+        81,
+        5,
+        'Création',
+        'Erreur',
+        'notes',
+        '2026-03-15 15:45:35'
+    ),
+    (
+        82,
+        5,
+        'Déconnexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-15 15:58:04'
+    ),
+    (
+        83,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-15 20:20:10'
+    ),
+    (
+        84,
+        5,
+        'Création',
+        'Erreur',
+        'notes',
+        '2026-03-16 06:36:36'
+    ),
+    (
+        85,
+        5,
+        'GET | mise_en_ligne_memoire',
+        'Succès',
+        'xhr | page=mise_en_ligne_memoire',
+        '2026-03-16 07:02:08'
+    ),
+    (
+        86,
+        5,
+        'GET | gestion_dossiers_candidatures',
+        'Succès',
+        'xhr | page=gestion_dossiers_candidatures',
+        '2026-03-16 07:02:12'
+    ),
+    (
+        87,
+        5,
+        'GET | gestion_dossiers_candidatures',
+        'Succès',
+        'ui | page=gestion_dossiers_candidatures',
+        '2026-03-16 07:08:19'
+    ),
+    (
+        88,
+        5,
+        'GET | profil',
+        'Succès',
+        'xhr | page=profil',
+        '2026-03-16 07:08:22'
+    ),
+    (
+        89,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:08:35'
+    ),
+    (
+        90,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:08:51'
+    ),
+    (
+        91,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:08:53'
+    ),
+    (
+        92,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:08:54'
+    ),
+    (
+        93,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:08:55'
+    ),
+    (
+        94,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:08:56'
+    ),
+    (
+        95,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'ui | page=profil | tab=history',
+        '2026-03-16 07:09:07'
+    ),
+    (
+        96,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'ui | page=profil | tab=history',
+        '2026-03-16 07:09:11'
+    ),
+    (
+        97,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'ui | page=profil | tab=history',
+        '2026-03-16 07:09:13'
+    ),
+    (
+        98,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'ui | page=profil | tab=history',
+        '2026-03-16 07:09:19'
+    ),
+    (
+        99,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:09:28'
+    ),
+    (
+        100,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:09:34'
+    ),
+    (
+        101,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:09:37'
+    ),
+    (
+        102,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:09:39'
+    ),
+    (
+        103,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:09:40'
+    ),
+    (
+        104,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:09:41'
+    ),
+    (
+        105,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:09:42'
+    ),
+    (
+        106,
+        5,
+        'GET | piste_audit',
+        'Succès',
+        'xhr | page=piste_audit',
+        '2026-03-16 07:09:59'
+    ),
+    (
+        107,
+        5,
+        'GET | piste_audit',
+        'Succès',
+        'ui | page=piste_audit',
+        '2026-03-16 07:15:07'
+    ),
+    (
+        108,
+        5,
+        'GET | piste_audit',
+        'Succès',
+        'xhr | page=piste_audit',
+        '2026-03-16 07:15:29'
+    ),
+    (
+        109,
+        5,
+        'GET | piste_audit',
+        'Succès',
+        'xhr | page=piste_audit',
+        '2026-03-16 07:15:32'
+    ),
+    (
+        110,
+        5,
+        'GET | profil',
+        'Succès',
+        'xhr | page=profil',
+        '2026-03-16 07:15:40'
+    ),
+    (
+        111,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:16:27'
+    ),
+    (
+        112,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:16:29'
+    ),
+    (
+        113,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:16:36'
+    ),
+    (
+        114,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'xhr | page=profil | tab=history',
+        '2026-03-16 07:16:38'
+    ),
+    (
+        115,
+        5,
+        'GET | profil | tab:history',
+        'Succès',
+        'ui | page=profil | tab=history',
+        '2026-03-16 07:17:23'
+    ),
+    (
+        116,
+        5,
+        'GET | piste_audit',
+        'Succès',
+        'xhr | page=piste_audit',
+        '2026-03-16 07:17:38'
+    ),
+    (
+        117,
+        5,
+        'GET | admin_historique',
+        'Succès',
+        'xhr | page=admin_historique',
+        '2026-03-16 07:17:41'
+    ),
+    (
+        118,
+        5,
+        'GET | sauvegarde_restauration',
+        'Succès',
+        'xhr | page=sauvegarde_restauration',
+        '2026-03-16 07:17:43'
+    ),
+    (
+        119,
+        5,
+        'GET | piste_audit',
+        'Succès',
+        'xhr | page=piste_audit',
+        '2026-03-16 07:17:45'
+    ),
+    (
+        120,
+        5,
+        'GET | admin_historique',
+        'Succès',
+        'xhr | page=admin_historique',
+        '2026-03-16 07:17:47'
+    ),
+    (
+        121,
+        5,
+        'Consultation archive',
+        'Succès',
+        'archives_documents',
+        '2026-03-16 07:26:39'
+    ),
+    (
+        122,
+        5,
+        'Consultation archive',
+        'Succès',
+        'archives_documents',
+        '2026-03-16 07:26:41'
+    ),
+    (
+        123,
+        5,
+        'Consultation archive',
+        'Succès',
+        'archives_documents',
+        '2026-03-16 07:26:42'
+    ),
+    (
+        124,
+        5,
+        'Consultation archive',
+        'Succès',
+        'archives_documents',
+        '2026-03-16 07:26:43'
+    ),
+    (
+        125,
+        5,
+        'Consultation archive',
+        'Succès',
+        'archives_documents',
+        '2026-03-16 07:26:44'
+    ),
+    (
+        126,
+        5,
+        'Consultation archive',
+        'Succès',
+        'archives_documents',
+        '2026-03-16 07:26:46'
+    ),
+    (
+        127,
+        5,
+        'GET | piste_audit',
+        'Succès',
+        'xhr | page=piste_audit',
+        '2026-03-16 07:26:48'
+    ),
+    (
+        128,
+        5,
+        'GET | piste_audit',
+        'Succès',
+        'xhr | page=piste_audit',
+        '2026-03-16 07:27:17'
+    ),
+    (
+        129,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 07:27:22'
+    ),
+    (
+        130,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-16 07:27:24'
+    ),
+    (
+        131,
+        5,
+        'GET | dashboard',
+        'Succès',
+        'xhr | page=dashboard',
+        '2026-03-16 07:27:24'
+    ),
+    (
+        132,
+        5,
+        'GET | access_denied',
+        'Succès',
+        'ui | page=access_denied',
+        '2026-03-16 07:27:31'
+    ),
+    (
+        133,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-16 07:27:33'
+    ),
+    (
+        134,
+        5,
+        'GET | dashboard',
+        'Succès',
+        'ui | page=dashboard',
+        '2026-03-16 07:27:34'
+    ),
+    (
+        135,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 07:27:46'
+    ),
+    (
+        136,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 07:27:55'
+    ),
+    (
+        137,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:28:00'
+    ),
+    (
+        138,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 07:28:04'
+    ),
+    (
+        139,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'ui | page=parametres_generaux',
+        '2026-03-16 07:47:09'
+    ),
+    (
+        140,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:47:12'
+    ),
+    (
+        141,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:47:17'
+    ),
+    (
+        142,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 07:47:29'
+    ),
+    (
+        143,
+        5,
+        'GET | profil',
+        'Succès',
+        'xhr | page=profil',
+        '2026-03-16 07:47:35'
+    ),
+    (
+        144,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 07:53:38'
+    ),
+    (
+        145,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:53:41'
+    ),
+    (
+        146,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 07:53:43'
+    ),
+    (
+        147,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:53:47'
+    ),
+    (
+        148,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:53:49'
+    ),
+    (
+        149,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:53:59'
+    ),
+    (
+        150,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:54:02'
+    ),
+    (
+        151,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:54:08'
+    ),
+    (
+        152,
+        5,
+        'Evaluation',
+        'Succès',
+        'evaluer',
+        '2026-03-16 07:54:09'
+    ),
+    (
+        153,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:54:11'
+    ),
+    (
+        154,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:54:12'
+    ),
+    (
+        155,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:54:14'
+    ),
+    (
+        156,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:54:15'
+    ),
+    (
+        157,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:54:18'
+    ),
+    (
+        158,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:54:26'
+    ),
+    (
+        159,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:54:29'
+    ),
+    (
+        160,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:54:32'
+    ),
+    (
+        161,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:55:28'
+    ),
+    (
+        162,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:55:37'
+    ),
+    (
+        163,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:55:39'
+    ),
+    (
+        164,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:55:40'
+    ),
+    (
+        165,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:55:42'
+    ),
+    (
+        166,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'ui | page=parametres_specifiques',
+        '2026-03-16 07:55:46'
+    ),
+    (
+        167,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:55:49'
+    ),
+    (
+        168,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:55:50'
+    ),
+    (
+        169,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:55:52'
+    ),
+    (
+        170,
+        5,
+        'GET | programmation_soutenance',
+        'Succès',
+        'xhr | page=programmation_soutenance',
+        '2026-03-16 07:56:38'
+    ),
+    (
+        171,
+        5,
+        'GET | evaluation_soutenance',
+        'Succès',
+        'xhr | page=evaluation_soutenance',
+        '2026-03-16 07:56:45'
+    ),
+    (
+        172,
+        5,
+        'GET | edition_bulletin',
+        'Succès',
+        'xhr | page=edition_bulletin',
+        '2026-03-16 07:56:48'
+    ),
+    (
+        173,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 07:56:51'
+    ),
+    (
+        174,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 07:56:53'
+    ),
+    (
+        175,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 07:56:56'
+    ),
+    (
+        176,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 07:57:05'
+    ),
+    (
+        177,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 07:57:07'
+    ),
+    (
+        178,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 07:57:16'
+    ),
+    (
+        179,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 07:57:18'
+    ),
+    (
+        180,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:57:22'
+    ),
+    (
+        181,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:57:24'
+    ),
+    (
+        182,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:57:26'
+    ),
+    (
+        183,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 07:57:28'
+    ),
+    (
+        184,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 07:57:30'
+    ),
+    (
+        185,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:01:59'
+    ),
+    (
+        186,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:02:14'
+    ),
+    (
+        187,
+        5,
+        'GET | gestion_utilisateurs',
+        'Succès',
+        'xhr | page=gestion_utilisateurs',
+        '2026-03-16 08:02:22'
+    ),
+    (
+        188,
+        5,
+        'Modification',
+        'Succès',
+        'utilisateur',
+        '2026-03-16 08:02:26'
+    ),
+    (
+        189,
+        5,
+        'Modification',
+        'Succès',
+        'utilisateur',
+        '2026-03-16 08:03:24'
+    ),
+    (
+        190,
+        5,
+        'Modification',
+        'Succès',
+        'utilisateur',
+        '2026-03-16 08:03:25'
+    ),
+    (
+        191,
+        5,
+        'GET | gestion_utilisateurs',
+        'Succès',
+        'xhr | page=gestion_utilisateurs',
+        '2026-03-16 08:03:25'
+    ),
+    (
+        192,
+        5,
+        'Consultation archive',
+        'Succès',
+        'archives_documents',
+        '2026-03-16 08:03:39'
+    ),
+    (
+        193,
+        5,
+        'Consultation archive',
+        'Succès',
+        'archives_documents',
+        '2026-03-16 08:03:42'
+    ),
+    (
+        194,
+        5,
+        'Consultation archive',
+        'Succès',
+        'archives_documents',
+        '2026-03-16 08:03:43'
+    ),
+    (
+        195,
+        5,
+        'Consultation archive',
+        'Succès',
+        'archives_documents',
+        '2026-03-16 08:03:44'
+    ),
+    (
+        196,
+        5,
+        'Consultation archive',
+        'Succès',
+        'archives_documents',
+        '2026-03-16 08:03:46'
+    ),
+    (
+        197,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:03:52'
+    ),
+    (
+        198,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:03:53'
+    ),
+    (
+        199,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:04:06'
+    ),
+    (
+        200,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:04:24'
+    ),
+    (
+        201,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:04:55'
+    ),
+    (
+        202,
+        5,
+        'Consultation archive',
+        'Succès',
+        'archives_documents',
+        '2026-03-16 08:05:01'
+    ),
+    (
+        203,
+        5,
+        'GET | gestion_utilisateurs',
+        'Succès',
+        'xhr | page=gestion_utilisateurs',
+        '2026-03-16 08:05:04'
+    ),
+    (
+        204,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:05:05'
+    ),
+    (
+        205,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:05:07'
+    ),
+    (
+        206,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:05:15'
+    ),
+    (
+        207,
+        5,
+        'GET | gestion_utilisateurs',
+        'Succès',
+        'xhr | page=gestion_utilisateurs',
+        '2026-03-16 08:05:28'
+    ),
+    (
+        208,
+        5,
+        'GET | gestion_utilisateurs',
+        'Succès',
+        'ui | page=gestion_utilisateurs',
+        '2026-03-16 08:05:30'
+    ),
+    (
+        209,
+        5,
+        'GET | piste_audit',
+        'Succès',
+        'xhr | page=piste_audit',
+        '2026-03-16 08:05:35'
+    ),
+    (
+        210,
+        5,
+        'Consultation archive',
+        'Succès',
+        'archives_documents',
+        '2026-03-16 08:05:52'
+    ),
+    (
+        211,
+        5,
+        'GET | sauvegarde_restauration',
+        'Succès',
+        'xhr | page=sauvegarde_restauration',
+        '2026-03-16 08:05:54'
+    ),
+    (
+        212,
+        5,
+        'GET | sauvegarde_restauration',
+        'Succès',
+        'xhr | page=sauvegarde_restauration',
+        '2026-03-16 08:05:54'
+    ),
+    (
+        213,
+        5,
+        'GET | gestion_utilisateurs',
+        'Succès',
+        'xhr | page=gestion_utilisateurs',
+        '2026-03-16 08:06:00'
+    ),
+    (
+        214,
+        5,
+        'Modification',
+        'Succès',
+        'utilisateur',
+        '2026-03-16 08:06:04'
+    ),
+    (
+        215,
+        5,
+        'Modification',
+        'Succès',
+        'utilisateur',
+        '2026-03-16 08:06:18'
+    ),
+    (
+        216,
+        5,
+        'Modification',
+        'Succès',
+        'utilisateur',
+        '2026-03-16 08:06:18'
+    ),
+    (
+        217,
+        5,
+        'GET | gestion_utilisateurs',
+        'Succès',
+        'xhr | page=gestion_utilisateurs',
+        '2026-03-16 08:06:18'
+    ),
+    (
+        218,
+        5,
+        'GET | maj_personnel_admin | tab:pers_admin',
+        'Succès',
+        'xhr | page=maj_personnel_admin | tab=pers_admin',
+        '2026-03-16 08:06:26'
+    ),
+    (
+        219,
+        5,
+        'GET | piste_audit',
+        'Succès',
+        'xhr | page=piste_audit',
+        '2026-03-16 08:06:28'
+    ),
+    (
+        220,
+        5,
+        'GET | tableau_bord_enseignant',
+        'Succès',
+        'xhr | page=tableau_bord_enseignant',
+        '2026-03-16 08:06:38'
+    ),
+    (
+        221,
+        5,
+        'GET | programmation_ens',
+        'Succès',
+        'xhr | page=programmation_ens',
+        '2026-03-16 08:06:40'
+    ),
+    (
+        222,
+        5,
+        'GET | repertoire_enseignant',
+        'Succès',
+        'xhr | page=repertoire_enseignant',
+        '2026-03-16 08:06:42'
+    ),
+    (
+        223,
+        5,
+        'GET | tableau_bord_enseignant',
+        'Succès',
+        'xhr | page=tableau_bord_enseignant',
+        '2026-03-16 08:06:43'
+    ),
+    (
+        224,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:07:06'
+    ),
+    (
+        225,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:07:08'
+    ),
+    (
+        226,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:07:32'
+    ),
+    (
+        227,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:07:34'
+    ),
+    (
+        228,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:07:38'
+    ),
+    (
+        229,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:07:40'
+    ),
+    (
+        230,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:11:58'
+    ),
+    (
+        231,
+        5,
+        'Evaluation',
+        'Succès',
+        'evaluer',
+        '2026-03-16 08:12:00'
+    ),
+    (
+        232,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:12:02'
+    ),
+    (
+        233,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:12:03'
+    ),
+    (
+        234,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:12:05'
+    ),
+    (
+        235,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'ui | page=parametres_specifiques',
+        '2026-03-16 08:12:08'
+    ),
+    (
+        236,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 08:12:10'
+    ),
+    (
+        237,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'ui | page=parametres_generaux',
+        '2026-03-16 08:12:18'
+    ),
+    (
+        238,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'ui | page=parametres_generaux',
+        '2026-03-16 08:12:19'
+    ),
+    (
+        239,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:12:22'
+    ),
+    (
+        240,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:12:31'
+    ),
+    (
+        241,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:12:34'
+    ),
+    (
+        242,
+        5,
+        'Modification',
+        'Succès',
+        'frais_inscription',
+        '2026-03-16 08:12:43'
+    ),
+    (
+        243,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:12:43'
+    ),
+    (
+        244,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:12:43'
+    ),
+    (
+        245,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:12:50'
+    ),
+    (
+        246,
+        5,
+        'Modification',
+        'Succès',
+        'frais_inscription',
+        '2026-03-16 08:12:55'
+    ),
+    (
+        247,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:12:55'
+    ),
+    (
+        248,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:12:56'
+    ),
+    (
+        249,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:12:58'
+    ),
+    (
+        250,
+        5,
+        'Modification',
+        'Succès',
+        'frais_inscription',
+        '2026-03-16 08:13:03'
+    ),
+    (
+        251,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:03'
+    ),
+    (
+        252,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:03'
+    ),
+    (
+        253,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:05'
+    ),
+    (
+        254,
+        5,
+        'Modification',
+        'Succès',
+        'frais_inscription',
+        '2026-03-16 08:13:09'
+    ),
+    (
+        255,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:09'
+    ),
+    (
+        256,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:09'
+    ),
+    (
+        257,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:11'
+    ),
+    (
+        258,
+        5,
+        'Modification',
+        'Erreur',
+        'frais_inscription',
+        '2026-03-16 08:13:16'
+    ),
+    (
+        259,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:16'
+    ),
+    (
+        260,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:16'
+    ),
+    (
+        261,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:23'
+    ),
+    (
+        262,
+        5,
+        'Modification',
+        'Erreur',
+        'frais_inscription',
+        '2026-03-16 08:13:26'
+    ),
+    (
+        263,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:26'
+    ),
+    (
+        264,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:26'
+    ),
+    (
+        265,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:31'
+    ),
+    (
+        266,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:33'
+    ),
+    (
+        267,
+        5,
+        'Modification',
+        'Succès',
+        'frais_inscription',
+        '2026-03-16 08:13:47'
+    ),
+    (
+        268,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:47'
+    ),
+    (
+        269,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:47'
+    ),
+    (
+        270,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:52'
+    ),
+    (
+        271,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:56'
+    ),
+    (
+        272,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:13:58'
+    ),
+    (
+        273,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:14:00'
+    ),
+    (
+        274,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 08:14:01'
+    ),
+    (
+        275,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:14:02'
+    ),
+    (
+        276,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:14:06'
+    ),
+    (
+        277,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:15:05'
+    ),
+    (
+        278,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:17:44'
+    ),
+    (
+        279,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:17:59'
+    ),
+    (
+        280,
+        5,
+        'GET | gestion_utilisateurs',
+        'Succès',
+        'xhr | page=gestion_utilisateurs',
+        '2026-03-16 08:18:02'
+    ),
+    (
+        281,
+        5,
+        'GET | sauvegarde_restauration',
+        'Succès',
+        'xhr | page=sauvegarde_restauration',
+        '2026-03-16 08:18:04'
+    ),
+    (
+        282,
+        5,
+        'GET | piste_audit',
+        'Succès',
+        'xhr | page=piste_audit',
+        '2026-03-16 08:18:06'
+    ),
+    (
+        283,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:18:14'
+    ),
+    (
+        284,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-16 08:18:15'
+    ),
+    (
+        285,
+        5,
+        'GET | dashboard',
+        'Succès',
+        'xhr | page=dashboard',
+        '2026-03-16 08:18:16'
+    ),
+    (
+        286,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-16 08:26:14'
+    ),
+    (
+        287,
+        5,
+        'GET | dashboard',
+        'Succès',
+        'ui | page=dashboard',
+        '2026-03-16 08:26:15'
+    ),
+    (
+        288,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:26:18'
+    ),
+    (
+        289,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:26:20'
+    ),
+    (
+        290,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:26:24'
+    ),
+    (
+        291,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:26:26'
+    ),
+    (
+        292,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:26:28'
+    ),
+    (
+        293,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 08:26:31'
+    ),
+    (
+        294,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 08:26:37'
+    ),
+    (
+        295,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 08:26:42'
+    ),
+    (
+        296,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:26:44'
+    ),
+    (
+        297,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 08:26:47'
+    ),
+    (
+        298,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 08:26:57'
+    ),
+    (
+        299,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 08:27:01'
+    ),
+    (
+        300,
+        5,
+        'GET | programmation_soutenance',
+        'Succès',
+        'xhr | page=programmation_soutenance',
+        '2026-03-16 08:28:37'
+    ),
+    (
+        301,
+        5,
+        'Connexion',
+        'Succès',
+        'utilisateur',
+        '2026-03-16 13:07:41'
+    ),
+    (
+        302,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'ui | page=dashboard_scolarite',
+        '2026-03-16 13:07:44'
+    ),
+    (
+        303,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 13:07:56'
+    ),
+    (
+        304,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 13:07:58'
+    ),
+    (
+        305,
+        5,
+        'GET | gestion_notes_evaluations',
+        'Succès',
+        'xhr | page=gestion_notes_evaluations',
+        '2026-03-16 13:08:13'
+    ),
+    (
+        306,
+        5,
+        'GET | gestion_dossiers_candidatures',
+        'Succès',
+        'xhr | page=gestion_dossiers_candidatures',
+        '2026-03-16 13:08:17'
+    ),
+    (
+        307,
+        5,
+        'GET | mise_en_ligne_memoire',
+        'Succès',
+        'xhr | page=mise_en_ligne_memoire',
+        '2026-03-16 13:08:19'
+    ),
+    (
+        308,
+        5,
+        'GET | candidature_soutenance',
+        'Succès',
+        'xhr | page=candidature_soutenance',
+        '2026-03-16 13:08:23'
+    ),
+    (
+        309,
+        5,
+        'GET | gestion_rapports',
+        'Succès',
+        'xhr | page=gestion_rapports',
+        '2026-03-16 13:08:25'
+    ),
+    (
+        310,
+        5,
+        'GET | programmation_soutenance',
+        'Succès',
+        'xhr | page=programmation_soutenance',
+        '2026-03-16 13:08:40'
+    ),
+    (
+        311,
+        5,
+        'GET | programmation_soutenance',
+        'Succès',
+        'ui | page=programmation_soutenance',
+        '2026-03-16 13:08:43'
+    ),
+    (
+        312,
+        5,
+        'GET | evaluation_soutenance',
+        'Succès',
+        'xhr | page=evaluation_soutenance',
+        '2026-03-16 13:09:30'
+    ),
+    (
+        313,
+        5,
+        'GET | edition_bulletin',
+        'Succès',
+        'xhr | page=edition_bulletin',
+        '2026-03-16 13:09:45'
+    ),
+    (
+        314,
+        5,
+        'GET | edition_bulletin',
+        'Succès',
+        'ui | page=edition_bulletin',
+        '2026-03-16 13:09:49'
+    ),
+    (
+        315,
+        5,
+        'GET | tableau_bord_enseignant',
+        'Succès',
+        'xhr | page=tableau_bord_enseignant',
+        '2026-03-16 13:09:52'
+    ),
+    (
+        316,
+        5,
+        'GET | tableau_bord_enseignant',
+        'Succès',
+        'ui | page=tableau_bord_enseignant',
+        '2026-03-16 13:09:59'
+    ),
+    (
+        317,
+        5,
+        'GET | tableau_bord_enseignant',
+        'Succès',
+        'ui | page=tableau_bord_enseignant',
+        '2026-03-16 13:10:03'
+    ),
+    (
+        318,
+        5,
+        'GET | tableau_bord_enseignant',
+        'Succès',
+        'ui | page=tableau_bord_enseignant',
+        '2026-03-16 13:10:06'
+    ),
+    (
+        319,
+        5,
+        'GET | tableau_bord_enseignant',
+        'Succès',
+        'ui | page=tableau_bord_enseignant',
+        '2026-03-16 13:10:14'
+    ),
+    (
+        320,
+        5,
+        'GET | programmation_ens',
+        'Succès',
+        'xhr | page=programmation_ens',
+        '2026-03-16 13:10:16'
+    ),
+    (
+        321,
+        5,
+        'GET | repertoire_enseignant',
+        'Succès',
+        'xhr | page=repertoire_enseignant',
+        '2026-03-16 13:10:21'
+    ),
+    (
+        322,
+        5,
+        'GET | programmation_ens',
+        'Succès',
+        'xhr | page=programmation_ens',
+        '2026-03-16 13:10:22'
+    ),
+    (
+        323,
+        5,
+        'GET | repertoire_enseignant',
+        'Succès',
+        'xhr | page=repertoire_enseignant',
+        '2026-03-16 13:10:29'
+    ),
+    (
+        324,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-16 13:10:34'
+    ),
+    (
+        325,
+        5,
+        'GET | dashboard',
+        'Succès',
+        'xhr | page=dashboard',
+        '2026-03-16 13:10:34'
+    ),
+    (
+        326,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 13:10:38'
+    ),
+    (
+        327,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 13:10:48'
+    ),
+    (
+        328,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_generaux',
+        '2026-03-16 13:10:53'
+    ),
+    (
+        329,
+        5,
+        'GET | parametres_generaux',
+        'Succès',
+        'xhr | page=parametres_generaux',
+        '2026-03-16 13:11:01'
+    ),
+    (
+        330,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 13:11:04'
+    ),
+    (
+        331,
+        5,
+        'Modification',
+        'Succès',
+        'parametres_specifiques',
+        '2026-03-16 13:11:09'
+    ),
+    (
+        332,
+        5,
+        'GET | parametres_specifiques',
+        'Succès',
+        'xhr | page=parametres_specifiques',
+        '2026-03-16 13:11:11'
+    ),
+    (
+        333,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 13:29:47'
+    ),
+    (
+        334,
+        5,
+        'GET | gestion_utilisateurs',
+        'Succès',
+        'xhr | page=gestion_utilisateurs',
+        '2026-03-16 13:29:56'
+    ),
+    (
+        335,
+        5,
+        'GET | gestion_utilisateurs',
+        'Succès',
+        'ui | page=gestion_utilisateurs',
+        '2026-03-16 13:30:00'
+    ),
+    (
+        336,
+        5,
+        'GET | gestion_utilisateurs',
+        'Succès',
+        'ui | page=gestion_utilisateurs',
+        '2026-03-16 13:30:02'
+    ),
+    (
+        337,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 13:32:47'
+    ),
+    (
+        338,
+        5,
+        'GET | mise_en_ligne_memoire',
+        'Succès',
+        'xhr | page=mise_en_ligne_memoire',
+        '2026-03-16 13:32:53'
+    ),
+    (
+        339,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 13:32:55'
+    ),
+    (
+        340,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 13:33:04'
+    ),
+    (
+        341,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 13:33:11'
+    ),
+    (
+        342,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 13:33:37'
+    ),
+    (
+        343,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 14:23:23'
+    ),
+    (
+        344,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'ui | page=gestion_scolarite',
+        '2026-03-16 14:23:33'
+    ),
+    (
+        345,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 14:23:50'
+    ),
+    (
+        346,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'ui | page=gestion_scolarite',
+        '2026-03-16 14:24:35'
+    ),
+    (
+        347,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 14:24:39'
+    ),
+    (
+        348,
+        5,
+        'GET | dashboard_commission',
+        'Succès',
+        'xhr | page=dashboard_commission',
+        '2026-03-16 14:45:00'
+    ),
+    (
+        349,
+        5,
+        'GET | reception_rapport_com',
+        'Succès',
+        'xhr | page=reception_rapport_com',
+        '2026-03-16 14:45:04'
+    ),
+    (
+        350,
+        5,
+        'GET | dashboard_commission',
+        'Succès',
+        'xhr | page=dashboard_commission',
+        '2026-03-16 14:45:07'
+    ),
+    (
+        351,
+        5,
+        'GET | processus_validation',
+        'Succès',
+        'xhr | page=processus_validation',
+        '2026-03-16 14:45:08'
+    ),
+    (
+        352,
+        5,
+        'GET | dashboard_commission',
+        'Succès',
+        'xhr | page=dashboard_commission',
+        '2026-03-16 14:45:10'
+    ),
+    (
+        353,
+        5,
+        'GET | processus_validation',
+        'Succès',
+        'xhr | page=processus_validation',
+        '2026-03-16 14:45:12'
+    ),
+    (
+        354,
+        5,
+        'GET | dashboard_commission',
+        'Succès',
+        'xhr | page=dashboard_commission',
+        '2026-03-16 14:45:13'
+    ),
+    (
+        355,
+        5,
+        'GET | redaction_compte_rendu',
+        'Succès',
+        'xhr | page=redaction_compte_rendu',
+        '2026-03-16 14:45:15'
+    ),
+    (
+        356,
+        5,
+        'GET | dashboard_commission',
+        'Succès',
+        'xhr | page=dashboard_commission',
+        '2026-03-16 14:45:17'
+    ),
+    (
+        357,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:02:26'
+    ),
+    (
+        358,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:02:27'
+    ),
+    (
+        359,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:02:28'
+    ),
+    (
+        360,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:02:29'
+    ),
+    (
+        361,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 15:03:06'
+    ),
+    (
+        362,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:03:10'
+    ),
+    (
+        363,
+        5,
+        'GET | gestion_dossiers_candidatures',
+        'Succès',
+        'xhr | page=gestion_dossiers_candidatures',
+        '2026-03-16 15:03:32'
+    ),
+    (
+        364,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:03:37'
+    ),
+    (
+        365,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 15:04:25'
+    ),
+    (
+        366,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:04:30'
+    ),
+    (
+        367,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'ui | page=dashboard_scolarite',
+        '2026-03-16 15:05:39'
+    ),
+    (
+        368,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'ui | page=dashboard_scolarite',
+        '2026-03-16 15:05:54'
+    ),
+    (
+        369,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'ui | page=dashboard_scolarite',
+        '2026-03-16 15:09:10'
+    ),
+    (
+        370,
+        5,
+        'GET | dashboard_commission',
+        'Succès',
+        'xhr | page=dashboard_commission',
+        '2026-03-16 15:10:47'
+    ),
+    (
+        371,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-16 15:11:07'
+    ),
+    (
+        372,
+        5,
+        'GET | dashboard',
+        'Succès',
+        'xhr | page=dashboard',
+        '2026-03-16 15:11:08'
+    ),
+    (
+        373,
+        5,
+        'GET | dashboard_commission',
+        'Succès',
+        'xhr | page=dashboard_commission',
+        '2026-03-16 15:11:44'
+    ),
+    (
+        374,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:14:48'
+    ),
+    (
+        375,
+        5,
+        'GET | dashboard_commission',
+        'Succès',
+        'xhr | page=dashboard_commission',
+        '2026-03-16 15:16:06'
+    ),
+    (
+        376,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:21:35'
+    ),
+    (
+        377,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:37:03'
+    ),
+    (
+        378,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'ui | page=dashboard_scolarite',
+        '2026-03-16 15:37:07'
+    ),
+    (
+        379,
+        5,
+        'GET | gestion_dossiers_candidatures',
+        'Succès',
+        'xhr | page=gestion_dossiers_candidatures',
+        '2026-03-16 15:37:13'
+    ),
+    (
+        380,
+        5,
+        'GET | gestion_dossiers_candidatures',
+        'Succès',
+        'ui | page=gestion_dossiers_candidatures',
+        '2026-03-16 15:37:22'
+    ),
+    (
+        381,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:37:26'
+    ),
+    (
+        382,
+        5,
+        'GET | gestion_dossiers_candidatures',
+        'Succès',
+        'xhr | page=gestion_dossiers_candidatures',
+        '2026-03-16 15:37:29'
+    ),
+    (
+        383,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:41:46'
+    ),
+    (
+        384,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 15:41:50'
+    ),
+    (
+        385,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 15:42:00'
+    ),
+    (
+        386,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 15:42:01'
+    ),
+    (
+        387,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 15:42:02'
+    ),
+    (
+        388,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 15:42:02'
+    ),
+    (
+        389,
+        5,
+        'Création',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 15:42:29'
+    ),
+    (
+        390,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 15:42:29'
+    ),
+    (
+        391,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:42:34'
+    ),
+    (
+        392,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 15:42:41'
+    ),
+    (
+        393,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:42:54'
+    ),
+    (
+        394,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 15:42:57'
+    ),
+    (
+        395,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:43:38'
+    ),
+    (
+        396,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 15:43:53'
+    ),
+    (
+        397,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:43:58'
+    ),
+    (
+        398,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 15:44:02'
+    ),
+    (
+        399,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:44:05'
+    ),
+    (
+        400,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'ui | page=dashboard_scolarite',
+        '2026-03-16 15:47:25'
+    ),
+    (
+        401,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'ui | page=dashboard_scolarite',
+        '2026-03-16 15:52:25'
+    ),
+    (
+        402,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'ui | page=dashboard_scolarite',
+        '2026-03-16 15:55:15'
+    ),
+    (
+        403,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 15:55:22'
+    ),
+    (
+        404,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 15:55:27'
+    ),
+    (
+        405,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 15:55:45'
+    ),
+    (
+        406,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'ui | page=dashboard_scolarite',
+        '2026-03-16 15:57:48'
+    ),
+    (
+        407,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'ui | page=dashboard_scolarite',
+        '2026-03-16 15:58:18'
+    ),
+    (
+        408,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 16:02:50'
+    ),
+    (
+        409,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:09:56'
+    ),
+    (
+        410,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 16:09:58'
+    ),
+    (
+        411,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:10:03'
+    ),
+    (
+        412,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:10:11'
+    ),
+    (
+        413,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 16:11:57'
+    ),
+    (
+        414,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'ui | page=gestion_scolarite',
+        '2026-03-16 16:15:43'
+    ),
+    (
+        415,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 16:19:48'
+    ),
+    (
+        416,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 16:19:53'
+    ),
+    (
+        417,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:22:39'
+    ),
+    (
+        418,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:22:44'
+    ),
+    (
+        419,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:23:38'
+    ),
+    (
+        420,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:23:44'
+    ),
+    (
+        421,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:23:49'
+    ),
+    (
+        422,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:23:49'
+    ),
+    (
+        423,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:23:50'
+    ),
+    (
+        424,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:23:51'
+    ),
+    (
+        425,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:23:52'
+    ),
+    (
+        426,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:23:53'
+    ),
+    (
+        427,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:24:16'
+    ),
+    (
+        428,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 16:24:20'
+    ),
+    (
+        429,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:24:22'
+    ),
+    (
+        430,
+        5,
+        'GET | gestion_scolarite',
+        'Succès',
+        'xhr | page=gestion_scolarite',
+        '2026-03-16 16:26:45'
+    ),
+    (
+        431,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 16:26:49'
+    ),
+    (
+        432,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'ui | page=dashboard_scolarite',
+        '2026-03-16 16:27:08'
+    ),
+    (
+        433,
+        5,
+        'GET | tableau_bord_enseignant',
+        'Succès',
+        'xhr | page=tableau_bord_enseignant',
+        '2026-03-16 16:28:37'
+    ),
+    (
+        434,
+        5,
+        'GET | programmation_ens',
+        'Succès',
+        'xhr | page=programmation_ens',
+        '2026-03-16 16:28:46'
+    ),
+    (
+        435,
+        5,
+        'GET | dashboard_commission',
+        'Succès',
+        'xhr | page=dashboard_commission',
+        '2026-03-16 16:30:09'
+    ),
+    (
+        436,
+        5,
+        'Accès',
+        'Succès',
+        'tableau_de_bord',
+        '2026-03-16 16:30:32'
+    ),
+    (
+        437,
+        5,
+        'GET | dashboard',
+        'Succès',
+        'xhr | page=dashboard',
+        '2026-03-16 16:30:32'
+    ),
+    (
+        438,
+        5,
+        'GET | tableau_bord_enseignant',
+        'Succès',
+        'xhr | page=tableau_bord_enseignant',
+        '2026-03-16 16:31:06'
+    ),
+    (
+        439,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'xhr | page=dashboard_scolarite',
+        '2026-03-16 16:37:09'
+    ),
+    (
+        440,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'ui | page=dashboard_scolarite',
+        '2026-03-16 16:41:33'
+    ),
+    (
+        441,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'ui | page=dashboard_scolarite',
+        '2026-03-16 16:41:40'
+    ),
+    (
+        442,
+        5,
+        'GET | dashboard_scolarite',
+        'Succès',
+        'ui | page=dashboard_scolarite',
+        '2026-03-16 16:41:47'
+    ),
+    (
+        443,
+        5,
+        'Modification',
+        'Succès',
+        'inscriptions',
+        '2026-03-16 16:42:15'
+    ),
+    (
+        444,
+        5,
+        'GET | programmation_soutenance',
+        'Succès',
+        'xhr | page=programmation_soutenance',
+        '2026-03-16 16:43:14'
+    ),
+    (
+        445,
+        5,
+        'GET | evaluation_soutenance',
+        'Succès',
+        'xhr | page=evaluation_soutenance',
+        '2026-03-16 16:43:27'
+    ),
+    (
+        446,
+        5,
+        'GET | edition_bulletin',
+        'Succès',
+        'xhr | page=edition_bulletin',
+        '2026-03-16 16:43:30'
+    ),
+    (
+        447,
+        5,
+        'GET | programmation_soutenance',
+        'Succès',
+        'xhr | page=programmation_soutenance',
+        '2026-03-16 16:43:31'
+    ),
+    (
+        448,
+        5,
+        'GET | dashboard_commission',
+        'Succès',
+        'xhr | page=dashboard_commission',
+        '2026-03-16 16:43:43'
+    ),
+    (
+        449,
+        5,
+        'GET | dashboard_enseignant',
+        'Succès',
+        'xhr | page=dashboard_enseignant',
+        '2026-03-16 16:43:45'
+    ),
+    (
+        450,
+        5,
+        'GET | reception_rapport_com',
+        'Succès',
+        'xhr | page=reception_rapport_com',
+        '2026-03-16 16:43:50'
+    ),
+    (
+        451,
+        5,
+        'GET | evaluation_dossiers',
+        'Succès',
+        'xhr | page=evaluation_dossiers',
+        '2026-03-16 16:43:51'
+    ),
+    (
+        452,
+        5,
+        'GET | processus_validation',
+        'Succès',
+        'xhr | page=processus_validation',
+        '2026-03-16 16:43:53'
+    ),
+    (
+        453,
+        5,
+        'GET | programmation_soutenance',
+        'Succès',
+        'xhr | page=programmation_soutenance',
+        '2026-03-16 16:43:57'
+    ),
+    (
+        454,
+        5,
+        'GET | profil',
+        'Succès',
+        'xhr | page=profil',
+        '2026-03-16 16:53:47'
+    ),
+    (
+        455,
+        5,
+        'GET | profil',
+        'Succès',
+        'ui | page=profil',
+        '2026-03-16 16:54:59'
+    ),
+    (
+        456,
+        5,
+        'GET | programmation_soutenance',
+        'Succès',
+        'xhr | page=programmation_soutenance',
+        '2026-03-16 16:55:08'
+    ),
+    (
+        457,
+        5,
+        'GET | programmation_soutenance',
+        'Succès',
+        'ui | page=programmation_soutenance',
+        '2026-03-16 16:57:35'
+    ),
+    (
+        458,
+        5,
+        'GET | programmation_soutenance',
+        'Succès',
+        'ui | page=programmation_soutenance',
+        '2026-03-16 16:58:35'
+    ),
+    (
+        459,
+        5,
+        'GET | evaluation_soutenance',
+        'Succès',
+        'xhr | page=evaluation_soutenance',
+        '2026-03-16 16:59:01'
+    ),
+    (
+        460,
+        5,
+        'GET | programmation_soutenance',
+        'Succès',
+        'xhr | page=programmation_soutenance',
+        '2026-03-16 16:59:12'
+    ),
+    (
+        461,
+        5,
+        'GET | programmation_soutenance',
+        'Succès',
+        'ui | page=programmation_soutenance',
+        '2026-03-16 16:59:18'
+    ),
+    (
+        462,
+        5,
+        'GET | evaluation_soutenance',
+        'Succès',
+        'xhr | page=evaluation_soutenance',
+        '2026-03-16 16:59:19'
+    ),
+    (
+        463,
+        5,
+        'GET | edition_bulletin',
+        'Succès',
+        'xhr | page=edition_bulletin',
+        '2026-03-16 16:59:21'
     );
 
 -- --------------------------------------------------------
@@ -17744,11 +25773,11 @@ VALUES (
         'CI0116311179',
         'ETUDE ET MISE EN ŒUVRE DE L\'AUTOMATISATION DES TESTS POUR L\'INTEGRATION DES MESSAGES SWIFT: CAS DE LA SGABS',
         NULL,
-        2,
         1,
-        NULL,
-        NULL,
-        22221
+        2,
+        '2025-05-01',
+        '08:00:00',
+        22120
     ),
     (
         '22423S1290524-01',
@@ -17757,8 +25786,8 @@ VALUES (
         NULL,
         1,
         1,
-        '0000-00-00',
-        '00:00:08',
+        '2025-03-01',
+        '08:00:08',
         22423
     ),
     (
@@ -17768,8 +25797,8 @@ VALUES (
         NULL,
         1,
         1,
-        '0000-00-00',
-        '00:00:10',
+        '2025-10-22',
+        '08:00:10',
         22423
     ),
     (
@@ -17779,8 +25808,8 @@ VALUES (
         1,
         2,
         1,
-        '0000-00-00',
-        '00:00:08',
+        '2025-10-22',
+        '10:00:08',
         22423
     ),
     (
@@ -17789,9 +25818,9 @@ VALUES (
         'CONCEPTION ET REALISATION D\'UN LOGICIEL DE GESTION DE CENTRE MEDICAL : CAS DU CENTRE MEDICAL EDLONA',
         1,
         2,
-        1,
-        '0000-00-00',
-        '00:00:14',
+        3,
+        '2025-03-01',
+        '09:00:00',
         22423
     ),
     (
@@ -17800,9 +25829,9 @@ VALUES (
         'Conception et réalisation d\'une application ppour lapromotion de l\'immobilier ivoirien : Cas du portail WEB TOUBABI.COM',
         NULL,
         1,
-        NULL,
-        NULL,
-        NULL,
+        1,
+        '2026-05-01',
+        '10:00:00',
         22524
     );
 
@@ -17942,14 +25971,22 @@ CREATE TABLE IF NOT EXISTS `route_actions` (
         'modifier',
         'supprimer'
     ) NOT NULL,
+    `id_fonctionnalite` int NOT NULL,
+    `is_public` tinyint(1) NOT NULL DEFAULT '0',
     `description` text,
+    `notes_admin` text,
     `actif` tinyint(1) NOT NULL DEFAULT '1',
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id_route_action`),
+    UNIQUE KEY `uq_route_actions_pattern_method` (
+        `route_pattern`,
+        `http_method`
+    ),
     KEY `idx_route_pattern` (`route_pattern`),
-    KEY `idx_actif` (`actif`)
-) ENGINE = InnoDB AUTO_INCREMENT = 6 DEFAULT CHARSET = utf8mb3;
+    KEY `idx_actif` (`actif`),
+    KEY `idx_route_actions_fonctionnalite` (`id_fonctionnalite`)
+) ENGINE = InnoDB AUTO_INCREMENT = 276 DEFAULT CHARSET = utf8mb3;
 
 --
 -- Déchargement des données de la table `route_actions`
@@ -17961,7 +25998,10 @@ INSERT INTO
         `route_pattern`,
         `http_method`,
         `action_crud`,
+        `id_fonctionnalite`,
+        `is_public`,
         `description`,
+        `notes_admin`,
         `actif`,
         `created_at`,
         `updated_at`
@@ -17971,49 +26011,2835 @@ VALUES (
         'page=parametres_generaux&action=gestion_attribution',
         'GET',
         'voir',
-        'Écran gestion des permissions',
+        38,
+        0,
+        'RBAC Attribution permissions [GET page=parametres_generaux&action=gestion_attribution]',
+        'seed:permission_registry:gestion_attribution',
         1,
         '2026-01-24 17:58:27',
-        NULL
+        '2026-03-12 13:34:27'
     ),
     (
         2,
         'page=parametres_generaux&action=gestion_attribution',
         'POST',
         'modifier',
-        'Enregistrer permissions',
+        38,
+        0,
+        'RBAC Attribution permissions [POST page=parametres_generaux&action=gestion_attribution]',
+        'seed:permission_registry:gestion_attribution',
         1,
         '2026-01-24 17:58:27',
-        NULL
+        '2026-03-12 13:34:27'
     ),
     (
         3,
         'page=gestion_rapports&action=creer_rapport',
         'GET',
         'creer',
-        'Formulaire création rapport',
+        91,
+        0,
+        'RBAC Gestion des rapports [GET page=gestion_rapports&action=creer_rapport]',
+        'seed:permission_registry:gestion_rapports',
         1,
         '2026-01-24 17:58:27',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        6,
+        'page=dashboard',
+        'GET',
+        'voir',
+        74,
+        0,
+        'RBAC Tableau de bord administration [GET page=dashboard]',
+        'seed:permission_registry:dashboard',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        7,
+        'page=dashboard_admin',
+        'GET',
+        'voir',
+        74,
+        0,
+        'RBAC Tableau de bord administration [GET page=dashboard_admin]',
+        'seed:permission_registry:dashboard',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        8,
+        'page=dashboard_secretaire',
+        'GET',
+        'voir',
+        74,
+        0,
+        'RBAC Tableau de bord secrétaire [GET page=dashboard_secretaire]',
+        'seed:permission_registry:dashboard_secretaire',
+        1,
+        '2026-03-12 12:44:51',
         NULL
     ),
     (
-        4,
-        'page=gestion_rapports&action=creer_rapport',
-        'POST',
-        'creer',
-        'Création rapport',
+        9,
+        'page=dashboard_scolarite',
+        'GET',
+        'voir',
+        93,
+        0,
+        'RBAC Tableau de bord scolarité [GET page=dashboard_scolarite]',
+        'seed:permission_registry:dashboard_scolarite',
         1,
-        '2026-01-24 17:58:27',
+        '2026-03-12 12:44:51',
         NULL
     ),
     (
-        5,
-        'page=sauvegarde_restauration',
+        10,
+        'page=dashboard_commission',
+        'GET',
+        'voir',
+        104,
+        0,
+        'RBAC Tableau de bord commission [GET page=dashboard_commission]',
+        'seed:permission_registry:dashboard_commission',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        11,
+        'page=dashboard_enseignant',
+        'GET',
+        'voir',
+        2,
+        0,
+        'RBAC COM Espaces enseignant [GET page=dashboard_enseignant]',
+        'seed:permission_registry:dashboard_enseignant',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        12,
+        'page=tableau_bord_enseignant',
+        'GET',
+        'voir',
+        116,
+        0,
+        'RBAC Tableau de bord enseignant [GET page=tableau_bord_enseignant]',
+        'seed:permission_registry:tableau_bord_enseignant',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        13,
+        'page=profil',
+        'GET',
+        'voir',
+        79,
+        0,
+        'RBAC Profil utilisateur [GET page=profil]',
+        'seed:permission_registry:profil',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        14,
+        'page=profil&tab=password',
+        'GET',
+        'voir',
+        79,
+        0,
+        'RBAC Profil utilisateur [GET page=profil&tab=password]',
+        'seed:permission_registry:profil',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        15,
+        'page=profil&tab=password',
         'POST',
         'modifier',
-        'Backup/restore (actions)',
+        79,
+        0,
+        'RBAC Profil utilisateur [POST page=profil&tab=password]',
+        'seed:permission_registry:profil',
         1,
-        '2026-01-24 17:58:27',
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        16,
+        'page=profil&action=update_password&tab=password',
+        'POST',
+        'modifier',
+        79,
+        0,
+        'RBAC Profil utilisateur [POST page=profil&action=update_password&tab=password]',
+        'seed:permission_registry:profil',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        17,
+        'page=gestion_utilisateurs',
+        'GET',
+        'voir',
+        50,
+        0,
+        'RBAC Gestion des utilisateurs [GET page=gestion_utilisateurs]',
+        'seed:permission_registry:gestion_utilisateurs',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        18,
+        'page=gestion_utilisateurs&action=add',
+        'GET',
+        'creer',
+        50,
+        0,
+        'RBAC Gestion des utilisateurs [GET page=gestion_utilisateurs&action=add]',
+        'seed:permission_registry:gestion_utilisateurs',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        19,
+        'page=gestion_utilisateurs&action=edit',
+        'GET',
+        'modifier',
+        50,
+        0,
+        'RBAC Gestion des utilisateurs [GET page=gestion_utilisateurs&action=edit]',
+        'seed:permission_registry:gestion_utilisateurs',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        20,
+        'page=gestion_utilisateurs&action=btn_add_utilisateur',
+        'POST',
+        'creer',
+        50,
+        0,
+        'RBAC Gestion des utilisateurs [POST page=gestion_utilisateurs&action=btn_add_utilisateur]',
+        'seed:permission_registry:gestion_utilisateurs',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        21,
+        'page=gestion_utilisateurs&action=btn_add_multiple',
+        'POST',
+        'creer',
+        50,
+        0,
+        'RBAC Gestion des utilisateurs [POST page=gestion_utilisateurs&action=btn_add_multiple]',
+        'seed:permission_registry:gestion_utilisateurs',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        22,
+        'page=gestion_utilisateurs&action=btn_modifier_utilisateur',
+        'POST',
+        'modifier',
+        50,
+        0,
+        'RBAC Gestion des utilisateurs [POST page=gestion_utilisateurs&action=btn_modifier_utilisateur]',
+        'seed:permission_registry:gestion_utilisateurs',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        23,
+        'page=gestion_utilisateurs&action=submit_enable_multiple',
+        'POST',
+        'modifier',
+        50,
+        0,
+        'RBAC Gestion des utilisateurs [POST page=gestion_utilisateurs&action=submit_enable_multiple]',
+        'seed:permission_registry:gestion_utilisateurs',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        24,
+        'page=gestion_utilisateurs&action=submit_disable_multiple',
+        'POST',
+        'modifier',
+        50,
+        0,
+        'RBAC Gestion des utilisateurs [POST page=gestion_utilisateurs&action=submit_disable_multiple]',
+        'seed:permission_registry:gestion_utilisateurs',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        25,
+        'page=gestion_utilisateurs&action=submit_send_access',
+        'POST',
+        'modifier',
+        50,
+        0,
+        'RBAC Gestion des utilisateurs [POST page=gestion_utilisateurs&action=submit_send_access]',
+        'seed:permission_registry:gestion_utilisateurs',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        26,
+        'page=piste_audit',
+        'GET',
+        'voir',
+        51,
+        0,
+        'RBAC Journal audit [GET page=piste_audit]',
+        'seed:permission_registry:piste_audit',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        27,
+        'page=piste_audit&action=export_csv',
+        'GET',
+        'voir',
+        51,
+        0,
+        'RBAC Journal audit [GET page=piste_audit&action=export_csv]',
+        'seed:permission_registry:piste_audit',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        28,
+        'page=piste_audit&action=nettoyer',
+        'POST',
+        'supprimer',
+        51,
+        0,
+        'RBAC Journal audit [POST page=piste_audit&action=nettoyer]',
+        'seed:permission_registry:piste_audit',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        29,
+        'page=sauvegarde_restauration',
+        'GET',
+        'voir',
+        52,
+        0,
+        'RBAC Sauvegardes et restauration [GET page=sauvegarde_restauration]',
+        'seed:permission_registry:sauvegarde_restauration',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        30,
+        'page=sauvegarde_restauration&action=create',
+        'POST',
+        'creer',
+        52,
+        0,
+        'RBAC Sauvegardes et restauration [POST page=sauvegarde_restauration&action=create]',
+        'seed:permission_registry:sauvegarde_restauration',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        31,
+        'page=sauvegarde_restauration&action=restore',
+        'POST',
+        'modifier',
+        52,
+        0,
+        'RBAC Sauvegardes et restauration [POST page=sauvegarde_restauration&action=restore]',
+        'seed:permission_registry:sauvegarde_restauration',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        32,
+        'page=sauvegarde_restauration&action=delete',
+        'POST',
+        'supprimer',
+        52,
+        0,
+        'RBAC Sauvegardes et restauration [POST page=sauvegarde_restauration&action=delete]',
+        'seed:permission_registry:sauvegarde_restauration',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        33,
+        'page=sauvegarde_restauration&action=download',
+        'GET',
+        'voir',
+        52,
+        0,
+        'RBAC Sauvegardes et restauration [GET page=sauvegarde_restauration&action=download]',
+        'seed:permission_registry:sauvegarde_restauration',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        34,
+        'page=admin_historique',
+        'GET',
+        'voir',
+        55,
+        0,
+        'RBAC Historique et archivage [GET page=admin_historique]',
+        'seed:permission_registry:admin_historique',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        35,
+        'page=hub_historique',
+        'GET',
+        'voir',
+        55,
+        0,
+        'RBAC Historique et archivage [GET page=hub_historique]',
+        'seed:permission_registry:admin_historique',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        36,
+        'page=admin_historique&action=view_student',
+        'GET',
+        'voir',
+        55,
+        0,
+        'RBAC Historique et archivage [GET page=admin_historique&action=view_student]',
+        'seed:permission_registry:admin_historique',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        37,
+        'page=admin_historique&action=update_student',
+        'POST',
+        'modifier',
+        55,
+        0,
+        'RBAC Historique et archivage [POST page=admin_historique&action=update_student]',
+        'seed:permission_registry:admin_historique',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        38,
+        'page=admin_historique&action=import',
+        'GET',
+        'creer',
+        55,
+        0,
+        'RBAC Historique et archivage [GET page=admin_historique&action=import]',
+        'seed:permission_registry:admin_historique',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        39,
+        'page=admin_historique&action=import',
+        'POST',
+        'creer',
+        55,
+        0,
+        'RBAC Historique et archivage [POST page=admin_historique&action=import]',
+        'seed:permission_registry:admin_historique',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        40,
+        'page=admin_historique&action=import_result',
+        'GET',
+        'voir',
+        55,
+        0,
+        'RBAC Historique et archivage [GET page=admin_historique&action=import_result]',
+        'seed:permission_registry:admin_historique',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        41,
+        'page=admin_historique&action=export',
+        'GET',
+        'voir',
+        55,
+        0,
+        'RBAC Historique et archivage [GET page=admin_historique&action=export]',
+        'seed:permission_registry:admin_historique',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        42,
+        'page=admin_historique&action=changeYear',
+        'GET',
+        'modifier',
+        55,
+        0,
+        'RBAC Historique et archivage [GET page=admin_historique&action=changeYear]',
+        'seed:permission_registry:admin_historique',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        57,
+        'page=archives_reclamations',
+        'GET',
+        'voir',
+        55,
+        0,
+        'RBAC Archives réclamations [GET page=archives_reclamations]',
+        'seed:permission_registry:archives_reclamations',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        58,
+        'page=repertoire_enseignant',
+        'GET',
+        'voir',
+        117,
+        0,
+        'RBAC Répertoire documents [GET page=repertoire_enseignant]',
+        'seed:permission_registry:repertoire_enseignant',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        59,
+        'page=programmation_ens',
+        'GET',
+        'voir',
+        124,
+        0,
+        'RBAC Programmation enseignant [GET page=programmation_ens]',
+        'seed:permission_registry:programmation_ens',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        60,
+        'page=gestion_rh',
+        'GET',
+        'voir',
+        124,
+        0,
+        'RBAC Gestion RH [GET page=gestion_rh]',
+        'seed:permission_registry:gestion_rh',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        61,
+        'page=gestion_rh&action=btn_add_enseignant',
+        'POST',
+        'creer',
+        124,
+        0,
+        'RBAC Gestion RH [POST page=gestion_rh&action=btn_add_enseignant]',
+        'seed:permission_registry:gestion_rh',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        62,
+        'page=gestion_rh&action=btn_modifier_enseignant',
+        'POST',
+        'modifier',
+        124,
+        0,
+        'RBAC Gestion RH [POST page=gestion_rh&action=btn_modifier_enseignant]',
+        'seed:permission_registry:gestion_rh',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        63,
+        'page=gestion_rh&action=btn_add_pers_admin',
+        'POST',
+        'creer',
+        124,
+        0,
+        'RBAC Gestion RH [POST page=gestion_rh&action=btn_add_pers_admin]',
+        'seed:permission_registry:gestion_rh',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        64,
+        'page=gestion_rh&action=btn_modifier_pers_admin',
+        'POST',
+        'modifier',
+        124,
+        0,
+        'RBAC Gestion RH [POST page=gestion_rh&action=btn_modifier_pers_admin]',
+        'seed:permission_registry:gestion_rh',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        65,
+        'page=gestion_rh&action=submit_delete_multiple',
+        'POST',
+        'supprimer',
+        124,
+        0,
+        'RBAC Gestion RH [POST page=gestion_rh&action=submit_delete_multiple]',
+        'seed:permission_registry:gestion_rh',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        66,
+        'page=maj_enseignant',
+        'GET',
+        'voir',
+        114,
+        0,
+        'RBAC Mise à jour enseignant [GET page=maj_enseignant]',
+        'seed:permission_registry:maj_enseignant',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        67,
+        'page=maj_enseignant&action=btn_add_enseignant',
+        'POST',
+        'creer',
+        114,
+        0,
+        'RBAC Mise à jour enseignant [POST page=maj_enseignant&action=btn_add_enseignant]',
+        'seed:permission_registry:maj_enseignant',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        68,
+        'page=maj_enseignant&action=btn_modifier_enseignant',
+        'POST',
+        'modifier',
+        114,
+        0,
+        'RBAC Mise à jour enseignant [POST page=maj_enseignant&action=btn_modifier_enseignant]',
+        'seed:permission_registry:maj_enseignant',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        69,
+        'page=maj_enseignant&action=submit_delete_multiple',
+        'POST',
+        'supprimer',
+        114,
+        0,
+        'RBAC Mise à jour enseignant [POST page=maj_enseignant&action=submit_delete_multiple]',
+        'seed:permission_registry:maj_enseignant',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        70,
+        'page=maj_personnel_admin',
+        'GET',
+        'voir',
+        115,
+        0,
+        'RBAC Mise à jour personnel administratif [GET page=maj_personnel_admin]',
+        'seed:permission_registry:maj_personnel_admin',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        71,
+        'page=maj_personnel_admin&action=btn_add_pers_admin',
+        'POST',
+        'creer',
+        115,
+        0,
+        'RBAC Mise à jour personnel administratif [POST page=maj_personnel_admin&action=btn_add_pers_admin]',
+        'seed:permission_registry:maj_personnel_admin',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        72,
+        'page=maj_personnel_admin&action=btn_modifier_pers_admin',
+        'POST',
+        'modifier',
+        115,
+        0,
+        'RBAC Mise à jour personnel administratif [POST page=maj_personnel_admin&action=btn_modifier_pers_admin]',
+        'seed:permission_registry:maj_personnel_admin',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        73,
+        'page=maj_personnel_admin&action=submit_delete_multiple',
+        'POST',
+        'supprimer',
+        115,
+        0,
+        'RBAC Mise à jour personnel administratif [POST page=maj_personnel_admin&action=submit_delete_multiple]',
+        'seed:permission_registry:maj_personnel_admin',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        74,
+        'page=gestion_etudiants',
+        'GET',
+        'voir',
+        94,
+        0,
+        'RBAC Gestion des étudiants [GET page=gestion_etudiants]',
+        'seed:permission_registry:gestion_etudiants',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        75,
+        'page=gestion_etudiants&action=ajouter_des_etudiants',
+        'GET',
+        'voir',
+        94,
+        0,
+        'RBAC Gestion des étudiants [GET page=gestion_etudiants&action=ajouter_des_etudiants]',
+        'seed:permission_registry:gestion_etudiants',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        76,
+        'page=gestion_etudiants&action=inscrire_des_etudiants',
+        'GET',
+        'voir',
+        94,
+        0,
+        'RBAC Gestion des étudiants [GET page=gestion_etudiants&action=inscrire_des_etudiants]',
+        'seed:permission_registry:gestion_etudiants',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        77,
+        'page=gestion_etudiants&modalAction=edit',
+        'GET',
+        'modifier',
+        94,
+        0,
+        'RBAC Gestion des étudiants [GET page=gestion_etudiants&modalAction=edit]',
+        'seed:permission_registry:gestion_etudiants',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        78,
+        'page=gestion_etudiants&modalAction=imprimer_recu',
+        'GET',
+        'voir',
+        94,
+        0,
+        'RBAC Gestion des étudiants [GET page=gestion_etudiants&modalAction=imprimer_recu]',
+        'seed:permission_registry:gestion_etudiants',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        79,
+        'page=gestion_etudiants&action=submit_add_etudiant',
+        'POST',
+        'creer',
+        94,
+        0,
+        'RBAC Gestion des étudiants [POST page=gestion_etudiants&action=submit_add_etudiant]',
+        'seed:permission_registry:gestion_etudiants',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        80,
+        'page=gestion_etudiants&action=submit_modifier_etudiant',
+        'POST',
+        'modifier',
+        94,
+        0,
+        'RBAC Gestion des étudiants [POST page=gestion_etudiants&action=submit_modifier_etudiant]',
+        'seed:permission_registry:gestion_etudiants',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        81,
+        'page=gestion_etudiants&action=selected_ids',
+        'POST',
+        'supprimer',
+        94,
+        0,
+        'RBAC Gestion des étudiants [POST page=gestion_etudiants&action=selected_ids]',
+        'seed:permission_registry:gestion_etudiants',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        82,
+        'page=gestion_scolarite',
+        'GET',
+        'voir',
+        96,
+        0,
+        'RBAC Inscriptions étudiants [GET page=gestion_scolarite]',
+        'seed:permission_registry:gestion_scolarite',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        83,
+        'page=gestion_scolarite&action=mettre_a_jour_versement',
+        'GET',
+        'modifier',
+        96,
+        0,
+        'RBAC Inscriptions étudiants [GET page=gestion_scolarite&action=mettre_a_jour_versement]',
+        'seed:permission_registry:gestion_scolarite',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        84,
+        'page=gestion_scolarite&action=enregistrer_versement',
+        'POST',
+        'modifier',
+        96,
+        0,
+        'RBAC Inscriptions étudiants [POST page=gestion_scolarite&action=enregistrer_versement]',
+        'seed:permission_registry:gestion_scolarite',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        85,
+        'page=gestion_scolarite&modalAction=imprimer_recu',
+        'GET',
+        'voir',
+        96,
+        0,
+        'RBAC Inscriptions étudiants [GET page=gestion_scolarite&modalAction=imprimer_recu]',
+        'seed:permission_registry:gestion_scolarite',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        86,
+        'page=gestion_scolarite&action=imprimer_recu',
+        'GET',
+        'voir',
+        96,
+        0,
+        'RBAC Inscriptions étudiants [GET page=gestion_scolarite&action=imprimer_recu]',
+        'seed:permission_registry:gestion_scolarite',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        87,
+        'page=gestion_notes_evaluations',
+        'GET',
+        'voir',
+        97,
+        0,
+        'RBAC Gestion des notes et évaluations [GET page=gestion_notes_evaluations]',
+        'seed:permission_registry:gestion_notes_evaluations',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        88,
+        'page=gestion_notes_evaluations&action=enregistrer_notes',
+        'GET',
+        'modifier',
+        97,
+        0,
+        'RBAC Gestion des notes et évaluations [GET page=gestion_notes_evaluations&action=enregistrer_notes]',
+        'seed:permission_registry:gestion_notes_evaluations',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        89,
+        'page=gestion_notes_evaluations&action=btn_enregistrer_notes',
+        'POST',
+        'modifier',
+        97,
+        0,
+        'RBAC Gestion des notes et évaluations [POST page=gestion_notes_evaluations&action=btn_enregistrer_notes]',
+        'seed:permission_registry:gestion_notes_evaluations',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        90,
+        'page=gestion_notes_evaluations&action=imprimer_releve',
+        'GET',
+        'voir',
+        97,
+        0,
+        'RBAC Gestion des notes et évaluations [GET page=gestion_notes_evaluations&action=imprimer_releve]',
+        'seed:permission_registry:gestion_notes_evaluations',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        91,
+        'page=gestion_notes',
+        'GET',
+        'voir',
+        97,
+        0,
+        'RBAC Gestion des notes et évaluations [GET page=gestion_notes]',
+        'seed:permission_registry:gestion_notes_evaluations',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        92,
+        'page=gestion_dossiers_candidatures',
+        'GET',
+        'voir',
+        99,
+        0,
+        'RBAC Gestion des dossiers de candidatures [GET page=gestion_dossiers_candidatures]',
+        'seed:permission_registry:gestion_dossiers_candidatures',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        93,
+        'page=gestion_dossiers_candidatures',
+        'POST',
+        'modifier',
+        99,
+        0,
+        'RBAC Gestion des dossiers de candidatures [POST page=gestion_dossiers_candidatures]',
+        'seed:permission_registry:gestion_dossiers_candidatures',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        94,
+        'page=gestion_reclamations_scolarite',
+        'GET',
+        'voir',
+        100,
+        0,
+        'RBAC Réclamations scolarité [GET page=gestion_reclamations_scolarite]',
+        'seed:permission_registry:gestion_reclamations_scolarite',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        95,
+        'page=gestion_reclamations_scolarite&action=repondre_reclamation',
+        'POST',
+        'modifier',
+        100,
+        0,
+        'RBAC Réclamations scolarité [POST page=gestion_reclamations_scolarite&action=repondre_reclamation]',
+        'seed:permission_registry:gestion_reclamations_scolarite',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        96,
+        'page=mise_en_ligne_memoire',
+        'GET',
+        'voir',
+        125,
+        0,
+        'RBAC Mise en ligne mémoire [GET page=mise_en_ligne_memoire]',
+        'seed:permission_registry:mise_en_ligne_memoire',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        97,
+        'page=mise_en_ligne_memoire',
+        'POST',
+        'creer',
+        125,
+        0,
+        'RBAC Mise en ligne mémoire [POST page=mise_en_ligne_memoire]',
+        'seed:permission_registry:mise_en_ligne_memoire',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        98,
+        'page=candidature_soutenance',
+        'GET',
+        'voir',
+        101,
+        0,
+        'RBAC Candidature soutenance [GET page=candidature_soutenance]',
+        'seed:permission_registry:candidature_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        99,
+        'page=candidature_soutenance',
+        'POST',
+        'creer',
+        101,
+        0,
+        'RBAC Candidature soutenance [POST page=candidature_soutenance]',
+        'seed:permission_registry:candidature_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        100,
+        'page=candidature_soutenance&action=compte_rendu_etudiant',
+        'GET',
+        'voir',
+        101,
+        0,
+        'RBAC Candidature soutenance [GET page=candidature_soutenance&action=compte_rendu_etudiant]',
+        'seed:permission_registry:candidature_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        101,
+        'page=gestion_reclamations',
+        'GET',
+        'voir',
+        102,
+        0,
+        'RBAC Gestion des réclamations étudiant [GET page=gestion_reclamations]',
+        'seed:permission_registry:gestion_reclamations',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        102,
+        'page=gestion_reclamations&action=soumettre_reclamation',
+        'GET',
+        'creer',
+        102,
+        0,
+        'RBAC Gestion des réclamations étudiant [GET page=gestion_reclamations&action=soumettre_reclamation]',
+        'seed:permission_registry:gestion_reclamations',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        103,
+        'page=gestion_reclamations&action=suivi_historique_reclamation',
+        'GET',
+        'voir',
+        102,
+        0,
+        'RBAC Gestion des réclamations étudiant [GET page=gestion_reclamations&action=suivi_historique_reclamation]',
+        'seed:permission_registry:gestion_reclamations',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        104,
+        'page=gestion_reclamations&action=traiter',
+        'POST',
+        'modifier',
+        102,
+        0,
+        'RBAC Gestion des réclamations étudiant [POST page=gestion_reclamations&action=traiter]',
+        'seed:permission_registry:gestion_reclamations',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        105,
+        'page=gestion_reclamations&action=exporter_reclamations',
+        'GET',
+        'voir',
+        102,
+        0,
+        'RBAC Gestion des réclamations étudiant [GET page=gestion_reclamations&action=exporter_reclamations]',
+        'seed:permission_registry:gestion_reclamations',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        106,
+        'page=gestion_reclamations&action=get_reclamation_details',
+        'GET',
+        'voir',
+        102,
+        0,
+        'RBAC Gestion des réclamations étudiant [GET page=gestion_reclamations&action=get_reclamation_details]',
+        'seed:permission_registry:gestion_reclamations',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        107,
+        'page=gestion_reclamations',
+        'POST',
+        'creer',
+        102,
+        0,
+        'RBAC Gestion des réclamations étudiant [POST page=gestion_reclamations]',
+        'seed:permission_registry:gestion_reclamations',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        108,
+        'page=consultation_cr_etud',
+        'GET',
+        'voir',
+        103,
+        0,
+        'RBAC Consultation compte rendu étudiant [GET page=consultation_cr_etud]',
+        'seed:permission_registry:consultation_cr_etud',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        109,
+        'page=gestion_rapports',
+        'GET',
+        'voir',
+        91,
+        0,
+        'RBAC Gestion des rapports [GET page=gestion_rapports]',
+        'seed:permission_registry:gestion_rapports',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        110,
+        'page=gestion_rapports&action=suivi_rapport',
+        'GET',
+        'voir',
+        91,
+        0,
+        'RBAC Gestion des rapports [GET page=gestion_rapports&action=suivi_rapport]',
+        'seed:permission_registry:gestion_rapports',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        111,
+        'page=gestion_rapports&action=commentaire_rapport',
+        'GET',
+        'voir',
+        91,
+        0,
+        'RBAC Gestion des rapports [GET page=gestion_rapports&action=commentaire_rapport]',
+        'seed:permission_registry:gestion_rapports',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        112,
+        'page=gestion_rapports&action=supprimer_rapport',
+        'GET',
+        'supprimer',
+        91,
+        0,
+        'RBAC Gestion des rapports [GET page=gestion_rapports&action=supprimer_rapport]',
+        'seed:permission_registry:gestion_rapports',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        113,
+        'page=gestion_rapports&action=get_rapport',
+        'GET',
+        'voir',
+        91,
+        0,
+        'RBAC Gestion des rapports [GET page=gestion_rapports&action=get_rapport]',
+        'seed:permission_registry:gestion_rapports',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        114,
+        'page=gestion_rapports&action=get_commentaires',
+        'GET',
+        'voir',
+        91,
+        0,
+        'RBAC Gestion des rapports [GET page=gestion_rapports&action=get_commentaires]',
+        'seed:permission_registry:gestion_rapports',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        115,
+        'page=gestion_rapports&action=exporter_rapports',
+        'GET',
+        'voir',
+        91,
+        0,
+        'RBAC Gestion des rapports [GET page=gestion_rapports&action=exporter_rapports]',
+        'seed:permission_registry:gestion_rapports',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        116,
+        'page=gestion_rapports&action=save_rapport',
+        'POST',
+        'modifier',
+        91,
+        0,
+        'RBAC Gestion des rapports [POST page=gestion_rapports&action=save_rapport]',
+        'seed:permission_registry:gestion_rapports',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        117,
+        'page=gestion_rapports&action=deposer_rapport',
+        'POST',
+        'modifier',
+        91,
+        0,
+        'RBAC Gestion des rapports [POST page=gestion_rapports&action=deposer_rapport]',
+        'seed:permission_registry:gestion_rapports',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        118,
+        'page=gestion_rapports&action=export_pdf',
+        'POST',
+        'voir',
+        91,
+        0,
+        'RBAC Gestion des rapports [POST page=gestion_rapports&action=export_pdf]',
+        'seed:permission_registry:gestion_rapports',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        119,
+        'page=gestion_rapports&action=supprimer_rapport',
+        'POST',
+        'supprimer',
+        91,
+        0,
+        'RBAC Gestion des rapports [POST page=gestion_rapports&action=supprimer_rapport]',
+        'seed:permission_registry:gestion_rapports',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        120,
+        'page=notes_resultats',
+        'GET',
+        'voir',
+        91,
+        0,
+        'RBAC Notes et résultats [GET page=notes_resultats]',
+        'seed:permission_registry:notes_resultats',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        121,
+        'page=notes_resultats&action=export_pdf',
+        'GET',
+        'voir',
+        91,
+        0,
+        'RBAC Notes et résultats [GET page=notes_resultats&action=export_pdf]',
+        'seed:permission_registry:notes_resultats',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        122,
+        'page=rapport_a_valider',
+        'GET',
+        'voir',
+        106,
+        0,
+        'RBAC Réception des rapports [GET page=rapport_a_valider]',
+        'seed:permission_registry:reception_rapport_com',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        123,
+        'page=reception_rapport_com',
+        'GET',
+        'voir',
+        106,
+        0,
+        'RBAC Réception des rapports [GET page=reception_rapport_com]',
+        'seed:permission_registry:reception_rapport_com',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:26'
+    ),
+    (
+        126,
+        'page=verification_candidatures',
+        'GET',
+        'voir',
+        106,
+        0,
+        'RBAC Vérification candidatures soutenance [GET page=verification_candidatures]',
+        'seed:permission_registry:verification_candidatures_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        127,
+        'page=verification_candidatures_soutenance',
+        'GET',
+        'voir',
+        106,
+        0,
+        'RBAC Vérification candidatures soutenance [GET page=verification_candidatures_soutenance]',
+        'seed:permission_registry:verification_candidatures_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        128,
+        'page=verification_candidatures_soutenance&action=detail',
+        'GET',
+        'voir',
+        106,
+        0,
+        'RBAC Vérification candidatures soutenance [GET page=verification_candidatures_soutenance&action=detail]',
+        'seed:permission_registry:verification_candidatures_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        129,
+        'page=verification_candidatures_soutenance&action=telecharger_pdf',
+        'GET',
+        'voir',
+        106,
+        0,
+        'RBAC Vérification candidatures soutenance [GET page=verification_candidatures_soutenance&action=telecharger_pdf]',
+        'seed:permission_registry:verification_candidatures_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        130,
+        'page=verification_candidatures_soutenance&action=valider',
+        'POST',
+        'modifier',
+        106,
+        0,
+        'RBAC Vérification candidatures soutenance [POST page=verification_candidatures_soutenance&action=valider]',
+        'seed:permission_registry:verification_candidatures_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        131,
+        'page=verification_candidatures_soutenance&action=rejeter',
+        'POST',
+        'modifier',
+        106,
+        0,
+        'RBAC Vérification candidatures soutenance [POST page=verification_candidatures_soutenance&action=rejeter]',
+        'seed:permission_registry:verification_candidatures_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        132,
+        'page=evaluation_dossiers',
+        'GET',
+        'voir',
+        107,
+        0,
+        'RBAC Évaluation des dossiers [GET page=evaluation_dossiers]',
+        'seed:permission_registry:evaluations_dossiers_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        133,
+        'page=evaluations_dossiers_soutenance',
+        'GET',
+        'voir',
+        107,
+        0,
+        'RBAC Évaluation des dossiers [GET page=evaluations_dossiers_soutenance]',
+        'seed:permission_registry:evaluations_dossiers_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        134,
+        'page=evaluations_dossiers_soutenance&detail=1',
+        'GET',
+        'voir',
+        107,
+        0,
+        'RBAC Évaluation des dossiers [GET page=evaluations_dossiers_soutenance&detail=1]',
+        'seed:permission_registry:evaluations_dossiers_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        135,
+        'page=evaluations_dossiers_soutenance&fichier=1',
+        'GET',
+        'voir',
+        107,
+        0,
+        'RBAC Évaluation des dossiers [GET page=evaluations_dossiers_soutenance&fichier=1]',
+        'seed:permission_registry:evaluations_dossiers_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        136,
+        'page=evaluations_dossiers_soutenance&action=traiter_decision',
+        'GET',
+        'modifier',
+        107,
+        0,
+        'RBAC Évaluation des dossiers [GET page=evaluations_dossiers_soutenance&action=traiter_decision]',
+        'seed:permission_registry:evaluations_dossiers_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        137,
+        'page=evaluations_dossiers_soutenance&action=traiter_decision',
+        'POST',
+        'modifier',
+        107,
+        0,
+        'RBAC Évaluation des dossiers [POST page=evaluations_dossiers_soutenance&action=traiter_decision]',
+        'seed:permission_registry:evaluations_dossiers_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        138,
+        'page=evaluations_dossiers_soutenance&action=valider_dossier',
+        'POST',
+        'modifier',
+        107,
+        0,
+        'RBAC Évaluation des dossiers [POST page=evaluations_dossiers_soutenance&action=valider_dossier]',
+        'seed:permission_registry:evaluations_dossiers_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        139,
+        'page=evaluations_dossiers_soutenance&action=rejeter_dossier',
+        'POST',
+        'modifier',
+        107,
+        0,
+        'RBAC Évaluation des dossiers [POST page=evaluations_dossiers_soutenance&action=rejeter_dossier]',
+        'seed:permission_registry:evaluations_dossiers_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        140,
+        'page=evaluations_dossiers_soutenance&action=finaliser_decision',
+        'POST',
+        'modifier',
+        107,
+        0,
+        'RBAC Évaluation des dossiers [POST page=evaluations_dossiers_soutenance&action=finaliser_decision]',
+        'seed:permission_registry:evaluations_dossiers_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        141,
+        'page=evaluations_dossiers_soutenance&action=get_statistiques',
+        'POST',
+        'voir',
+        107,
+        0,
+        'RBAC Évaluation des dossiers [POST page=evaluations_dossiers_soutenance&action=get_statistiques]',
+        'seed:permission_registry:evaluations_dossiers_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        142,
+        'page=processus_validation',
+        'GET',
+        'voir',
+        108,
+        0,
+        'RBAC Processus validation [GET page=processus_validation]',
+        'seed:permission_registry:processus_validation',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        143,
+        'page=redaction_compte_rendu',
+        'GET',
+        'voir',
+        109,
+        0,
+        'RBAC Rédaction compte rendu [GET page=redaction_compte_rendu]',
+        'seed:permission_registry:redaction_compte_rendu',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        144,
+        'page=redaction_compte_rendu&action=brouillons',
+        'GET',
+        'voir',
+        109,
+        0,
+        'RBAC Rédaction compte rendu [GET page=redaction_compte_rendu&action=brouillons]',
+        'seed:permission_registry:redaction_compte_rendu',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        145,
+        'page=redaction_compte_rendu&action=archives',
+        'GET',
+        'voir',
+        109,
+        0,
+        'RBAC Rédaction compte rendu [GET page=redaction_compte_rendu&action=archives]',
+        'seed:permission_registry:redaction_compte_rendu',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        146,
+        'page=redaction_compte_rendu&action=export_pdf',
+        'GET',
+        'voir',
+        109,
+        0,
+        'RBAC Rédaction compte rendu [GET page=redaction_compte_rendu&action=export_pdf]',
+        'seed:permission_registry:redaction_compte_rendu',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        147,
+        'page=redaction_compte_rendu',
+        'POST',
+        'modifier',
+        109,
+        0,
+        'RBAC Rédaction compte rendu [POST page=redaction_compte_rendu]',
+        'seed:permission_registry:redaction_compte_rendu',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        148,
+        'page=programmation_soutenance',
+        'GET',
+        'voir',
+        110,
+        0,
+        'RBAC Programmation soutenance [GET page=programmation_soutenance]',
+        'seed:permission_registry:programmation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        149,
+        'page=programation_soutenance',
+        'GET',
+        'voir',
+        110,
+        0,
+        'RBAC Programmation soutenance [GET page=programation_soutenance]',
+        'seed:permission_registry:programmation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        150,
+        'page=programmation_soutenance&action=getEtudiants',
+        'GET',
+        'voir',
+        110,
+        0,
+        'RBAC Programmation soutenance [GET page=programmation_soutenance&action=getEtudiants]',
+        'seed:permission_registry:programmation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        151,
+        'page=programmation_soutenance&action=getEnseignants',
+        'GET',
+        'voir',
+        110,
+        0,
+        'RBAC Programmation soutenance [GET page=programmation_soutenance&action=getEnseignants]',
+        'seed:permission_registry:programmation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        152,
+        'page=programmation_soutenance&action=getProfesseursTitulaires',
+        'GET',
+        'voir',
+        110,
+        0,
+        'RBAC Programmation soutenance [GET page=programmation_soutenance&action=getProfesseursTitulaires]',
+        'seed:permission_registry:programmation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        153,
+        'page=programmation_soutenance&action=getSalles',
+        'GET',
+        'voir',
+        110,
+        0,
+        'RBAC Programmation soutenance [GET page=programmation_soutenance&action=getSalles]',
+        'seed:permission_registry:programmation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        154,
+        'page=programmation_soutenance&action=getAttributions',
+        'GET',
+        'voir',
+        110,
+        0,
+        'RBAC Programmation soutenance [GET page=programmation_soutenance&action=getAttributions]',
+        'seed:permission_registry:programmation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        155,
+        'page=programmation_soutenance&action=createAttribution',
+        'POST',
+        'creer',
+        110,
+        0,
+        'RBAC Programmation soutenance [POST page=programmation_soutenance&action=createAttribution]',
+        'seed:permission_registry:programmation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        156,
+        'page=programmation_soutenance&action=updateAttribution',
+        'POST',
+        'modifier',
+        110,
+        0,
+        'RBAC Programmation soutenance [POST page=programmation_soutenance&action=updateAttribution]',
+        'seed:permission_registry:programmation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        157,
+        'page=programmation_soutenance&action=deleteAttribution',
+        'POST',
+        'supprimer',
+        110,
+        0,
+        'RBAC Programmation soutenance [POST page=programmation_soutenance&action=deleteAttribution]',
+        'seed:permission_registry:programmation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        158,
+        'page=programmation_soutenance&action=getPlanningPreview',
+        'GET',
+        'voir',
+        110,
+        0,
+        'RBAC Programmation soutenance [GET page=programmation_soutenance&action=getPlanningPreview]',
+        'seed:permission_registry:programmation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        159,
+        'page=programmation_soutenance&action=generatePlanningPdf',
+        'GET',
+        'voir',
+        110,
+        0,
+        'RBAC Programmation soutenance [GET page=programmation_soutenance&action=generatePlanningPdf]',
+        'seed:permission_registry:programmation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        160,
+        'page=programmation_soutenance&action=getDayDetails',
+        'GET',
+        'voir',
+        110,
+        0,
+        'RBAC Programmation soutenance [GET page=programmation_soutenance&action=getDayDetails]',
+        'seed:permission_registry:programmation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        161,
+        'page=plannification_soutenance',
+        'GET',
+        'voir',
+        110,
+        0,
+        'RBAC Planification soutenance [GET page=plannification_soutenance]',
+        'seed:permission_registry:planification_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        162,
+        'page=planification_soutenance',
+        'GET',
+        'voir',
+        110,
+        0,
+        'RBAC Planification soutenance [GET page=planification_soutenance]',
+        'seed:permission_registry:planification_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        163,
+        'page=plannification_soutenance&action=planifierSoutenance',
+        'POST',
+        'modifier',
+        110,
+        0,
+        'RBAC Planification soutenance [POST page=plannification_soutenance&action=planifierSoutenance]',
+        'seed:permission_registry:planification_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        164,
+        'page=planification_soutenance&action=planifierSoutenance',
+        'POST',
+        'modifier',
+        110,
+        0,
+        'RBAC Planification soutenance [POST page=planification_soutenance&action=planifierSoutenance]',
+        'seed:permission_registry:planification_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        165,
+        'page=plannification_soutenance&action=supprimerPlanification',
+        'POST',
+        'supprimer',
+        110,
+        0,
+        'RBAC Planification soutenance [POST page=plannification_soutenance&action=supprimerPlanification]',
+        'seed:permission_registry:planification_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        166,
+        'page=planification_soutenance&action=supprimerPlanification',
+        'POST',
+        'supprimer',
+        110,
+        0,
+        'RBAC Planification soutenance [POST page=planification_soutenance&action=supprimerPlanification]',
+        'seed:permission_registry:planification_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        167,
+        'page=plannification_soutenance&action=getPlanification',
+        'GET',
+        'voir',
+        110,
+        0,
+        'RBAC Planification soutenance [GET page=plannification_soutenance&action=getPlanification]',
+        'seed:permission_registry:planification_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        168,
+        'page=planification_soutenance&action=getPlanification',
+        'GET',
+        'voir',
+        110,
+        0,
+        'RBAC Planification soutenance [GET page=planification_soutenance&action=getPlanification]',
+        'seed:permission_registry:planification_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        169,
+        'page=evaluation_soutenance',
+        'GET',
+        'voir',
+        111,
+        0,
+        'RBAC Évaluation soutenance [GET page=evaluation_soutenance]',
+        'seed:permission_registry:evaluation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        170,
+        'page=evaluation_soutenance&action=evaluerSoutenance',
+        'POST',
+        'modifier',
+        111,
+        0,
+        'RBAC Évaluation soutenance [POST page=evaluation_soutenance&action=evaluerSoutenance]',
+        'seed:permission_registry:evaluation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        171,
+        'page=evaluation_soutenance&action=supprimerEvaluation',
+        'POST',
+        'supprimer',
+        111,
+        0,
+        'RBAC Évaluation soutenance [POST page=evaluation_soutenance&action=supprimerEvaluation]',
+        'seed:permission_registry:evaluation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        172,
+        'page=evaluation_soutenance&action=getEvaluationExistante',
+        'GET',
+        'voir',
+        111,
+        0,
+        'RBAC Évaluation soutenance [GET page=evaluation_soutenance&action=getEvaluationExistante]',
+        'seed:permission_registry:evaluation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        173,
+        'page=evaluation_soutenance&action=getCriteresParAnnee',
+        'GET',
+        'voir',
+        111,
+        0,
+        'RBAC Évaluation soutenance [GET page=evaluation_soutenance&action=getCriteresParAnnee]',
+        'seed:permission_registry:evaluation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        174,
+        'page=evaluation_soutenance&action=imprimer_pv',
+        'GET',
+        'voir',
+        111,
+        0,
+        'RBAC Évaluation soutenance [GET page=evaluation_soutenance&action=imprimer_pv]',
+        'seed:permission_registry:evaluation_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        175,
+        'page=edition_bulletin',
+        'GET',
+        'voir',
+        112,
+        0,
+        'RBAC Édition des bulletins [GET page=edition_bulletin]',
+        'seed:permission_registry:edition_bulletin',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        186,
+        'page=archives_dossiers_soutenance',
+        'GET',
+        'voir',
+        112,
+        0,
+        'RBAC Archives dossiers soutenance [GET page=archives_dossiers_soutenance]',
+        'seed:permission_registry:archives_dossiers_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        187,
+        'page=archives_dossiers_soutenance&action=details_rapport',
+        'GET',
+        'voir',
+        112,
+        0,
+        'RBAC Archives dossiers soutenance [GET page=archives_dossiers_soutenance&action=details_rapport]',
+        'seed:permission_registry:archives_dossiers_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        188,
+        'page=archives_dossiers_soutenance&action=download_rapport',
+        'GET',
+        'voir',
+        112,
+        0,
+        'RBAC Archives dossiers soutenance [GET page=archives_dossiers_soutenance&action=download_rapport]',
+        'seed:permission_registry:archives_dossiers_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        189,
+        'page=archives_dossiers_soutenance&export=1',
+        'GET',
+        'voir',
+        112,
+        0,
+        'RBAC Archives dossiers soutenance [GET page=archives_dossiers_soutenance&export=1]',
+        'seed:permission_registry:archives_dossiers_soutenance',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        190,
+        'page=parametres_generaux',
+        'GET',
+        'voir',
+        30,
+        0,
+        'RBAC Paramètres généraux [GET page=parametres_generaux]',
+        'seed:permission_registry:parametres_generaux',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        191,
+        'page=parametres_specifiques',
+        'GET',
+        'voir',
+        81,
+        0,
+        'RBAC Paramètres spécifiques [GET page=parametres_specifiques]',
+        'seed:permission_registry:parametres_specifiques',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        192,
+        'page=parametres_generaux&action=annees_academiques',
+        'GET',
+        'voir',
+        113,
+        0,
+        'RBAC Années académiques [GET page=parametres_generaux&action=annees_academiques]',
+        'seed:permission_registry:annees_academiques',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 12:47:55'
+    ),
+    (
+        193,
+        'page=parametres_generaux&action=annees_academiques',
+        'POST',
+        'modifier',
+        113,
+        0,
+        'RBAC Années académiques [POST page=parametres_generaux&action=annees_academiques]',
+        'seed:permission_registry:annees_academiques',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 12:47:55'
+    ),
+    (
+        212,
+        'page=parametres_generaux&action=filieres',
+        'GET',
+        'voir',
+        32,
+        0,
+        'RBAC Filières [GET page=parametres_generaux&action=filieres]',
+        'seed:permission_registry:filieres',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        213,
+        'page=parametres_generaux&action=filieres',
+        'POST',
+        'modifier',
+        32,
+        0,
+        'RBAC Filières [POST page=parametres_generaux&action=filieres]',
+        'seed:permission_registry:filieres',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        214,
+        'page=parametres_generaux&action=grades',
+        'GET',
+        'voir',
+        39,
+        0,
+        'RBAC Grades [GET page=parametres_generaux&action=grades]',
+        'seed:permission_registry:grades',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        215,
+        'page=parametres_generaux&action=grades',
+        'POST',
+        'modifier',
+        39,
+        0,
+        'RBAC Grades [POST page=parametres_generaux&action=grades]',
+        'seed:permission_registry:grades',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        216,
+        'page=parametres_generaux&action=fonction_utilisateur',
+        'GET',
+        'voir',
+        37,
+        0,
+        'RBAC Fonctions utilisateurs [GET page=parametres_generaux&action=fonction_utilisateur]',
+        'seed:permission_registry:fonction_utilisateur',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        217,
+        'page=parametres_generaux&action=fonction_utilisateur',
+        'POST',
+        'modifier',
+        37,
+        0,
+        'RBAC Fonctions utilisateurs [POST page=parametres_generaux&action=fonction_utilisateur]',
+        'seed:permission_registry:fonction_utilisateur',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        218,
+        'page=parametres_generaux&action=specialites',
+        'GET',
+        'voir',
+        46,
+        0,
+        'RBAC Spécialités [GET page=parametres_generaux&action=specialites]',
+        'seed:permission_registry:specialites',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        219,
+        'page=parametres_generaux&action=specialites',
+        'POST',
+        'modifier',
+        46,
+        0,
+        'RBAC Spécialités [POST page=parametres_generaux&action=specialites]',
+        'seed:permission_registry:specialites',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        220,
+        'page=parametres_specifiques&action=specialites',
+        'GET',
+        'voir',
+        46,
+        0,
+        'RBAC Spécialités [GET page=parametres_specifiques&action=specialites]',
+        'seed:permission_registry:specialites',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        221,
+        'page=parametres_specifiques&action=specialites',
+        'POST',
+        'modifier',
+        46,
+        0,
+        'RBAC Spécialités [POST page=parametres_specifiques&action=specialites]',
+        'seed:permission_registry:specialites',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        222,
+        'page=parametres_generaux&action=niveaux_etude',
+        'GET',
+        'voir',
+        43,
+        0,
+        'RBAC Niveaux étude [GET page=parametres_generaux&action=niveaux_etude]',
+        'seed:permission_registry:niveaux_etude',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        223,
+        'page=parametres_generaux&action=niveaux_etude',
+        'POST',
+        'modifier',
+        43,
+        0,
+        'RBAC Niveaux étude [POST page=parametres_generaux&action=niveaux_etude]',
+        'seed:permission_registry:niveaux_etude',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        224,
+        'page=parametres_generaux&action=ue',
+        'GET',
+        'voir',
+        49,
+        0,
+        'RBAC Unités enseignement [GET page=parametres_generaux&action=ue]',
+        'seed:permission_registry:ue',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        225,
+        'page=parametres_generaux&action=ue',
+        'POST',
+        'modifier',
+        49,
+        0,
+        'RBAC Unités enseignement [POST page=parametres_generaux&action=ue]',
+        'seed:permission_registry:ue',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        226,
+        'page=parametres_generaux&action=ecue',
+        'GET',
+        'voir',
+        34,
+        0,
+        'RBAC ECUE [GET page=parametres_generaux&action=ecue]',
+        'seed:permission_registry:ecue',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        227,
+        'page=parametres_generaux&action=ecue',
+        'POST',
+        'modifier',
+        34,
+        0,
+        'RBAC ECUE [POST page=parametres_generaux&action=ecue]',
+        'seed:permission_registry:ecue',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        228,
+        'page=parametres_generaux&action=statut_jury',
+        'GET',
+        'voir',
+        47,
+        0,
+        'RBAC Statut jury [GET page=parametres_generaux&action=statut_jury]',
+        'seed:permission_registry:statut_jury',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        229,
+        'page=parametres_generaux&action=statut_jury',
+        'POST',
+        'modifier',
+        47,
+        0,
+        'RBAC Statut jury [POST page=parametres_generaux&action=statut_jury]',
+        'seed:permission_registry:statut_jury',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        230,
+        'page=parametres_generaux&action=niveaux_approbation',
+        'GET',
+        'voir',
+        42,
+        0,
+        'RBAC Niveaux approbation [GET page=parametres_generaux&action=niveaux_approbation]',
+        'seed:permission_registry:niveaux_approbation',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        231,
+        'page=parametres_generaux&action=niveaux_approbation',
+        'POST',
+        'modifier',
+        42,
+        0,
+        'RBAC Niveaux approbation [POST page=parametres_generaux&action=niveaux_approbation]',
+        'seed:permission_registry:niveaux_approbation',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        232,
+        'page=parametres_generaux&action=semestres',
+        'GET',
+        'voir',
+        45,
+        0,
+        'RBAC Semestres [GET page=parametres_generaux&action=semestres]',
+        'seed:permission_registry:semestres',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        233,
+        'page=parametres_generaux&action=semestres',
+        'POST',
+        'modifier',
+        45,
+        0,
+        'RBAC Semestres [POST page=parametres_generaux&action=semestres]',
+        'seed:permission_registry:semestres',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        234,
+        'page=parametres_generaux&action=niveaux_acces',
+        'GET',
+        'voir',
+        41,
+        0,
+        'RBAC Niveaux accès [GET page=parametres_generaux&action=niveaux_acces]',
+        'seed:permission_registry:niveaux_acces',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        235,
+        'page=parametres_generaux&action=niveaux_acces',
+        'POST',
+        'modifier',
+        41,
+        0,
+        'RBAC Niveaux accès [POST page=parametres_generaux&action=niveaux_acces]',
+        'seed:permission_registry:niveaux_acces',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        236,
+        'page=parametres_generaux&action=traitements',
+        'GET',
+        'voir',
+        48,
+        0,
+        'RBAC Traitements [GET page=parametres_generaux&action=traitements]',
+        'seed:permission_registry:traitements',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        237,
+        'page=parametres_generaux&action=traitements',
+        'POST',
+        'modifier',
+        48,
+        0,
+        'RBAC Traitements [POST page=parametres_generaux&action=traitements]',
+        'seed:permission_registry:traitements',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        238,
+        'page=parametres_specifiques&action=traitements',
+        'GET',
+        'voir',
+        48,
+        0,
+        'RBAC Traitements [GET page=parametres_specifiques&action=traitements]',
+        'seed:permission_registry:traitements',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        239,
+        'page=parametres_specifiques&action=traitements',
+        'POST',
+        'modifier',
+        48,
+        0,
+        'RBAC Traitements [POST page=parametres_specifiques&action=traitements]',
+        'seed:permission_registry:traitements',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        240,
+        'page=parametres_generaux&action=entreprises',
+        'GET',
+        'voir',
+        35,
+        0,
+        'RBAC Entreprises [GET page=parametres_generaux&action=entreprises]',
+        'seed:permission_registry:entreprises',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        241,
+        'page=parametres_generaux&action=entreprises',
+        'POST',
+        'modifier',
+        35,
+        0,
+        'RBAC Entreprises [POST page=parametres_generaux&action=entreprises]',
+        'seed:permission_registry:entreprises',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        242,
+        'page=parametres_specifiques&action=entreprises',
+        'GET',
+        'voir',
+        35,
+        0,
+        'RBAC Entreprises [GET page=parametres_specifiques&action=entreprises]',
+        'seed:permission_registry:entreprises',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        243,
+        'page=parametres_specifiques&action=entreprises',
+        'POST',
+        'modifier',
+        35,
+        0,
+        'RBAC Entreprises [POST page=parametres_specifiques&action=entreprises]',
+        'seed:permission_registry:entreprises',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        244,
+        'page=parametres_generaux&action=actions',
+        'GET',
+        'voir',
+        31,
+        0,
+        'RBAC Actions [GET page=parametres_generaux&action=actions]',
+        'seed:permission_registry:actions',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        245,
+        'page=parametres_generaux&action=actions',
+        'POST',
+        'modifier',
+        31,
+        0,
+        'RBAC Actions [POST page=parametres_generaux&action=actions]',
+        'seed:permission_registry:actions',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        246,
+        'page=parametres_generaux&action=fonctions',
+        'GET',
+        'voir',
+        36,
+        0,
+        'RBAC Fonctions [GET page=parametres_generaux&action=fonctions]',
+        'seed:permission_registry:fonctions',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        247,
+        'page=parametres_generaux&action=fonctions',
+        'POST',
+        'modifier',
+        36,
+        0,
+        'RBAC Fonctions [POST page=parametres_generaux&action=fonctions]',
+        'seed:permission_registry:fonctions',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        248,
+        'page=parametres_generaux&action=messages',
+        'GET',
+        'voir',
+        40,
+        0,
+        'RBAC Messages système [GET page=parametres_generaux&action=messages]',
+        'seed:permission_registry:messages',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        249,
+        'page=parametres_generaux&action=messages',
+        'POST',
+        'modifier',
+        40,
+        0,
+        'RBAC Messages système [POST page=parametres_generaux&action=messages]',
+        'seed:permission_registry:messages',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        250,
+        'page=parametres_specifiques&action=messages',
+        'GET',
+        'voir',
+        40,
+        0,
+        'RBAC Messages système [GET page=parametres_specifiques&action=messages]',
+        'seed:permission_registry:messages',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        251,
+        'page=parametres_specifiques&action=messages',
+        'POST',
+        'modifier',
+        40,
+        0,
+        'RBAC Messages système [POST page=parametres_specifiques&action=messages]',
+        'seed:permission_registry:messages',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        252,
+        'page=parametres_generaux&action=gestion_menus',
+        'GET',
+        'voir',
+        38,
+        0,
+        'RBAC Gestion menus [GET page=parametres_generaux&action=gestion_menus]',
+        'seed:permission_registry:gestion_menus',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        253,
+        'page=parametres_generaux&action=gestion_menus',
+        'POST',
+        'modifier',
+        38,
+        0,
+        'RBAC Gestion menus [POST page=parametres_generaux&action=gestion_menus]',
+        'seed:permission_registry:gestion_menus',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        254,
+        'page=parametres_specifiques&action=gestion_menus',
+        'GET',
+        'voir',
+        38,
+        0,
+        'RBAC Gestion menus [GET page=parametres_specifiques&action=gestion_menus]',
+        'seed:permission_registry:gestion_menus',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        255,
+        'page=parametres_specifiques&action=gestion_menus',
+        'POST',
+        'modifier',
+        38,
+        0,
+        'RBAC Gestion menus [POST page=parametres_specifiques&action=gestion_menus]',
+        'seed:permission_registry:gestion_menus',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        256,
+        'page=parametres_generaux&action=salles',
+        'GET',
+        'voir',
+        44,
+        0,
+        'RBAC Salles [GET page=parametres_generaux&action=salles]',
+        'seed:permission_registry:salles',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    );
+
+INSERT INTO
+    `route_actions` (
+        `id_route_action`,
+        `route_pattern`,
+        `http_method`,
+        `action_crud`,
+        `id_fonctionnalite`,
+        `is_public`,
+        `description`,
+        `notes_admin`,
+        `actif`,
+        `created_at`,
+        `updated_at`
+    )
+VALUES (
+        257,
+        'page=parametres_generaux&action=salles',
+        'POST',
+        'modifier',
+        44,
+        0,
+        'RBAC Salles [POST page=parametres_generaux&action=salles]',
+        'seed:permission_registry:salles',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        258,
+        'page=parametres_specifiques&action=salles',
+        'GET',
+        'voir',
+        44,
+        0,
+        'RBAC Salles [GET page=parametres_specifiques&action=salles]',
+        'seed:permission_registry:salles',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        259,
+        'page=parametres_specifiques&action=salles',
+        'POST',
+        'modifier',
+        44,
+        0,
+        'RBAC Salles [POST page=parametres_specifiques&action=salles]',
+        'seed:permission_registry:salles',
+        1,
+        '2026-03-12 12:44:51',
+        '2026-03-12 13:34:27'
+    ),
+    (
+        272,
+        'page=parametres_generaux&action=type_enseignant',
+        'GET',
+        'voir',
+        44,
+        0,
+        'RBAC Type enseignant [GET page=parametres_generaux&action=type_enseignant]',
+        'seed:permission_registry:type_enseignant',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        273,
+        'page=parametres_generaux&action=type_enseignant',
+        'POST',
+        'modifier',
+        44,
+        0,
+        'RBAC Type enseignant [POST page=parametres_generaux&action=type_enseignant]',
+        'seed:permission_registry:type_enseignant',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        274,
+        'page=parametres_specifiques&action=type_enseignant',
+        'GET',
+        'voir',
+        44,
+        0,
+        'RBAC Type enseignant [GET page=parametres_specifiques&action=type_enseignant]',
+        'seed:permission_registry:type_enseignant',
+        1,
+        '2026-03-12 12:44:51',
+        NULL
+    ),
+    (
+        275,
+        'page=parametres_specifiques&action=type_enseignant',
+        'POST',
+        'modifier',
+        44,
+        0,
+        'RBAC Type enseignant [POST page=parametres_specifiques&action=type_enseignant]',
+        'seed:permission_registry:type_enseignant',
+        1,
+        '2026-03-12 12:44:51',
         NULL
     );
 
@@ -18251,12 +29077,12 @@ INSERT INTO
     )
 VALUES (
         5,
-        'Koua Brou',
-        5,
+        'KOUA BROU',
+        4,
         5,
         5,
         'Actif',
-        'kouabrou@gmail.com',
+        'kbrou',
         '$2y$10$IM9LuGERPnqbR.DoqkQnMu.WBSXZJ5T5YtqBSFGO2X5nQF/xCnaFW'
     ),
     (
@@ -18482,6 +29308,12 @@ ADD CONSTRAINT `fk_rendre_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `
 ALTER TABLE `resume_candidature`
 ADD CONSTRAINT `resume_ibfk_1` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
 ADD CONSTRAINT `resume_ibfk_2` FOREIGN KEY (`id_candidature`) REFERENCES `candidature_soutenance` (`id_candidature`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `route_actions`
+--
+ALTER TABLE `route_actions`
+ADD CONSTRAINT `fk_route_actions_fonctionnalite` FOREIGN KEY (`id_fonctionnalite`) REFERENCES `fonctionnalites` (`id_fonctionnalite`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `semestre`

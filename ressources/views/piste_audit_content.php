@@ -18,7 +18,7 @@ $filters = [
 
 $actionOptions = [];
 foreach ($actions as $action) {
-    $lib = (string) ($action->lib_action ?? $action['lib_action'] ?? '');
+    $lib = trim((string) ($action->lib_action ?? $action['lib_action'] ?? $action ?? ''));
     if ($lib !== '') {
         $actionOptions[$lib] = $lib;
     }
@@ -39,11 +39,26 @@ foreach ($auditLog as $log) {
 ksort($tableOptions);
 ksort($statutOptions);
 
+$tableFilterOptions = ['' => '-- Toutes --'];
+foreach ($tableOptions as $tableValue) {
+    $tableFilterOptions[$tableValue] = function_exists('cm_audit_humanize_context')
+        ? cm_audit_humanize_context(['nom_table' => $tableValue])
+        : $tableValue;
+}
+
 $rows = [];
 foreach ($auditLog as $log) {
     $dateCreation = (string) ($log['date_creation'] ?? '');
     $dateText = $dateCreation !== '' ? date('d/m/Y H:i:s', strtotime($dateCreation)) : '-';
     $statut = (string) ($log['statut_action'] ?? '');
+    $nomUtilisateur = trim((string) ($log['nom_utilisateur'] ?? ''));
+    $loginUtilisateur = trim((string) ($log['login_utilisateur'] ?? ''));
+    $idUtilisateur = (int) ($log['id_utilisateur'] ?? 0);
+    $utilisateurLabel = $nomUtilisateur !== '' ? $nomUtilisateur : ($loginUtilisateur !== '' ? $loginUtilisateur : '-');
+    if ($idUtilisateur > 0) {
+        $utilisateurLabel .= ' (#' . $idUtilisateur . ')';
+    }
+
     $badgeType = 'info';
     if (strcasecmp($statut, 'Succès') === 0 || strcasecmp($statut, 'Succes') === 0) {
         $badgeType = 'success';
@@ -54,11 +69,15 @@ foreach ($auditLog as $log) {
     }
 
     $rows[] = [
-        'id' => (string) ($log['id'] ?? ''),
+        'id' => (string) ($log['id_piste'] ?? ''),
         'date_creation' => $dateText,
-        'action' => (string) ($log['action'] ?? '-'),
-        'nom_table' => (string) ($log['nom_table'] ?? '-'),
-        'utilisateur' => (string) ($log['nom_utilisateur'] ?? $log['login_utilisateur'] ?? '-'),
+        'action' => function_exists('cm_audit_humanize_action')
+            ? cm_audit_humanize_action($log)
+            : (string) ($log['action'] ?? '-'),
+        'contexte' => function_exists('cm_audit_humanize_context')
+            ? cm_audit_humanize_context($log)
+            : (string) ($log['nom_table'] ?? '-'),
+        'utilisateur' => $utilisateurLabel,
         'statut_action' => ['label' => $statut === '' ? '-' : $statut, 'type' => $badgeType],
     ];
 }
@@ -96,9 +115,17 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
         <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => 'Une erreur est survenue: ' . htmlspecialchars((string) $_GET['error'], ENT_QUOTES, 'UTF-8')]); ?>
     <?php endif; ?>
 
-    <div class="cm-crud-wrapper">
+        <div class="cm-crud-wrapper">
         <?php ob_start(); ?>
-        <form id="cmAuditFiltersForm" method="GET" data-cm-ajax-form="true">
+        <style>
+/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+#cmAuditFiltersForm .cm-form-group:has(#FIELD_ID) {
+    width: 10ch !important;
+    min-width: 10ch !important;
+    max-width: 10ch !important;
+}
+</style>
+<form id="cmAuditFiltersForm" method="GET" data-cm-ajax-form="true">
             <input type="hidden" name="page" value="piste_audit">
             <div class="cm-grid-4">
                 <?php cm_component('form/input-date', [
@@ -127,8 +154,8 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
             <div class="cm-grid-3">
                 <?php cm_component('form/select', [
                     'name' => 'table',
-                    'label' => 'Table',
-                    'options' => array_merge(['' => '-- Toutes --'], $tableOptions),
+                    'label' => 'Contexte',
+                    'options' => $tableFilterOptions,
                     'selected' => $filters['table'],
                 ]); ?>
                 <?php cm_component('form/select', [
@@ -141,7 +168,15 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
                     'name' => 'search',
                     'label' => 'Recherche globale',
                     'value' => $filters['search'],
-                    'placeholder' => 'Action, table, utilisateur...',
+                    'placeholder' => 'Action, contexte, utilisateur...',
+                ]); ?>
+            </div>
+            <div class="cm-grid-1">
+                <?php cm_component('form/input-number', [
+                    'name' => 'days',
+                    'label' => 'Nettoyer logs plus vieux que (jours)',
+                    'value' => '30',
+                    'min' => '1',
                 ]); ?>
             </div>
             <?php
@@ -159,7 +194,7 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
                         'type' => 'submit',
                         'label' => 'Appliquer',
                         'icon' => 'fa-search',
-                        'class' => 'cm-btn is-success',
+                        'class' => 'cm-btn is-primary',
                     ],
                 ],
             ]);
@@ -178,6 +213,7 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
             'id_prefix' => 'audit',
             'search_value' => $filters['search'],
             'limit' => $perPage,
+            'limit_options' => [5, 10, 25, 50, 100],
             'show_actions' => false,
             'custom_actions' => array_values(array_filter([
                 [
@@ -188,11 +224,11 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
                 ],
                 (function_exists('canDelete') ? canDelete() : true) ? [
                     'tag' => 'button',
-                    'type' => 'submit',
+                    'type' => 'button',
                     'label' => 'Nettoyer',
                     'class' => 'cm-btn is-danger is-sm',
                     'attrs' => [
-                        'form' => 'cmAuditCleanupForm',
+                        'onclick' => "if(confirm('Confirmer le nettoyage des logs ?')) document.getElementById('cmAuditCleanupForm').submit();"
                     ],
                 ] : null,
             ])),
@@ -200,7 +236,18 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
         <?php if (function_exists('canDelete') ? canDelete() : true): ?>
             <form id="cmAuditCleanupForm" method="POST" action="?page=piste_audit&action=cleanup" class="cm-hidden" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
-                <input type="hidden" name="days" value="30">
+                <script>
+                    document.getElementById('cmAuditCleanupForm').addEventListener('submit', function(e) {
+                        const daysInput = document.querySelector('input[name="days"]');
+                        if (daysInput) {
+                            const hiddenDays = document.createElement('input');
+                            hiddenDays.type = 'hidden';
+                            hiddenDays.name = 'days';
+                            hiddenDays.value = daysInput.value;
+                            this.appendChild(hiddenDays);
+                        }
+                    });
+                </script>
             </form>
         <?php endif; ?>
 
@@ -209,24 +256,24 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
             cm_component('crud/data-table', [
                 'id' => 'cmAuditTable',
                 'columns' => [
-                    cm_column('date_creation', 'Date'),
-                    cm_column('action', 'Action'),
-                    cm_column('nom_table', 'Table'),
+                    cm_column('date_creation', 'Date &amp; Heure'),
+                    cm_column('action', 'Action effectuée'),
+                    cm_column('contexte', 'Contexte'),
                     cm_column('utilisateur', 'Utilisateur'),
                     cm_column('statut_action', 'Statut', ['type' => 'badge', 'align' => 'center']),
                 ],
                 'rows' => $rows,
                 'row_key' => 'id',
                 'selectable' => false,
-                'actions' => (function_exists('canDelete') ? canDelete() : true) ? [[
+                'actions' => [[
                     'tag' => 'button',
                     'type' => 'button',
-                    'label' => 'Supprimer',
-                    'icon' => 'fa-trash',
-                    'class' => 'cm-btn-action is-delete',
-                ]] : [],
+                    'label' => 'Voir détail',
+                    'icon' => 'fa-eye',
+                    'class' => 'cm-btn-action is-info js-audit-detail',
+                ]],
                 'empty_title' => 'Aucun log',
-                'empty_message' => 'Aucune ligne trouvee pour ces filtres.',
+                'empty_message' => 'Aucune ligne trouvée pour ces filtres.',
             ]);
             ?>
 
@@ -254,7 +301,15 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
     }
 
     table.addEventListener('click', async function (event) {
+        const detailButton = event.target.closest('.js-audit-detail');
         const deleteButton = event.target.closest('.cm-btn-action.is-delete');
+        if (detailButton) {
+            const id = detailButton.getAttribute('data-row-id') || '';
+            if (id !== '') {
+                window.location.href = '?page=piste_audit&action=voir&id=' + encodeURIComponent(id);
+            }
+            return;
+        }
         if (!deleteButton) {
             return;
         }
