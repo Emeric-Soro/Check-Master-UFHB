@@ -41,6 +41,7 @@ $totalTeachers = (int) ($statsTeachers['total'] ?? 0);
 $totalStaff = (int) ($statsStaff['total'] ?? 0);
 
 $errors24h = 0;
+$recentErrors = [];
 $distribution = [
     'Administrateurs' => 0,
     'Enseignants' => 0,
@@ -64,6 +65,18 @@ try {
                   WHERE statut_action = 'Erreur'
                     AND date_creation >= (NOW() - INTERVAL 24 HOUR)";
     $errors24h = (int) ($pdo->query($sqlErrors)->fetchColumn() ?: 0);
+
+    if ($errors24h > 0) {
+        $sqlRecentErrors = "SELECT p.date_creation, p.action, p.nom_table,
+                                                                COALESCE(u.nom_utilisateur, CONCAT('Utilisateur #', p.id_utilisateur)) AS nom_utilisateur
+                                                        FROM pister p
+                                                        LEFT JOIN utilisateur u ON u.id_utilisateur = p.id_utilisateur
+                                                        WHERE p.statut_action = 'Erreur'
+                                                            AND p.date_creation >= (NOW() - INTERVAL 24 HOUR)
+                                                        ORDER BY p.date_creation DESC
+                                                        LIMIT 10";
+        $recentErrors = $pdo->query($sqlRecentErrors)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
 
     $sqlDistribution = "SELECT
                             SUM(CASE WHEN LOWER(COALESCE(g.lib_GU, '')) LIKE '%administrateur%' THEN 1 ELSE 0 END) AS admins,
@@ -254,6 +267,40 @@ try {
         <?php cm_component('dashboard/activity-list', ['title' => '', 'items' => $recentActivityItems]); ?>
     </div>
 
+    <?php if (!empty($recentErrors)): ?>
+        <div class="cm-card cm-mt-md">
+            <div class="cm-card__header">
+                <h3 class="cm-card__title cm-text-danger"><i class="fas fa-triangle-exclamation cm-mr-sm"></i>Erreurs
+                    système (24h)</h3>
+            </div>
+            <div class="cm-card__body">
+                <div style="overflow-x:auto">
+                    <table class="cm-table">
+                        <thead>
+                            <tr>
+                                <th>Date / Heure</th>
+                                <th>Action</th>
+                                <th>Table</th>
+                                <th>Utilisateur</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($recentErrors as $err): ?>
+                                <tr>
+                                    <td><?= !empty($err['date_creation']) ? htmlspecialchars(date('d/m/Y H:i', strtotime((string) $err['date_creation'])), ENT_QUOTES, 'UTF-8') : '-' ?>
+                                    </td>
+                                    <td><?= htmlspecialchars($err['action'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($err['nom_table'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($err['nom_utilisateur'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div class="cm-chart-container cm-mt-md">
         <div class="cm-chart-container__header">
 
@@ -262,123 +309,127 @@ try {
         <div class="cm-chart-container__body">
             <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
                 <?php if (canView('gestion_utilisateurs')): ?>
-                <a class="cm-btn is-info" href="?page=gestion_utilisateurs" data-cm-ajax-link="true">
-                    <i class="fas fa-users-cog" aria-hidden="true"></i>
-                    Gérer utilisateurs
-                </a>
+                    <a class="cm-btn is-info" href="?page=gestion_utilisateurs" data-cm-ajax-link="true">
+                        <i class="fas fa-users-cog" aria-hidden="true"></i>
+                        Gérer utilisateurs
+                    </a>
                 <?php endif; ?>
 
                 <?php if (canView('piste_audit')): ?>
-                <a class="cm-btn is-primary" href="?page=piste_audit" data-cm-ajax-link="true">
-                    <i class="fas fa-shield-halved" aria-hidden="true"></i>
-                    Piste audit
-                </a>
+                    <a class="cm-btn is-primary" href="?page=piste_audit" data-cm-ajax-link="true">
+                        <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                        Piste audit
+                    </a>
                 <?php endif; ?>
 
                 <?php if (canView('parametres_generaux')): ?>
-                <a class="cm-btn is-primary" href="?page=parametres_generaux" data-cm-ajax-link="true">
-                    <i class="fas fa-sliders" aria-hidden="true"></i>
-                    Parametrage
-                </a>
+                    <a class="cm-btn is-primary" href="?page=parametres_generaux" data-cm-ajax-link="true">
+                        <i class="fas fa-sliders" aria-hidden="true"></i>
+                        Parametrage
+                    </a>
                 <?php endif; ?>
 
                 <?php if (canView('enseignants_jury')): ?>
-                <a class="cm-btn is-warning" href="?page=enseignants_jury" data-cm-ajax-link="true">
-                    <i class="fas fa-users" aria-hidden="true"></i>
-                    Enseignants Jury
-                </a>
-                <?php endif; ?>
-        </div>
-    </div>
-
-    <div class="cm-card cm-mt-md">
-        <div class="cm-card__header cm-flex-between">
-
-            <a href="?page=enseignants_jury" class="cm-btn cm-btn--primary cm-btn--sm" data-cm-ajax-link="true">
-                <i class="fas fa-external-link-alt cm-mr-sm"></i> Voir tout
-            </a>
-        </div>
-        <div class="cm-card__body">
-            <style>
-/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
-.cm-content-area form .cm-form-group:has(#FIELD_ID) {
-    width: 10ch !important;
-    min-width: 10ch !important;
-    max-width: 10ch !important;
-}
-</style>
-<form method="GET" class="cm-grid-3 cm-mb-md" style="align-items: end;">
-                <input type="hidden" name="page" value="dashboard">
-
-                <input type="hidden" name="id_annee_acad" value="<?= htmlspecialchars((string) (\AcademicYear::getWritableIdFromSession() ?? ''), ENT_QUOTES, 'UTF-8') ?>">
-                <?= cm_component('form/select', [
-                    'name' => 'id_session',
-                    'label' => 'Période',
-                    'options' => $sessionOptionsAdmin,
-                    'selected' => (string)($filtreSessionAdmin ?? ''),
-                    'placeholder' => 'Toutes les périodes'
-                ]) ?>
-
-                <div class="cm-flex cm-flex-gap-sm">
-                    <button type="submit" class="cm-btn is-primary is-sm">
-                        <i class="fas fa-filter cm-mr-sm"></i> Filtrer
-                    </button>
-                    <a href="?page=dashboard" class="cm-btn is-light is-sm">
-                        Réinitialiser
+                    <a class="cm-btn is-warning" href="?page=enseignants_jury" data-cm-ajax-link="true">
+                        <i class="fas fa-users" aria-hidden="true"></i>
+                        Enseignants Jury
                     </a>
-                </div>
-            </form>
+                <?php endif; ?>
+            </div>
+        </div>
 
-            <table class="cm-table">
-                <thead>
-                    <tr>
-                        <th>Nom &amp; Prénom</th>
-                        <th class="cm-text-center">Jurys</th>
-                        <th class="cm-text-center">Encadrées</th>
-                        <th class="cm-text-center">Dirigées</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($enseignantsJuryData)): ?>
+        <div class="cm-card cm-mt-md">
+            <div class="cm-card__header cm-flex-between">
+
+                <a href="?page=enseignants_jury" class="cm-btn cm-btn--primary cm-btn--sm" data-cm-ajax-link="true">
+                    <i class="fas fa-external-link-alt cm-mr-sm"></i> Voir tout
+                </a>
+            </div>
+            <div class="cm-card__body">
+                <style>
+                    /* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+                    .cm-content-area form .cm-form-group:has(#FIELD_ID) {
+                        width: 10ch !important;
+                        min-width: 10ch !important;
+                        max-width: 10ch !important;
+                    }
+                </style>
+                <form method="GET" class="cm-grid-3 cm-mb-md" style="align-items: end;">
+                    <input type="hidden" name="page" value="dashboard">
+
+                    <input type="hidden" name="id_annee_acad"
+                        value="<?= htmlspecialchars((string) (\AcademicYear::getWritableIdFromSession() ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                    <?= cm_component('form/select', [
+                        'name' => 'id_session',
+                        'label' => 'Période',
+                        'options' => $sessionOptionsAdmin,
+                        'selected' => (string) ($filtreSessionAdmin ?? ''),
+                        'placeholder' => 'Toutes les périodes'
+                    ]) ?>
+
+                    <div class="cm-flex cm-flex-gap-sm">
+                        <button type="submit" class="cm-btn is-primary is-sm">
+                            <i class="fas fa-filter cm-mr-sm"></i> Filtrer
+                        </button>
+                        <a href="?page=dashboard" class="cm-btn is-light is-sm">
+                            Réinitialiser
+                        </a>
+                    </div>
+                </form>
+
+                <table class="cm-table">
+                    <thead>
                         <tr>
-                            <td colspan="4">
-                                <?= cm_component('ui/empty-state', [
-                                    'title' => '',
-                                    'message' => 'Aucun enseignant n\'a participé à un jury pour les critères sélectionnés.',
-                                    'icon' => 'fa-users',
-                                    'in_table' => true,
-                                    'colspan' => 4
-                                ]) ?>
-                            </td>
+                            <th>Nom &amp; Prénom</th>
+                            <th class="cm-text-center">Jurys</th>
+                            <th class="cm-text-center">Encadrées</th>
+                            <th class="cm-text-center">Dirigées</th>
                         </tr>
-                    <?php else: ?>
-                        <?php foreach ($enseignantsJuryData as $ens): ?>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($enseignantsJuryData)): ?>
                             <tr>
-                                <td><?= htmlspecialchars(strtoupper($ens['nom_enseignant'] ?? '') . ' ' . ($ens['prenom_enseignant'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
-                                <td class="cm-text-center">
-                                    <span class="cm-badge cm-badge--primary"><?= (int) ($ens['nb_soutenances_jury'] ?? 0) ?></span>
-                                </td>
-                                <td class="cm-text-center">
-                                    <span class="cm-badge cm-badge--success"><?= (int) ($ens['nb_soutenances_encadrees'] ?? 0) ?></span>
-                                </td>
-                                <td class="cm-text-center">
-                                    <span class="cm-badge cm-badge--info"><?= (int) ($ens['nb_soutenances_dirigees'] ?? 0) ?></span>
+                                <td colspan="4">
+                                    <?= cm_component('ui/empty-state', [
+                                        'title' => '',
+                                        'message' => 'Aucun enseignant n\'a participé à un jury pour les critères sélectionnés.',
+                                        'icon' => 'fa-users',
+                                        'in_table' => true,
+                                        'colspan' => 4
+                                    ]) ?>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php else: ?>
+                            <?php foreach ($enseignantsJuryData as $ens): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars(strtoupper($ens['nom_enseignant'] ?? '') . ' ' . ($ens['prenom_enseignant'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                    </td>
+                                    <td class="cm-text-center">
+                                        <span
+                                            class="cm-badge cm-badge--primary"><?= (int) ($ens['nb_soutenances_jury'] ?? 0) ?></span>
+                                    </td>
+                                    <td class="cm-text-center">
+                                        <span
+                                            class="cm-badge cm-badge--success"><?= (int) ($ens['nb_soutenances_encadrees'] ?? 0) ?></span>
+                                    </td>
+                                    <td class="cm-text-center">
+                                        <span
+                                            class="cm-badge cm-badge--info"><?= (int) ($ens['nb_soutenances_dirigees'] ?? 0) ?></span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
 
-            <?php if (!empty($enseignantsJuryPagination) && $enseignantsJuryPagination['total'] > 0): ?>
-                <div class="cm-mt-md">
-                    <?= cm_component('crud/pagination', [
-                        'pagination' => (object) $enseignantsJuryPagination,
-                        'base_url' => '?page=dashboard&id_annee_acad=' . urlencode((string)($filtreAnneeAdmin ?? '')) . '&id_session=' . urlencode((string)($filtreSessionAdmin ?? ''))
-                    ]) ?>
-                </div>
-            <?php endif; ?>
+                <?php if (!empty($enseignantsJuryPagination) && $enseignantsJuryPagination['total'] > 0): ?>
+                    <div class="cm-mt-md">
+                        <?= cm_component('crud/pagination', [
+                            'pagination' => (object) $enseignantsJuryPagination,
+                            'base_url' => '?page=dashboard&id_annee_acad=' . urlencode((string) ($filtreAnneeAdmin ?? '')) . '&id_session=' . urlencode((string) ($filtreSessionAdmin ?? ''))
+                        ]) ?>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
-    </div>
 </section>
-

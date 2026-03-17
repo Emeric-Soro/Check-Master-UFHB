@@ -261,4 +261,52 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
             </div>
         </div>
     </div>
+
+    <?php if (!empty($rapportsDetails)): ?>
+        <div class="cm-card cm-mt-md">
+            <div class="cm-card__header cm-flex-between">
+                <h3 class="cm-card__title"><i class="fas fa-file-lines cm-mr-sm"></i>Derniers rapports traités</h3>
+                <?php if (canView()): ?>
+                    <a href="?page=processus_validation" class="cm-btn cm-btn--primary cm-btn--sm" data-cm-ajax-link="true">
+                        <i class="fas fa-external-link-alt cm-mr-sm"></i> Voir tout
+                    </a>
+                <?php endif; ?>
+            </div>
+            <div class="cm-card__body">
+                <div style="overflow-x:auto">
+                    <table class="cm-table">
+                        <thead>
+                            <tr>
+                                <th>Étudiant</th>
+                                <th>Thème / Titre</th>
+                                <th>Validé par</th>
+                                <th>Date</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($rapportsDetails as $r):
+                                $statut = strtolower((string) ($r['statut'] ?? ''));
+                                $badgeClass = $statut === 'valider' ? 'cm-badge--success' : ($statut === 'rejeter' ? 'cm-badge--danger' : 'cm-badge--info');
+                                $label = $statut === 'valider' ? 'Validé' : ($statut === 'rejeter' ? 'Rejeté' : ucfirst($statut));
+                                ?>
+                                <tr>
+                                    <td><?= htmlspecialchars(trim(($r['nom_etudiant'] ?? '') . ' ' . ($r['prenom_etudiant'] ?? '')), ENT_QUOTES, 'UTF-8') ?>
+                                    </td>
+                                    <td><small><?= htmlspecialchars($r['titre'] ?? '', ENT_QUOTES, 'UTF-8') ?></small></td>
+                                    <td><?= htmlspecialchars(trim(($r['nom_enseignant'] ?? '') . ' ' . ($r['prenom_enseignant'] ?? '')), ENT_QUOTES, 'UTF-8') ?>
+                                    </td>
+                                    <td><?= !empty($r['date_validation']) ? htmlspecialchars(date('d/m/Y', strtotime((string) $r['date_validation'])), ENT_QUOTES, 'UTF-8') : '-' ?>
+                                    </td>
+                                    <td><span
+                                            class="cm-badge <?= $badgeClass ?>"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 </section>

@@ -83,9 +83,9 @@ final class PlanningGeneratorService
     public function generateFromSelectedSoutenances(array $selectedIds, int $userId): array
     {
         $normalizedIds = array_values(array_unique(array_filter(array_map(
-            static fn ($id): string => trim((string) $id),
+            static fn($id): string => trim((string) $id),
             $selectedIds
-        ), static fn (string $id): bool => $id !== '')));
+        ), static fn(string $id): bool => $id !== '')));
 
         if (empty($normalizedIds)) {
             return [
@@ -113,7 +113,7 @@ final class PlanningGeneratorService
                     $found[$id] = true;
                 }
             }
-            $missingIds = array_values(array_filter($normalizedIds, static fn (string $id): bool => !isset($found[$id])));
+            $missingIds = array_values(array_filter($normalizedIds, static fn(string $id): bool => !isset($found[$id])));
             if (!empty($missingIds)) {
                 return [
                     'success' => false,
@@ -245,9 +245,31 @@ final class PlanningGeneratorService
     {
         foreach ($soutenances as &$soutenance) {
             $numSoutenance = (string) ($soutenance['num_soutenance'] ?? '');
-            $soutenance['jury_details'] = $numSoutenance !== ''
+            $juryDetails = $numSoutenance !== ''
                 ? $this->planningDataUtils->getJuryDetails($numSoutenance)
                 : [];
+
+            // Fallback explicite depuis les champs alimentés par les codes PJ/MS.
+            if (empty($juryDetails['president'])) {
+                $presidentNom = trim((string) ($soutenance['president_jury_nom'] ?? ''));
+                if ($presidentNom !== '') {
+                    $juryDetails['president'] = 'M. ' . $presidentNom;
+                }
+            }
+
+            // Fallback: si le maitre de stage n'est pas dans le jury compose,
+            // utiliser la fiche stage de l'etudiant.
+            if (empty($juryDetails['maitre_stage'])) {
+                $maitreStageNom = trim((string) ($soutenance['maitre_stage_jury_nom'] ?? ''));
+                if ($maitreStageNom === '') {
+                    $maitreStageNom = trim((string) ($soutenance['maitre_stage_nom'] ?? ''));
+                }
+                if ($maitreStageNom !== '') {
+                    $juryDetails['maitre_stage'] = $maitreStageNom;
+                }
+            }
+
+            $soutenance['jury_details'] = $juryDetails;
         }
         unset($soutenance);
 
@@ -357,26 +379,19 @@ final class PlanningGeneratorService
      */
     private function buildDatePlanningContent(array $soutenances): string
     {
-        $rooms = $this->extractRoomsForDay($soutenances);
-        $roomColorMap = $this->buildRoomColorMap($rooms);
-
         $wNo = 4.0;
         $wNom = 16.0;
         $wJury = 22.0;
         $wHeure = 7.0;
         $wTheme = 20.0;
         $wEnt = 9.0;
-        $baseTotal = $wNo + $wNom + $wJury + $wHeure + $wTheme + $wEnt;
-        $roomCount = max(1, count($rooms));
-        $remaining = max(8.0, 100.0 - $baseTotal);
-        $roomWidth = $remaining / $roomCount;
+        $wSalle = 22.0;
 
         $html = <<<HTML
 <style>
     table.planning { width: 100%; border-collapse: collapse; }
     th { background-color: #F0F0F0; font-weight: bold; text-align: center; font-size: 8pt; vertical-align: middle; border: 0.5pt solid black; }
     td { font-size: 8pt; vertical-align: top; border: 0.5pt solid black; padding: 4px; }
-    td.room-mark { text-align: center; font-weight: bold; }
 </style>
 <table class="planning" border="0.5" cellpadding="4" cellspacing="0">
     <thead>
@@ -387,18 +402,11 @@ final class PlanningGeneratorService
             <th width="{$wHeure}%">HEURE</th>
             <th width="{$wTheme}%">THEME</th>
             <th width="{$wEnt}%">ENTREPRISE D'ACCUEIL</th>
+            <th width="{$wSalle}%">SALLE</th>
+        </tr>
+    </thead>
+    <tbody>
 HTML;
-
-        if (!empty($rooms)) {
-            foreach ($rooms as $room) {
-                $label = htmlspecialchars((string) $room['label'], ENT_QUOTES, 'UTF-8');
-                $html .= '<th width="' . $roomWidth . '%">' . $label . '</th>';
-            }
-        } else {
-            $html .= '<th width="' . $roomWidth . '%">SALLE</th>';
-        }
-
-        $html .= '</tr></thead><tbody>';
 
         $idx = 1;
         foreach ($soutenances as $soutenance) {
@@ -417,21 +425,12 @@ HTML;
             $html .= '<td width="' . $wTheme . '%">' . $theme . '</td>';
             $html .= '<td width="' . $wEnt . '%">' . $entreprise . '</td>';
 
-            $assignedRoomKey = $this->resolveRoomKey($soutenance);
-            if (!empty($rooms)) {
-                foreach ($rooms as $room) {
-                    $roomKey = (string) ($room['key'] ?? '');
-                    if ($roomKey !== '' && $roomKey === $assignedRoomKey) {
-                        $bg = (string) ($roomColorMap[$roomKey] ?? '#d9edf7');
-                        $html .= '<td width="' . $roomWidth . '%" class="room-mark" bgcolor="' . $bg . '">X</td>';
-                    } else {
-                        $html .= '<td width="' . $roomWidth . '%"></td>';
-                    }
-                }
-            } else {
-                $roomLabel = htmlspecialchars((string) ($soutenance['lib_salle'] ?? '-'), ENT_QUOTES, 'UTF-8');
-                $html .= '<td width="' . $roomWidth . '%">' . $roomLabel . '</td>';
+            $roomLabel = trim((string) ($soutenance['lib_salle'] ?? ''));
+            if ($roomLabel === '') {
+                $roomId = trim((string) ($soutenance['id_salle'] ?? ''));
+                $roomLabel = $roomId !== '' ? 'Salle ' . $roomId : 'non renseignee';
             }
+            $html .= '<td width="' . $wSalle . '%">' . htmlspecialchars($roomLabel, ENT_QUOTES, 'UTF-8') . '</td>';
 
             $html .= '</tr>';
             $idx++;
@@ -464,10 +463,46 @@ HTML;
             $chunks[] = '<b>Encadreur :</b> ' . htmlspecialchars((string) $juryDetails['encadreur'], ENT_QUOTES, 'UTF-8');
         }
         if (!empty($juryDetails['maitre_stage'])) {
-            $chunks[] = '<b>Maître de stage :</b> ' . htmlspecialchars((string) $juryDetails['maitre_stage'], ENT_QUOTES, 'UTF-8');
+            $maitreStage = $this->normalizeMaitreStageForDisplay($juryDetails['maitre_stage']);
+            if ($maitreStage !== '') {
+                $chunks[] = '<b>Maître de stage :</b> ' . htmlspecialchars($maitreStage, ENT_QUOTES, 'UTF-8');
+            } else {
+                $chunks[] = '<b>Maître de stage :</b> non renseigner';
+            }
+        } else {
+            $chunks[] = '<b>Maître de stage :</b> non renseigner';
         }
 
         return implode('<br/>', $chunks);
+    }
+
+    /**
+     * Nettoie les valeurs parasites (ex: "STAGE MAITRE") avant rendu PDF.
+     *
+     * @param mixed $value
+     */
+    private function normalizeMaitreStageForDisplay($value): string
+    {
+        $name = trim((string) $value);
+        if ($name === '') {
+            return '';
+        }
+
+        $name = trim((string) preg_replace('/^\s*M\.\s*/u', '', $name));
+        $name = (string) preg_replace('/\s+/u', ' ', $name);
+        $upper = strtoupper($name);
+
+        $invalidLabels = [
+            'STAGE MAITRE',
+            'MAITRE STAGE',
+            'NON RENSEIGNE',
+            'NON RENSEIGNER',
+            'N/A',
+            'NA',
+            '-',
+        ];
+
+        return in_array($upper, $invalidLabels, true) ? '' : $name;
     }
 
     private function formatSessionForDate(DateTimeImmutable $date): string
@@ -536,7 +571,7 @@ HTML;
         }
 
         $result = array_values($rooms);
-        usort($result, static fn (array $left, array $right): int => strcmp((string) $left['label'], (string) $right['label']));
+        usort($result, static fn(array $left, array $right): int => strcmp((string) $left['label'], (string) $right['label']));
         return $result;
     }
 
