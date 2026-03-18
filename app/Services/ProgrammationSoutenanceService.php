@@ -292,7 +292,7 @@ class ProgrammationSoutenanceService
         }
         $juryRefCol = $this->getJuryRefColumn($juryTable);
         $progJuryCol = $this->getProgrammationJuryColumn($progTable);
-        $roleIdEscaped = $this->pdo->quote((string)$roleId);
+        $roleIdEscaped = $this->pdo->quote((string) $roleId);
         return "(SELECT cj.id_enseignant
                  FROM {$juryTable} cj
                  WHERE cj.{$juryRefCol} = {$progAlias}.{$progJuryCol}
@@ -311,13 +311,38 @@ class ProgrammationSoutenanceService
         }
         $juryRefCol = $this->getJuryRefColumn($juryTable);
         $progJuryCol = $this->getProgrammationJuryColumn($progTable);
-        $roleIdEscaped = $this->pdo->quote((string)$roleId);
+        $roleIdEscaped = $this->pdo->quote((string) $roleId);
         return "(SELECT CONCAT(ens.prenom_enseignant, ' ', ens.nom_enseignant)
                  FROM {$juryTable} cj
                  JOIN enseignants ens ON cj.id_enseignant = ens.id_enseignant
                  WHERE cj.{$juryRefCol} = {$progAlias}.{$progJuryCol}
                  AND cj.id_qualite_jury = {$roleIdEscaped}
                  LIMIT 1)";
+    }
+
+    private function normalizeMaitreStageName($value): string
+    {
+        $name = trim((string) $value);
+        if ($name === '') {
+            return '';
+        }
+
+        // Evite les prefixes de civilite en double dans les vues/PDF.
+        $name = trim((string) preg_replace('/^\s*M\.\s*/u', '', $name));
+        $name = (string) preg_replace('/\s+/u', ' ', $name);
+        $upper = strtoupper($name);
+
+        $invalidLabels = [
+            'STAGE MAITRE',
+            'MAITRE STAGE',
+            'NON RENSEIGNE',
+            'NON RENSEIGNER',
+            'N/A',
+            'NA',
+            '-',
+        ];
+
+        return in_array($upper, $invalidLabels, true) ? '' : $name;
     }
 
     /**
@@ -394,7 +419,13 @@ class ProgrammationSoutenanceService
                 $stmt->bindValue(':id_annee_acad', $selectedYearId, PDO::PARAM_INT);
             }
             $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rows as &$row) {
+                $row['maitre_stage_nom'] = $this->normalizeMaitreStageName($row['maitre_stage_nom'] ?? '');
+            }
+            unset($row);
+
+            return $rows;
         } catch (Exception $e) {
             error_log('Erreur getEtudiantsForView: ' . $e->getMessage());
             return [];
@@ -568,7 +599,13 @@ class ProgrammationSoutenanceService
                 $stmt->bindValue(':id_annee_acad', $selectedYearId, PDO::PARAM_INT);
             }
             $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rows as &$row) {
+                $row['maitre_stage_nom'] = $this->normalizeMaitreStageName($row['maitre_stage_nom'] ?? '');
+            }
+            unset($row);
+
+            return $rows;
         } catch (Exception $e) {
             error_log('Erreur getAttributions: ' . $e->getMessage());
             return [];
@@ -843,7 +880,7 @@ class ProgrammationSoutenanceService
             $enseignantId = $data[$field] ?? '';
             $roleId = $roleIds[$roleKey] ?? '';
             if ($enseignantId !== '' && $roleId !== '') {
-                $stmt->execute([(string) $juryRef, (string)$enseignantId, (string)$roleId]);
+                $stmt->execute([(string) $juryRef, (string) $enseignantId, (string) $roleId]);
             }
         }
     }

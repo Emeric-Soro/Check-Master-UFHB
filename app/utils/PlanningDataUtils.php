@@ -65,14 +65,26 @@ class PlanningDataUtils
                        e.prenom_etu AS prenom_etudiant, 
                        e.num_carte_etud AS matricule_etudiant, 
                        e.email_etu AS email_etudiant,
+                  (SELECT CONCAT(ens_p.prenom_enseignant, CHAR(32), ens_p.nom_enseignant)
+                   FROM enseignant_jury ej_p
+                   LEFT JOIN enseignants ens_p ON ens_p.id_enseignant = ej_p.id_enseignant
+                   WHERE ej_p.num_soutenance = ps.num_soutenance AND ej_p.id_qualite_jury = "PJ"
+                   LIMIT 1) AS president_jury_nom,
+                  (SELECT CONCAT(ens_m.prenom_enseignant, CHAR(32), ens_m.nom_enseignant)
+                   FROM enseignant_jury ej_m
+                   LEFT JOIN enseignants ens_m ON ens_m.id_enseignant = ej_m.id_enseignant
+                   WHERE ej_m.num_soutenance = ps.num_soutenance AND ej_m.id_qualite_jury = "MS"
+                   LIMIT 1) AS maitre_stage_jury_nom,
                        sa.lib_salle,
                        s.lib_session,
+                       CONCAT(ms.prenom, CHAR(32), ms.Nom) AS maitre_stage_nom,
                        COALESCE(ent.lib_long_entreprise, "N/A") AS entreprise_accueil
                 FROM programmer_soutenance ps
                 INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud
                 LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
                 LEFT JOIN session s ON s.id_session = ps.id_session
                 LEFT JOIN informations_stage ist ON ist.num_etu = ps.num_etud
+                  LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 LEFT JOIN entreprises ent ON ent.id_entreprise = ist.id_entreprise
                 WHERE 1=1';
 
@@ -107,7 +119,7 @@ class PlanningDataUtils
      */
     public function getSoutenancesByIds(array $soutenanceIds): array
     {
-        $ids = array_values(array_filter(array_map(static fn ($id): string => trim((string) $id), $soutenanceIds), static fn (string $id): bool => $id !== ''));
+        $ids = array_values(array_filter(array_map(static fn($id): string => trim((string) $id), $soutenanceIds), static fn(string $id): bool => $id !== ''));
         if (empty($ids)) {
             return [];
         }
@@ -120,14 +132,26 @@ class PlanningDataUtils
                        e.prenom_etu AS prenom_etudiant,
                        e.num_carte_etud AS matricule_etudiant,
                        e.email_etu AS email_etudiant,
+                  (SELECT CONCAT(ens_p.prenom_enseignant, CHAR(32), ens_p.nom_enseignant)
+                   FROM enseignant_jury ej_p
+                   LEFT JOIN enseignants ens_p ON ens_p.id_enseignant = ej_p.id_enseignant
+                   WHERE ej_p.num_soutenance = ps.num_soutenance AND ej_p.id_qualite_jury = 'PJ'
+                   LIMIT 1) AS president_jury_nom,
+                  (SELECT CONCAT(ens_m.prenom_enseignant, CHAR(32), ens_m.nom_enseignant)
+                   FROM enseignant_jury ej_m
+                   LEFT JOIN enseignants ens_m ON ens_m.id_enseignant = ej_m.id_enseignant
+                   WHERE ej_m.num_soutenance = ps.num_soutenance AND ej_m.id_qualite_jury = 'MS'
+                   LIMIT 1) AS maitre_stage_jury_nom,
                        sa.lib_salle,
                        s.lib_session,
+                       CONCAT(ms.prenom, CHAR(32), ms.Nom) AS maitre_stage_nom,
                        COALESCE(ent.lib_long_entreprise, 'N/A') AS entreprise_accueil
                 FROM programmer_soutenance ps
                 INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud
                 LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
                 LEFT JOIN session s ON s.id_session = ps.id_session
                 LEFT JOIN informations_stage ist ON ist.num_etu = ps.num_etud
+                  LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 LEFT JOIN entreprises ent ON ent.id_entreprise = ist.id_entreprise
                 WHERE ps.num_soutenance IN ({$placeholders})
                 ORDER BY ps.date_soutenance ASC, ps.heure_soutenance ASC";
@@ -147,41 +171,69 @@ class PlanningDataUtils
      */
     public function getJuryDetails(string $numSoutenance): array
     {
-        $sql = 'SELECT ej.id_enseignant, ens.nom_enseignant, ens.prenom_enseignant,
-                       qj.lib_role
-                FROM enseignant_jury ej
-                INNER JOIN enseignants ens ON ens.id_enseignant = ej.id_enseignant
-                INNER JOIN qualite_jury qj ON qj.id_role_jury = ej.id_qualite_jury
-                WHERE ej.num_soutenance = :num_soutenance';
-                
+        $juryTable = $this->getJuryTable();
+        $rolesTable = $this->getJuryRoleTable();
+        if ($juryTable === null || $rolesTable === null) {
+            return [];
+        }
+
+        $roleKeyMap = $this->getRoleKeyMap();
+
+        $juryRefCol = $this->getJuryRefColumn($juryTable);
+        $roleIdCol = $this->getRoleIdColumn($rolesTable);
+        $roleLabelCol = $this->getRoleLabelColumn($rolesTable);
+
+        $roleCodeSelect = $this->columnExists($rolesTable, 'code_qltjury')
+            ? 'qj.code_qltjury AS code_role,'
+            : "'' AS code_role,";
+
+        $sql = "SELECT ej.id_enseignant,
+                       COALESCE(ens.nom_enseignant, ms.Nom) AS nom_personne,
+                       COALESCE(ens.prenom_enseignant, ms.prenom) AS prenom_personne,
+                       qj.{$roleLabelCol} AS lib_role,
+                       {$roleCodeSelect}
+                       ej.id_qualite_jury
+                FROM {$juryTable} ej
+                LEFT JOIN enseignants ens ON ens.id_enseignant = ej.id_enseignant
+                LEFT JOIN maitre_de_stage ms ON CAST(ms.id_maitre_stage AS CHAR) = CAST(ej.id_enseignant AS CHAR)
+                INNER JOIN {$rolesTable} qj ON qj.{$roleIdCol} = ej.id_qualite_jury
+                WHERE ej.{$juryRefCol} = :jury_ref";
+
         $stmt = $this->db->pdo()->prepare($sql);
-        $stmt->execute(['num_soutenance' => $numSoutenance]);
+        $stmt->execute(['jury_ref' => $numSoutenance]);
         $membres = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         $juryDetails = [];
         if (is_array($membres)) {
             foreach ($membres as $m) {
-                $role = strtoupper((string)($m['lib_role'] ?? ''));
+                $roleId = trim((string) ($m['id_qualite_jury'] ?? ''));
+                $roleKey = $roleKeyMap[$roleId] ?? '';
+                $role = $this->normalizeRoleLabel(
+                    (string) ($m['lib_role'] ?? '') . ' ' . (string) ($m['code_role'] ?? '')
+                );
                 // On met "M." par défaut, mais cela pourrait être "Mme." selon le genre si la base le permettait
-                $identite = trim((string)($m['prenom_enseignant'] ?? '') . ' ' . (string)($m['nom_enseignant'] ?? ''));
-                
-                if (str_contains($role, 'PRÉSIDENT') || str_contains($role, 'PRESIDENT')) {
+                $identite = trim((string) ($m['prenom_personne'] ?? '') . ' ' . (string) ($m['nom_personne'] ?? ''));
+                if ($identite === '') {
+                    continue;
+                }
+
+                if ($roleKey === 'president' || str_contains($role, 'PRESIDENT') || str_contains($role, 'PDT')) {
                     $juryDetails['president'] = 'M. ' . $identite;
-                } elseif (str_contains($role, 'EXAMINATEUR')) {
+                } elseif ($roleKey === 'examinateur' || str_contains($role, 'EXAMINATEUR')) {
                     if (!isset($juryDetails['examinateur'])) {
                         $juryDetails['examinateur'] = [];
                     }
                     $juryDetails['examinateur'][] = 'M. ' . $identite;
-                } elseif (str_contains($role, 'MAÎTRE DE STAGE') || str_contains($role, 'MAITRE DE STAGE')) {
+                } elseif ($roleKey === 'maitre_stage' || str_contains($role, 'MAITRE') || str_contains($role, 'STAGE') || str_contains($role, 'MDS')) {
                     $juryDetails['maitre_stage'] = 'M. ' . $identite;
-                } elseif (str_contains($role, 'DIRECTEUR')) {
+                } elseif ($roleKey === 'directeur' || str_contains($role, 'DIRECTEUR')) {
                     $juryDetails['directeur'] = 'M. ' . $identite;
-                } elseif (str_contains($role, 'ENCADRANT') || str_contains($role, 'ENCADREUR')) {
+                } elseif ($roleKey === 'encadreur' || str_contains($role, 'ENCADR')) {
                     $juryDetails['encadreur'] = 'M. ' . $identite;
                 }
             }
         }
-        
+
         return $juryDetails;
     }
 
@@ -350,21 +402,187 @@ class PlanningDataUtils
      */
     public function getJuryMembersForSoutenance(string $numSoutenance): array
     {
-        $sql = 'SELECT ens.nom_enseignant AS nom_utilisateur, 
-                       ens.prenom_enseignant AS prenom,
-                       qj.lib_role AS role_jury,
-                       qj.lib_role AS fonction
-                FROM enseignant_jury ej
-                INNER JOIN enseignants ens ON ens.id_enseignant = ej.id_enseignant
-                INNER JOIN qualite_jury qj ON qj.id_role_jury = ej.id_qualite_jury
-                WHERE ej.num_soutenance = :num_soutenance
-                ORDER BY qj.id_role_jury ASC';
+        $juryTable = $this->getJuryTable();
+        $rolesTable = $this->getJuryRoleTable();
+        if ($juryTable === null || $rolesTable === null) {
+            return [];
+        }
+
+        $juryRefCol = $this->getJuryRefColumn($juryTable);
+        $roleIdCol = $this->getRoleIdColumn($rolesTable);
+        $roleLabelCol = $this->getRoleLabelColumn($rolesTable);
+
+        $roleCodeSelect = $this->columnExists($rolesTable, 'code_qltjury')
+            ? 'qj.code_qltjury AS code_role,'
+            : "'' AS code_role,";
+
+        $sql = "SELECT COALESCE(ens.nom_enseignant, ms.Nom) AS nom_utilisateur,
+                       COALESCE(ens.prenom_enseignant, ms.prenom) AS prenom,
+                       qj.{$roleLabelCol} AS role_jury,
+                       qj.{$roleLabelCol} AS fonction,
+                       {$roleCodeSelect}
+                       ej.id_qualite_jury
+                FROM {$juryTable} ej
+                LEFT JOIN enseignants ens ON ens.id_enseignant = ej.id_enseignant
+                LEFT JOIN maitre_de_stage ms ON CAST(ms.id_maitre_stage AS CHAR) = CAST(ej.id_enseignant AS CHAR)
+                INNER JOIN {$rolesTable} qj ON qj.{$roleIdCol} = ej.id_qualite_jury
+                WHERE ej.{$juryRefCol} = :jury_ref
+                ORDER BY qj.{$roleIdCol} ASC";
 
         $stmt = $this->db->pdo()->prepare($sql);
-        $stmt->execute(['num_soutenance' => $numSoutenance]);
+        $stmt->execute(['jury_ref' => $numSoutenance]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return is_array($rows) ? $rows : [];
+    }
+
+    private function getJuryTable(): ?string
+    {
+        if ($this->tableExists('enseignant_jury')) {
+            return 'enseignant_jury';
+        }
+        if ($this->tableExists('composer_jury')) {
+            return 'composer_jury';
+        }
+
+        return null;
+    }
+
+    private function getJuryRoleTable(): ?string
+    {
+        if ($this->tableExists('qualite_jury')) {
+            return 'qualite_jury';
+        }
+        if ($this->tableExists('roles_jury')) {
+            return 'roles_jury';
+        }
+
+        return null;
+    }
+
+    private function getJuryRefColumn(string $juryTable): string
+    {
+        return $juryTable === 'composer_jury' ? 'num_jury' : 'num_soutenance';
+    }
+
+    private function getRoleIdColumn(string $rolesTable): string
+    {
+        if ($this->columnExists($rolesTable, 'id_role_jury')) {
+            return 'id_role_jury';
+        }
+
+        return 'id_qualite_jury';
+    }
+
+    private function getRoleLabelColumn(string $rolesTable): string
+    {
+        if ($this->columnExists($rolesTable, 'lib_role')) {
+            return 'lib_role';
+        }
+
+        return 'lib_qualite_jury';
+    }
+
+    private function normalizeRoleLabel(string $label): string
+    {
+        $normalized = function_exists('mb_strtoupper')
+            ? mb_strtoupper($label, 'UTF-8')
+            : strtoupper($label);
+
+        if (function_exists('iconv')) {
+            $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $normalized);
+            if (is_string($ascii) && $ascii !== '') {
+                $normalized = $ascii;
+            }
+        }
+
+        $normalized = str_replace(['_', '-', "'"], ' ', $normalized);
+        $normalized = preg_replace('/\s+/', ' ', $normalized) ?? $normalized;
+
+        return trim($normalized);
+    }
+
+    /**
+     * @return array<string, string> map id_role -> role key
+     */
+    private function getRoleKeyMap(): array
+    {
+        $rolesTable = $this->getJuryRoleTable();
+        if ($rolesTable === null) {
+            return [];
+        }
+
+        $roleIdCol = $this->getRoleIdColumn($rolesTable);
+        $roleLabelCol = $this->getRoleLabelColumn($rolesTable);
+        $roleCodeSelect = $this->columnExists($rolesTable, 'code_qltjury')
+            ? 'code_qltjury AS role_code'
+            : "'' AS role_code";
+
+        try {
+            $sql = "SELECT {$roleIdCol} AS role_id, {$roleLabelCol} AS role_label, {$roleCodeSelect} FROM {$rolesTable}";
+            $rows = $this->db->pdo()->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+            $map = [];
+            foreach ((array) $rows as $row) {
+                $roleId = trim((string) ($row['role_id'] ?? ''));
+                if ($roleId === '') {
+                    continue;
+                }
+                $fullLabel = $this->normalizeRoleLabel(
+                    (string) ($row['role_label'] ?? '') . ' ' . (string) ($row['role_code'] ?? '')
+                );
+                if ($this->roleLabelMatches($fullLabel, ['PRESIDENT', 'PDT'])) {
+                    $map[$roleId] = 'president';
+                } elseif ($this->roleLabelMatches($fullLabel, ['EXAMINATEUR'])) {
+                    $map[$roleId] = 'examinateur';
+                } elseif ($this->roleLabelMatches($fullLabel, ['DIRECTEUR'])) {
+                    $map[$roleId] = 'directeur';
+                } elseif ($this->roleLabelMatches($fullLabel, ['ENCADR', 'ENCADRANT', 'ENCADREUR'])) {
+                    $map[$roleId] = 'encadreur';
+                } elseif ($this->roleLabelMatches($fullLabel, ['MAITRE', 'STAGE', 'MDS'])) {
+                    $map[$roleId] = 'maitre_stage';
+                }
+            }
+
+            return $map;
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * @param array<int, string> $needles
+     */
+    private function roleLabelMatches(string $normalizedLabel, array $needles): bool
+    {
+        foreach ($needles as $needle) {
+            if (str_contains($normalizedLabel, $this->normalizeRoleLabel($needle))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function tableExists(string $table): bool
+    {
+        try {
+            $stmt = $this->db->pdo()->prepare('SHOW TABLES LIKE :table_name');
+            $stmt->execute(['table_name' => $table]);
+            return (bool) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function columnExists(string $table, string $column): bool
+    {
+        try {
+            $stmt = $this->db->pdo()->prepare("SHOW COLUMNS FROM {$table} LIKE :column_name");
+            $stmt->execute(['column_name' => $column]);
+            return (bool) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     public function getPvDataForSoutenance(string $numSoutenance): ?array
@@ -585,8 +803,11 @@ class PlanningDataUtils
 
         // Seules les colonnes réelles de rapport_etudiants
         $allowedColumns = [
-            'chemin_fichier', 'statut_rapport', 'date_modification',
-            'taille_fichier', 'version',
+            'chemin_fichier',
+            'statut_rapport',
+            'date_modification',
+            'taille_fichier',
+            'version',
         ];
 
         $sets = [];
