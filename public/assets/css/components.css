@@ -2390,8 +2390,19 @@
 .cm-profile-screen {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
   min-height: 0;
+  width: 100%;
+  max-width: 1400px;
+}
+
+.cm-profile-screen>.cm-tab-nav {
+  margin-top: 20px;
+  align-self: flex-start;
+}
+
+.cm-profile-screen > .cm-tab-panel {
+  width: 100%;
 }
 
 .cm-profile-card {

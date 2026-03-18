@@ -127,6 +127,88 @@ class AuthService
         return session_destroy();
     }
 
+    public function updateEmail($idUtilisateur, $newEmail, $confirmEmail)
+    {
+        $idUtilisateur = (int) $idUtilisateur;
+        $newEmail = strtolower(trim((string) $newEmail));
+        $confirmEmail = strtolower(trim((string) $confirmEmail));
+
+        if ($idUtilisateur <= 0) {
+            return ['success' => false, 'message' => 'Session utilisateur invalide. Veuillez vous reconnecter.'];
+        }
+
+        if ($newEmail === '' || $confirmEmail === '') {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Tous les champs adresse mail sont obligatoires.'];
+        }
+
+        if ($newEmail !== $confirmEmail) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Les adresses mail ne correspondent pas.'];
+        }
+
+        if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Adresse mail invalide.'];
+        }
+
+        if (strlen($newEmail) > 100) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Adresse mail trop longue (100 caractères maximum).'];
+        }
+
+        $utilisateur = new Utilisateur($this->db);
+        $user = $utilisateur->getUtilisateurById($idUtilisateur);
+        if (!$user) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Utilisateur introuvable.'];
+        }
+
+        $nomUtilisateur = trim((string) ($user->nom_utilisateur ?? ''));
+        $idTypeUtilisateur = (int) ($user->id_type_utilisateur ?? 0);
+        if ($nomUtilisateur === '' || $idTypeUtilisateur <= 0) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Profil utilisateur incomplet.'];
+        }
+
+        $currentEmail = trim((string) $utilisateur->getEmailByNomAndType($nomUtilisateur, $idTypeUtilisateur));
+        if ($currentEmail !== '' && strcasecmp($currentEmail, $newEmail) === 0) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'La nouvelle adresse mail doit être différente de l\'adresse actuelle.'];
+        }
+
+        if (!$utilisateur->updateEmailByNomAndType($nomUtilisateur, $idTypeUtilisateur, $newEmail)) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Erreur lors de la mise à jour de l\'adresse mail.'];
+        }
+
+        $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Succès');
+        return ['success' => true, 'message' => 'Adresse mail mise à jour avec succès.'];
+    }
+
+    public function getContactEmail($idUtilisateur): ?string
+    {
+        $idUtilisateur = (int) $idUtilisateur;
+        if ($idUtilisateur <= 0) {
+            return null;
+        }
+
+        $utilisateur = new Utilisateur($this->db);
+        $user = $utilisateur->getUtilisateurById($idUtilisateur);
+        if (!$user) {
+            return null;
+        }
+
+        $nomUtilisateur = trim((string) ($user->nom_utilisateur ?? ''));
+        $idTypeUtilisateur = (int) ($user->id_type_utilisateur ?? 0);
+        if ($nomUtilisateur === '' || $idTypeUtilisateur <= 0) {
+            return null;
+        }
+
+        $email = trim((string) $utilisateur->getEmailByNomAndType($nomUtilisateur, $idTypeUtilisateur));
+        return $email !== '' ? $email : null;
+    }
+
     public function updatePassword($idUtilisateur, $currentPassword, $newPassword, $confirmPassword)
     {
         $idUtilisateur = (int) $idUtilisateur;

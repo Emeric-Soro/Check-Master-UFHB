@@ -22,8 +22,6 @@ $filters = [
     'groupe' => (string) ($_GET['groupe'] ?? ''),
     'statut' => (string) ($_GET['statut'] ?? ''),
 ];
-$limit = max(5, min(100, (int) ($_GET['limit'] ?? 10)));
-$page = max(1, (int) ($_GET['p'] ?? 1));
 
 $utilisateursFiltres = array_values(array_filter($utilisateursSource, static function ($user) use ($filters): bool {
     if ($filters['search'] !== '') {
@@ -54,8 +52,7 @@ usort($utilisateursFiltres, static function ($a, $b): int {
 });
 
 $total = count($utilisateursFiltres);
-$pagination = cm_paginate($total, $limit, $page);
-$rowsPage = array_slice($utilisateursFiltres, (int) $pagination['offset'], $limit);
+$rowsPage = $utilisateursFiltres;
 
 $typeOptions = ['' => '-- Sélectionner --'];
 foreach ($typesUtilisateur as $type) {
@@ -92,15 +89,6 @@ foreach ($rowsPage as $user) {
         'login_utilisateur' => (string) ($user->login_utilisateur ?? ''),
     ];
 }
-
-$pagerBase = '?' . http_build_query(array_filter([
-    'page' => 'gestion_utilisateurs',
-    'search' => $filters['search'],
-    'type' => $filters['type'],
-    'groupe' => $filters['groupe'],
-    'statut' => $filters['statut'],
-    'limit' => $limit,
-], static fn($v) => $v !== '' && $v !== null));
 
 $editTypeValue = (string) ($utilisateurEdit->id_type_utilisateur ?? '');
 $editGroupeValue = (string) ($utilisateurEdit->id_GU ?? '');
@@ -178,26 +166,37 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
 <form method="POST" action="?page=gestion_utilisateurs" id="cmUsersMassForm" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <div class="cm-grid-4">
-                    <?php cm_component('form/select', ['name' => 'id_type_utilisateur', 'label' => 'Type utilisateur', 'required' => true, 'options' => $typeOptions, 'control_class' => 'cm-field-md']); ?>
-                    <?php cm_component('form/select', ['name' => 'id_GU', 'label' => 'Groupe utilisateur', 'required' => true, 'options' => $groupOptions, 'control_class' => 'cm-field-md']); ?>
+                    <?php cm_component('form/select', ['name' => 'id_type_utilisateur', 'id' => 'cmMassTypeUtilisateur', 'label' => 'Type utilisateur', 'required' => true, 'options' => $typeOptions, 'control_class' => 'cm-field-md']); ?>
+                    <div class="cm-form-group">
+                        <label for="cmMassGroupeUtilisateur" class="cm-form-label">Groupe utilisateur</label>
+                        <select name="id_GU" id="cmMassGroupeUtilisateur" class="cm-form-control cm-field-md" required>
+                            <option value="">-- Sélectionner --</option>
+                            <?php foreach ($groupesUtilisateur as $groupe): $gid = (string) ($groupe->id_GU ?? ''); if ($gid === '') { continue; } ?>
+                            <option value="<?= htmlspecialchars($gid, ENT_QUOTES, 'UTF-8') ?>" data-type-id="<?= htmlspecialchars((string) ($groupe->id_type_utilisateur ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                <?= htmlspecialchars((string) ($groupe->lib_GU ?? ('Groupe ' . $gid)), ENT_QUOTES, 'UTF-8') ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'control_class' => 'cm-field-lg']); ?>
                     <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif'], 'selected' => 'Actif', 'control_class' => 'cm-field-sm']); ?>
                 </div>
                 <div class="cm-form-group">
                     <label class="cm-form-label">Selection des personnes</label>
                     <div class="cm-table-wrapper is-mass-select">
-                        <table class="cm-data-table">
+                        <table class="cm-data-table" id="cmMassPersonsTable">
                             <thead><tr><th class="cm-data-table__th">Sel</th><th class="cm-data-table__th">Type</th><th class="cm-data-table__th">Nom</th><th class="cm-data-table__th">Email</th></tr></thead>
                             <tbody>
                                 <?php $hasMassData = false; foreach ($enseignantsNonUtilisateurs as $p): $hasMassData = true; ?>
-                                <tr class="cm-data-table__row"><td class="cm-data-table__td"><input type="checkbox" name="selected_persons[]" value="ens_<?= htmlspecialchars((string) ($p->id_enseignant ?? ''), ENT_QUOTES, 'UTF-8') ?>"></td><td class="cm-data-table__td">Enseignant</td><td class="cm-data-table__td"><?= htmlspecialchars(trim((string) (($p->nom_enseignant ?? '') . ' ' . ($p->prenom_enseignant ?? ''))), ENT_QUOTES, 'UTF-8') ?></td><td class="cm-data-table__td"><?= htmlspecialchars((string) ($p->mail_enseignant ?? ''), ENT_QUOTES, 'UTF-8') ?></td></tr>
+                                <tr class="cm-data-table__row" data-person-type="ens"><td class="cm-data-table__td"><input type="checkbox" name="selected_persons[]" value="ens_<?= htmlspecialchars((string) ($p->id_enseignant ?? ''), ENT_QUOTES, 'UTF-8') ?>"></td><td class="cm-data-table__td">Enseignant</td><td class="cm-data-table__td"><?= htmlspecialchars(trim((string) (($p->nom_enseignant ?? '') . ' ' . ($p->prenom_enseignant ?? ''))), ENT_QUOTES, 'UTF-8') ?></td><td class="cm-data-table__td"><?= htmlspecialchars((string) ($p->mail_enseignant ?? ''), ENT_QUOTES, 'UTF-8') ?></td></tr>
                                 <?php endforeach; foreach ($personnelNonUtilisateurs as $p): $hasMassData = true; ?>
-                                <tr class="cm-data-table__row"><td class="cm-data-table__td"><input type="checkbox" name="selected_persons[]" value="pers_<?= htmlspecialchars((string) ($p->id_pers_admin ?? ''), ENT_QUOTES, 'UTF-8') ?>"></td><td class="cm-data-table__td">Personnel</td><td class="cm-data-table__td"><?= htmlspecialchars(trim((string) (($p->nom_pers_admin ?? '') . ' ' . ($p->prenom_pers_admin ?? ''))), ENT_QUOTES, 'UTF-8') ?></td><td class="cm-data-table__td"><?= htmlspecialchars((string) ($p->email_pers_admin ?? ''), ENT_QUOTES, 'UTF-8') ?></td></tr>
+                                <tr class="cm-data-table__row" data-person-type="pers"><td class="cm-data-table__td"><input type="checkbox" name="selected_persons[]" value="pers_<?= htmlspecialchars((string) ($p->id_pers_admin ?? ''), ENT_QUOTES, 'UTF-8') ?>"></td><td class="cm-data-table__td">Personnel</td><td class="cm-data-table__td"><?= htmlspecialchars(trim((string) (($p->nom_pers_admin ?? '') . ' ' . ($p->prenom_pers_admin ?? ''))), ENT_QUOTES, 'UTF-8') ?></td><td class="cm-data-table__td"><?= htmlspecialchars((string) ($p->email_pers_admin ?? ''), ENT_QUOTES, 'UTF-8') ?></td></tr>
                                 <?php endforeach; foreach ($etudiantsNonUtilisateurs as $p): $hasMassData = true; ?>
-                                <tr class="cm-data-table__row"><td class="cm-data-table__td"><input type="checkbox" name="selected_persons[]" value="etu_<?= htmlspecialchars((string) ($p->num_etu ?? ''), ENT_QUOTES, 'UTF-8') ?>"></td><td class="cm-data-table__td">Etudiant</td><td class="cm-data-table__td"><?= htmlspecialchars(trim((string) (($p->nom_etu ?? '') . ' ' . ($p->prenom_etu ?? ''))), ENT_QUOTES, 'UTF-8') ?></td><td class="cm-data-table__td"><?= htmlspecialchars((string) ($p->email_etu ?? ''), ENT_QUOTES, 'UTF-8') ?></td></tr>
+                                <tr class="cm-data-table__row" data-person-type="etu"><td class="cm-data-table__td"><input type="checkbox" name="selected_persons[]" value="etu_<?= htmlspecialchars((string) ($p->num_etu ?? ''), ENT_QUOTES, 'UTF-8') ?>"></td><td class="cm-data-table__td">Etudiant</td><td class="cm-data-table__td"><?= htmlspecialchars(trim((string) (($p->nom_etu ?? '') . ' ' . ($p->prenom_etu ?? ''))), ENT_QUOTES, 'UTF-8') ?></td><td class="cm-data-table__td"><?= htmlspecialchars((string) ($p->email_etu ?? ''), ENT_QUOTES, 'UTF-8') ?></td></tr>
                                 <?php endforeach; if (!$hasMassData): ?>
                                 <tr><td colspan="4" class="cm-data-table__td is-center">Aucune personne disponible.</td></tr>
                                 <?php endif; ?>
+                                <tr id="cmMassNoMatchRow" hidden><td colspan="4" class="cm-data-table__td is-center">Aucune personne disponible pour ce type.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -250,8 +249,6 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
                     'screen' => 'gestion_utilisateurs',
                     'id_prefix' => 'users',
                     'search_value' => $filters['search'],
-                    'limit' => $limit,
-                    'limit_options' => [5, 10, 25, 50, 100],
                     'can_delete' => canDelete(),
                     'can_view' => canView(),
                     'custom_actions' => array_filter([
@@ -291,7 +288,6 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
                         'empty_message' => 'Aucun enregistrement trouvé.',
                     ]); ?>
                 </form>
-                <?php cm_component('crud/pagination', ['pagination' => $pagination, 'base_url' => $pagerBase, 'param_name' => 'p']); ?>
             </div>
         <?php endif; ?>
     </div>
@@ -321,11 +317,11 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
 }
 
 #users_toolbar .cm-toolbar-left {
-    flex: 0 0 auto !important;
+    display: none !important;
 }
 
 #users_toolbar .cm-toolbar-center {
-    flex: 0 1 auto !important;
+    flex: 1 1 auto !important;
     min-width: 0 !important;
 }
 
@@ -407,6 +403,10 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
     const userFormState = document.getElementById('cmUserFormState');
     const massForm = document.getElementById('cmUsersMassForm');
     const massFormState = document.getElementById('cmUsersMassFormState');
+    const massTypeSelect = document.getElementById('cmMassTypeUtilisateur');
+    const massGroupSelect = document.getElementById('cmMassGroupeUtilisateur');
+    const massPersonsTable = document.getElementById('cmMassPersonsTable');
+    const massNoMatchRow = document.getElementById('cmMassNoMatchRow');
     const existingName = <?= json_encode($editNomValue) ?>;
     const existingLogin = <?= json_encode($editLoginValue) ?>;
     const flashSuccess = <?= json_encode($messageSuccess) ?>;
@@ -432,6 +432,55 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
     };
 
     function n(v) { return String(v || '').toLowerCase(); }
+    function mapTypeToMassPersonKinds(typeId) {
+        const id = String(typeId || '').trim();
+        if (id === '4') return ['pers'];
+        if (id === '5' || id === '6') return ['ens'];
+        if (id === '7') return ['etu'];
+        return [];
+    }
+    function syncMassGroupsByType() {
+        if (!massTypeSelect || !massGroupSelect) {
+            return;
+        }
+        const selectedType = String(massTypeSelect.value || '').trim();
+        Array.from(massGroupSelect.options).forEach(function (option) {
+            const optionType = String(option.getAttribute('data-type-id') || '').trim();
+            if (option.value === '' || selectedType === '' || optionType === '') {
+                option.hidden = false;
+                return;
+            }
+            option.hidden = optionType !== selectedType;
+        });
+        if (massGroupSelect.selectedOptions.length && massGroupSelect.selectedOptions[0].hidden) {
+            massGroupSelect.value = '';
+        }
+    }
+    function syncMassPersonsByType() {
+        if (!massTypeSelect || !massPersonsTable) {
+            return;
+        }
+        const selectedType = String(massTypeSelect.value || '').trim();
+        const allowedKinds = mapTypeToMassPersonKinds(selectedType);
+        let visibleCount = 0;
+        Array.from(massPersonsTable.querySelectorAll('tbody tr[data-person-type]')).forEach(function (row) {
+            const rowType = String(row.getAttribute('data-person-type') || '').trim();
+            const shouldShow = selectedType === '' || allowedKinds.includes(rowType);
+            row.hidden = !shouldShow;
+            if (!shouldShow) {
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                if (checkbox) {
+                    checkbox.checked = false;
+                }
+            } else {
+                visibleCount++;
+            }
+        });
+        if (massNoMatchRow) {
+            massNoMatchRow.hidden = visibleCount > 0;
+        }
+    }
+
     function populateNameSelect(list) {
         nomSelect.innerHTML = '';
         const values = [];
@@ -518,13 +567,13 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
         }
         const sourceEmail = String(getSelectedSourceEmail() || '').trim();
         const currentName = !nomSelectWrap.classList.contains('cm-user-name-hidden') ? nomSelect.value : nomText.value;
-        const suggestedLogin = sourceEmail || generateLoginFromName(currentName);
+        const suggestedLogin = generateLoginFromName(currentName);
         initialLoginSynced = true;
         loginInput.value = suggestedLogin;
         if (loginHint) {
             loginHint.textContent = sourceEmail
-                ? "Login prérempli avec l'email du profil sélectionné."
-                : "Aucun email source trouvé pour ce profil. Le compte sera créé sans envoi d'accès tant qu'un email n'est pas renseigné.";
+                ? "Email de l'entité détecté pour les notifications. Login généré automatiquement."
+                : "Aucun email source valide trouvé pour ce profil. Renseignez l'email dans l'entité avant création.";
         }
         if (suggestedLogin) {
             checkLoginAvailability(suggestedLogin.trim());
@@ -536,8 +585,8 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
             .then(r => r.json())
             .then(function (data) {
                 const prefix = String(getSelectedSourceEmail() || '').trim()
-                    ? "Login prérempli avec l'email du profil sélectionné. "
-                    : "Aucun email source trouvé pour ce profil. ";
+                    ? "Email entité détecté. "
+                    : "Aucun email source valide. ";
                 if (!data || !data.success) { loginHint.textContent = prefix + 'Verification login impossible.'; return; }
                 if (data.available) { loginHint.textContent = prefix + 'Login disponible.'; return; }
                 loginHint.textContent = data.suggestedLogin ? ('Login deja pris. Suggestion: ' + data.suggestedLogin) : (data.message || 'Login indisponible.');
@@ -546,6 +595,14 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
     }
 
     if (typeSelect) { typeSelect.addEventListener('change', syncNameFieldByType); syncNameFieldByType(); }
+    if (massTypeSelect) {
+        massTypeSelect.addEventListener('change', function () {
+            syncMassGroupsByType();
+            syncMassPersonsByType();
+        });
+        syncMassGroupsByType();
+        syncMassPersonsByType();
+    }
     if (nomText) nomText.addEventListener('blur', function () { if (loginInput && loginInput.value.trim() === '') { applySuggestedLogin(); } });
     if (nomSelect) nomSelect.addEventListener('change', function () { syncSourceMetadata(); applySuggestedLogin(); });
     if (loginInput) loginInput.addEventListener('blur', function () { checkLoginAvailability(loginInput.value.trim()); });

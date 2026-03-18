@@ -212,9 +212,12 @@ $addFeature([
     'existing_codes' => ['PROFIL'],
     'routes' => [
         ['pattern' => 'page=profil', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=profil&tab=profile', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=profil&tab=password', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=profil&tab=history', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=profil&tab=profile', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=profil&tab=password', 'method' => 'POST', 'crud' => 'modifier'],
+        ['pattern' => 'page=profil&action=update_email&tab=profile', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=profil&action=update_password&tab=password', 'method' => 'POST', 'crud' => 'modifier'],
     ],
     'permissions' => $profileMatrix,

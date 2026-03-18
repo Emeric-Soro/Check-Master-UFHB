@@ -258,7 +258,7 @@ class GestionUtilisateurService
         }
 
         if ($this->utilisateur->isLoginUsed($login_utilisateur)) {
-            return ['success' => false, 'message' => 'Ce login (email) est déjà utilisé par un autre utilisateur.'];
+            return ['success' => false, 'message' => 'Ce login est déjà utilisé par un autre utilisateur.'];
         }
 
         $invitationEmail = $this->resolveInvitationEmail($data, $nom_utilisateur, $id_type_utilisateur, $login_utilisateur);
@@ -349,9 +349,25 @@ class GestionUtilisateurService
     {
         $utilisateurs = [];
         $utilisateurModel = new Utilisateur($this->db);
+        $selectedTypeId = (int) ($commonData['id_type_utilisateur'] ?? 0);
+        $allowedPersonTypes = [];
+        if ($selectedTypeId === 4) {
+            $allowedPersonTypes = ['pers'];
+        } elseif ($selectedTypeId === 5 || $selectedTypeId === 6) {
+            $allowedPersonTypes = ['ens'];
+        } elseif ($selectedTypeId === 7) {
+            $allowedPersonTypes = ['etu'];
+        }
 
         foreach ($selectedPersons as $person) {
-            list($type, $id) = explode('_', $person);
+            $parts = explode('_', (string) $person, 2);
+            if (count($parts) !== 2) {
+                continue;
+            }
+            [$type, $id] = $parts;
+            if (!empty($allowedPersonTypes) && !in_array($type, $allowedPersonTypes, true)) {
+                continue;
+            }
             $login = '';
             $nom = '';
 

@@ -145,14 +145,16 @@ if (!isset($_SESSION['id_utilisateur'])) {
     $currentMenuSlugForGate = isset($_GET['page']) ? (string) $_GET['page'] : '';
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-    $isOwnPasswordUpdate = $currentMenuSlugForGate === 'profil'
+    $isOwnProfileUpdate = $currentMenuSlugForGate === 'profil'
         && $method === 'POST'
         && (
             isset($_POST['update_password'])
+            || isset($_POST['update_email'])
             || (string) ($_POST['action'] ?? '') === 'update_password'
+            || (string) ($_POST['action'] ?? '') === 'update_email'
         );
 
-    if ($currentMenuSlugForGate !== '' && !$isOwnPasswordUpdate && !$routePermissionService->canAccessLegacy((int) $_SESSION['id_GU'], $_GET, $_POST, $method)) {
+    if ($currentMenuSlugForGate !== '' && !$isOwnProfileUpdate && !$routePermissionService->canAccessLegacy((int) $_SESSION['id_GU'], $_GET, $_POST, $method)) {
         $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
         if ($isAjax) {
@@ -278,11 +280,71 @@ switch ($currentMenuSlug) {
             }
         }
 
+        $profileContactEmail = '';
+        try {
+            $authController = new AuthController(Database::getConnection());
+            $profileContactEmail = (string) ($authController->getContactEmail() ?? '');
+        } catch (\Throwable $e) {
+            error_log('Layout profil: récupération email de contact impossible: ' . $e->getMessage());
+        }
+        $GLOBALS['profileContactEmail'] = $profileContactEmail;
+
         $isPasswordUpdateRequest = (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST')
             && (
                 isset($_POST['update_password'])
                 || (string) ($_POST['action'] ?? '') === 'update_password'
             );
+
+        $isEmailUpdateRequest = (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST')
+            && (
+                isset($_POST['update_email'])
+                || (string) ($_POST['action'] ?? '') === 'update_email'
+            );
+
+        if ($isEmailUpdateRequest) {
+            $newEmail = (string) ($_POST['newEmail'] ?? $_POST['new_email'] ?? '');
+            $confirmEmail = (string) ($_POST['confirmEmail'] ?? $_POST['confirm_email'] ?? '');
+            $authController = new AuthController(Database::getConnection());
+            $emailUpdated = $authController->updateEmail($newEmail, $confirmEmail);
+            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+            if ($emailUpdated) {
+                $_SESSION['email_success'] = (string) ($GLOBALS['messageSuccess'] ?? 'Email de contact mis à jour avec succès.');
+                if ($auditService instanceof \CheckMaster\Services\AuditService) {
+                    $auditService->logRequestActivity((int) ($_SESSION['id_utilisateur'] ?? 0), $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'POST');
+                }
+
+                if ($isAjax) {
+                    header('Content-Type: application/json; charset=UTF-8');
+                    echo json_encode([
+                        'success' => true,
+                        'redirect' => 'layout.php?page=profil&tab=profile',
+                    ]);
+                    exit;
+                }
+
+                header('Location: layout.php?page=profil&tab=profile');
+                exit;
+            }
+
+            $_SESSION['email_error'] = (string) ($GLOBALS['messageErreur'] ?? 'Erreur lors de la mise à jour de l\'email de contact.');
+            if ($auditService instanceof \CheckMaster\Services\AuditService) {
+                $auditService->logRequestActivity((int) ($_SESSION['id_utilisateur'] ?? 0), $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'POST');
+            }
+
+            if ($isAjax) {
+                http_response_code(422);
+                header('Content-Type: application/json; charset=UTF-8');
+                echo json_encode([
+                    'success' => false,
+                    'message' => $_SESSION['email_error'],
+                ]);
+                exit;
+            }
+
+            header('Location: layout.php?page=profil&tab=profile');
+            exit;
+        }
 
         if ($isPasswordUpdateRequest) {
             $currentPassword = (string) ($_POST['currentPassword'] ?? $_POST['current_password'] ?? '');
