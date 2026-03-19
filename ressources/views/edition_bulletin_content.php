@@ -181,6 +181,7 @@ $baseUrl = '?page=edition_bulletin'
             'allowed_limits' => $allowedLimits,
             'can_delete' => canDelete(),
             'can_view' => canView(),
+            'print_title' => 'Édition bulletin',
         ]); ?>
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
@@ -188,7 +189,7 @@ $baseUrl = '?page=edition_bulletin'
                     <thead>
                         <tr>
                             <th class="cm-data-table__th cm-data-table__th--check">
-                                <input type="checkbox" id="cmBulletinCheckAll" aria-label="Tout sélectionner">
+                                <input type="checkbox" id="cmBulletinCheckAll" class="cm-table-check-all" aria-label="Tout sélectionner">
                             </th>
                             <th class="cm-data-table__th">N Carte</th>
                             <th class="cm-data-table__th">Nom</th>
@@ -223,7 +224,7 @@ $baseUrl = '?page=edition_bulletin'
                                     data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>"
                                     data-num-etu="<?php echo htmlspecialchars((string) ($row['num_etu'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                                     <td class="cm-data-table__td cm-data-table__td--check">
-                                        <input type="checkbox" class="cm-bulletin-check-row"
+                                        <input type="checkbox" class="cm-table-check-row cm-bulletin-check-row"
                                             value="<?php echo htmlspecialchars((string) ($row['num_etu'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                             aria-label="Sélectionner étudiant">
                                     </td>

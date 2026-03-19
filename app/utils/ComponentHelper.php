@@ -161,6 +161,8 @@ if (!function_exists('cm_render_param_crud_view')) {
         $editObject = $config['edit'] ?? null;
         $isEdit = is_object($editObject) || is_array($editObject);
 
+        $exportMode = strtolower(trim((string) ($_GET['_export'] ?? '')));
+
         $extraQueryString = '';
         if (!empty($extraQuery)) {
             $extraQueryString = '&' . http_build_query($extraQuery);
@@ -222,6 +224,23 @@ if (!function_exists('cm_render_param_crud_view')) {
             }));
         }
 
+        // Export fichiers (XLSX) : télécharger directement sans afficher l'écran.
+        if (in_array($exportMode, ['xlsx', 'excel'], true)) {
+            cm_param_crud_export('xlsx', [
+                'title' => $title,
+                'action' => $action,
+                'page_slug' => $pageSlug,
+                'rows' => $list,
+                'columns' => $columnDefs,
+            ]);
+            return;
+        }
+        if ($exportMode === 'pdf') {
+            header('Content-Type: text/plain; charset=utf-8');
+            echo "Export PDF désactivé.";
+            exit;
+        }
+
         $pagination = function_exists('cm_paginate')
             ? cm_paginate(count($list), $perPage, $currentPage)
             : [
@@ -248,6 +267,7 @@ if (!function_exists('cm_render_param_crud_view')) {
         $deselectAllBtnId = $uid . '_deselect_all';
         $selectedCountId = $uid . '_selected_count';
         $printBtnId = $uid . '_print';
+        $xlsxBtnId = $uid . '_xlsx';
         $exportBtnId = $uid . '_export';
         $deleteFlagId = $uid . '_delete_flag';
 
@@ -506,6 +526,10 @@ if (!function_exists('cm_render_param_crud_view')) {
                         class="cm-btn is-light is-sm">
                         <span>Imprimer</span>
                     </button>
+                    <button type="button" id="<?= htmlspecialchars($xlsxBtnId, ENT_QUOTES, 'UTF-8') ?>"
+                        class="cm-btn is-secondary is-sm" title="Télécharger en Excel">
+                        <span>Excel</span>
+                    </button>
                     <!-- <button type="button" id="<?= htmlspecialchars($exportBtnId, ENT_QUOTES, 'UTF-8') ?>"
                         class="cm-btn is-info is-sm">
                         <span>Exporter</span>
@@ -627,6 +651,7 @@ if (!function_exists('cm_render_param_crud_view')) {
                 const deselectAllBtn = document.getElementById(<?= json_encode($deselectAllBtnId) ?>);
                 const selectedCount = document.getElementById(<?= json_encode($selectedCountId) ?>);
                 const printBtn = document.getElementById(<?= json_encode($printBtnId) ?>);
+                const xlsxBtn = document.getElementById(<?= json_encode($xlsxBtnId) ?>);
                 const exportBtn = document.getElementById(<?= json_encode($exportBtnId) ?>);
 
                 const navigate = function (url) {
@@ -764,13 +789,110 @@ if (!function_exists('cm_render_param_crud_view')) {
                         if (!printWindow) {
                             return;
                         }
-                        printWindow.document.write('<html><head><title>Impression</title><style>body{font-family:Arial,sans-serif;padding:16px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #d1d5db;padding:8px;text-align:left}th{background:#f3f4f6}</style></head><body>');
+                        const now = new Date();
+                        const printedAt = (typeof now.toLocaleString === 'function')
+                            ? now.toLocaleString('fr-FR')
+                            : (now.toDateString() + ' ' + now.toTimeString());
+
+                        const printedBy = <?= json_encode(trim((string) (($_SESSION['nom_utilisateur'] ?? '') . ' ' . ($_SESSION['prenom_utilisateur'] ?? '') ?: ($_SESSION['username'] ?? '') ?: ($_SESSION['email'] ?? ''))), JSON_UNESCAPED_UNICODE) ?>;
+                        const docTitle = <?= json_encode(trim((string) ($title !== '' ? $title : ucfirst(str_replace('_', ' ', (string) $action)))), JSON_UNESCAPED_UNICODE) ?> || 'Impression';
+                        const academicYear = <?= json_encode(trim((string) ($_SESSION['global_annee_selected'] ?? $_SESSION['global_annee_active_label'] ?? $_SESSION['annee_academique'] ?? $_SESSION['annee_academique_libelle'] ?? '')), JSON_UNESCAPED_UNICODE) ?>;
+
+                        const path = String(window.location.pathname || '');
+                        const publicBasePath = path.replace(/\/public\/.*$/i, '/public');
+                        const baseUrl = String(window.location.origin || '') + publicBasePath;
+                        const logoLeft = baseUrl + '/image/logo_civ.png';
+                        const logoRight = baseUrl + '/image/logo_ufhb.png';
+
+                        const css = `
+                            :root { --header-h: 88px; --footer-h: 48px; }
+                            body { font-family: Arial, sans-serif; margin: 0; padding: 0; color: #111827; }
+                            .cm-print-header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-h); padding: 12px 20px 8px; border-bottom: 1px solid #e5e7eb; background: #fff; }
+                            .cm-print-header__row { display: flex; align-items: flex-start; gap: 16px; }
+                            .cm-print-side { width: 160px; display: flex; flex-direction: column; align-items: center; }
+                            .cm-print-logo { width: 64px; height: 64px; object-fit: contain; }
+                            .cm-print-side .meta { margin-top: 6px; font-size: 10px; color: #4b5563; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                            .cm-print-side.left .meta { text-align: left; }
+                            .cm-print-side.right .meta { text-align: right; }
+                            .cm-print-title { flex: 1; text-align: center; padding-top: 6px; }
+                            .cm-print-title h1 { margin: 0; font-size: 18px; font-weight: 700; }
+                            .cm-print-title .meta-row { margin-top: 6px; display: flex; justify-content: center; }
+                            .cm-print-title .meta-row .ay { font-size: 12px; font-weight: 600; color: #111827; text-align: center; }
+                            .cm-print-footer { position: fixed; bottom: 0; left: 0; right: 0; height: var(--footer-h); padding: 8px 20px; border-top: 1px solid #e5e7eb; background: #fff; font-size: 11px; color: #374151; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+                            .cm-print-footer .center { flex: 1; text-align: center; }
+                            .cm-print-content { padding: calc(var(--header-h) + 14px) 20px calc(var(--footer-h) + 14px); }
+                            table { width: 100%; border-collapse: collapse; }
+                            th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; vertical-align: top; }
+                            th { background: #f3f4f6; }
+                            button, input[type="checkbox"], .cm-btn, .cm-btn-action { display: none !important; }
+                            @media print {
+                                @page { margin: 12mm; }
+                                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            }
+                        `;
+
+                        const footerText = 'UFR MI, Filière Professionnalisées MIAGE-GI, 22.BP. 582 Abidjan 22, email: miage-gi.mi@univ-fhb.edu.ci';
+
+                        const headerHtml = `
+                            <div class="cm-print-header">
+                                <div class="cm-print-header__row">
+                                    <div class="cm-print-side left">
+                                        <img class="cm-print-logo" src="${logoLeft}" alt="Logo Côte d’Ivoire" />
+                                        <div class="meta">Imprimé par: ${printedBy || '-'}</div>
+                                    </div>
+                                    <div class="cm-print-title">
+                                        <h1>${docTitle}</h1>
+                                        <div class="meta-row">
+                                            <div class="ay">${academicYear ? ('Année académique: ' + academicYear) : ''}</div>
+                                        </div>
+                                    </div>
+                                    <div class="cm-print-side right">
+                                        <img class="cm-print-logo" src="${logoRight}" alt="Logo UFHB" />
+                                        <div class="meta">Imprimé le: ${printedAt}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                        const footerHtml = `
+                            <div class="cm-print-footer">
+                                <div class="left"></div>
+                                <div class="center">${footerText}</div>
+                                <div class="right"></div>
+                            </div>
+                        `;
+
+                        // NOTE: les rectangles (date/titre/url) viennent des "en-têtes/pieds" du navigateur.
+                        // Pour les masquer: dans la fenêtre d'impression, décocher "En-têtes et pieds de page".
+                        printWindow.document.write('<html><head><title></title><meta charset="utf-8"><style>' + css + '</style></head><body>');
+                        printWindow.document.write(headerHtml);
+                        printWindow.document.write('<div class="cm-print-content">');
                         printWindow.document.write(table.outerHTML);
+                        printWindow.document.write('</div>');
+                        printWindow.document.write(footerHtml);
                         printWindow.document.write('</body></html>');
                         printWindow.document.close();
                         printWindow.focus();
-                        printWindow.print();
+                        // Laisser le temps aux images de charger pour éviter un header vide
+                        setTimeout(function () { printWindow.print(); }, 250);
                     });
+                }
+
+                const openDownload = function (mode) {
+                    try {
+                        const u = new URL(window.location.href);
+                        u.searchParams.set('_export', String(mode));
+                        // Les exports doivent être un vrai téléchargement (pas AJAX)
+                        window.open(u.toString(), '_blank');
+                    } catch (e) {
+                        // Fallback si URL() indisponible
+                        const sep = window.location.href.indexOf('?') >= 0 ? '&' : '?';
+                        window.open(window.location.href + sep + '_export=' + encodeURIComponent(String(mode)), '_blank');
+                    }
+                };
+
+                if (xlsxBtn) {
+                    xlsxBtn.addEventListener('click', function () { openDownload('xlsx'); });
                 }
 
                 if (exportBtn) {
@@ -977,6 +1099,245 @@ if (!function_exists('cm_toolbar_filter_configs')) {
     }
 }
 
+if (!function_exists('cm_param_crud_export')) {
+    /**
+     * Export générique des écrans "Paramètres" rendus via cm_render_param_crud_view().
+     *
+     * @param 'xlsx' $mode
+     * @param array{title:string, action:string, page_slug:string, rows:array, columns:array} $payload
+     */
+    function cm_param_crud_export(string $mode, array $payload): void
+    {
+        // IMPORTANT: un export doit sortir un binaire "propre".
+        // On purge TOUT buffer avant d'envoyer des headers pour éviter un fichier corrompu.
+        while (ob_get_level() > 0) {
+            @ob_end_clean();
+        }
+        if (function_exists('ini_set')) {
+            @ini_set('zlib.output_compression', '0');
+        }
+
+        $title = trim((string) ($payload['title'] ?? 'Export'));
+        $action = trim((string) ($payload['action'] ?? 'export'));
+        $rows = is_array($payload['rows'] ?? null) ? $payload['rows'] : [];
+        $columnDefs = is_array($payload['columns'] ?? null) ? $payload['columns'] : [];
+
+        $safeBase = preg_replace('/[^a-zA-Z0-9_\-]+/', '_', $action) ?: 'export';
+        $dateSuffix = date('Ymd_His');
+
+        // Colonnes exportables: on ignore la colonne "Actions" et les colonnes vides.
+        $exportCols = [];
+        foreach ($columnDefs as $def) {
+            $key = (string) ($def['key'] ?? '');
+            if ($key === '' || $key === 'actions' || $key === '_actions') {
+                continue;
+            }
+            $label = (string) ($def['label'] ?? $key);
+            $exportCols[] = ['key' => $key, 'label' => $label, 'def' => $def];
+        }
+
+        $rowValue = static function ($row, string $key, $default = '') {
+            if (is_array($row)) {
+                return $row[$key] ?? $default;
+            }
+            if (is_object($row)) {
+                return $row->{$key} ?? $default;
+            }
+            return $default;
+        };
+
+        $normalizeCell = static function ($v): string {
+            if (is_array($v)) {
+                if (isset($v['label'])) {
+                    return trim((string) $v['label']);
+                }
+                return trim((string) json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            }
+            if (is_bool($v)) {
+                return $v ? 'Oui' : 'Non';
+            }
+            if ($v === null) {
+                return '';
+            }
+            return trim((string) $v);
+        };
+
+        // Construire matrice (header + lignes)
+        $headers = array_map(static fn(array $c): string => (string) $c['label'], $exportCols);
+        $data = [];
+        foreach ($rows as $row) {
+            $line = [];
+            foreach ($exportCols as $c) {
+                $def = is_array($c['def'] ?? null) ? $c['def'] : [];
+                if (isset($def['value']) && is_callable($def['value'])) {
+                    $val = $def['value']($row);
+                    $line[] = $normalizeCell($val);
+                } elseif (isset($def['source'])) {
+                    $line[] = $normalizeCell($rowValue($row, (string) $def['source'], ''));
+                } else {
+                    $line[] = $normalizeCell($rowValue($row, (string) $c['key'], ''));
+                }
+            }
+            $data[] = $line;
+        }
+
+        if (!class_exists(\PhpOffice\PhpSpreadsheet\Spreadsheet::class)) {
+            header('Content-Type: text/plain; charset=utf-8');
+            echo "Export XLSX indisponible (PhpSpreadsheet non chargé).";
+            exit;
+        }
+
+        $filename = $safeBase . '_' . $dateSuffix . '.xlsx';
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle(substr($safeBase, 0, 31));
+
+        // Header
+        $colIndex = 1;
+        foreach ($headers as $h) {
+            $sheet->setCellValue([$colIndex, 1], $h);
+            $colIndex++;
+        }
+        $sheet->getStyle('1:1')->getFont()->setBold(true);
+
+        // Rows
+        $r = 2;
+        foreach ($data as $line) {
+            $c = 1;
+            foreach ($line as $cell) {
+                $sheet->setCellValue([$c, $r], $cell);
+                $c++;
+            }
+            $r++;
+        }
+
+        // Autosize simple
+        for ($i = 1; $i <= count($headers); $i++) {
+            $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+        }
+
+        // Output
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+}
+
+if (!function_exists('cm_handle_toolbar_xlsx_export')) {
+    /**
+     * Export XLSX générique depuis un tableau HTML (payload JSON envoyé par cm_toolbar()).
+     * Attendu: POST[cm_export_xlsx_payload] = JSON { title, academic_year, headers[], rows[][] }
+     */
+    function cm_handle_toolbar_xlsx_export(): void
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || empty($_POST['cm_export_xlsx_payload'])) {
+            return;
+        }
+
+        // CSRF (best-effort: si Csrf existe, l'utiliser)
+        $token = $_POST['csrf_token'] ?? null;
+        if (class_exists(\CheckMaster\Core\Csrf::class)) {
+            // Csrf::validateToken() existe dans le projet, mais on garde un fallback si signature diffère.
+            $ok = true;
+            if (method_exists(\CheckMaster\Core\Csrf::class, 'validateToken')) {
+                $ok = (bool) call_user_func([\CheckMaster\Core\Csrf::class, 'validateToken'], is_string($token) ? $token : null);
+            } elseif (method_exists(\CheckMaster\Core\Csrf::class, 'validate')) {
+                $ok = (bool) call_user_func([\CheckMaster\Core\Csrf::class, 'validate'], is_string($token) ? $token : null);
+            }
+            if (!$ok) {
+                header('Content-Type: text/plain; charset=utf-8', true, 403);
+                echo "CSRF invalide.";
+                exit;
+            }
+        }
+
+        // Purger tous les buffers pour éviter XLSX corrompu
+        while (ob_get_level() > 0) {
+            @ob_end_clean();
+        }
+        if (function_exists('ini_set')) {
+            @ini_set('zlib.output_compression', '0');
+        }
+
+        $raw = (string) $_POST['cm_export_xlsx_payload'];
+        $payload = json_decode($raw, true);
+        if (!is_array($payload)) {
+            header('Content-Type: text/plain; charset=utf-8', true, 400);
+            echo "Payload export invalide.";
+            exit;
+        }
+
+        if (!class_exists(\PhpOffice\PhpSpreadsheet\Spreadsheet::class)) {
+            header('Content-Type: text/plain; charset=utf-8', true, 500);
+            echo "PhpSpreadsheet indisponible.";
+            exit;
+        }
+
+        $title = trim((string) ($payload['title'] ?? 'Export'));
+        $academicYear = trim((string) ($payload['academic_year'] ?? ''));
+        $headers = is_array($payload['headers'] ?? null) ? $payload['headers'] : [];
+        $rows = is_array($payload['rows'] ?? null) ? $payload['rows'] : [];
+
+        $safeBase = preg_replace('/[^a-zA-Z0-9_\-]+/', '_', $title) ?: 'export';
+        $filename = $safeBase . '_' . date('Ymd_His') . '.xlsx';
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheetTitle = $safeBase;
+        if ($sheetTitle === '') {
+            $sheetTitle = 'Export';
+        }
+        $sheet->setTitle(substr($sheetTitle, 0, 31));
+
+        $rowIndex = 1;
+        if ($title !== '' || $academicYear !== '') {
+            $sheet->setCellValue([1, $rowIndex], $title . ($academicYear !== '' ? (' — ' . $academicYear) : ''));
+            $sheet->mergeCells([1, $rowIndex, max(1, count($headers)), $rowIndex]);
+            $sheet->getStyle([1, $rowIndex, 1, $rowIndex])->getFont()->setBold(true);
+            $rowIndex += 2;
+        }
+
+        // Header
+        $colIndex = 1;
+        foreach ($headers as $h) {
+            $sheet->setCellValue([$colIndex, $rowIndex], (string) $h);
+            $colIndex++;
+        }
+        $sheet->getStyle([1, $rowIndex, max(1, count($headers)), $rowIndex])->getFont()->setBold(true);
+        $rowIndex++;
+
+        foreach ($rows as $r) {
+            if (!is_array($r)) {
+                continue;
+            }
+            $c = 1;
+            foreach ($r as $cell) {
+                $sheet->setCellValue([$c, $rowIndex], is_scalar($cell) || $cell === null ? (string) $cell : json_encode($cell, JSON_UNESCAPED_UNICODE));
+                $c++;
+            }
+            $rowIndex++;
+        }
+
+        $colCount = max(1, count($headers));
+        for ($i = 1; $i <= $colCount; $i++) {
+            $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+        }
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+}
+
+// Auto-handle toolbar excel export on any page that includes ComponentHelper
+cm_handle_toolbar_xlsx_export();
+
 /**
  * Render a unified toolbar component (search + filters + actions)
  *
@@ -1002,6 +1363,19 @@ if (!function_exists('cm_toolbar')) {
     {
         $screen = (string) ($config['screen'] ?? '');
         $idPrefix = (string) ($config['id_prefix'] ?? 'cmToolbar_' . substr(md5(uniqid()), 0, 8));
+        $printTitle = trim((string) ($config['print_title'] ?? ''));
+        if ($printTitle === '') {
+            $printTitle = $screen !== '' ? ucfirst(str_replace('_', ' ', $screen)) : 'Impression';
+        }
+        $footerText = trim((string) ($config['footer_text'] ?? ''));
+        if ($footerText === '') {
+            $footerText = 'UFR MI, Filière Professionnalisées MIAGE-GI, 22.BP. 582 Abidjan 22, email: miage-gi.mi@univ-fhb.edu.ci';
+        }
+        $printedBy = trim((string) (($_SESSION['nom_utilisateur'] ?? '') . ' ' . ($_SESSION['prenom_utilisateur'] ?? '')));
+        if ($printedBy === '') {
+            $printedBy = trim((string) (($_SESSION['username'] ?? '') ?: ($_SESSION['email'] ?? '')));
+        }
+        $academicYear = trim((string) ($_SESSION['global_annee_selected'] ?? $_SESSION['global_annee_active_label'] ?? ''));
 
         // IDs
         $toolbarId = $idPrefix . '_toolbar';
@@ -1015,6 +1389,7 @@ if (!function_exists('cm_toolbar')) {
         $deleteBtnId = $idPrefix . '_deleteBtn';
         $exportBtnId = $idPrefix . '_exportBtn';
         $printBtnId = $idPrefix . '_printBtn';
+        $excelBtnId = $idPrefix . '_excelBtn';
         $filterFormId = $idPrefix . '_filterForm';
 
         // Search
@@ -1032,6 +1407,7 @@ if (!function_exists('cm_toolbar')) {
         $showFilters = (bool) ($config['show_filters'] ?? true);
         $canDelete = (bool) ($config['can_delete'] ?? (function_exists('canDelete') ? canDelete() : true));
         $canView = (bool) ($config['can_view'] ?? (function_exists('canView') ? canView() : true));
+        $canExcel = (bool) ($config['can_excel'] ?? $canView);
 
         // Filters
         $customFilters = is_array($config['filters'] ?? null) ? $config['filters'] : null;
@@ -1203,6 +1579,13 @@ if (!function_exists('cm_toolbar')) {
                                 class="cm-btn is-light is-sm" title="Imprimer" data-cm-toolbar-action="print">
                                 <span>Imprimer</span>
                             </button>
+                            <?php if ($canExcel): ?>
+                                <button type="button" id="<?= htmlspecialchars($excelBtnId, ENT_QUOTES, 'UTF-8') ?>"
+                                    class="cm-btn is-secondary is-sm" title="Télécharger en Excel"
+                                    data-cm-toolbar-action="excel">
+                                    <span>Excel</span>
+                                </button>
+                            <?php endif; ?>
                         <?php endif; ?>
                     <?php endif; ?>
 
@@ -1249,6 +1632,12 @@ if (!function_exists('cm_toolbar')) {
                 const selectAllId = <?= json_encode($selectAllId) ?>;
                 const deselectAllId = <?= json_encode($deselectAllId) ?>;
                 const deleteBtnId = <?= json_encode($deleteBtnId) ?>;
+                const excelBtnId = <?= json_encode($excelBtnId) ?>;
+
+                const cmPrintTitle = <?= json_encode($printTitle, JSON_UNESCAPED_UNICODE) ?> || 'Impression';
+                const cmPrintedBy = <?= json_encode($printedBy, JSON_UNESCAPED_UNICODE) ?> || '';
+                const cmAcademicYear = <?= json_encode($academicYear, JSON_UNESCAPED_UNICODE) ?> || '';
+                const cmFooterText = <?= json_encode($footerText, JSON_UNESCAPED_UNICODE) ?> || '';
 
                 const onFilterApply = <?= json_encode($config['on_filter_apply'] ?? null) ?>;
                 const onFilterReset = <?= json_encode($config['on_filter_reset'] ?? null) ?>;
@@ -1458,6 +1847,76 @@ if (!function_exists('cm_toolbar')) {
                         return scope.querySelector('.cm-table-wrapper table, table.cm-data-table, table');
                     }
 
+                    function getCsrfToken() {
+                        const input = document.querySelector('input[name="csrf_token"]');
+                        return input ? String(input.value || '') : '';
+                    }
+
+                    function tableToMatrix(table) {
+                        const matrix = { headers: [], rows: [] };
+                        if (!table) return matrix;
+
+                        const headerRow = table.querySelector('thead tr:last-child');
+                        const ths = headerRow ? Array.from(headerRow.querySelectorAll('th')) : [];
+
+                        const colIndexes = [];
+                        ths.forEach(function (th, idx) {
+                            const text = (th.textContent || '').replace(/\s+/g, ' ').trim();
+                            const hasCheckbox = !!th.querySelector('input[type="checkbox"]');
+                            const isActions = /actions/i.test(text);
+                            if (hasCheckbox || isActions || text === '') return;
+                            colIndexes.push(idx);
+                            matrix.headers.push(text);
+                        });
+
+                        const body = (table.tBodies && table.tBodies.length > 0) ? table.tBodies[0] : table.querySelector('tbody');
+                        if (!body) return matrix;
+
+                        Array.from(body.querySelectorAll('tr')).forEach(function (tr) {
+                            if (tr.querySelector('th')) return;
+                            if (tr.style && tr.style.display === 'none') return;
+                            const tds = Array.from(tr.querySelectorAll('td'));
+                            if (tds.length === 0) return;
+                            const row = [];
+                            colIndexes.forEach(function (i) {
+                                const cell = tds[i];
+                                const text = (cell ? (cell.textContent || '') : '').replace(/\s+/g, ' ').trim();
+                                row.push(text);
+                            });
+                            matrix.rows.push(row);
+                        });
+
+                        return matrix;
+                    }
+
+                    function downloadExcel(table) {
+                        const payload = tableToMatrix(table);
+                        const csrf = getCsrfToken();
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = window.location.href;
+                        form.target = '_blank';
+
+                        const add = function (name, value) {
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = name;
+                            input.value = String(value || '');
+                            form.appendChild(input);
+                        };
+
+                        add('csrf_token', csrf);
+                        add('cm_export_xlsx_payload', JSON.stringify({
+                            title: cmPrintTitle,
+                            academic_year: cmAcademicYear,
+                            headers: payload.headers,
+                            rows: payload.rows
+                        }));
+
+                        document.body.appendChild(form);
+                        form.submit();
+                        document.body.removeChild(form);
+                    }
                     function exportTableAsCsv(table) {
                         if (!table) return;
                         const rows = Array.from(table.querySelectorAll('tr')).filter(function (row) {
@@ -1492,12 +1951,83 @@ if (!function_exists('cm_toolbar')) {
                             }
                         });
 
-                        printWindow.document.write('<html><head><title>Impression</title><style>body{font-family:Arial,sans-serif;padding:16px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #d1d5db;padding:8px;text-align:left}th{background:#f3f4f6}</style></head><body>');
+                        const now = new Date();
+                        const printedAt = (typeof now.toLocaleString === 'function')
+                            ? now.toLocaleString('fr-FR')
+                            : (now.toDateString() + ' ' + now.toTimeString());
+
+                        const path = String(window.location.pathname || '');
+                        const publicBasePath = path.replace(/\/public\/.*$/i, '/public');
+                        const baseUrl = String(window.location.origin || '') + publicBasePath;
+                        const logoLeft = baseUrl + '/image/logo_civ.png';
+                        const logoRight = baseUrl + '/image/logo_ufhb.png';
+
+                        const css = `
+                            :root { --header-h: 92px; --footer-h: 48px; }
+                            body { font-family: Arial, sans-serif; margin: 0; padding: 0; color: #111827; }
+                            .cm-print-header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-h); padding: 12px 20px 8px; border-bottom: 1px solid #e5e7eb; background: #fff; }
+                            .cm-print-header__row { display: flex; align-items: flex-start; gap: 16px; }
+                            .cm-print-side { width: 160px; display: flex; flex-direction: column; align-items: center; }
+                            .cm-print-logo { width: 64px; height: 64px; object-fit: contain; }
+                            .cm-print-side .meta { margin-top: 6px; font-size: 10px; color: #4b5563; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                            .cm-print-side.left .meta { text-align: left; }
+                            .cm-print-side.right .meta { text-align: right; }
+                            .cm-print-title { flex: 1; text-align: center; padding-top: 6px; }
+                            .cm-print-title h1 { margin: 0; font-size: 18px; font-weight: 700; }
+                            .cm-print-title .meta-row { margin-top: 6px; display: flex; justify-content: center; }
+                            .cm-print-title .meta-row .ay { font-size: 12px; font-weight: 600; color: #111827; text-align: center; }
+                            .cm-print-footer { position: fixed; bottom: 0; left: 0; right: 0; height: var(--footer-h); padding: 8px 20px; border-top: 1px solid #e5e7eb; background: #fff; font-size: 11px; color: #374151; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+                            .cm-print-footer .center { flex: 1; text-align: center; }
+                            .cm-print-content { padding: calc(var(--header-h) + 14px) 20px calc(var(--footer-h) + 14px); }
+                            table { width: 100%; border-collapse: collapse; }
+                            th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; vertical-align: top; }
+                            th { background: #f3f4f6; }
+                            button, input[type="checkbox"], .cm-btn, .cm-btn-action { display: none !important; }
+                            @media print {
+                                @page { margin: 12mm; }
+                                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            }
+                        `;
+
+                        const headerHtml = `
+                            <div class="cm-print-header">
+                                <div class="cm-print-header__row">
+                                    <div class="cm-print-side left">
+                                        <img class="cm-print-logo" src="${logoLeft}" alt="Logo Côte d’Ivoire" />
+                                        <div class="meta">Imprimé par: ${cmPrintedBy || '-'}</div>
+                                    </div>
+                                    <div class="cm-print-title">
+                                        <h1>${cmPrintTitle}</h1>
+                                        <div class="meta-row">
+                                            <div class="ay">${cmAcademicYear ? ('Année académique: ' + cmAcademicYear) : ''}</div>
+                                        </div>
+                                    </div>
+                                    <div class="cm-print-side right">
+                                        <img class="cm-print-logo" src="${logoRight}" alt="Logo UFHB" />
+                                        <div class="meta">Imprimé le: ${printedAt}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                        const footerHtml = `
+                            <div class="cm-print-footer">
+                                <div class="left"></div>
+                                <div class="center">${cmFooterText}</div>
+                                <div class="right"></div>
+                            </div>
+                        `;
+
+                        printWindow.document.write('<html><head><title></title><meta charset="utf-8"><style>' + css + '</style></head><body>');
+                        printWindow.document.write(headerHtml);
+                        printWindow.document.write('<div class="cm-print-content">');
                         printWindow.document.write(clone.outerHTML);
+                        printWindow.document.write('</div>');
+                        printWindow.document.write(footerHtml);
                         printWindow.document.write('</body></html>');
                         printWindow.document.close();
                         printWindow.focus();
-                        printWindow.print();
+                        setTimeout(function () { printWindow.print(); }, 250);
                     }
 
                     function getSelectableCheckboxes() {
@@ -1845,6 +2375,11 @@ if (!function_exists('cm_toolbar')) {
                             case 'print':
                                 if (dispatchToolbarEvent('cm:toolbar:print', { toolbar: toolbar, button: btn })) {
                                     printTable(getDataTableInScope());
+                                }
+                                break;
+                            case 'excel':
+                                if (dispatchToolbarEvent('cm:toolbar:excel', { toolbar: toolbar, button: btn })) {
+                                    downloadExcel(getDataTableInScope());
                                 }
                                 break;
                             case 'limit-change':

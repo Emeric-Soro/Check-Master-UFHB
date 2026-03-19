@@ -122,6 +122,7 @@ $statusOptions = [
             'allowed_limits' => $allowedLimits,
             'can_delete' => canDelete(),
             'can_view' => canView(),
+            'print_title' => 'Rapports à valider',
         ]); ?>
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
@@ -129,7 +130,7 @@ $statusOptions = [
                     <thead>
                     <tr>
                         <th class="cm-data-table__th cm-data-table__th--check">
-                            <input type="checkbox" id="cmReceptionCheckAll" aria-label="Tout sélectionner">
+                            <input type="checkbox" id="cmReceptionCheckAll" class="cm-table-check-all" aria-label="Tout sélectionner">
                         </th>
                         <th class="cm-data-table__th">Nouv.</th>
                         <th class="cm-data-table__th">N° Rapport</th>
@@ -183,7 +184,7 @@ $statusOptions = [
                                 data-is-new="<?php echo $isNouveau ? '1' : '0'; ?>"
                                 data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
                                 <td class="cm-data-table__td cm-data-table__td--check">
-                                    <input type="checkbox" class="cm-reception-check-row" value="<?php echo $idRapport; ?>" aria-label="Sélectionner ligne rapport <?php echo $idRapport; ?>">
+                                    <input type="checkbox" class="cm-table-check-row cm-reception-check-row" value="<?php echo $idRapport; ?>" aria-label="Sélectionner ligne rapport <?php echo $idRapport; ?>">
                                 </td>
                                 <td class="cm-data-table__td">
                                     <?php if ($isNouveau): ?>
