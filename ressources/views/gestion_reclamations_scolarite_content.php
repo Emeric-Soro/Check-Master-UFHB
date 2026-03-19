@@ -355,89 +355,19 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             reponseField.value = '';
         });
     }
-    const searchInput = document.getElementById('cmSearchReclamation');
-    const limitSelect = document.getElementById('cmReclamationsLimit');
-    const statutFilter = document.getElementById('cmFilterStatutRec');
-    const dateFilter = document.getElementById('cmFilterDateRec');
-    const selectAllBtn = document.getElementById('cmSelectAllReclamationsBtn');
-    const deselectAllBtn = document.getElementById('cmDeselectAllReclamationsBtn');
-    const deleteBtn = document.getElementById('cmDeleteReclamationsBtn');
-    const selectedCount = document.getElementById('cmSelectedReclamationsCount');
-    const rowCheckboxes = function () {
+    var rowCheckboxes = function () {
         return Array.from(document.querySelectorAll('#cmReclamationsBody .cm-rec-main-row .cm-row-checkbox'));
     };
-    const updateSelectionState = function () {
-        const all = rowCheckboxes();
-        const checked = all.filter(function (cb) { return cb.checked; }).length;
-        if (selectedCount) {
-            selectedCount.textContent = String(checked);
-        }
-        if (deleteBtn) {
-            deleteBtn.disabled = checked === 0;
-        }
-        if (checkAll) {
-            checkAll.checked = all.length > 0 && all.every(function (cb) { return cb.checked; });
-        }
+    var checkAll = document.getElementById('cmCheckAllReclamations');
+    var updateSelectionState = function () {
+        if (!checkAll) return;
+        var all = rowCheckboxes();
+        checkAll.checked = all.length > 0 && all.every(function (cb) { return cb.checked; });
     };
-    const applyFilters = function () {
-        const term = (searchInput ? searchInput.value : '').trim().toLowerCase();
-        const statut = (statutFilter ? statutFilter.value : '').trim().toLowerCase();
-        const date = (dateFilter ? dateFilter.value : '').trim();
-        const rows = document.querySelectorAll('.cm-rec-main-row');
-        for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            const detail = document.getElementById('cmRecDetail_' + row.getAttribute('data-id'));
-            const search = row.getAttribute('data-search') || '';
-            const rowStatut = row.getAttribute('data-statut') || '';
-            const rowDate = row.getAttribute('data-date') || '';
-            const matchSearch = term === '' || search.indexOf(term) !== -1;
-            const matchStatut = statut === '' || rowStatut === statut;
-            const matchDate = date === '' || rowDate === date;
-            const visible = matchSearch && matchStatut && matchDate;
-            row.style.display = visible ? '' : 'none';
-            if (detail) {
-                detail.style.display = visible ? '' : 'none';
-                if (!visible) {
-                    detail.classList.add('cm-hidden');
-                }
-            }
-        }
-    };
-    if (searchInput) {
-        searchInput.addEventListener('input', applyFilters);
-    }
-    if (statutFilter) {
-        statutFilter.addEventListener('change', applyFilters);
-    }
-    if (dateFilter) {
-        dateFilter.addEventListener('change', applyFilters);
-    }
-    if (limitSelect) {
-        limitSelect.addEventListener('change', function () {
-            const url = new URL(window.location.href);
-            url.searchParams.set('limit_reclamations', String(limitSelect.value));
-            url.searchParams.set('page_reclamations', '1');
-            navigate(url.toString());
-        });
-    }
-    const checkAll = document.getElementById('cmCheckAllReclamations');
+
     if (checkAll) {
         checkAll.addEventListener('change', function () {
-            rowCheckboxes().forEach(function (cb) {
-                cb.checked = checkAll.checked;
-            });
-            updateSelectionState();
-        });
-    }
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener('click', function () {
-            rowCheckboxes().forEach(function (cb) { cb.checked = true; });
-            updateSelectionState();
-        });
-    }
-    if (deselectAllBtn) {
-        deselectAllBtn.addEventListener('click', function () {
-            rowCheckboxes().forEach(function (cb) { cb.checked = false; });
+            rowCheckboxes().forEach(function (cb) { cb.checked = checkAll.checked; });
             updateSelectionState();
         });
     }
@@ -446,44 +376,29 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             updateSelectionState();
         }
     });
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', function () {
-            if (deleteBtn.disabled) {
-                return;
-            }
-            window.alert('Suppression multiple indisponible sur cet ecran.');
-        });
+
+    var searchInput = document.getElementById('cmReclamations_search');
+    if (searchInput) {
+        searchInput.addEventListener('input', updateSelectionState);
+        searchInput.addEventListener('keyup', updateSelectionState);
     }
-    const exportBtn = document.getElementById('cmExportReclamation');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', function () {
-            const headers = ['N° Reclamation', 'Etudiant', 'Objet', 'Date Reclamation', 'Statut'];
-            const lines = [headers.join(';')];
-            document.querySelectorAll('.cm-rec-main-row').forEach(function (row) {
-                if (row.style.display === 'none') {
-                    return;
-                }
-                const cells = Array.from(row.querySelectorAll('td')).slice(1, 6);
-                const values = cells.map(function (cell) {
-                    return '"' + (cell.textContent || '').trim().replace(/"/g, '""') + '"';
-                });
-                lines.push(values.join(';'));
-            });
-            const blob = new Blob(["\uFEFF" + lines.join('\n')], {type: 'text/csv;charset=utf-8;'});
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'reclamations_' + new Date().toISOString().split('T')[0] + '.csv';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        });
-    }
-    const printBtn = document.getElementById('cmPrintReclamation');
-    if (printBtn) {
-        printBtn.addEventListener('click', function () {
-            window.print();
-        });
-    }
+
+    document.addEventListener('cm:toolbar:delete', function (event) {
+        if (!event.detail || !event.detail.toolbar) return;
+        if (event.detail.toolbar.id !== 'cmReclamations_toolbar') return;
+        window.alert('Suppression multiple indisponible sur cet ecran.');
+    });
+
+    document.addEventListener('cm:toolbar:limit:change', function (event) {
+        if (!event.detail || !event.detail.toolbar) return;
+        if (event.detail.toolbar.id !== 'cmReclamations_toolbar') return;
+        event.preventDefault();
+        var limit = event.detail.limit || '10';
+        var url = new URL(window.location.href);
+        url.searchParams.set('limit_reclamations', limit);
+        url.searchParams.set('page_reclamations', '1');
+        navigate(url.toString());
+    });
     updateSelectionState();
 })();
 </script>

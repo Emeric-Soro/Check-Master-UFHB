@@ -241,14 +241,9 @@ $statusOptions = [
 </div>
 <script>
 (function () {
-    const searchInput = document.getElementById('cmReceptionSearch');
-    const tableBody = document.getElementById('cmReceptionTableBody');
-    const exportBtn = document.getElementById('cmReceptionExport');
-    const printBtn = document.getElementById('cmReceptionPrint');
-    const checkAll = document.getElementById('cmReceptionCheckAll');
-    const selectAllBtn = document.getElementById('cmReceptionSelectAllBtn');
-    const deselectBtn = document.getElementById('cmReceptionDeselectBtn');
-    const deleteBtn = document.getElementById('cmReceptionDeleteBtn');
+    var tableBody = document.getElementById('cmReceptionTableBody');
+    var checkAll = document.getElementById('cmReceptionCheckAll');
+
     function getRows() {
         return Array.from(document.querySelectorAll('#cmReceptionTableBody .cm-data-table__row'));
     }
@@ -259,54 +254,20 @@ $statusOptions = [
     }
     function getCheckedRows() {
         return getRows().filter(function (row) {
-            const checkbox = row.querySelector('.cm-reception-check-row');
-            return checkbox && checkbox.checked;
+            var cb = row.querySelector('.cm-reception-check-row');
+            return cb && cb.checked;
         });
     }
     function updateDeleteState() {
-        const count = getCheckedRows().length;
-        if (deleteBtn) {
-            deleteBtn.disabled = count === 0;
-            deleteBtn.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i> Supprimer (' + count + ')';
-        }
-        if (checkAll) {
-            const visible = getVisibleRows();
-            const checkedVisible = visible.filter(function (row) {
-                const cb = row.querySelector('.cm-reception-check-row');
-                return cb && cb.checked;
-            });
-            checkAll.checked = visible.length > 0 && checkedVisible.length === visible.length;
-        }
-    }
-    function applySearch() {
-        const term = searchInput ? (searchInput.value || '').trim().toLowerCase() : '';
-        getRows().forEach(function (row) {
-            const text = row.getAttribute('data-search') || '';
-            row.style.display = term === '' || text.indexOf(term) !== -1 ? '' : 'none';
+        if (!checkAll) return;
+        var visible = getVisibleRows();
+        var checkedVisible = visible.filter(function (row) {
+            var cb = row.querySelector('.cm-reception-check-row');
+            return cb && cb.checked;
         });
-        updateDeleteState();
+        checkAll.checked = visible.length > 0 && checkedVisible.length === visible.length;
     }
-    function bindRowClickBehavior() {
-        getRows().forEach(function (row) {
-            const isNew = row.getAttribute('data-is-new') === '1';
-            const rapportId = row.getAttribute('data-rapport-id') || '';
-            if (!isNew || !rapportId) {
-                return;
-            }
-            row.style.cursor = 'pointer';
-            row.addEventListener('click', function (event) {
-                if (event.target.closest('a,button,input,select,textarea,label')) {
-                    return;
-                }
-                const url = '?page=evaluation_dossiers&detail=' + encodeURIComponent(rapportId);
-                if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
-                    window.CM.ajax.load(url);
-                    return;
-                }
-                window.location.href = url;
-            });
-        });
-    }
+
     if (tableBody) {
         tableBody.addEventListener('change', function (event) {
             if (event.target && event.target.classList.contains('cm-reception-check-row')) {
@@ -317,91 +278,67 @@ $statusOptions = [
     if (checkAll) {
         checkAll.addEventListener('change', function () {
             getVisibleRows().forEach(function (row) {
-                const checkbox = row.querySelector('.cm-reception-check-row');
-                if (checkbox) {
-                    checkbox.checked = checkAll.checked;
+                var cb = row.querySelector('.cm-reception-check-row');
+                if (cb) {
+                    cb.checked = checkAll.checked;
                 }
             });
             updateDeleteState();
         });
     }
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener('click', function () {
-            getVisibleRows().forEach(function (row) {
-                const checkbox = row.querySelector('.cm-reception-check-row');
-                if (checkbox) {
-                    checkbox.checked = true;
-                }
-            });
-            updateDeleteState();
-        });
-    }
-    if (deselectBtn) {
-        deselectBtn.addEventListener('click', function () {
-            getRows().forEach(function (row) {
-                const checkbox = row.querySelector('.cm-reception-check-row');
-                if (checkbox) {
-                    checkbox.checked = false;
-                }
-            });
-            updateDeleteState();
-        });
-    }
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', function () {
-            const checked = getCheckedRows();
-            if (checked.length === 0) {
-                return;
-            }
-            checked.forEach(function (row) {
-                row.remove();
-            });
-            updateDeleteState();
-        });
-    }
-    if (searchInput) {
-        searchInput.addEventListener('input', applySearch);
-    }
-    if (exportBtn) {
-        exportBtn.addEventListener('click', function () {
-            const headers = ['Nouveau', 'N° Rapport', 'N° Carte', 'Nom & Prénom', 'Nom rapport', 'Thème', 'Date dépôt', 'Statut', 'Actions'];
-            const csvRows = [headers.join(';')];
-            getVisibleRows().forEach(function (row) {
-                const cols = row.querySelectorAll('.cm-data-table__td');
-                if (cols.length < 10) {
+
+    function bindRowClickBehavior() {
+        getRows().forEach(function (row) {
+            var isNew = row.getAttribute('data-is-new') === '1';
+            var rapportId = row.getAttribute('data-rapport-id') || '';
+            if (!isNew || !rapportId) return;
+            row.style.cursor = 'pointer';
+            row.addEventListener('click', function (event) {
+                if (event.target.closest('a,button,input,select,textarea,label')) return;
+                var url = '?page=evaluation_dossiers&detail=' + encodeURIComponent(rapportId);
+                if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+                    window.CM.ajax.load(url);
                     return;
                 }
-                const line = [
-                    cols[1].innerText.trim(),
-                    cols[2].innerText.trim(),
-                    cols[3].innerText.trim(),
-                    cols[4].innerText.trim(),
-                    cols[5].innerText.trim(),
-                    cols[6].innerText.trim(),
-                    cols[7].innerText.trim(),
-                    cols[8].innerText.trim()
-                ].map(function (value) {
-                    return '"' + value.replace(/"/g, '""') + '"';
-                });
-                csvRows.push(line.join(';'));
+                window.location.href = url;
             });
-            const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'reception_rapports.csv';
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            URL.revokeObjectURL(url);
         });
     }
-    if (printBtn) {
-        printBtn.addEventListener('click', function () {
-            window.print();
-        });
+
+    // Toolbar search -> sync check-all state after filtering
+    var searchInput = document.getElementById('cmReception_search');
+    if (searchInput) {
+        searchInput.addEventListener('input', function () { updateDeleteState(); });
+        searchInput.addEventListener('keyup', function () { updateDeleteState(); });
     }
+
+    // Toolbar delete event
+    document.addEventListener('cm:toolbar:delete', function (event) {
+        if (!event.detail || !event.detail.toolbar) return;
+        if (event.detail.toolbar.id !== 'cmReception_toolbar') return;
+        var checked = getCheckedRows();
+        if (checked.length === 0) return;
+        checked.forEach(function (row) { row.remove(); });
+        updateDeleteState();
+    });
+
+    // Toolbar limit change event
+    document.addEventListener('cm:toolbar:limit:change', function (event) {
+        if (!event.detail || !event.detail.toolbar) return;
+        if (event.detail.toolbar.id !== 'cmReception_toolbar') return;
+        event.preventDefault();
+        var limit = event.detail.limit || '10';
+        var url = new URL(window.location.href);
+        url.searchParams.set('limit_reception', limit);
+        url.searchParams.set('page_reception', '1');
+        if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+            window.CM.ajax.load(url.toString());
+        } else {
+            window.location.href = url.toString();
+        }
+    });
+
     bindRowClickBehavior();
-    applySearch();
+    updateDeleteState();
 })();
 </script>

@@ -598,33 +598,23 @@ function traduireStatut($statut)
     </div>
 
     <script>
-        // Recherche dynamique dans le tableau
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.addEventListener('input', function () {
-                const term = this.value.toLowerCase();
-                const rows = document.querySelectorAll('#rapportsTable tbody tr');
-                rows.forEach(row => {
-                    const text = row.textContent.toLowerCase();
-                    row.style.display = text.includes(term) ? '' : 'none';
-                });
-            });
-        }
+        // Toolbar handles search, select-all, deselect-all, print, export internally.
+        // This view only needs to handle inline forms and toolbar events.
 
         // Gestion des formulaires inline
-        let currentOpenFormId = null;
+        var currentOpenFormId = null;
 
         function toggleInlineForm(idRapport, action) {
-            const formRow = document.getElementById('inline-form-' + idRapport);
-            const validerForm = document.getElementById('valider-form-' + idRapport);
-            const rejeterForm = document.getElementById('rejeter-form-' + idRapport);
+            var formRow = document.getElementById('inline-form-' + idRapport);
+            var validerForm = document.getElementById('valider-form-' + idRapport);
+            var rejeterForm = document.getElementById('rejeter-form-' + idRapport);
 
-            // Fermer le formulaire précédemment ouvert
+            // Fermer le formulaire precedemment ouvert
             if (currentOpenFormId && currentOpenFormId !== idRapport) {
                 closeInlineForm(currentOpenFormId);
             }
 
-            // Basculer la visibilité
+            // Basculer la visibilite
             if (formRow.classList.contains('hidden')) {
                 formRow.classList.remove('hidden');
                 currentOpenFormId = idRapport;
@@ -641,9 +631,9 @@ function traduireStatut($statut)
         }
 
         function closeInlineForm(idRapport) {
-            const formRow = document.getElementById('inline-form-' + idRapport);
-            const validerForm = document.getElementById('valider-form-' + idRapport);
-            const rejeterForm = document.getElementById('rejeter-form-' + idRapport);
+            var formRow = document.getElementById('inline-form-' + idRapport);
+            var validerForm = document.getElementById('valider-form-' + idRapport);
+            var rejeterForm = document.getElementById('rejeter-form-' + idRapport);
 
             formRow.classList.add('hidden');
             validerForm.classList.add('hidden');
@@ -653,6 +643,36 @@ function traduireStatut($statut)
                 currentOpenFormId = null;
             }
         }
+
+        // Toolbar delete event
+        document.addEventListener('cm:toolbar:delete', function (event) {
+            if (!event.detail || !event.detail.toolbar) return;
+            if (event.detail.toolbar.id !== 'verif_cand_toolbar') return;
+            var tableBody = document.querySelector('#rapportsTable tbody');
+            if (!tableBody) return;
+            var checkedRows = Array.from(tableBody.querySelectorAll('tr')).filter(function (row) {
+                var cb = row.querySelector('input[type="checkbox"]');
+                return cb && cb.checked && !row.querySelector('textarea');
+            });
+            if (checkedRows.length === 0) return;
+            checkedRows.forEach(function (row) { row.remove(); });
+        });
+
+        // Toolbar limit change event (server-side pagination)
+        document.addEventListener('cm:toolbar:limit:change', function (event) {
+            if (!event.detail || !event.detail.toolbar) return;
+            if (event.detail.toolbar.id !== 'verif_cand_toolbar') return;
+            event.preventDefault();
+            var limit = event.detail.limit || '10';
+            var url = new URL(window.location.href);
+            url.searchParams.set('limit', limit);
+            url.searchParams.set('p', '1');
+            if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+                window.CM.ajax.load(url.toString());
+            } else {
+                window.location.href = url.toString();
+            }
+        });
     </script>
 </body>
 
