@@ -535,25 +535,148 @@ class RapportEtudiant
         try {
             $stmt = $this->pdo->prepare("
             SELECT e.*, 
-                   CASE 
-                       WHEN e.type_evaluateur = 'enseignant' THEN ens.nom_enseignant
-                       ELSE pa.nom_pers_admin 
-                   END as nom_evaluateur,
-                   CASE 
-                       WHEN e.type_evaluateur = 'enseignant' THEN ens.prenom_enseignant
-                       ELSE pa.prenom_pers_admin 
-                   END as prenom_evaluateur
+                    CASE 
+                        WHEN e.type_evaluateur = 'enseignant' THEN ens.nom_enseignant
+                        ELSE pa.nom_pers_admin 
+                    END as nom_evaluateur,
+                    CASE 
+                        WHEN e.type_evaluateur = 'enseignant' THEN ens.prenom_enseignant
+                        ELSE pa.prenom_pers_admin 
+                    END as prenom_evaluateur
             FROM evaluations_rapports e
             LEFT JOIN enseignants ens ON e.id_evaluateur = ens.id_enseignant AND e.type_evaluateur = 'enseignant'
             LEFT JOIN personnel_admin pa ON e.id_evaluateur = pa.id_pers_admin AND e.type_evaluateur = 'personnel_admin'
             WHERE e.id_rapport = ?
             ORDER BY e.date_evaluation DESC
-        ");
+            ");
             $stmt->execute([$id_rapport]);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
             error_log("Erreur récupération évaluations: " . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Vérifier si le rapport est validé par la communication (chargée de communication)
+     * @param string $numEtu
+     * @return bool
+     */
+    public function estRapportValideCommunication(string $numEtu): bool
+    {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT COUNT(*) as count
+                FROM rapport_etudiants r
+                JOIN approuver a ON r.id_rapport = a.id_rapport
+                WHERE r.num_etu = ? AND a.decision = 'approuve'
+                ORDER BY a.date_approv DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$numEtu]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['count'] > 0;
+        } catch (PDOException $e) {
+            error_log("Erreur estRapportValideCommunication: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Récupérer la dernière décision de commission pour un étudiant
+     * @param string $numEtu
+     * @return string 'favorable', 'defavorable' ou vide
+     */
+    public function getDerniereDecisionCommission(string $numEtu): string
+    {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT v.decision_validation
+                FROM rapport_etudiants r
+                JOIN valider v ON r.id_rapport = v.id_rapport
+                WHERE r.num_etu = ?
+                ORDER BY v.date_validation DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$numEtu]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result && isset($result['decision_validation'])) {
+                $decision = strtolower($result['decision_validation']);
+                return ($decision === 'valider') ? 'favorable' : 'defavorable';
+            }
+            
+            return '';
+        } catch (PDOException $e) {
+            error_log("Erreur getDerniereDecisionCommission: " . $e->getMessage());
+            return '';
+        }
+    }
+
+    /**
+     * Vérifier si l'évaluation de soutenance est complète pour un étudiant
+     * @param string $numEtu
+     * @return bool
+     */
+    public function estEvaluationSoutenanceComplete(string $numEtu): bool
+    {
+        try {
+            // Get the latest soutenance for this student
+            $soutenance = $this->getDerniereSoutenance($numEtu);
+            if (!$soutenance) {
+                return false;
+            }
+            
+            $idRapport = $soutenance['id_rapport'] ?? null;
+            if (!$idRapport) {
+                return false;
+            }
+            
+            // Check if all evaluations are present (we expect 4 evaluators)
+            $stmt = $this->pdo->prepare("
+                SELECT COUNT(*) as total
+                FROM evaluations_rapports
+                WHERE id_rapport = ?
+            ");
+            $stmt->execute([$idRapport]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $totalEvaluations = $result['total'] ?? 0;
+            
+            // Consider complete if we have at least 4 evaluations (jury complet)
+            return $totalEvaluations >= 4;
+        } catch (PDOException $e) {
+            error_log("Erreur estEvaluationSoutenanceComplete: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Récupérer la dernière soutenance pour un étudiant
+     * @param string $numEtu
+     * @return array|null
+     */
+    public function getDerniereSoutenance(string $numEtu): ?array
+    {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT r.*, 
+                       " . $this->getReportSelectExtras('r') . ", 
+                       e.nom_etu, e.prenom_etu, e.email_etu,
+                       (SELECT i.id_annee_acad FROM inscriptions i 
+                        WHERE i.num_carte_etud = e.num_carte_etud 
+                        ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
+                FROM rapport_etudiants r
+                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                WHERE r.num_etu = ?
+                ORDER BY r.date_redaction_rapport DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$numEtu]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Erreur getDerniereSoutenance: " . $e->getMessage());
+            return null;
         }
     }
 

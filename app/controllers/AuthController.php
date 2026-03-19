@@ -48,4 +48,26 @@ class AuthController
         $GLOBALS['messageSuccess'] = '';
         return false;
     }
+
+    public function updateEmail($newEmail, $confirmEmail)
+    {
+        $idUtilisateur = $_SESSION['id_utilisateur'] ?? null;
+
+        $result = $this->authService->updateEmail($idUtilisateur, $newEmail, $confirmEmail);
+
+        if ($result['success']) {
+            $GLOBALS['messageSuccess'] = $result['message'];
+            return true;
+        }
+
+        $GLOBALS['messageErreur'] = $result['message'];
+        $GLOBALS['messageSuccess'] = '';
+        return false;
+    }
+
+    public function getContactEmail()
+    {
+        $idUtilisateur = $_SESSION['id_utilisateur'] ?? null;
+        return $this->authService->getContactEmail($idUtilisateur);
+    }
 }

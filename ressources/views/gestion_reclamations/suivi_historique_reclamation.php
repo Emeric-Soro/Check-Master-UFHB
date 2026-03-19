@@ -168,12 +168,18 @@ $totalPages = (int) ($totalPages ?? 1);
                             <?php endif; ?>
                         </div>
                         <div class="cm-etu-report-item__actions">
-                            <button type="button" class="cm-btn is-info is-sm js-view-reclamation" data-rec-id="<?= $recId ?>">
+                            <button type="button" class="cm-btn is-info is-sm" onclick="toggleReclamationDetails(<?= $recId ?>)">
                                 <i class="fas fa-eye" aria-hidden="true"></i>
                                 <span>Voir détail</span>
                             </button>
                         </div>
                     </article>
+                    <!-- Section inline pour les détails de la réclamation -->
+                    <div id="rec-details-<?= $recId ?>" class="hidden cm-etu-rec-inline">
+                        <div class="cm-etu-rec-content" id="rec-content-<?= $recId ?>">
+                            <p class="cm-etu-help">Chargement...</p>
+                        </div>
+                    </div>
                 <?php endforeach; ?>
             </div>
 
@@ -203,54 +209,42 @@ $totalPages = (int) ($totalPages ?? 1);
     </section>
 </div>
 
-<!-- Modal détails réclamation -->
-<div id="recDetailModal" class="cm-legacy-panel cm-etu-modal" hidden>
-    <div class="cm-etu-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="recDetailTitle" style="width: min(680px, 100%); max-height: 90vh; overflow-y: auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-
-            <button type="button" class="cm-btn is-light is-sm" id="closeRecDetail">
-                <i class="fas fa-xmark" aria-hidden="true"></i>
-            </button>
-        </div>
-        <div id="recDetailContent">
-            <p class="cm-etu-help">Chargement...</p>
-        </div>
-    </div>
-</div>
+<style>
+.cm-etu-rec-inline {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin: 0.5rem 0;
+    padding: 1rem;
+}
+.cm-etu-rec-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
+</style>
 
 <script>
-    (function () {
-        var modal = document.getElementById('recDetailModal');
-        var contentEl = document.getElementById('recDetailContent');
-        var closeBtn = document.getElementById('closeRecDetail');
+function toggleReclamationDetails(recId) {
+    const container = document.getElementById('rec-details-' + recId);
+    if (!container) return;
 
-        if (!modal || !contentEl || !closeBtn) return;
-
-        function openModal(recId) {
-            contentEl.innerHTML = '<p style="text-align:center;padding:1rem;color:#6b7785;">Chargement des détails…</p>';
-            modal.hidden = false;
-
-            fetch('?page=gestion_reclamations&action=get_reclamation_details&id=' + encodeURIComponent(recId))
-                .then(function (res) {
-                    if (!res.ok) throw new Error('Erreur réseau');
-                    return res.text();
-                })
-                .then(function (html) { contentEl.innerHTML = html; })
-                .catch(function () {
-                    contentEl.innerHTML = '<p style="text-align:center;padding:1rem;color:#e74c3c;"><i class="fas fa-triangle-exclamation"></i> Erreur lors du chargement.</p>';
-                });
-        }
-
-        function closeModal() { modal.hidden = true; }
-
-        document.querySelectorAll('.js-view-reclamation').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                openModal(btn.getAttribute('data-rec-id'));
+    if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+        // Charger les détails
+        fetch('?page=gestion_reclamations&action=get_reclamation_details&id=' + encodeURIComponent(recId))
+            .then(function(res) {
+                if (!res.ok) throw new Error('Erreur réseau');
+                return res.text();
+            })
+            .then(function(html) {
+                document.getElementById('rec-content-' + recId).innerHTML = html;
+            })
+            .catch(function() {
+                document.getElementById('rec-content-' + recId).innerHTML = '<p style="color:#e74c3c;">Erreur lors du chargement.</p>';
             });
-        });
-
-        closeBtn.addEventListener('click', closeModal);
-        modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
-    })();
+    } else {
+        container.classList.add('hidden');
+    }
+}
 </script>
 

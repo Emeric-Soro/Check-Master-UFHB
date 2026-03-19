@@ -419,8 +419,12 @@ class GestionScolariteService
             return ['success' => false, 'message' => '⚠️ Aucune inscription trouvée.', 'refreshLists' => false];
         }
 
-        $id_niveau = $derniere_inscription['id_niveau'];
+        $id_niveau = $derniere_inscription['id_niv_etude'] ?? $derniere_inscription['id_niveau'] ?? null;
         $id_annee_acad = $derniere_inscription['id_annee_acad'];
+
+        if ($id_niveau === null || $id_niveau === '') {
+            return ['success' => false, 'message' => '⚠️ Niveau d\'inscription introuvable pour cet étudiant.', 'refreshLists' => false];
+        }
 
         $writeGuard = \AcademicYear::ensureWritableYear($this->db, $id_annee_acad, "un versement");
         if (!$writeGuard['success']) {

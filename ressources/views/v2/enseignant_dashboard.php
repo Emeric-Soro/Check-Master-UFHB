@@ -25,7 +25,9 @@ if ($hasAnneeFilterParam) {
     $filtreAnnee = \AcademicYear::getSelectedIdFromSession();
 }
 $filtreSession = isset($_GET['id_session']) && $_GET['id_session'] !== '' ? (int) $_GET['id_session'] : null;
-$filtreQualiteJury = isset($_GET['id_qualite_jury']) && $_GET['id_qualite_jury'] !== '' ? (int) $_GET['id_qualite_jury'] : null;
+$filtreQualiteJury = isset($_GET['id_qualite_jury']) && $_GET['id_qualite_jury'] !== ''
+    ? (string) $_GET['id_qualite_jury']
+    : null;
 $enseignantSelectionne = isset($_GET['id_enseignant_selected']) && $_GET['id_enseignant_selected'] !== '' ? (string) $_GET['id_enseignant_selected'] : null;
 
 $anneeOptions = [];
@@ -134,6 +136,7 @@ try {
         $juryTable = $pdo->query("SHOW TABLES LIKE 'enseignant_jury'")->fetchColumn() ? 'enseignant_jury' : 'composer_jury';
         $rolesTable = $pdo->query("SHOW TABLES LIKE 'qualite_jury'")->fetchColumn() ? 'qualite_jury' : 'roles_jury';
         $progTable = $pdo->query("SHOW TABLES LIKE 'programmer_soutenance'")->fetchColumn() ? 'programmer_soutenance' : 'programmer';
+        $rolesHasCode = (bool) $pdo->query("SHOW COLUMNS FROM {$rolesTable} LIKE 'code_qltjury'")->fetchColumn();
 
         $whereConditions = ["CAST(ej.id_enseignant AS CHAR) = :id_enseignant"];
         $params = [':id_enseignant' => $teacherId];
@@ -284,7 +287,7 @@ try {
                             CONCAT(e.nom_etu, ' ', e.prenom_etu) AS nom_complet_etudiant,
                             ps.theme_soutenance,
                             qj.lib_role,
-                            qj.code_qltjury,
+                            " . ($rolesHasCode ? "qj.code_qltjury" : "qj.id_role_jury AS code_qltjury") . ",
                             s.lib_salle AS nom_salle
                         FROM {$juryTable} ej
                         JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance

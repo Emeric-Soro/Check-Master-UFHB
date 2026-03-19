@@ -208,6 +208,7 @@ final class RouteActionResolver
             'btn_enregistrer_notes' => 'action=btn_enregistrer_notes',
             'valider' => 'action=valider',
             'rejeter' => 'action=rejeter',
+            'update_email' => 'action=update_email',
             'update_password' => 'action=update_password',
         ];
 

@@ -45,6 +45,7 @@ if (!function_exists('cm_audit_label_from_action_token')) {
         }
 
         $map = [
+            'update_email' => 'mise a jour de l adresse mail',
             'update_password' => 'mise a jour du mot de passe',
             'btn_add_utilisateur' => 'ajout d un utilisateur',
             'btn_add_multiple' => 'ajout en masse d utilisateurs',

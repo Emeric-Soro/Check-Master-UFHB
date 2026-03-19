@@ -123,14 +123,6 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
         'icon' => 'fa-calculator',
     ]);
     ?>
-    <?php if (!empty($_SESSION['success'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => (string) $_SESSION['success']]); ?>
-        <?php unset($_SESSION['success']); ?>
-    <?php endif; ?>
-    <?php if (!empty($_SESSION['error'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $_SESSION['error']]); ?>
-        <?php unset($_SESSION['error']); ?>
-    <?php endif; ?>
     <?php if (!empty($GLOBALS['messageErreur'])): ?>
         <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $GLOBALS['messageErreur']]); ?>
     <?php endif; ?>

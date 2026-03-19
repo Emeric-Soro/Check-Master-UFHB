@@ -624,7 +624,7 @@ class Scolarite
     public function getVersementsEtudiant($id_etudiant, $id_annee_acad)
     {
         $query = "SELECT * FROM inscriptions 
-                 WHERE id_etudiant = ? AND id_annee_acad = ?
+                 WHERE num_carte_etud = ? AND id_annee_acad = ?
                  ORDER BY num_versement ASC";
         $stmt = $this->db->prepare($query);
         $stmt->execute([$id_etudiant, $id_annee_acad]);
@@ -877,6 +877,62 @@ class Scolarite
         } catch (Exception $e) {
             error_log("Erreur updateFicheInscription: " . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Récupérer les informations de scolarité pour un étudiant (utilisé dans la gestion des candidatures)
+     * @param string $numEtu Numéro étudiant
+     * @return array|false Tableau contenant les informations de scolarité ou false en cas d'erreur
+     */
+    public function getScolariteEtudiant($numEtu)
+    {
+        // Récupérer la dernière inscription pour déterminer l'année académique et le niveau
+        $lastInscription = $this->getDerniereInscription($numEtu);
+        if (!$lastInscription) {
+            return false;
+        }
+
+        $id_annee_acad = $lastInscription['id_annee_acad'];
+        $id_niv_etude = $lastInscription['id_niv_etude'];
+
+        // Récupérer les informations de paiement pour cet étudiant et cette année académique
+        $paymentInfo = $this->getInfosPaiementEtudiant($numEtu, $id_annee_acad);
+        if (!$paymentInfo) {
+            return false;
+        }
+
+        // Récupérer la date du dernier paiement
+        $lastPaymentDate = $this->getLastPaymentDate($numEtu, $id_annee_acad);
+
+        // Préparer le résultat
+        return [
+            'montant_total' => $paymentInfo['montant_scolarite'],
+            'montant_paye' => $paymentInfo['montant_paye'],
+            'reste_a_payer' => $paymentInfo['reste_a_payer'],
+            'dernier_paiement' => $lastPaymentDate,
+        ];
+    }
+
+    /**
+     * Récupérer la date du dernier paiement pour un étudiant et une année académique
+     * @param string $numEtu Numéro étudiant
+     * @param int $id_annee_acad ID de l'année académique
+     * @return string|null Date du dernier paiement au format Y-m-d H:i:s ou null
+     */
+    private function getLastPaymentDate($numEtu, $id_annee_acad)
+    {
+        try {
+            $query = "SELECT MAX(i.date_versement) as derniere_date_versement
+                     FROM inscriptions i
+                     WHERE i.num_carte_etud = ? AND i.id_annee_acad = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$numEtu, $id_annee_acad]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['derniere_date_versement'] ?? null;
+        } catch (Exception $e) {
+            error_log("Erreur getLastPaymentDate: " . $e->getMessage());
+            return null;
         }
     }
 }

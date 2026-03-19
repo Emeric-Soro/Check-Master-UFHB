@@ -27,8 +27,8 @@ $include_chart = !empty($include_chart);
 <div class="cm-main-wrapper" id="mainWrapper">
     <?php cm_component('layout/navbar', ['user' => $user, 'annee' => $annee]); ?>
     <main class="cm-content-area" id="contentArea" data-page="<?= htmlspecialchars((string) $current_page, ENT_QUOTES, 'UTF-8') ?>">
-        <?php cm_component('ui/toast'); ?>
         <?= $content ?>
+        <?php cm_component('ui/toast'); ?>
     </main>
 </div>
 

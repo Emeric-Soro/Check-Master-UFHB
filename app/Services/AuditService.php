@@ -501,6 +501,7 @@ class AuditService
             'btn_modifier_pers_admin' => 'btn_modifier_pers_admin',
             'submit_delete_multiple' => 'submit_delete_multiple',
             'btn_enregistrer_notes' => 'btn_enregistrer_notes',
+            'update_email' => 'update_email',
             'update_password' => 'update_password',
             'valider' => 'valider',
             'rejeter' => 'rejeter',

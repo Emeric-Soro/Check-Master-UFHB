@@ -225,6 +225,59 @@ class Utilisateur
         return $stmt->execute();
     }
 
+    public function updatePasswordByLogin($login, $newPassword)
+    {
+        $query = "UPDATE utilisateur SET mdp_utilisateur = :mdp WHERE login_utilisateur = :login";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':mdp', $newPassword);
+        $stmt->bindParam(':login', $login);
+        return $stmt->execute();
+    }
+
+    public function updateEmailByNomAndType($nomUtilisateur, $idTypeUtilisateur, $newEmail)
+    {
+        $parts = explode(' ', trim((string) $nomUtilisateur), 2);
+        if (count($parts) < 2) {
+            return false;
+        }
+
+        $part1 = $parts[0];
+        $part2 = $parts[1];
+        $idTypeUtilisateur = (int) $idTypeUtilisateur;
+
+        if ($idTypeUtilisateur === 5 || $idTypeUtilisateur === 6) {
+            $sql = "UPDATE enseignants
+                    SET mail_enseignant = :email
+                    WHERE ((UPPER(nom_enseignant) = UPPER(:part1) AND UPPER(prenom_enseignant) = UPPER(:part2))
+                        OR (UPPER(prenom_enseignant) = UPPER(:part1) AND UPPER(nom_enseignant) = UPPER(:part2)))
+                    LIMIT 1";
+        } elseif ($idTypeUtilisateur === 4) {
+            $sql = "UPDATE personnel_admin
+                    SET email_pers_admin = :email
+                    WHERE ((UPPER(nom_pers_admin) = UPPER(:part1) AND UPPER(prenom_pers_admin) = UPPER(:part2))
+                        OR (UPPER(prenom_pers_admin) = UPPER(:part1) AND UPPER(nom_pers_admin) = UPPER(:part2)))
+                    LIMIT 1";
+        } elseif ($idTypeUtilisateur === 7) {
+            $sql = "UPDATE etudiants
+                    SET email_etu = :email
+                    WHERE ((UPPER(nom_etu) = UPPER(:part1) AND UPPER(prenom_etu) = UPPER(:part2))
+                        OR (UPPER(prenom_etu) = UPPER(:part1) AND UPPER(nom_etu) = UPPER(:part2)))
+                    LIMIT 1";
+        } else {
+            return false;
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':email', $newEmail);
+        $stmt->bindParam(':part1', $part1);
+        $stmt->bindParam(':part2', $part2);
+        if (!$stmt->execute()) {
+            return false;
+        }
+
+        return $stmt->rowCount() > 0;
+    }
+
     public function getAllUtilisateursActifs()
     {
         $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 

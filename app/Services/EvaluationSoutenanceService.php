@@ -1149,6 +1149,38 @@ class EvaluationSoutenanceService
             return [];
         }
     }
+
+    /**
+     * Récupérer l'ID de soutenance à partir du numéro étudiant
+     * @param string $numEtu Numéro étudiant
+     * @return string|null ID de soutenance ou null si non trouvé
+     */
+    public function getSoutenanceIdByNumEtu(string $numEtu): ?string
+    {
+        try {
+            $progTable = $this->getProgrammationTable();
+            if ($progTable === null) {
+                return null;
+            }
+
+            $idCol = $this->getProgrammationIdColumn($progTable);
+
+            $stmt = $this->pdo->prepare("
+                SELECT {$idCol}
+                FROM {$progTable}
+                WHERE num_etud = ?
+                ORDER BY date_soutenance DESC, heure_soutenance DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$numEtu]);
+            $result = $stmt->fetchColumn();
+
+            return $result !== false && $result !== null ? (string)$result : null;
+        } catch (Throwable $e) {
+            error_log('Erreur getSoutenanceIdByNumEtu: ' . $e->getMessage());
+            return null;
+        }
+    }
     public function calculerMoyennesPourAnnexe2(string $numEtu): array
     {
         try {

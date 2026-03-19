@@ -166,14 +166,6 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
 ?>
 
 <div class="cm-prd3-screen cm-prd3-crud-screen">
-    <?php if (!empty($_SESSION['success'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => (string) $_SESSION['success']]); ?>
-        <?php unset($_SESSION['success']); ?>
-    <?php endif; ?>
-    <?php if (!empty($_SESSION['error'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $_SESSION['error']]); ?>
-        <?php unset($_SESSION['error']); ?>
-    <?php endif; ?>
     <?php if ($allYearsSelected): ?>
         <?php cm_component('ui/alert-box', [
             'type' => 'info',
@@ -363,9 +355,9 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                 ? dirSelect.selectedOptions[0].text
                 : '[Non attribué]';
 
-            html += '' +
-                '<div style="text-align:center; margin:15px 0;"><div style="border:1px solid #000; padding:8px 15px; display:inline-block;">Cas ' + (index + 1) + '</div></div>' +
-                '<div style="margin-bottom:15px; font-family:\\'Times New Roman\\', Times, serif; font-size:12pt; line-height:1.5;">' +
+             html += '' +
+                 '<div style="text-align:center; margin:15px 0;"><div style="border:1px solid #000; padding:8px 15px; display:inline-block;">Cas ' + (index + 1) + '</div></div>' +
+                 '<div style="margin-bottom:15px; font-family:\\"Times New Roman\\", Times, serif; font-size:12pt; line-height:1.5;">' +
                 '<p style="text-indent:0;"><strong>Etudiant :</strong> ' + String(report.student || '').replace(/[<>]/g, '') + '</p>' +
                 '<p style="text-indent:0;"><strong>Theme :</strong> ' + String(report.theme_rapport || '').replace(/[<>]/g, '') + '</p>' +
                 '<p style="text-indent:0; font-weight:bold;">Recommandations de la commission :</p>' +
@@ -458,7 +450,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
             block.className = 'cm-card cm-p-sm';
             block.innerHTML = '<div class=\"cm-text-sm cm-text-semibold cm-mb-sm\">Rapport #' + id + '</div>' +
                 '<div class=\"cm-grid-2\">' +
-                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrEnc_' + id + '\">Encadrant pédagogique</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrEnc_' + id + '\" name=\"encadrant_pédagogique[' + id + ']\">' + formatOptionHtml(draftState['enc_' + id] || '') + '</select></div>' +
+                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrEnc_' + id + '\">Encadrant pédagogique</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrEnc_' + id + '\" name=\"encadrant_pedagogique[' + id + ']\">' + formatOptionHtml(draftState['enc_' + id] || '') + '</select></div>' +
                     '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrDir_' + id + '\">Directeur memoire</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrDir_' + id + '\" name=\"directeur_memoire[' + id + ']\">' + formatOptionHtml(draftState['dir_' + id] || '') + '</select></div>' +
                 '</div>';
             assignmentsContainer.appendChild(block);

@@ -12,6 +12,7 @@ $listePersAdmin = is_array($GLOBALS['listePersAdmin'] ?? null) ? $GLOBALS['liste
 $listeEnseignants = is_array($GLOBALS['listeEnseignants'] ?? null) ? $GLOBALS['listeEnseignants'] : [];
 $listeGrades = is_array($GLOBALS['listeGrades'] ?? null) ? $GLOBALS['listeGrades'] : [];
 $listeFonctions = is_array($GLOBALS['listeFonctions'] ?? null) ? $GLOBALS['listeFonctions'] : [];
+$listeTypeEnseignants = is_array($GLOBALS['listeTypeEnseignants'] ?? null) ? $GLOBALS['listeTypeEnseignants'] : [];
 $listeSpecialites = is_array($GLOBALS['listeSpecialites'] ?? null) ? $GLOBALS['listeSpecialites'] : [];
 
 $persAdminEdit = $GLOBALS['pers_admin_a_modifier'] ?? null;
@@ -42,6 +43,15 @@ foreach ($listeSpecialites as $specialite) {
         continue;
     }
     $specialitesOptions[$id] = (string) ($specialite->lib_specialite ?? ('Specialite ' . $id));
+}
+
+$typeEnseignantsOptions = [];
+foreach ($listeTypeEnseignants as $typeEnseignant) {
+    $id = (string) ($typeEnseignant->id_type_enseignant ?? '');
+    if ($id === '') {
+        continue;
+    }
+    $typeEnseignantsOptions[$id] = (string) ($typeEnseignant->libelle ?? $id);
 }
 
 $tabPersUrl = '?page=' . rawurlencode($pageSlug) . '&tab=pers_admin';
@@ -75,23 +85,19 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
                 ['name' => 'matricule', 'label' => 'N° Matricule', 'type' => 'text', 'required' => true, 'value_key' => 'matricule_enseignant'],
                 ['name' => 'nom', 'label' => 'Nom', 'type' => 'text', 'required' => true, 'value_key' => 'nom_enseignant'],
                 ['name' => 'prenom', 'label' => 'Prénom', 'type' => 'text', 'required' => true, 'value_key' => 'prenom_enseignant'],
-                ['name' => 'genre', 'label' => 'Genre', 'type' => 'text', 'required' => true, 'value_key' => 'genre', 'attrs' => ['size' => 1, 'maxlength' => 1]],
                 ['name' => 'id_specialite', 'label' => 'Spécialité', 'type' => 'select-search', 'required' => true, 'options' => $specialitesOptions, 'value_key' => 'id_specialite'],
                 ['name' => 'id_grade', 'label' => 'Grade', 'type' => 'select', 'required' => true, 'options' => $gradesOptions, 'value_key' => 'id_grade'],
-                ['name' => 'date_occupation', 'label' => 'Date occupation poste', 'type' => 'date', 'required' => true, 'value_key' => 'date_occupation', 'attrs' => ['size' => 10, 'maxlength' => 10]],
+                ['name' => 'date_grade', 'label' => 'Date grade', 'type' => 'date', 'required' => true, 'value_key' => 'date_grade', 'attrs' => ['size' => 10, 'maxlength' => 10]],
                 ['name' => 'email', 'label' => 'E-mail', 'type' => 'email', 'required' => true, 'value_key' => 'mail_enseignant'],
                 ['name' => 'telephone', 'label' => 'Téléphone', 'type' => 'text', 'required' => true, 'value_key' => 'tel_enseignant', 'attrs' => ['size' => 10, 'maxlength' => 10]],
                 ['name' => 'id_fonction', 'label' => 'Fonction', 'type' => 'select', 'required' => true, 'options' => $fonctionsOptions, 'value_key' => 'id_fonction'],
-                ['name' => 'date_fonction', 'label' => 'Date fonction', 'type' => 'date', 'required' => true, 'value_key' => 'date_fonction', 'attrs' => ['size' => 10, 'maxlength' => 10]],
+                ['name' => 'date_occupation', 'label' => 'Date occupation poste', 'type' => 'date', 'required' => true, 'value_key' => 'date_occupation', 'attrs' => ['size' => 10, 'maxlength' => 10]],
                 [
                     'name' => 'type_enseignant',
                     'label' => 'Type enseignant',
                     'type' => 'select',
                     'required' => true,
-                    'options' => [
-                        'Simple' => 'Simple',
-                        'Administratif' => 'Administratif',
-                    ],
+                    'options' => $typeEnseignantsOptions,
                     'value_key' => 'type_enseignant',
                 ],
             ],
@@ -138,7 +144,6 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
                 ['name' => 'matricule', 'label' => 'N° Matricule', 'type' => 'text', 'required' => true, 'value_key' => 'matricule_pers_admin'],
                 ['name' => 'nom', 'label' => 'Nom', 'type' => 'text', 'required' => true, 'value_key' => 'nom_pers_admin'],
                 ['name' => 'prenom', 'label' => 'Prénom', 'type' => 'text', 'required' => true, 'value_key' => 'prenom_pers_admin'],
-                ['name' => 'genre', 'label' => 'Genre', 'type' => 'text', 'required' => true, 'value_key' => 'genre', 'attrs' => ['size' => 1, 'maxlength' => 1]],
                 ['name' => 'date_embauche', 'label' => "Date d'embauche", 'type' => 'date', 'required' => true, 'value_key' => 'date_embauche', 'attrs' => ['size' => 10, 'maxlength' => 10]],
                 ['name' => 'poste', 'label' => 'Poste', 'type' => 'select', 'required' => true, 'options' => $fonctionsOptions, 'value_key' => 'poste'],
                 ['name' => 'date_occupation', 'label' => 'Date occupation poste', 'type' => 'date', 'required' => true, 'value_key' => 'date_occupation', 'attrs' => ['size' => 10, 'maxlength' => 10]],
@@ -156,7 +161,6 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
                         return htmlspecialchars(strtoupper($nom) . ' ' . $prenom, ENT_QUOTES, 'UTF-8');
                     },
                 ],
-                ['key' => 'genre', 'label' => 'Genre'],
                 ['key' => 'email_pers_admin', 'label' => 'E-mail'],
                 ['key' => 'tel_pers_admin', 'label' => 'Téléphone'],
                 ['key' => 'poste', 'label' => 'Poste'],

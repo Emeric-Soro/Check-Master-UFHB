@@ -93,6 +93,47 @@ endif; ?>
 <?php
 endif; ?>
 
+<style>
+.cm-cand-exam-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin: 1.5rem 0;
+    padding: 1.5rem;
+    border: 2px solid #e2e8f0;
+}
+.cm-cand-exam-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+.cm-cand-exam-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1a5276;
+    margin: 0;
+}
+.cm-cand-exam-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+}
+.cm-cand-exam-nav {
+    display: flex;
+    gap: 0.5rem;
+}
+.cm-cand-exam-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+</style>
+
 <!-- Filtres -->
 <div class="cm-cand-filters">
     <div class="cm-cand-search">
@@ -169,6 +210,155 @@ else: ?>
 endif; ?>
 </div>
 
+<!-- Section d'examen inline -->
+<?php if ($examiner && $etudiantData): ?>
+<div id="examinationSection" class="cm-cand-exam-section">
+    <div class="cm-cand-exam-header">
+        <h3 class="cm-cand-exam-title">Examen de candidature - <?php echo htmlspecialchars($etudiantData['nom_etu'] ?? ''); ?></h3>
+        <a href="?page=gestion_candidatures_soutenance" class="cm-btn is-light is-sm">
+            <i class="fas fa-times"></i> Fermer
+        </a>
+    </div>
+
+    <!-- Indicateur d'étapes -->
+    <div class="cm-cand-step-indicator">
+        <div class="cm-cand-step <?php echo isset($_SESSION['etapes_validation'][$examiner][1]) ? $_SESSION['etapes_validation'][$examiner][1] : ($etape == 1 ? 'is-active' : ''); ?>" id="stepScolarite">
+            <div class="cm-cand-step__icon"><i class="fas fa-money-check"></i></div>
+            <div class="cm-cand-step__label">Scolarité</div>
+        </div>
+        <div class="cm-cand-step <?php echo isset($_SESSION['etapes_validation'][$examiner][2]) ? $_SESSION['etapes_validation'][$examiner][2] : ($etape == 2 ? 'is-active' : ''); ?>" id="stepStage">
+            <div class="cm-cand-step__icon"><i class="fas fa-briefcase"></i></div>
+            <div class="cm-cand-step__label">Stage</div>
+        </div>
+        <div class="cm-cand-step <?php echo isset($_SESSION['etapes_validation'][$examiner][3]) ? $_SESSION['etapes_validation'][$examiner][3] : ($etape == 3 ? 'is-active' : ''); ?>" id="stepSemestre">
+            <div class="cm-cand-step__icon"><i class="fas fa-graduation-cap"></i></div>
+            <div class="cm-cand-step__label">Semestre</div>
+        </div>
+        <div class="cm-cand-step <?php echo $etape == 4 ? 'is-active' : ''; ?>" id="stepResume">
+            <div class="cm-cand-step__icon"><i class="fas fa-clipboard-check"></i></div>
+            <div class="cm-cand-step__label">Résumé</div>
+        </div>
+    </div>
+
+    <!-- Contenu de l'étape -->
+    <?php if ($etapeData): ?>
+        <div class="cm-cand-step-content is-active">
+            <div class="cm-cand-info-section">
+                <?php if ($etape == 4): ?>
+                    <!-- Résumé final -->
+                    <div class="cm-cand-resume">
+                        <?php
+                        $decision = 'Validée';
+                        foreach ($etapeData as $key => $data) {
+                            if ($data['validation'] === 'rejeté') {
+                                $decision = 'Rejetée';
+                            }
+                        }
+                        ?>
+                        <div class="cm-cand-decision <?php echo $decision === 'Validée' ? 'is-validated' : 'is-rejected'; ?>">
+                            <?php if ($decision === 'Validée'): ?>
+                                <p>Félicitations ! La candidature a été validée.</p>
+                            <?php else: ?>
+                                <p>La candidature a été rejetée.</p>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="cm-cand-resume-etapes">
+                            <div class="cm-cand-etape-resume <?php echo cmCandBadgeModifier($etapeData['scolarite']['validation']); ?>">
+                                <div class="cm-cand-etape-details">
+                                    <p><strong>Scolarité :</strong>
+                                        <span class="cm-cand-badge <?php echo cmCandBadgeModifier($etapeData['scolarite']['validation']); ?>">
+                                            <?php echo strtoupper($etapeData['scolarite']['validation']); ?>
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="cm-cand-etape-resume <?php echo cmCandBadgeModifier($etapeData['stage']['validation']); ?>">
+                                <div class="cm-cand-etape-details">
+                                    <p><strong>Stage :</strong>
+                                        <span class="cm-cand-badge <?php echo cmCandBadgeModifier($etapeData['stage']['validation']); ?>">
+                                            <?php echo strtoupper($etapeData['stage']['validation']); ?>
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="cm-cand-etape-resume <?php echo cmCandBadgeModifier($etapeData['semestre']['validation']); ?>">
+                                <div class="cm-cand-etape-details">
+                                    <p><strong>Semestre :</strong>
+                                        <span class="cm-cand-badge <?php echo cmCandBadgeModifier($etapeData['semestre']['validation']); ?>">
+                                            <?php echo strtoupper($etapeData['semestre']['validation']); ?>
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <?php if (isset($_GET['email_envoye']) && $_GET['email_envoye'] == '1'): ?>
+                            <div class="cm-cand-email-notice is-success">
+                                <p><i class="fas fa-check-circle"></i> <strong>Email envoyé avec succès !</strong></p>
+                            </div>
+                        <?php else: ?>
+                            <div class="cm-cand-email-notice is-info">
+                                <p><i class="fas fa-envelope"></i> Cliquez sur "Envoyer les résultats" pour notifier l'étudiant.</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php else: ?>
+                    <!-- Contenu normal des étapes -->
+                    <?php if ($etape == 1): ?>
+                        <div class="cm-cand-info-item"><strong>Statut des paiements:</strong> <span><?php echo htmlspecialchars($etapeData['status']); ?></span></div>
+                        <div class="cm-cand-info-item"><strong>Montant total:</strong> <span><?php echo htmlspecialchars($etapeData['montant']); ?></span></div>
+                        <div class="cm-cand-info-item"><strong>Montant payé:</strong> <span><?php echo htmlspecialchars($etapeData['montant_paye']); ?></span></div>
+                        <div class="cm-cand-info-item"><strong>Dernier paiement:</strong> <span><?php echo htmlspecialchars($etapeData['dernierPaiement']); ?></span></div>
+                    <?php elseif ($etape == 2): ?>
+                        <div class="cm-cand-info-item"><strong>Entreprise :</strong> <span><?php echo htmlspecialchars($etapeData['entreprise']); ?></span></div>
+                        <div class="cm-cand-info-item"><strong>Sujet :</strong> <span><?php echo htmlspecialchars($etapeData['sujet']); ?></span></div>
+                        <div class="cm-cand-info-item"><strong>Période :</strong> <span><?php echo htmlspecialchars($etapeData['periode']); ?></span></div>
+                        <div class="cm-cand-info-item"><strong>Encadrant :</strong> <span><?php echo htmlspecialchars($etapeData['encadrant']); ?></span></div>
+                    <?php elseif ($etape == 3): ?>
+                        <div class="cm-cand-info-item"><strong>Semestre actuel:</strong> <span><?php echo htmlspecialchars($etapeData['semestre']); ?></span></div>
+                        <div class="cm-cand-info-item"><strong>Moyenne générale:</strong> <span><?php echo htmlspecialchars($etapeData['moyenne']); ?></span></div>
+                        <div class="cm-cand-info-item"><strong>Unités validées:</strong> <span><?php echo htmlspecialchars($etapeData['unites']); ?></span></div>
+                        <?php if (empty($etapeData['moyenne']) || $etapeData['moyenne'] == '0'): ?>
+                            <div class="cm-cand-alert-warning"><i class="fas fa-exclamation-triangle"></i> <strong>Note :</strong> Aucune note trouvée pour cet étudiant.</div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Boutons de navigation et actions -->
+    <div class="cm-cand-exam-actions">
+        <div class="cm-cand-exam-nav">
+            <?php if ($etape > 1 && $etape < 4): ?>
+                <a href="?page=gestion_candidatures_soutenance&examiner=<?php echo $examiner; ?>&etape=<?php echo $etape - 1; ?>" class="cm-btn is-light">Précédent</a>
+            <?php endif; ?>
+            <?php if ($etape < 4): ?>
+                <a href="?page=gestion_candidatures_soutenance&examiner=<?php echo $examiner; ?>&etape=<?php echo $etape + 1; ?>" class="cm-btn is-primary">Suivant</a>
+            <?php endif; ?>
+        </div>
+        <div class="cm-cand-exam-buttons">
+            <?php if ($etape < 4): ?>
+                <form method="post" action="?page=gestion_candidatures_soutenance&action=rejeter_etape&examiner=<?php echo $examiner; ?>&etape=<?php echo $etape; ?>" class="cm-cand-inline-form">
+                    <input type="hidden" name="etape" value="<?php echo $etape; ?>">
+                    <button type="submit" class="cm-cand-btn-reject">Rejeter</button>
+                </form>
+                <form method="post" action="?page=gestion_candidatures_soutenance&action=valider_etape&examiner=<?php echo $examiner; ?>&etape=<?php echo $etape; ?>" class="cm-cand-inline-form">
+                    <input type="hidden" name="etape" value="<?php echo $etape; ?>">
+                    <button type="submit" class="cm-cand-btn-validate"><?php echo $etape == 3 ? "Terminer l'évaluation" : 'Valider'; ?></button>
+                </form>
+            <?php endif; ?>
+            <?php if ($etape == 4): ?>
+                <form method="post" action="?page=gestion_candidatures_soutenance&action=envoyer_resultats&examiner=<?php echo $examiner; ?>" class="cm-cand-inline-form">
+                    <button type="submit" class="cm-cand-btn-validate"><i class="fas fa-envelope"></i> Envoyer les résultats</button>
+                </form>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <!-- Table d'historique des candidatures examinées -->
 <div class="cm-table-wrapper cm-cand-history">
     <?php cm_toolbar([
@@ -180,283 +370,6 @@ endif; ?>
     'can_view' => canView(),
 ]); ?>
 </div>
-
-<!-- Modal détails historique -->
-<div id="historiqueDetailsModal" class="cm-legacy-panel">
-    <div class="cm-modal">
-        <div class="cm-modal__header">
-            <h3 class="cm-modal__title">Détails de la candidature</h3>
-            <button class="cm-modal__close" onclick="closeHistoriqueModal()">&times;</button>
-        </div>
-        <div class="cm-modal__body">
-            <div id="historiqueDetailsContent">
-                <!-- Contenu dynamique à charger côté serveur/JS -->
-                <p>Chargement...</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal d'examen -->
-<?php if ($examiner && $etudiantData): ?>
-    <div id="examinationModal" class="cm-legacy-panel is-open">
-<?php
-else: ?>
-    <div id="examinationModal" class="cm-legacy-panel">
-<?php
-endif; ?>
-        <div class="cm-modal<?php echo($etape == 4 ? ' is-resume-step' : ''); ?>">
-            <div class="cm-modal__header">
-                <h3 class="cm-modal__title">Examen de candidature</h3>
-                <a href="?page=gestion_candidatures_soutenance" class="cm-modal__close">&times;</a>
-            </div>
-
-            <div class="cm-modal__body cm-cand-modal-body">
-                <!--partie des step-icon-->
-                <div class="cm-cand-step-indicator">
-                    <div class="cm-cand-step <?php echo isset($_SESSION['etapes_validation'][$examiner][1]) ? $_SESSION['etapes_validation'][$examiner][1] : ($etape == 1 ? 'is-active' : ''); ?>"
-                        id="stepScolarite">
-                        <div class="cm-cand-step__icon">
-                            <i class="fas fa-money-check"></i>
-                        </div>
-                        <div class="cm-cand-step__label">Scolarité</div>
-                    </div>
-                    <div class="cm-cand-step <?php echo isset($_SESSION['etapes_validation'][$examiner][2]) ? $_SESSION['etapes_validation'][$examiner][2] : ($etape == 2 ? 'is-active' : ''); ?>"
-                        id="stepStage">
-                        <div class="cm-cand-step__icon">
-                            <i class="fas fa-briefcase"></i>
-                        </div>
-                        <div class="cm-cand-step__label">Stage</div>
-                    </div>
-                    <div class="cm-cand-step <?php echo isset($_SESSION['etapes_validation'][$examiner][3]) ? $_SESSION['etapes_validation'][$examiner][3] : ($etape == 3 ? 'is-active' : ''); ?>"
-                        id="stepSemestre">
-                        <div class="cm-cand-step__icon">
-                            <i class="fas fa-graduation-cap"></i>
-                        </div>
-                        <div class="cm-cand-step__label">Semestre</div>
-                    </div>
-                    <div class="cm-cand-step <?php echo $etape == 4 ? 'is-active' : ''; ?>" id="stepResume">
-                        <div class="cm-cand-step__icon">
-                            <i class="fas fa-clipboard-check"></i>
-                        </div>
-                        <div class="cm-cand-step__label">Résumé</div>
-                    </div>
-                </div>
-
-                <?php if ($etapeData): ?>
-                    <div class="cm-cand-step-content is-active
-                    <?php
-    if ($etape == 1)
-        echo 'is-scolarite';
-    elseif ($etape == 2)
-        echo 'is-stage';
-    elseif ($etape == 3)
-        echo 'is-semestre';
-    elseif ($etape == 4)
-        echo 'is-resume';
-?>">
-                        <div class="cm-cand-info-section">
-                            <?php if ($etape == 4): ?>
-                                <!-- Résumé final -->
-
-                                <div class="cm-cand-resume">
-                                    <?php
-        $decision = 'Validée';
-        $rejets = 0;
-        foreach ($etapeData as $key => $data) {
-            if ($data['validation'] === 'rejeté') {
-                $rejets++;
-                $decision = 'Rejetée';
-            }
-        }
-?>
-                                    <div class="cm-cand-decision <?php echo $decision === 'Validée' ? 'is-validated' : 'is-rejected'; ?>">
-
-                                        <?php if ($decision === 'Validée'): ?>
-                                            <p>🎉 Félicitations ! Votre candidature a été validée. Vous pouvez procéder à votre
-                                                soutenance.</p>
-                                        <?php
-        else: ?>
-                                            <p>❌ Votre candidature a été rejetée. Veuillez corriger les problèmes identifiés
-                                                ci-dessous.</p>
-                                        <?php
-        endif; ?>
-                                    </div>
-
-                                    <div class="cm-cand-resume-etapes">
-
-                                        <!-- Scolarité -->
-                                        <div
-                                            class="cm-cand-etape-resume <?php echo cmCandBadgeModifier($etapeData['scolarite']['validation']); ?>">
-                                            <div class="cm-cand-etape-details">
-                                                <p><strong>Validation :</strong>
-                                                    <span class="cm-cand-badge <?php echo cmCandBadgeModifier($etapeData['scolarite']['validation']); ?>">
-                                                        <?php echo strtoupper($etapeData['scolarite']['validation']); ?>
-                                                    </span>
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <!-- Stage -->
-                                        <div
-                                            class="cm-cand-etape-resume <?php echo cmCandBadgeModifier($etapeData['stage']['validation']); ?>">
-                                            <div class="cm-cand-etape-details">
-                                                <p><strong>Validation :</strong>
-                                                    <span class="cm-cand-badge <?php echo cmCandBadgeModifier($etapeData['stage']['validation']); ?>">
-                                                        <?php echo strtoupper($etapeData['stage']['validation']); ?>
-                                                    </span>
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <!-- Semestre -->
-                                        <div
-                                            class="cm-cand-etape-resume <?php echo cmCandBadgeModifier($etapeData['semestre']['validation']); ?>">
-                                            <div class="cm-cand-etape-details">
-                                                <p><strong>Validation :</strong>
-                                                    <span class="cm-cand-badge <?php echo cmCandBadgeModifier($etapeData['semestre']['validation']); ?>">
-                                                        <?php echo strtoupper($etapeData['semestre']['validation']); ?>
-                                                    </span>
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                    <?php if (isset($_GET['email_envoye']) && $_GET['email_envoye'] == '1'): ?>
-                                        <div class="cm-cand-email-notice is-success">
-                                            <p><i class="fas fa-check-circle"></i> <strong>Email envoyé avec succès !</strong> Les
-                                                résultats ont été envoyés à l'étudiant.</p>
-                                        </div>
-                                    <?php
-        else: ?>
-                                        <div class="cm-cand-email-notice is-info">
-                                            <p><i class="fas fa-envelope"></i> Cliquez sur "Envoyer les résultats" pour notifier
-                                                l'étudiant de la décision finale.</p>
-                                        </div>
-                                    <?php
-        endif; ?>
-                                </div>
-                            <?php
-    else: ?>
-                                <!-- Contenu normal des étapes -->
-
-                                <?php if ($etape == 1): ?>
-                                    <div class="cm-cand-info-item">
-                                        <strong>Statut des paiements:</strong>
-                                        <span><?php echo htmlspecialchars($etapeData['status']); ?></span>
-                                    </div>
-                                    <div class="cm-cand-info-item">
-                                        <strong>Montant total:</strong>
-                                        <span><?php echo htmlspecialchars($etapeData['montant']); ?></span>
-                                    </div>
-                                    <div class="cm-cand-info-item">
-                                        <strong>Montant payé:</strong>
-                                        <span><?php echo htmlspecialchars($etapeData['montant_paye']); ?></span>
-                                    </div>
-                                    <div class="cm-cand-info-item">
-                                        <strong>Dernier paiement:</strong>
-                                        <span><?php echo htmlspecialchars($etapeData['dernierPaiement']); ?></span>
-                                    </div>
-                                <?php
-        elseif ($etape == 2): ?>
-                                    <div class="cm-cand-info-item">
-                                        <strong>Entreprise :</strong>
-                                        <span><?php echo htmlspecialchars($etapeData['entreprise']); ?></span>
-                                    </div>
-                                    <div class="cm-cand-info-item">
-                                        <strong>Sujet :</strong>
-                                        <span><?php echo htmlspecialchars($etapeData['sujet']); ?></span>
-                                    </div>
-                                    <div class="cm-cand-info-item">
-                                        <strong>Période :</strong>
-                                        <span><?php echo htmlspecialchars($etapeData['periode']); ?></span>
-                                    </div>
-                                    <div class="cm-cand-info-item">
-                                        <strong>Encadrant :</strong>
-                                        <span><?php echo htmlspecialchars($etapeData['encadrant']); ?></span>
-                                    </div>
-                                <?php
-        elseif ($etape == 3): ?>
-                                    <div class="cm-cand-info-item">
-                                        <strong>Semestre actuel:</strong>
-                                        <span><?php echo htmlspecialchars($etapeData['semestre']); ?></span>
-                                    </div>
-                                    <div class="cm-cand-info-item">
-                                        <strong>Moyenne générale:</strong>
-                                        <span><?php echo htmlspecialchars($etapeData['moyenne']); ?></span>
-                                    </div>
-                                    <div class="cm-cand-info-item">
-                                        <strong>Unités validées:</strong>
-                                        <span><?php echo htmlspecialchars($etapeData['unites']); ?></span>
-                                    </div>
-                                    <?php if (empty($etapeData['moyenne']) || $etapeData['moyenne'] == '0'): ?>
-                                        <div class="cm-cand-alert-warning">
-                                            <i class="fas fa-exclamation-triangle"></i>
-                                            <strong>Note :</strong> Aucune note n'a été trouvée pour cet étudiant.
-                                        </div>
-                                    <?php
-            endif; ?>
-                                <?php
-        endif; ?>
-                            </div>
-                        </div>
-                    <?php
-    endif; ?>
-            </div>
-
-            <div class="cm-modal__footer">
-                <div>
-                    <?php if ($etape > 1 && $etape < 4): ?>
-                        <a href="?page=gestion_candidatures_soutenance&examiner=<?php echo $examiner; ?>&etape=<?php echo $etape - 1; ?>"
-                            class="cm-btn is-light">
-                            Précédent
-                        </a>
-                    <?php
-    endif; ?>
-
-                    <?php if ($etape < 4): ?>
-                        <a href="?page=gestion_candidatures_soutenance&examiner=<?php echo $examiner; ?>&etape=<?php echo $etape + 1; ?>"
-                            class="cm-btn is-primary">
-                            Suivant
-                        </a>
-                    <?php
-    endif; ?>
-                </div>
-                <div>
-                    <?php if ($etape < 4): ?>
-                        <form method="post"
-                            action="?page=gestion_candidatures_soutenance&action=rejeter_etape&examiner=<?php echo $examiner; ?>&etape=<?php echo $etape; ?>"
-                            class="cm-cand-inline-form">
-                            <input type="hidden" name="etape" value="<?php echo $etape; ?>">
-                            <button type="submit" class="cm-cand-btn-reject">Rejeter</button>
-                        </form>
-                        <form method="post"
-                            action="?page=gestion_candidatures_soutenance&action=valider_etape&examiner=<?php echo $examiner; ?>&etape=<?php echo $etape; ?>"
-                            class="cm-cand-inline-form">
-                            <input type="hidden" name="etape" value="<?php echo $etape; ?>">
-                            <button type="submit" class="cm-cand-btn-validate">
-                                <?php echo $etape == 3 ? 'Terminer l\'évaluation' : 'Valider'; ?>
-                            </button>
-                        </form>
-                    <?php
-    endif; ?>
-                    <?php if ($etape == 4): ?>
-                        <form method="post"
-                            action="?page=gestion_candidatures_soutenance&action=envoyer_resultats&examiner=<?php echo $examiner; ?>"
-                            class="cm-cand-inline-form">
-                            <button type="submit" class="cm-cand-btn-validate">
-                                <i class="fas fa-envelope"></i> Envoyer les résultats
-                            </button>
-                        </form>
-                    <?php
-    endif; ?>
-                <?php
-endif; ?>
-                </div>
-            </div>
-        </div>
-    </div>
-
 
 <script>
     // Fonction de recherche
@@ -504,21 +417,6 @@ endif; ?>
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    }
-
-    // Modal Voir détails (AJAX pour charger le résumé)
-    document.querySelectorAll('.btn-details').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const idCandidature = this.getAttribute('data-idcandidature');
-            const resumeDiv = document.getElementById('resume-candidature-' + idCandidature);
-            document.getElementById('historiqueDetailsContent').innerHTML = resumeDiv ? resumeDiv
-                .innerHTML : '<p>Aucun résumé trouvé.</p>';
-            document.getElementById('historiqueDetailsModal').classList.add('is-open');
-        });
-    });
-
-    function closeHistoriqueModal() {
-        document.getElementById('historiqueDetailsModal').classList.remove('is-open');
     }
 
     function printHistoriqueTable() {

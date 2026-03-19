@@ -132,12 +132,21 @@ class RedactionCompteRenduService
         $chemin_pdf = 'ressources/uploads/comptes_rendus/' . $pdf_name;
 
         // Enregistrement en BD
-        $id_CR = \CompteRendu::creer($num_etu, $nom_CR, $contenu_CR, $chemin_pdf, $date_CR, $rapports);
+        try {
+            $this->pdo->beginTransaction();
+            $id_CR = \CompteRendu::creer($num_etu, $nom_CR, $contenu_CR, $chemin_pdf, $date_CR, $rapports);
 
-        if (!$id_CR) {
+            if (!$id_CR) {
+                $this->pdo->rollBack();
+                return ['success' => false, 'message' => "Erreur lors de l'enregistrement du compte rendu."];
+            }
+            $this->saveAffectations($rapports, $encadrants, $directeurs);
+            $this->pdo->commit();
+        } catch (\Exception $e) {
+            $this->pdo->rollBack();
+            error_log("Erreur lors de l'enregistrement du CR : " . $e->getMessage());
             return ['success' => false, 'message' => "Erreur lors de l'enregistrement du compte rendu."];
         }
-        $this->saveAffectations($rapports, $encadrants, $directeurs);
 
         // Envoi des emails
         $this->sendNotificationEmails($rapports, $nom_CR, $pdf_path);
