@@ -116,6 +116,24 @@ class EvaluationDossiersService
         return \AcademicYear::getSelectedIdFromSession();
     }
 
+    private function studentJoinCondition(string $rapportAlias = 'r', string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            '(%1$s.num_etu = %2$s.num_carte_etud OR %1$s.num_etu = %2$s.num_ident_etud)',
+            $rapportAlias,
+            $etudiantAlias
+        );
+    }
+
+    private function studentCarteExpr(string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            "COALESCE(NULLIF(%s.num_carte_etud, ''), NULLIF(%s.num_ident_etud, ''))",
+            $etudiantAlias,
+            $etudiantAlias
+        );
+    }
+
     private function getRapportYearId($idRapport): ?int
     {
         $rapport = $this->rapportEtudiant->getRapportById($idRapport);
@@ -170,13 +188,13 @@ class EvaluationDossiersService
                 $yearWhere = '';
                 $yearParams = [];
                 if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
-                    $yearWhere = " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = ?)";
+                    $yearWhere = " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " AND i.id_annee_acad = ?)";
                     $yearParams[] = $selectedYearId;
                 }
                 $stmt = $this->db->prepare("
                     SELECT COUNT(*) as total
                     FROM rapport_etudiants r
-                    INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                     LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                     WHERE r.etape_validation IN ('approuve_communication', 'en_attente_commission')
                     {$yearWhere}
@@ -187,7 +205,7 @@ class EvaluationDossiersService
                 $stmt = $this->db->prepare("
                     SELECT COUNT(*) as total
                     FROM rapport_etudiants r
-                    INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                     WHERE r.etape_validation = 'valide'
                     {$yearWhere}
                 ");
@@ -197,7 +215,7 @@ class EvaluationDossiersService
                 $stmt = $this->db->prepare("
                     SELECT COUNT(*) as total
                     FROM rapport_etudiants r
-                    INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                     WHERE r.etape_validation = 'desapprouve_commission'
                     {$yearWhere}
                 ");
@@ -208,13 +226,13 @@ class EvaluationDossiersService
                     $yearWhere = '';
                     $yearParams = [];
                     if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
-                        $yearWhere = " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = ?)";
+                        $yearWhere = " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " AND i.id_annee_acad = ?)";
                         $yearParams[] = $selectedYearId;
                     }
                     $stmt = $this->db->prepare("
                         SELECT COUNT(*) as total
                         FROM rapport_etudiants r
-                        INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                        INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                         LEFT JOIN valider v ON r.id_rapport = v.id_rapport
                         WHERE v.id_rapport IS NULL
                         {$yearWhere}
@@ -226,7 +244,7 @@ class EvaluationDossiersService
                         SELECT COUNT(DISTINCT v.id_rapport) as total
                         FROM valider v
                         INNER JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                        INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                        INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                         WHERE decision_validation = 'valider'
                         {$yearWhere}
                     ");
@@ -237,7 +255,7 @@ class EvaluationDossiersService
                         SELECT COUNT(DISTINCT v.id_rapport) as total
                         FROM valider v
                         INNER JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                        INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                        INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                         WHERE decision_validation = 'rejeter'
                         {$yearWhere}
                     ");
@@ -247,7 +265,7 @@ class EvaluationDossiersService
                     $yearWhere = '';
                     $yearParams = [];
                     if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
-                        $yearWhere = " WHERE EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = ?)";
+                        $yearWhere = " WHERE EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " AND i.id_annee_acad = ?)";
                         $yearParams[] = $selectedYearId;
                     }
                     $stmt = $this->db->prepare("
@@ -256,7 +274,7 @@ class EvaluationDossiersService
                             SUM(CASE WHEN COALESCE(statut_rapport, '') IN ('rejeter', 'desapprouve_commission') THEN 1 ELSE 0 END) as rejetes,
                             SUM(CASE WHEN COALESCE(statut_rapport, '') NOT IN ('valider', 'valide', 'rejeter', 'desapprouve_commission') THEN 1 ELSE 0 END) as en_cours
                         FROM rapport_etudiants r
-                        INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                        INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                         {$yearWhere}
                     ");
                     $stmt->execute($yearParams);
@@ -293,7 +311,7 @@ class EvaluationDossiersService
      * Récupère l'ID enseignant à partir de l'ID utilisateur admin
      *
      * @param int $id_utilisateur
-     * @return int|null
+     * @return string|null
      */
     public function getEnseignantIdFromAdmin($id_utilisateur)
     {
@@ -307,7 +325,7 @@ class EvaluationDossiersService
             error_log("DEBUG: Utilisateur avec ID $id_utilisateur non trouvé");
             $stmt = $this->db->query("SELECT id_enseignant FROM enseignants LIMIT 1");
             $fallback = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $fallback ? $fallback['id_enseignant'] : null;
+            return $fallback ? (string) $fallback['id_enseignant'] : null;
         }
 
         error_log("DEBUG: Login de l'utilisateur: " . $utilisateur['login_utilisateur']);
@@ -322,7 +340,7 @@ class EvaluationDossiersService
 
         if ($enseignant) {
             error_log("DEBUG: Enseignant trouvé: " . $enseignant['prenom_enseignant'] . " " . $enseignant['nom_enseignant'] . " (ID: " . $enseignant['id_enseignant'] . ")");
-            return $enseignant['id_enseignant'];
+            return (string) $enseignant['id_enseignant'];
         }
 
         error_log("DEBUG: Aucun enseignant trouvé avec le login: " . $utilisateur['login_utilisateur']);
@@ -332,7 +350,7 @@ class EvaluationDossiersService
 
         if ($fallback) {
             error_log("DEBUG: Utilisation du fallback - Enseignant: " . $fallback['prenom_enseignant'] . " " . $fallback['nom_enseignant'] . " (ID: " . $fallback['id_enseignant'] . ")");
-            return $fallback['id_enseignant'];
+            return (string) $fallback['id_enseignant'];
         }
 
         error_log("DEBUG: Aucun enseignant disponible dans la base de données");

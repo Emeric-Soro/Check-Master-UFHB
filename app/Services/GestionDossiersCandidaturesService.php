@@ -106,9 +106,27 @@ class GestionDossiersCandidaturesService
         }
 
         return [
-            'sql' => " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = {$alias}.num_carte_etud AND i.id_annee_acad = :id_annee_acad)",
+            'sql' => " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = " . $this->studentCarteExpr($alias) . " AND i.id_annee_acad = :id_annee_acad)",
             'params' => [':id_annee_acad' => $selectedYearId],
         ];
+    }
+
+    private function studentJoinCondition(string $rapportAlias = 'r', string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            '(%1$s.num_etu = %2$s.num_carte_etud OR %1$s.num_etu = %2$s.num_ident_etud)',
+            $rapportAlias,
+            $etudiantAlias
+        );
+    }
+
+    private function studentCarteExpr(string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            "COALESCE(NULLIF(%s.num_carte_etud, ''), NULLIF(%s.num_ident_etud, ''))",
+            $etudiantAlias,
+            $etudiantAlias
+        );
     }
 
     /**
@@ -131,14 +149,14 @@ class GestionDossiersCandidaturesService
                     r.theme_rapport,
                     {$dateColumn} as date_depot,
                     r.statut_rapport,
-                    e.num_carte_etud as num_etu,
+                    " . $this->studentCarteExpr('e') . " as num_etu,
                     e.nom_etu,
                     e.prenom_etu,
                     e.email_etu,
                     (
                         SELECT i.id_annee_acad
                         FROM inscriptions i
-                        WHERE i.num_carte_etud = e.num_carte_etud
+                        WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . "
                         ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
                         LIMIT 1
                     ) AS id_annee_acad,
@@ -149,7 +167,7 @@ class GestionDossiersCandidaturesService
                     pa.nom_pers_admin,
                     pa.prenom_pers_admin
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN approuver a ON r.id_rapport = a.id_rapport
                 LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
                 WHERE a.decision IN ('approuve', 'desapprouve')
@@ -164,14 +182,14 @@ class GestionDossiersCandidaturesService
                     r.theme_rapport,
                     {$dateColumn} as date_depot,
                     r.statut_rapport,
-                    e.num_carte_etud as num_etu,
+                    " . $this->studentCarteExpr('e') . " as num_etu,
                     e.nom_etu,
                     e.prenom_etu,
                     e.email_etu,
                     (
                         SELECT i.id_annee_acad
                         FROM inscriptions i
-                        WHERE i.num_carte_etud = e.num_carte_etud
+                        WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . "
                         ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
                         LIMIT 1
                     ) AS id_annee_acad,
@@ -186,7 +204,7 @@ class GestionDossiersCandidaturesService
                     en.nom_enseignant as nom_pers_admin,
                     en.prenom_enseignant as prenom_pers_admin
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 LEFT JOIN enseignants en ON v.id_enseignant = en.id_enseignant
                 WHERE v.decision_validation IN ('valider', 'rejeter')
@@ -214,7 +232,7 @@ class GestionDossiersCandidaturesService
             $sql = "
                 SELECT COUNT(*) as total
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN approuver a ON r.id_rapport = a.id_rapport
                 WHERE a.decision IN ('approuve', 'desapprouve')
                 {$yearFilter['sql']}
@@ -227,7 +245,7 @@ class GestionDossiersCandidaturesService
             $sql = "
                 SELECT COUNT(*) as approuves
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN approuver a ON r.id_rapport = a.id_rapport
                 WHERE a.decision = 'approuve'
                 {$yearFilter['sql']}
@@ -240,7 +258,7 @@ class GestionDossiersCandidaturesService
             $sql = "
                 SELECT COUNT(*) as desapprouves
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN approuver a ON r.id_rapport = a.id_rapport
                 WHERE a.decision = 'desapprouve'
                 {$yearFilter['sql']}
@@ -252,7 +270,7 @@ class GestionDossiersCandidaturesService
             $sql = "
                 SELECT COUNT(*) as total
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 WHERE v.decision_validation IN ('valider', 'rejeter')
                 {$yearFilter['sql']}
@@ -264,7 +282,7 @@ class GestionDossiersCandidaturesService
             $sql = "
                 SELECT COUNT(*) as approuves
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 WHERE v.decision_validation = 'valider'
                 {$yearFilter['sql']}
@@ -276,7 +294,7 @@ class GestionDossiersCandidaturesService
             $sql = "
                 SELECT COUNT(*) as desapprouves
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 WHERE v.decision_validation = 'rejeter'
                 {$yearFilter['sql']}
@@ -325,7 +343,7 @@ class GestionDossiersCandidaturesService
                     pa.nom_pers_admin,
                     pa.prenom_pers_admin
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN approuver a ON r.id_rapport = a.id_rapport
                 LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
                 WHERE r.id_rapport = :id_rapport
@@ -350,7 +368,7 @@ class GestionDossiersCandidaturesService
                     en.nom_enseignant as nom_pers_admin,
                     en.prenom_enseignant as prenom_pers_admin
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 LEFT JOIN enseignants en ON v.id_enseignant = en.id_enseignant
                 WHERE r.id_rapport = :id_rapport

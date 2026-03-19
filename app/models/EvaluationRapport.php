@@ -71,6 +71,24 @@ class EvaluationRapport
         return $alias . '.theme_rapport';
     }
 
+    private function studentJoinCondition(string $rapportAlias = 'r', string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            '(%1$s.num_etu = %2$s.num_carte_etud OR %1$s.num_etu = %2$s.num_ident_etud)',
+            $rapportAlias,
+            $etudiantAlias
+        );
+    }
+
+    private function studentCarteExpr(string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            "COALESCE(NULLIF(%s.num_carte_etud, ''), NULLIF(%s.num_ident_etud, ''))",
+            $etudiantAlias,
+            $etudiantAlias
+        );
+    }
+
     /**
      * Ajoute une évaluation pour un rapport
      */
@@ -253,21 +271,21 @@ class EvaluationRapport
                     e.email_etu,
                     e.promotion_etu,
                     (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = e.num_carte_etud 
+                     WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
                      ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad,
                     " . ($hasDeposer ? "d.date_depot" : "$dateExpr") . " AS date_depot,
                     COUNT(ev.id_evaluation) as total_votes,
                     COUNT(CASE WHEN ev.decision_evaluation = 'valider' THEN 1 END) as votes_valider,
                     COUNT(CASE WHEN ev.decision_evaluation = 'rejeter' THEN 1 END) as votes_rejeter
                 FROM rapport_etudiants r
-                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 $joinDeposer
                 $joinValider
                 LEFT JOIN evaluations_rapports ev ON r.id_rapport = ev.id_rapport
                 $whereSql
                 GROUP BY r.id_rapport, nom_rapport, r.theme_rapport, date_rapport, 
                          etape_validation, r.statut_rapport, e.nom_etu, e.prenom_etu, 
-                         e.email_etu, e.promotion_etu, e.num_carte_etud, date_depot
+                         e.email_etu, e.promotion_etu, e.num_carte_etud, e.num_ident_etud, date_depot
                 $orderSql
             ";
             $stmt = $this->pdo->prepare($sql);

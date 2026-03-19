@@ -64,7 +64,7 @@ foreach ($dossiers as $dossier) {
 $myEvaluationsByRapport = [];
 try {
     $pdo = Database::getConnection();
-    $enseignantId = 0;
+    $enseignantId = '';
     $idUtilisateur = (int) ($_SESSION['id_utilisateur'] ?? 0);
     if ($idUtilisateur > 0) {
         $stmtUser = $pdo->prepare('SELECT login_utilisateur FROM utilisateur WHERE id_utilisateur = ?');
@@ -74,10 +74,10 @@ try {
             $stmtEns = $pdo->prepare('SELECT id_enseignant FROM enseignants WHERE mail_enseignant = ? LIMIT 1');
             $stmtEns->execute([(string) $userRow['login_utilisateur']]);
             $ensRow = $stmtEns->fetch(PDO::FETCH_ASSOC);
-            $enseignantId = (int) ($ensRow['id_enseignant'] ?? 0);
+            $enseignantId = trim((string) ($ensRow['id_enseignant'] ?? ''));
         }
     }
-    if ($enseignantId > 0 && !empty($dossierIds)) {
+    if ($enseignantId !== '' && !empty($dossierIds)) {
         $placeholders = implode(',', array_fill(0, count($dossierIds), '?'));
         $params = array_merge([$enseignantId], $dossierIds);
         $sql = "
@@ -569,4 +569,3 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
     applySearch();
 })();
 </script>
-
