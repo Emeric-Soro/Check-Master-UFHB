@@ -60,6 +60,11 @@ class ProcessusValidationController
         return $this->service->verifierIdEnseignant($id_enseignant);
     }
 
+    public function resolveEnseignantIdFromSession(array $session)
+    {
+        return $this->service->resolveEnseignantIdFromSession($session);
+    }
+
     /**
      * Résout l'ID enseignant depuis l'ID utilisateur.
      */
