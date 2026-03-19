@@ -199,6 +199,7 @@ include __DIR__ . '/../ressources/routes/redactionCompteRenduRoutes.php';
 include __DIR__ . '/../ressources/routes/archivesCompteRenduRoutes.php';
 include __DIR__ . '/../ressources/routes/archiveHistoryRoutes.php';
 include __DIR__ . '/../ressources/routes/archiveRoutes.php';
+include __DIR__ . '/../ressources/routes/editionBulletinRoutes.php';
 
 $menuController = new MenuController();
 
@@ -1994,7 +1995,6 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             class="cm-content-area cm-layout-main <?php echo $isPolarizedPage ? 'cm-layout-main--locked' : 'cm-layout-main--scroll'; ?>"
             data-page="<?php echo htmlspecialchars((string) $currentMenuSlug, ENT_QUOTES, 'UTF-8'); ?>"
             data-action="<?php echo htmlspecialchars((string) ($currentAction ?? ($_GET['action'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
-            <?php cm_component('ui/toast'); ?>
             <script
                 src="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('js/components/confirm-modal.js') : 'assets/js/components/confirm-modal.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 
@@ -2019,6 +2019,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
                 }
             }
             ?>
+            <?php cm_component('ui/toast'); ?>
         </main>
     </div>
 
@@ -2134,6 +2135,8 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         src="<?php echo htmlspecialchars($publicPrefix . 'js/suivi_reclamation.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script
         src="<?php echo htmlspecialchars($publicPrefix . 'js/historique_reclamation.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script defer
+        src="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('js/inline-confirm.js') : 'assets/js/inline-confirm.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body>
 
 </html>

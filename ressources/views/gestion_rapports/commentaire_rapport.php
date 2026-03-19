@@ -133,12 +133,18 @@ $filterSearch = (string) ($_GET['search'] ?? '');
                             <?php endif; ?>
                         </div>
                         <div class="cm-etu-report-item__actions">
-                            <button type="button" class="cm-btn is-info is-sm js-view-comments" data-rapport-id="<?= $rapportId ?>">
+                            <button type="button" class="cm-btn is-info is-sm" onclick="toggleComments(<?= $rapportId ?>)">
                                 <i class="fas fa-eye" aria-hidden="true"></i>
-                                <span>Voir détails</span>
+                                <span>Voir commentaires</span>
                             </button>
                         </div>
                     </article>
+                    <!-- Section inline pour les commentaires -->
+                    <div id="comments-<?= $rapportId ?>" class="hidden cm-etu-comments-inline">
+                        <div class="cm-etu-comments-content" id="comments-content-<?= $rapportId ?>">
+                            <p class="cm-etu-help">Chargement...</p>
+                        </div>
+                    </div>
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
@@ -150,54 +156,41 @@ $filterSearch = (string) ($_GET['search'] ?? '');
     </section>
 </div>
 
-<!-- Modal commentaires -->
-<div id="commentsDetailModal" class="cm-legacy-panel cm-etu-modal" hidden>
-    <div class="cm-etu-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="commentsDetailTitle" style="width: min(680px, 100%); max-height: 90vh; overflow-y: auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-
-            <button type="button" class="cm-btn is-light is-sm" id="closeCommentsModal">
-                <i class="fas fa-xmark" aria-hidden="true"></i>
-            </button>
-        </div>
-        <div id="commentsModalContent">
-            <p class="cm-etu-help">Chargement...</p>
-        </div>
-    </div>
-</div>
+<style>
+.cm-etu-comments-inline {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin: 0.5rem 0;
+    padding: 1rem;
+}
+.cm-etu-comments-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
+</style>
 
 <script>
-    (function () {
-        var modal = document.getElementById('commentsDetailModal');
-        var contentEl = document.getElementById('commentsModalContent');
-        var closeBtn = document.getElementById('closeCommentsModal');
+function toggleComments(rapportId) {
+    const container = document.getElementById('comments-' + rapportId);
+    if (!container) return;
 
-        if (!modal || !contentEl || !closeBtn) return;
-
-        function openModal(rapportId) {
-            contentEl.innerHTML = '<p style="text-align:center;padding:1rem;color:#6b7785;">Chargement des commentaires…</p>';
-            modal.hidden = false;
-
-            fetch('?page=gestion_rapports&action=get_commentaires&id=' + encodeURIComponent(rapportId))
-                .then(function (res) {
-                    if (!res.ok) throw new Error('Erreur réseau');
-                    return res.text();
-                })
-                .then(function (html) { contentEl.innerHTML = html; })
-                .catch(function () {
-                    contentEl.innerHTML = '<p style="text-align:center;padding:1rem;color:#e74c3c;"><i class="fas fa-triangle-exclamation"></i> Erreur lors du chargement des commentaires.</p>';
-                });
-        }
-
-        function closeModal() { modal.hidden = true; }
-
-        document.querySelectorAll('.js-view-comments').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                openModal(btn.getAttribute('data-rapport-id'));
+    if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+        // Charger les commentaires
+        fetch('?page=gestion_rapports&action=get_commentaires&id=' + encodeURIComponent(rapportId))
+            .then(function(res) {
+                if (!res.ok) throw new Error('Erreur réseau');
+                return res.text();
+            })
+            .then(function(html) {
+                document.getElementById('comments-content-' + rapportId).innerHTML = html;
+            })
+            .catch(function() {
+                document.getElementById('comments-content-' + rapportId).innerHTML = '<p style="color:#e74c3c;">Erreur lors du chargement des commentaires.</p>';
             });
-        });
-
-        closeBtn.addEventListener('click', closeModal);
-        modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
-    })();
+    } else {
+        container.classList.add('hidden');
+    }
+}
 </script>
-

@@ -745,7 +745,7 @@ $addFeature([
         ['pattern' => 'page=redaction_compte_rendu', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=redaction_compte_rendu&action=brouillons', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=redaction_compte_rendu&action=archives', 'method' => 'GET', 'crud' => 'voir'],
-        ['pattern' => 'page=redaction_compte_rendu&action=export_pdf', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=redaction_compte_rendu&action=export_pdf', 'method' => 'POST', 'crud' => 'voir'],
         ['pattern' => 'page=redaction_compte_rendu', 'method' => 'POST', 'crud' => 'modifier'],
     ],
 ]);

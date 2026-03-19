@@ -74,9 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
 
                 $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://';
                 $resetLink = $scheme . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/reset_password.php?token=$token";
-                $subject = "Réinitialisation de votre mot de passe";
-                $message = "<p>Bonjour,<br>Pour réinitialiser votre mot de passe, cliquez sur le lien ci-dessous :<br><a href='$resetLink'>$resetLink</a><br>Ce lien expirera dans 1 heure.</p>";
-                $emailService->sendEmail($email, $subject, $message, true);
+                $emailService->sendTemplate('PASSWORD_RESET', $email, ['reset_link' => $resetLink]);
             }
         }
     }

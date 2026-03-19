@@ -147,30 +147,32 @@ return [
     'TEMPLATES' => [
 
         'USER_WELCOME' => [
-            'subject' => 'Bienvenue sur Check Master, {{nom}} !',
+            'subject' => 'Bienvenue sur Check Master',
             'body' => '
-                <p>Bonjour <strong>{{nom}}</strong>,</p>
-                <p>Votre compte a été créé avec succès sur <strong>Check Master</strong>.</p>
-                
+                <p class="greeting">Bonjour <strong>{{nom}}</strong>,</p>
+                <p>Votre compte a ete cree sur la plateforme <strong>Check Master</strong>.</p>
+                <p>Vous pouvez des a present vous connecter avec les informations ci-dessous :</p>
+
                 <div class="box">
-                    <p style="margin-bottom: 15px;"><strong>Vos identifiants de connexion :</strong></p>
-                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 15px;">
+                    <table style="width: 100%; border-collapse: collapse;">
                         <tr>
-                            <td width="30%" style="padding-bottom: 10px; color: #64748b;">Identifiant :</td>
+                            <td style="padding-bottom: 10px; color: #64748b; width: 180px;">Identifiant :</td>
                             <td style="padding-bottom: 10px;"><strong>{{login}}</strong></td>
                         </tr>
                         {{password_row}}
                     </table>
-                    
+
                     {{reset_password_section}}
                 </div>
-                
+
                 <p class="text-center">
-                    <a href="{{login_url}}" class="button">Se connecter à Check Master</a>
+                    <a href="{{login_url}}" class="button">Acceder a la plateforme</a>
                 </p>
-                
-                <p style="font-size: 14px; color: #64748b; margin-top: 30px;">
-                    Si vous n\'êtes pas à l\'origine de cette création de compte, veuillez ignorer cet email ou contacter notre support.
+
+                <p style="font-size: 14px; color: #64748b;">
+                    Si vous ne parvenez pas a cliquer sur le bouton, copiez ce lien dans votre navigateur :
+                    <br>
+                    <a href="{{login_url}}" style="color: #0f172a; word-break: break-all;">{{login_url}}</a>
                 </p>
             '
         ],
@@ -190,6 +192,22 @@ return [
                 {{details_html}}
                 
                 {{action_message}}
+            '
+        ],
+
+        'PASSWORD_RESET' => [
+            'subject' => 'Réinitialisation de votre mot de passe',
+            'body' => '
+                <p>Bonjour,</p>
+                <p>Pour réinitialiser votre mot de passe, cliquez sur le bouton ci-dessous :</p>
+                
+                <p class="text-center">
+                    <a href="{{reset_link}}" class="button">Réinitialiser mon mot de passe</a>
+                </p>
+                
+                <p style="font-size: 14px; color: #64748b; margin-top: 30px;">
+                    Ce lien expirera dans <strong>1 heure</strong>. Si vous n\'êtes pas à l\'origine de cette demande, vous pouvez ignorer cet email en toute sécurité.
+                </p>
             '
         ],
 

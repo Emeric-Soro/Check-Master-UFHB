@@ -105,18 +105,19 @@ class Enseignant{
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
-    public function ajouterEnseignant($id_enseignant, $nom, $prenom, $email, $id_grade, $id_specialite, $id_fonction, $date_grade, $date_fonction,$type_enseignant) {
+    public function ajouterEnseignant($id_enseignant, $nom, $prenom, $email, $telephone, $id_grade, $id_specialite, $id_fonction, $date_grade, $date_occupation, $type_enseignant) {
         try {
             $this->db->beginTransaction();
             
 
             // 1. Insérer dans la table enseignants
-            $query = "INSERT INTO enseignants (id_enseignant, nom_enseignant, prenom_enseignant, mail_enseignant, id_specialite,type_enseignant) 
-                     VALUES (:id_enseignant, :nom, :prenom, :email, :id_specialite,:type_enseignant)";
+            $query = "INSERT INTO enseignants (id_enseignant, nom_enseignant, prenom_enseignant, tel_enseignant, mail_enseignant, id_specialite, type_enseignant) 
+                     VALUES (:id_enseignant, :nom, :prenom, :telephone, :email, :id_specialite, :type_enseignant)";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':id_enseignant', $id_enseignant);
             $stmt->bindParam(':nom', $nom);
             $stmt->bindParam(':prenom', $prenom);
+            $stmt->bindParam(':telephone', $telephone);
             $stmt->bindParam(':email', $email);
             $stmt->bindParam(':id_specialite', $id_specialite);
             $stmt->bindParam(':type_enseignant', $type_enseignant);
@@ -133,11 +134,11 @@ class Enseignant{
 
             // 3. Insérer dans la table occuper (liaison enseignant-fonction)
             $query = "INSERT INTO occuper (id_fonction,id_enseignant,date_occupation) 
-                     VALUES (:id_fonction,:id_enseignant,:date_fonction)";
+                     VALUES (:id_fonction,:id_enseignant,:date_occupation)";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':id_fonction', $id_fonction);
             $stmt->bindParam(':id_enseignant', $id_enseignant);
-            $stmt->bindParam(':date_fonction', $date_fonction);
+            $stmt->bindParam(':date_occupation', $date_occupation);
             $stmt->execute();
 
             // Valider la transaction
@@ -152,7 +153,7 @@ class Enseignant{
         }
     }
 
-    public function modifierEnseignant($id, $nom, $prenom, $email, $id_grade, $id_specialite, $id_fonction, $date_grade, $date_fonction,$type_enseignant) {
+    public function modifierEnseignant($id, $nom, $prenom, $email, $telephone, $id_grade, $id_specialite, $id_fonction, $date_grade, $date_occupation, $type_enseignant) {
         try {
             $this->db->beginTransaction();
 
@@ -160,6 +161,7 @@ class Enseignant{
             $query = "UPDATE enseignants 
                      SET nom_enseignant = :nom, 
                          prenom_enseignant = :prenom, 
+                         tel_enseignant = :telephone,
                          mail_enseignant = :email,
                          id_specialite = :id_specialite,
                          type_enseignant = :type_enseignant
@@ -168,6 +170,7 @@ class Enseignant{
             $stmt->bindParam(':id', $id);
             $stmt->bindParam(':nom', $nom);
             $stmt->bindParam(':prenom', $prenom);
+            $stmt->bindParam(':telephone', $telephone);
             $stmt->bindParam(':email', $email);
             $stmt->bindParam(':id_specialite', $id_specialite);
             $stmt->bindParam(':type_enseignant', $type_enseignant);
@@ -187,12 +190,12 @@ class Enseignant{
             // 3. Mettre à jour la table occuper
             $query = "UPDATE occuper 
                      SET id_fonction = :id_fonction,
-                         date_occupation = :date_fonction
+                         date_occupation = :date_occupation
                      WHERE id_enseignant = :id";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':id', $id);
             $stmt->bindParam(':id_fonction', $id_fonction);
-            $stmt->bindParam(':date_fonction', $date_fonction);
+            $stmt->bindParam(':date_occupation', $date_occupation);
             $stmt->execute();
 
             $this->db->commit();

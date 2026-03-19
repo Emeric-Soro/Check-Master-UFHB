@@ -9,6 +9,17 @@ class GestionRhController
     private $baseViewPath;
     /** @var GestionRhService */
     private $service;
+
+    private function getPermissionSlug(): string
+    {
+        $page = (string) ($_GET['page'] ?? 'gestion_rh');
+        if (in_array($page, ['maj_enseignant', 'maj_personnel_admin', 'gestion_rh'], true)) {
+            return $page;
+        }
+
+        return 'gestion_rh';
+    }
+
     public function __construct()
     {
         $this->baseViewPath = __DIR__ . '/../../ressources/views/gestion_rh_content.php';
@@ -16,6 +27,7 @@ class GestionRhController
     }
     public function index()
     {
+        $permissionSlug = $this->getPermissionSlug();
         $messageErreur = '';
         $messageSuccess = '';
         $enseignant_a_modifier = null;
@@ -23,7 +35,7 @@ class GestionRhController
         if (isset($_GET['tab']) && $_GET['tab'] === 'enseignant') {
             // Ajout ou modification d'un enseignant
             if (isset($_POST['btn_add_enseignant']) || isset($_POST['btn_modifier_enseignant'])) {
-                if (!canCreate('gestion_rh') && !canEdit('gestion_rh')) {
+                if (!canCreate($permissionSlug) && !canEdit($permissionSlug)) {
                     if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                         http_response_code(403);
                         echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -44,7 +56,7 @@ class GestionRhController
 
             // Suppression multiple
             if (isset($_POST['submit_delete_multiple']) && isset($_POST['selected_ids'])) {
-                if (!canDelete('gestion_rh')) {
+                if (!canDelete($permissionSlug)) {
                     if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                         http_response_code(403);
                         echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -73,7 +85,7 @@ class GestionRhController
         else if (isset($_GET['tab']) && $_GET['tab'] === 'pers_admin') {
             // Ajout ou modification d'un membre du personnel
             if (isset($_POST['btn_add_pers_admin']) || isset($_POST['btn_modifier_pers_admin'])) {
-                if (!canCreate('gestion_rh') && !canEdit('gestion_rh')) {
+                if (!canCreate($permissionSlug) && !canEdit($permissionSlug)) {
                     if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                         http_response_code(403);
                         echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -94,7 +106,7 @@ class GestionRhController
 
             // Suppression multiple
             if (isset($_POST['submit_delete_multiple']) && isset($_POST['selected_ids'])) {
-                if (!canDelete('gestion_rh')) {
+                if (!canDelete($permissionSlug)) {
                     if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                         http_response_code(403);
                         echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);

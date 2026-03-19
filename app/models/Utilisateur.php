@@ -225,6 +225,15 @@ class Utilisateur
         return $stmt->execute();
     }
 
+    public function updatePasswordByLogin($login, $newPassword)
+    {
+        $query = "UPDATE utilisateur SET mdp_utilisateur = :mdp WHERE login_utilisateur = :login";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':mdp', $newPassword);
+        $stmt->bindParam(':login', $login);
+        return $stmt->execute();
+    }
+
     public function updateEmailByNomAndType($nomUtilisateur, $idTypeUtilisateur, $newEmail)
     {
         $parts = explode(' ', trim((string) $nomUtilisateur), 2);

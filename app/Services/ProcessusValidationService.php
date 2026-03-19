@@ -103,7 +103,7 @@ class ProcessusValidationService
             return ['sql' => '', 'params' => []];
         }
 
-        if ($this->columnExists('inscriptions', 'id_etudiant') && $this->columnExists('inscriptions', 'id_annee_acad')) {
+        if ($this->columnExists('inscriptions', 'num_carte_etud') && $this->columnExists('inscriptions', 'id_annee_acad')) {
             return [
                 'sql' => " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = {$alias}.num_carte_etud AND i.id_annee_acad = :id_annee_acad)",
                 'params' => [':id_annee_acad' => $selectedYearId],
@@ -547,6 +547,46 @@ class ProcessusValidationService
             } else {
                 $stmtUpdate = $this->pdo->prepare("UPDATE rapport_etudiants SET statut_rapport = ? WHERE id_rapport = ?");
                 $stmtUpdate->execute([$decision, $id_rapport]);
+            }
+
+            // Générer le PV de commission si la décision est favorable et qu'un compte-rendu existe
+            if ($decision === 'valider') {
+                // Vérifier s'il existe un compte-rendu lié à ce rapport
+                $compteRenduExist = $this->pdo->prepare("
+                    SELECT cr.id_CR 
+                    FROM compte_rendu_rapport crr
+                    JOIN compte_rendu cr ON crr.id_CR = cr.id_CR
+                    WHERE crr.id_rapport = ?
+                    LIMIT 1
+                ");
+                $compteRenduExist->execute([$id_rapport]);
+                $compteRendu = $compteRenduExist->fetch(PDO::FETCH_ASSOC);
+                
+                if ($compteRendu && !empty($compteRendu['id_CR'])) {
+                    // Générer le PV de commission
+                    try {
+                        require_once __DIR__ . '/../Services/Document/PvCommissionGeneratorService.php';
+                        require_once __DIR__ . '/../Support/Database.php';
+                        require_once __DIR__ . '/../Utils/PlanningDataUtils.php';
+                        
+                        $pdfGenerator = new \App\Services\Document\PdfGeneratorService(
+                            __DIR__ . '/../../storage',
+                            __DIR__ . '/../../public/assets/img/logo.png'
+                        );
+                        $dataUtils = new \App\Utils\PlanningDataUtils(new \App\Support\Database($this->pdo));
+                        $pvService = new \App\Services\Document\PvCommissionGeneratorService($pdfGenerator, $dataUtils, new \App\Support\Database($this->pdo));
+                        
+                        $pvResult = $pvService->generate((int)$compteRendu['id_CR'], $id_enseignant);
+                        
+                        if (!$pvResult['success']) {
+                            error_log("Erreur génération PV commission: " . ($pvResult['error'] ?? 'Erreur inconnue'));
+                            // On ne bloque pas la finalisation si la génération du PV échoue
+                        }
+                    } catch (Exception $e) {
+                        error_log("Exception lors de la génération du PV commission: " . $e->getMessage());
+                        // On ne bloque pas la finalisation si la génération du PV échoue
+                    }
+                }
             }
 
             return [

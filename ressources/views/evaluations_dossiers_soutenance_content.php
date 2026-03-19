@@ -104,14 +104,6 @@ $valides = (int) ($stats['valides'] ?? 0);
 $rejetes = (int) ($stats['a_corriger'] ?? 0);
 ?>
 <div class="cm-prd3-screen cm-prd3-crud-screen">
-    <?php if (!empty($_SESSION['success'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => (string) $_SESSION['success']]); ?>
-        <?php unset($_SESSION['success']); ?>
-    <?php endif; ?>
-    <?php if (!empty($_SESSION['error'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $_SESSION['error']]); ?>
-        <?php unset($_SESSION['error']); ?>
-    <?php endif; ?>
     <div id="cmEvalDecisionAlert"></div>
     <?php if ($allYearsSelected): ?>
         <?php cm_component('ui/alert-box', [

@@ -230,7 +230,7 @@ if (isset($_GET['page']) && in_array($_GET['page'], ['verification_candidatures_
                             );
                             $pdf = $pdfGen->createDocument('P', 'A4', 'Rapport - ' . htmlspecialchars($rapport->nom_rapport));
                             $pdf->AddPage();
-                            $pdfGen->writeHtml($pdf, $html);
+                            $pdfGen->writeHtml($pdf, $contenu);
 
                             // Générer le nom du fichier
                             $nomFichier = 'rapport_' . $rapport->nom_rapport . '_' . date('Y-m-d_H-i-s') . '.pdf';

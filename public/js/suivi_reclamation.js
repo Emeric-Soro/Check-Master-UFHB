@@ -220,89 +220,9 @@ function filterClaims() {
     displayClaims();
 }
 
-// Fonction pour afficher les détails d'une réclamation
-function showClaimDetails(claimId) {
-    const claim = claimsData.find(c => c.id === claimId);
-    if (!claim) return;
-
-    const modal = document.getElementById('claimModal');
-    const modalContent = document.getElementById('modalContent');
-    if (!modal || !modalContent) return;
-
-    // Construire le contenu du modal
-    let attachmentsHtml = '';
-    if (claim.attachments && claim.attachments.length > 0) {
-        attachmentsHtml = `
-            <div class="mt-4">
-                <h4 class="font-medium text-gray-700">Pièces jointes:</h4>
-                <ul class="list-disc pl-5 mt-2">
-                    ${claim.attachments.map(file => `<li>${file}</li>`).join('')}
-                </ul>
-            </div>
-        `;
-    }
-
-    let responseHtml = '';
-    if (claim.response) {
-        responseHtml = `
-            <div class="mt-6 p-4 bg-gray-50 rounded-md">
-                <h4 class="font-medium text-gray-700">Réponse:</h4>
-                <p class="mt-2 text-gray-600">${claim.response}</p>
-            </div>
-        `;
-    }
-
-    modalContent.innerHTML = `
-        <div class="space-y-4">
-            <div>
-                <h4 class="font-medium text-gray-700">ID:</h4>
-                <p class="mt-1">${claim.id}</p>
-            </div>
-            <div>
-                <h4 class="font-medium text-gray-700">Sujet:</h4>
-                <p class="mt-1">${claim.subject}</p>
-            </div>
-            <div>
-                <h4 class="font-medium text-gray-700">Type:</h4>
-                <p class="mt-1">${getTypeText(claim.type)}</p>
-            </div>
-            <div>
-                <h4 class="font-medium text-gray-700">Date:</h4>
-                <p class="mt-1">${formatDate(claim.date)}</p>
-            </div>
-            <div>
-                <h4 class="font-medium text-gray-700">Statut:</h4>
-                <p class="mt-1">
-                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(claim.status)}">
-                        ${getStatusText(claim.status)}
-                    </span>
-                </p>
-            </div>
-            <div>
-                <h4 class="font-medium text-gray-700">Description:</h4>
-                <p class="mt-1 text-gray-600">${claim.description}</p>
-            </div>
-            ${attachmentsHtml}
-            ${responseHtml}
-        </div>
-    `;
-
-    modal.classList.remove('hidden');
-}
-
-// Fonction pour fermer le modal
-function closeModal() {
-    const modal = document.getElementById('claimModal');
-    if (modal) modal.classList.add('hidden');
-}
-
 // Événements
 document.addEventListener('DOMContentLoaded', () => {
     if (!srIsClaimsPage()) return;
-
-    // Exposer les fonctions pour les onclick inline du HTML
-    window.showClaimDetails = showClaimDetails;
-    window.closeModal = closeModal;
 
     // Initialiser l'affichage
     updateStats();
@@ -326,8 +246,4 @@ document.addEventListener('DOMContentLoaded', () => {
             displayClaims();
         }
     });
-
-    // Gestion du modal
-    document.getElementById('closeModal')?.addEventListener('click', closeModal);
-    document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
 });

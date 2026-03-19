@@ -150,6 +150,24 @@ class GestionUtilisateurService
         return $scheme . $host . $base . '/reset_password.php?token=' . urlencode($token);
     }
 
+    private function buildLoginLink(): string
+    {
+        $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $scriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '/public/layout.php');
+        $base = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+
+        if (preg_match('#/public/app$#', $base)) {
+            return $scheme . $host . $base . '/index.php?_path=/login';
+        }
+
+        if ($base === '' || $base === '.') {
+            $base = '/public';
+        }
+
+        return $scheme . $host . $base . '/app/index.php?_path=/login';
+    }
+
     private function normalizeEmailValue($email): ?string
     {
         $email = trim((string) $email);
@@ -262,7 +280,8 @@ class GestionUtilisateurService
         }
 
         $invitationEmail = $this->resolveInvitationEmail($data, $nom_utilisateur, $id_type_utilisateur, $login_utilisateur);
-        $mdp_hash = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
+        $temporaryPassword = $this->generateRandomPassword(12);
+        $mdp_hash = password_hash($temporaryPassword, PASSWORD_DEFAULT);
         $resetLink = null;
         $manageTransaction = !$this->db->inTransaction();
 
@@ -315,7 +334,7 @@ class GestionUtilisateurService
             ];
         }
 
-        $emailResult = $this->envoyerEmailInscriptionPHPMailer($invitationEmail, $nom_utilisateur, $login_utilisateur, null, $resetLink);
+        $emailResult = $this->envoyerEmailInscriptionPHPMailer($invitationEmail, $nom_utilisateur, $login_utilisateur, $temporaryPassword, $resetLink);
         if ($emailResult['success']) {
             $this->safeAudit(function () use ($userId) {
                 $this->auditLog->logCreation($userId, 'utilisateur', 'Succès');
@@ -419,11 +438,17 @@ class GestionUtilisateurService
             foreach ($utilisateursAjoutes as $utilisateur) {
                 $token = $this->createPasswordResetToken($utilisateur['login']);
                 $resetLink = $this->buildResetLink($token);
+                $temporaryPassword = $this->generateRandomPassword(12);
+                $passwordHash = password_hash($temporaryPassword, PASSWORD_DEFAULT);
+                if (!$utilisateurModel->updatePasswordByLogin($utilisateur['login'], $passwordHash)) {
+                    $emailErrors[] = $utilisateur['nom'] . ': mise a jour du mot de passe impossible';
+                    continue;
+                }
                 $emailResult = $this->envoyerEmailInscriptionPHPMailer(
                     $utilisateur['login'],
                     $utilisateur['nom'],
                     $utilisateur['login'],
-                    null,
+                    $temporaryPassword,
                     $resetLink
                 );
                 if (!$emailResult['success']) {
@@ -559,12 +584,20 @@ class GestionUtilisateurService
                     $token = $this->createPasswordResetToken($email);
                     $resetLink = $this->buildResetLink($token);
 
-                    // Envoyer l'email avec le lien de définition du mot de passe
+                    $temporaryPassword = $this->generateRandomPassword(12);
+                    $passwordHash = password_hash($temporaryPassword, PASSWORD_DEFAULT);
+                    if (!$this->utilisateur->updatePasswordByLogin($user->login_utilisateur, $passwordHash)) {
+                        $errorCount++;
+                        $errors[] = $user->nom_utilisateur . ' (mise a jour du mot de passe impossible)';
+                        continue;
+                    }
+
+                    // Envoyer l'email avec le mot de passe temporaire et le lien de définition du mot de passe
                     $emailResult = $this->envoyerEmailInscriptionPHPMailer(
                         $email,
                         $user->nom_utilisateur,
                         $user->login_utilisateur,
-                        null,
+                        $temporaryPassword,
                         $resetLink
                     );
 
@@ -666,7 +699,7 @@ class GestionUtilisateurService
             $emailService = new \EmailService();
             
             // Build the dynamic variables
-            $login_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/public/app/index.php?_path=/login';
+            $login_url = $this->buildLoginLink();
             
             $password_row = '';
             if ($motDePasse) {

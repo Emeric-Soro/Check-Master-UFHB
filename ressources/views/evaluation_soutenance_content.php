@@ -7,11 +7,11 @@ $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SER
 $message = '';
 $messageType = 'success';
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] === 'evaluer') {
+    if ($_POST['action'] === 'evaluerSoutenance') {
         $result = $controller->enregistrerEvaluation();
         $message = (string) ($result['message'] ?? '');
         $messageType = !empty($result['success']) ? 'success' : 'error';
-    } elseif ($_POST['action'] === 'supprimer') {
+    } elseif ($_POST['action'] === 'supprimerEvaluation') {
         $result = $controller->supprimerEvaluation();
         $message = (string) ($result['message'] ?? '');
         $messageType = !empty($result['success']) ? 'success' : 'error';
@@ -117,7 +117,7 @@ foreach ($soutenances as $soutenance) {
 </style>
 <form id="cmEvalSoutForm" method="POST" action="?page=evaluation_soutenance" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
-                <input type="hidden" name="action" value="evaluer">
+                <input type="hidden" name="action" value="evaluerSoutenance">
                 <input type="hidden" name="num_etu" id="cmEvalNumEtu" value="">
 
                 <div class="cm-grid-2">
@@ -497,7 +497,7 @@ foreach ($soutenances as $soutenance) {
 
         function deleteEvaluation(numEtu) {
             const formData = new FormData();
-            formData.append('action', 'supprimer');
+            formData.append('action', 'supprimerEvaluation');
             formData.append('num_etu', numEtu);
 
             const formToken = document.querySelector('#cmEvalSoutForm input[name=\"csrf_token\"]');

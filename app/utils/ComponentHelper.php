@@ -110,6 +110,47 @@ if (!function_exists('cm_asset')) {
     }
 }
 
+if (!function_exists('cm_session_flash')) {
+    /**
+     * Display session flash messages using the toast component.
+     *
+     * Call this early in views to show success/error/warning/info messages
+     * stored in $_SESSION by controllers. Messages are consumed (unset) after display.
+     *
+     * Supported session keys: success, error, warning, info, message
+     * message can be string or ['text' => '...', 'type' => '...']
+     *
+     * NOTE: If the toast component is already included in the layout (app-shell.php),
+     * this function is NOT needed — the toast auto-reads session messages.
+     * Use this ONLY in views that do NOT use the standard layout.
+     */
+    function cm_session_flash(): void
+    {
+        $keys = ['success', 'error', 'warning', 'info', 'message'];
+        foreach ($keys as $key) {
+            if (!isset($_SESSION[$key]) || $_SESSION[$key] === '' || $_SESSION[$key] === []) {
+                continue;
+            }
+            $raw = $_SESSION[$key];
+            $type = $key === 'message' ? 'info' : $key;
+            $text = '';
+
+            if (is_array($raw) && isset($raw['text'])) {
+                $text = (string) $raw['text'];
+                $type = (string) ($raw['type'] ?? $type);
+            } elseif (is_string($raw)) {
+                $text = trim($raw);
+            }
+
+            if ($text !== '') {
+                cm_component('ui/alert-box', ['type' => $type, 'message' => $text]);
+            }
+
+            unset($_SESSION[$key]);
+        }
+    }
+}
+
 if (!function_exists('cm_render_param_crud_view')) {
     /**
      * Render a standardized PRD6/7 CRUD screen for PARAM_* pages.
@@ -722,7 +763,7 @@ if (!function_exists('cm_render_param_crud_view')) {
                         const deleteButton = event.target.closest('.cm-btn-action.is-delete');
                         if (deleteButton) {
                             const rowId = deleteButton.getAttribute('data-row-id') || '';
-                            if (rowId !== '' && window.confirm('Confirmer la suppression de cet element ?')) {
+                            if (rowId !== '') {
                                 submitDelete([rowId]);
                             }
                         }
@@ -749,9 +790,7 @@ if (!function_exists('cm_render_param_crud_view')) {
                         if (ids.length === 0) {
                             return;
                         }
-                        if (window.confirm('Confirmer la suppression des elements selectionnes ?')) {
-                            submitDelete(ids);
-                        }
+                        submitDelete(ids);
                     });
                 }
 

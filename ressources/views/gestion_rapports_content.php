@@ -127,16 +127,25 @@ $flash = $messageMap[$messageKey] ?? null;
                             </a>
 
                             <?php if (!$dejaDepose && canDelete()): ?>
-                                <button
-                                    type="button"
-                                    class="cm-btn is-danger is-sm js-delete-report"
-                                    data-report-id="<?= $rapportId ?>"
-                                    data-report-name="<?= htmlspecialchars((string) ($rapport->nom_rapport ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                <button type="button" class="cm-btn is-danger is-sm" onclick="toggleDeleteForm(<?= $rapportId ?>)">
                                     <i class="fas fa-trash" aria-hidden="true"></i>
                                     <span>Suppr</span>
                                 </button>
                             <?php endif; ?>
+
                         </div>
+                        <!-- Formulaire inline de confirmation de suppression -->
+                        <?php if (!$dejaDepose && canDelete()): ?>
+                        <div id="delete-form-<?= $rapportId ?>" class="hidden mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <form method="POST" action="?page=gestion_rapports" class="flex items-center gap-3">
+                                <input type="hidden" name="action" value="supprimer_rapport">
+                                <input type="hidden" name="rapport_id" value="<?= $rapportId ?>">
+                                <span class="text-sm text-red-700">Supprimer <strong><?= htmlspecialchars((string) ($rapport->nom_rapport ?? ''), ENT_QUOTES, 'UTF-8') ?></strong> ?</span>
+                                <button type="submit" class="cm-btn is-danger is-sm">Confirmer</button>
+                                <button type="button" class="cm-btn is-light is-sm" onclick="toggleDeleteForm(<?= $rapportId ?>)">Annuler</button>
+                            </form>
+                        </div>
+                        <?php endif; ?>
                     </article>
                 <?php endforeach; ?>
             </div>
@@ -152,55 +161,11 @@ $flash = $messageMap[$messageKey] ?? null;
     </section>
 </div>
 
-<div id="deleteReportModal" class="cm-legacy-panel cm-etu-modal" hidden>
-    <div class="cm-etu-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="deleteReportTitle">
-
-        <p>Le rapport <strong id="deleteReportName"></strong> sera supprimé définitivement.</p>
-        <form method="POST" action="?page=gestion_rapports" id="deleteReportForm" class="cm-etu-modal__actions">
-            <input type="hidden" name="action" value="supprimer_rapport">
-            <input type="hidden" id="deleteReportId" name="rapport_id" value="">
-            <button type="button" class="cm-btn is-light" id="cancelDeleteReport">Annuler</button>
-            <button type="submit" class="cm-btn is-danger">Supprimer</button>
-        </form>
-    </div>
-</div>
-
 <script>
-(function () {
-    const modal = document.getElementById('deleteReportModal');
-    const deleteIdField = document.getElementById('deleteReportId');
-    const deleteName = document.getElementById('deleteReportName');
-    const cancelDelete = document.getElementById('cancelDeleteReport');
-
-    if (!modal || !deleteIdField || !deleteName || !cancelDelete) {
-        return;
+function toggleDeleteForm(rapportId) {
+    const form = document.getElementById('delete-form-' + rapportId);
+    if (form) {
+        form.classList.toggle('hidden');
     }
-
-    function openModal(reportId, reportName) {
-        deleteIdField.value = String(reportId || '');
-        deleteName.textContent = reportName || 'ce rapport';
-        modal.hidden = false;
-    }
-
-    function closeModal() {
-        modal.hidden = true;
-        deleteIdField.value = '';
-        deleteName.textContent = '';
-    }
-
-    document.querySelectorAll('.js-delete-report').forEach(function (button) {
-        button.addEventListener('click', function () {
-            openModal(button.getAttribute('data-report-id'), button.getAttribute('data-report-name'));
-        });
-    });
-
-    cancelDelete.addEventListener('click', closeModal);
-
-    modal.addEventListener('click', function (event) {
-        if (event.target === modal) {
-            closeModal();
-        }
-    });
-})();
+}
 </script>
-

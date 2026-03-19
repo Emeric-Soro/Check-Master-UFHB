@@ -12,11 +12,6 @@ $resolveEnseignantId = static function (ProcessusValidationController $ctrl): ?i
             }
         }
     }
-    $payload = $ctrl->getDonneesPage();
-    $membres = is_array($payload['membres_commission'] ?? null) ? $payload['membres_commission'] : [];
-    if (!empty($membres[0]['id_enseignant'])) {
-        return (int) $membres[0]['id_enseignant'];
-    }
     return null;
 };
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (string) ($_POST['action'] ?? '') === 'finaliser') {
@@ -103,14 +98,6 @@ foreach ($membresCommission as $membre) {
 }
 ?>
 <div class="cm-prd3-screen cm-prd3-crud-screen">
-    <?php if (!empty($_SESSION['success'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => (string) $_SESSION['success']]); ?>
-        <?php unset($_SESSION['success']); ?>
-    <?php endif; ?>
-    <?php if (!empty($_SESSION['error'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $_SESSION['error']]); ?>
-        <?php unset($_SESSION['error']); ?>
-    <?php endif; ?>
     <div id="cmProcessAlert"></div>
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur">

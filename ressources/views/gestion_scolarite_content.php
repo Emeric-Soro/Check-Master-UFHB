@@ -161,8 +161,8 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
 /* Ajustements demandés: écran Gestion scolarité uniquement */
 #cmPaiementForm #cmNiveau {
     width: 10ch !important; /* "Master 2" */
-    min-width: 10ch !important;
-    max-width: 10ch !important;
+    min-width: 13ch !important;
+    max-width: 2ch !important;
 }
 
 #cmPaiementForm #cmNumVersement {
