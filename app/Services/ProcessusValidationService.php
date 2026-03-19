@@ -591,6 +591,26 @@ class ProcessusValidationService
         return null;
     }
 
+    private function findFallbackEvaluateurIdForRapport(int $idRapport): ?string
+    {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT er.id_evaluateur
+                FROM evaluations_rapports er
+                JOIN enseignants e ON e.id_enseignant = er.id_evaluateur
+                WHERE er.id_rapport = ?
+                ORDER BY er.date_evaluation DESC, er.id_evaluation DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$idRapport]);
+            $value = $stmt->fetchColumn();
+            return $value !== false ? trim((string) $value) : null;
+        } catch (Exception $e) {
+            error_log("Erreur recherche evaluateur fallback: " . $e->getMessage());
+            return null;
+        }
+    }
+
     /**
      * Finalise la décision pour un rapport
      *
@@ -602,15 +622,21 @@ class ProcessusValidationService
     public function finaliserRapport($id_rapport, $id_enseignant, $commentaire = null)
     {
         try {
+            $id_rapport = (int) $id_rapport;
             $id_enseignant = trim((string) $id_enseignant);
             if ($id_enseignant === '' || !$this->verifierIdEnseignant($id_enseignant)) {
-                return [
-                    'success' => false,
-                    'message' => 'Impossible de finaliser: identifiant enseignant introuvable.'
-                ];
+                $fallbackEvaluateur = $this->findFallbackEvaluateurIdForRapport($id_rapport);
+                if ($fallbackEvaluateur !== null && $this->verifierIdEnseignant($fallbackEvaluateur)) {
+                    $id_enseignant = $fallbackEvaluateur;
+                } else {
+                    return [
+                        'success' => false,
+                        'message' => 'Impossible de finaliser: identifiant enseignant introuvable.'
+                    ];
+                }
             }
 
-            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId((int) $id_rapport), 'une finalisation de rapport');
+            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId($id_rapport), 'une finalisation de rapport');
             if (!$writeGuard['success']) {
                 return [
                     'success' => false,
@@ -633,8 +659,15 @@ class ProcessusValidationService
                 $commentaireFinal = 'Décision finale automatique';
             }
 
-            // Insérer dans la table valider
-            $stmtInsert = $this->pdo->prepare("INSERT INTO valider (id_enseignant, id_rapport, date_validation, commentaire_validation, decision_validation) VALUES (?, ?, NOW(), ?, ?)");
+            // Insérer ou mettre à jour la décision finale sans bloquer sur un doublon.
+            $stmtInsert = $this->pdo->prepare("
+                INSERT INTO valider (id_enseignant, id_rapport, date_validation, commentaire_validation, decision_validation)
+                VALUES (?, ?, NOW(), ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    date_validation = VALUES(date_validation),
+                    commentaire_validation = VALUES(commentaire_validation),
+                    decision_validation = VALUES(decision_validation)
+            ");
             $stmtInsert->execute([$id_enseignant, $id_rapport, $commentaireFinal, $decision]);
 
             // Mettre à jour le statut du rapport et l'étape de validation

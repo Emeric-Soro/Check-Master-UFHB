@@ -31,7 +31,16 @@ class RedactionCompteRenduService
             $selectedYearId = $this->getSelectedYearId();
 
             $sql = "
-                SELECT r.id_rapport, r.num_etu, r.theme_rapport, e.prenom_etu, e.nom_etu, v2.decision_validation, ins.id_annee_acad
+                SELECT
+                    r.id_rapport,
+                    COALESCE(NULLIF(e.num_carte_etud, ''), NULLIF(e.num_ident_etud, ''), r.num_etu) AS num_etu,
+                    r.theme_rapport,
+                    e.prenom_etu,
+                    e.nom_etu,
+                    e.promotion_etu,
+                    v2.decision_validation,
+                    ins.id_annee_acad,
+                    CASE WHEN crr.id_rapport IS NULL THEN 0 ELSE 1 END AS deja_lie_cr
                 FROM rapport_etudiants r
                 JOIN etudiants e ON (
                     r.num_etu = e.num_carte_etud
@@ -51,7 +60,6 @@ class RedactionCompteRenduService
                 JOIN valider v2 ON v2.id_rapport = v1.id_rapport AND v2.date_validation = v1.last_validation
                 LEFT JOIN compte_rendu_rapport crr ON r.id_rapport = crr.id_rapport
                 WHERE v2.decision_validation IN ('valider', 'rejeter')
-                  AND crr.id_rapport IS NULL
             ";
 
             $params = [];
