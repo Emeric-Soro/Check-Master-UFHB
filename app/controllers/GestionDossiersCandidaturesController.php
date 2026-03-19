@@ -1,28 +1,38 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/GestionDossiersCandidaturesService.php';
+require_once __DIR__ . '/../Services/VerificationRapportsService.php';
 
 use CheckMaster\Services\GestionDossiersCandidaturesService;
 
 class GestionDossiersCandidaturesController
 {
     private $service;
+    private $verificationService;
 
     public function __construct()
     {
         $db = Database::getConnection();
         $this->service = new GestionDossiersCandidaturesService($db);
+        $this->verificationService = new VerificationRapportsService($db);
     }
 
     public function index()
     {
-        // Récupérer l'historique des rapports vérifiés (approuvés ou désapprouvés)
-        $rapportsVerifies = $this->service->getRapportsVerifies();
-        $GLOBALS['rapports_verifies'] = $rapportsVerifies;
+        $data = $this->verificationService->getIndexData();
+        $GLOBALS['rapports'] = $data['rapports'] ?? [];
+        $GLOBALS['nbRapports'] = $data['nbRapports'] ?? 0;
+        $GLOBALS['statsRapports'] = $data['statsRapports'] ?? [];
+    }
 
-        // Récupérer les statistiques
-        $statistiques = $this->service->getStatistiques();
-        $GLOBALS['statistiques'] = $statistiques;
+    public function validerRapport()
+    {
+        return $this->verificationService->validerRapport($_POST['id_rapport'] ?? 0, $_POST['commentaire'] ?? '');
+    }
+
+    public function rejeterRapport()
+    {
+        return $this->verificationService->rejeterRapport($_POST['id_rapport'] ?? 0, $_POST['commentaire'] ?? '');
     }
 
     public function getDetailsRapport($id_rapport)

@@ -1,8 +1,8 @@
 <?php
 require_once __DIR__ . '/../../app/models/Scolarite.php';
 require_once __DIR__ . '/../../app/models/Note.php';
-$rapportsVerifies = is_array($GLOBALS['rapports_verifies'] ?? null) ? $GLOBALS['rapports_verifies'] : [];
-$statistiques = is_array($GLOBALS['statistiques'] ?? null) ? $GLOBALS['statistiques'] : ['total' => 0, 'approuves' => 0, 'desapprouves' => 0];
+$rapports = is_array($GLOBALS['rapports'] ?? null) ? $GLOBALS['rapports'] : [];
+$statsRapports = is_array($GLOBALS['statsRapports'] ?? null) ? $GLOBALS['statsRapports'] : ['total' => 0, 'approuves' => 0, 'desapprouves' => 0];
 $scolariteModel = new Scolarite(Database::getConnection());
 $noteModel = new Note(Database::getConnection());
 $allYearsSelected = \AcademicYear::isAllSelectedFromSession();
@@ -16,10 +16,11 @@ foreach ($scolariteModel->getNiveauxEtudes() as $niveau) {
     $niveauxMap[(int) ($niveau['id_niv_etude'] ?? 0)] = (string) ($niveau['lib_niv_etude'] ?? '');
 }
 $rows = [];
-foreach ($rapportsVerifies as $rapport) {
-    $numEtu = (string) ($rapport['num_etu'] ?? '');
-    $rowYearId = !empty($rapport['id_annee_acad']) ? (int) $rapport['id_annee_acad'] : null;
-    $promotionLabel = trim((string) ($rapport['promotion_etu'] ?? ''));
+foreach ($rapports as $rapport) {
+    $rapportData = is_object($rapport) ? get_object_vars($rapport) : (array) $rapport;
+    $numEtu = (string) ($rapportData['num_etu'] ?? '');
+    $rowYearId = !empty($rapportData['id_annee_acad']) ? (int) $rapportData['id_annee_acad'] : null;
+    $promotionLabel = trim((string) ($rapportData['promotion_etu'] ?? ''));
     if ($promotionLabel === '' && $rowYearId !== null) {
         $promotionLabel = $academicYearLabels[$rowYearId] ?? '';
     }
@@ -32,7 +33,7 @@ foreach ($rapportsVerifies as $rapport) {
     if ($numEtu !== '' && $rowYearId !== null) {
         $paiement = $scolariteModel->getInfosPaiementEtudiant($numEtu, $rowYearId);
         if (is_array($paiement)) {
-            $niveauLabel = $niveauxMap[(int) ($paiement['id_niveau'] ?? 0)] ?? '-';
+            $niveauLabel = $niveauxMap[(int) ($paiement['id_niv_etude'] ?? $paiement['id_niveau'] ?? 0)] ?? '-';
         }
     }
     if (is_array($paiement)) {
@@ -55,20 +56,20 @@ foreach ($rapportsVerifies as $rapport) {
     }
     $m1 = $latestNote ? (float) ($latestNote->moyenne_M1 ?? 0) : null;
     $m2 = $latestNote ? (float) ($latestNote->moyenne_M2 ?? 0) : null;
-    $decisionRaw = strtolower((string) ($rapport['statut_approbation'] ?? ''));
+    $decisionRaw = strtolower((string) ($rapportData['etape_validation'] ?? $rapportData['statut_rapport'] ?? ''));
     $candStatus = 'En attente';
     $candBadge = 'warning';
-    if ($decisionRaw === 'approuve') {
+    if (in_array($decisionRaw, ['approuve_communication', 'valider', 'valide', 'approuve'], true)) {
         $candStatus = 'Validée';
         $candBadge = 'success';
-    } elseif ($decisionRaw === 'desapprouve' || $decisionRaw === 'rejete' || $decisionRaw === 'rejetee') {
+    } elseif (in_array($decisionRaw, ['desapprouve_communication', 'rejeter', 'rejete', 'rejetee', 'desapprouve'], true)) {
         $candStatus = 'Rejetée';
         $candBadge = 'danger';
     }
     $rows[] = [
-        'id_rapport' => (int) ($rapport['id_rapport'] ?? 0),
+        'id_rapport' => (int) ($rapportData['id_rapport'] ?? 0),
         'num_etu' => $numEtu,
-        'nom_complet' => trim((string) ($rapport['nom_etu'] ?? '') . ' ' . (string) ($rapport['prenom_etu'] ?? '')),
+        'nom_complet' => trim((string) ($rapportData['nom_etu'] ?? '') . ' ' . (string) ($rapportData['prenom_etu'] ?? '')),
         'promotion' => $promotionLabel !== '' ? $promotionLabel : '-',
         'niveau' => $niveauLabel,
         'm1' => $m1,
@@ -77,13 +78,13 @@ foreach ($rapportsVerifies as $rapport) {
         'reste_a_payer' => $resteAPayer,
         'payment_status' => $paymentStatus,
         'payment_badge' => $paymentBadge,
-        'date_candidature' => (string) ($rapport['date_depot'] ?? ''),
+        'date_candidature' => (string) ($rapportData['date_depot'] ?? $rapportData['date_rapport'] ?? ''),
         'cand_status' => $candStatus,
         'cand_badge' => $candBadge,
-        'admin' => trim((string) ($rapport['nom_pers_admin'] ?? '') . ' ' . (string) ($rapport['prenom_pers_admin'] ?? '')),
-        'date_traitement' => (string) ($rapport['date_approbation'] ?? ''),
-        'commentaire' => (string) ($rapport['commentaire'] ?? ''),
-        'title' => (string) ($rapport['titre_rapport'] ?? ''),
+        'admin' => trim((string) ($rapportData['nom_pers_admin'] ?? '') . ' ' . (string) ($rapportData['prenom_pers_admin'] ?? '')),
+        'date_traitement' => (string) ($rapportData['date_approbation'] ?? ''),
+        'commentaire' => (string) ($rapportData['commentaire'] ?? ''),
+        'title' => (string) ($rapportData['nom_rapport'] ?? $rapportData['titre_rapport'] ?? $rapportData['theme_rapport'] ?? ''),
     ];
 }
 
@@ -127,18 +128,19 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
         <?php
         cm_component('dashboard/stat-widget', [
             'value' => (string) ((int) ($statistiques['total'] ?? 0)),
-            'label' => 'Total verifies',
+            'value' => (string) ((int) ($statsRapports['total'] ?? 0)),
+            'label' => 'En attente',
             'icon' => 'fa-list-check',
             'color' => 'info',
         ]);
         cm_component('dashboard/stat-widget', [
-            'value' => (string) ((int) ($statistiques['approuves'] ?? 0)),
+            'value' => (string) ((int) ($statsRapports['approuves'] ?? 0)),
             'label' => 'Validées',
             'icon' => 'fa-circle-check',
             'color' => 'success',
         ]);
         cm_component('dashboard/stat-widget', [
-            'value' => (string) ((int) ($statistiques['desapprouves'] ?? 0)),
+            'value' => (string) ((int) ($statsRapports['desapprouves'] ?? 0)),
             'label' => 'Rejetées',
             'icon' => 'fa-circle-xmark',
             'color' => 'warning',
@@ -158,6 +160,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                 }
             </style>
             <form id="cmTraitementForm" onsubmit="return false;">
+                <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" id="cmSelectedRapportId" value="">
                 <input type="hidden" id="cmSelectedRapportUrl" value="">
                 <div class="cm-grid-4">
@@ -253,7 +256,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                                 'in_table' => true,
                                 'colspan' => 10,
                                 'title' => '',
-                                'message' => 'Aucune candidature verifiee disponible.',
+                                'message' => 'Aucun dossier de candidature en attente pour l annee selectionnee.',
                             ]); ?>
                         <?php else: ?>
                             <?php foreach ($rowsPage as $row): ?>
@@ -422,7 +425,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
             });
         }
         const applyBtn = document.getElementById('cmApplyTraitement');
-        if (applyBtn) {
+    if (applyBtn) {
             applyBtn.addEventListener('click', function () {
                 if (!selectedId.value) {
                     window.alert('Sélectionnez d\'abord un dossier via le bouton Traiter.');
@@ -435,7 +438,31 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                     window.alert('Le commentaire est obligatoire pour un dossier rejeté.');
                     return;
                 }
-                window.alert('Traitement pre-rempli. Le flux de validation final est gere par le module de commission.');
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '?page=gestion_dossiers_candidatures';
+
+                const fields = [
+                    { name: normalized === 'rejetee' ? 'rejeter' : 'valider', value: '1' },
+                    { name: 'id_rapport', value: selectedId.value },
+                    { name: 'commentaire', value: commentaire }
+                ];
+
+                const csrf = document.querySelector('#cmTraitementForm input[name="csrf_token"]');
+                if (csrf && csrf.value) {
+                    fields.push({ name: 'csrf_token', value: csrf.value });
+                }
+
+                fields.forEach(function (field) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = field.name;
+                    input.value = field.value;
+                    form.appendChild(input);
+                });
+
+                document.body.appendChild(form);
+                form.submit();
             });
         }
         const resetBtn = document.getElementById('cmResetTraitement');
