@@ -477,47 +477,19 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
             notesForm.action = actionUrl.pathname + actionUrl.search;
         });
     }
-    const searchInput = document.getElementById('cmSearchNotes');
-    const noteRows = function () { return Array.from(document.querySelectorAll('#cmNotesTableBody tr')); };
-    const noteCheckboxes = function () {
+    var noteRows = function () { return Array.from(document.querySelectorAll('#cmNotesTableBody tr')); };
+    var noteCheckboxes = function () {
         return Array.from(document.querySelectorAll('#cmNotesTableBody .cm-row-checkbox'));
     };
-    const selectedNotesCount = document.getElementById('cmSelectedNotesCount');
-    const deleteNotesBtn = document.getElementById('cmDeleteNotes');
-    const updateSelectionState = function () {
-        const checked = noteCheckboxes().filter(function (cb) { return cb.checked; }).length;
-        if (selectedNotesCount) {
-            selectedNotesCount.textContent = String(checked);
-        }
-        if (deleteNotesBtn) {
-            deleteNotesBtn.disabled = checked === 0;
-        }
-        if (checkAll) {
-            const all = noteCheckboxes();
-            checkAll.checked = all.length > 0 && all.every(function (cb) { return cb.checked; });
-        }
+    var checkAll = document.getElementById('cmCheckAllNotes');
+    var updateSelectionState = function () {
+        if (!checkAll) return;
+        var all = noteCheckboxes();
+        checkAll.checked = all.length > 0 && all.every(function (cb) { return cb.checked; });
     };
-    const applySearch = function () {
-        const term = (searchInput ? searchInput.value : '').trim().toLowerCase();
-        noteRows().forEach(function (row) {
-            const haystack = row.getAttribute('data-search') || '';
-            row.style.display = haystack.indexOf(term) !== -1 ? '' : 'none';
-        });
-    };
-    searchInput && searchInput.addEventListener('input', applySearch);
-    const checkAll = document.getElementById('cmCheckAllNotes');
+
     checkAll && checkAll.addEventListener('change', function () {
-        noteCheckboxes().forEach(function (cb) {
-            cb.checked = checkAll.checked;
-        });
-        updateSelectionState();
-    });
-    document.getElementById('cmSelectAllNotes') && document.getElementById('cmSelectAllNotes').addEventListener('click', function () {
-        noteCheckboxes().forEach(function (cb) { cb.checked = true; });
-        updateSelectionState();
-    });
-    document.getElementById('cmDeselectAllNotes') && document.getElementById('cmDeselectAllNotes').addEventListener('click', function () {
-        noteCheckboxes().forEach(function (cb) { cb.checked = false; });
+        noteCheckboxes().forEach(function (cb) { cb.checked = checkAll.checked; });
         updateSelectionState();
     });
     document.addEventListener('change', function (event) {
@@ -525,35 +497,29 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
             updateSelectionState();
         }
     });
-    deleteNotesBtn && deleteNotesBtn.addEventListener('click', function () {
-        if (deleteNotesBtn.disabled) {
-            return;
-        }
+
+    var searchInput = document.getElementById('cmNotes_search');
+    if (searchInput) {
+        searchInput.addEventListener('input', updateSelectionState);
+        searchInput.addEventListener('keyup', updateSelectionState);
+    }
+
+    document.addEventListener('cm:toolbar:delete', function (event) {
+        if (!event.detail || !event.detail.toolbar) return;
+        if (event.detail.toolbar.id !== 'cmNotes_toolbar') return;
         window.alert('Suppression multiple indisponible sur cet ecran.');
     });
-    document.getElementById('cmPrintNotes') && document.getElementById('cmPrintNotes').addEventListener('click', function () {
-        window.print();
-    });
-    document.getElementById('cmExportNotes') && document.getElementById('cmExportNotes').addEventListener('click', function () {
-        const headers = ['N° Carte Étudiant', 'Nom & Prénom', 'Année Académique', 'Moy. M1', 'Moy. M2', 'Date saisie'];
-        const lines = [headers.join(';')];
-        noteRows().forEach(function (row) {
-            if (row.style.display === 'none') {
-                return;
-            }
-            const cells = Array.from(row.querySelectorAll('td')).slice(1, 8);
-            const values = cells.map(function (cell) {
-                return '"' + (cell.textContent || '').trim().replace(/"/g, '""') + '"';
-            });
-            lines.push(values.join(';'));
-        });
-        const blob = new Blob(["\uFEFF" + lines.join('\n')], {type: 'text/csv;charset=utf-8;'});
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'notes_' + new Date().toISOString().split('T')[0] + '.csv';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+
+    document.addEventListener('cm:toolbar:limit:change', function (event) {
+        if (!event.detail || !event.detail.toolbar) return;
+        if (event.detail.toolbar.id !== 'cmNotes_toolbar') return;
+        event.preventDefault();
+        var limit = event.detail.limit || '10';
+        var params = new URLSearchParams(window.location.search);
+        params.set('page', 'gestion_notes_evaluations');
+        params.set('limit_notes', limit);
+        params.set('page_notes', '1');
+        navigateWithParams(params);
     });
     updateSelectionState();
 })();

@@ -71,7 +71,7 @@ class ProgrammationSoutenanceService
             $stmt = $this->pdo->prepare("
                 SELECT ins.id_annee_acad
                 FROM {$progTable} p
-                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                INNER JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud)
                 LEFT JOIN LATERAL (
                         SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement, i2.date_inscription
                         FROM inscriptions i2 
@@ -142,6 +142,28 @@ class ProgrammationSoutenanceService
             $this->columnExistsCache[$key] = false;
             return false;
         }
+    }
+
+    private function studentJoinCondition(string $studentAlias = 'e', string $programmationAlias = 'p'): string
+    {
+        $conditions = [
+            "{$programmationAlias}.num_etud = {$studentAlias}.num_carte_etud",
+        ];
+
+        if ($this->columnExists('etudiants', 'num_ident_etud')) {
+            $conditions[] = "{$programmationAlias}.num_etud = {$studentAlias}.num_ident_etud";
+        }
+
+        return implode(' OR ', $conditions);
+    }
+
+    private function studentIdentifierExpr(string $studentAlias = 'e', string $programmationAlias = 'p'): string
+    {
+        if ($this->columnExists('etudiants', 'num_ident_etud')) {
+            return "COALESCE(NULLIF({$studentAlias}.num_carte_etud, ''), NULLIF({$studentAlias}.num_ident_etud, ''), {$programmationAlias}.num_etud)";
+        }
+
+        return "COALESCE(NULLIF({$studentAlias}.num_carte_etud, ''), {$programmationAlias}.num_etud)";
     }
 
     private function getProgrammationTable()
@@ -404,12 +426,12 @@ class ProgrammationSoutenanceService
                 LEFT JOIN valider v ON r.id_rapport = v.id_rapport
                 LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
                 LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
-                LEFT JOIN {$progTable} p ON e.num_carte_etud = p.num_etud
+                LEFT JOIN {$progTable} p ON (e.num_carte_etud = p.num_etud OR e.num_ident_etud = p.num_etud)
                 WHERE (v.decision_validation = 'valider' OR COALESCE(r.statut_rapport, '') IN ('valider', 'valide'))
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
-                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud) AND i.id_annee_acad = :id_annee_acad)";
             }
 
             $sql .= " ORDER BY e.nom_etu, e.prenom_etu";
@@ -552,6 +574,8 @@ class ProgrammationSoutenanceService
             $yearSelect = $this->columnExists($progTable, 'id_annee_acad')
                 ? 'p.id_annee_acad as id_annee_acad,'
                 : 'NULL as id_annee_acad,';
+            $studentJoin = $this->studentJoinCondition('e', 'p');
+            $studentIdentifier = $this->studentIdentifierExpr('e', 'p');
 
             $sql = "
                 SELECT
@@ -562,9 +586,9 @@ class ProgrammationSoutenanceService
                     p.heure_soutenance,
                     p.id_salle,
                     s.lib_salle as nom_salle,
-                    e.num_carte_etud as id_etudiant,
+                    {$studentIdentifier} as id_etudiant,
                     CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_etudiant,
-                    e.num_carte_etud as matricule_etudiant,
+                    {$studentIdentifier} as matricule_etudiant,
                     e.promotion_etu,
                     {$presidentId} as president_id,
                     {$presidentNom} as president_nom,
@@ -578,7 +602,7 @@ class ProgrammationSoutenanceService
                     COALESCE({$maitreNom}, CONCAT(ms.prenom, ' ', ms.Nom)) as maitre_stage_nom,
                     COALESCE({$maitreId}, ist.id_maitre_stage) as maitre_stage_ref
                 FROM {$progTable} p
-                LEFT JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                LEFT JOIN etudiants e ON {$studentJoin}
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
                 LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
                 LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
@@ -588,7 +612,15 @@ class ProgrammationSoutenanceService
                 if ($this->columnExists($progTable, 'id_annee_acad')) {
                     $sql .= " WHERE p.id_annee_acad = :id_annee_acad";
                 } else {
-                    $sql .= " WHERE EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+                    $sql .= " WHERE EXISTS (
+                        SELECT 1
+                        FROM inscriptions i
+                        WHERE (
+                            i.num_carte_etud = e.num_carte_etud
+                            OR i.num_carte_etud = e.num_ident_etud
+                        )
+                        AND i.id_annee_acad = :id_annee_acad
+                    )";
                 }
             }
 

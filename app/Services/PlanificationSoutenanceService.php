@@ -133,7 +133,7 @@ class PlanificationSoutenanceService
             $stmt = $this->pdo->prepare("
                 SELECT ins.id_annee_acad
                 FROM {$progTable} p
-                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                INNER JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud)
                 LEFT JOIN LATERAL (
                         SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement, i2.date_inscription
                         FROM inscriptions i2 
@@ -236,14 +236,14 @@ class PlanificationSoutenanceService
                         ELSE 'none'
                     END as statut_planification
                 FROM {$progTable} p
-                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                INNER JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud)
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
                 {$juryJoin}
                 WHERE 1 = 1
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
-                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud) AND i.id_annee_acad = :id_annee_acad)";
             }
 
             $sql .= "
@@ -315,7 +315,7 @@ class PlanificationSoutenanceService
                     p.id_salle,
                     s.lib_salle as nom_salle
                 FROM {$progTable} p
-                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                INNER JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud)
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
                 WHERE p.id_salle IS NOT NULL
                   AND p.date_soutenance IS NOT NULL
@@ -323,7 +323,7 @@ class PlanificationSoutenanceService
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
-                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud) AND i.id_annee_acad = :id_annee_acad)";
             }
 
             $sql .= " ORDER BY p.date_soutenance ASC, p.heure_soutenance ASC";
@@ -489,7 +489,7 @@ class PlanificationSoutenanceService
                     p.heure_soutenance,
                     p.id_salle
                 FROM {$progTable} p
-                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                INNER JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud)
                 WHERE p.{$idColumn} = ?
                 LIMIT 1
             ");

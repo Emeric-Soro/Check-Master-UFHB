@@ -747,129 +747,21 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                 }
             });
         }
-        const toolbarId = 'cmScolarite_toolbar';
-        const searchInput = document.getElementById('cmScolarite_search');
-        const limitSelect = document.getElementById('cmScolarite_limit');
-        const filterNiveau = document.getElementById('cmScolarite_filter_niveau');
-        const filterStatut = document.getElementById('cmScolarite_filter_statut_paiement');
-        const filterMode = document.getElementById('cmScolarite_filter_mode_paiement');
-        const filterDateStart = document.getElementById('cmScolarite_filter_date_versement_debut');
-        const filterDateEnd = document.getElementById('cmScolarite_filter_date_versement_fin');
-        const selectAllRowsBtn = document.getElementById('cmSelectAllVersements');
-        const deselectAllRowsBtn = document.getElementById('cmDeselectAllVersements');
-        const deleteRowsBtn = document.getElementById('cmDeleteVersements');
-        const selectedRowsCount = document.getElementById('cmSelectedVersementsCount');
-        const rows = function () { return Array.from(document.querySelectorAll('#cmVersementsTableBody tr')); };
-        const rowCheckboxes = function () {
+        var toolbarId = 'cmScolarite_toolbar';
+        var rows = function () { return Array.from(document.querySelectorAll('#cmVersementsTableBody tr')); };
+        var rowCheckboxes = function () {
             return Array.from(document.querySelectorAll('#cmVersementsTableBody .cm-row-checkbox'));
         };
-        const updateSelectionState = function () {
-            const checkboxes = rowCheckboxes();
-            const checked = checkboxes.filter(function (cb) { return cb.checked; }).length;
-            if (selectedRowsCount) {
-                selectedRowsCount.textContent = String(checked);
-            }
-            if (deleteRowsBtn) {
-                deleteRowsBtn.disabled = checked === 0;
-            }
-            if (checkAllRows) {
-                checkAllRows.checked = checkboxes.length > 0 && checkboxes.every(function (cb) { return cb.checked; });
-            }
-        };
-        const applyFilters = function () {
-            const term = (searchInput ? searchInput.value : '').trim().toLowerCase();
-            const niveau = (filterNiveau ? filterNiveau.value : '').trim();
-            const statut = (filterStatut ? filterStatut.value : '').trim().toLowerCase();
-            const mode = (filterMode ? filterMode.value : '').trim().toLowerCase();
-            const dateStart = (filterDateStart ? filterDateStart.value : '').trim();
-            const dateEnd = (filterDateEnd ? filterDateEnd.value : '').trim();
-            rows().forEach(function (row) {
-                const matchSearch = term === '' || (row.getAttribute('data-search') || '').indexOf(term) !== -1;
-                const matchNiveau = niveau === '' || (row.getAttribute('data-niveau-id') || '') === niveau;
-                const matchStatut = statut === '' || (row.getAttribute('data-statut') || '') === statut;
-                const matchMode = mode === '' || (row.getAttribute('data-mode') || '') === mode;
-                const rowDate = row.getAttribute('data-date') || '';
-                const matchDateStart = dateStart === '' || (rowDate !== '' && rowDate >= dateStart);
-                const matchDateEnd = dateEnd === '' || (rowDate !== '' && rowDate <= dateEnd);
-                row.style.display = matchSearch && matchNiveau && matchStatut && matchMode && matchDateStart && matchDateEnd ? '' : 'none';
-            });
-        };
-        if (searchInput) {
-            searchInput.addEventListener('input', applyFilters);
-        }
-        if (filterNiveau) {
-            filterNiveau.addEventListener('change', applyFilters);
-        }
-        if (filterStatut) {
-            filterStatut.addEventListener('change', applyFilters);
-        }
-        if (filterMode) {
-            filterMode.addEventListener('change', applyFilters);
-        }
-        if (filterDateStart) {
-            filterDateStart.addEventListener('change', applyFilters);
-        }
-        if (filterDateEnd) {
-            filterDateEnd.addEventListener('change', applyFilters);
-        }
-
-        const isThisToolbarEvent = function (event) {
-            return !!(event && event.detail && event.detail.toolbar && event.detail.toolbar.id === toolbarId);
+        var checkAllRows = document.getElementById('cmCheckAllVersements');
+        var updateSelectionState = function () {
+            if (!checkAllRows) return;
+            var checkboxes = rowCheckboxes();
+            checkAllRows.checked = checkboxes.length > 0 && checkboxes.every(function (cb) { return cb.checked; });
         };
 
-        document.addEventListener('cm:toolbar:search', function (event) {
-            if (!isThisToolbarEvent(event)) {
-                return;
-            }
-            event.preventDefault();
-            applyFilters();
-        });
-
-        document.addEventListener('cm:toolbar:filter:apply', function (event) {
-            if (!isThisToolbarEvent(event)) {
-                return;
-            }
-            event.preventDefault();
-            applyFilters();
-        });
-
-        document.addEventListener('cm:toolbar:filter:reset', function (event) {
-            if (!isThisToolbarEvent(event)) {
-                return;
-            }
-            event.preventDefault();
-            applyFilters();
-        });
-
-        document.addEventListener('cm:toolbar:limit:change', function (event) {
-            if (!isThisToolbarEvent(event)) {
-                return;
-            }
-            event.preventDefault();
-            const selectedLimit = event.detail && event.detail.limit ? String(event.detail.limit) : (limitSelect ? String(limitSelect.value) : '10');
-            const url = new URL(window.location.href);
-            url.searchParams.set('limit_versements', selectedLimit);
-            url.searchParams.set('page_versements', '1');
-            navigate(url.toString());
-        });
-        const checkAllRows = document.getElementById('cmCheckAllVersements');
         if (checkAllRows) {
             checkAllRows.addEventListener('change', function () {
-                rowCheckboxes().forEach(function (cb) {
-                    cb.checked = checkAllRows.checked;
-                });
-                updateSelectionState();
-            });
-        }
-        if (selectAllRowsBtn) {
-            selectAllRowsBtn.addEventListener('click', function () {
-                rowCheckboxes().forEach(function (cb) { cb.checked = true; });
-                updateSelectionState();
-            });
-        }
-        if (deselectAllRowsBtn) {
-            deselectAllRowsBtn.addEventListener('click', function () {
-                rowCheckboxes().forEach(function (cb) { cb.checked = false; });
+                rowCheckboxes().forEach(function (cb) { cb.checked = checkAllRows.checked; });
                 updateSelectionState();
             });
         }
@@ -878,47 +770,31 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                 updateSelectionState();
             }
         });
-        if (deleteRowsBtn) {
-            deleteRowsBtn.addEventListener('click', function () {
-                if (deleteRowsBtn.disabled) {
-                    return;
-                }
-                window.alert('Suppression multiple indisponible sur cet ecran.');
-            });
+
+        var searchInput = document.getElementById('cmScolarite_search');
+        if (searchInput) {
+            searchInput.addEventListener('input', updateSelectionState);
+            searchInput.addEventListener('keyup', updateSelectionState);
         }
-        const printVersementsBtn = document.getElementById('cmPrintVersements');
-        if (printVersementsBtn) {
-            printVersementsBtn.addEventListener('click', function () {
-                window.print();
-            });
-        }
-        const exportVersementsBtn = document.getElementById('cmExportVersements');
-        if (exportVersementsBtn) {
-            exportVersementsBtn.addEventListener('click', function () {
-                const headers = ['N° Etud.', 'Nom & Prenom', 'N° Vers.', 'Date Vers.', 'Année Acad.', 'Montant', 'Reste', 'Solde', 'Mode', 'N° M.P'];
-                const lines = [headers.join(';')];
-                rows().forEach(function (row) {
-                    if (row.style.display === 'none') {
-                        return;
-                    }
-                    const cells = Array.from(row.querySelectorAll('td')).slice(1, 11);
-                    const values = cells.map(function (cell) {
-                        return '"' + (cell.textContent || '').trim().replace(/"/g, '""') + '"';
-                    });
-                    lines.push(values.join(';'));
-                });
-                const blob = new Blob(["\uFEFF" + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = 'versements_' + new Date().toISOString().split('T')[0] + '.csv';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            });
-        }
+
+        document.addEventListener('cm:toolbar:delete', function (event) {
+            if (!event.detail || !event.detail.toolbar) return;
+            if (event.detail.toolbar.id !== toolbarId) return;
+            window.alert('Suppression multiple indisponible sur cet ecran.');
+        });
+
+        document.addEventListener('cm:toolbar:limit:change', function (event) {
+            if (!event.detail || !event.detail.toolbar) return;
+            if (event.detail.toolbar.id !== toolbarId) return;
+            event.preventDefault();
+            var limit = event.detail.limit || '10';
+            var url = new URL(window.location.href);
+            url.searchParams.set('limit_versements', limit);
+            url.searchParams.set('page_versements', '1');
+            navigate(url.toString());
+        });
         syncByStudent();
         updateSelectionState();
-        applyFilters();
         // Initialiser les frais pour le niveau par défaut (M2)
         updateFraisFromNiveau();
     })();

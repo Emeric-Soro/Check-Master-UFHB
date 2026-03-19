@@ -327,13 +327,13 @@ $isAdmin = function_exists('isAdmin') ? isAdmin() : false;
         const directeurIdInput = document.getElementById('cmProgDirecteurId');
         const encadreurIdInput = document.getElementById('cmProgEncadreurId');
         const maitreIdInput = document.getElementById('cmProgMaitreId');
-        const searchInput = document.getElementById('cmProgSearch');
-        const exportBtn = document.getElementById('cmProgExport');
-        const printBtn = document.getElementById('cmProgPrint');
+        const searchInput = document.getElementById('prog_sout_search');
+        const exportBtn = document.getElementById('prog_sout_exportBtn');
+        const printBtn = document.getElementById('prog_sout_printBtn');
         const checkAll = document.getElementById('cmProgCheckAll');
-        const selectAllBtn = document.getElementById('cmProgSelectAllBtn');
-        const deselectBtn = document.getElementById('cmProgDeselectBtn');
-        const deleteBtn = document.getElementById('cmProgDeleteBtn');
+        const selectAllBtn = document.getElementById('prog_sout_selectAll');
+        const deselectBtn = document.getElementById('prog_sout_deselectAll');
+        const deleteBtn = document.getElementById('prog_sout_deleteBtn');
         function setAlert(type, message) {
             if (!alertBox) {
                 return;
@@ -732,6 +732,18 @@ $isAdmin = function_exists('isAdmin') ? isAdmin() : false;
         updateStudentDerivedFields();
         updateJuryConstraints();
         applySearch();
+
+        // Toolbar limit change event
+        document.addEventListener('cm:toolbar:limit:change', function (event) {
+            if (!event.detail || !event.detail.toolbar) return;
+            if (event.detail.toolbar.id !== 'prog_sout_toolbar') return;
+            event.preventDefault();
+            var limit = event.detail.limit || '10';
+            var url = new URL(window.location.href);
+            url.searchParams.set('limit', limit);
+            url.searchParams.set('p', '1');
+            refreshPage();
+        });
     })();
 </script>
 

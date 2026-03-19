@@ -271,6 +271,19 @@ class EvaluationSoutenanceService
         )";
     }
 
+    private function studentJoinCondition(string $studentAlias = 'e', string $programmationAlias = 'p'): string
+    {
+        $conditions = [
+            "{$programmationAlias}.num_etud = {$studentAlias}.num_carte_etud",
+        ];
+
+        if ($this->columnExists('etudiants', 'num_ident_etud')) {
+            $conditions[] = "{$programmationAlias}.num_etud = {$studentAlias}.num_ident_etud";
+        }
+
+        return implode(' OR ', $conditions);
+    }
+
     private function roleLabelMatches(string $label, array $needles): bool
     {
         $rawLabel = function_exists('mb_strtolower')
@@ -388,7 +401,7 @@ class EvaluationSoutenanceService
                 $stmt = $this->pdo->prepare("
                     SELECT p.{$juryCol} AS jury_ref
                     FROM {$progTable} p
-                    JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                    JOIN etudiants e ON " . $this->studentJoinCondition('e', 'p') . "
                     WHERE e.num_ident_etud = ?
                     ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
                     LIMIT 1
@@ -560,6 +573,7 @@ class EvaluationSoutenanceService
             $encadreurNom = $this->juryNameExpr('encadreur', 'p');
             $promotionLabel = $this->getPromotionLabelExpr('e', 'p');
             $selectedYearId = \AcademicYear::getSelectedIdFromSession();
+            $studentJoin = $this->studentJoinCondition('e', 'p');
 
             $sql = "
                 SELECT
@@ -602,7 +616,7 @@ class EvaluationSoutenanceService
                           AND ev2.num_jury = p.{$juryCol}
                     ) AS commentaire_general
                 FROM {$progTable} p
-                LEFT JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                LEFT JOIN etudiants e ON {$studentJoin}
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
                 LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(e.num_carte_etud, p.num_etud)
                 LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
@@ -612,7 +626,14 @@ class EvaluationSoutenanceService
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
-                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+                $sql .= " AND EXISTS (
+                    SELECT 1
+                    FROM inscriptions i
+                    WHERE (i.num_carte_etud = e.num_carte_etud"
+                    . ($this->columnExists('etudiants', 'num_ident_etud') ? " OR i.num_carte_etud = e.num_ident_etud" : "")
+                    . ")
+                      AND i.id_annee_acad = :id_annee_acad
+                )";
             }
 
             $sql .= "
@@ -932,7 +953,7 @@ class EvaluationSoutenanceService
                 {$encadreurNom} AS encadreur,
                 CONCAT(ms.prenom, ' ', ms.Nom) AS maitre_stage
             FROM {$progTable} p
-            LEFT JOIN etudiants e ON p.num_etud = e.num_carte_etud
+            LEFT JOIN etudiants e ON " . $this->studentJoinCondition('e', 'p') . "
             LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(e.num_carte_etud, p.num_etud)
             LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
             WHERE p.num_etud = ?
@@ -960,7 +981,7 @@ class EvaluationSoutenanceService
                     {$encadreurNom} AS encadreur,
                     CONCAT(ms.prenom, ' ', ms.Nom) AS maitre_stage
                 FROM {$progTable} p
-                JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                JOIN etudiants e ON " . $this->studentJoinCondition('e', 'p') . "
                 LEFT JOIN informations_stage ist ON ist.num_etu = e.num_carte_etud
                 LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 WHERE e.num_ident_etud = ?

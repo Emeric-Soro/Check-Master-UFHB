@@ -523,7 +523,7 @@ class Archive
                 aa.date_fin,
                 " . $anneeExpr . " as annee_academique
             FROM {$programmationTable} p
-            INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
+            INNER JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud)
             LEFT JOIN {$juryTable} cj ON CAST(p.{$programmationJuryColumn} AS CHAR) = CAST(cj.{$juryReferenceColumn} AS CHAR)
             LEFT JOIN enseignants ens ON cj.id_enseignant = ens.id_enseignant
             LEFT JOIN {$juryRoleTable} rj ON cj.id_qualite_jury = rj.{$juryRoleIdColumn}
@@ -765,7 +765,7 @@ class Archive
         try {
             $sql = "SELECT COUNT(DISTINCT p.date_soutenance)
                     FROM {$programmationTable} p
-                    JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                    JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud)
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE p.date_soutenance IS NOT NULL";
@@ -817,7 +817,7 @@ class Archive
             // Start defenses
             $sql = "SELECT MIN(ps.date_soutenance) as date, 'Début des soutenances' as event
                     FROM {$progTable} ps
-                    JOIN etudiants e ON ps.num_etud = e.num_carte_etud
+                    JOIN etudiants e ON (ps.num_etud = e.num_carte_etud OR ps.num_etud = e.num_ident_etud)
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
@@ -834,7 +834,7 @@ class Archive
             // End defenses
             $sql = "SELECT MAX(ps.date_soutenance) as date, 'Fin des soutenances' as event
                     FROM {$progTable} ps
-                    JOIN etudiants e ON ps.num_etud = e.num_carte_etud
+                    JOIN etudiants e ON (ps.num_etud = e.num_carte_etud OR ps.num_etud = e.num_ident_etud)
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";

@@ -124,7 +124,7 @@ class Soutenance
                     SEPARATOR ', '
                 ) AS jury
             FROM programmer_soutenance ps
-            INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+            LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
             LEFT JOIN salles s ON s.id_salle = ps.id_salle
             LEFT JOIN domaine d ON d.id_domaine = ps.id_domaine
             LEFT JOIN session se ON se.id_session = ps.id_session
@@ -361,4 +361,3 @@ class Soutenance
         }
     }
 }
-

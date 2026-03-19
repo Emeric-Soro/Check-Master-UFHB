@@ -560,7 +560,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                                     <?php echo htmlspecialchars((string) ($row['encadreur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?>
                                 </td>
                                 <td class="cm-data-table__td">
-                                    <?php echo htmlspecialchars(trim((string) ($row['maitre_stage_nom'] ?? '')) !== '' ? (string) $row['maitre_stage_nom'] : 'non renseigner', ENT_QUOTES, 'UTF-8'); ?>
+                                    <?php echo htmlspecialchars(trim((string) ($row['maitre_stage_nom'] ?? '')) !== '' ? (string) $row['maitre_stage_nom'] : 'non renseigné', ENT_QUOTES, 'UTF-8'); ?>
                                 </td>
                                 <td class="cm-data-table__td is-center">
                                     <div class="cm-table-actions">

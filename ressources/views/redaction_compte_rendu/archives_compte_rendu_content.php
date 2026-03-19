@@ -145,11 +145,11 @@ $baseUrl = '?page=archive_comptes_rendus'
 <script>
 (function () {
     const alertBox = document.getElementById('cmArchiveAlert');
-    const searchInput = document.getElementById('cmArchiveSearch');
+    const searchInput = document.getElementById('cmArchive_search');
     const checkAll = document.getElementById('cmArchiveCheckAll');
-    const selectAllBtn = document.getElementById('cmArchiveSelectAllBtn');
-    const deselectBtn = document.getElementById('cmArchiveDeselectBtn');
-    const deleteBtn = document.getElementById('cmArchiveDeleteBtn');
+    const selectAllBtn = document.getElementById('cmArchive_selectAll');
+    const deselectBtn = document.getElementById('cmArchive_deselectAll');
+    const deleteBtn = document.getElementById('cmArchive_deleteBtn');
     function setAlert(type, message) {
         if (!alertBox) {
             return;
@@ -297,6 +297,37 @@ $baseUrl = '?page=archive_comptes_rendus'
             updateDeleteState();
         });
     }
+    // Toolbar delete event (intercept and run custom AJAX delete logic)
+    document.addEventListener('cm:toolbar:delete', function (event) {
+        if (!event.detail || !event.detail.toolbar) return;
+        if (event.detail.toolbar.id !== 'cmArchive_toolbar') return;
+        var checked = getCheckedRows();
+        if (checked.length === 0) return;
+        Promise.all(checked.map(function (row) {
+            var cb = row.querySelector('.cm-archive-check-row');
+            return cb ? deleteArchive(cb.value) : Promise.resolve({ success: false });
+        })).then(function () {
+            checked.forEach(function (row) { row.remove(); });
+            updateDeleteState();
+        }).catch(function () {
+            window.alert('Erreur lors de la suppression.');
+        });
+    });
+    // Toolbar limit change event
+    document.addEventListener('cm:toolbar:limit:change', function (event) {
+        if (!event.detail || !event.detail.toolbar) return;
+        if (event.detail.toolbar.id !== 'cmArchive_toolbar') return;
+        event.preventDefault();
+        var limit = event.detail.limit || '10';
+        var url = new URL(window.location.href);
+        url.searchParams.set('limit', limit);
+        url.searchParams.set('page_num', '1');
+        if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+            window.CM.ajax.load(url.toString());
+        } else {
+            window.location.href = url.toString();
+        }
+    });
     updateDeleteState();
 })();
 </script>

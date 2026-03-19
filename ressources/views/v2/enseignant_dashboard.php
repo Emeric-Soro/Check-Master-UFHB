@@ -168,7 +168,7 @@ try {
                                 COUNT(DISTINCT ps.num_soutenance) AS total
                             FROM {$juryTable} ej
                             JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance
-                            JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                            JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                             WHERE CAST(ej.id_enseignant AS CHAR) = :id_enseignant
                             " . ($filtreAnnee !== null ? "AND " . $inscriptionYearExistsFor('e.num_carte_etud') : "") . "
                             " . ($filtreSession !== null ? "AND ps.id_session = :id_session" : "") . "
@@ -255,7 +255,7 @@ try {
                             MAX(ps.heure_soutenance) AS heure_soutenance
                         FROM {$juryTable} ej_main
                         JOIN {$progTable} ps ON ps.num_soutenance = ej_main.num_soutenance
-                        JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                        JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                         WHERE {$whereEtudiantsClause}
                         GROUP BY ps.num_soutenance, e.num_carte_etud, e.nom_etu, e.prenom_etu
                         ORDER BY MAX(ps.date_soutenance) DESC, MAX(ps.heure_soutenance) DESC, e.nom_etu, e.prenom_etu";
@@ -291,7 +291,7 @@ try {
                             s.lib_salle AS nom_salle
                         FROM {$juryTable} ej
                         JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance
-                        JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                        JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                         JOIN {$rolesTable} qj ON qj.id_role_jury = ej.id_qualite_jury
                         LEFT JOIN salles s ON s.id_salle = ps.id_salle
                         WHERE {$whereSoutenancesClause}
@@ -358,7 +358,7 @@ try {
         $stmtReports->execute($filtreAnnee !== null ? [':id_enseignant' => $teacherId, ':id_annee_acad' => $filtreAnnee] : [':id_enseignant' => $teacherId]);
         $stats['rapports_a_evaluer'] = (int) ($stmtReports->fetchColumn() ?: 0);
 
-        $stmtSoutenances = $pdo->prepare("SELECT COUNT(DISTINCT ej.num_soutenance) AS total FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance JOIN etudiants e ON e.num_carte_etud = ps.num_etud WHERE {$whereSoutenances}");
+        $stmtSoutenances = $pdo->prepare("SELECT COUNT(DISTINCT ej.num_soutenance) AS total FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud) WHERE {$whereSoutenances}");
         $paramsSoutenances = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) $paramsSoutenances[':id_annee_acad'] = $filtreAnnee;
         if ($filtreSession !== null) $paramsSoutenances[':id_session'] = $filtreSession;
@@ -382,7 +382,7 @@ try {
             $whereNext[] = "ps.id_session = :id_session";
             $paramsNext[':id_session'] = $filtreSession;
         }
-        $stmtNext = $pdo->prepare("SELECT ps.date_soutenance, ps.heure_soutenance FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud WHERE " . implode(' AND ', $whereNext) . " ORDER BY ps.date_soutenance ASC, ps.heure_soutenance ASC LIMIT 1");
+        $stmtNext = $pdo->prepare("SELECT ps.date_soutenance, ps.heure_soutenance FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance INNER JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud) WHERE " . implode(' AND ', $whereNext) . " ORDER BY ps.date_soutenance ASC, ps.heure_soutenance ASC LIMIT 1");
         $stmtNext->execute($paramsNext);
         $next = $stmtNext->fetch(PDO::FETCH_ASSOC);
         if (is_array($next) && !empty($next['date_soutenance'])) {
@@ -424,7 +424,7 @@ try {
             $whereRecentSout[] = "ps.id_session = :id_session";
             $paramsRecentSout[':id_session'] = $filtreSession;
         }
-        $stmtRecentSout = $pdo->prepare("SELECT ps.theme_soutenance, ps.date_soutenance, ps.heure_soutenance FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud WHERE " . implode(' AND ', $whereRecentSout) . " ORDER BY ps.date_soutenance DESC, ps.heure_soutenance DESC LIMIT 5");
+        $stmtRecentSout = $pdo->prepare("SELECT ps.theme_soutenance, ps.date_soutenance, ps.heure_soutenance FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance INNER JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud) WHERE " . implode(' AND ', $whereRecentSout) . " ORDER BY ps.date_soutenance DESC, ps.heure_soutenance DESC LIMIT 5");
         $stmtRecentSout->execute($paramsRecentSout);
         foreach (($stmtRecentSout->fetchAll(PDO::FETCH_ASSOC) ?: []) as $row) {
             $rawDate = trim((string) ($row['date_soutenance'] ?? '') . ' ' . (string) ($row['heure_soutenance'] ?? '00:00:00'));

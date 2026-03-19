@@ -63,7 +63,7 @@ class PlanningDataUtils
                        ps.theme_soutenance AS theme_soutenance,
                        e.nom_etu AS nom_etudiant, 
                        e.prenom_etu AS prenom_etudiant, 
-                       e.num_carte_etud AS matricule_etudiant, 
+                       COALESCE(NULLIF(e.num_carte_etud, \'\'), NULLIF(e.num_ident_etud, \'\'), ps.num_etud) AS matricule_etudiant, 
                        e.email_etu AS email_etudiant,
                   (SELECT CONCAT(ens_p.prenom_enseignant, CHAR(32), ens_p.nom_enseignant)
                    FROM enseignant_jury ej_p
@@ -80,10 +80,10 @@ class PlanningDataUtils
                        CONCAT(ms.prenom, CHAR(32), ms.Nom) AS maitre_stage_nom,
                        COALESCE(ent.lib_long_entreprise, "N/A") AS entreprise_accueil
                 FROM programmer_soutenance ps
-                INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                 LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
                 LEFT JOIN session s ON s.id_session = ps.id_session
-                LEFT JOIN informations_stage ist ON ist.num_etu = ps.num_etud
+                LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(NULLIF(e.num_carte_etud, \'\'), ps.num_etud)
                   LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 LEFT JOIN entreprises ent ON ent.id_entreprise = ist.id_entreprise
                 WHERE 1=1';
@@ -130,7 +130,7 @@ class PlanningDataUtils
                        ps.theme_soutenance AS theme_soutenance,
                        e.nom_etu AS nom_etudiant,
                        e.prenom_etu AS prenom_etudiant,
-                       e.num_carte_etud AS matricule_etudiant,
+                       COALESCE(NULLIF(e.num_carte_etud, \'\'), NULLIF(e.num_ident_etud, \'\'), ps.num_etud) AS matricule_etudiant,
                        e.email_etu AS email_etudiant,
                   (SELECT CONCAT(ens_p.prenom_enseignant, CHAR(32), ens_p.nom_enseignant)
                    FROM enseignant_jury ej_p
@@ -147,10 +147,10 @@ class PlanningDataUtils
                        CONCAT(ms.prenom, CHAR(32), ms.Nom) AS maitre_stage_nom,
                        COALESCE(ent.lib_long_entreprise, 'N/A') AS entreprise_accueil
                 FROM programmer_soutenance ps
-                INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                 LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
                 LEFT JOIN session s ON s.id_session = ps.id_session
-                LEFT JOIN informations_stage ist ON ist.num_etu = ps.num_etud
+                LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(NULLIF(e.num_carte_etud, \'\'), ps.num_etud)
                   LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 LEFT JOIN entreprises ent ON ent.id_entreprise = ist.id_entreprise
                 WHERE ps.num_soutenance IN ({$placeholders})
@@ -377,7 +377,7 @@ class PlanningDataUtils
                     sa.lib_salle,
                     niv.lib_niv_etude AS libelle_niveau
              FROM programmer_soutenance ps
-             INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+             LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
              LEFT JOIN inscriptions i ON i.id_inscription = (
                  SELECT i2.id_inscription FROM inscriptions i2
                  WHERE i2.num_carte_etud = e.num_carte_etud
