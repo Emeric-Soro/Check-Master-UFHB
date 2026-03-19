@@ -86,13 +86,7 @@ $addFeature = static function (array $definition) use (&$features): void {
     $features[$slug] = $definition;
 };
 
-$paramCrud = static function (
-    string $slug,
-    string $action,
-    string $label,
-    string $code,
-    array $options = []
-) use ($addFeature, $groups, $full, $viewEdit): void {
+$paramCrud = static function (string $slug, string $action, string $label, string $code, array $options = []) use ($addFeature, $groups, $full, $viewEdit): void {
     $pageAliases = $options['page_aliases'] ?? ['parametres_generaux'];
     $routes = [];
     foreach ($pageAliases as $pageAlias) {
@@ -731,6 +725,7 @@ $addFeature([
     'existing_codes' => ['SUIVI_VALIDATION_COM'],
     'routes' => [
         ['pattern' => 'page=processus_validation', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=processus_validation', 'method' => 'POST', 'crud' => 'modifier'],
     ],
 ]);
 

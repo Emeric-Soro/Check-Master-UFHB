@@ -61,6 +61,14 @@ class ProcessusValidationController
     }
 
     /**
+     * Résout l'ID enseignant depuis l'ID utilisateur.
+     */
+    public function resoudreIdEnseignantDepuisUtilisateur($id_utilisateur)
+    {
+        return $this->service->resoudreIdEnseignantDepuisUtilisateur($id_utilisateur);
+    }
+
+    /**
      * Finalise la décision pour un rapport
      */
     public function finaliserRapport($id_rapport, $id_enseignant, $commentaire = null)

@@ -10,6 +10,13 @@ $resolveEnseignantId = static function (ProcessusValidationController $ctrl): ?i
             if ($candidate > 0 && $ctrl->verifierIdEnseignant($candidate)) {
                 return $candidate;
             }
+
+            if ($key === 'id_utilisateur' && $candidate > 0) {
+                $resolved = (int) $ctrl->resoudreIdEnseignantDepuisUtilisateur($candidate);
+                if ($resolved > 0) {
+                    return $resolved;
+                }
+            }
         }
     }
     return null;
@@ -177,105 +184,104 @@ foreach ($membresCommission as $membre) {
             <div class="cm-table-wrapper">
                 <table class="cm-data-table" id="cmProcessTable">
                     <thead>
-                    <tr>
-                        <th class="cm-data-table__th">N° Rapport</th>
-                        <th class="cm-data-table__th">Nom &amp; Prénom</th>
-                        <th class="cm-data-table__th">Promotion</th>
-                        <th class="cm-data-table__th">Statut global</th>
-                        <th class="cm-data-table__th">Votes</th>
-                        <th class="cm-data-table__th">Date approbation</th>
-                        <th class="cm-data-table__th is-center">Actions</th>
-                    </tr>
+                        <tr>
+                            <th class="cm-data-table__th">N° Rapport</th>
+                            <th class="cm-data-table__th">Nom &amp; Prénom</th>
+                            <th class="cm-data-table__th">Promotion</th>
+                            <th class="cm-data-table__th">Statut global</th>
+                            <th class="cm-data-table__th">Votes</th>
+                            <th class="cm-data-table__th">Date approbation</th>
+                            <th class="cm-data-table__th is-center">Actions</th>
+                        </tr>
                     </thead>
                     <tbody id="cmProcessTableBody">
-                    <?php if (empty($rowsToShow)): ?>
-                        <?php cm_component('ui/empty-state', [
-                            'in_table' => true,
-                            'colspan' => 7,
-                            'title' => '',
-                            'message' => 'Aucune ligne disponible pour ces filtres.',
-                        ]); ?>
-                    <?php else: ?>
-                        <?php foreach ($rowsToShow as $rapport): ?>
-                            <?php
-                            $vote = is_array($rapport['statut_vote'] ?? null) ? $rapport['statut_vote'] : [];
-                            $statut = strtolower((string) ($vote['statut'] ?? 'en_cours'));
-                            if ($statut === 'valide') {
-                                $badgeType = 'success';
-                                $statutLabel = 'Validé';
-                            } elseif ($statut === 'rejete') {
-                                $badgeType = 'warning';
-                                $statutLabel = 'Rejeté';
-                            } elseif ($statut === 'pret_a_finaliser') {
-                                $badgeType = 'info';
-                                $statutLabel = 'Pret a finaliser';
-                            } else {
-                                $badgeType = 'info';
-                                $statutLabel = 'En cours';
-                            }
-                            $idRapport = (int) ($rapport['id_rapport'] ?? 0);
-                            $etudiant = trim((string) ($rapport['nom_etu'] ?? '') . ' ' . (string) ($rapport['prenom_etu'] ?? ''));
-                            $searchText = strtolower((string) ($rapport['nom_rapport'] ?? '') . ' ' . $etudiant . ' ' . (string) ($rapport['theme_rapport'] ?? ''));
-                            $dateApprob = !empty($rapport['date_approv']) ? date('d/m/Y H:i', strtotime((string) $rapport['date_approv'])) : '-';
-                            $votesText = (int) ($vote['votes_valider'] ?? 0) . ' val. / ' . (int) ($vote['votes_rejeter'] ?? 0) . ' rej. (' . (int) ($vote['total_votes'] ?? 0) . '/4)';
-                            $canFinalize = !empty($vote['total_votes']) && (int) $vote['total_votes'] >= 4 && empty($vote['finalise']);
-                            ?>
-                            <tr class="cm-data-table__row" data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
-                                <td class="cm-data-table__td">#<?php echo $idRapport; ?></td>
-                                <td class="cm-data-table__td"><?php echo htmlspecialchars($etudiant, ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($rapport['promotion_etu'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td class="cm-data-table__td">
-                                    <?php cm_component('ui/badge', ['text' => $statutLabel, 'type' => $badgeType]); ?>
-                                </td>
-                                <td class="cm-data-table__td"><?php echo htmlspecialchars($votesText, ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td class="cm-data-table__td"><?php echo htmlspecialchars($dateApprob, ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td class="cm-data-table__td is-center">
-                                    <div class="cm-table-actions" style="justify-content:center;">
-                                        <a class="cm-btn-action is-view"
-                                           href="?page=evaluation_dossiers&detail=<?php echo urlencode((string) $idRapport); ?>"
-                                           title="Voir détails">
-                                            <i class="fas fa-eye" aria-hidden="true"></i>
-                                        </a>
-                                        <a class="cm-btn-action is-view"
-                                           href="?page=processus_validation&fichier=<?php echo urlencode((string) $idRapport); ?>"
-                                           target="_blank"
-                                           rel="noopener"
-                                           title="Voir rapport">
-                                            <i class="fas fa-file-pdf" aria-hidden="true"></i>
-                                        </a>
-                                        <?php if ($canFinalize && (function_exists('canEdit') ? canEdit() : true)): ?>
-                                            <style>
-/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
-.cm-content-area form .cm-form-group:has(#FIELD_ID) {
-    width: 10ch !important;
-    min-width: 10ch !important;
-    max-width: 10ch !important;
-}
-</style>
-<form method="POST"
-                                                  action="?page=processus_validation"
-                                                  data-cm-ajax-form="true"
-                                                  class="cm-inline-finalize-form"
-                                                  style="display:inline-flex; align-items:center; gap:6px;">
-                                                <?php cm_component('form/csrf-token'); ?>
-                                                <input type="hidden" name="action" value="finaliser">
-                                                <input type="hidden" name="id_rapport" value="<?php echo $idRapport; ?>">
-                                                <input type="text"
-                                                       name="commentaire_validation"
-                                                       class="cm-form-control is-sm"
-                                                       placeholder="Commentaire"
-                                                       style="width:120px;">
-                                                <button type="submit" class="cm-btn is-primary is-sm">
-                                                    <i class="fas fa-check" aria-hidden="true"></i>
-                                                    Finaliser
-                                                </button>
-                                            </form>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                        <?php if (empty($rowsToShow)): ?>
+                            <?php cm_component('ui/empty-state', [
+                                'in_table' => true,
+                                'colspan' => 7,
+                                'title' => '',
+                                'message' => 'Aucune ligne disponible pour ces filtres.',
+                            ]); ?>
+                        <?php else: ?>
+                            <?php foreach ($rowsToShow as $rapport): ?>
+                                <?php
+                                $vote = is_array($rapport['statut_vote'] ?? null) ? $rapport['statut_vote'] : [];
+                                $statut = strtolower((string) ($vote['statut'] ?? 'en_cours'));
+                                if ($statut === 'valide') {
+                                    $badgeType = 'success';
+                                    $statutLabel = 'Validé';
+                                } elseif ($statut === 'rejete') {
+                                    $badgeType = 'warning';
+                                    $statutLabel = 'Rejeté';
+                                } elseif ($statut === 'pret_a_finaliser') {
+                                    $badgeType = 'info';
+                                    $statutLabel = 'Pret a finaliser';
+                                } else {
+                                    $badgeType = 'info';
+                                    $statutLabel = 'En cours';
+                                }
+                                $idRapport = (int) ($rapport['id_rapport'] ?? 0);
+                                $etudiant = trim((string) ($rapport['nom_etu'] ?? '') . ' ' . (string) ($rapport['prenom_etu'] ?? ''));
+                                $searchText = strtolower((string) ($rapport['nom_rapport'] ?? '') . ' ' . $etudiant . ' ' . (string) ($rapport['theme_rapport'] ?? ''));
+                                $dateApprob = !empty($rapport['date_approv']) ? date('d/m/Y H:i', strtotime((string) $rapport['date_approv'])) : '-';
+                                $votesText = (int) ($vote['votes_valider'] ?? 0) . ' val. / ' . (int) ($vote['votes_rejeter'] ?? 0) . ' rej. (' . (int) ($vote['total_votes'] ?? 0) . '/4)';
+                                $canFinalize = !empty($vote['total_votes']) && (int) $vote['total_votes'] >= 4 && empty($vote['finalise']);
+                                ?>
+                                <tr class="cm-data-table__row"
+                                    data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <td class="cm-data-table__td">#<?php echo $idRapport; ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars($etudiant, ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars((string) ($rapport['promotion_etu'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php cm_component('ui/badge', ['text' => $statutLabel, 'type' => $badgeType]); ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars($votesText, ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars($dateApprob, ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td class="cm-data-table__td is-center">
+                                        <div class="cm-table-actions" style="justify-content:center;">
+                                            <a class="cm-btn-action is-view"
+                                                href="?page=evaluation_dossiers&detail=<?php echo urlencode((string) $idRapport); ?>"
+                                                title="Voir détails">
+                                                <i class="fas fa-eye" aria-hidden="true"></i>
+                                            </a>
+                                            <a class="cm-btn-action is-view"
+                                                href="?page=processus_validation&fichier=<?php echo urlencode((string) $idRapport); ?>"
+                                                target="_blank" rel="noopener" title="Voir rapport">
+                                                <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                                            </a>
+                                            <?php if ($canFinalize && (function_exists('canEdit') ? canEdit() : true)): ?>
+                                                <style>
+                                                    /* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
+                                                    .cm-content-area form .cm-form-group:has(#FIELD_ID) {
+                                                        width: 10ch !important;
+                                                        min-width: 10ch !important;
+                                                        max-width: 10ch !important;
+                                                    }
+                                                </style>
+                                                <form method="POST" action="?page=processus_validation" data-cm-ajax-form="true"
+                                                    class="cm-inline-finalize-form"
+                                                    style="display:inline-flex; align-items:center; gap:6px;">
+                                                    <?php cm_component('form/csrf-token'); ?>
+                                                    <input type="hidden" name="action" value="finaliser">
+                                                    <input type="hidden" name="id_rapport" value="<?php echo $idRapport; ?>">
+                                                    <input type="text" name="commentaire_validation" class="cm-form-control is-sm"
+                                                        placeholder="Commentaire" style="width:120px;">
+                                                    <button type="submit" class="cm-btn is-primary is-sm">
+                                                        <i class="fas fa-check" aria-hidden="true"></i>
+                                                        Finaliser
+                                                    </button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -290,76 +296,75 @@ foreach ($membresCommission as $membre) {
     </div>
 </div>
 <script>
-(function () {
-    const tableRows = Array.from(document.querySelectorAll('#cmProcessTableBody .cm-data-table__row'));
-    const searchInput = document.getElementById('cmProcessSearch');
-    const exportBtn = document.getElementById('cmProcessExport');
-    const printBtn = document.getElementById('cmProcessPrint');
-    const alertBox = document.getElementById('cmProcessAlert');
-    function setAlert(type, message) {
-        if (!alertBox) {
-            return;
+    (function () {
+        const tableRows = Array.from(document.querySelectorAll('#cmProcessTableBody .cm-data-table__row'));
+        const searchInput = document.getElementById('cmProcessSearch');
+        const exportBtn = document.getElementById('cmProcessExport');
+        const printBtn = document.getElementById('cmProcessPrint');
+        const alertBox = document.getElementById('cmProcessAlert');
+        function setAlert(type, message) {
+            if (!alertBox) {
+                return;
+            }
+            const cssType = type === 'success' ? 'success' : 'danger';
+            alertBox.innerHTML = '<div class="cm-alert is-' + cssType + '"><div class="cm-alert__content"><span class="cm-alert__message">' +
+                String(message || '').replace(/[<>&]/g, '') +
+                '</span></div></div>';
         }
-        const cssType = type === 'success' ? 'success' : 'danger';
-        alertBox.innerHTML = '<div class="cm-alert is-' + cssType + '"><div class="cm-alert__content"><span class="cm-alert__message">' +
-            String(message || '').replace(/[<>&]/g, '') +
-            '</span></div></div>';
-    }
-    if (searchInput) {
-        searchInput.addEventListener('input', function () {
-            const term = (searchInput.value || '').trim().toLowerCase();
-            tableRows.forEach(function (row) {
-                const text = row.getAttribute('data-search') || '';
-                row.style.display = term === '' || text.indexOf(term) !== -1 ? '' : 'none';
-            });
-        });
-    }
-    if (exportBtn) {
-        exportBtn.addEventListener('click', function () {
-            const headers = ['N° Rapport', 'Nom & Prénom', 'Promotion', 'Statut', 'Votes', 'Date approbation'];
-            const csvRows = [headers.join(';')];
-            tableRows.forEach(function (row) {
-                if (row.style.display === 'none') {
-                    return;
-                }
-                const cols = row.querySelectorAll('.cm-data-table__td');
-                if (cols.length < 6) {
-                    return;
-                }
-                const line = [
-                    cols[0].innerText.trim(),
-                    cols[1].innerText.trim(),
-                    cols[2].innerText.trim(),
-                    cols[3].innerText.trim(),
-                    cols[4].innerText.trim(),
-                    cols[5].innerText.trim()
-                ].map(function (v) {
-                    return '"' + v.replace(/"/g, '""') + '"';
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                const term = (searchInput.value || '').trim().toLowerCase();
+                tableRows.forEach(function (row) {
+                    const text = row.getAttribute('data-search') || '';
+                    row.style.display = term === '' || text.indexOf(term) !== -1 ? '' : 'none';
                 });
-                csvRows.push(line.join(';'));
             });
-            const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'processus_validation.csv';
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            URL.revokeObjectURL(url);
-        });
-    }
-    if (printBtn) {
-        printBtn.addEventListener('click', function () {
-            window.print();
-        });
-    }
-    document.addEventListener('cm:ajax:form:error', function (event) {
-        const payload = event && event.detail ? event.detail.payload : null;
-        if (payload && payload.message) {
-            setAlert('error', payload.message);
         }
-    });
-})();
+        if (exportBtn) {
+            exportBtn.addEventListener('click', function () {
+                const headers = ['N° Rapport', 'Nom & Prénom', 'Promotion', 'Statut', 'Votes', 'Date approbation'];
+                const csvRows = [headers.join(';')];
+                tableRows.forEach(function (row) {
+                    if (row.style.display === 'none') {
+                        return;
+                    }
+                    const cols = row.querySelectorAll('.cm-data-table__td');
+                    if (cols.length < 6) {
+                        return;
+                    }
+                    const line = [
+                        cols[0].innerText.trim(),
+                        cols[1].innerText.trim(),
+                        cols[2].innerText.trim(),
+                        cols[3].innerText.trim(),
+                        cols[4].innerText.trim(),
+                        cols[5].innerText.trim()
+                    ].map(function (v) {
+                        return '"' + v.replace(/"/g, '""') + '"';
+                    });
+                    csvRows.push(line.join(';'));
+                });
+                const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'processus_validation.csv';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(url);
+            });
+        }
+        if (printBtn) {
+            printBtn.addEventListener('click', function () {
+                window.print();
+            });
+        }
+        document.addEventListener('cm:ajax:form:error', function (event) {
+            const payload = event && event.detail ? event.detail.payload : null;
+            if (payload && payload.message) {
+                setAlert('error', payload.message);
+            }
+        });
+    })();
 </script>
-

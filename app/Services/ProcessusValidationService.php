@@ -502,6 +502,44 @@ class ProcessusValidationService
     }
 
     /**
+     * Résout l'identifiant enseignant à partir de l'identifiant utilisateur.
+     *
+     * @param int $id_utilisateur
+     * @return int|null
+     */
+    public function resoudreIdEnseignantDepuisUtilisateur($id_utilisateur)
+    {
+        $idUtilisateur = (int) $id_utilisateur;
+        if ($idUtilisateur <= 0) {
+            return null;
+        }
+
+        // Compatibilité: sur certaines installations, l'id utilisateur peut déjà
+        // correspondre à l'id enseignant.
+        if ($this->verifierIdEnseignant($idUtilisateur)) {
+            return $idUtilisateur;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("SELECT login_utilisateur FROM utilisateur WHERE id_utilisateur = ? LIMIT 1");
+            $stmt->execute([$idUtilisateur]);
+            $login = (string) ($stmt->fetchColumn() ?: '');
+            if ($login === '') {
+                return null;
+            }
+
+            $stmt = $this->pdo->prepare("SELECT id_enseignant FROM enseignants WHERE mail_enseignant = ? LIMIT 1");
+            $stmt->execute([$login]);
+            $idEnseignant = $stmt->fetchColumn();
+
+            return is_numeric($idEnseignant) ? (int) $idEnseignant : null;
+        } catch (Exception $e) {
+            error_log("Erreur résolution id enseignant depuis utilisateur: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Finalise la décision pour un rapport
      *
      * @param int $id_rapport
@@ -535,8 +573,8 @@ class ProcessusValidationService
                 $commentaireFinal = 'Décision finale automatique';
             }
 
-            // Insérer dans la table valider
-            $stmtInsert = $this->pdo->prepare("INSERT INTO valider (id_enseignant, id_rapport, date_validation, commentaire_validation, decision_validation) VALUES (?, ?, NOW(), ?, ?)");
+            // Insérer/metre à jour la décision finale pour éviter les blocages en cas de doublon.
+            $stmtInsert = $this->pdo->prepare("INSERT INTO valider (id_enseignant, id_rapport, date_validation, commentaire_validation, decision_validation) VALUES (?, ?, NOW(), ?, ?) ON DUPLICATE KEY UPDATE date_validation = NOW(), commentaire_validation = VALUES(commentaire_validation), decision_validation = VALUES(decision_validation)");
             $stmtInsert->execute([$id_enseignant, $id_rapport, $commentaireFinal, $decision]);
 
             // Mettre à jour le statut du rapport et l'étape de validation
@@ -561,23 +599,23 @@ class ProcessusValidationService
                 ");
                 $compteRenduExist->execute([$id_rapport]);
                 $compteRendu = $compteRenduExist->fetch(PDO::FETCH_ASSOC);
-                
+
                 if ($compteRendu && !empty($compteRendu['id_CR'])) {
                     // Générer le PV de commission
                     try {
                         require_once __DIR__ . '/../Services/Document/PvCommissionGeneratorService.php';
                         require_once __DIR__ . '/../Support/Database.php';
                         require_once __DIR__ . '/../Utils/PlanningDataUtils.php';
-                        
+
                         $pdfGenerator = new \App\Services\Document\PdfGeneratorService(
                             __DIR__ . '/../../storage',
                             __DIR__ . '/../../public/assets/img/logo.png'
                         );
                         $dataUtils = new \App\Utils\PlanningDataUtils(new \App\Support\Database($this->pdo));
                         $pvService = new \App\Services\Document\PvCommissionGeneratorService($pdfGenerator, $dataUtils, new \App\Support\Database($this->pdo));
-                        
-                        $pvResult = $pvService->generate((int)$compteRendu['id_CR'], $id_enseignant);
-                        
+
+                        $pvResult = $pvService->generate((int) $compteRendu['id_CR'], $id_enseignant);
+
                         if (!$pvResult['success']) {
                             error_log("Erreur génération PV commission: " . ($pvResult['error'] ?? 'Erreur inconnue'));
                             // On ne bloque pas la finalisation si la génération du PV échoue
