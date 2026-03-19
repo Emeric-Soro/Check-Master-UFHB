@@ -89,7 +89,7 @@ try {
                         sess.lib_session
                     FROM {$juryTable} ej
                     JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance
-                    JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                    JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                     JOIN {$rolesTable} qj ON qj.id_role_jury = ej.id_qualite_jury
                     LEFT JOIN salles s ON s.id_salle = ps.id_salle
                     LEFT JOIN session sess ON sess.id_session = ps.id_session

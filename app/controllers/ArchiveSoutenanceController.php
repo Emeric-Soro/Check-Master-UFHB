@@ -133,7 +133,7 @@ class ArchiveSoutenanceController
                     d.lib_domaine,
                     se.lib_session
                 FROM programmer_soutenance ps
-                JOIN etudiants e ON ps.num_etud = e.num_carte_etud
+                JOIN etudiants e ON (ps.num_etud = e.num_carte_etud OR ps.num_etud = e.num_ident_etud)
                 LEFT JOIN salles s ON ps.id_salle = s.id_salle
                 LEFT JOIN domaine d ON ps.id_domaine = d.id_domaine
                 LEFT JOIN session se ON ps.id_session = se.id_session
@@ -166,7 +166,7 @@ class ArchiveSoutenanceController
                 LEFT JOIN salles s ON ps.id_salle = s.id_salle
                 LEFT JOIN domaine d ON ps.id_domaine = d.id_domaine
                 LEFT JOIN session se ON ps.id_session = se.id_session
-                JOIN etudiants e ON ps.num_etud = e.num_carte_etud
+                JOIN etudiants e ON (ps.num_etud = e.num_carte_etud OR ps.num_etud = e.num_ident_etud)
                 WHERE ps.num_soutenance = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$numSoutenance]);
