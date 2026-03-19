@@ -2,17 +2,9 @@
 require_once __DIR__ . '/../../app/controllers/ProcessusValidationController.php';
 $controller = new ProcessusValidationController();
 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-$resolveEnseignantId = static function (ProcessusValidationController $ctrl): ?int {
-    $candidateKeys = ['id_enseignant', 'id_utilisateur', 'enseignant_id'];
-    foreach ($candidateKeys as $key) {
-        if (!empty($_SESSION[$key])) {
-            $candidate = (int) $_SESSION[$key];
-            if ($candidate > 0 && $ctrl->verifierIdEnseignant($candidate)) {
-                return $candidate;
-            }
-        }
-    }
-    return null;
+$resolveEnseignantId = static function (ProcessusValidationController $ctrl): ?string {
+    $value = $ctrl->resolveEnseignantIdFromSession($_SESSION);
+    return $value !== null ? (string) $value : null;
 };
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (string) ($_POST['action'] ?? '') === 'finaliser') {
     $idRapport = (int) ($_POST['id_rapport'] ?? 0);
@@ -237,7 +229,7 @@ foreach ($membresCommission as $membre) {
                                             <i class="fas fa-eye" aria-hidden="true"></i>
                                         </a>
                                         <a class="cm-btn-action is-view"
-                                           href="?page=processus_validation&fichier=<?php echo urlencode((string) $idRapport); ?>"
+                                           href="?page=evaluation_dossiers&fichier=<?php echo urlencode((string) $idRapport); ?>"
                                            target="_blank"
                                            rel="noopener"
                                            title="Voir rapport">
@@ -362,4 +354,3 @@ foreach ($membresCommission as $membre) {
     });
 })();
 </script>
-

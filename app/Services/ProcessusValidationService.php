@@ -91,6 +91,24 @@ class ProcessusValidationService
         return 'NULL';
     }
 
+    private function studentJoinCondition(string $rapportAlias = 'r', string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            '(%1$s.num_etu = %2$s.num_carte_etud OR %1$s.num_etu = %2$s.num_ident_etud)',
+            $rapportAlias,
+            $etudiantAlias
+        );
+    }
+
+    private function studentCarteExpr(string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            "COALESCE(NULLIF(%s.num_carte_etud, ''), NULLIF(%s.num_ident_etud, ''))",
+            $etudiantAlias,
+            $etudiantAlias
+        );
+    }
+
     private function getSelectedYearId(): ?int
     {
         return \AcademicYear::getSelectedIdFromSession();
@@ -103,9 +121,10 @@ class ProcessusValidationService
             return ['sql' => '', 'params' => []];
         }
 
+        $studentCarteExpr = $this->studentCarteExpr($alias);
         if ($this->columnExists('inscriptions', 'num_carte_etud') && $this->columnExists('inscriptions', 'id_annee_acad')) {
             return [
-                'sql' => " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = {$alias}.num_carte_etud AND i.id_annee_acad = :id_annee_acad)",
+                'sql' => " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = {$studentCarteExpr} AND i.id_annee_acad = :id_annee_acad)",
                 'params' => [':id_annee_acad' => $selectedYearId],
             ];
         }
@@ -129,10 +148,10 @@ class ProcessusValidationService
             $stmt = $this->pdo->prepare("
                 SELECT i.id_annee_acad
                 FROM rapport_etudiants r
-                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 JOIN inscriptions i ON i.id_inscription = (
                     SELECT i2.id_inscription FROM inscriptions i2
-                    WHERE i2.num_carte_etud = e.num_carte_etud
+                    WHERE i2.num_carte_etud = " . $this->studentCarteExpr('e') . "
                     ORDER BY i2.date_inscription DESC, i2.id_inscription DESC LIMIT 1
                 )
                 WHERE r.id_rapport = ?
@@ -162,7 +181,7 @@ class ProcessusValidationService
                     SELECT COUNT(DISTINCT a.id_rapport) as total_rapports
                     FROM approuver a
                     JOIN rapport_etudiants r ON a.id_rapport = r.id_rapport
-                    JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                     WHERE a.decision = 'approuve'" . $yearFilter['sql'] . "
                 ");
                 $stmt->execute($yearFilter['params']);
@@ -173,7 +192,7 @@ class ProcessusValidationService
                     SELECT COUNT(DISTINCT a.id_rapport) as en_cours
                     FROM approuver a
                     JOIN rapport_etudiants r ON a.id_rapport = r.id_rapport
-                    JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                     LEFT JOIN valider v ON a.id_rapport = v.id_rapport
                     WHERE a.decision = 'approuve' AND v.id_rapport IS NULL" . $yearFilter['sql'] . "
                 ");
@@ -199,7 +218,7 @@ class ProcessusValidationService
                 SELECT COUNT(DISTINCT v.id_rapport) as valides
                 FROM valider v
                 JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 WHERE v.decision_validation = 'valider'" . $yearFilter['sql'] . "
             ");
             $stmt->execute($yearFilter['params']);
@@ -210,7 +229,7 @@ class ProcessusValidationService
                 SELECT COUNT(DISTINCT v.id_rapport) as rejetes
                 FROM valider v
                 JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 WHERE v.decision_validation = 'rejeter'" . $yearFilter['sql'] . "
             ");
             $stmt->execute($yearFilter['params']);
@@ -265,7 +284,7 @@ class ProcessusValidationService
                         pa.prenom_pers_admin
                     FROM approuver a
                     JOIN rapport_etudiants r ON a.id_rapport = r.id_rapport
-                    JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                     LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
                     WHERE a.decision = 'approuve'
                     " . $yearFilter['sql'] . "
@@ -288,7 +307,7 @@ class ProcessusValidationService
                         ens.nom_enseignant AS nom_pers_admin,
                         ens.prenom_enseignant AS prenom_pers_admin
                     FROM rapport_etudiants r
-                    JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                     LEFT JOIN (
                         SELECT vv.id_rapport, MAX(vv.date_validation) AS max_date
                         FROM valider vv
@@ -491,6 +510,10 @@ class ProcessusValidationService
     public function verifierIdEnseignant($id_enseignant)
     {
         try {
+            $id_enseignant = trim((string) $id_enseignant);
+            if ($id_enseignant === '') {
+                return false;
+            }
             $stmt = $this->pdo->prepare("SELECT COUNT(*) as count FROM enseignants WHERE id_enseignant = ?");
             $stmt->execute([$id_enseignant]);
             $result = $stmt->fetch();
@@ -501,17 +524,92 @@ class ProcessusValidationService
         }
     }
 
+    private function findEnseignantIdByLogin(string $login): ?string
+    {
+        try {
+            $login = trim($login);
+            if ($login === '') {
+                return null;
+            }
+            $stmt = $this->pdo->prepare("
+                SELECT id_enseignant
+                FROM enseignants
+                WHERE LOWER(mail_enseignant) = LOWER(?)
+                LIMIT 1
+            ");
+            $stmt->execute([$login]);
+            $value = $stmt->fetchColumn();
+            return $value !== false ? trim((string) $value) : null;
+        } catch (Exception $e) {
+            error_log("Erreur recherche enseignant par login: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function findEnseignantIdByUtilisateurId($idUtilisateur): ?string
+    {
+        try {
+            $idUtilisateur = (int) $idUtilisateur;
+            if ($idUtilisateur <= 0 || !$this->tableExists('utilisateur')) {
+                return null;
+            }
+            $stmt = $this->pdo->prepare("
+                SELECT e.id_enseignant
+                FROM utilisateur u
+                JOIN enseignants e ON LOWER(e.mail_enseignant) = LOWER(u.login_utilisateur)
+                WHERE u.id_utilisateur = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$idUtilisateur]);
+            $value = $stmt->fetchColumn();
+            return $value !== false ? trim((string) $value) : null;
+        } catch (Exception $e) {
+            error_log("Erreur recherche enseignant par utilisateur: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function resolveEnseignantIdFromSession(array $session): ?string
+    {
+        foreach (['id_enseignant', 'enseignant_id'] as $key) {
+            $candidate = trim((string) ($session[$key] ?? ''));
+            if ($candidate !== '' && $this->verifierIdEnseignant($candidate)) {
+                return $candidate;
+            }
+        }
+
+        $byLogin = $this->findEnseignantIdByLogin((string) ($session['login_utilisateur'] ?? ''));
+        if ($byLogin !== null && $this->verifierIdEnseignant($byLogin)) {
+            return $byLogin;
+        }
+
+        $byUserId = $this->findEnseignantIdByUtilisateurId($session['id_utilisateur'] ?? 0);
+        if ($byUserId !== null && $this->verifierIdEnseignant($byUserId)) {
+            return $byUserId;
+        }
+
+        return null;
+    }
+
     /**
      * Finalise la décision pour un rapport
      *
      * @param int $id_rapport
-     * @param int $id_enseignant
+     * @param string $id_enseignant
      * @param string|null $commentaire
      * @return array{success: bool, message: string}
      */
     public function finaliserRapport($id_rapport, $id_enseignant, $commentaire = null)
     {
         try {
+            $id_enseignant = trim((string) $id_enseignant);
+            if ($id_enseignant === '' || !$this->verifierIdEnseignant($id_enseignant)) {
+                return [
+                    'success' => false,
+                    'message' => 'Impossible de finaliser: identifiant enseignant introuvable.'
+                ];
+            }
+
             $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId((int) $id_rapport), 'une finalisation de rapport');
             if (!$writeGuard['success']) {
                 return [

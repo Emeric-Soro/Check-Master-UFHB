@@ -33,11 +33,14 @@ class RedactionCompteRenduService
             $sql = "
                 SELECT r.id_rapport, r.num_etu, r.theme_rapport, e.prenom_etu, e.nom_etu, v2.decision_validation, ins.id_annee_acad
                 FROM rapport_etudiants r
-                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                JOIN etudiants e ON (
+                    r.num_etu = e.num_carte_etud
+                    OR r.num_etu = e.num_ident_etud
+                )
                 LEFT JOIN inscriptions ins ON (ins.num_carte_etud, ins.id_annee_acad, ins.num_versement) = (
                             SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement
                             FROM inscriptions i2 
-                            WHERE i2.num_carte_etud = e.num_carte_etud 
+                            WHERE i2.num_carte_etud = COALESCE(NULLIF(e.num_carte_etud, ''), NULLIF(e.num_ident_etud, ''))
                             ORDER BY i2.date_inscription DESC, i2.num_versement DESC LIMIT 1
                         )
                 JOIN (
