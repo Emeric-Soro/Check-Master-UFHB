@@ -307,7 +307,7 @@ foreach ($soutenances as $soutenance) {
                     <thead>
                         <tr>
                             <th class="cm-data-table__th cm-data-table__th--check">
-                                <input type="checkbox" id="cmEvalSoutCheckAll" aria-label="Tout selectionner">
+                                <input type="checkbox" id="cmEvalSoutCheckAll" class="cm-table-check-all" aria-label="Tout selectionner">
                             </th>
                             <th class="cm-data-table__th">N</th>
                             <th class="cm-data-table__th">Etudiant</th>
@@ -363,7 +363,7 @@ foreach ($soutenances as $soutenance) {
                                     data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>"
                                     data-num-etu="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>">
                                     <td class="cm-data-table__td cm-data-table__td--check">
-                                        <input type="checkbox" class="cm-eval-sout-check-row"
+                                        <input type="checkbox" class="cm-table-check-row cm-eval-sout-check-row"
                                             value="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>"
                                             aria-label="Selectionner ligne <?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>">
                                     </td>

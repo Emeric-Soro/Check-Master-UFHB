@@ -219,6 +219,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
             'limit_options' => [5, 10, 25, 50, 100],
             'can_delete' => canDelete(),
             'can_view' => canView(),
+            'print_title' => 'Évaluations dossiers soutenance',
         ]); ?>
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
@@ -226,7 +227,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     <thead>
                     <tr>
                         <th class="cm-data-table__th cm-data-table__th--check">
-                            <input type="checkbox" id="cmEvalCheckAll" aria-label="Tout sélectionner">
+                            <input type="checkbox" id="cmEvalCheckAll" class="cm-table-check-all" aria-label="Tout sélectionner">
                         </th>
                         <th class="cm-data-table__th">N° Rapport</th>
                         <th class="cm-data-table__th">Nom &amp; Prénom</th>
@@ -289,7 +290,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                                 data-statut="<?php echo htmlspecialchars($statutLabel, ENT_QUOTES, 'UTF-8'); ?>"
                                 data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
                                 <td class="cm-data-table__td cm-data-table__td--check">
-                                    <input type="checkbox" class="cm-eval-check-row" value="<?php echo $idRapport; ?>" aria-label="Sélectionner dossier <?php echo $idRapport; ?>">
+                                    <input type="checkbox" class="cm-table-check-row cm-eval-check-row" value="<?php echo $idRapport; ?>" aria-label="Sélectionner dossier <?php echo $idRapport; ?>">
                                 </td>
                                 <td class="cm-data-table__td">#<?php echo $idRapport; ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($etudiant, ENT_QUOTES, 'UTF-8'); ?></td>

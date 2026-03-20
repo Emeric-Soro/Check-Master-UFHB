@@ -181,6 +181,7 @@ $isAdmin = function_exists('isAdmin') ? isAdmin() : false;
             'limit' => $perPage,
             'can_delete' => canDelete(),
             'can_view' => canView(),
+            'print_title' => 'Programmation soutenances (enseignant)',
         ]); ?>
     </div>
     <div class="cm-pole-inferieur">
@@ -189,7 +190,7 @@ $isAdmin = function_exists('isAdmin') ? isAdmin() : false;
                 <thead>
                     <tr>
                         <th class="cm-data-table__th cm-data-table__th--check">
-                            <input type="checkbox" id="cmProgCheckAll" aria-label="Tout sélectionner">
+                            <input type="checkbox" id="cmProgCheckAll" class="cm-table-check-all" aria-label="Tout sélectionner">
                         </th>
                         <th class="cm-data-table__th">N°</th>
                         <th class="cm-data-table__th">Nom &amp; Prénom Étudiant</th>
@@ -243,7 +244,7 @@ $isAdmin = function_exists('isAdmin') ? isAdmin() : false;
                                 data-examinateur-id="<?php echo htmlspecialchars((string) ($row['examinateur_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                 data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
                                 <td class="cm-data-table__td cm-data-table__td--check">
-                                    <input type="checkbox" class="cm-prog-check-row" value="<?php echo $idAttribution; ?>"
+                                    <input type="checkbox" class="cm-table-check-row cm-prog-check-row" value="<?php echo $idAttribution; ?>"
                                         aria-label="Sélectionner ligne <?php echo $idAttribution; ?>">
                                 </td>
                                 <td class="cm-data-table__td"><?php echo (int) ($pagination['offset'] ?? 0) + $index + 1; ?>

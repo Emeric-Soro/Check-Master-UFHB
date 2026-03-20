@@ -230,7 +230,7 @@ foreach ($etudiants as $etudiant) {
                     <thead>
                         <tr>
                             <th class="cm-data-table__th cm-data-table__th--check">
-                                <input type="checkbox" id="cmMemoireCheckAll" aria-label="Tout selectionner">
+                                <input type="checkbox" id="cmMemoireCheckAll" class="cm-table-check-all" aria-label="Tout selectionner">
                             </th>
                             <th class="cm-data-table__th">N°</th>
                             <th class="cm-data-table__th">Nom &amp; Prénom Étudiant</th>
@@ -268,7 +268,7 @@ foreach ($etudiants as $etudiant) {
                                     data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>"
                                     data-num-etu="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>">
                                     <td class="cm-data-table__td cm-data-table__td--check">
-                                        <input type="checkbox" class="cm-memoire-check-row"
+                                        <input type="checkbox" class="cm-table-check-row cm-memoire-check-row"
                                             value="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>"
                                             aria-label="Selectionner ligne <?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>">
                                     </td>

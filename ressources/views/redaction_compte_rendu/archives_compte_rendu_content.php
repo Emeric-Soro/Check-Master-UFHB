@@ -53,6 +53,7 @@ $baseUrl = '?page=archive_comptes_rendus'
             'allowed_limits' => $allowedLimits,
             'can_delete' => canDelete(),
             'can_view' => canView(),
+            'print_title' => 'Archives comptes-rendus',
         ]); ?>
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
@@ -60,7 +61,7 @@ $baseUrl = '?page=archive_comptes_rendus'
                     <thead>
                     <tr>
                         <th class="cm-data-table__th cm-data-table__th--check">
-                            <input type="checkbox" id="cmArchiveCheckAll" aria-label="Tout sélectionner">
+                            <input type="checkbox" id="cmArchiveCheckAll" class="cm-table-check-all" aria-label="Tout sélectionner">
                         </th>
                         <th class="cm-data-table__th">N CR</th>
                         <th class="cm-data-table__th">Nom CR</th>
@@ -91,7 +92,7 @@ $baseUrl = '?page=archive_comptes_rendus'
                                 data-id="<?php echo $idCr; ?>"
                                 data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
                                 <td class="cm-data-table__td cm-data-table__td--check">
-                                    <input type="checkbox" class="cm-archive-check-row" value="<?php echo $idCr; ?>" aria-label="Sélectionner archive <?php echo $idCr; ?>">
+                                    <input type="checkbox" class="cm-table-check-row cm-archive-check-row" value="<?php echo $idCr; ?>" aria-label="Sélectionner archive <?php echo $idCr; ?>">
                                 </td>
                                 <td class="cm-data-table__td">#<?php echo $idCr; ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($nomCr, ENT_QUOTES, 'UTF-8'); ?></td>
