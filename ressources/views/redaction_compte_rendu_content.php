@@ -10,8 +10,8 @@ foreach (\AcademicYear::fetchAll(Database::getConnection()) as $academicYear) {
 
 $enseignantOptions = [];
 foreach ($enseignantsRaw as $enseignant) {
-    $id = (int) ($enseignant->id_enseignant ?? $enseignant['id_enseignant'] ?? 0);
-    if ($id <= 0) {
+    $id = trim((string) ($enseignant->id_enseignant ?? $enseignant['id_enseignant'] ?? ''));
+    if ($id === '') {
         continue;
     }
     $nom = trim((string) ($enseignant->prenom_enseignant ?? $enseignant['prenom_enseignant'] ?? '') . ' ' .
@@ -32,6 +32,9 @@ foreach ($rapportsValides as $rapport) {
     $theme = (string) ($rapport['theme_rapport'] ?? 'Rapport');
     $decision = strtolower((string) ($rapport['decision_validation'] ?? 'valider'));
     $studentName = trim($prenom . ' ' . $nom);
+    if ($studentName === '') {
+        $studentName = $numEtu !== '' ? $numEtu : 'Etudiant introuvable';
+    }
 
     $reportsById[$idRapport] = [
         'id_rapport' => $idRapport,
@@ -40,9 +43,13 @@ foreach ($rapportsValides as $rapport) {
         'student' => $studentName,
         'decision' => $decision,
         'promotion' => trim((string) ($rapport['promotion_etu'] ?? '')),
+        'deja_lie_cr' => !empty($rapport['deja_lie_cr']),
     ];
 
     $reportOptionLabel = '#' . $idRapport . ' - ' . $theme . ' (' . $studentName . ')';
+    if (!empty($rapport['deja_lie_cr'])) {
+        $reportOptionLabel .= ' - CR existant';
+    }
     if ($allYearsSelected) {
         $promotionLabel = trim((string) ($rapport['promotion_etu'] ?? ''));
         if ($promotionLabel === '' && !empty($rapport['id_annee_acad'])) {
@@ -642,4 +649,3 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     renderSelected();
 })();
 </script>
-

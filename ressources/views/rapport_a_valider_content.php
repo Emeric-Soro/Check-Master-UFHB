@@ -6,6 +6,22 @@ $pdo = Database::getConnection();
 $rapportModel = new RapportEtudiant($pdo);
 $evaluationModel = new EvaluationRapport($pdo);
 $idUtilisateur = (int) ($_SESSION['id_utilisateur'] ?? 0);
+$idEnseignant = '';
+if ($idUtilisateur > 0) {
+    try {
+        $stmtUser = $pdo->prepare('SELECT login_utilisateur FROM utilisateur WHERE id_utilisateur = ?');
+        $stmtUser->execute([$idUtilisateur]);
+        $userRow = $stmtUser->fetch(PDO::FETCH_ASSOC);
+        if (!empty($userRow['login_utilisateur'])) {
+            $stmtEns = $pdo->prepare('SELECT id_enseignant FROM enseignants WHERE mail_enseignant = ? LIMIT 1');
+            $stmtEns->execute([(string) $userRow['login_utilisateur']]);
+            $ensRow = $stmtEns->fetch(PDO::FETCH_ASSOC);
+            $idEnseignant = trim((string) ($ensRow['id_enseignant'] ?? ''));
+        }
+    } catch (Throwable $e) {
+        $idEnseignant = '';
+    }
+}
 $allRapports = $rapportModel->getAllRapports();
 $rapports = [];
 $totalNouveaux = 0;
@@ -17,7 +33,7 @@ foreach ($allRapports as $rapport) {
     }
     $evaluations = $evaluationModel->getEvaluationsRapport($idRapport);
     $nbEvaluations = count($evaluations);
-    $dejaEvalue = $idUtilisateur > 0 ? (bool) $evaluationModel->evaluationExiste($idRapport, $idUtilisateur) : false;
+    $dejaEvalue = $idEnseignant !== '' ? (bool) $evaluationModel->evaluationExiste($idRapport, $idEnseignant) : false;
     $votesValider = 0;
     $votesRejeter = 0;
     foreach ($evaluations as $evaluation) {

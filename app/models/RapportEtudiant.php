@@ -86,16 +86,34 @@ class RapportEtudiant
         return 'ORDER BY ' . $alias . '.id_rapport DESC';
     }
 
+    private function studentJoinCondition($rapportAlias = 'r', $etudiantAlias = 'e')
+    {
+        return sprintf(
+            '(%1$s.num_etu = %2$s.num_carte_etud OR %1$s.num_etu = %2$s.num_ident_etud)',
+            $rapportAlias,
+            $etudiantAlias
+        );
+    }
+
+    private function studentCarteExpr($etudiantAlias = 'e')
+    {
+        return sprintf(
+            "COALESCE(NULLIF(%s.num_carte_etud, ''), NULLIF(%s.num_ident_etud, ''))",
+            $etudiantAlias,
+            $etudiantAlias
+        );
+    }
+
     public function getAllRapports()
     {
         try {
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
                     (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = e.num_carte_etud 
+                     WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
                      ORDER BY i.id_annee_acad DESC, i.date_inscription DESC LIMIT 1) AS id_annee_acad
                 FROM rapport_etudiants r
-                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 " . $this->getReportOrderBy('r') . "
             ";
             $stmt = $this->pdo->query($sql);
@@ -117,11 +135,11 @@ class RapportEtudiant
                 e.email_etu,
                 e.promotion_etu,
                 (SELECT i.id_annee_acad FROM inscriptions i 
-                 WHERE i.num_carte_etud = e.num_carte_etud 
+                 WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
                  ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad,
                 d.date_depot
             FROM rapport_etudiants r
-            JOIN etudiants e ON r.num_etu = e.num_carte_etud
+            JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
             LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
             WHERE r.id_rapport = ?
         ");
@@ -134,10 +152,10 @@ class RapportEtudiant
         $stmt = $this->pdo->prepare("
             SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
                 (SELECT i.id_annee_acad FROM inscriptions i 
-                 WHERE i.num_carte_etud = e.num_carte_etud 
+                 WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
                  ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad, d.date_depot
             FROM rapport_etudiants r
-            JOIN etudiants e ON r.num_etu = e.num_carte_etud
+            JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
             LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
             WHERE r.id_rapport = ?
         ");
@@ -150,13 +168,13 @@ class RapportEtudiant
         $stmt = $this->pdo->prepare("
             SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
                 (SELECT i.id_annee_acad FROM inscriptions i 
-                 WHERE i.num_carte_etud = e.num_carte_etud 
+                 WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
                  ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
             FROM rapport_etudiants r
-            JOIN etudiants e ON r.num_etu = e.num_carte_etud
-            WHERE r.id_rapport = ? AND r.num_etu = ?
+            JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+            WHERE r.id_rapport = ? AND (r.num_etu = ? OR " . $this->studentCarteExpr('e') . " = ?)
         ");
-        $stmt->execute([$id_rapport, $num_etu]);
+        $stmt->execute([$id_rapport, $num_etu, $num_etu]);
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
@@ -166,15 +184,15 @@ class RapportEtudiant
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
                     (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = e.num_carte_etud 
+                     WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
                      ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
                 FROM rapport_etudiants r
-                JOIN etudiants e ON r.num_etu = e.num_carte_etud
-                WHERE r.num_etu = ?
+                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                WHERE r.num_etu = ? OR " . $this->studentCarteExpr('e') . " = ?
                 " . $this->getReportOrderBy('r') . "
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([$num_etu]);
+            $stmt->execute([$num_etu, $num_etu]);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
             error_log("Erreur getRapportsByEtudiant: " . $e->getMessage());
@@ -308,8 +326,8 @@ class RapportEtudiant
 
     public function isEtudiantExist($num_etu)
     {
-        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM etudiants WHERE num_carte_etud = ?");
-        $stmt->execute([$num_etu]);
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM etudiants WHERE num_carte_etud = ? OR num_ident_etud = ?");
+        $stmt->execute([$num_etu, $num_etu]);
         return $stmt->fetchColumn() > 0;
     }
 
@@ -379,17 +397,18 @@ class RapportEtudiant
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
                     (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = e.num_carte_etud 
+                     WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
                      ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
                 FROM rapport_etudiants r
-                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 WHERE " . ($hasNomRapport ? "(r.nom_rapport LIKE ? OR r.theme_rapport LIKE ?)" : "(r.theme_rapport LIKE ?)") . "
             ";
 
             $params = $hasNomRapport ? ["%$search_term%", "%$search_term%"] : ["%$search_term%"];
 
             if ($num_etu !== null) {
-                $sql .= " AND r.num_etu = ?";
+                $sql .= " AND (r.num_etu = ? OR " . $this->studentCarteExpr('e') . " = ?)";
+                $params[] = $num_etu;
                 $params[] = $num_etu;
             }
 
@@ -415,10 +434,10 @@ class RapportEtudiant
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
                     (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = e.num_carte_etud 
+                     WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
                      ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
                 FROM rapport_etudiants r
-                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 " . $this->getReportOrderBy('r') . "
                 LIMIT " . $limit . "
             ";
@@ -500,10 +519,10 @@ class RapportEtudiant
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
                     (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = e.num_carte_etud 
+                     WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
                      ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
                 FROM rapport_etudiants r
-                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 WHERE r.statut_rapport = ?
                 " . $this->getReportOrderBy('r') . "
             ";
@@ -664,15 +683,15 @@ class RapportEtudiant
                        " . $this->getReportSelectExtras('r') . ", 
                        e.nom_etu, e.prenom_etu, e.email_etu,
                        (SELECT i.id_annee_acad FROM inscriptions i 
-                        WHERE i.num_carte_etud = e.num_carte_etud 
+                        WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
                         ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
                 FROM rapport_etudiants r
-                JOIN etudiants e ON r.num_etu = e.num_carte_etud
-                WHERE r.num_etu = ?
+                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                WHERE r.num_etu = ? OR " . $this->studentCarteExpr('e') . " = ?
                 ORDER BY r.date_redaction_rapport DESC
                 LIMIT 1
             ");
-            $stmt->execute([$numEtu]);
+            $stmt->execute([$numEtu, $numEtu]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Erreur getDerniereSoutenance: " . $e->getMessage());
@@ -686,11 +705,11 @@ class RapportEtudiant
             $stmt = $this->pdo->query("
                 SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu, e.promotion_etu, 
                     (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = e.num_carte_etud 
+                     WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
                      ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad, d.date_depot
                 FROM deposer d
                 JOIN rapport_etudiants r ON d.id_rapport = r.id_rapport
-                JOIN etudiants e ON d.num_etu = e.num_carte_etud
+                JOIN etudiants e ON (d.num_etu = e.num_carte_etud OR d.num_etu = e.num_ident_etud)
                 ORDER BY d.date_depot DESC
             ");
             return $stmt->fetchAll(PDO::FETCH_OBJ);
