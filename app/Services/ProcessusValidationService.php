@@ -524,6 +524,73 @@ class ProcessusValidationService
         }
     }
 
+    private function findEnseignantIdByLogin(string $login): ?string
+    {
+        try {
+            $login = trim($login);
+            if ($login === '') {
+                return null;
+            }
+            $stmt = $this->pdo->prepare("
+                SELECT id_enseignant
+                FROM enseignants
+                WHERE LOWER(mail_enseignant) = LOWER(?)
+                LIMIT 1
+            ");
+            $stmt->execute([$login]);
+            $value = $stmt->fetchColumn();
+            return $value !== false ? trim((string) $value) : null;
+        } catch (Exception $e) {
+            error_log("Erreur recherche enseignant par login: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function findEnseignantIdByUtilisateurId($idUtilisateur): ?string
+    {
+        try {
+            $idUtilisateur = (int) $idUtilisateur;
+            if ($idUtilisateur <= 0 || !$this->tableExists('utilisateur')) {
+                return null;
+            }
+            $stmt = $this->pdo->prepare("
+                SELECT e.id_enseignant
+                FROM utilisateur u
+                JOIN enseignants e ON LOWER(e.mail_enseignant) = LOWER(u.login_utilisateur)
+                WHERE u.id_utilisateur = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$idUtilisateur]);
+            $value = $stmt->fetchColumn();
+            return $value !== false ? trim((string) $value) : null;
+        } catch (Exception $e) {
+            error_log("Erreur recherche enseignant par utilisateur: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function resolveEnseignantIdFromSession(array $session): ?string
+    {
+        foreach (['id_enseignant', 'enseignant_id'] as $key) {
+            $candidate = trim((string) ($session[$key] ?? ''));
+            if ($candidate !== '' && $this->verifierIdEnseignant($candidate)) {
+                return $candidate;
+            }
+        }
+
+        $byLogin = $this->findEnseignantIdByLogin((string) ($session['login_utilisateur'] ?? ''));
+        if ($byLogin !== null && $this->verifierIdEnseignant($byLogin)) {
+            return $byLogin;
+        }
+
+        $byUserId = $this->findEnseignantIdByUtilisateurId($session['id_utilisateur'] ?? 0);
+        if ($byUserId !== null && $this->verifierIdEnseignant($byUserId)) {
+            return $byUserId;
+        }
+
+        return null;
+    }
+
     /**
      * Résout l'identifiant enseignant à partir de l'identifiant utilisateur.
      *
@@ -573,21 +640,15 @@ class ProcessusValidationService
     public function finaliserRapport($id_rapport, $id_enseignant, $commentaire = null)
     {
         try {
-            $id_rapport = (int) $id_rapport;
             $id_enseignant = trim((string) $id_enseignant);
             if ($id_enseignant === '' || !$this->verifierIdEnseignant($id_enseignant)) {
-                $fallbackEvaluateur = $this->findFallbackEvaluateurIdForRapport($id_rapport);
-                if ($fallbackEvaluateur !== null && $this->verifierIdEnseignant($fallbackEvaluateur)) {
-                    $id_enseignant = $fallbackEvaluateur;
-                } else {
-                    return [
-                        'success' => false,
-                        'message' => 'Impossible de finaliser: identifiant enseignant introuvable.'
-                    ];
-                }
+                return [
+                    'success' => false,
+                    'message' => 'Impossible de finaliser: identifiant enseignant introuvable.'
+                ];
             }
 
-            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId($id_rapport), 'une finalisation de rapport');
+            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId((int) $id_rapport), 'une finalisation de rapport');
             if (!$writeGuard['success']) {
                 return [
                     'success' => false,
