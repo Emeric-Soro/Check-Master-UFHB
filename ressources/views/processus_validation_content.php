@@ -231,7 +231,8 @@ foreach ($membresCommission as $membre) {
                                     data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
                                     <td class="cm-data-table__td">#<?php echo $idRapport; ?></td>
                                     <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars($etudiant, ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <?php echo htmlspecialchars($etudiant, ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
                                     <td class="cm-data-table__td">
                                         <?php echo htmlspecialchars((string) ($rapport['promotion_etu'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?>
                                     </td>
@@ -239,9 +240,11 @@ foreach ($membresCommission as $membre) {
                                         <?php cm_component('ui/badge', ['text' => $statutLabel, 'type' => $badgeType]); ?>
                                     </td>
                                     <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars($votesText, ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <?php echo htmlspecialchars($votesText, ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
                                     <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars($dateApprob, ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <?php echo htmlspecialchars($dateApprob, ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
                                     <td class="cm-data-table__td is-center">
                                         <div class="cm-table-actions" style="justify-content:center;">
                                             <a class="cm-btn-action is-view"

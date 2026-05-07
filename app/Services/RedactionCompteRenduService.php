@@ -83,7 +83,6 @@ class RedactionCompteRenduService
                 JOIN valider v2 ON v2.id_rapport = v1.id_rapport AND v2.date_validation = v1.last_validation
                 LEFT JOIN compte_rendu_rapport crr ON r.id_rapport = crr.id_rapport
                 WHERE v2.decision_validation IN ('valider', 'rejeter')
-                  AND crr.id_rapport IS NULL
             ";
 
             $params = [];
