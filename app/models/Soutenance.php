@@ -267,7 +267,7 @@ class Soutenance
                     en.prenom_enseignant,
                     en.mail_enseignant,
                     qj.lib_role,
-                    qj.code_qltjury,
+                    qj.id_role_jury AS code_qltjury,
                     g.lib_grade
                 FROM enseignant_jury ej
                 INNER JOIN enseignants en ON en.id_enseignant = ej.id_enseignant

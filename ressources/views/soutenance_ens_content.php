@@ -1,750 +1,439 @@
 <?php
 require_once __DIR__ . '/../../app/controllers/ProgrammationSoutenanceController.php';
+require_once __DIR__ . '/../../app/models/Enseignant.php';
+
 $controller = new ProgrammationSoutenanceController();
-$currentPageSlug = (string) ($_GET['page'] ?? 'programmation_soutenance');
-$action = (string) ($_GET['action'] ?? '');
-if ($action !== '') {
-    switch ($action) {
-        case 'getEtudiants':
-            $controller->getEtudiants();
-            exit;
-        case 'getEnseignants':
-            $controller->getEnseignants();
-            exit;
-        case 'getProfesseursTitulaires':
-            $controller->getProfesseursTitulaires();
-            exit;
-        case 'getSalles':
-            $controller->getSalles();
-            exit;
-        case 'getAttributions':
-            $controller->getAttributions();
-            exit;
-        case 'createAttribution':
-            $controller->createAttribution();
-            exit;
-        case 'updateAttribution':
-            $controller->updateAttribution();
-            exit;
-        case 'deleteAttribution':
-            $controller->deleteAttribution();
-            exit;
-    }
-}
-$etudiants = $controller->getEtudiantsForView();
+$currentPageSlug = (string) ($_GET['page'] ?? 'programmation_ens');
+$selectedYearLabel = \AcademicYear::getSelectedLabelFromSession();
+$activeYearLabel = \AcademicYear::getActiveLabelFromSession();
+$writeYearLabel = \AcademicYear::getWritableLabelFromSession();
+$allYearsSelected = \AcademicYear::isAllSelectedFromSession();
+$isAdmin = function_exists('isAdmin') ? isAdmin() : false;
+$selectedTeacherId = trim((string) ($_GET['id_enseignant_selected'] ?? ''));
+$teacherId = '';
+$teacherName = 'Enseignant';
+
+$roleFieldLabels = [
+    'president_id' => 'President',
+    'directeur_id' => 'Directeur memoire',
+    'examinateur_id' => 'Examinateur',
+    'encadreur_id' => 'Encadreur pedagogique',
+    'maitre_stage_id' => 'Maitre de stage',
+];
+
 $enseignants = $controller->getEnseignantsForView();
-$enseignantJury = $controller->getEnseignantJuryForView();
-$professeursTitulaires = $controller->getProfesseursTitulairesForView();
-$salles = $controller->getSallesForView();
-$attributions = $controller->getAttributionsForView();
-usort($attributions, static function ($a, $b): int {
-    $dateA = (string) ($a['date_soutenance'] ?? '');
-    $dateB = (string) ($b['date_soutenance'] ?? '');
-    return strcmp($dateA, $dateB);
+$teacherOptions = [];
+foreach ($enseignants as $enseignant) {
+    $id = trim((string) ($enseignant['id_enseignant'] ?? ''));
+    if ($id === '') {
+        continue;
+    }
+
+    $label = trim((string) ($enseignant['nom_complet'] ?? ''));
+    if ($label === '') {
+        $label = trim(
+            (string) ($enseignant['prenom_enseignant'] ?? '') . ' ' . (string) ($enseignant['nom_enseignant'] ?? '')
+        );
+    }
+    if ($label === '') {
+        $label = 'Enseignant ' . $id;
+    }
+
+    $teacherOptions[$id] = $label;
+}
+
+try {
+    $enseignantModel = new Enseignant(\Database::getConnection());
+
+    if ($isAdmin) {
+        if ($selectedTeacherId !== '') {
+            $teacherId = $selectedTeacherId;
+            if (isset($teacherOptions[$selectedTeacherId])) {
+                $teacherName = $teacherOptions[$selectedTeacherId];
+            } else {
+                $selectedTeacher = $enseignantModel->getEnseignantById($selectedTeacherId);
+                if ($selectedTeacher && is_object($selectedTeacher)) {
+                    $teacherName = trim(
+                        (string) ($selectedTeacher->prenom_enseignant ?? '') . ' ' . (string) ($selectedTeacher->nom_enseignant ?? '')
+                    );
+                }
+            }
+        }
+    } else {
+        $connectedTeacher = $enseignantModel->getEnseignantByLogin((string) ($_SESSION['login_utilisateur'] ?? ''));
+        if ($connectedTeacher && is_object($connectedTeacher)) {
+            $teacherId = trim((string) ($connectedTeacher->id_enseignant ?? ''));
+            $resolvedName = trim(
+                (string) ($connectedTeacher->prenom_enseignant ?? '') . ' ' . (string) ($connectedTeacher->nom_enseignant ?? '')
+            );
+            if ($resolvedName !== '') {
+                $teacherName = $resolvedName;
+            }
+        }
+    }
+} catch (Throwable $e) {
+    error_log('Programmation enseignant: impossible de resoudre le contexte enseignant: ' . $e->getMessage());
+}
+
+$allAttributions = $controller->getAttributionsForView();
+$filteredAttributions = [];
+
+$resolveTeacherRoles = static function (array $row, string $teacherId) use ($roleFieldLabels): array {
+    if ($teacherId === '') {
+        return [];
+    }
+
+    $roles = [];
+    foreach ($roleFieldLabels as $field => $label) {
+        if (trim((string) ($row[$field] ?? '')) === $teacherId) {
+            $roles[] = $label;
+        }
+    }
+
+    return array_values(array_unique($roles));
+};
+
+if ($teacherId !== '') {
+    foreach ($allAttributions as $row) {
+        $roles = $resolveTeacherRoles($row, $teacherId);
+        if ($roles === []) {
+            continue;
+        }
+
+        $row['_teacher_roles'] = implode(', ', $roles);
+        $filteredAttributions[] = $row;
+    }
+}
+
+usort($filteredAttributions, static function (array $left, array $right): int {
+    $dateComparison = strcmp((string) ($left['date_soutenance'] ?? ''), (string) ($right['date_soutenance'] ?? ''));
+    if ($dateComparison !== 0) {
+        return $dateComparison;
+    }
+
+    return strcmp((string) ($left['heure_soutenance'] ?? ''), (string) ($right['heure_soutenance'] ?? ''));
 });
-$studentMap = [];
-$studentOptions = [];
-foreach ($etudiants as $etu) {
-    $id = (string) ($etu['id_etudiant'] ?? '');
-    if ($id === '') {
-        continue;
-    }
-    $label = trim((string) ($etu['nom_complet'] ?? 'Etudiant'));
-    $matricule = trim((string) ($etu['matricule_etudiant'] ?? $id));
-    $themeRapport = trim((string) ($etu['theme_rapport'] ?? ''));
-    $studentMap[$id] = [
-        'id_etudiant' => $id,
-        'nom_complet' => $label,
-        'matricule_etudiant' => $matricule,
-        'promotion_etu' => (string) ($etu['promotion_etu'] ?? ''),
-        'theme_rapport' => $themeRapport,
-        'directeur_nom' => trim((string) ($etu['directeur_nom'] ?? '')),
-        'directeur_id' => (string) ($etu['directeur_id'] ?? ''),
-        'encadreur_nom' => trim((string) ($etu['encadreur_nom'] ?? '')),
-        'encadreur_id' => (string) ($etu['encadreur_id'] ?? ''),
-        'maitre_stage_nom' => trim((string) ($etu['maitre_stage_nom'] ?? '')),
-    ];
-    $studentOptions[$id] = $label . ' (' . $matricule . ')'
-        . (\AcademicYear::isAllSelectedFromSession() && !empty($etu['promotion_etu']) ? ' - ' . (string) $etu['promotion_etu'] : '');
-}
-$enseignantOptions = [];
-foreach ($enseignants as $ens) {
-    $id = (string) ($ens['id_enseignant'] ?? '');
-    if ($id === '') {
-        continue;
-    }
-    $enseignantOptions[$id] = trim((string) ($ens['nom_complet'] ?? ('Enseignant #' . $id)));
-}
 
-$enseignantJuryOptions = [];
-foreach ($enseignantJury as $ens) {
-    $id = (string) ($ens['id_enseignant'] ?? '');
-    if ($id === '') {
-        continue;
-    }
-    $enseignantJuryOptions[$id] = trim((string) ($ens['nom_complet'] ?? ('Enseignant #' . $id)));
-}
-
-
-$presidentOptions = [];
-foreach ($professeursTitulaires as $ens) {
-    $id = (string) ($ens['id_enseignant'] ?? '');
-    if ($id === '') {
-        continue;
-    }
-    $presidentOptions[$id] = trim((string) ($ens['nom_complet'] ?? ('Professeur #' . $id)));
-}
-if (empty($presidentOptions)) {
-    $presidentOptions = $enseignantOptions;
-}
-$salleOptions = [];
-foreach ($salles as $salle) {
-    $id = (string) ($salle['id_salle'] ?? '');
-    if ($id === '') {
-        continue;
-    }
-    $salleOptions[$id] = trim((string) ($salle['lib_salle'] ?? ('Salle #' . $id)));
-}
 $allowedLimits = [5, 10, 25, 50];
 $perPage = max(5, (int) ($_GET['limit_prog'] ?? 10));
 if (!in_array($perPage, $allowedLimits, true)) {
     $perPage = 10;
 }
+
 $currentPage = max(1, (int) ($_GET['page_prog'] ?? 1));
 $pagination = function_exists('cm_paginate')
-    ? cm_paginate(count($attributions), $perPage, $currentPage)
+    ? cm_paginate(count($filteredAttributions), $perPage, $currentPage)
     : [
-        'total' => count($attributions),
+        'total' => count($filteredAttributions),
         'per_page' => $perPage,
-        'current' => 1,
+        'current' => $currentPage,
         'last' => 1,
         'offset' => 0,
         'has_prev' => false,
         'has_next' => false,
         'pages' => [1],
     ];
-$rowsToShow = array_slice($attributions, (int) ($pagination['offset'] ?? 0), $perPage);
-$baseUrl = '?page=' . urlencode($currentPageSlug) . '&limit_prog=' . $perPage;
-$selectedYearLabel = \AcademicYear::getSelectedLabelFromSession();
-$activeYearLabel = \AcademicYear::getActiveLabelFromSession();
-$writeYearLabel = \AcademicYear::getWritableLabelFromSession();
-$allYearsSelected = \AcademicYear::isAllSelectedFromSession();
-$writeAllowed = \AcademicYear::isWriteAllowedFromSession();
-$isAdmin = function_exists('isAdmin') ? isAdmin() : false;
+
+$rowsToShow = array_slice($filteredAttributions, (int) ($pagination['offset'] ?? 0), $perPage);
+
+$baseQuery = ['page' => $currentPageSlug];
+if ($isAdmin && $selectedTeacherId !== '') {
+    $baseQuery['id_enseignant_selected'] = $selectedTeacherId;
+}
+$baseQuery['limit_prog'] = $perPage;
+$baseUrl = '?' . http_build_query($baseQuery);
+
+$pageSummary = $allYearsSelected
+    ? 'Toutes les annees academiques'
+    : ($selectedYearLabel !== '' ? $selectedYearLabel : $activeYearLabel);
+
+$filterResetUrl = '?page=' . rawurlencode($currentPageSlug);
 ?>
 <div class="cm-prd3-screen cm-prd3-crud-screen">
-    <div class="cm-pole-superieur is-compact">
-        <style>
-/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
-#cmProgForm .cm-form-group:has(#FIELD_ID) {
-    width: 10ch !important;
-    min-width: 10ch !important;
-    max-width: 10ch !important;
-}
-</style>
-<form id="cmProgForm" autocomplete="off">
-            <?php cm_component('form/csrf-token'); ?>
-            <input type="hidden" id="cmProgEditId" value="">
-            <input type="hidden" id="cmProgDirecteurId" value="">
-            <input type="hidden" id="cmProgEncadreurId" value="">
-            <input type="hidden" id="cmProgMaitreId" value="">
-
-            <div class="cm-grid-2">
-                <?php if ($isAdmin): ?>
-                    <?php cm_component('form/select', [
-                        'name' => 'id_enseignant_selected',
-                        'label' => 'Enseignant à consulter',
-                        'options' => $enseignantJuryOptions,
-                        'selected' => (string) ($enseignantSelectionne ?? ''),
-                        'placeholder' => 'Sélectionner un enseignant',
-                        'control_class' => 'cm-field-lg cm-size-personne',
-                    ]); ?>
-                <?php endif; ?>
-                <?php
-                cm_component('form/select', [
-                    'name' => 'cm_prog_enseignant',
-                    'id' => 'cmProgEnseignant',
-                    'label' => 'Enseignant',
-                    'required' => true,
-                    'options' => $enseignantJuryOptions,
-                    'control_class' => 'cm-field-lg cm-size-personne',
-                ]);
-                ?>
-            </div>
-        </form>
-    </div>
-    <div class="cm-barre-intermediaire">
-        <?php cm_toolbar([
-            'screen' => 'programmation_soutenance',
-            'id_prefix' => 'prog_sout',
-            'search_value' => $_GET['search'] ?? '',
-            'limit' => $perPage,
-            'can_delete' => canDelete(),
-            'can_view' => canView(),
-            'print_title' => 'Programmation soutenances (enseignant)',
-        ]); ?>
-    </div>
-    <div class="cm-pole-inferieur">
-        <div class="cm-table-wrapper">
-            <table class="cm-data-table" id="cmProgTable">
-                <thead>
-                    <tr>
-                        <th class="cm-data-table__th cm-data-table__th--check">
-                            <input type="checkbox" id="cmProgCheckAll" class="cm-table-check-all" aria-label="Tout sélectionner">
-                        </th>
-                        <th class="cm-data-table__th">N°</th>
-                        <th class="cm-data-table__th">Nom &amp; Prénom Étudiant</th>
-                        <th class="cm-data-table__th">Promotion</th>
-                        <th class="cm-data-table__th">Date Soutenance</th>
-                        <th class="cm-data-table__th">Heure</th>
-                        <th class="cm-data-table__th">Salle</th>
-                        <th class="cm-data-table__th">Thème</th>
-                        <th class="cm-data-table__th">Président</th>
-                        <th class="cm-data-table__th">Dir. mémoire</th>
-                        <th class="cm-data-table__th">Examinateur</th>
-                        <th class="cm-data-table__th">Encadreur Péda.</th>
-                        <th class="cm-data-table__th">Maître de stage</th>
-                        <th class="cm-data-table__th is-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="cmProgTableBody">
-                    <?php if (empty($rowsToShow)): ?>
-                        <?php cm_component('ui/empty-state', [
-                            'in_table' => true,
-                            'colspan' => 14,
-                            'title' => '',
-                            'message' => 'Aucune soutenance programmee pour le moment.',
-                        ]); ?>
-                    <?php else: ?>
-                        <?php foreach ($rowsToShow as $index => $row): ?>
-                            <?php
-                            $idAttribution = (int) ($row['id_attribution'] ?? 0);
-                            $idEtudiant = (string) ($row['id_etudiant'] ?? '');
-                            $nomEtudiant = (string) ($row['nom_etudiant'] ?? '');
-                            $matricule = (string) ($row['matricule_etudiant'] ?? '');
-                            $theme = (string) ($row['theme_soutenance'] ?? '');
-                            $dateRaw = (string) ($row['date_soutenance'] ?? '');
-                            $heureRaw = (string) ($row['heure_soutenance'] ?? '');
-                            $dateDisplay = $dateRaw !== '' ? date('d/m/Y', strtotime($dateRaw)) : '-';
-                            $heureDisplay = $heureRaw !== '' ? date('H:i', strtotime($heureRaw)) : '-';
-                            $salleId = (string) ($row['id_salle'] ?? '');
-                            $salleNom = trim((string) ($row['nom_salle'] ?? ''));
-                            $promotion = trim((string) ($row['promotion_etu'] ?? ''));
-                            $searchText = strtolower(
-                                $nomEtudiant . ' ' . $matricule . ' ' . $promotion . ' ' . $theme . ' ' . $dateDisplay . ' ' . $heureDisplay . ' ' . $salleNom
-                            );
-                            ?>
-                            <tr class="cm-data-table__row" data-id="<?php echo $idAttribution; ?>"
-                                data-id-etudiant="<?php echo htmlspecialchars($idEtudiant, ENT_QUOTES, 'UTF-8'); ?>"
-                                data-theme="<?php echo htmlspecialchars($theme, ENT_QUOTES, 'UTF-8'); ?>"
-                                data-date="<?php echo htmlspecialchars($dateRaw, ENT_QUOTES, 'UTF-8'); ?>"
-                                data-heure="<?php echo htmlspecialchars($heureRaw, ENT_QUOTES, 'UTF-8'); ?>"
-                                data-salle-id="<?php echo htmlspecialchars($salleId, ENT_QUOTES, 'UTF-8'); ?>"
-                                data-president-id="<?php echo htmlspecialchars((string) ($row['president_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
-                                data-examinateur-id="<?php echo htmlspecialchars((string) ($row['examinateur_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
-                                data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
-                                <td class="cm-data-table__td cm-data-table__td--check">
-                                    <input type="checkbox" class="cm-table-check-row cm-prog-check-row" value="<?php echo $idAttribution; ?>"
-                                        aria-label="Sélectionner ligne <?php echo $idAttribution; ?>">
-                                </td>
-                                <td class="cm-data-table__td"><?php echo (int) ($pagination['offset'] ?? 0) + $index + 1; ?>
-                                </td>
-                                <td class="cm-data-table__td">
-                                    <?php echo htmlspecialchars($nomEtudiant, ENT_QUOTES, 'UTF-8'); ?><br>
-                                    <small><?php echo htmlspecialchars($matricule, ENT_QUOTES, 'UTF-8'); ?></small>
-                                </td>
-                                <td class="cm-data-table__td">
-                                    <?php echo htmlspecialchars($promotion !== '' ? $promotion : '-', ENT_QUOTES, 'UTF-8'); ?>
-                                </td>
-                                <td class="cm-data-table__td"><?php echo htmlspecialchars($dateDisplay, ENT_QUOTES, 'UTF-8'); ?>
-                                </td>
-                                <td class="cm-data-table__td">
-                                    <?php echo htmlspecialchars($heureDisplay, ENT_QUOTES, 'UTF-8'); ?>
-                                </td>
-                                <td class="cm-data-table__td">
-                                    <?php echo htmlspecialchars($salleNom !== '' ? $salleNom : '-', ENT_QUOTES, 'UTF-8'); ?>
-                                </td>
-                                <td class="cm-data-table__td">
-                                    <?php echo htmlspecialchars($theme !== '' ? $theme : '-', ENT_QUOTES, 'UTF-8'); ?>
-                                </td>
-                                <td class="cm-data-table__td">
-                                    <?php echo htmlspecialchars((string) ($row['president_nom'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?>
-                                </td>
-                                <td class="cm-data-table__td">
-                                    <?php echo htmlspecialchars((string) ($row['directeur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?>
-                                </td>
-                                <td class="cm-data-table__td">
-                                    <?php echo htmlspecialchars((string) ($row['examinateur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?>
-                                </td>
-                                <td class="cm-data-table__td">
-                                    <?php echo htmlspecialchars((string) ($row['encadreur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?>
-                                </td>
-                                <td class="cm-data-table__td">
-                                    <?php echo htmlspecialchars((string) ($row['maitre_stage_nom'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?>
-                                </td>
-                                <td class="cm-data-table__td is-center">
-                                    <div class="cm-table-actions">
-                                        <a href="?page=<?= htmlspecialchars($currentPageSlug, ENT_QUOTES, 'UTF-8') ?>&action=voir&id=<?= $idAttribution ?>"
-                                            class="cm-btn-action is-info" title="Voir détails">
-                                            <i class="fas fa-eye" aria-hidden="true"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+    <div class="cm-card cm-mb-md">
+        <div class="cm-card__header">
+            <h3 class="cm-card__title">
+                <i class="fas fa-calendar-alt cm-mr-sm"></i>
+                Programme des soutenances enseignant
+            </h3>
+            <p class="cm-text-muted">
+                <small>Contexte d'affichage : <?= htmlspecialchars($pageSummary !== '' ? $pageSummary : $writeYearLabel, ENT_QUOTES, 'UTF-8') ?></small>
+            </p>
         </div>
-        <?php
-        cm_component('crud/pagination', [
-            'pagination' => $pagination,
-            'base_url' => $baseUrl,
-            'param_name' => 'page_prog',
-        ]);
-        ?>
+        <div class="cm-card__body">
+            <form method="GET" style="align-items:end;">
+                <input type="hidden" name="page" value="<?= htmlspecialchars($currentPageSlug, ENT_QUOTES, 'UTF-8') ?>">
+
+                <?php if ($isAdmin): ?>
+                    <div class="cm-grid-2 cm-mb-md">
+                        <?php
+                        cm_component('form/select', [
+                            'name' => 'id_enseignant_selected',
+                            'label' => 'Enseignant',
+                            'options' => $teacherOptions,
+                            'selected' => $selectedTeacherId,
+                            'placeholder' => 'Selectionner un enseignant',
+                            'control_class' => 'cm-field-lg cm-size-personne',
+                        ]);
+                        ?>
+
+                        <div class="cm-flex cm-flex-gap-sm" style="align-items:flex-end; justify-content:flex-start;">
+                            <button type="submit" class="cm-btn is-primary is-sm">
+                                <i class="fas fa-filter cm-mr-sm" aria-hidden="true"></i>
+                                Filtrer
+                            </button>
+                            <a href="<?= htmlspecialchars($filterResetUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn is-light is-sm">
+                                Reinitialiser
+                            </a>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div class="cm-grid-2 cm-mb-md">
+                        <div class="cm-form-group">
+                            <label class="cm-form-label">Enseignant</label>
+                            <select class="cm-form-control cm-field-lg cm-size-personne" disabled>
+                                <option selected><?= htmlspecialchars($teacherName, ENT_QUOTES, 'UTF-8') ?></option>
+                            </select>
+                        </div>
+                        <div class="cm-form-group">
+                            <label class="cm-form-label">Annee academique</label>
+                            <input type="text" class="cm-form-control cm-field-lg" disabled
+                                value="<?= htmlspecialchars($pageSummary !== '' ? $pageSummary : $writeYearLabel, ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </form>
+        </div>
+    </div>
+
+    <?php if ($teacherId !== ''): ?>
+        <div class="cm-barre-intermediaire">
+            <div class="cm-toolbar cm-toolbar--unified cm-toolbar--space-between">
+                <div class="cm-toolbar-left">
+                    <label class="cm-toolbar__control">
+                        <span>Afficher:</span>
+                        <select id="cmProgEnsLimit" name="limit_prog" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
+                            <?php foreach ($allowedLimits as $limitOption): ?>
+                                <option value="<?= $limitOption ?>" <?= $limitOption === $perPage ? 'selected' : '' ?>><?= $limitOption ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <span class="cm-text-muted"><small><?= count($filteredAttributions) ?> soutenance(s)</small></span>
+                </div>
+
+                <div class="cm-toolbar-center">
+                    <div class="cm-toolbar__search-wrap">
+                        <i class="fas fa-search cm-toolbar__search-icon" aria-hidden="true"></i>
+                        <input type="search" id="cmProgEnsSearch" class="cm-form-control is-sm cm-toolbar-field-lg"
+                            value="<?= htmlspecialchars((string) ($_GET['search_prog'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                            placeholder="Rechercher un etudiant, un theme, une salle...">
+                    </div>
+                </div>
+
+                <div class="cm-toolbar-right">
+                    <button type="button" id="cmProgEnsPrint" class="cm-btn is-light is-sm">
+                        <span>Imprimer</span>
+                    </button>
+                    <button type="button" id="cmProgEnsExport" class="cm-btn is-secondary is-sm">
+                        <span>Excel</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <div class="cm-pole-inferieur">
+        <?php if ($isAdmin && $teacherId === ''): ?>
+            <div class="cm-card">
+                <div class="cm-card__body">
+                    <?php
+                    cm_component('ui/empty-state', [
+                        'title' => 'Aucun enseignant selectionne',
+                        'message' => 'Selectionnez un enseignant puis appliquez le filtre pour afficher son programme de soutenances.',
+                        'icon' => 'fa-user-check',
+                    ]);
+                    ?>
+                </div>
+            </div>
+        <?php elseif ($teacherId === ''): ?>
+            <div class="cm-card">
+                <div class="cm-card__body">
+                    <?php
+                    cm_component('ui/empty-state', [
+                        'title' => 'Profil enseignant introuvable',
+                        'message' => 'Le compte connecte n est pas relie a une fiche enseignant exploitable pour cette page.',
+                        'icon' => 'fa-user-slash',
+                    ]);
+                    ?>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="cm-table-wrapper">
+                <table class="cm-data-table" id="cmProgEnsTable">
+                    <thead>
+                        <tr>
+                            <th class="cm-data-table__th">N°</th>
+                            <th class="cm-data-table__th">Etudiant</th>
+                            <th class="cm-data-table__th">Promotion</th>
+                            <th class="cm-data-table__th">Date</th>
+                            <th class="cm-data-table__th">Heure</th>
+                            <th class="cm-data-table__th">Salle</th>
+                            <th class="cm-data-table__th">Votre role</th>
+                            <th class="cm-data-table__th">President</th>
+                            <th class="cm-data-table__th">Dir. memoire</th>
+                            <th class="cm-data-table__th">Examinateur</th>
+                            <th class="cm-data-table__th">Encadreur</th>
+                            <th class="cm-data-table__th">Maitre de stage</th>
+                            <th class="cm-data-table__th">Theme</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cmProgEnsTableBody">
+                        <?php if ($rowsToShow === []): ?>
+                            <?php
+                            cm_component('ui/empty-state', [
+                                'in_table' => true,
+                                'colspan' => 13,
+                                'title' => '',
+                                'message' => 'Aucune soutenance programmee pour cet enseignant dans le contexte courant.',
+                            ]);
+                            ?>
+                        <?php else: ?>
+                            <?php foreach ($rowsToShow as $index => $row): ?>
+                                <?php
+                                $nomEtudiant = trim((string) ($row['nom_etudiant'] ?? ''));
+                                $matricule = trim((string) ($row['matricule_etudiant'] ?? ''));
+                                $promotion = trim((string) ($row['promotion_etu'] ?? ''));
+                                $theme = trim((string) ($row['theme_soutenance'] ?? ''));
+                                $dateRaw = (string) ($row['date_soutenance'] ?? '');
+                                $heureRaw = (string) ($row['heure_soutenance'] ?? '');
+                                $dateDisplay = $dateRaw !== '' ? date('d/m/Y', strtotime($dateRaw)) : '-';
+                                $heureDisplay = $heureRaw !== '' ? date('H:i', strtotime($heureRaw)) : '-';
+                                $salleNom = trim((string) ($row['nom_salle'] ?? ''));
+                                $teacherRoles = trim((string) ($row['_teacher_roles'] ?? ''));
+                                $searchText = strtolower(implode(' ', [
+                                    $nomEtudiant,
+                                    $matricule,
+                                    $promotion,
+                                    $dateDisplay,
+                                    $heureDisplay,
+                                    $salleNom,
+                                    $teacherRoles,
+                                    (string) ($row['president_nom'] ?? ''),
+                                    (string) ($row['directeur_nom'] ?? ''),
+                                    (string) ($row['examinateur_nom'] ?? ''),
+                                    (string) ($row['encadreur_nom'] ?? ''),
+                                    (string) ($row['maitre_stage_nom'] ?? ''),
+                                    $theme,
+                                ]));
+                                ?>
+                                <tr class="cm-data-table__row" data-search="<?= htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8') ?>">
+                                    <td class="cm-data-table__td"><?= (int) ($pagination['offset'] ?? 0) + $index + 1 ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?= htmlspecialchars($nomEtudiant !== '' ? $nomEtudiant : '-', ENT_QUOTES, 'UTF-8') ?><br>
+                                        <small><?= htmlspecialchars($matricule !== '' ? $matricule : '-', ENT_QUOTES, 'UTF-8') ?></small>
+                                    </td>
+                                    <td class="cm-data-table__td"><?= htmlspecialchars($promotion !== '' ? $promotion : '-', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td"><?= htmlspecialchars($dateDisplay, ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td"><?= htmlspecialchars($heureDisplay, ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td"><?= htmlspecialchars($salleNom !== '' ? $salleNom : '-', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td"><?= htmlspecialchars($teacherRoles !== '' ? $teacherRoles : '-', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td"><?= htmlspecialchars((string) ($row['president_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td"><?= htmlspecialchars((string) ($row['directeur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td"><?= htmlspecialchars((string) ($row['examinateur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td"><?= htmlspecialchars((string) ($row['encadreur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td"><?= htmlspecialchars((string) ($row['maitre_stage_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td"><?= htmlspecialchars($theme !== '' ? $theme : '-', ENT_QUOTES, 'UTF-8') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <?php
+            cm_component('crud/pagination', [
+                'pagination' => $pagination,
+                'base_url' => $baseUrl,
+                'param_name' => 'page_prog',
+            ]);
+            ?>
+        <?php endif; ?>
     </div>
 </div>
-</div>
+
 <script>
     (function () {
-        const currentPage = <?php echo json_encode($currentPageSlug); ?>;
-        const studentsById = <?php echo json_encode($studentMap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-        const form = document.getElementById('cmProgForm');
-        const editIdInput = document.getElementById('cmProgEditId');
-        const submitBtn = document.getElementById('cmProgSubmitBtn');
-        const resetBtn = document.getElementById('cmProgResetBtn');
-        const alertBox = document.getElementById('cmProgAlert');
-        const etudiantSelect = document.getElementById('cmProgEtudiant');
-        const dateInput = document.getElementById('cmProgDate');
-        const heureInput = document.getElementById('cmProgHeure');
-        const salleSelect = document.getElementById('cmProgSalle');
-        const themeInput = document.getElementById('cmProgTheme');
-        const presidentSelect = document.getElementById('cmProgPresident');
-        const examinateurSelect = document.getElementById('cmProgExaminateur');
-        const directeurInput = document.getElementById('cmProgDirecteur');
-        const encadreurInput = document.getElementById('cmProgEncadreur');
-        const maitreInput = document.getElementById('cmProgMaitreStage');
-        const directeurIdInput = document.getElementById('cmProgDirecteurId');
-        const encadreurIdInput = document.getElementById('cmProgEncadreurId');
-        const maitreIdInput = document.getElementById('cmProgMaitreId');
-        const searchInput = document.getElementById('prog_sout_search');
-        const exportBtn = document.getElementById('prog_sout_exportBtn');
-        const printBtn = document.getElementById('prog_sout_printBtn');
-        const checkAll = document.getElementById('cmProgCheckAll');
-        const selectAllBtn = document.getElementById('prog_sout_selectAll');
-        const deselectBtn = document.getElementById('prog_sout_deselectAll');
-        const deleteBtn = document.getElementById('prog_sout_deleteBtn');
-        function setAlert(type, message) {
-            if (!alertBox) {
-                return;
-            }
-            const cssType = type === 'success' ? 'success' : 'danger';
-            alertBox.innerHTML = '<div class="cm-alert is-' + cssType + '"><div class="cm-alert__content"><span class="cm-alert__message">' +
-                String(message || '').replace(/[<>&]/g, '') +
-                '</span></div></div>';
-        }
+        const searchInput = document.getElementById('cmProgEnsSearch');
+        const limitSelect = document.getElementById('cmProgEnsLimit');
+        const printButton = document.getElementById('cmProgEnsPrint');
+        const exportButton = document.getElementById('cmProgEnsExport');
+        const currentUrl = new URL(window.location.href);
+
         function getRows() {
-            return Array.from(document.querySelectorAll('#cmProgTableBody .cm-data-table__row'));
+            return Array.from(document.querySelectorAll('#cmProgEnsTableBody .cm-data-table__row'));
         }
-        function getVisibleRows() {
-            return getRows().filter(function (row) {
-                return row.style.display !== 'none';
-            });
-        }
-        function getCheckedRows() {
-            return getRows().filter(function (row) {
-                const cb = row.querySelector('.cm-prog-check-row');
-                return cb && cb.checked;
-            });
-        }
-        function updateBulkState() {
-            const checked = getCheckedRows();
-            if (deleteBtn) {
-                deleteBtn.disabled = checked.length === 0;
-                deleteBtn.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i> Supprimer (' + checked.length + ')';
-            }
-            if (checkAll) {
-                const visible = getVisibleRows();
-                const checkedVisible = visible.filter(function (row) {
-                    const cb = row.querySelector('.cm-prog-check-row');
-                    return cb && cb.checked;
-                });
-                checkAll.checked = visible.length > 0 && checkedVisible.length === visible.length;
-            }
-        }
+
         function applySearch() {
             const term = searchInput ? (searchInput.value || '').trim().toLowerCase() : '';
             getRows().forEach(function (row) {
-                const text = row.getAttribute('data-search') || '';
-                row.style.display = term === '' || text.indexOf(term) !== -1 ? '' : 'none';
-            });
-            updateBulkState();
-        }
-        function setDefaultDateTime() {
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            const hh = String(now.getHours()).padStart(2, '0');
-            const mi = String(now.getMinutes()).padStart(2, '0');
-            if (dateInput && !dateInput.value) {
-                dateInput.value = yyyy + '-' + mm + '-' + dd;
-            }
-            if (heureInput && !heureInput.value) {
-                heureInput.value = hh + ':' + mi;
-            }
-        }
-        function getStudentById(id) {
-            if (!id) {
-                return null;
-            }
-            return studentsById[String(id)] || null;
-        }
-        function updateStudentDerivedFields() {
-            const student = getStudentById(etudiantSelect ? etudiantSelect.value : '');
-            if (!student) {
-                if (themeInput && !editIdInput.value) themeInput.value = '';
-                if (directeurInput) directeurInput.value = '';
-                if (encadreurInput) encadreurInput.value = '';
-                if (maitreInput) maitreInput.value = '';
-                if (directeurIdInput) directeurIdInput.value = '';
-                if (encadreurIdInput) encadreurIdInput.value = '';
-                if (maitreIdInput) maitreIdInput.value = '';
-                return;
-            }
-            if (themeInput && !editIdInput.value && !themeInput.value) {
-                themeInput.value = student.theme_rapport || '';
-            }
-            if (directeurInput) directeurInput.value = student.directeur_nom || '';
-            if (encadreurInput) encadreurInput.value = student.encadreur_nom || '';
-            if (maitreInput) maitreInput.value = student.maitre_stage_nom || '';
-            if (directeurIdInput) directeurIdInput.value = student.directeur_id || '';
-            if (encadreurIdInput) encadreurIdInput.value = student.encadreur_id || '';
-            if (maitreIdInput) maitreIdInput.value = student.maitre_stage_id || '';
-        }
-        function updateJuryConstraints() {
-            if (!presidentSelect || !examinateurSelect) {
-                return;
-            }
-            const president = presidentSelect.value;
-            const examinateur = examinateurSelect.value;
-            Array.from(presidentSelect.options).forEach(function (opt) {
-                if (!opt.value) {
-                    return;
-                }
-                opt.disabled = examinateur !== '' && opt.value === examinateur;
-            });
-            Array.from(examinateurSelect.options).forEach(function (opt) {
-                if (!opt.value) {
-                    return;
-                }
-                opt.disabled = president !== '' && opt.value === president;
+                const haystack = (row.getAttribute('data-search') || '').toLowerCase();
+                row.style.display = term === '' || haystack.indexOf(term) !== -1 ? '' : 'none';
             });
         }
-        function resetForm() {
-            if (editIdInput) editIdInput.value = '';
-            if (etudiantSelect) etudiantSelect.value = '';
-            if (themeInput) themeInput.value = '';
-            if (presidentSelect) presidentSelect.value = '';
-            if (examinateurSelect) examinateurSelect.value = '';
-            if (salleSelect) salleSelect.value = '';
-            if (dateInput) dateInput.value = '';
-            if (heureInput) heureInput.value = '';
-            setDefaultDateTime();
-            if (submitBtn) {
-                submitBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Programmer';
-            }
-            updateStudentDerivedFields();
-            updateJuryConstraints();
-        }
-        function apiCall(action, payload) {
-            const formData = new FormData();
-            Object.keys(payload || {}).forEach(function (key) {
-                formData.append(key, payload[key]);
-            });
-            const tokenInput = form ? form.querySelector('input[name=\"csrf_token\"]') : null;
-            if (tokenInput && tokenInput.value) {
-                formData.append('csrf_token', tokenInput.value);
-            }
-            return fetch('?page=' + encodeURIComponent(currentPage) + '&action=' + action, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                },
-                body: formData
-            }).then(function (response) {
-                return response.json();
-            });
-        }
-        function refreshPage() {
-            if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
-                window.CM.ajax.load(window.location.href, { replaceHistory: true, skipHistory: true });
-                return;
-            }
-            window.location.reload();
-        }
-        function validatePayload(payload) {
-            if (!payload.id_etudiant || !payload.date_soutenance || !payload.heure_soutenance ||
-                !payload.id_salle || !payload.theme_soutenance || !payload.president_id || !payload.examinateur_id) {
-                setAlert('error', 'Renseignez étudiant, date, heure, salle, theme, president et examinateur.');
-                return false;
-            }
-            if (payload.president_id === payload.examinateur_id) {
-                setAlert('error', 'Le president et l examinateur doivent etre differents.');
-                return false;
-            }
-            return true;
-        }
-        function buildPayload() {
-            return {
-                id_etudiant: etudiantSelect ? etudiantSelect.value : '',
-                date_soutenance: dateInput ? dateInput.value : '',
-                heure_soutenance: heureInput ? heureInput.value : '',
-                id_salle: salleSelect ? salleSelect.value : '',
-                theme_soutenance: themeInput ? (themeInput.value || '').trim() : '',
-                president_id: presidentSelect ? presidentSelect.value : '',
-                examinateur_id: examinateurSelect ? examinateurSelect.value : '',
-                directeur_id: directeurIdInput ? directeurIdInput.value : '',
-                encadreur_id: encadreurIdInput ? encadreurIdInput.value : '',
-                maitre_stage_id: maitreIdInput ? maitreIdInput.value : ''
-            };
-        }
-        function submitForm() {
-            const payload = buildPayload();
-            if (!validatePayload(payload)) {
-                return;
-            }
-            const editId = editIdInput ? editIdInput.value : '';
-            const action = editId ? 'updateAttribution' : 'createAttribution';
-            if (editId) {
-                payload.id = editId;
-            }
-            apiCall(action, payload)
-                .then(function (result) {
-                    if (!result || !result.success) {
-                        setAlert('error', result && result.message ? result.message : 'Enregistrement impossible.');
-                        return;
-                    }
-                    setAlert('success', result.message || 'Programmation enregistree.');
-                    refreshPage();
-                })
-                .catch(function () {
-                    setAlert('error', 'Erreur reseau.');
-                });
-        }
-        function deleteAttribution(id) {
-            if (!id) {
-                return Promise.resolve();
-            }
-            return apiCall('deleteAttribution', { id: id });
-        }
+
         function exportVisibleRows() {
-            const headers = ['N', 'Etudiant', 'Promotion', 'Date soutenance', 'Heure', 'Salle', 'Thème', 'President', 'Dir.M', 'Exam.', 'Enc.', 'MS'];
-            const rows = [headers.join(';')];
-            getVisibleRows().forEach(function (row) {
-                const cells = row.querySelectorAll('.cm-data-table__td');
-                if (cells.length < 13) {
+            const table = document.getElementById('cmProgEnsTable');
+            if (!table) {
+                return;
+            }
+
+            const headers = Array.from(table.querySelectorAll('thead th')).map(function (th) {
+                return '"' + String(th.innerText || '').trim().replace(/"/g, '""') + '"';
+            });
+
+            const lines = [headers.join(';')];
+            getRows().forEach(function (row) {
+                if (row.style.display === 'none') {
                     return;
                 }
-                const line = [
-                    cells[1].innerText.trim(),
-                    cells[2].innerText.trim().replace(/\s+/g, ' '),
-                    cells[3].innerText.trim(),
-                    cells[4].innerText.trim(),
-                    cells[5].innerText.trim(),
-                    cells[6].innerText.trim(),
-                    cells[7].innerText.trim(),
-                    cells[8].innerText.trim(),
-                    cells[9].innerText.trim(),
-                    cells[10].innerText.trim(),
-                    cells[11].innerText.trim(),
-                    cells[12].innerText.trim()
-                ].map(function (value) {
-                    return '\"' + value.replace(/\"/g, '\"\"') + '\"';
+                const values = Array.from(row.querySelectorAll('td')).map(function (cell) {
+                    return '"' + String(cell.innerText || '').trim().replace(/"/g, '""') + '"';
                 });
-                rows.push(line.join(';'));
+                lines.push(values.join(';'));
             });
-            const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'programmation_soutenances.csv';
+            link.download = 'programmation_enseignant.csv';
             document.body.appendChild(link);
             link.click();
             link.remove();
             URL.revokeObjectURL(url);
         }
-        if (etudiantSelect) {
-            etudiantSelect.addEventListener('change', updateStudentDerivedFields);
-        }
-        if (presidentSelect) {
-            presidentSelect.addEventListener('change', updateJuryConstraints);
-        }
-        if (examinateurSelect) {
-            examinateurSelect.addEventListener('change', updateJuryConstraints);
-        }
-        if (resetBtn) {
-            resetBtn.addEventListener('click', resetForm);
-        }
-        if (form) {
-            form.addEventListener('submit', function (event) {
-                event.preventDefault();
-                submitForm();
-            });
-        }
-        document.querySelectorAll('.cm-prog-edit').forEach(function (button) {
-            button.addEventListener('click', function () {
-                const row = button.closest('.cm-data-table__row');
-                if (!row) {
-                    return;
-                }
-                if (editIdInput) editIdInput.value = row.getAttribute('data-id') || '';
-                if (etudiantSelect) etudiantSelect.value = row.getAttribute('data-id-etudiant') || '';
-                if (themeInput) themeInput.value = row.getAttribute('data-theme') || '';
-                if (dateInput) dateInput.value = row.getAttribute('data-date') || '';
-                if (heureInput) heureInput.value = (row.getAttribute('data-heure') || '').slice(0, 5);
-                if (salleSelect) salleSelect.value = row.getAttribute('data-salle-id') || '';
-                if (presidentSelect) presidentSelect.value = row.getAttribute('data-president-id') || '';
-                if (examinateurSelect) examinateurSelect.value = row.getAttribute('data-examinateur-id') || '';
-                if (submitBtn) {
-                    submitBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Modifier';
-                }
-                updateStudentDerivedFields();
-                updateJuryConstraints();
-                setAlert('success', 'Mode modification active.');
-            });
-        });
-        document.querySelectorAll('.cm-prog-delete').forEach(function (button) {
-            button.addEventListener('click', async function () {
-                const id = button.getAttribute('data-id') || '';
-                if (!id) {
-                    return;
-                }
-                const confirmed = await window.CM.confirm({
-                    title: 'Suppression',
-                    message: 'Supprimer cette programmation ?',
-                    type: 'danger',
-                    confirmText: 'Supprimer',
-                });
-                if (!confirmed) {
-                    return;
-                }
-                deleteAttribution(id)
-                    .then(function (result) {
-                        if (!result || !result.success) {
-                            setAlert('error', result && result.message ? result.message : 'Suppression impossible.');
-                            return;
-                        }
-                        setAlert('success', result.message || 'Programmation supprimee.');
-                        refreshPage();
-                    })
-                    .catch(function () {
-                        setAlert('error', 'Erreur reseau.');
-                    });
-            });
-        });
+
         if (searchInput) {
             searchInput.addEventListener('input', applySearch);
+            applySearch();
         }
-        if (exportBtn) {
-            exportBtn.addEventListener('click', exportVisibleRows);
+
+        if (limitSelect) {
+            limitSelect.addEventListener('change', function () {
+                currentUrl.searchParams.set('limit_prog', limitSelect.value || '10');
+                currentUrl.searchParams.set('page_prog', '1');
+                window.location.href = currentUrl.toString();
+            });
         }
-        if (printBtn) {
-            printBtn.addEventListener('click', function () {
+
+        if (printButton) {
+            printButton.addEventListener('click', function () {
                 window.print();
             });
         }
-        document.addEventListener('change', function (event) {
-            if (event.target && event.target.classList.contains('cm-prog-check-row')) {
-                updateBulkState();
-            }
-        });
-        if (checkAll) {
-            checkAll.addEventListener('change', function () {
-                getVisibleRows().forEach(function (row) {
-                    const cb = row.querySelector('.cm-prog-check-row');
-                    if (cb) {
-                        cb.checked = checkAll.checked;
-                    }
-                });
-                updateBulkState();
-            });
-        }
-        if (selectAllBtn) {
-            selectAllBtn.addEventListener('click', function () {
-                getVisibleRows().forEach(function (row) {
-                    const cb = row.querySelector('.cm-prog-check-row');
-                    if (cb) {
-                        cb.checked = true;
-                    }
-                });
-                updateBulkState();
-            });
-        }
-        if (deselectBtn) {
-            deselectBtn.addEventListener('click', function () {
-                getRows().forEach(function (row) {
-                    const cb = row.querySelector('.cm-prog-check-row');
-                    if (cb) {
-                        cb.checked = false;
-                    }
-                });
-                updateBulkState();
-            });
-        }
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', async function () {
-                const ids = getCheckedRows().map(function (row) {
-                    const cb = row.querySelector('.cm-prog-check-row');
-                    return cb ? cb.value : '';
-                }).filter(Boolean);
-                if (ids.length === 0) {
-                    return;
-                }
-                const confirmed = await window.CM.confirm({
-                    title: 'Suppression multiple',
-                    message: 'Supprimer ' + ids.length + ' programmation(s) ?',
-                    type: 'danger',
-                    confirmText: 'Supprimer',
-                });
-                if (!confirmed) {
-                    return;
-                }
-                Promise.all(ids.map(deleteAttribution))
-                    .then(function (results) {
-                        const failed = results.filter(function (item) {
-                            return !item || !item.success;
-                        });
-                        if (failed.length > 0) {
-                            setAlert('error', 'Certaines suppressions ont echoue.');
-                        } else {
-                            setAlert('success', 'Suppressions effectuees.');
-                        }
-                        refreshPage();
-                    })
-                    .catch(function () {
-                        setAlert('error', 'Erreur reseau.');
-                    });
-            });
-        }
-        setDefaultDateTime();
-        updateStudentDerivedFields();
-        updateJuryConstraints();
-        applySearch();
 
-        // Toolbar limit change event
-        document.addEventListener('cm:toolbar:limit:change', function (event) {
-            if (!event.detail || !event.detail.toolbar) return;
-            if (event.detail.toolbar.id !== 'prog_sout_toolbar') return;
-            event.preventDefault();
-            var limit = event.detail.limit || '10';
-            var url = new URL(window.location.href);
-            url.searchParams.set('limit', limit);
-            url.searchParams.set('p', '1');
-            refreshPage();
-        });
+        if (exportButton) {
+            exportButton.addEventListener('click', exportVisibleRows);
+        }
     })();
 </script>
-

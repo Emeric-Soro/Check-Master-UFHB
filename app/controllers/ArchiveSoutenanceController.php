@@ -211,10 +211,10 @@ class ArchiveSoutenanceController
                     CONCAT(ens.prenom_enseignant, ' ', ens.nom_enseignant) as nom_complet,
                     g.lib_grade,
                     COUNT(DISTINCT ej.num_soutenance) as total_soutenances,
-                    SUM(CASE WHEN qj.code_qltjury = 'PJ' THEN 1 ELSE 0 END) as nb_president,
-                    SUM(CASE WHEN qj.code_qltjury = 'EX' THEN 1 ELSE 0 END) as nb_examinateur,
-                    SUM(CASE WHEN qj.code_qltjury = 'DM' THEN 1 ELSE 0 END) as nb_directeur,
-                    SUM(CASE WHEN qj.code_qltjury = 'EN' THEN 1 ELSE 0 END) as nb_encadrant,
+                    SUM(CASE WHEN qj.id_role_jury = 'PJ' THEN 1 ELSE 0 END) as nb_president,
+                    SUM(CASE WHEN qj.id_role_jury = 'EX' THEN 1 ELSE 0 END) as nb_examinateur,
+                    SUM(CASE WHEN qj.id_role_jury = 'DM' THEN 1 ELSE 0 END) as nb_directeur,
+                    SUM(CASE WHEN qj.id_role_jury = 'EN' THEN 1 ELSE 0 END) as nb_encadrant,
                     AVG(ev.note) as moyenne_notes
                 FROM enseignants ens
                 LEFT JOIN enseignant_jury ej ON ens.id_enseignant = ej.id_enseignant
