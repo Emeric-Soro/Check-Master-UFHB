@@ -14,21 +14,21 @@ cm_render_param_crud_view([
     'edit' => $GLOBALS['item_a_modifier'] ?? null,
     'message_success' => (string) ($GLOBALS['messageSuccess'] ?? ''),
     'message_error' => (string) ($GLOBALS['messageErreur'] ?? ''),
-    'search_fields' => ['id_role_jury', 'code_qltjury', 'lib_role'],
+    'search_fields' => ['id_role_jury', 'lib_role'],
     'add_button_name' => 'btn_add_qualite_jury',
     'edit_button_name' => 'btn_modifier_qualite_jury',
     'add_button_label' => 'Ajouter',
     'edit_button_label' => 'Modifier',
     'form_fields' => [
         [
-            'name' => 'code_qltjury',
+            'name' => 'id_role_jury',
             'label' => 'Code',
             'type' => 'text',
             'required' => true,
             'placeholder' => 'Ex: PJ',
-            'value_key' => 'code_qltjury',
+            'value_key' => 'id_role_jury',
             'size' => 'sm',
-            'attrs' => ['maxlength' => '10'],
+            'attrs' => ['maxlength' => '10', 'style' => 'text-transform:uppercase;'],
         ],
         [
             'name' => 'lib_role',
@@ -40,8 +40,7 @@ cm_render_param_crud_view([
         ],
     ],
     'columns' => [
-        ['key' => 'id_role_jury', 'label' => 'ID'],
-        ['key' => 'code_qltjury', 'label' => 'Code'],
+        ['key' => 'id_role_jury', 'label' => 'Code'],
         ['key' => 'lib_role', 'label' => 'Rôle'],
     ],
 ]);

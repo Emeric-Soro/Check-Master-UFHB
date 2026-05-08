@@ -640,14 +640,6 @@ class ProcessusValidationService
     public function finaliserRapport($id_rapport, $id_enseignant, $commentaire = null)
     {
         try {
-            $id_enseignant = trim((string) $id_enseignant);
-            if ($id_enseignant === '' || !$this->verifierIdEnseignant($id_enseignant)) {
-                return [
-                    'success' => false,
-                    'message' => 'Impossible de finaliser: identifiant enseignant introuvable.'
-                ];
-            }
-
             $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId((int) $id_rapport), 'une finalisation de rapport');
             if (!$writeGuard['success']) {
                 return [

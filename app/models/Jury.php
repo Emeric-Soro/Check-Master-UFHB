@@ -85,10 +85,10 @@ class Jury
                 en.prenom_enseignant,
                 g.lib_grade,
                 COUNT(DISTINCT ej.num_soutenance) AS total_soutenances,
-                SUM(CASE WHEN qj.code_qltjury = 'PJ' THEN 1 ELSE 0 END) AS nb_president,
-                SUM(CASE WHEN qj.code_qltjury = 'EX' THEN 1 ELSE 0 END) AS nb_examinateur,
-                SUM(CASE WHEN qj.code_qltjury = 'DM' THEN 1 ELSE 0 END) AS nb_directeur,
-                SUM(CASE WHEN qj.code_qltjury = 'EN' THEN 1 ELSE 0 END) AS nb_encadrant,
+                SUM(CASE WHEN qj.id_role_jury = 'PJ' THEN 1 ELSE 0 END) AS nb_president,
+                SUM(CASE WHEN qj.id_role_jury = 'EX' THEN 1 ELSE 0 END) AS nb_examinateur,
+                SUM(CASE WHEN qj.id_role_jury = 'DM' THEN 1 ELSE 0 END) AS nb_directeur,
+                SUM(CASE WHEN qj.id_role_jury = 'EN' THEN 1 ELSE 0 END) AS nb_encadrant,
                 ROUND(AVG(ev.note), 2) AS moyenne_notes_attribuees
             FROM enseignants en
             LEFT JOIN enseignant_jury ej ON ej.id_enseignant = en.id_enseignant

@@ -20,36 +20,6 @@ use CheckMaster\Core\Bootstrap;
 Bootstrap::init();
 Session::start();
 
-// [INJECTED_LOGGER]
-register_shutdown_function(function() {
-    $files = get_included_files();
-    $logFile = __DIR__ . '/../../../views_used.log';
-    if (!file_exists($logFile)) {
-        touch($logFile);
-        chmod($logFile, 0777);
-    }
-    $usedViews = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    if ($usedViews === false) $usedViews = [];
-    
-    $updated = false;
-    foreach ($files as $f) {
-        $f = str_replace(DIRECTORY_SEPARATOR, '/', $f);
-        if (strpos($f, 'ressources/views') !== false) {
-            if (!in_array($f, $usedViews)) {
-                $usedViews[] = $f;
-                $updated = true;
-            }
-        }
-    }
-    
-    if ($updated) {
-        file_put_contents($logFile, implode("\n", $usedViews) . "\n");
-    }
-});
-// [/INJECTED_LOGGER]
-
-
-
 $router = new Router();
 
 /**

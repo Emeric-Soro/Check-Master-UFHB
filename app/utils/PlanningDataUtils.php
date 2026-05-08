@@ -130,7 +130,7 @@ class PlanningDataUtils
                        ps.theme_soutenance AS theme_soutenance,
                        e.nom_etu AS nom_etudiant,
                        e.prenom_etu AS prenom_etudiant,
-                       COALESCE(NULLIF(e.num_carte_etud, \'\'), NULLIF(e.num_ident_etud, \'\'), ps.num_etud) AS matricule_etudiant,
+                       COALESCE(NULLIF(e.num_carte_etud, ''), NULLIF(e.num_ident_etud, ''), ps.num_etud) AS matricule_etudiant,
                        e.email_etu AS email_etudiant,
                   (SELECT CONCAT(ens_p.prenom_enseignant, CHAR(32), ens_p.nom_enseignant)
                    FROM enseignant_jury ej_p
@@ -150,7 +150,7 @@ class PlanningDataUtils
                 LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                 LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
                 LEFT JOIN session s ON s.id_session = ps.id_session
-                LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(NULLIF(e.num_carte_etud, \'\'), ps.num_etud)
+                LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(NULLIF(e.num_carte_etud, ''), ps.num_etud)
                   LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 LEFT JOIN entreprises ent ON ent.id_entreprise = ist.id_entreprise
                 WHERE ps.num_soutenance IN ({$placeholders})
@@ -185,7 +185,7 @@ class PlanningDataUtils
 
         $roleCodeSelect = $this->columnExists($rolesTable, 'code_qltjury')
             ? 'qj.code_qltjury AS code_role,'
-            : "'' AS code_role,";
+            : "qj.{$roleIdCol} AS code_role,";
 
         $sql = "SELECT ej.id_enseignant,
                        COALESCE(ens.nom_enseignant, ms.Nom) AS nom_personne,
@@ -414,7 +414,7 @@ class PlanningDataUtils
 
         $roleCodeSelect = $this->columnExists($rolesTable, 'code_qltjury')
             ? 'qj.code_qltjury AS code_role,'
-            : "'' AS code_role,";
+            : "qj.{$roleIdCol} AS code_role,";
 
         $sql = "SELECT COALESCE(ens.nom_enseignant, ms.Nom) AS nom_utilisateur,
                        COALESCE(ens.prenom_enseignant, ms.prenom) AS prenom,
@@ -516,7 +516,7 @@ class PlanningDataUtils
         $roleLabelCol = $this->getRoleLabelColumn($rolesTable);
         $roleCodeSelect = $this->columnExists($rolesTable, 'code_qltjury')
             ? 'code_qltjury AS role_code'
-            : "'' AS role_code";
+            : "{$roleIdCol} AS role_code";
 
         try {
             $sql = "SELECT {$roleIdCol} AS role_id, {$roleLabelCol} AS role_label, {$roleCodeSelect} FROM {$rolesTable}";

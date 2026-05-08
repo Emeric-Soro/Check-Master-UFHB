@@ -21,7 +21,17 @@ final class Session
             'samesite' => 'Lax',
         ]);
 
-        session_start();
+        if (@session_start()) {
+            return;
+        }
+
+        self::configureFallbackSavePath();
+
+        if (@session_start()) {
+            return;
+        }
+
+        error_log('Session::start failed even after fallback session.save_path configuration.');
     }
 
     public static function regenerate(): void
@@ -30,6 +40,23 @@ final class Session
             self::start();
         }
         session_regenerate_id(true);
+    }
+
+    private static function configureFallbackSavePath(): void
+    {
+        $fallbackPath = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'sessions';
+
+        if (!is_dir($fallbackPath)) {
+            @mkdir($fallbackPath, 0775, true);
+        }
+
+        clearstatcache(true, $fallbackPath);
+        if (!is_dir($fallbackPath) || !is_writable($fallbackPath)) {
+            return;
+        }
+
+        @session_save_path($fallbackPath);
+        @ini_set('session.save_path', $fallbackPath);
     }
 }
 
