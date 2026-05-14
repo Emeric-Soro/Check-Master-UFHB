@@ -19,7 +19,7 @@ foreach ($soutenances as $row) {
     if ($numEtu === '') {
         continue;
     }
-    $fullName = trim((string) ($row['nom_etudiant'] ?? 'Etudiant'));
+    $fullName = trim((string) ($row['nom_etudiant'] ?? 'Étudiant'));
     $nameParts = preg_split('/\s+/', $fullName, 2);
     $prenom = trim((string) ($nameParts[0] ?? ''));
     $nom = trim((string) ($nameParts[1] ?? ''));
@@ -154,7 +154,7 @@ $baseUrl = '?page=edition_bulletin'
                     cm_component('form/input-text', [
                         'name' => 'cm_bulletin_etudiant',
                         'id' => 'cmBulletinEtudiant',
-                        'label' => 'Etudiant',
+                        'label' => 'Étudiant',
                         'placeholder' => 'Rechercher...',
                     ]);
                     ?>

@@ -97,7 +97,7 @@ try {
                             p.date_creation
                         FROM pister p
                         LEFT JOIN utilisateur u ON u.id_utilisateur = p.id_utilisateur
-                        WHERE (p.action = 'Connexion' OR p.action = 'Accès' OR p.action = 'Acces')
+                        WHERE (p.action = 'Connexion' OR p.action = 'Accès' OR p.action = 'Accès')
                           AND p.statut_action = 'Succès'
                         ORDER BY p.date_creation DESC
                         LIMIT 10";
@@ -114,7 +114,7 @@ try {
         $recentActivityItems[] = [
             'type' => 'info',
             'icon' => 'fa-right-to-bracket',
-            'text' => 'Connexion reussie: ' . (string) ($login['nom_utilisateur'] ?? 'Utilisateur'),
+            'text' => 'Connexion réussie: ' . (string) ($login['nom_utilisateur'] ?? 'Utilisateur'),
             'time' => $formattedDate,
         ];
     }

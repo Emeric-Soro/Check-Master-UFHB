@@ -26,7 +26,7 @@ cm_render_param_crud_view([
             'label' => 'Libelle statut jury',
             'type' => 'text',
             'required' => true,
-            'placeholder' => 'Ex: President',
+            'placeholder' => 'Ex: Président',
             'value_key' => 'lib_jury',
         ],
     ],

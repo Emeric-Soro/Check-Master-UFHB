@@ -486,19 +486,19 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
             }
         });
         if (deleteBtn && bulkForm) {
-            deleteBtn.addEventListener('click', function () {
+            deleteBtn.addEventListener('click', async function () {
                 const selected = rowCheckboxes().filter(function (cb) { return cb.checked; });
                 if (selected.length === 0) {
                     return;
                 }
-                const confirmDelete = window.confirm('Confirmer la suppression de ' + selected.length + ' étudiant(s) ?');
+                const confirmDelete = await window.CM.confirm('Confirmer la suppression de ' + selected.length + ' étudiant(s) ?');
                 if (confirmDelete) {
                     bulkForm.submit();
                 }
             });
         }
-        window.submitSingleDelete = function (numEtu, fullName) {
-            const confirmed = window.confirm('Confirmer la suppression de l\'étudiant : ' + fullName + ' (' + numEtu + ') ?');
+        window.submitSingleDelete = async function (numEtu, fullName) {
+            const confirmed = await window.CM.confirm('Confirmer la suppression de l\'étudiant : ' + fullName + ' (' + numEtu + ') ?');
             if (!confirmed || !bulkForm) {
                 return;
             }

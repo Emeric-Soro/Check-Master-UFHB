@@ -22,27 +22,27 @@ final class PvFinalGeneratorService
     /** @var array<int, array{label: string, bareme: float, keywords: array<int, string>}> */
     private const CRITERES_ANNEXE1 = [
         [
-            'label' => '1. Expose',
+            'label' => '1. Exposé',
             'bareme' => 4.0,
             'keywords' => ['expose'],
         ],
         [
-            'label' => '2. Reponses aux questions posees',
+            'label' => '2. Réponses aux questions posées',
             'bareme' => 5.0,
             'keywords' => ['question', 'reponse'],
         ],
         [
-            'label' => '3. Presentation du memoire',
+            'label' => '3. Présentation du mémoire',
             'bareme' => 2.0,
             'keywords' => ['presentation'],
         ],
         [
-            'label' => '4. Contenu du memoire',
+            'label' => '4. Contenu du mémoire',
             'bareme' => 4.0,
             'keywords' => ['contenu'],
         ],
         [
-            'label' => '5. Resolution du probleme',
+            'label' => '5. Résolution du problème',
             'bareme' => 5.0,
             'keywords' => ['resolution', 'probleme'],
         ],
@@ -71,7 +71,7 @@ final class PvFinalGeneratorService
 
         $decision = $this->formaterDecision((string) ($pv['decision_jury'] ?? ''));
         if ($decision === '-') {
-            return ['success' => false, 'error' => 'Decision du jury indisponible'];
+            return ['success' => false, 'error' => 'Décision du jury indisponible'];
         }
 
         $matricule = (string) ($soutenance['matricule_etudiant'] ?? '');
@@ -116,13 +116,13 @@ final class PvFinalGeneratorService
 
         $annexe2Rows = [
             [
-                'label' => '1. Moyenne Generale Master1',
+                'label' => '1. Moyenne Générale Master1',
                 'note' => $moyenneM1,
                 'coeff' => 2,
                 'moyenne_coeff' => $this->calculerMoyenneCoeff($moyenneM1, 2),
             ],
             [
-                'label' => '2. Moyenne Generale Semestre 1 Master2',
+                'label' => '2. Moyenne Générale Semestre 1 Master2',
                 'note' => $moyenneS1M2,
                 'coeff' => 3,
                 'moyenne_coeff' => $this->calculerMoyenneCoeff($moyenneS1M2, 3),
@@ -143,7 +143,7 @@ final class PvFinalGeneratorService
 
         $annexe3Rows = [
             [
-                'label' => '1. Moyenne Generale',
+                'label' => '1. Moyenne Générale',
                 'note' => $moyenneGenerale,
                 'coeff' => 3,
                 'moyenne_coeff' => $this->calculerMoyenneCoeff($moyenneGenerale, 3),
@@ -455,7 +455,7 @@ final class PvFinalGeneratorService
         return match ($normalized) {
             'admis' => 'ADMIS',
             'ajourne', 'ajourne(e)', 'ajourné', 'ajourné(e)' => 'AJOURNE',
-            'refuse', 'refusé' => 'REFUSE',
+            'refuse', 'refusé' => 'REFUSÉ',
             default => '-',
         };
     }
@@ -625,11 +625,11 @@ final class PvFinalGeneratorService
         $pdf->Cell(0, 6, 'NOMS ET SIGNATURES DES MEMBRES DU JURY', 0, 1);
 
         $pdf->SetFont('helvetica', '', 9);
-        $this->renderJuryLine($pdf, 'PRESIDENT', $juryMembers['president']);
+        $this->renderJuryLine($pdf, 'PRÉSIDENT', $juryMembers['president']);
         $this->renderJuryLine($pdf, 'Examinateur', $juryMembers['examinateur']);
-        $this->renderJuryLine($pdf, 'Directeur de memoire', $juryMembers['directeur_memoire']);
-        $this->renderJuryLine($pdf, 'Encadreur pedagogique', $juryMembers['encadreur_pedagogique']);
-        $this->renderJuryLine($pdf, 'Maitre de Stage', $juryMembers['maitre_stage']);
+        $this->renderJuryLine($pdf, 'Directeur de mémoire', $juryMembers['directeur_memoire']);
+        $this->renderJuryLine($pdf, 'Encadreur pédagogique', $juryMembers['encadreur_pedagogique']);
+        $this->renderJuryLine($pdf, 'Maître de Stage', $juryMembers['maitre_stage']);
     }
 
     private function renderJuryLine(TCPDF $pdf, string $label, string $name): void

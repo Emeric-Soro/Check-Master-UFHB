@@ -205,6 +205,19 @@ class Etudiant
 
     }
 
+    public function getEtudiantByEmail($email)
+    {
+        try {
+            $query = "SELECT *, num_ident_etud as identifiant_mesrs FROM etudiants WHERE LOWER(email_etu) = LOWER(:email) LIMIT 1";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute(['email' => trim($email)]);
+            return $stmt->fetch(PDO::FETCH_OBJ);
+        } catch (PDOException $e) {
+            error_log("Erreur lors de la récupération de l'étudiant par email : " . $e->getMessage());
+            return null;
+        }
+    }
+
     public function ajouterEtudiant($num_etu, $nom_etu, $prenom_etu, $date_naiss_etu, $genre_etu, $email_etu, $promotion_etu, $id_niveau = null, $id_annee_acad = null, $identifiant_mesrs = null)
     {
         try {

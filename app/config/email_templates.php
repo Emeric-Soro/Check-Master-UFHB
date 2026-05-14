@@ -15,10 +15,9 @@ return [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{subject}}</title>
+    <title>Check Master</title>
     <style>
-        /* Styles en ligne privilégiés, mais le style bloc aide certains clients */
-        body {
+        .email-body {
             font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
             color: #334155;
@@ -51,12 +50,6 @@ return [
             display: block;
             margin: 0 auto;
         }
-        .header h1 {
-            color: #1e293b;
-            margin: 0;
-            font-size: 20px;
-            font-weight: 700;
-        }
         .content {
             padding: 10px 40px 40px;
             font-size: 15px;
@@ -78,7 +71,7 @@ return [
         .button {
             display: inline-block;
             padding: 14px 32px;
-            background-color: #0f172a; /* Bleu foncé CM */
+            background-color: #0f172a;
             color: #ffffff !important;
             text-decoration: none;
             border-radius: 8px;
@@ -89,10 +82,6 @@ return [
             box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.2);
             transition: all 0.2s;
         }
-        .button:hover {
-            background-color: #1e293b;
-            box-shadow: 0 6px 8px -1px rgba(15, 23, 42, 0.3);
-        }
         .box {
             background-color: #f8fafc;
             padding: 24px;
@@ -100,31 +89,20 @@ return [
             margin: 25px 0;
             border: 1px solid #e2e8f0;
         }
-        .password-box {
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
-            font-size: 18px;
-            background-color: #e2e8f0;
-            padding: 8px 16px;
-            border-radius: 6px;
-            display: inline-block;
-            letter-spacing: 2px;
-            color: #0f172a;
-            font-weight: bold;
-            border: 1px dashed #cbd5e1;
-        }
-        /* Utilitaires */
         .text-center { text-align: center; }
         .greeting { font-size: 18px; color: #0f172a; font-weight: 600; margin-bottom: 20px; }
-        .divider { height: 1px; background-color: #e2e8f0; margin: 25px 0; }
     </style>
 </head>
-<body>
+<body class="email-body">
+    <!-- Preview text optionnel mais recommandé -->
+    <div style="display: none; max-height: 0px; overflow: hidden;">
+        Notification Check Master
+    </div>
+    
     <div class="wrapper">
         <div class="container">
             <div class="header">
-                <!-- Logo intégré via CID (Embedded Image) pour garantie daffichage -->
                 <img src="{{logo_src}}" alt="Check Master Logo">
-                <h1 style="display: none;">{{subject}}</h1>
             </div>
             <div class="content">
                 {{body}}

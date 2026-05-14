@@ -539,8 +539,8 @@ switch ($currentMenuSlug) {
         break;
     case 'gestion_rapports':
         include __DIR__ . '/../ressources/routes/gestionRapportsRoutes.php';
-        $allowedActions = ['creer_rapport', 'suivi_rapport', 'commentaire_rapport'];
-        $ajaxActions = ['get_commentaires', 'get_rapport'];
+        $allowedActions = ['creer_rapport', 'telecharger_rapport', 'admin_telecharger_rapport'];
+        $ajaxActions = [];
         if (isset($_GET['action'])) {
             if (in_array($_GET['action'], $ajaxActions)) {
                 exit;
@@ -607,8 +607,8 @@ switch ($currentMenuSlug) {
         }
         $allowedActions = ['ajouter_des_etudiants', 'inscrire_des_etudiants'];
         $actionLabels = [
-            'ajouter_des_etudiants' => 'Mise a jour etudiant',
-            'inscrire_des_etudiants' => 'Inscrire des etudiants'
+            'ajouter_des_etudiants' => 'Mise à jour étudiant',
+            'inscrire_des_etudiants' => 'Inscrire des étudiants'
         ];
         if (isset($_GET['action']) && in_array($_GET['action'], $allowedActions)) {
             $currentAction = $_GET['action'];
@@ -1995,10 +1995,8 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             class="cm-content-area cm-layout-main <?php echo $isPolarizedPage ? 'cm-layout-main--locked' : 'cm-layout-main--scroll'; ?>"
             data-page="<?php echo htmlspecialchars((string) $currentMenuSlug, ENT_QUOTES, 'UTF-8'); ?>"
             data-action="<?php echo htmlspecialchars((string) ($currentAction ?? ($_GET['action'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
-            <script
-                src="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('js/components/confirm-modal.js') : 'assets/js/components/confirm-modal.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 
-            <?php // Les variables $globalAcademicYears, $currentGlobalYear, $currentGlobalYearId
+    <?php // Les variables $globalAcademicYears, $currentGlobalYear, $currentGlobalYearId
             // sont calculées en haut du fichier (après database.php) et $_SESSION['global_annee_id'] est déjà défini. ?>
 
 
@@ -2022,8 +2020,6 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             <?php cm_component('ui/toast'); ?>
         </main>
     </div>
-
-    <?php cm_component('ui/confirm-modal'); ?>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -2069,16 +2065,19 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             var confirmType = form.getAttribute('data-cm-confirm-type') || 'warning';
             var confirmText = form.getAttribute('data-cm-confirm-text') || 'Confirmer';
 
-            if (window.CM && typeof window.CM.confirm === 'function') {
-                window.CM.confirm({
-                    title: 'Confirmation',
-                    message: confirmMessage,
-                    type: confirmType,
-                    confirmText: confirmText,
-                }).then(function (confirmed) {
-                    if (confirmed) {
-                        form.submit();
-                    }
+                if (window.CM && typeof window.CM.confirm === 'function') {
+                    window.CM.confirm({
+                        title: 'Confirmation',
+                        message: confirmMessage,
+                        type: confirmType,
+                        confirmText: confirmText,
+                    }).then(function (confirmed) {
+                        if (confirmed) {
+                            form.setAttribute('data-cm-confirmed', 'true');
+                            form.submit();
+                        }
+                    });
+                }
                 });
                 return;
             }
@@ -2117,7 +2116,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             });
 
             document.querySelectorAll('.cm-modal-overlay, .cm-etu-modal, .cm-etu-preview-modal, [id$="Modal"]').forEach(function (panel) {
-                if (!panel || panel.id === 'cm-confirm-modal') {
+                if (!panel) {
                     return;
                 }
                 if (!/^(DIV|SECTION|ASIDE|DIALOG)$/i.test(panel.tagName)) {

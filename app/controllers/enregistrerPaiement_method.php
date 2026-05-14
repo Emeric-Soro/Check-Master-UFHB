@@ -1,3 +1,5 @@
+<?php
+
 /**
 * Action unifiée pour gérer à la fois les inscriptions et les versements
 * Utilise le paramètre is_new_inscription pour déterminer l'action à effectuer
@@ -110,13 +112,17 @@ $GLOBALS['messageErreur'] = "⚠️ Impossible de récupérer les informations d
 return;
 }
 
-// Vérifier si la scolarité est soldée
-if ($infos_paiement['reste_a_payer'] <= 0) { $GLOBALS['messageErreur']="⚠️ Cet étudiant a déjà soldé sa scolarité." ;
-    return; } // Vérifier que le montant ne dépasse pas le reste à payer if ($montant> $infos_paiement['reste_a_payer'])
-    {
-    $GLOBALS['messageErreur'] = "❌ Le montant ne peut pas dépasser le reste à payer (" .
-    number_format($infos_paiement['reste_a_payer'], 0, ',', ' ') . " FCFA).";
-    return;
+    // Vérifier si la scolarité est soldée
+    if ($infos_paiement['reste_a_payer'] <= 0) {
+        $GLOBALS['messageErreur'] = "Cet étudiant a déjà soldé sa scolarité.";
+        return;
+    }
+
+    // Vérifier que le montant ne dépasse pas le reste à payer
+    if ($montant > $infos_paiement['reste_a_payer']) {
+        $GLOBALS['messageErreur'] = "Le montant ne peut pas dépasser le reste à payer (" .
+            number_format($infos_paiement['reste_a_payer'], 0, ',', ' ') . " FCFA).";
+        return;
     }
 
     // Enregistrer le versement
@@ -134,8 +140,7 @@ if ($infos_paiement['reste_a_payer'] <= 0) { $GLOBALS['messageErreur']="⚠️ C
 
     $nouveau_reste = $infos_paiement['reste_a_payer'] - $montant;
 
-    $GLOBALS['messageSuccess'] = "✅ Versement de " . number_format($montant, 0, ',', ' ') . " FCFA enregistré ! Reste à
-    payer : " . number_format($nouveau_reste, 0, ',', ' ') . " FCFA.";
+    $GLOBALS['messageSuccess'] = "Versement de " . number_format($montant, 0, ',', ' ') . " FCFA enregistré ! Reste a payer : " . number_format($nouveau_reste, 0, ',', ' ') . " FCFA.";
 
     // Rafraîchir les listes
     $GLOBALS['etudiantsInscrits'] = $this->scolariteModel->getEtudiantsInscrits();

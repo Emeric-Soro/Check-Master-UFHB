@@ -3,7 +3,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_generaux');
 
 $typeOptions = [
     'info' => 'Information',
-    'success' => 'Succes',
+    'success' => 'Succès',
     'warning' => 'Avertissement',
     'error' => 'Erreur',
 ];

@@ -55,7 +55,7 @@ foreach ($etudiants as $etu) {
     if ($id === '') {
         continue;
     }
-    $label = trim((string) ($etu['nom_complet'] ?? 'Etudiant'));
+    $label = trim((string) ($etu['nom_complet'] ?? 'Étudiant'));
     $matricule = trim((string) ($etu['matricule_etudiant'] ?? $id));
     $themeRapport = trim((string) ($etu['theme_rapport'] ?? ''));
     $studentMap[$id] = [
@@ -126,7 +126,7 @@ foreach ($attributions as $row) {
         continue;
     }
 
-    $studentName = trim((string) ($row['nom_etudiant'] ?? 'Etudiant'));
+    $studentName = trim((string) ($row['nom_etudiant'] ?? 'Étudiant'));
     $studentMatricule = trim((string) ($row['matricule_etudiant'] ?? $studentId));
     $promotion = trim((string) ($row['promotion_etu'] ?? ''));
 
@@ -239,33 +239,45 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 }
             }
 
-            .cm-prog-planning-overlay {
-                position: fixed;
-                inset: 0;
-                z-index: 1200;
-                background: rgba(0, 0, 0, 0.45);
+            .cm-prog-planning-panel {
+                background: #fff;
+                border: 1px solid #e9ecef;
+                border-radius: 10px;
+                padding: 1rem;
+                margin: 0.5rem 0 0.75rem;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+                animation: cm-prog-panel-slide-down 0.25s ease;
+            }
+
+            @keyframes cm-prog-panel-slide-down {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            .cm-prog-planning-panel__header {
                 display: flex;
                 align-items: center;
-                justify-content: center;
-                padding: 1rem;
+                justify-content: space-between;
+                margin-bottom: 0.75rem;
             }
 
-            .cm-prog-planning-modal {
-                background: #fff;
-                border-radius: 10px;
-                width: min(860px, 96vw);
-                max-height: 92vh;
-                overflow-y: auto;
-                box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
-                padding: 1rem;
+            .cm-prog-planning-panel__header h3 {
+                margin: 0;
+                font-size: 1.05rem;
             }
 
-            .cm-prog-planning-modal--narrow {
-                width: min(460px, 96vw);
+            .cm-prog-planning-panel__close {
+                background: none;
+                border: none;
+                font-size: 1.1rem;
+                color: #6c757d;
+                cursor: pointer;
+                padding: 0.2rem 0.4rem;
+                line-height: 1;
             }
 
-            .cm-prog-planning-modal h3 {
-                margin: 0 0 0.75rem 0;
+            .cm-prog-planning-panel__close:hover {
+                color: #343a40;
             }
 
             .cm-prog-planning-day {
@@ -310,7 +322,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 cm_component('form/select', [
                     'name' => 'cm_prog_etudiant',
                     'id' => 'cmProgEtudiant',
-                    'label' => 'Etudiant',
+                    'label' => 'Étudiant',
                     'required' => true,
                     'options' => $studentOptions,
                     'control_class' => 'cm-field-lg cm-size-personne',
@@ -347,10 +359,10 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
             cm_component('form/textarea', [
                 'name' => 'cm_prog_theme',
                 'id' => 'cmProgTheme',
-                'label' => 'Theme',
+                'label' => 'Thème',
                 'required' => true,
                 'rows' => 2,
-                'placeholder' => 'Theme de soutenance',
+                'placeholder' => 'Thème de soutenance',
                 'readonly' => true,
                 'control_class' => 'cm-field-full cm-size-theme',
             ]);
@@ -360,7 +372,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 cm_component('form/select', [
                     'name' => 'cm_prog_president',
                     'id' => 'cmProgPresident',
-                    'label' => 'President',
+                    'label' => 'Président',
                     'required' => true,
                     'options' => $presidentOptions,
                     'control_class' => 'cm-field-lg cm-size-personne',
@@ -461,9 +473,9 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         <th class="cm-data-table__th">Heure</th>
                         <th class="cm-data-table__th">Salle</th>
                         <th class="cm-data-table__th">Président</th>
-                        <th class="cm-data-table__th">Dir. mémoire</th>
+                        <th class="cm-data-table__th">Directeur mémoire</th>
                         <th class="cm-data-table__th">Examinateur</th>
-                        <th class="cm-data-table__th">Encadreur Péda.</th>
+                        <th class="cm-data-table__th">Encadreur Pédagogique</th>
                         <th class="cm-data-table__th">Maître de stage</th>
                         <th class="cm-data-table__th is-center">Actions</th>
                     </tr>
@@ -474,7 +486,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                             'in_table' => true,
                             'colspan' => 12,
                             'title' => '',
-                            'message' => 'Aucune soutenance programmee pour le moment.',
+                            'message' => 'Aucune soutenance programmée pour le moment.',
                         ]); ?>
                     <?php else: ?>
                         <?php foreach ($rowsToShow as $index => $row): ?>
@@ -863,7 +875,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         return result;
                     }
                     if (!response.ok) {
-                        throw new Error(text || 'Le serveur a retourne une reponse invalide.');
+                        throw new Error(text || 'Le serveur a retourné une réponse invalide.');
                     }
                     return {
                         success: response.ok,
@@ -888,16 +900,16 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                     confirmText: 'Supprimer',
                 });
             }
-            return Promise.resolve(window.confirm(message));
+            return window.CM.confirm(message);
         }
         function validatePayload(payload) {
             if (!payload.id_etudiant || !payload.date_soutenance || !payload.heure_soutenance ||
                 !payload.id_salle || !payload.theme_soutenance || !payload.president_id || !payload.examinateur_id) {
-                setAlert('error', 'Renseignez étudiant, date, heure, salle, theme, president et examinateur.');
+                setAlert('error', 'Renseignez étudiant, date, heure, salle, thème, président et examinateur.');
                 return false;
             }
             if (payload.president_id === payload.examinateur_id) {
-                setAlert('error', 'Le president et l examinateur doivent etre differents.');
+                setAlert('error', 'Le président et l\'examinateur doivent être différents.');
                 return false;
             }
             return true;
@@ -932,11 +944,11 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         setAlert('error', result && result.message ? result.message : 'Enregistrement impossible.');
                         return;
                     }
-                    setAlert('success', result.message || 'Programmation enregistree.');
+                    setAlert('success', result.message || 'Programmation enregistrée.');
                     refreshPage();
                 })
                 .catch(function (error) {
-                    setAlert('error', error && error.message ? error.message : 'Erreur reseau.');
+                    setAlert('error', error && error.message ? error.message : 'Erreur réseau.');
                 });
         }
         function deleteAttribution(id) {
@@ -946,7 +958,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
             return apiCall('deleteAttribution', { id: id });
         }
         function exportVisibleRows() {
-            const headers = ['Etudiant', 'Promotion', 'Date soutenance', 'Heure', 'Salle', 'President', 'Dir. memoire', 'Examinateur', 'Encadreur Ped.', 'Maitre stage'];
+            const headers = ['Étudiant', 'Promotion', 'Date soutenance', 'Heure', 'Salle', 'Président', 'Directeur mémoire', 'Examinateur', 'Encadreur Pédagogique', 'Maître stage'];
             const rows = [headers.join(';')];
             getVisibleRows().forEach(function (row) {
                 const cells = row.querySelectorAll('.cm-data-table__td');
@@ -1057,41 +1069,39 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 conflicts: detectSalleConflicts(items),
             };
         }
-        function removePlanningModal() {
-            document.getElementById('cmProgPlanningOverlay')?.remove();
+        function removePlanningPanel() {
+            document.getElementById('cmProgPlanningPanel')?.remove();
         }
-        function showPlanningProgress(message) {
-            const overlay = document.createElement('div');
-            overlay.id = 'cmProgPlanningProgress';
-            overlay.className = 'cm-prog-planning-overlay';
-            overlay.innerHTML = '<div class="cm-prog-planning-modal cm-text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><p>' + escHtml(message) + '</p></div>';
-            document.body.appendChild(overlay);
-        }
-        function hidePlanningProgress() {
-            document.getElementById('cmProgPlanningProgress')?.remove();
+        function setPlanningBtnLoading(isLoading) {
+            if (!planningBtn) return;
+            if (isLoading) {
+                planningBtn.dataset.originalHtml = planningBtn.innerHTML;
+                planningBtn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Génération…';
+                planningBtn.disabled = true;
+            } else {
+                planningBtn.innerHTML = planningBtn.dataset.originalHtml || '<i class="fas fa-calendar" aria-hidden="true"></i> Planning';
+                planningBtn.disabled = false;
+            }
         }
         function showPlanningSuccess(reference, downloadUrl) {
-            const overlay = document.createElement('div');
-            overlay.id = 'cmProgPlanningSuccess';
-            overlay.className = 'cm-prog-planning-overlay';
-            overlay.innerHTML = '<div class="cm-prog-planning-modal cm-prog-planning-modal--narrow">'
-                + '<h3><i class="fas fa-check-circle"></i> Planning généré</h3>'
-                + '<p>Référence : <strong>' + escHtml(reference) + '</strong></p>'
-                + '<div class="cm-prog-planning-actions">'
-                + '<a class="cm-btn is-primary is-sm" href="' + escHtml(downloadUrl) + '" target="_blank" rel="noopener"><i class="fas fa-download"></i> Télécharger</a>'
-                + '<button type="button" class="cm-btn is-light is-sm" id="cmProgPlanningSuccessClose">Fermer</button>'
-                + '</div></div>';
-            document.body.appendChild(overlay);
-            document.getElementById('cmProgPlanningSuccessClose')?.addEventListener('click', function () {
-                overlay.remove();
-            });
+            if (window.CM && window.CM.toast) {
+                window.CM.toast.show('Planning PDF généré avec succès — Réf. ' + String(reference || ''), 'success', 6000);
+            }
+            // Déclencher le téléchargement automatiquement
+            const link = document.createElement('a');
+            link.href = downloadUrl || '#';
+            link.target = '_blank';
+            link.rel = 'noopener';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
         }
         async function generatePlanningFromSelection(selectedIds) {
             if (!Array.isArray(selectedIds) || selectedIds.length === 0) {
                 setAlert('error', 'Aucune soutenance sélectionnée.');
                 return;
             }
-            showPlanningProgress('Génération du planning PDF en cours…');
+            setPlanningBtnLoading(true);
             try {
                 const tokenInput = form ? form.querySelector('input[name="csrf_token"]') : null;
                 const payload = {
@@ -1110,28 +1120,30 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                     body: JSON.stringify(payload)
                 });
                 const json = await response.json();
-                hidePlanningProgress();
+                setPlanningBtnLoading(false);
                 if (json && json.success) {
                     showPlanningSuccess(json.reference || '', json.download_url || '#');
                     setAlert('success', 'Planning PDF généré avec succès.');
+                    removePlanningPanel();
                     return;
                 }
                 setAlert('error', (json && json.error) ? json.error : 'Erreur lors de la génération du planning.');
             } catch (error) {
-                hidePlanningProgress();
+                setPlanningBtnLoading(false);
                 setAlert('error', 'Erreur réseau lors de la génération du planning.');
             }
         }
-        function openPlanningSummaryModal() {
+        function openPlanningSummaryPanel() {
             const selectedItems = collectSelectedPlanningItems();
             if (selectedItems.length === 0) {
                 setAlert('error', 'Sélectionnez au moins une soutenance avant de générer le planning.');
                 return;
             }
+            removePlanningPanel();
             const summary = buildPlanningSummary(selectedItems);
-            const overlay = document.createElement('div');
-            overlay.id = 'cmProgPlanningOverlay';
-            overlay.className = 'cm-prog-planning-overlay';
+            const panel = document.createElement('div');
+            panel.id = 'cmProgPlanningPanel';
+            panel.className = 'cm-prog-planning-panel';
 
             let bodyHtml = '<div class="cm-prog-planning-summary-count">Soutenances sélectionnées : <strong>' + summary.total + '</strong></div>';
             summary.orderedDates.forEach(function (date) {
@@ -1159,18 +1171,27 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
             bodyHtml += '<p>Salles utilisées : ' + escHtml(summary.salles.join(', ')) + '</p>';
             bodyHtml += '</div>';
 
-            overlay.innerHTML = '<div class="cm-prog-planning-modal">'
-                + '<h3>Générer le Planning PDF</h3>'
+            panel.innerHTML = '<div class="cm-prog-planning-panel__header">'
+                + '<h3><i class="fas fa-calendar-alt"></i> Générer le Planning PDF</h3>'
+                + '<button type="button" class="cm-prog-planning-panel__close" id="cmProgPlanningPanelClose" title="Fermer"><i class="fas fa-times"></i></button>'
+                + '</div>'
                 + '<div class="cm-prog-planning-body">' + bodyHtml + '</div>'
                 + '<div class="cm-prog-planning-actions">'
                 + '<button type="button" class="cm-btn is-light is-sm" id="cmProgPlanningCancel">Annuler</button>'
                 + '<button type="button" class="cm-btn is-primary is-sm" id="cmProgPlanningGenerate">Générer le PDF</button>'
-                + '</div></div>';
-            document.body.appendChild(overlay);
+                + '</div>';
 
-            document.getElementById('cmProgPlanningCancel')?.addEventListener('click', removePlanningModal);
+            const toolbar = document.querySelector('.cm-barre-intermediaire');
+            if (toolbar) {
+                toolbar.insertAdjacentElement('afterend', panel);
+            } else {
+                document.querySelector('.cm-pole-inferieur')?.insertAdjacentElement('beforebegin', panel);
+            }
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            document.getElementById('cmProgPlanningPanelClose')?.addEventListener('click', removePlanningPanel);
+            document.getElementById('cmProgPlanningCancel')?.addEventListener('click', removePlanningPanel);
             document.getElementById('cmProgPlanningGenerate')?.addEventListener('click', function () {
-                removePlanningModal();
                 generatePlanningFromSelection(selectedItems.map(function (item) {
                     return item.id;
                 }));
@@ -1201,7 +1222,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                     return;
                 }
                 if (row.getAttribute('data-is-writable') !== '1') {
-                    setAlert('error', 'Modification impossible: seule l annee active ' + (row.getAttribute('data-writable-year-label') || '') + ' accepte des ecritures.');
+                    setAlert('error', 'Modification impossible: seule l\'année active ' + (row.getAttribute('data-writable-year-label') || '') + ' accepte des écritures.');
                     return;
                 }
                 const etudiantId = row.getAttribute('data-id-etudiant') || '';
@@ -1241,7 +1262,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
             button.addEventListener('click', async function () {
                 const row = button.closest('.cm-data-table__row');
                 if (row && row.getAttribute('data-is-writable') !== '1') {
-                    setAlert('error', 'Suppression impossible: seule l annee active ' + (row.getAttribute('data-writable-year-label') || '') + ' accepte des ecritures.');
+                    setAlert('error', 'Suppression impossible: seule l\'année active ' + (row.getAttribute('data-writable-year-label') || '') + ' accepte des écritures.');
                     return;
                 }
                 const id = button.getAttribute('data-id') || '';
@@ -1258,11 +1279,11 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                             setAlert('error', result && result.message ? result.message : 'Suppression impossible.');
                             return;
                         }
-                        setAlert('success', result.message || 'Programmation supprimee.');
+                        setAlert('success', result.message || 'Programmation supprimée.');
                         refreshPage();
                     })
                     .catch(function (error) {
-                        setAlert('error', error && error.message ? error.message : 'Erreur reseau.');
+                        setAlert('error', error && error.message ? error.message : 'Erreur réseau.');
                     });
             });
         });
@@ -1285,7 +1306,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
         }
         if (planningBtn) {
             planningBtn.addEventListener('click', function () {
-                openPlanningSummaryModal();
+                openPlanningSummaryPanel();
             });
         }
         if (exportBtn) {
@@ -1349,7 +1370,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 });
                 if (restrictedRows.length > 0) {
                     const writableYearLabel = restrictedRows[0].getAttribute('data-writable-year-label') || '';
-                    setAlert('error', 'Suppression multiple impossible: retirez les lignes hors annee active ' + writableYearLabel + '.');
+                    setAlert('error', 'Suppression multiple impossible: retirez les lignes hors année active ' + writableYearLabel + '.');
                     return;
                 }
                 const confirmed = await askConfirmation('Suppression multiple', 'Supprimer ' + ids.length + ' programmation(s) ?');
@@ -1369,7 +1390,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         refreshPage();
                     })
                     .catch(function (error) {
-                        setAlert('error', error && error.message ? error.message : 'Erreur reseau.');
+                        setAlert('error', error && error.message ? error.message : 'Erreur réseau.');
                     });
             });
         }

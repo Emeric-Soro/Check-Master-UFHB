@@ -151,7 +151,7 @@ class EvaluationDossiersService
         $rapportYearId = $this->getRapportYearId($idRapport);
         $selectedYearId = $this->getSelectedYearId();
         if ($selectedYearId !== null && $rapportYearId !== null && $selectedYearId !== $rapportYearId) {
-            throw new Exception("Le rapport ne correspond pas a l'annee academique actuellement selectionnee.");
+            throw new Exception("Le rapport ne correspond pas à l'année académique actuellement sélectionnée.");
         }
 
         $writeGuard = \AcademicYear::ensureWritableYear($this->db, $rapportYearId, $context);

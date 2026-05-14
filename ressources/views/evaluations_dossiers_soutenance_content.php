@@ -145,7 +145,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     cm_component('form/select', [
                         'name' => 'id_rapport',
                         'id' => 'cmDecisionRapport',
-                        'label' => 'Rapport a evaluer',
+                        'label' => 'Rapport à évaluer',
                         'required' => true,
                         'options' => $dossierOptions,
                         'selected' => $selectedDetailId > 0 ? (string) $selectedDetailId : '',
@@ -154,7 +154,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     cm_component('form/select', [
                         'name' => 'decision',
                         'id' => 'cmDecisionChoice',
-                        'label' => 'Decision',
+                        'label' => 'Décision',
                         'required' => true,
                         'options' => [
                             'valider' => 'Valider',
@@ -169,7 +169,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     cm_component('form/input-text', [
                         'name' => 'cm_etudiant_info',
                         'id' => 'cmDecisionEtudiant',
-                        'label' => 'Etudiant',
+                        'label' => 'Étudiant',
                         'readonly' => true,
                         'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
@@ -186,7 +186,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                 cm_component('form/input-text', [
                     'name' => 'cm_theme_info',
                     'id' => 'cmDecisionTheme',
-                    'label' => 'Theme',
+                    'label' => 'Thème',
                     'readonly' => true,
                     'control_class' => 'cm-field-full cm-size-theme',
                 ]);
@@ -205,7 +205,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     'cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']],
                     'actions' => [
                         ['tag' => 'a', 'href' => '#', 'label' => 'Voir rapport', 'icon' => 'fa-eye', 'class' => 'cm-btn is-info is-sm', 'attrs' => ['id' => 'cmVoirRapportBtn', 'target' => '_blank', 'rel' => 'noopener']],
-                        ['tag' => 'button', 'type' => 'submit', 'label' => 'Soumettre decision', 'icon' => 'fa-check', 'class' => 'cm-btn is-primary is-sm'],
+                        ['tag' => 'button', 'type' => 'submit', 'label' => 'Soumettre décision', 'icon' => 'fa-check', 'class' => 'cm-btn is-primary is-sm'],
                     ],
                 ]);
                 ?>
@@ -514,7 +514,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                 })
                 .then(function (payload) {
                     if (payload && payload.success) {
-                        setAlert('success', payload.message || 'Decision enregistree.');
+                        setAlert('success', payload.message || 'Décision enregistrée.');
                         if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
                             window.CM.ajax.load(window.location.href, { replaceHistory: true, skipHistory: true });
                         }
@@ -523,7 +523,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     setAlert('error', (payload && payload.message) ? payload.message : 'Erreur lors de la soumission.');
                 })
                 .catch(function () {
-                    setAlert('error', 'Erreur reseau lors de la soumission.');
+                    setAlert('error', 'Erreur réseau lors de la soumission.');
                 });
         });
     }

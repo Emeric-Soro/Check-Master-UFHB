@@ -138,7 +138,7 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             cm_component('form/textarea', [
                 'name' => 'reponse_admin',
                 'id' => 'cmReponseAdmin',
-                'label' => 'Reponse',
+                'label' => 'Réponse',
                 'required' => true,
                 'rows' => 4,
             ]);
@@ -338,7 +338,7 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             }
             if (!reponseField.value.trim()) {
                 event.preventDefault();
-                window.alert('La reponse est obligatoire.');
+                window.alert('La réponse est obligatoire.');
                 return;
             }
             form.action = '?page=gestion_reclamations_scolarite&action=changer_statut&id=' + encodeURIComponent(idField.value);
@@ -386,7 +386,7 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
     document.addEventListener('cm:toolbar:delete', function (event) {
         if (!event.detail || !event.detail.toolbar) return;
         if (event.detail.toolbar.id !== 'cmReclamations_toolbar') return;
-        window.alert('Suppression multiple indisponible sur cet ecran.');
+        window.alert('Suppression multiple indisponible sur cet écran.');
     });
 
     document.addEventListener('cm:toolbar:limit:change', function (event) {

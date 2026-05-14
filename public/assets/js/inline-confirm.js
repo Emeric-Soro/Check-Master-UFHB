@@ -18,12 +18,17 @@
     // Track active panel for window.confirm/CM.confirm interception
     var activePanel = null;
     var activeCallback = null;
+    var lastClickedElement = null;
 
     // Initialize inline confirmations on page load
     document.addEventListener('DOMContentLoaded', function() {
         initInlineConfirmations();
         interceptConfirmationMethods();
     });
+
+    document.addEventListener('mousedown', function(e) {
+        lastClickedElement = e.target.closest('button, a, input[type="submit"], input[type="button"], .cm-btn, .cm-action-bar') || e.target;
+    }, true);
 
     // Re-initialize when new content is loaded (for AJAX pages)
     var observer = null;
@@ -50,27 +55,9 @@
      * Intercept window.CM.confirm and window.confirm to show inline panels
      */
     function interceptConfirmationMethods() {
-        // Store original methods
-        var originalCMConfirm = window.CM && window.CM.confirm ? window.CM.confirm : null;
-        var originalWindowConfirm = window.confirm;
-
-        // Override window.confirm
-        window.confirm = function(message) {
-            // Get the element that triggered the confirmation
-            var trigger = document.activeElement;
-            if (!trigger || trigger === document.body) {
-                // Fallback to original if no trigger found
-                return originalWindowConfirm.call(window, message);
-            }
-
-            // Show inline confirmation
-            var result = showInlineConfirm(message, trigger, 'danger');
-            return result;
-        };
-
-        // Override window.CM.confirm if it exists
-        if (window.CM) {
-            window.CM.confirm = function(options) {
+        // Override window.CM.confirm
+        window.CM = window.CM || {};
+        window.CM.confirm = function(options) {
                 var message = '';
                 var type = 'danger';
                 var confirmText = 'Confirmer';
@@ -88,11 +75,12 @@
                 // Get the element that triggered the confirmation
                 var trigger = document.activeElement;
                 if (!trigger || trigger === document.body) {
-                    // Fallback to original if available
-                    if (originalCMConfirm) {
-                        return originalCMConfirm.call(window.CM, options);
-                    }
-                    return Promise.resolve(false);
+                    trigger = lastClickedElement;
+                }
+                
+                // If trigger is still body, find an action bar or header to attach to
+                if (!trigger || trigger === document.body) {
+                    trigger = document.querySelector('.cm-action-bar, .cm-page-header, .cm-card-header') || document.body.firstElementChild;
                 }
 
                 // Show inline confirmation and return Promise
@@ -101,35 +89,6 @@
                 });
             };
         }
-    }
-
-    /**
-     * Show inline confirmation synchronously (for window.confirm)
-     */
-    function showInlineConfirm(message, trigger, type) {
-        var result = false;
-        var panel = createConfirmPanel(
-            message,
-            function() {
-                result = true;
-                removePanel(panel, trigger);
-            },
-            function() {
-                result = false;
-                removePanel(panel, trigger);
-            },
-            type
-        );
-
-        // Insert panel after trigger
-        trigger.parentNode.insertBefore(panel, trigger.nextSibling);
-        showPanel(panel, trigger);
-
-        // Wait for user action (synchronous - blocks execution)
-        // Note: This creates a visual confirmation but doesn't truly block
-        // For proper blocking, use the Promise-based version
-        return true; // Return true to maintain compatibility
-    }
 
     /**
      * Show inline confirmation with Promise (for window.CM.confirm)

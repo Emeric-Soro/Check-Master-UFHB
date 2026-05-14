@@ -220,12 +220,12 @@ $baseUrl = '?page=archive_comptes_rendus'
                     setAlert('error', payload && payload.message ? payload.message : 'Suppression impossible.');
                     return;
                 }
-                setAlert('success', payload.message || 'Archive supprimee.');
+                setAlert('success', payload.message || 'Archive supprimée.');
                 const row = button.closest('.cm-data-table__row');
                 if (row) row.remove();
                 updateDeleteState();
             }).catch(function () {
-                setAlert('error', 'Erreur reseau.');
+                setAlert('error', 'Erreur réseau.');
             });
         });
     });
@@ -252,7 +252,7 @@ $baseUrl = '?page=archive_comptes_rendus'
                 updateDeleteState();
                 setAlert('success', 'Suppression terminee.');
             }).catch(function () {
-                setAlert('error', 'Erreur reseau.');
+                setAlert('error', 'Erreur réseau.');
             });
         });
     }

@@ -73,7 +73,7 @@ foreach ($soutenances as $soutenance) {
     if ($num === '') {
         continue;
     }
-    $label = trim((string) ($soutenance['nom_etudiant'] ?? 'Etudiant')) . ' - ' . trim((string) ($soutenance['matricule_etudiant'] ?? $num));
+    $label = trim((string) ($soutenance['nom_etudiant'] ?? 'Étudiant')) . ' - ' . trim((string) ($soutenance['matricule_etudiant'] ?? $num));
     $soutenanceOptions[$num] = $label;
 }
 ?>
@@ -125,7 +125,7 @@ foreach ($soutenances as $soutenance) {
                     cm_component('form/select', [
                         'name' => 'cm_eval_soutenance',
                         'id' => 'cmEvalSoutenanceSelect',
-                        'label' => 'Etudiant',
+                        'label' => 'Étudiant',
                         'required' => true,
                         'options' => $soutenanceOptions,
                         'control_class' => 'cm-field-lg cm-size-personne',
@@ -143,20 +143,20 @@ foreach ($soutenances as $soutenance) {
                 cm_component('form/textarea', [
                     'name' => 'cm_eval_theme',
                     'id' => 'cmEvalTheme',
-                    'label' => 'Theme',
+                    'label' => 'Thème',
                     'readonly' => true,
                     'rows' => 2,
                     'control_class' => 'cm-field-full cm-size-theme',
                 ]);
                 ?>
 
-                <p class="cm-text-sm cm-text-muted cm-m-0" id="cmEvalSelectedLabel">Soutenance selectionnee: -</p>
+                <p class="cm-text-sm cm-text-muted cm-m-0" id="cmEvalSelectedLabel">Soutenance sélectionnée: -</p>
                 <div class="cm-grid-3">
                     <?php
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_president',
                         'id' => 'cmProgPresident',
-                        'label' => 'President du jury',
+                        'label' => 'Président du jury',
                         'required' => true,
                         'readonly' => true,
                         'control_class' => 'cm-field-lg cm-size-personne',
@@ -210,7 +210,7 @@ foreach ($soutenances as $soutenance) {
                     'name_prefix' => 'criteres',
                     'id_prefix' => 'cmEval',
                     'commentaire_name' => 'commentaire_general',
-                    'commentaire_label' => 'Commentaire general',
+                    'commentaire_label' => 'Commentaire général',
                     'show_header' => false,
                     'show_buttons' => false,
                     'show_commentaire' => false,
@@ -222,14 +222,14 @@ foreach ($soutenances as $soutenance) {
                         <?php cm_component('form/select', [
                             'name' => 'cm_eval_decision',
                             'id' => 'cmEvalDecision',
-                            'label' => 'Decision',
-                            'options' => ['admis' => 'Admis', 'ajourne' => 'Ajourne'],
+                            'label' => 'Décision',
+                            'options' => ['admis' => 'Admis', 'ajourne' => 'Ajourné'],
                             'control_class' => 'cm-field-sm cm-size-salle',
                         ]); ?>
                     </div>
 
                     <div class="cm-form-group">
-                        <label class="cm-form-label" for="cmEvalComment">Commentaire general</label>
+                        <label class="cm-form-label" for="cmEvalComment">Commentaire général</label>
                         <textarea id="cmEvalComment" name="commentaire_general" class="cm-form-control cm-field-full cm-size-commentaire"
                             rows="2"></textarea>
                     </div>
@@ -324,7 +324,7 @@ foreach ($soutenances as $soutenance) {
                                 'in_table' => true,
                                 'colspan' => 8,
                                 'title' => 'Aucune soutenance',
-                                'message' => 'Aucune soutenance programmee disponible.',
+                                'message' => 'Aucune soutenance programmée disponible.',
                             ]); ?>
                         <?php else: ?>
                             <?php foreach ($rowsToShow as $index => $soutenance): ?>
@@ -370,7 +370,7 @@ foreach ($soutenances as $soutenance) {
                                     <td class="cm-data-table__td"><?php echo (int) ($pagination['offset'] ?? 0) + $index + 1; ?>
                                     </td>
                                     <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars((string) ($soutenance['nom_etudiant'] ?? 'Etudiant'), ENT_QUOTES, 'UTF-8'); ?><br>
+                                        <?php echo htmlspecialchars((string) ($soutenance['nom_etudiant'] ?? 'Étudiant'), ENT_QUOTES, 'UTF-8'); ?><br>
                                         <small><?php echo htmlspecialchars((string) ($soutenance['matricule_etudiant'] ?? $numEtu), ENT_QUOTES, 'UTF-8'); ?></small>
                                     </td>
                                     <td class="cm-data-table__td">
@@ -578,7 +578,7 @@ foreach ($soutenances as $soutenance) {
             if (directeurInput) directeurInput.value = '';
             if (encadreurInput) encadreurInput.value = '';
             if (maitreStageInput) maitreStageInput.value = '';
-            if (selectedLabel) selectedLabel.textContent = 'Soutenance selectionnee: -';
+            if (selectedLabel) selectedLabel.textContent = 'Soutenance sélectionnée: -';
             const commentaireEl = document.getElementById('cmEvalComment');
             if (commentaireEl) {
                 commentaireEl.value = '';
@@ -646,7 +646,7 @@ foreach ($soutenances as $soutenance) {
             const heurePart = formatTimeFr(info.heure_soutenance);
             const dateHeure = [datePart, heurePart].filter(Boolean).join(' ');
             if (selectedLabel) {
-                selectedLabel.textContent = 'Soutenance selectionnee: ' + (info.nom_etudiant || 'Etudiant') + ' - ' + (dateHeure || '-');
+                selectedLabel.textContent = 'Soutenance sélectionnée: ' + (info.nom_etudiant || 'Étudiant') + ' - ' + (dateHeure || '-');
             }
 
             const commentaireEl = document.getElementById('cmEvalComment');
@@ -865,7 +865,7 @@ foreach ($soutenances as $soutenance) {
                             setAlert('error', payload && payload.message ? payload.message : 'Suppression impossible.');
                             return;
                         }
-                        setAlert('success', payload.message || 'Evaluation supprimee.');
+                        setAlert('success', payload.message || 'Évaluation supprimée.');
                         if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
                             window.CM.ajax.load(window.location.href, { replaceHistory: true, skipHistory: true });
                         } else {
@@ -873,7 +873,7 @@ foreach ($soutenances as $soutenance) {
                         }
                     })
                     .catch(function () {
-                        setAlert('error', 'Erreur reseau.');
+                        setAlert('error', 'Erreur réseau.');
                     });
             });
         });
@@ -915,14 +915,14 @@ foreach ($soutenances as $soutenance) {
                         }
                     })
                     .catch(function () {
-                        setAlert('error', 'Erreur reseau.');
+                        setAlert('error', 'Erreur réseau.');
                     });
             });
         }
 
         if (exportBtn) {
             exportBtn.addEventListener('click', function () {
-                const headers = ['N', 'Etudiant', 'Date soutenance', 'Moyenne', 'Mention', 'Commentaire'];
+                const headers = ['N', 'Étudiant', 'Date soutenance', 'Moyenne', 'Mention', 'Commentaire'];
                 const csvRows = [headers.join(';')];
 
                 getVisibleRows().forEach(function (row) {

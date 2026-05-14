@@ -168,7 +168,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                     cm_component('form/input-text', [
                         'name' => 'traitement_etudiant',
                         'id' => 'cmTraitementEtudiant',
-                        'label' => 'Etudiant',
+                        'label' => 'Étudiant',
                         'readonly' => true,
                     ]);
                     cm_component('form/input-date', [
@@ -256,7 +256,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                                 'in_table' => true,
                                 'colspan' => 10,
                                 'title' => '',
-                                'message' => 'Aucun dossier de candidature en attente pour l annee selectionnee.',
+                                'message' => 'Aucun dossier de candidature en attente pour l\'année sélectionnée.',
                             ]); ?>
                         <?php else: ?>
                             <?php foreach ($rowsPage as $row): ?>
@@ -577,7 +577,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                 if (deleteBtn.disabled) {
                     return;
                 }
-                window.alert('Suppression multiple indisponible sur cet ecran.');
+                window.alert('Suppression multiple indisponible sur cet écran.');
             });
         }
         const exportBtn = document.getElementById('cmExportCandidatures');

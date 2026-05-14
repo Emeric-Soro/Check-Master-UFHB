@@ -409,7 +409,7 @@ try {
                 'ts' => $stamp,
                 'type' => 'info',
                 'icon' => 'fa-file-lines',
-                'text' => 'Rapport recu: ' . (string) ($row['theme_rapport'] ?? 'Sans theme'),
+                'text' => 'Rapport reçu: ' . (string) ($row['theme_rapport'] ?? 'Sans thème'),
                 'time' => $rawDate !== '' ? date('d/m/Y H:i', $stamp) : '',
             ];
         }
@@ -433,7 +433,7 @@ try {
                 'ts' => $stamp,
                 'type' => 'success',
                 'icon' => 'fa-calendar-check',
-                'text' => 'Soutenance programmee: ' . (string) ($row['theme_soutenance'] ?? 'Sans theme'),
+                'text' => 'Soutenance programmée: ' . (string) ($row['theme_soutenance'] ?? 'Sans thème'),
                 'time' => !empty($row['date_soutenance']) ? date('d/m/Y H:i', $stamp) : '',
             ];
         }
@@ -460,20 +460,20 @@ if ((int) $stats['etudiants_encadres'] === 0) {
 
 // Mapping des icones et couleurs pour les qualites de jury
 $roleIcons = [
-    'President' => ['icon' => 'fa-gavel', 'color' => 'primary'],
-    'Directeur memoire' => ['icon' => 'fa-user-tie', 'color' => 'info'],
+    'Président' => ['icon' => 'fa-gavel', 'color' => 'primary'],
+    'Directeur mémoire' => ['icon' => 'fa-user-tie', 'color' => 'info'],
     'Examinateur' => ['icon' => 'fa-search', 'color' => 'warning'],
     'Encadrant' => ['icon' => 'fa-chalkboard-teacher', 'color' => 'success'],
-    'Maitre de stage' => ['icon' => 'fa-building', 'color' => 'danger'],
+    'Maître de stage' => ['icon' => 'fa-building', 'color' => 'danger'],
 ];
 
 function normalizeRoleName(string $role): string {
     $normalized = strtolower(trim($role));
-    if (strpos($normalized, 'president') !== false) return 'President';
-    if (strpos($normalized, 'directeur') !== false) return 'Directeur memoire';
+    if (strpos($normalized, 'president') !== false) return 'Président';
+    if (strpos($normalized, 'directeur') !== false) return 'Directeur mémoire';
     if (strpos($normalized, 'examina') !== false) return 'Examinateur';
     if (strpos($normalized, 'encadr') !== false) return 'Encadrant';
-    if (strpos($normalized, 'maitre') !== false || strpos($normalized, 'stage') !== false) return 'Maitre de stage';
+    if (strpos($normalized, 'maitre') !== false || strpos($normalized, 'stage') !== false) return 'Maître de stage';
     return $role;
 }
 ?>

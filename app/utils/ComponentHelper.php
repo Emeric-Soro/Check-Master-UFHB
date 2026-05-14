@@ -660,7 +660,7 @@ if (!function_exists('cm_render_param_crud_view')) {
                             'row_key' => '_id',
                             'selectable' => (function_exists('canDelete') ? canDelete() : true),
                             'actions' => $tableActions,
-                            'empty_title' => 'Aucune donnee',
+                            'empty_title' => 'Aucune donnée',
                             'empty_message' => 'Aucun enregistrement trouve.',
                         ]);
                         ?>
@@ -2691,7 +2691,12 @@ if (!function_exists('cm_data_table_selectable')) {
                             const action = btn.getAttribute('data-action');
                             const confirmMsg = btn.getAttribute('data-confirm');
 
-                            if (confirmMsg && !confirm(confirmMsg)) return;
+                            if (confirmMsg) {
+                                window.CM.confirm(confirmMsg).then(c => {
+                                    if (c) window.location.href = url;
+                                });
+                                return;
+                            }
 
                             document.dispatchEvent(new CustomEvent('cm:table:row:action', {
                                 detail: { table: table, rowId: rowId, action: action, button: btn }

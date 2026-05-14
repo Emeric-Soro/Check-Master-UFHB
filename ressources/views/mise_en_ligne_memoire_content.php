@@ -66,7 +66,7 @@ foreach ($etudiants as $etudiant) {
     if ($num === '') {
         continue;
     }
-    $etudiantOptions[$num] = (string) ($etudiant['nom_complet'] ?? 'Etudiant');
+    $etudiantOptions[$num] = (string) ($etudiant['nom_complet'] ?? 'Étudiant');
 }
 ?>
 
@@ -120,7 +120,7 @@ foreach ($etudiants as $etudiant) {
                     cm_component('form/select', [
                         'name' => 'cm_memoire_etudiant',
                         'id' => 'cmMemoireEtudiantSelect',
-                        'label' => 'Etudiant',
+                        'label' => 'Étudiant',
                         'required' => true,
                         'options' => $etudiantOptions,
                     ]);
@@ -135,7 +135,7 @@ foreach ($etudiants as $etudiant) {
                     cm_component('form/textarea', [
                         'name' => 'cm_memoire_theme',
                         'id' => 'cmMemoireTheme',
-                        'label' => 'Theme',
+                        'label' => 'Thème',
                         'readonly' => true,
                         'rows' => 3,
                     ]);
@@ -276,7 +276,7 @@ foreach ($etudiants as $etudiant) {
                                         <?php echo (int) ($pagination['offset'] ?? 0) + $index + 1; ?>
                                     </td>
                                     <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars((string) ($memoire['nom_etudiant'] ?? 'Etudiant'), ENT_QUOTES, 'UTF-8'); ?><br>
+                                        <?php echo htmlspecialchars((string) ($memoire['nom_etudiant'] ?? 'Étudiant'), ENT_QUOTES, 'UTF-8'); ?><br>
                                         <small><?php echo htmlspecialchars((string) ($memoire['matricule'] ?? $numEtu), ENT_QUOTES, 'UTF-8'); ?></small>
                                     </td>
                                     <td class="cm-data-table__td">
@@ -567,10 +567,14 @@ foreach ($etudiants as $etudiant) {
                     return;
                 }
 
-                if (!window.CM || !window.CM.confirm) {
-                    if (!confirm('Supprimer ce mémoire ?')) {
-                        return;
-                    }
+                const confirmed = await window.CM.confirm({
+                    title: 'Suppression',
+                    message: 'Supprimer ce mémoire ?',
+                    type: 'danger',
+                    confirmText: 'Supprimer',
+                });
+
+                if (!confirmed) return;
                 } else {
                     const confirmed = await window.CM.confirm({
                         title: 'Suppression',
@@ -614,10 +618,14 @@ foreach ($etudiants as $etudiant) {
                     return;
                 }
 
-                if (!window.CM || !window.CM.confirm) {
-                    if (!confirm('Supprimer ' + nums.length + ' mémoire(s) ?')) {
-                        return;
-                    }
+                const confirmed = await window.CM.confirm({
+                    title: 'Suppression multiple',
+                    message: 'Supprimer ' + nums.length + ' mémoire(s) ?',
+                    type: 'danger',
+                    confirmText: 'Supprimer',
+                });
+
+                if (!confirmed) return;
                 } else {
                     const confirmed = await window.CM.confirm({
                         title: 'Suppression multiple',
@@ -655,7 +663,7 @@ foreach ($etudiants as $etudiant) {
         // Event: Export CSV
         if (exportBtn) {
             exportBtn.addEventListener('click', function () {
-                const headers = ['N°', 'Etudiant', 'Promotion', 'Thème', 'Fichier', 'Date dépôt', 'Taille'];
+                const headers = ['N°', 'Étudiant', 'Promotion', 'Thème', 'Fichier', 'Date dépôt', 'Taille'];
                 const csvRows = [headers.join(';')];
 
                 getVisibleRows().forEach(function (row) {

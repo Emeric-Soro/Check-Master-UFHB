@@ -255,14 +255,14 @@ class ExcelImportService
             $parts = explode('/', $anneeAcad);
         }
         if (count($parts) !== 2) {
-            throw new Exception("Format d'annee academique invalide: $anneeAcad");
+            throw new Exception("Format d'année académique invalide: $anneeAcad");
         }
 
         $startYear = trim($parts[0]);
         $endYear = trim($parts[1]);
 
         if (!is_numeric($startYear) || !is_numeric($endYear)) {
-            throw new Exception("Format d'annee academique invalide: $anneeAcad");
+            throw new Exception("Format d'année académique invalide: $anneeAcad");
         }
 
         return [$startYear, $endYear];

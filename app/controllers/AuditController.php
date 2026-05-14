@@ -113,18 +113,16 @@ class AuditController {
         }
 
         if (!canDelete('piste_audit')) {
-            header('Location: ?page=piste_audit&error=invalid_method');
-            exit;
-        }
-        if (!canDelete('piste_audit')) {
             $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
             header('Location: ?page=piste_audit&error=permission_denied');
             exit;
         }
         $days = isset($_POST['days']) ? intval($_POST['days']) : 30;
+        error_log('[CLEANUP_DEBUG] cleanupAuditLog appelé, POST=' . json_encode($_POST) . ', days=' . $days . ', REQUEST_METHOD=' . ($_SERVER['REQUEST_METHOD'] ?? 'N/A'));
 
         try {
             $result = $this->service->cleanupLogs($days, $_SESSION['id_utilisateur']);
+            error_log('[CLEANUP_DEBUG] Resultat cleanupLogs: ' . json_encode($result));
 
             if (!$result['success']) {
                 header('Location: ?page=piste_audit&error=' . $result['message']);
@@ -154,10 +152,6 @@ class AuditController {
             exit;
         }
 
-        if (!canDelete('piste_audit')) {
-            header('Location: ?page=piste_audit&error=invalid_method');
-            exit;
-        }
         if (!canDelete('piste_audit')) {
             $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
             header('Location: ?page=piste_audit&error=permission_denied');

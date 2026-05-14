@@ -51,7 +51,7 @@ class ProgrammationSoutenanceService
         $selectedYearId = $this->getSelectedAcademicYearId();
 
         if ($selectedYearId !== null && $targetYearId !== null && $selectedYearId !== $targetYearId) {
-            throw new Exception("L'etudiant ne correspond pas a l'annee academique actuellement selectionnee.");
+            throw new Exception("L'étudiant ne correspond pas à l'année académique actuellement sélectionnée.");
         }
 
         $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $targetYearId, $context);
@@ -96,7 +96,7 @@ class ProgrammationSoutenanceService
         $selectedYearId = $this->getSelectedAcademicYearId();
 
         if ($selectedYearId !== null && $targetYearId !== null && $selectedYearId !== $targetYearId) {
-            throw new Exception("L'attribution ne correspond pas a l'annee academique actuellement selectionnee.");
+            throw new Exception("L'attribution ne correspond pas à l'année académique actuellement sélectionnée.");
         }
 
         $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $targetYearId, $context);

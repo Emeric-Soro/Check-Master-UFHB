@@ -5,10 +5,12 @@ require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../models/Note.php';
 require_once __DIR__ . '/../Core/Autoload.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use CheckMaster\Core\Session;
+use Note;
 
 /**
  * Service métier de la vérification des rapports
@@ -33,6 +35,9 @@ class VerificationRapportsService
     /** @var AuditLog */
     private $auditLog;
 
+    /** @var Note */
+    private $notesModel;
+
     /** @var \PDO */
     private $pdo;
     private $tableExistsCache = [];
@@ -48,6 +53,7 @@ class VerificationRapportsService
         $this->approbationModel = new Approuver($db);
         $this->persAdminModel = new PersAdmin($db);
         $this->auditLog = new AuditLog($db);
+        $this->notesModel = new Note($this->pdo);
     }
 
     private function tableExists($tableName)
@@ -213,12 +219,27 @@ class VerificationRapportsService
             }
 
             if (!$this->isInSelectedYear((int) $id_rapport)) {
-                return ['success' => false, 'message' => 'Le rapport ne correspond pas à l année académique actuellement sélectionnée.'];
+                return ['success' => false, 'message' => 'Le rapport ne correspond pas à l\'année académique actuellement sélectionnée.'];
             }
 
-            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId((int) $id_rapport), 'une verification de rapport');
+            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId((int) $id_rapport), 'une vérification de rapport');
             if (!$writeGuard['success']) {
                 return ['success' => false, 'message' => $writeGuard['message']];
+            }
+
+            // Vérifier que l'étudiant a validé le premier semestre du Master 2
+            $rapport = $this->rapportModel->getRapportDetail((int) $id_rapport);
+            $numEtu = '';
+            if (is_object($rapport) && isset($rapport->num_etu)) {
+                $numEtu = $rapport->num_etu;
+            } elseif (is_array($rapport) && isset($rapport['num_etu'])) {
+                $numEtu = $rapport['num_etu'];
+            }
+            if ($numEtu !== '') {
+                $semestreValide = $this->notesModel->estSemestreValide($numEtu, 'S1', 'Master 2');
+                if (!$semestreValide) {
+                    return ['success' => false, 'message' => "L'étudiant n'a pas validé le premier semestre du Master 2. La validation du rapport est refusée."];
+                }
             }
 
             if ($this->tableExists('approuver')) {
@@ -235,7 +256,7 @@ class VerificationRapportsService
             }
 
             $this->updateRapportEtape($id_rapport, 'approuve_communication', 'valider');
-            return ['success' => true, 'message' => 'Rapport approuve avec succes'];
+            return ['success' => true, 'message' => 'Rapport approuvé avec succès'];
         } catch (\Exception $e) {
             error_log("Erreur approbation rapport: " . $e->getMessage());
             return ['success' => false, 'message' => "Exception : " . $e->getMessage()];
@@ -263,10 +284,10 @@ class VerificationRapportsService
             }
 
             if (!$this->isInSelectedYear((int) $id_rapport)) {
-                return ['success' => false, 'message' => 'Le rapport ne correspond pas à l année académique actuellement sélectionnée.'];
+                return ['success' => false, 'message' => 'Le rapport ne correspond pas à l\'année académique actuellement sélectionnée.'];
             }
 
-            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId((int) $id_rapport), 'une verification de rapport');
+            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId((int) $id_rapport), 'une vérification de rapport');
             if (!$writeGuard['success']) {
                 return ['success' => false, 'message' => $writeGuard['message']];
             }
@@ -285,7 +306,7 @@ class VerificationRapportsService
             }
 
             $this->updateRapportEtape($id_rapport, 'desapprouve_communication', 'rejeter');
-            return ['success' => true, 'message' => 'Rapport rejete avec succes'];
+            return ['success' => true, 'message' => 'Rapport rejeté avec succès'];
         } catch (\Exception $e) {
             error_log("Erreur désapprobation rapport: " . $e->getMessage());
             return ['success' => false, 'message' => "Exception : " . $e->getMessage()];

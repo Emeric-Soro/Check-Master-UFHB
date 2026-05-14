@@ -60,6 +60,10 @@ class CandidatureSoutenanceController
 
             // Charger toutes les candidatures de l'étudiant
             $GLOBALS['candidatures_etudiant'] = $this->service->getCandidatures($_SESSION['num_etu']);
+
+            // Ajouter la dernière candidature et la progression
+            $GLOBALS["candidature_active"] = $this->service->getLastCandidature($_SESSION["num_etu"]);
+            $GLOBALS["progression"] = $this->service->calculerProgression($_SESSION["num_etu"]);
         } else {
             // Pour l'administrateur, initialiser des valeurs par défaut
             $GLOBALS['stage_info'] = null;
@@ -78,30 +82,24 @@ class CandidatureSoutenanceController
 
 
 
-    //=============================Gestion de la demande de candidature=============================
+    //=============================Redirection de l'ancienne action candidature=============================
+    // La candidature est désormais créée automatiquement lors du dépôt du rapport.
+    // Cette action redirige vers la page principale avec un message informatif.
     public function demande_candidature()
     {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (!canView('candidature_soutenance')) {
-                $_SESSION['error'] = "Accès non autorisé.";
-                return;
-            }
-            $etudiant_id = $_SESSION['num_etu'];
-            $id_utilisateur = $_SESSION['id_utilisateur'];
-
-            $result = $this->service->soumettreCandidature($etudiant_id, $id_utilisateur);
-
-            if ($result['success']) {
-                $_SESSION['success'] = $result['message'];
-            } else {
-                $_SESSION['error'] = $result['message'];
-            }
-        }
+        $_SESSION['success'] = "Votre candidature sera soumise automatiquement lors du dépôt de votre rapport. Veuillez d'abord remplir les informations de stage, puis déposer votre rapport.";
+        header('Location: ?page=candidature_soutenance');
+        exit();
     }
 
     //=============================COMPTE RENDU DE RAPPORTS =============================
     public function compteRenduRapport()
     {
+        if (!isset($_SESSION['num_etu']) || empty($_SESSION['num_etu'])) {
+            $_SESSION['error'] = "Identifiant étudiant non trouvé. Veuillez vous reconnecter.";
+            return;
+        }
+
         $etudiant_id = $_SESSION['num_etu'];
         $compte_rendu = $this->service->getCompteRendu($etudiant_id);
 
@@ -122,7 +120,7 @@ class CandidatureSoutenanceController
                 header('Location: ?page=gestion_rapports&action=creer_rapport');
                 exit();
             }
-            if (!canView('candidature_soutenance')) {
+            if (!canCreate('candidature_soutenance')) {
                 $_SESSION['error'] = "Accès non autorisé.";
                 header('Location: ?page=candidature_soutenance');
                 exit();
@@ -144,7 +142,6 @@ class CandidatureSoutenanceController
 
             if ($result['success']) {
                 $_SESSION['success'] = $result['message'];
-                // Rediriger vers la page de rédaction de rapport
                 header('Location: ?page=gestion_rapports&action=creer_rapport');
                 exit();
             } else {

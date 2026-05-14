@@ -106,7 +106,7 @@ class AuditService
             'ID Utilisateur',
             'Login Utilisateur',
             'Nom Utilisateur'
-        ], ';');
+        ], ';', '"', '');
 
         // Données
         foreach ($logs as $log) {
@@ -119,7 +119,7 @@ class AuditService
                 $log['id_utilisateur'] ?? 'N/A',
                 $log['login_utilisateur'] ?? 'N/A',
                 $log['nom_utilisateur'] ?? 'N/A'
-            ], ';');
+            ], ';', '"', '');
         }
     }
 
@@ -131,13 +131,22 @@ class AuditService
     public function cleanupLogs($days, $idUtilisateur)
     {
         if ($days < 1 || $days > 365) {
+            error_log('[CLEANUP_DEBUG] jours invalides: ' . $days);
             return ['success' => false, 'deleted' => 0, 'message' => 'invalid_days'];
         }
+
+        // Vérifier combien de lignes correspondent AVANT la suppression
+        $checkSql = "SELECT COUNT(*) FROM pister WHERE date_creation < DATE_SUB(NOW(), INTERVAL ? DAY)";
+        $checkStmt = $this->db->prepare($checkSql);
+        $checkStmt->execute([$days]);
+        $countBefore = (int) $checkStmt->fetchColumn();
+        error_log('[CLEANUP_DEBUG] jours=' . $days . ', lignes correspondant AVANT DELETE=' . $countBefore);
 
         $sql = "DELETE FROM pister WHERE date_creation < DATE_SUB(NOW(), INTERVAL ? DAY)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$days]);
         $deletedCount = $stmt->rowCount();
+        error_log('[CLEANUP_DEBUG] DELETE exécuté, lignes supprimées=' . $deletedCount);
 
         $this->auditLog->logAction($idUtilisateur, 'Nettoyage', 'pister', 'Succès');
 
