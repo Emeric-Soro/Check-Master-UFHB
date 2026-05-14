@@ -99,10 +99,52 @@ class EvaluationRapport
                 INSERT INTO evaluations_rapports (id_rapport, id_evaluateur, decision_evaluation, commentaire, date_evaluation)
                 VALUES (?, ?, ?, ?, NOW())
             ");
-            return $stmt->execute([$id_rapport, $id_evaluateur, $decision, $commentaire]);
+            $result = $stmt->execute([$id_rapport, $id_evaluateur, $decision, $commentaire]);
+
+            // Auto-finalisation : si 4+ votes 'valider', insérer automatiquement dans valider
+            if ($result && $decision === 'valider') {
+                $this->autoFinaliserSiNecessaire($id_rapport, $id_evaluateur);
+            }
+
+            return $result;
         } catch (PDOException $e) {
             error_log("Erreur ajout évaluation rapport: " . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Vérifie si le rapport a 4+ votes 'valider' et l'auto-finalise si ce n'est pas déjà fait
+     */
+    private function autoFinaliserSiNecessaire($id_rapport, $id_evaluateur)
+    {
+        try {
+            // Vérifier si déjà dans valider
+            $checkValider = $this->pdo->prepare("SELECT COUNT(*) FROM valider WHERE id_rapport = ?");
+            $checkValider->execute([$id_rapport]);
+            if ((int) $checkValider->fetchColumn() > 0) {
+                return;
+            }
+
+            // Compter les votes 'valider'
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM evaluations_rapports WHERE id_rapport = ? AND decision_evaluation = 'valider'");
+            $stmt->execute([$id_rapport]);
+            $totalValide = (int) $stmt->fetchColumn();
+
+            if ($totalValide >= 4) {
+                $this->pdo->beginTransaction();
+                try {
+                    $insertValider = $this->pdo->prepare("INSERT INTO valider (id_enseignant, id_rapport, date_validation, commentaire_validation, decision_validation) VALUES (?, ?, NOW(), ?, 'valider')");
+                    $insertValider->execute([$id_evaluateur, $id_rapport, 'Validation automatique (4 votes atteints)']);
+                    $this->pdo->commit();
+                    error_log("Auto-finalisation effectuée pour le rapport $id_rapport");
+                } catch (Exception $e) {
+                    $this->pdo->rollBack();
+                    error_log("Erreur auto-finalisation rapport $id_rapport: " . $e->getMessage());
+                }
+            }
+        } catch (Throwable $e) {
+            error_log("Erreur autoFinaliserSiNecessaire: " . $e->getMessage());
         }
     }
 

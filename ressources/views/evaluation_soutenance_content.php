@@ -27,7 +27,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['action']))
     }
 }
 
-$soutenances = $controller->getSoutenancesProgrammeesForView();
+$soutenances = array_map(static function (array $row): array {
+    $row['promotion_etu'] = FormattingUtils::formatPromotion((string) ($row['promotion_etu'] ?? ''));
+    $row['promotion_label'] = FormattingUtils::formatPromotion((string) ($row['promotion_label'] ?? ''));
+    return $row;
+}, $controller->getSoutenancesProgrammeesForView());
 $criteres = $controller->getCriteresEvaluation();
 
 $anneesAcademiques = $controller->getAnneesAcademiques();
@@ -90,31 +94,7 @@ foreach ($soutenances as $soutenance) {
 
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur is-compact">
-            <style>
-/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
-#cmEvalSoutForm .cm-form-group:has(#FIELD_ID) {
-    width: 10ch !important;
-    min-width: 10ch !important;
-    max-width: 10ch !important;
-}
 
-.cm-eval-sout-toolbar .cm-toolbar-left {
-    flex: 1 1 20rem !important;
-}
-
-.cm-eval-sout-toolbar .cm-toolbar-center {
-    flex: 1 1 28rem !important;
-}
-
-.cm-eval-sout-toolbar .cm-toolbar-right {
-    flex: 0 0 auto !important;
-}
-
-.cm-eval-sout-toolbar .cm-toolbar-left .cm-toolbar-field-lg {
-    min-width: 13rem !important;
-    max-width: 18rem !important;
-}
-</style>
 <form id="cmEvalSoutForm" method="POST" action="?page=evaluation_soutenance" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" name="action" value="evaluerSoutenance">
@@ -255,49 +235,23 @@ foreach ($soutenances as $soutenance) {
         </div>
 
         <div class="cm-barre-intermediaire">
-            <div class="cm-toolbar cm-eval-sout-toolbar">
-                <div class="cm-toolbar-left">
-                    <label for="cmEvalSoutLimit"><strong>Afficher:</strong></label>
-                    <select id="cmEvalSoutLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
-                        data-cm-ajax-param="limit_eval_sout" data-cm-ajax-reset-param="page_eval_sout"
-                        data-cm-ajax-reset-value="1">
-                        <?php foreach ($allowedLimits as $limit): ?>
-                            <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
-                                <?php echo $limit; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <input type="text" id="cmEvalSoutSearch" class="cm-form-control cm-toolbar-field-lg"
-                        placeholder="Rechercher une soutenance...">
-                </div>
-
-                <div class="cm-toolbar-center">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmEvalSoutSelectAllBtn">
-                        <i class="fas fa-square-check" aria-hidden="true"></i>
-                        Select. tout
-                    </button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmEvalSoutDeselectBtn">
-                        <i class="fas fa-square" aria-hidden="true"></i>
-                        Deselect.
-                    </button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmEvalSoutDeleteBtn" disabled>
-                        <i class="fas fa-trash" aria-hidden="true"></i>
-                        Supprimer (0)
-                    </button>
-                    <button type="button" class="cm-btn is-info is-sm" id="cmEvalSoutExport">
-                        <i class="fas fa-file-export" aria-hidden="true"></i>
-                        Export
-                    </button>
-                </div>
-
-                <div class="cm-toolbar-right">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmEvalSoutPrint">
-                        <i class="fas fa-print" aria-hidden="true"></i>
-                        Imprimer
-                    </button>
-                </div>
-            </div>
+            <?php cm_toolbar([
+                'screen' => 'evaluation_soutenance',
+                'id_prefix' => 'cmEvalSout',
+                'limit' => $perPage,
+                'limit_options' => $allowedLimits,
+                'search_placeholder' => 'Rechercher une soutenance...',
+                'custom_actions' => [
+                    [
+                        'tag' => 'button',
+                        'id' => 'cmEvalSoutExport',
+                        'label' => 'Export',
+                        'icon' => 'fa-file-export',
+                        'class' => 'cm-btn is-info is-sm',
+                        'attrs' => ['data-cm-toolbar-action' => 'export']
+                    ]
+                ]
+            ]); ?>
         </div>
 
         <div class="cm-pole-inferieur">

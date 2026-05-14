@@ -67,7 +67,7 @@ foreach ($etudiants as $etu) {
     }
     $label = trim((string) ($etu->nom_etu ?? '') . ' ' . (string) ($etu->prenom_etu ?? '')) . ' (' . $num . ')';
     if ($allYearsSelected && !empty($etu->promotion_etu)) {
-        $label .= ' - ' . (string) $etu->promotion_etu;
+        $label .= ' - ' . \FormattingUtils::formatPromotion($etu->promotion_etu);
     }
     $studentOptions[$num] = $label;
     $studentCatalog[$num] = [

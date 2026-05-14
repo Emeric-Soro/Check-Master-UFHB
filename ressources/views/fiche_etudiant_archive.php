@@ -96,7 +96,7 @@ foreach ($timeline_steps as $i => $step) {
                 </p>
                 <p class="cm-text-gray-500">
                     Année: <span
-                        class="cm-font-medium"><?php echo htmlspecialchars($studentFile['soutenance']['annee_academique'] ?? $studentFile['annee_academique'] ?? 'N/A'); ?></span>
+                        class="cm-font-medium"><?php echo htmlspecialchars(\FormattingUtils::formatPromotion($studentFile['soutenance']['annee_academique'] ?? $studentFile['annee_academique'] ?? '')); ?></span>
                 </p>
             </div>
             <div class="cm-text-right">

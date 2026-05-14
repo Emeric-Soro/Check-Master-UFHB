@@ -1319,6 +1319,25 @@
   color: var(--cm-feedback-danger);
 }
 
+/* Clickable Stat Cards */
+.cm-stat-card.is-clickable {
+  cursor: pointer;
+  transition: transform var(--cm-transition-fast), box-shadow var(--cm-transition-fast), border-color var(--cm-transition-fast);
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+.cm-stat-card.is-clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--cm-shadow-md);
+  border-color: var(--cm-primary-light);
+}
+
+.cm-stat-card.is-clickable:active {
+  transform: translateY(-1px);
+  box-shadow: var(--cm-shadow-sm);
+}
+
 .cm-chart-container {
   background: var(--cm-card-bg);
   border: 1px solid var(--cm-card-border);
@@ -4554,7 +4573,9 @@ form .cm-grid-auto {
   background: var(--cm-bg-white);
 
   border-radius: var(--cm-radius-md);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+
 }
 
 /* Zones de la toolbar */
@@ -4564,6 +4585,8 @@ form .cm-grid-auto {
   display: flex;
   align-items: center;
   gap: var(--cm-spacing-sm);
+  flex-shrink: 0;
+
 }
 
 .cm-toolbar-center {
@@ -6746,4 +6769,53 @@ form .cm-grid-auto {
   display: flex;
   align-items: center;
   gap: var(--cm-spacing-xs, 0.2rem);
+}
+
+/* ============================================================================
+   ULTIMATE TOOLBAR UNIFIED ONE-LINE FIX (No Wrap, No Margin Overflow)
+   ============================================================================ */
+.cm-toolbar.cm-toolbar--unified {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  scrollbar-width: thin;
+  padding-bottom: 4px !important;
+}
+
+.cm-toolbar.cm-toolbar--unified::-webkit-scrollbar {
+  height: 6px;
+}
+.cm-toolbar.cm-toolbar--unified::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,0.2);
+  border-radius: 10px;
+}
+
+.cm-toolbar.cm-toolbar--unified .cm-toolbar-left,
+.cm-toolbar.cm-toolbar--unified .cm-toolbar-center,
+.cm-toolbar.cm-toolbar--unified .cm-toolbar-right {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  width: auto !important;
+  min-width: max-content !important;
+  white-space: nowrap !important;
+}
+
+.cm-toolbar.cm-toolbar--unified .cm-toolbar-center {
+  flex: 1 1 auto !important;
+}
+
+.cm-toolbar.cm-toolbar--unified .cm-btn,
+.cm-toolbar.cm-toolbar--unified .cm-toolbar__control,
+.cm-toolbar.cm-toolbar--unified select,
+.cm-toolbar.cm-toolbar--unified input {
+  flex-shrink: 0 !important;
 }

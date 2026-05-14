@@ -141,7 +141,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                         $fin = !empty($annee->date_fin) ? date('Y', strtotime((string) $annee->date_fin)) : '';
                         $label = trim($debut . '-' . $fin, '-');
                         if ($label !== '') {
-                            $promotionOptions[$label] = $label;
+                            $promotionOptions[$label] = \FormattingUtils::formatPromotion($label);
                         }
                     }
                     cm_component('form/select', [
@@ -312,7 +312,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                                     $dateNaiss = (string) ($etudiant->date_naiss_etu ?? '');
                                     $genre = (string) ($etudiant->libelle_genre ?? $etudiant->genre_etu ?? '');
                                     $email = (string) ($etudiant->email_etu ?? '');
-                                    $promotion = (string) ($etudiant->promotion_etu ?? '');
+                                    $promotion = \FormattingUtils::formatPromotion((string) ($etudiant->promotion_etu ?? ''));
                                     ?>
                                     <tr class="cm-data-table__row"
                                         data-search="<?php echo htmlspecialchars(strtolower($numEtu . ' ' . $nom . ' ' . $prenom . ' ' . $email . ' ' . $idMesrs), ENT_QUOTES, 'UTF-8'); ?>"

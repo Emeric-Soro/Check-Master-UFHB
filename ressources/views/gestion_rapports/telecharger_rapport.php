@@ -52,34 +52,135 @@ unset($_SESSION['success'], $_SESSION['error']);
         <?php endif; ?>
 
         <!-- Carte principale -->
-        <div class="cm-etu-panel" style="border: 1px solid #eaeaea; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); background: #fff; overflow: hidden;">
-            
-            <!-- En-tête -->
-            <header class="cm-etu-panel__header" style="border-bottom: 1px solid #f0f0f0; padding: 20px 30px;">
-                <div>
-                    <h2 style="font-size: 1.3rem; color: #222; font-weight: 600; margin-bottom: 4px;">
-                        <i class="fas fa-file-upload" style="color: #2196F3; margin-right: 8px;"></i>
-                        Téléchargement du rapport étudiant
-                    </h2>
-                    <p class="cm-etu-panel__subtitle" style="margin: 0; color: #666;">
-                        Déposez votre rapport de stage au format PDF ou Word.
-                    </p>
-                </div>
-            </header>
+<style>
+    .cm-etu-panel {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    
+    .cm-etu-field {
+        margin-bottom: 20px;
+    }
+    
+    .cm-etu-label {
+        display: block !important;
+        font-weight: 600 !important;
+        color: #333 !important;
+        margin-bottom: 8px !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .cm-etu-input {
+        background: #fff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 4px !important;
+        padding: 12px 15px !important;
+        font-size: 0.95rem !important;
+        width: 100%;
+        transition: border-color 0.2s;
+        color: #333 !important;
+    }
+    
+    .cm-etu-input:focus {
+        border-color: #3182ce !important;
+        outline: none !important;
+        box-shadow: 0 0 0 1px #3182ce !important;
+    }
 
+    .cm-btn {
+        padding: 10px 20px !important;
+        border-radius: 4px !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .cm-btn.is-primary {
+        background-color: #3182ce !important;
+        color: #fff !important;
+        border: 1px solid #3182ce !important;
+    }
+
+    .cm-btn.is-primary:hover {
+        background-color: #2b6cb0 !important;
+    }
+
+    .cm-btn.is-outline {
+        background-color: #fff !important;
+        color: #4a5568 !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    .cm-btn.is-outline:hover {
+        background-color: #f7fafc !important;
+    }
+
+    .cm-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 25px;
+    }
+
+    .cm-form-full-width {
+        grid-column: span 2;
+    }
+
+    /* Adaption pour la liste des rapports */
+    .cm-report-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .cm-report-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 20px;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .cm-report-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+</style>
+
+<div class="cm-etu-screen">
+    <div style="padding: 20px;">
+
+        <!-- Messages flash -->
+        <?php if ($messageSuccess): ?>
+            <div style="margin-bottom: 20px;">
+                <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => $messageSuccess]); ?>
+            </div>
+        <?php endif; ?>
+        <?php if ($messageError): ?>
+            <div style="margin-bottom: 20px;">
+                <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $messageError]); ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- Carte principale -->
+        <div class="cm-etu-panel">
+            
             <!-- Section 1 : Téléchargement du modèle -->
-            <div style="padding: 20px 30px; border-bottom: 1px solid #f0f0f0; background: #fafafa;">
+            <div style="padding: 20px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 30px;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <div>
-                        <h3 style="font-size: 1rem; color: #333; font-weight: 600; margin: 0 0 4px 0;">
-                            <i class="fas fa-download" style="color: #4CAF50; margin-right: 6px;"></i>
-                            Modèle de rapport
+                        <h3 style="font-size: 1rem; color: #2d3748; font-weight: 700; margin: 0 0 5px 0;">
+                            Modèle de rapport officiel
                         </h3>
-                        <p style="margin: 0; color: #666; font-size: 0.9rem;">
-                            Téléchargez le modèle officiel pour la rédaction de votre rapport de stage.
+                        <p style="margin: 0; color: #718096; font-size: 0.9rem;">
+                            Utilisez ce document comme base pour la rédaction de votre rapport de stage.
                         </p>
                     </div>
-                    <a href="?page=gestion_rapports&action=download_modele" class="cm-btn is-outline-primary is-sm">
+                    <a href="?page=gestion_rapports&action=download_modele" class="cm-btn is-outline">
                         <i class="fas fa-file-download"></i>
                         Télécharger le modèle
                     </a>
@@ -87,56 +188,50 @@ unset($_SESSION['success'], $_SESSION['error']);
             </div>
 
             <!-- Section 2 : Upload du rapport -->
-            <div style="padding: 25px 30px; border-bottom: 1px solid #f0f0f0;">
-                <h3 style="font-size: 1rem; color: #333; font-weight: 600; margin: 0 0 15px 0;">
-                    <i class="fas fa-cloud-upload-alt" style="color: #FF9800; margin-right: 6px;"></i>
-                    Déposer votre rapport
+            <div style="margin-bottom: 40px;">
+                <h3 style="font-size: 1.1rem; color: #2d3748; font-weight: 700; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0;">
+                    Déposer un nouveau rapport
                 </h3>
 
-                <form method="POST" action="?page=gestion_rapports" enctype="multipart/form-data" style="max-width: 600px;">
+                <form method="POST" action="?page=gestion_rapports" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="upload_rapport">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
 
-                    <!-- Thème du rapport (optionnel) -->
-                    <div style="margin-bottom: 16px;">
-                        <label for="theme_rapport" style="display: block; font-weight: 500; color: #444; margin-bottom: 6px; font-size: 0.9rem;">
-                            Thème du rapport <span style="color: #999;">(optionnel)</span>
-                        </label>
-                        <input type="text" 
-                               id="theme_rapport" 
-                               name="theme_rapport" 
-                               class="cm-form-control" 
-                               placeholder="Ex: Conception et réalisation d'une application de gestion..."
-                               style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem;">
+                    <div class="cm-form-grid">
+                        <!-- Thème du rapport -->
+                        <div class="cm-etu-field cm-form-full-width">
+                            <label class="cm-etu-label" for="theme_rapport">
+                                Thème du rapport <span style="color: #a0aec0; font-weight: 400; font-style: italic;">(Important pour le jury)</span>
+                            </label>
+                            <textarea id="theme_rapport" name="theme_rapport" class="cm-etu-input" 
+                                   placeholder="Saisissez le titre exact de votre rapport de stage" required style="resize: vertical; min-height: 80px;" rows="3"></textarea>
+                        </div>
+
+                        <!-- Upload fichier -->
+                        <div class="cm-etu-field">
+                            <label class="cm-etu-label">Fichier du rapport <span style="color: #e53e3e;">*</span></label>
+                            <input type="file" name="rapport_fichier" id="rapport_fichier" class="cm-etu-input" 
+                                   accept=".pdf,.doc,.docx" required style="padding: 9px 12px;">
+                            <p style="font-size: 0.75rem; color: #718096; margin-top: 5px;">
+                                PDF or Word. Max 20 Mo.
+                            </p>
+                        </div>
+
+                        <!-- Options supplémentaires -->
+                        <div class="cm-etu-field" style="display: flex; align-items: center; padding-top: 25px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #4a5568; font-size: 0.9rem; font-weight: 500;">
+                                <input type="checkbox" name="deposer_apres_upload" value="1" checked style="width: 18px; height: 18px;">
+                                Soumettre immédiatement pour évaluation
+                            </label>
+                        </div>
                     </div>
 
-                    <!-- Upload fichier -->
-                    <div style="margin-bottom: 16px;">
-                        <?php
-                        cm_component('form/file-upload', [
-                            'name' => 'rapport_fichier',
-                            'id' => 'rapport_fichier',
-                            'label' => 'Fichier du rapport',
-                            'required' => true,
-                            'accept' => '.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                            'hint' => 'Formats acceptés : PDF, Word (doc/docx). Taille maximale : 20 Mo.',
-                            'size' => 'md',
-                        ]);
-                        ?>
+                    <div style="margin-top: 10px;">
+                        <button type="submit" class="cm-btn is-primary">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            Enregistrer et télécharger le rapport
+                        </button>
                     </div>
-
-                    <!-- Options supplémentaires -->
-                    <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                        <input type="checkbox" id="deposer_apres_upload" name="deposer_apres_upload" value="1" checked>
-                        <label for="deposer_apres_upload" style="font-size: 0.9rem; color: #555; cursor: pointer;">
-                            Déposer également le rapport pour évaluation (candidature à la soutenance)
-                        </label>
-                    </div>
-
-                    <button type="submit" class="cm-btn is-primary">
-                        <i class="fas fa-upload" style="margin-right: 6px;"></i>
-                        Télécharger le rapport
-                    </button>
                 </form>
             </div>
 
@@ -180,99 +275,88 @@ unset($_SESSION['success'], $_SESSION['error']);
             <?php endif; ?>
 
             <!-- Section 4 : Mes rapports -->
-            <div style="padding: 25px 30px;">
+            <div style="padding-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="font-size: 1rem; color: #333; font-weight: 600; margin: 0;">
-                        <i class="fas fa-history" style="color: #9C27B0; margin-right: 6px;"></i>
-                        Mes rapports
-                        <span style="font-weight: normal; font-size: 0.85rem; color: #888; margin-left: 8px;">
-                            (<?= $totalRapports ?> rapport(s))
+                    <h3 style="font-size: 1.1rem; color: #2d3748; font-weight: 700; margin: 0;">
+                        Historique des dépôts
+                        <span style="font-weight: normal; font-size: 0.85rem; color: #718096; margin-left: 8px;">
+                            (<?= $totalRapports ?> document(s))
                         </span>
                     </h3>
                 </div>
 
                 <?php if (!empty($rapportsRecents)): ?>
-                    <div class="cm-etu-report-list">
-                        <table class="cm-data-table" style="width: 100%; border-collapse: collapse;">
-                            <thead>
-                                <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
-                                    <th style="padding: 12px 15px; text-align: left; font-weight: 600; color: #555; font-size: 0.85rem;">Rapport</th>
-                                    <th style="padding: 12px 15px; text-align: left; font-weight: 600; color: #555; font-size: 0.85rem;">Thème</th>
-                                    <th style="padding: 12px 15px; text-align: center; font-weight: 600; color: #555; font-size: 0.85rem;">Statut</th>
-                                    <th style="padding: 12px 15px; text-align: center; font-weight: 600; color: #555; font-size: 0.85rem;">Date</th>
-                                    <th style="padding: 12px 15px; text-align: center; font-weight: 600; color: #555; font-size: 0.85rem;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($rapportsRecents as $rapport): ?>
-                                    <?php
-                                    $rapportId = (int) ($rapport->id_rapport ?? 0);
-                                    $infoDepot = $infosDepot[$rapportId] ?? ['peutDeposer' => false, 'dejaDepose' => false];
-                                    $dejaDepose = (bool) ($infoDepot['dejaDepose'] ?? false);
-                                    $peutDeposer = (bool) ($infoDepot['peutDeposer'] ?? false);
-                                    
-                                    $statut = strtolower((string) ($rapport->statut_rapport ?? ''));
-                                    $badgeType = 'light';
-                                    $badgeText = 'Brouillon';
-                                    if ($statut === 'en_cours' || $statut === 'en_attente') {
-                                        $badgeType = 'info';
-                                        $badgeText = 'En attente';
-                                    } elseif ($statut === 'valider') {
-                                        $badgeType = 'success';
-                                        $badgeText = 'Validé';
-                                    } elseif ($statut === 'rejeter') {
-                                        $badgeType = 'danger';
-                                        $badgeText = 'Rejeté';
-                                    }
-                                    if ($dejaDepose) {
-                                        $badgeType = 'warning';
-                                        $badgeText = 'Déposé';
-                                    }
-                                    
-                                    $dateAffichage = !empty($rapport->date_rapport) 
-                                        ? date('d/m/Y', strtotime($rapport->date_rapport)) 
-                                        : (!empty($rapport->date_modification) 
-                                            ? date('d/m/Y', strtotime($rapport->date_modification)) 
-                                            : '-');
-                                    $aUnFichier = !empty($rapport->chemin_fichier);
-                                    ?>
-                                    <tr style="border-bottom: 1px solid #eee;">
-                                        <td style="padding: 12px 15px; font-weight: 500; color: #333;">
-                                            <?= htmlspecialchars((string) ($rapport->nom_rapport ?? 'Rapport'), ENT_QUOTES, 'UTF-8') ?>
-                                        </td>
-                                        <td style="padding: 12px 15px; color: #666; font-size: 0.9rem;">
-                                            <?= htmlspecialchars((string) ($rapport->theme_rapport ?? ''), ENT_QUOTES, 'UTF-8') ?>
-                                        </td>
-                                        <td style="padding: 12px 15px; text-align: center;">
-                                            <?php cm_component('ui/badge', ['type' => $badgeType, 'text' => $badgeText]); ?>
-                                        </td>
-                                        <td style="padding: 12px 15px; text-align: center; color: #666; font-size: 0.9rem;">
-                                            <?= $dateAffichage ?>
-                                        </td>
-                                        <td style="padding: 12px 15px; text-align: center;">
-                                            <div style="display: flex; gap: 6px; justify-content: center;">
-                                                <?php if ($aUnFichier): ?>
-                                                    <a href="?page=gestion_rapports&action=download_fichier_rapport&id=<?= $rapportId ?>" 
-                                                       class="cm-btn is-light is-sm" title="Télécharger le fichier">
-                                                        <i class="fas fa-download"></i>
-                                                    </a>
-                                                <?php endif; ?>
-                                                <a href="?page=gestion_rapports&action=creer_rapport&edit=<?= $rapportId ?>" 
-                                                   class="cm-btn is-light is-sm" title="Voir les détails">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                    <div class="cm-report-grid">
+                        <?php foreach ($rapportsRecents as $rapport): ?>
+                            <?php
+                            $rapportId = (int) ($rapport->id_rapport ?? 0);
+                            $infoDepot = $infosDepot[$rapportId] ?? ['peutDeposer' => false, 'dejaDepose' => false];
+                            $dejaDepose = (bool) ($infoDepot['dejaDepose'] ?? false);
+                            
+                            $statut = strtolower((string) ($rapport->statut_rapport ?? ''));
+                            $badgeType = 'light';
+                            $badgeText = 'Brouillon';
+                            if ($statut === 'en_cours' || $statut === 'en_attente') {
+                                $badgeType = 'info';
+                                $badgeText = 'En attente';
+                            } elseif ($statut === 'valider') {
+                                $badgeType = 'success';
+                                $badgeText = 'Validé';
+                            } elseif ($statut === 'rejeter') {
+                                $badgeType = 'danger';
+                                $badgeText = 'Rejeté';
+                            }
+                            if ($dejaDepose) {
+                                $badgeType = 'warning';
+                                $badgeText = 'Déposé';
+                            }
+                            
+                            $dateAffichage = !empty($rapport->date_rapport) 
+                                ? date('d/m/Y', strtotime($rapport->date_rapport)) 
+                                : (!empty($rapport->date_modification) 
+                                    ? date('d/m/Y', strtotime($rapport->date_modification)) 
+                                    : '-');
+                            $aUnFichier = !empty($rapport->chemin_fichier);
+                            ?>
+                            <div class="cm-report-card">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                                    <h4 style="margin: 0; font-size: 1rem; color: #2d3748; font-weight: 600; line-height: 1.4;">
+                                        <?= htmlspecialchars((string) ($rapport->nom_rapport ?? 'Rapport'), ENT_QUOTES, 'UTF-8') ?>
+                                    </h4>
+                                    <?php cm_component('ui/badge', ['type' => $badgeType, 'text' => $badgeText]); ?>
+                                </div>
+                                
+                                <div style="margin-bottom: 15px; background: #f7fafc; padding: 10px; border-radius: 4px; border-left: 3px solid #cbd5e0;">
+                                    <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #718096; font-weight: 700; margin-bottom: 4px;">Thème</div>
+                                    <div style="color: #4a5568; font-size: 0.9rem; font-style: italic; line-height: 1.5;">
+                                        <?= htmlspecialchars((string) ($rapport->theme_rapport ?? 'Non spécifié'), ENT_QUOTES, 'UTF-8') ?>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #edf2f7; padding-top: 12px;">
+                                    <span style="font-size: 0.8rem; color: #a0aec0;">
+                                        <i class="far fa-calendar-alt"></i> <?= $dateAffichage ?>
+                                    </span>
+                                    <div style="display: flex; gap: 8px;">
+                                        <?php if ($aUnFichier): ?>
+                                            <a href="?page=gestion_rapports&action=download_fichier_rapport&id=<?= $rapportId ?>" 
+                                               class="cm-btn is-outline" style="padding: 6px 12px !important; font-size: 0.8rem !important;" title="Télécharger">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        <a href="?page=gestion_rapports&action=creer_rapport&edit=<?= $rapportId ?>" 
+                                           class="cm-btn is-outline" style="padding: 6px 12px !important; font-size: 0.8rem !important;" title="Voir">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
                     </div>
                 <?php else: ?>
-                    <div style="text-align: center; padding: 40px; background: #fafafa; border-radius: 8px;">
-                        <i class="fas fa-file-circle-plus" style="font-size: 2.5rem; color: #ddd; margin-bottom: 15px;"></i>
-                        <p style="color: #666; margin-bottom: 5px;">Aucun rapport disponible pour le moment.</p>
-                        <p style="color: #999; font-size: 0.9rem;">Utilisez le formulaire ci-dessus pour déposer votre premier rapport.</p>
+                    <div style="text-align: center; padding: 40px; background: #fff; border: 1px dashed #cbd5e0; border-radius: 8px;">
+                        <i class="fas fa-folder-open" style="font-size: 2rem; color: #e2e8f0; margin-bottom: 15px;"></i>
+                        <p style="color: #718096; margin: 0;">Aucun document déposé pour le moment.</p>
                     </div>
                 <?php endif; ?>
             </div>

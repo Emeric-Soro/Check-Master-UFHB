@@ -56,7 +56,7 @@ foreach ($dossiers as $dossier) {
             $promotionLabel = $academicYearLabels[(int) $dossier['id_annee_acad']] ?? '';
         }
         if ($promotionLabel !== '') {
-            $dossierLabel .= ' - ' . $promotionLabel;
+            $dossierLabel .= ' - ' . \FormattingUtils::formatPromotion($promotionLabel);
         }
     }
     $dossierOptions[$id] = $dossierLabel;
@@ -114,15 +114,15 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur is-compact">
             <div class="cm-grid-3">
-                <div class="cm-card cm-p-md">
+                <div class="cm-card cm-p-md is-clickable" onclick="window.location.href='?page=evaluation_dossiers&filter=a_traiter'">
                     <div class="cm-text-sm cm-text-semibold cm-text-primary">A TRAITER</div>
                     <div style="font-size:1.6rem;font-weight:700;"><?php echo $aTraiter; ?></div>
                 </div>
-                <div class="cm-card cm-p-md">
+                <div class="cm-card cm-p-md is-clickable" onclick="window.location.href='?page=evaluation_dossiers&filter=valides'">
                     <div class="cm-text-sm cm-text-semibold cm-text-primary">VALIDÉS</div>
                     <div style="font-size:1.6rem;font-weight:700;"><?php echo $valides; ?></div>
                 </div>
-                <div class="cm-card cm-p-md">
+                <div class="cm-card cm-p-md is-clickable" onclick="window.location.href='?page=evaluation_dossiers&filter=rejetes'">
                     <div class="cm-text-sm cm-text-semibold cm-text-primary">REJETÉS</div>
                     <div style="font-size:1.6rem;font-weight:700;"><?php echo $rejetes; ?></div>
                 </div>
@@ -258,6 +258,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                             if ($promotionLabel === '' && !empty($dossier['id_annee_acad'])) {
                                 $promotionLabel = $academicYearLabels[(int) $dossier['id_annee_acad']] ?? '-';
                             }
+                            $promotionLabel = \FormattingUtils::formatPromotion($promotionLabel);
                             $myEval = $myEvaluationsByRapport[$idRapport] ?? null;
                             $myDecision = strtolower((string) ($myEval['decision_evaluation'] ?? ''));
                             $myComment = trim((string) ($myEval['commentaire'] ?? ''));

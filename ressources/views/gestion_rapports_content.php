@@ -27,8 +27,81 @@ foreach ($rapportsRecents as $r) {
 }
 ?>
 
+<style>
+    .cm-etu-panel {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+
+    .cm-report-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .cm-report-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 20px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .cm-report-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .cm-btn {
+        padding: 8px 16px !important;
+        border-radius: 4px !important;
+        font-weight: 600 !important;
+        font-size: 0.85rem !important;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid transparent;
+    }
+
+    .cm-btn.is-primary {
+        background-color: #3182ce !important;
+        color: #fff !important;
+        border-color: #3182ce !important;
+    }
+
+    .cm-btn.is-primary:hover {
+        background-color: #2b6cb0 !important;
+    }
+
+    .cm-btn.is-outline {
+        background-color: #fff !important;
+        color: #4a5568 !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    .cm-btn.is-outline:hover {
+        background-color: #f7fafc !important;
+    }
+
+    .cm-btn.is-success {
+        background-color: #38a169 !important;
+        color: #fff !important;
+        border-color: #38a169 !important;
+    }
+
+    .cm-btn.is-success:hover {
+        background-color: #2f855a !important;
+    }
+</style>
+
 <div class="cm-etu-screen">
-    <div style="max-width: 900px; margin: 0 auto; padding-top: 10px;">
+    <div style="max-width: 100%; padding: 20px;">
 
         <?php if ($flash !== null): ?>
             <div style="margin-bottom: 20px;">
@@ -36,15 +109,8 @@ foreach ($rapportsRecents as $r) {
             </div>
         <?php endif; ?>
 
-        <div class="cm-etu-panel" style="border: 1px solid #eaeaea; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); background: #fff; overflow: hidden;">
+        <div class="cm-etu-panel">
             
-            <header class="cm-etu-panel__header" style="border-bottom: 1px solid #f0f0f0; padding: 20px 30px;">
-                <div>
-                    <h2 style="font-size: 1.3rem; color: #222; font-weight: 600; margin-bottom: 4px;">Mes rapports de stage</h2>
-                    <p class="cm-etu-panel__subtitle" style="margin: 0;">Suivez l'avancée de vos validations et accédez à vos documents.</p>
-                </div>
-            </header>
-
             <!-- SUIVI DE VALIDATION (Si un rapport est en cours) -->
             <?php if ($rapportEnCours): ?>
                 <?php
@@ -52,40 +118,21 @@ foreach ($rapportsRecents as $r) {
                 $infoDepot = $infosDepot[$rapportId] ?? [];
                 $isDepose = !empty($infoDepot['dejaDepose']);
                 
-                // Définir les étapes du timeline
                 $validationSteps = [
-                    [
-                        'label' => 'Rédaction',
-                        'state' => 'completed',
-                        'icon' => 'fa-pen',
-                        'desc' => 'Terminée'
-                    ],
-                    [
-                        'label' => 'Dépôt',
-                        'state' => $isDepose ? 'completed' : 'pending',
-                        'icon' => 'fa-upload',
-                        'desc' => $isDepose ? 'Effectué' : 'En attente'
-                    ],
-                    [
-                        'label' => 'Évaluation',
-                        'state' => $isDepose ? 'active' : 'pending',
-                        'icon' => 'fa-search',
-                        'desc' => $isDepose ? 'En cours' : 'Bloquée'
-                    ],
-                    [
-                        'label' => 'Résultat',
-                        'state' => 'pending',
-                        'icon' => 'fa-flag-checkered',
-                        'desc' => 'À venir'
-                    ]
+                    ['label' => 'Rédaction', 'state' => 'completed', 'icon' => 'fa-pen', 'desc' => 'Terminée'],
+                    ['label' => 'Dépôt', 'state' => $isDepose ? 'completed' : 'pending', 'icon' => 'fa-upload', 'desc' => $isDepose ? 'Effectué' : 'En attente'],
+                    ['label' => 'Évaluation', 'state' => $isDepose ? 'active' : 'pending', 'icon' => 'fa-search', 'desc' => $isDepose ? 'En cours' : 'Bloquée'],
+                    ['label' => 'Résultat', 'state' => 'pending', 'icon' => 'fa-flag-checkered', 'desc' => 'À venir']
                 ];
                 ?>
-                <div style="padding: 25px 30px; background: #fafafa; border-bottom: 1px solid #f0f0f0;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h3 style="font-size: 1.1rem; color: #333; font-weight: 600; margin: 0;">
-                            <i class="fas fa-tasks" style="color: #2196F3; margin-right: 8px;"></i>
-                            Suivi de validation : <?= htmlspecialchars((string) ($rapportEnCours->nom_rapport ?? 'Rapport'), ENT_QUOTES, 'UTF-8') ?>
-                        </h3>
+                <div style="padding: 25px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 30px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div>
+                            <h3 style="font-size: 1rem; color: #2d3748; font-weight: 700; margin: 0;">
+                                <i class="fas fa-satellite-dish" style="color: #3182ce; margin-right: 8px;"></i>
+                                Suivi en temps réel : <?= htmlspecialchars((string) ($rapportEnCours->nom_rapport ?? 'Rapport'), ENT_QUOTES, 'UTF-8') ?>
+                            </h3>
+                        </div>
                         <?php 
                         $statutBadge = 'info';
                         $statutText = 'En cours';
@@ -93,36 +140,36 @@ foreach ($rapportsRecents as $r) {
                         cm_component('ui/badge', ['text' => $statutText, 'type' => $statutBadge]); 
                         ?>
                     </div>
+                    
                     <?php cm_component('timeline/timeline', ['steps' => $validationSteps, 'orientation' => 'horizontal']); ?>
                     
-                    <div style="margin-top: 15px; text-align: right;">
-                        <a href="?page=gestion_rapports&action=creer_rapport&edit=<?= $rapportId ?>" class="cm-btn is-primary is-sm">
-                            <i class="fas fa-eye" style="margin-right: 6px;"></i> Consulter le rapport
+                    <div style="margin-top: 25px; display: flex; justify-content: flex-end;">
+                        <a href="?page=gestion_rapports&action=creer_rapport&edit=<?= $rapportId ?>" class="cm-btn is-outline">
+                            <i class="fas fa-external-link-alt"></i> Ouvrir le rapport
                         </a>
                     </div>
                 </div>
             <?php endif; ?>
 
             <!-- LISTE DES RAPPORTS -->
-            <div style="padding: 25px 30px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="font-size: 1.1rem; color: #333; font-weight: 600; margin: 0;">Historique des rapports</h3>
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0;">
+                    <h3 style="font-size: 1.1rem; color: #2d3748; font-weight: 700; margin: 0;">Mes rapports de stage</h3>
                     <?php if (canCreate()): ?>
-                        <a href="?page=gestion_rapports&action=creer_rapport" class="cm-btn is-primary is-sm">
-                            <i class="fas fa-plus" style="margin-right: 6px;"></i> Nouveau rapport
+                        <a href="?page=gestion_rapports&action=creer_rapport" class="cm-btn is-primary">
+                            <i class="fas fa-plus"></i> Nouveau rapport
                         </a>
                     <?php endif; ?>
                 </div>
 
                 <?php if (!empty($rapportsRecents)): ?>
-                    <div class="cm-etu-report-list">
+                    <div class="cm-report-grid">
                         <?php foreach ($rapportsRecents as $rapport): ?>
                             <?php
                             $rapportId = (int) ($rapport->id_rapport ?? 0);
                             $infoDepot = $infosDepot[$rapportId] ?? ['peutDeposer' => true, 'messageDepot' => '', 'dejaDepose' => false];
                             $peutDeposer = (bool) ($infoDepot['peutDeposer'] ?? false);
                             $dejaDepose = (bool) ($infoDepot['dejaDepose'] ?? false);
-                            $messageDepot = (string) ($infoDepot['messageDepot'] ?? '');
 
                             $statutRapport = strtolower((string) ($rapport->statut_rapport ?? ''));
                             $badgeType = 'light';
@@ -141,53 +188,63 @@ foreach ($rapportsRecents as $r) {
                                 $badgeText = 'Déposé';
                             }
                             ?>
-                            <article class="cm-etu-report-item" style="display: flex; align-items: center; justify-content: space-between; padding: 15px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 10px; background: #fff;">
-                                <div style="flex: 1;">
-                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
-                                        <span style="font-weight: 600; color: #333;"><?= htmlspecialchars((string) ($rapport->nom_rapport ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
+                            <div class="cm-report-card">
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                                        <h4 style="margin: 0; font-size: 1rem; color: #2d3748; font-weight: 600;">
+                                            <?= htmlspecialchars((string) ($rapport->nom_rapport ?? 'Rapport'), ENT_QUOTES, 'UTF-8') ?>
+                                        </h4>
                                         <?php cm_component('ui/badge', ['type' => $badgeType, 'text' => $badgeText]); ?>
                                     </div>
-                                    <p style="margin: 0; color: #666; font-size: 0.9rem;">
-                                        <strong>Thème:</strong> <?= htmlspecialchars((string) ($rapport->theme_rapport ?? ''), ENT_QUOTES, 'UTF-8') ?>
-                                        <span style="margin: 0 8px;">•</span>
+
+                                    <div style="margin-bottom: 20px; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #edf2f7;">
+                                        <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.025em; color: #718096; font-weight: 700; margin-bottom: 5px;">Thème du stage</div>
+                                        <div style="color: #4a5568; font-size: 0.9rem; line-height: 1.5; font-style: italic;">
+                                            <?= htmlspecialchars((string) ($rapport->theme_rapport ?? 'Non spécifié'), ENT_QUOTES, 'UTF-8') ?>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #edf2f7; padding-top: 15px; margin-top: auto;">
+                                    <span style="font-size: 0.8rem; color: #a0aec0;">
                                         Créé le <?= date('d/m/Y', strtotime((string) ($rapport->date_rapport ?? 'now'))) ?>
-                                    </p>
-                                </div>
+                                    </span>
+                                    
+                                    <div style="display: flex; gap: 8px;">
+                                        <?php if ($peutDeposer): ?>
+                                            <form method="POST" action="?page=gestion_rapports" style="margin: 0;">
+                                                <input type="hidden" name="action" value="deposer_rapport">
+                                                <input type="hidden" name="id_rapport" value="<?= $rapportId ?>">
+                                                <button type="submit" class="cm-btn is-success" title="Soumettre ce rapport">
+                                                    <i class="fas fa-paper-plane"></i> Déposer
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
 
-                                <div style="display: flex; gap: 8px; align-items: center;">
-                                    <?php if ($peutDeposer): ?>
-                                        <form method="POST" action="?page=gestion_rapports" style="margin: 0;">
-                                            <input type="hidden" name="action" value="deposer_rapport">
-                                            <input type="hidden" name="id_rapport" value="<?= $rapportId ?>">
-                                            <button type="submit" class="cm-btn is-success is-sm">
-                                                <i class="fas fa-upload" style="margin-right: 4px;"></i> Déposer
-                                            </button>
-                                        </form>
-                                    <?php elseif ($dejaDepose): ?>
-                                        <span style="color: #888; font-size: 0.85rem;"><i class="fas fa-check-circle" style="color: #28a745;"></i> Déposé</span>
-                                    <?php else: ?>
-                                        <button type="button" class="cm-btn is-light is-sm" disabled title="<?= htmlspecialchars($messageDepot, ENT_QUOTES, 'UTF-8') ?>">
-                                            <i class="fas fa-lock"></i>
-                                        </button>
-                                    <?php endif; ?>
-
-                                    <a href="?page=gestion_rapports&action=creer_rapport&edit=<?= $rapportId ?>" class="cm-btn is-info is-sm" style="background: white; border: 1px solid #ddd;">
-                                        <i class="fas fa-eye"></i> Voir
-                                    </a>
+                                        <a href="?page=gestion_rapports&action=creer_rapport&edit=<?= $rapportId ?>" class="cm-btn is-outline">
+                                            <i class="fas fa-edit"></i> Modifier
+                                        </a>
+                                    </div>
                                 </div>
-                            </article>
+                            </div>
                         <?php endforeach; ?>
                     </div>
                 <?php else: ?>
-                    <div style="text-align: center; padding: 40px; background: #fafafa; border-radius: 8px;">
-                        <i class="fas fa-file-circle-plus" style="font-size: 2.5rem; color: #ddd; margin-bottom: 15px;"></i>
-                        <p style="color: #666; margin-bottom: 20px;">Aucun rapport disponible pour le moment.</p>
+                    <div style="text-align: center; padding: 60px; background: #fff; border: 1px dashed #cbd5e0; border-radius: 12px;">
+                        <i class="fas fa-file-circle-plus" style="font-size: 3rem; color: #e2e8f0; margin-bottom: 20px;"></i>
+                        <h4 style="color: #4a5568; margin-bottom: 10px;">Aucun rapport pour le moment</h4>
+                        <p style="color: #718096; margin-bottom: 25px;">Commencez par créer votre premier rapport de stage en ligne.</p>
                         <?php if (canCreate()): ?>
-                            <a class="cm-btn is-primary" href="?page=gestion_rapports&action=creer_rapport">Créer mon premier rapport</a>
+                            <a class="cm-btn is-primary" href="?page=gestion_rapports&action=creer_rapport" style="padding: 12px 24px !important;">
+                                <i class="fas fa-plus"></i> Créer mon premier rapport
+                            </a>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
             </div>
+        </div>
+    </div>
+</div>
         </div>
     </div>
 </div>

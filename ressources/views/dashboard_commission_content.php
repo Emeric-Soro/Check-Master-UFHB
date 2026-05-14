@@ -87,11 +87,9 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
                 'value' => number_format($enAttente, 0, ',', ' '),
                 'label' => 'En attente',
                 'icon' => 'fa-clipboard-list',
-                'color' => 'info'
+                'color' => 'info',
+                'url' => canView() ? '?page=reception_rapport_com' : ''
             ]); ?>
-            <?php if (canView()): ?>
-                <a class="cm-stat-card__link" href="?page=reception_rapport_com" data-cm-ajax-link="true">Voir ▸</a>
-            <?php endif; ?>
         </div>
 
         <div>
@@ -99,11 +97,9 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
                 'value' => number_format($valides, 0, ',', ' '),
                 'label' => 'Validés',
                 'icon' => 'fa-circle-check',
-                'color' => 'success'
+                'color' => 'success',
+                'url' => canView() ? '?page=processus_validation' : ''
             ]); ?>
-            <?php if (canView()): ?>
-                <a class="cm-stat-card__link" href="?page=processus_validation" data-cm-ajax-link="true">Voir ▸</a>
-            <?php endif; ?>
         </div>
 
         <div>
@@ -111,12 +107,9 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
                 'value' => number_format($rejetes, 0, ',', ' '),
                 'label' => 'Rejetés',
                 'icon' => 'fa-circle-xmark',
-                'color' => 'danger'
+                'color' => 'danger',
+                'url' => canView() ? '?page=processus_validation&status=rejete' : ''
             ]); ?>
-            <?php if (canView()): ?>
-                <a class="cm-stat-card__link" href="?page=processus_validation&status=rejete" data-cm-ajax-link="true">Voir
-                    ▸</a>
-            <?php endif; ?>
         </div>
 
         <div>
@@ -124,12 +117,9 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
                 'value' => number_format($crRediges, 0, ',', ' '),
                 'label' => 'CR rédigés',
                 'icon' => 'fa-file-signature',
-                'color' => 'primary'
+                'color' => 'primary',
+                'url' => canCreate() ? '?page=redaction_compte_rendu&cr_view=redaction' : ''
             ]); ?>
-            <?php if (canCreate()): ?>
-                <a class="cm-stat-card__link" href="?page=redaction_compte_rendu&cr_view=redaction"
-                    data-cm-ajax-link="true">Rédiger ▸</a>
-            <?php endif; ?>
         </div>
     </div>
 

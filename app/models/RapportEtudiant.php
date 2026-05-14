@@ -587,9 +587,9 @@ class RapportEtudiant
             $stmt = $this->pdo->prepare("
                 SELECT COUNT(*) as count
                 FROM rapport_etudiants r
-                JOIN approuver a ON r.id_rapport = a.id_rapport
-                WHERE r.num_etu = ? AND a.decision = 'approuve'
-                ORDER BY a.date_approv DESC
+                JOIN valider v ON r.id_rapport = v.id_rapport
+                WHERE r.num_etu = ? AND v.decision_validation = 'valider'
+                ORDER BY v.date_validation DESC
                 LIMIT 1
             ");
             $stmt->execute([$numEtu]);

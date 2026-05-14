@@ -3,7 +3,6 @@ namespace CheckMaster\Services;
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/EvaluationRapport.php';
-require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use PDO;
@@ -175,43 +174,18 @@ class ProcessusValidationService
     {
         try {
             $yearFilter = $this->yearCondition('e');
-            if ($this->tableExists('approuver')) {
-                // Total des rapports approuvés par la chargée de communication
-                $stmt = $this->pdo->prepare("
-                    SELECT COUNT(DISTINCT a.id_rapport) as total_rapports
-                    FROM approuver a
-                    JOIN rapport_etudiants r ON a.id_rapport = r.id_rapport
-                    JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
-                    WHERE a.decision = 'approuve'" . $yearFilter['sql'] . "
-                ");
-                $stmt->execute($yearFilter['params']);
-                $totalRapports = $stmt->fetch(PDO::FETCH_ASSOC)['total_rapports'];
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) as total_rapports FROM rapport_etudiants");
+            $stmt->execute();
+            $totalRapports = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total_rapports'] ?? 0);
 
-                // Rapports en cours d'évaluation (approuvés mais pas encore finalisés)
-                $stmt = $this->pdo->prepare("
-                    SELECT COUNT(DISTINCT a.id_rapport) as en_cours
-                    FROM approuver a
-                    JOIN rapport_etudiants r ON a.id_rapport = r.id_rapport
-                    JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
-                    LEFT JOIN valider v ON a.id_rapport = v.id_rapport
-                    WHERE a.decision = 'approuve' AND v.id_rapport IS NULL" . $yearFilter['sql'] . "
-                ");
-                $stmt->execute($yearFilter['params']);
-                $enCours = $stmt->fetch(PDO::FETCH_ASSOC)['en_cours'];
-            } else {
-                $stmt = $this->pdo->prepare("SELECT COUNT(*) as total_rapports FROM rapport_etudiants");
-                $stmt->execute();
-                $totalRapports = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total_rapports'] ?? 0);
-
-                $stmt = $this->pdo->prepare("
-                    SELECT COUNT(*) as en_cours
-                    FROM rapport_etudiants r
-                    LEFT JOIN valider v ON r.id_rapport = v.id_rapport
-                    WHERE v.id_rapport IS NULL
-                ");
-                $stmt->execute();
-                $enCours = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['en_cours'] ?? 0);
-            }
+            $stmt = $this->pdo->prepare("
+                SELECT COUNT(*) as en_cours
+                FROM rapport_etudiants r
+                LEFT JOIN valider v ON r.id_rapport = v.id_rapport
+                WHERE v.id_rapport IS NULL
+            ");
+            $stmt->execute();
+            $enCours = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['en_cours'] ?? 0);
 
             // Rapports validés par la commission
             $stmt = $this->pdo->prepare("
@@ -266,59 +240,33 @@ class ProcessusValidationService
             $hasEtape = $this->columnExists('rapport_etudiants', 'etape_validation');
             $yearFilter = $this->yearCondition('e');
 
-            if ($this->tableExists('approuver')) {
-                $sql = "
-                    SELECT 
-                        r.id_rapport,
-                        $titleExpr AS nom_rapport,
-                        r.theme_rapport,
-                        $dateExpr AS date_rapport,
-                        " . ($hasEtape ? "r.etape_validation" : "COALESCE(r.statut_rapport, '')") . " AS etape_validation,
-                        e.nom_etu,
-                        e.prenom_etu,
-                        e.email_etu,
-                        e.promotion_etu,
-                        a.date_approv,
-                        a.commentaire_approv,
-                        pa.nom_pers_admin,
-                        pa.prenom_pers_admin
-                    FROM approuver a
-                    JOIN rapport_etudiants r ON a.id_rapport = r.id_rapport
-                    JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
-                    LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
-                    WHERE a.decision = 'approuve'
-                    " . $yearFilter['sql'] . "
-                    ORDER BY a.date_approv DESC
-                ";
-            } else {
-                $sql = "
-                    SELECT 
-                        r.id_rapport,
-                        $titleExpr AS nom_rapport,
-                        r.theme_rapport,
-                        $dateExpr AS date_rapport,
-                        " . ($hasEtape ? "r.etape_validation" : "COALESCE(r.statut_rapport, '')") . " AS etape_validation,
-                        e.nom_etu,
-                        e.prenom_etu,
-                        e.email_etu,
-                        e.promotion_etu,
-                        v.date_validation AS date_approv,
-                        v.commentaire_validation AS commentaire_approv,
-                        ens.nom_enseignant AS nom_pers_admin,
-                        ens.prenom_enseignant AS prenom_pers_admin
-                    FROM rapport_etudiants r
-                    JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
-                    LEFT JOIN (
-                        SELECT vv.id_rapport, MAX(vv.date_validation) AS max_date
-                        FROM valider vv
-                        GROUP BY vv.id_rapport
-                    ) lv ON lv.id_rapport = r.id_rapport
-                    LEFT JOIN valider v ON v.id_rapport = lv.id_rapport AND v.date_validation = lv.max_date
-                    LEFT JOIN enseignants ens ON v.id_enseignant = ens.id_enseignant
-                    WHERE 1=1" . $yearFilter['sql'] . "
-                    ORDER BY COALESCE(v.date_validation, $dateExpr) DESC
-                ";
-            }
+            $sql = "
+                SELECT 
+                    r.id_rapport,
+                    $titleExpr AS nom_rapport,
+                    r.theme_rapport,
+                    $dateExpr AS date_rapport,
+                    " . ($hasEtape ? "r.etape_validation" : "COALESCE(r.statut_rapport, '')") . " AS etape_validation,
+                    e.nom_etu,
+                    e.prenom_etu,
+                    e.email_etu,
+                    e.promotion_etu,
+                    v.date_validation AS date_approv,
+                    v.commentaire_validation AS commentaire_approv,
+                    ens.nom_enseignant AS nom_pers_admin,
+                    ens.prenom_enseignant AS prenom_pers_admin
+                FROM rapport_etudiants r
+                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                LEFT JOIN (
+                    SELECT vv.id_rapport, MAX(vv.date_validation) AS max_date
+                    FROM valider vv
+                    GROUP BY vv.id_rapport
+                ) lv ON lv.id_rapport = r.id_rapport
+                LEFT JOIN valider v ON v.id_rapport = lv.id_rapport AND v.date_validation = lv.max_date
+                LEFT JOIN enseignants ens ON v.id_enseignant = ens.id_enseignant
+                WHERE 1=1" . $yearFilter['sql'] . "
+                ORDER BY COALESCE(v.date_validation, $dateExpr) DESC
+            ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($yearFilter['params']);
             $rapports = $stmt->fetchAll(PDO::FETCH_ASSOC);

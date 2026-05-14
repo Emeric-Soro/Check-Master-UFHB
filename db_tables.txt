@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : ven. 08 mai 2026 à 11:30
+-- Généré le : jeu. 14 mai 2026 à 20:22
 -- Version du serveur : 8.4.7
 -- Version de PHP : 8.4.15
 
@@ -1170,6 +1170,7 @@ CREATE TABLE IF NOT EXISTS `etudiants` (
   `email_etu` varchar(100) DEFAULT NULL,
   `promotion_etu` varchar(30) DEFAULT NULL,
   PRIMARY KEY (`num_carte_etud`),
+  UNIQUE KEY `uq_etudiants_num_carte` (`num_carte_etud`),
   UNIQUE KEY `uq_etudiants_num_ident` (`num_ident_etud`),
   KEY `genre_etu` (`id_genre`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
@@ -3648,7 +3649,7 @@ CREATE TABLE IF NOT EXISTS `pister` (
   KEY `idx_table` (`nom_table`),
   KEY `idx_created_at` (`date_creation`),
   KEY `idx_utilisateur_action` (`id_utilisateur`,`action`)
-) ENGINE=InnoDB AUTO_INCREMENT=888 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=1117 DEFAULT CHARSET=utf8mb3;
 
 --
 -- Déchargement des données de la table `pister`
@@ -4541,7 +4542,237 @@ INSERT INTO `pister` (`id_piste`, `id_utilisateur`, `action`, `statut_action`, `
 (884, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-03-19 05:56:08'),
 (885, 5, 'GET | tableau_bord_enseignant', 'Succès', 'ui | page=tableau_bord_enseignant', '2026-03-19 05:56:13'),
 (886, 5, 'GET | programmation_ens', 'Succès', 'xhr | page=programmation_ens', '2026-03-19 05:56:18'),
-(887, 5, 'Modification', 'Succès', 'programmation_ens', '2026-03-19 05:56:25');
+(887, 5, 'Modification', 'Succès', 'programmation_ens', '2026-03-19 05:56:25'),
+(888, 5, 'Modification', 'Succès', 'gestion_rapports', '2026-05-13 22:11:01'),
+(889, 5, 'GET | mise_en_ligne_memoire', 'Succès', 'ui | page=mise_en_ligne_memoire', '2026-05-13 22:11:03'),
+(890, 5, 'GET | consultation_cr_etud', 'Succès', 'xhr | page=consultation_cr_etud', '2026-05-13 22:11:07'),
+(891, 5, 'GET | dashboard_scolarite', 'Succès', 'xhr | page=dashboard_scolarite', '2026-05-13 22:11:09'),
+(892, 5, 'GET | dashboard_scolarite', 'Succès', 'ui | page=dashboard_scolarite', '2026-05-14 15:23:59'),
+(893, 5, 'Modification', 'Succès', 'inscriptions', '2026-05-14 15:24:21'),
+(894, 5, 'GET | gestion_scolarite', 'Succès', 'xhr | page=gestion_scolarite', '2026-05-14 15:24:40'),
+(895, 5, 'GET | profil', 'Succès', 'xhr | page=profil', '2026-05-14 15:24:45'),
+(896, 5, 'GET | candidature_soutenance', 'Succès', 'xhr | page=candidature_soutenance', '2026-05-14 15:24:53'),
+(897, 5, 'GET | gestion_rapports', 'Succès', 'xhr | page=gestion_rapports', '2026-05-14 15:24:58'),
+(898, 5, 'GET | gestion_reclamations', 'Succès', 'xhr | page=gestion_reclamations', '2026-05-14 15:25:00'),
+(899, 5, 'GET | consultation_cr_etud', 'Succès', 'xhr | page=consultation_cr_etud', '2026-05-14 15:25:02'),
+(900, 5, 'GET | gestion_reclamations', 'Succès', 'xhr | page=gestion_reclamations', '2026-05-14 15:25:05'),
+(901, 5, 'GET | gestion_reclamations', 'Succès', 'xhr | page=gestion_reclamations', '2026-05-14 15:25:05'),
+(902, 5, 'GET | gestion_reclamations', 'Succès', 'xhr | page=gestion_reclamations', '2026-05-14 15:25:06'),
+(903, 5, 'GET | candidature_soutenance', 'Succès', 'xhr | page=candidature_soutenance', '2026-05-14 15:25:07'),
+(904, 5, 'GET | candidature_soutenance', 'Succès', 'ui | page=candidature_soutenance', '2026-05-14 15:41:01'),
+(905, 5, 'GET | dashboard_commission', 'Succès', 'xhr | page=dashboard_commission', '2026-05-14 15:41:04'),
+(906, 5, 'GET | dashboard_enseignant', 'Succès', 'xhr | page=dashboard_enseignant', '2026-05-14 15:41:08'),
+(907, 5, 'GET | reception_rapport_com', 'Succès', 'xhr | page=reception_rapport_com', '2026-05-14 15:41:09'),
+(908, 5, 'GET | evaluation_dossiers', 'Succès', 'xhr | page=evaluation_dossiers', '2026-05-14 15:41:15'),
+(909, 5, 'GET | reception_rapport_com', 'Succès', 'xhr | page=reception_rapport_com', '2026-05-14 15:41:17'),
+(910, 5, 'GET | evaluation_dossiers', 'Succès', 'xhr | page=evaluation_dossiers', '2026-05-14 15:41:22'),
+(911, 5, 'GET | evaluation_dossiers', 'Succès', 'ui | page=evaluation_dossiers', '2026-05-14 18:43:36'),
+(912, 5, 'GET | candidature_soutenance', 'Succès', 'xhr | page=candidature_soutenance', '2026-05-14 18:43:39'),
+(913, 5, 'GET | gestion_rapports', 'Succès', 'xhr | page=gestion_rapports', '2026-05-14 18:43:44'),
+(914, 5, 'GET | gestion_reclamations', 'Succès', 'xhr | page=gestion_reclamations', '2026-05-14 18:43:45'),
+(915, 5, 'GET | consultation_cr_etud', 'Succès', 'xhr | page=consultation_cr_etud', '2026-05-14 18:43:46'),
+(916, 5, 'GET | dashboard_scolarite', 'Succès', 'xhr | page=dashboard_scolarite', '2026-05-14 18:43:48'),
+(917, 5, 'Modification', 'Succès', 'inscriptions', '2026-05-14 18:43:51'),
+(918, 5, 'GET | gestion_scolarite', 'Succès', 'xhr | page=gestion_scolarite', '2026-05-14 18:43:58'),
+(919, 5, 'GET | gestion_rapports', 'Succès', 'xhr | page=gestion_rapports', '2026-05-14 18:44:02'),
+(920, 5, 'GET | gestion_rapports', 'Succès', 'xhr | page=gestion_rapports', '2026-05-14 18:44:02'),
+(921, 5, 'GET | candidature_soutenance', 'Succès', 'xhr | page=candidature_soutenance', '2026-05-14 18:44:03'),
+(922, 5, 'GET | candidature_soutenance', 'Succès', 'ui | page=candidature_soutenance', '2026-05-14 18:47:56'),
+(923, 5, 'GET | gestion_rapports', 'Succès', 'xhr | page=gestion_rapports', '2026-05-14 18:48:24'),
+(924, 5, 'GET | gestion_reclamations', 'Succès', 'xhr | page=gestion_reclamations', '2026-05-14 18:48:25'),
+(925, 5, 'GET | gestion_dossiers_candidatures', 'Succès', 'xhr | page=gestion_dossiers_candidatures', '2026-05-14 18:48:28'),
+(926, 5, 'Modification', 'Succès', 'inscriptions', '2026-05-14 18:48:33'),
+(927, 5, 'GET | candidature_soutenance', 'Succès', 'xhr | page=candidature_soutenance', '2026-05-14 18:51:33'),
+(928, 5, 'GET | gestion_rapports', 'Succès', 'xhr | page=gestion_rapports', '2026-05-14 18:53:45'),
+(929, 5, 'GET | gestion_rapports', 'Succès', 'ui | page=gestion_rapports', '2026-05-14 19:05:23'),
+(930, 5, 'Modification', 'Succès', 'gestion_rapports', '2026-05-14 19:05:29'),
+(931, 5, 'GET | gestion_rapports', 'Succès', 'xhr | page=gestion_rapports', '2026-05-14 19:05:32'),
+(932, 5, 'GET | candidature_soutenance', 'Succès', 'xhr | page=candidature_soutenance', '2026-05-14 19:05:34'),
+(933, 5, 'GET | candidature_soutenance', 'Succès', 'ui | page=candidature_soutenance', '2026-05-14 19:08:47'),
+(934, 5, 'GET | candidature_soutenance', 'Succès', 'ui | page=candidature_soutenance', '2026-05-14 19:12:06'),
+(935, 5, 'GET | candidature_soutenance', 'Succès', 'ui | page=candidature_soutenance', '2026-05-14 19:13:53'),
+(936, 5, 'GET | candidature_soutenance', 'Succès', 'ui | page=candidature_soutenance', '2026-05-14 19:15:22'),
+(937, 5, 'GET | candidature_soutenance', 'Succès', 'ui | page=candidature_soutenance', '2026-05-14 19:15:24'),
+(938, 5, 'GET | candidature_soutenance', 'Succès', 'ui | page=candidature_soutenance', '2026-05-14 19:15:26'),
+(939, 5, 'GET | candidature_soutenance', 'Succès', 'ui | page=candidature_soutenance', '2026-05-14 19:15:27'),
+(940, 5, 'GET | candidature_soutenance', 'Succès', 'ui | page=candidature_soutenance', '2026-05-14 19:15:35'),
+(941, 5, 'GET | candidature_soutenance', 'Succès', 'ui | page=candidature_soutenance', '2026-05-14 19:16:37'),
+(942, 5, 'GET | gestion_rapports', 'Succès', 'xhr | page=gestion_rapports', '2026-05-14 19:16:44'),
+(943, 5, 'GET | gestion_reclamations', 'Succès', 'xhr | page=gestion_reclamations', '2026-05-14 19:16:46'),
+(944, 5, 'GET | candidature_soutenance', 'Succès', 'xhr | page=candidature_soutenance', '2026-05-14 19:16:48'),
+(945, 5, 'GET | gestion_dossiers_candidatures', 'Succès', 'xhr | page=gestion_dossiers_candidatures', '2026-05-14 19:16:51'),
+(946, 5, 'GET | gestion_dossiers_candidatures', 'Succès', 'ui | page=gestion_dossiers_candidatures', '2026-05-14 19:16:54'),
+(947, 5, 'GET | dashboard_commission', 'Succès', 'xhr | page=dashboard_commission', '2026-05-14 19:17:20'),
+(948, 5, 'GET | reception_rapport_com', 'Succès', 'xhr | page=reception_rapport_com', '2026-05-14 19:18:23'),
+(949, 5, 'GET | evaluation_dossiers', 'Succès', 'xhr | page=evaluation_dossiers', '2026-05-14 19:18:28'),
+(950, 5, 'GET | processus_validation', 'Succès', 'xhr | page=processus_validation', '2026-05-14 19:18:30'),
+(951, 5, 'GET | evaluation_dossiers', 'Succès', 'xhr | page=evaluation_dossiers', '2026-05-14 19:18:33'),
+(952, 5, 'GET | processus_validation', 'Succès', 'xhr | page=processus_validation', '2026-05-14 19:18:46'),
+(953, 5, 'GET | reception_rapport_com', 'Succès', 'xhr | page=reception_rapport_com', '2026-05-14 19:18:48'),
+(954, 5, 'Modification', 'Succès', 'inscriptions', '2026-05-14 19:18:57'),
+(955, 5, 'GET | gestion_scolarite', 'Succès', 'xhr | page=gestion_scolarite', '2026-05-14 19:19:00'),
+(956, 5, 'GET | gestion_notes_evaluations', 'Succès', 'xhr | page=gestion_notes_evaluations', '2026-05-14 19:19:32'),
+(957, 5, 'GET | gestion_scolarite', 'Succès', 'xhr | page=gestion_scolarite', '2026-05-14 19:19:41'),
+(958, 5, 'GET | gestion_reclamations_scolarite', 'Succès', 'xhr | page=gestion_reclamations_scolarite', '2026-05-14 19:19:44'),
+(959, 5, 'GET | mise_en_ligne_memoire', 'Succès', 'xhr | page=mise_en_ligne_memoire', '2026-05-14 19:19:46'),
+(960, 5, 'GET | programmation_soutenance', 'Succès', 'xhr | page=programmation_soutenance', '2026-05-14 19:19:54'),
+(961, 5, 'GET | programmation_soutenance', 'Succès', 'ui | page=programmation_soutenance', '2026-05-14 19:20:16'),
+(962, 5, 'GET | programmation_soutenance', 'Succès', 'ui | page=programmation_soutenance', '2026-05-14 19:20:24'),
+(963, 5, 'GET | evaluation_soutenance', 'Succès', 'xhr | page=evaluation_soutenance', '2026-05-14 19:21:17'),
+(964, 5, 'GET | edition_bulletin', 'Succès', 'xhr | page=edition_bulletin', '2026-05-14 19:21:21'),
+(965, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:21:23'),
+(966, 5, 'GET | dashboard_commission', 'Succès', 'xhr | page=dashboard_commission', '2026-05-14 19:21:44'),
+(967, 5, 'GET | dashboard_scolarite', 'Succès', 'xhr | page=dashboard_scolarite', '2026-05-14 19:21:50'),
+(968, 5, 'Modification', 'Succès', 'inscriptions', '2026-05-14 19:22:30'),
+(969, 5, 'Modification', 'Succès', 'inscriptions', '2026-05-14 19:22:51'),
+(970, 5, 'GET | gestion_scolarite', 'Succès', 'xhr | page=gestion_scolarite', '2026-05-14 19:22:56'),
+(971, 5, 'GET | gestion_notes_evaluations', 'Succès', 'xhr | page=gestion_notes_evaluations', '2026-05-14 19:22:58'),
+(972, 5, 'GET | gestion_dossiers_candidatures', 'Succès', 'xhr | page=gestion_dossiers_candidatures', '2026-05-14 19:23:01'),
+(973, 5, 'GET | gestion_reclamations_scolarite', 'Succès', 'xhr | page=gestion_reclamations_scolarite', '2026-05-14 19:23:02'),
+(974, 5, 'GET | mise_en_ligne_memoire', 'Succès', 'xhr | page=mise_en_ligne_memoire', '2026-05-14 19:23:04'),
+(975, 5, 'GET | dashboard_commission', 'Succès', 'xhr | page=dashboard_commission', '2026-05-14 19:23:09'),
+(976, 5, 'GET | dashboard_enseignant', 'Succès', 'xhr | page=dashboard_enseignant', '2026-05-14 19:23:13'),
+(977, 5, 'GET | reception_rapport_com', 'Succès', 'xhr | page=reception_rapport_com', '2026-05-14 19:23:15'),
+(978, 5, 'GET | evaluation_dossiers', 'Succès', 'xhr | page=evaluation_dossiers', '2026-05-14 19:23:18'),
+(979, 5, 'GET | processus_validation', 'Succès', 'xhr | page=processus_validation', '2026-05-14 19:23:25'),
+(980, 5, 'GET | redaction_compte_rendu', 'Succès', 'xhr | page=redaction_compte_rendu', '2026-05-14 19:23:28'),
+(981, 5, 'GET | programmation_soutenance', 'Succès', 'xhr | page=programmation_soutenance', '2026-05-14 19:23:34'),
+(982, 5, 'GET | evaluation_soutenance', 'Succès', 'xhr | page=evaluation_soutenance', '2026-05-14 19:23:40'),
+(983, 5, 'GET | edition_bulletin', 'Succès', 'xhr | page=edition_bulletin', '2026-05-14 19:23:53'),
+(984, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:23:55'),
+(985, 5, 'GET | programmation_ens', 'Succès', 'xhr | page=programmation_ens', '2026-05-14 19:23:57'),
+(986, 5, 'GET | programmation_ens', 'Succès', 'ui | page=programmation_ens', '2026-05-14 19:24:01'),
+(987, 5, 'GET | programmation_ens', 'Succès', 'ui | page=programmation_ens', '2026-05-14 19:24:04'),
+(988, 5, 'GET | programmation_ens', 'Succès', 'ui | page=programmation_ens', '2026-05-14 19:24:11'),
+(989, 5, 'GET | repertoire_enseignant', 'Succès', 'xhr | page=repertoire_enseignant', '2026-05-14 19:24:24'),
+(990, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:24:31'),
+(991, 5, 'GET | tableau_bord_enseignant', 'Succès', 'ui | page=tableau_bord_enseignant', '2026-05-14 19:24:38'),
+(992, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:24:43'),
+(993, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:24:44'),
+(994, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:24:47'),
+(995, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:24:53'),
+(996, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:24:55'),
+(997, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:24:56'),
+(998, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:24:58'),
+(999, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:25:00'),
+(1000, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:25:16'),
+(1001, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:25:18'),
+(1002, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:25:19'),
+(1003, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:25:22'),
+(1004, 5, 'GET | tableau_bord_enseignant', 'Succès', 'ui | page=tableau_bord_enseignant', '2026-05-14 19:25:29'),
+(1005, 5, 'GET | programmation_ens', 'Succès', 'xhr | page=programmation_ens', '2026-05-14 19:25:46'),
+(1006, 5, 'GET | dashboard_enseignant', 'Succès', 'xhr | page=dashboard_enseignant', '2026-05-14 19:25:51'),
+(1007, 5, 'GET | tableau_bord_enseignant', 'Succès', 'ui | page=tableau_bord_enseignant', '2026-05-14 19:26:00'),
+(1008, 5, 'GET | dashboard_scolarite', 'Succès', 'xhr | page=dashboard_scolarite', '2026-05-14 19:26:05'),
+(1009, 5, 'GET | gestion_scolarite', 'Succès', 'xhr | page=gestion_scolarite', '2026-05-14 19:26:10'),
+(1010, 5, 'GET | dashboard_scolarite', 'Succès', 'xhr | page=dashboard_scolarite', '2026-05-14 19:26:14'),
+(1011, 5, 'Modification', 'Succès', 'inscriptions', '2026-05-14 19:26:18'),
+(1012, 5, 'GET | dashboard_scolarite', 'Succès', 'xhr | page=dashboard_scolarite', '2026-05-14 19:26:20'),
+(1013, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:26:40'),
+(1014, 5, 'Modification', 'Succès', 'parametres_generaux', '2026-05-14 19:26:43'),
+(1015, 5, 'GET | gestion_utilisateurs', 'Succès', 'xhr | page=gestion_utilisateurs', '2026-05-14 19:26:47'),
+(1016, 5, 'Création', 'Succès', 'utilisateur', '2026-05-14 19:26:54'),
+(1017, 5, 'GET | gestion_utilisateurs', 'Succès', 'xhr | page=gestion_utilisateurs', '2026-05-14 19:27:14'),
+(1018, 5, 'GET | maj_personnel_admin | tab:pers_admin', 'Succès', 'xhr | page=maj_personnel_admin | tab=pers_admin', '2026-05-14 19:27:46'),
+(1019, 5, 'GET | maj_enseignant | tab:enseignant', 'Succès', 'xhr | page=maj_enseignant | tab=enseignant', '2026-05-14 19:27:53'),
+(1020, 5, 'Consultation archive', 'Succès', 'archives_documents', '2026-05-14 19:27:59'),
+(1021, 5, 'Consultation archive', 'Succès', 'archives_documents', '2026-05-14 19:28:02'),
+(1022, 5, 'Consultation archive', 'Succès', 'archives_documents', '2026-05-14 19:28:04'),
+(1023, 5, 'Consultation archive', 'Succès', 'archives_documents', '2026-05-14 19:28:07'),
+(1024, 5, 'Consultation archive', 'Succès', 'archives_documents', '2026-05-14 19:28:09'),
+(1025, 5, 'Consultation archive', 'Succès', 'archives_documents', '2026-05-14 19:28:10'),
+(1026, 5, 'Consultation archive', 'Succès', 'archives_documents', '2026-05-14 19:28:17'),
+(1027, 5, 'Consultation archive', 'Succès', 'archives_documents', '2026-05-14 19:28:20'),
+(1028, 5, 'GET | sauvegarde_restauration', 'Succès', 'xhr | page=sauvegarde_restauration', '2026-05-14 19:28:21'),
+(1029, 5, 'GET | piste_audit', 'Succès', 'xhr | page=piste_audit', '2026-05-14 19:28:26'),
+(1030, 5, 'GET | gestion_utilisateurs', 'Succès', 'xhr | page=gestion_utilisateurs', '2026-05-14 19:28:31'),
+(1031, 5, 'GET | parametres_generaux', 'Succès', 'xhr | page=parametres_generaux', '2026-05-14 19:28:36'),
+(1032, 5, 'Modification', 'Succès', 'parametres_generaux', '2026-05-14 19:28:37'),
+(1033, 5, 'GET | parametres_generaux', 'Succès', 'xhr | page=parametres_generaux', '2026-05-14 19:28:40'),
+(1034, 5, 'Modification', 'Succès', 'parametres_generaux', '2026-05-14 19:28:42'),
+(1035, 5, 'GET | parametres_generaux', 'Succès', 'xhr | page=parametres_generaux', '2026-05-14 19:28:43'),
+(1036, 5, 'GET | parametres_specifiques', 'Succès', 'xhr | page=parametres_specifiques', '2026-05-14 19:28:47'),
+(1037, 5, 'GET | parametres_generaux', 'Succès', 'xhr | page=parametres_generaux', '2026-05-14 19:28:49'),
+(1038, 5, 'Modification', 'Succès', 'parametres_generaux', '2026-05-14 19:28:56'),
+(1039, 5, 'Modification', 'Succès', 'parametres_generaux', '2026-05-14 19:28:59'),
+(1040, 5, 'Modification', 'Succès', 'parametres_generaux', '2026-05-14 19:29:01'),
+(1041, 5, 'GET | parametres_specifiques', 'Succès', 'xhr | page=parametres_specifiques', '2026-05-14 19:29:06'),
+(1042, 5, 'Modification', 'Succès', 'parametres_specifiques', '2026-05-14 19:29:10'),
+(1043, 5, 'Modification', 'Succès', 'parametres_specifiques', '2026-05-14 19:29:19'),
+(1044, 5, 'Modification', 'Succès', 'parametres_specifiques', '2026-05-14 19:29:21'),
+(1045, 5, 'Modification', 'Succès', 'parametres_specifiques', '2026-05-14 19:29:30'),
+(1046, 5, 'Modification', 'Succès', 'parametres_specifiques', '2026-05-14 19:29:31'),
+(1047, 5, 'GET | parametres_specifiques', 'Succès', 'xhr | page=parametres_specifiques', '2026-05-14 19:29:32'),
+(1048, 5, 'Modification', 'Succès', 'parametres_specifiques', '2026-05-14 19:29:34'),
+(1049, 5, 'GET | parametres_specifiques', 'Succès', 'xhr | page=parametres_specifiques', '2026-05-14 19:29:36'),
+(1050, 5, 'Evaluation', 'Succès', 'evaluer', '2026-05-14 19:29:38'),
+(1051, 5, 'GET | parametres_specifiques', 'Succès', 'xhr | page=parametres_specifiques', '2026-05-14 19:29:40'),
+(1052, 5, 'Modification', 'Succès', 'parametres_specifiques', '2026-05-14 19:29:42'),
+(1053, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:29:51'),
+(1054, 5, 'GET | dashboard_scolarite', 'Succès', 'xhr | page=dashboard_scolarite', '2026-05-14 19:29:52'),
+(1055, 5, 'GET | gestion_dossiers_candidatures', 'Succès', 'xhr | page=gestion_dossiers_candidatures', '2026-05-14 19:29:58'),
+(1056, 5, 'GET | gestion_scolarite', 'Succès', 'xhr | page=gestion_scolarite', '2026-05-14 19:31:28'),
+(1057, 5, 'Modification', 'Succès', 'inscriptions', '2026-05-14 19:31:32'),
+(1058, 5, 'GET | gestion_scolarite', 'Succès', 'xhr | page=gestion_scolarite', '2026-05-14 19:31:50'),
+(1059, 5, 'GET | gestion_notes_evaluations', 'Succès', 'xhr | page=gestion_notes_evaluations', '2026-05-14 19:32:01'),
+(1060, 5, 'GET | gestion_dossiers_candidatures', 'Succès', 'xhr | page=gestion_dossiers_candidatures', '2026-05-14 19:32:04');
+INSERT INTO `pister` (`id_piste`, `id_utilisateur`, `action`, `statut_action`, `nom_table`, `date_creation`) VALUES
+(1061, 5, 'GET | gestion_reclamations_scolarite', 'Succès', 'xhr | page=gestion_reclamations_scolarite', '2026-05-14 19:32:06'),
+(1062, 5, 'GET | programmation_ens', 'Succès', 'xhr | page=programmation_ens', '2026-05-14 19:32:08'),
+(1063, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-05-14 19:32:09'),
+(1064, 5, 'GET | candidature_soutenance', 'Succès', 'xhr | page=candidature_soutenance', '2026-05-14 19:32:12'),
+(1065, 5, 'GET | gestion_rapports', 'Succès', 'xhr | page=gestion_rapports', '2026-05-14 19:32:14'),
+(1066, 5, 'GET | gestion_rapports', 'Succès', 'xhr | page=gestion_rapports', '2026-05-14 19:32:15'),
+(1067, 5, 'GET | gestion_reclamations', 'Succès', 'xhr | page=gestion_reclamations', '2026-05-14 19:32:16'),
+(1068, 5, 'GET | consultation_cr_etud', 'Succès', 'xhr | page=consultation_cr_etud', '2026-05-14 19:32:17'),
+(1069, 5, 'GET | dashboard_commission', 'Succès', 'xhr | page=dashboard_commission', '2026-05-14 19:32:20'),
+(1070, 5, 'GET | reception_rapport_com', 'Succès', 'xhr | page=reception_rapport_com', '2026-05-14 19:32:25'),
+(1071, 5, 'GET | evaluation_dossiers', 'Succès', 'xhr | page=evaluation_dossiers', '2026-05-14 19:34:31'),
+(1072, 5, 'GET | evaluation_dossiers', 'Succès', 'ui | page=evaluation_dossiers', '2026-05-14 19:46:48'),
+(1073, 5, 'GET | reception_rapport_com', 'Succès', 'xhr | page=reception_rapport_com', '2026-05-14 19:46:57'),
+(1074, 5, 'GET | reception_rapport_com', 'Succès', 'ui | page=reception_rapport_com', '2026-05-14 19:49:51'),
+(1075, 5, 'GET | evaluation_dossiers', 'Succès', 'xhr | page=evaluation_dossiers', '2026-05-14 19:50:14'),
+(1076, 5, 'GET | processus_validation', 'Succès', 'xhr | page=processus_validation', '2026-05-14 19:50:16'),
+(1077, 5, 'GET | processus_validation', 'Succès', 'ui | page=processus_validation', '2026-05-14 19:52:36'),
+(1078, 5, 'GET | gestion_dossiers_candidatures', 'Succès', 'xhr | page=gestion_dossiers_candidatures', '2026-05-14 19:52:41'),
+(1079, 5, 'GET | processus_validation', 'Succès', 'xhr | page=processus_validation', '2026-05-14 19:52:45'),
+(1080, 5, 'GET | evaluation_dossiers', 'Succès', 'xhr | page=evaluation_dossiers', '2026-05-14 19:52:48'),
+(1081, 5, 'GET | reception_rapport_com', 'Succès', 'xhr | page=reception_rapport_com', '2026-05-14 19:52:54'),
+(1082, 5, 'GET | reception_rapport_com', 'Succès', 'ui | page=reception_rapport_com', '2026-05-14 19:53:58'),
+(1083, 5, 'GET | programmation_soutenance', 'Succès', 'xhr | page=programmation_soutenance', '2026-05-14 19:54:16'),
+(1084, 5, 'GET | evaluation_soutenance', 'Succès', 'xhr | page=evaluation_soutenance', '2026-05-14 19:54:27'),
+(1085, 5, 'GET | edition_bulletin', 'Succès', 'xhr | page=edition_bulletin', '2026-05-14 19:54:32'),
+(1086, 5, 'GET | dashboard_commission', 'Succès', 'xhr | page=dashboard_commission', '2026-05-14 19:54:37'),
+(1087, 5, 'GET | candidature_soutenance', 'Succès', 'xhr | page=candidature_soutenance', '2026-05-14 19:54:41'),
+(1088, 5, 'GET | gestion_rapports', 'Succès', 'xhr | page=gestion_rapports', '2026-05-14 19:54:42'),
+(1089, 5, 'GET | gestion_reclamations', 'Succès', 'xhr | page=gestion_reclamations', '2026-05-14 19:54:44'),
+(1090, 5, 'GET | gestion_dossiers_candidatures', 'Succès', 'xhr | page=gestion_dossiers_candidatures', '2026-05-14 19:54:46'),
+(1091, 5, 'GET | gestion_reclamations_scolarite', 'Succès', 'xhr | page=gestion_reclamations_scolarite', '2026-05-14 19:54:50'),
+(1092, 5, 'Modification', 'Succès', 'inscriptions', '2026-05-14 19:54:55'),
+(1093, 5, 'Accès', 'Succès', 'tableau_de_bord', '2026-05-14 19:55:03'),
+(1094, 5, 'GET | dashboard', 'Succès', 'xhr | page=dashboard', '2026-05-14 19:55:04'),
+(1095, 5, 'GET | gestion_rh', 'Succès', 'xhr | page=gestion_rh', '2026-05-14 19:55:11'),
+(1096, 5, 'GET | gestion_rh', 'Succès', 'ui | page=gestion_rh', '2026-05-14 19:55:16'),
+(1097, 5, 'GET | maj_enseignant | tab:enseignant', 'Succès', 'xhr | page=maj_enseignant | tab=enseignant', '2026-05-14 19:55:31'),
+(1098, 5, 'GET | maj_personnel_admin | tab:pers_admin', 'Succès', 'xhr | page=maj_personnel_admin | tab=pers_admin', '2026-05-14 19:55:33'),
+(1099, 5, 'GET | evaluation_dossiers', 'Succès', 'xhr | page=evaluation_dossiers', '2026-05-14 19:55:43'),
+(1100, 5, 'GET | reception_rapport_com', 'Succès', 'xhr | page=reception_rapport_com', '2026-05-14 19:55:44'),
+(1101, 5, 'Modification', 'Succès', 'inscriptions', '2026-05-14 19:57:06'),
+(1102, 5, 'GET | profil', 'Succès', 'xhr | page=profil', '2026-05-14 19:57:35'),
+(1103, 5, 'GET | profil | tab:history', 'Succès', 'xhr | page=profil | tab=history', '2026-05-14 19:57:46'),
+(1104, 5, 'GET | evaluation_dossiers', 'Succès', 'xhr | page=evaluation_dossiers', '2026-05-14 19:58:19'),
+(1105, 5, 'GET | reception_rapport_com', 'Succès', 'xhr | page=reception_rapport_com', '2026-05-14 19:58:20'),
+(1106, 5, 'GET | reception_rapport_com', 'Succès', 'ui | page=reception_rapport_com', '2026-05-14 19:58:24'),
+(1107, 5, 'GET | programmation_soutenance', 'Succès', 'xhr | page=programmation_soutenance', '2026-05-14 19:58:40'),
+(1108, 5, 'GET | evaluation_soutenance', 'Succès', 'xhr | page=evaluation_soutenance', '2026-05-14 19:58:44'),
+(1109, 5, 'GET | edition_bulletin', 'Succès', 'xhr | page=edition_bulletin', '2026-05-14 19:58:49'),
+(1110, 5, 'GET | reception_rapport_com', 'Succès', 'xhr | page=reception_rapport_com', '2026-05-14 20:17:01'),
+(1111, 5, 'GET | evaluation_dossiers', 'Succès', 'xhr | page=evaluation_dossiers', '2026-05-14 20:17:05'),
+(1112, 5, 'GET | evaluation_dossiers', 'Succès', 'xhr | page=evaluation_dossiers', '2026-05-14 20:17:07'),
+(1113, 5, 'GET | evaluation_dossiers', 'Succès', 'xhr | page=evaluation_dossiers', '2026-05-14 20:17:08'),
+(1114, 5, 'GET | evaluation_dossiers', 'Succès', 'xhr | page=evaluation_dossiers', '2026-05-14 20:17:12'),
+(1115, 5, 'GET | processus_validation', 'Succès', 'xhr | page=processus_validation', '2026-05-14 20:17:13'),
+(1116, 5, 'GET | dashboard_commission', 'Succès', 'xhr | page=dashboard_commission', '2026-05-14 20:17:16');
 
 -- --------------------------------------------------------
 
@@ -5338,19 +5569,24 @@ ALTER TABLE `candidature_soutenance`
 -- Contraintes pour la table `compte_rendu`
 --
 ALTER TABLE `compte_rendu`
-  ADD CONSTRAINT `compte_rendu_ibfk_1` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `compte_rendu_ibfk_1` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_compterendu_etudiant` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `compte_rendu_rapport`
 --
 ALTER TABLE `compte_rendu_rapport`
   ADD CONSTRAINT `compte_rendu_rapport_ibfk_1` FOREIGN KEY (`id_CR`) REFERENCES `compte_rendu` (`id_CR`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `compte_rendu_rapport_ibfk_2` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `compte_rendu_rapport_ibfk_2` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_cr_rapport_compterendu` FOREIGN KEY (`id_CR`) REFERENCES `compte_rendu` (`id_CR`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_cr_rapport_rapport` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `deposer`
 --
 ALTER TABLE `deposer`
+  ADD CONSTRAINT `fk2_deposer_etudiant` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_deposer_rapport` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_deposer_etudiant` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_deposer_rapport` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -5360,12 +5596,15 @@ ALTER TABLE `deposer`
 ALTER TABLE `enseignants`
   ADD CONSTRAINT `enseignants_ibfk_1` FOREIGN KEY (`type_enseignant`) REFERENCES `type_enseignant` (`id_type_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `enseignants_ibfk_2` FOREIGN KEY (`id_etablissement_origin`) REFERENCES `etablissement_origine` (`id_etablissement`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_enseignant_specialite` FOREIGN KEY (`id_specialite`) REFERENCES `specialite` (`id_specialite`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_enseignant_type` FOREIGN KEY (`type_enseignant`) REFERENCES `type_enseignant` (`id_type_enseignant`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_enseignants_specialite` FOREIGN KEY (`id_specialite`) REFERENCES `specialite` (`id_specialite`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `enseignant_jury`
 --
 ALTER TABLE `enseignant_jury`
+  ADD CONSTRAINT `fk2_enseignant_jury_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE RESTRICT ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_composer_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_composer_role` FOREIGN KEY (`id_qualite_jury`) REFERENCES `qualite_jury` (`id_role_jury`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_composer_soutenance` FOREIGN KEY (`num_soutenance`) REFERENCES `programmer_soutenance` (`num_soutenance`) ON DELETE CASCADE ON UPDATE CASCADE;
@@ -5380,7 +5619,9 @@ ALTER TABLE `etudiants`
 -- Contraintes pour la table `evaluations_rapports`
 --
 ALTER TABLE `evaluations_rapports`
-  ADD CONSTRAINT `evaluations_rapports_ibfk_2` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `evaluations_rapports_ibfk_2` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_evaluations_rapport` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_evaluations_utilisateur` FOREIGN KEY (`id_evaluateur`) REFERENCES `utilisateur` (`id_utilisateur`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `evaluer`
@@ -5393,6 +5634,7 @@ ALTER TABLE `evaluer`
 -- Contraintes pour la table `fonctionnalites`
 --
 ALTER TABLE `fonctionnalites`
+  ADD CONSTRAINT `fk2_fonctionnalites_categorie` FOREIGN KEY (`id_categorie`) REFERENCES `categories_fonctionnalites` (`id_categorie`) ON DELETE RESTRICT ON UPDATE CASCADE,
   ADD CONSTRAINT `fonctionnalites_ibfk_1` FOREIGN KEY (`id_categorie`) REFERENCES `categories_fonctionnalites` (`id_categorie`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
@@ -5429,6 +5671,8 @@ ALTER TABLE `inscriptions`
 -- Contraintes pour la table `maitre_de_stage`
 --
 ALTER TABLE `maitre_de_stage`
+  ADD CONSTRAINT `fk2_ms_entreprise` FOREIGN KEY (`id_entreprise`) REFERENCES `entreprise` (`id_entreprise`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_ms_fonction` FOREIGN KEY (`id_fonction`) REFERENCES `fonction` (`id_fonction`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `maitre_de_stage_ibfk_1` FOREIGN KEY (`id_entreprise`) REFERENCES `entreprises` (`id_entreprise`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `maitre_de_stage_ibfk_2` FOREIGN KEY (`id_fonction`) REFERENCES `fonction` (`id_fonction`) ON DELETE SET NULL ON UPDATE CASCADE;
 

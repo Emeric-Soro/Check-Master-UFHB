@@ -42,7 +42,7 @@ foreach ($rapportsValides as $rapport) {
         'theme_rapport' => $theme,
         'student' => $studentName,
         'decision' => $decision,
-        'promotion' => trim((string) ($rapport['promotion_etu'] ?? '')),
+        'promotion' => \FormattingUtils::formatPromotion(trim((string) ($rapport['promotion_etu'] ?? ''))),
         'deja_lie_cr' => !empty($rapport['deja_lie_cr']),
     ];
 
@@ -55,6 +55,7 @@ foreach ($rapportsValides as $rapport) {
         if ($promotionLabel === '' && !empty($rapport['id_annee_acad'])) {
             $promotionLabel = $academicYearLabels[(int) $rapport['id_annee_acad']] ?? '';
         }
+        $promotionLabel = \FormattingUtils::formatPromotion($promotionLabel);
         if ($promotionLabel !== '') {
             $reportOptionLabel .= ' - ' . $promotionLabel;
             $reportsById[$idRapport]['promotion'] = $promotionLabel;

@@ -64,24 +64,28 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             'label' => 'En attente',
             'icon' => 'fa-clock',
             'color' => 'warning',
+            'url' => '?page=gestion_reclamations_scolarite&statut=en+attente'
         ]);
         cm_component('dashboard/stat-widget', [
             'value' => (string) $stats['en_cours'],
             'label' => 'En cours',
             'icon' => 'fa-spinner',
             'color' => 'info',
+            'url' => '?page=gestion_reclamations_scolarite&statut=en+cours'
         ]);
         cm_component('dashboard/stat-widget', [
             'value' => (string) $stats['resolue'],
             'label' => 'Resolues',
             'icon' => 'fa-circle-check',
             'color' => 'success',
+            'url' => '?page=gestion_reclamations_scolarite&statut=resolue'
         ]);
         cm_component('dashboard/stat-widget', [
             'value' => (string) $stats['rejetee'],
             'label' => 'Rejetées',
             'icon' => 'fa-circle-xmark',
             'color' => 'danger',
+            'url' => '?page=gestion_reclamations_scolarite&statut=rejetee'
         ]);
         ?>
     </div>

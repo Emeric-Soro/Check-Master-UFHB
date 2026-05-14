@@ -2,7 +2,7 @@
 if (isset($_GET['page']) && in_array($_GET['page'], ['verification_candidatures_soutenance', 'verification_candidatures'], true)) {
 
     require_once __DIR__ . '/../../app/controllers/VerificationRapportsController.php';
-    require_once __DIR__ . '/../../app/models/Approuver.php';
+    require_once __DIR__ . '/../../app/models/Valider.php';
     $controller = new VerificationRapportsController();
 
     // Gérer les actions PHP (formulaires)
@@ -125,12 +125,11 @@ if (isset($_GET['page']) && in_array($_GET['page'], ['verification_candidatures_
                         }
 
                         // Section de décision - d'abord vérifier s'il y a déjà une approbation formelle
-                        $approbations = Approuver::getByRapport($rapport->id_rapport);
+                        $approbations = Valider::getByRapport($rapport->id_rapport);
                         if (!empty($approbations)) {
-                            // Prendre la dernière approbation (ordre asc dans la requête, donc last = plus récente)
                             $lastApprob = end($approbations);
-                            $decision = isset($lastApprob['decision']) ? $lastApprob['decision'] : ($lastApprob->decision ?? null);
-                            if ($decision === 'approuve') {
+                            $decision = is_array($lastApprob) ? ($lastApprob['decision_validation'] ?? null) : ($lastApprob->decision_validation ?? null);
+                            if ($decision === 'valider') {
                                 echo '<div class="mt-8 pt-6 border-t border-gray-200">';
                                 echo '<h4 class="font-bold text-lg mb-4 text-gray-800">Décision</h4>';
                                 echo '<div class="p-4 bg-green-50 text-green-700 rounded-lg inline-block font-semibold">';

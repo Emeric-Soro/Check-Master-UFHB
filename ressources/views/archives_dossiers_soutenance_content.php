@@ -307,7 +307,7 @@ function getTimeAgo($date)
                                         </p>
                                         <p class="text-sm text-gray-600">
                                             <i class="fas fa-calendar mr-1"></i>
-                                            Promotion : <?php echo htmlspecialchars($rapport['promotion_etu'] ?? 'N/A'); ?>
+                                            Promotion : <?php echo htmlspecialchars(\FormattingUtils::formatPromotion($rapport['promotion_etu'] ?? 'N/A')); ?>
                                         </p>
                                     </div>
                                     <div class="ml-4">

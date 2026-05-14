@@ -592,7 +592,11 @@ class EvaluationSoutenanceService
                     {$examinateurNom} AS examinateur_nom,
                     {$directeurNom} AS directeur_nom,
                     {$encadreurNom} AS encadreur_nom,
-                    CONCAT(ms.prenom, ' ', ms.Nom) AS maitre_stage_nom,
+                    (SELECT CONCAT(ms2.prenom, ' ', ms2.Nom)
+                     FROM informations_stage ist2
+                     JOIN maitre_de_stage ms2 ON ms2.id_maitre_stage = ist2.id_maitre_stage
+                     WHERE ist2.num_etu = p.num_etud
+                     LIMIT 1) AS maitre_stage_nom,
                     (
                         SELECT COUNT(*)
                         FROM evaluer ev
@@ -618,8 +622,6 @@ class EvaluationSoutenanceService
                 FROM {$progTable} p
                 LEFT JOIN etudiants e ON {$studentJoin}
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
-                LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(e.num_carte_etud, p.num_etud)
-                LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 WHERE p.id_salle IS NOT NULL
                   AND p.date_soutenance IS NOT NULL
                   AND p.heure_soutenance IS NOT NULL
@@ -951,11 +953,13 @@ class EvaluationSoutenanceService
                 {$examinateurNom} AS examinateur,
                 {$directeurNom} AS directeur,
                 {$encadreurNom} AS encadreur,
-                CONCAT(ms.prenom, ' ', ms.Nom) AS maitre_stage
+                (SELECT CONCAT(ms2.prenom, ' ', ms2.Nom)
+                 FROM informations_stage ist2
+                 JOIN maitre_de_stage ms2 ON ms2.id_maitre_stage = ist2.id_maitre_stage
+                 WHERE ist2.num_etu = p.num_etud
+                 LIMIT 1) AS maitre_stage
             FROM {$progTable} p
             LEFT JOIN etudiants e ON " . $this->studentJoinCondition('e', 'p') . "
-            LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(e.num_carte_etud, p.num_etud)
-            LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
             WHERE p.num_etud = ?
             ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
             LIMIT 1
@@ -979,11 +983,13 @@ class EvaluationSoutenanceService
                     {$examinateurNom} AS examinateur,
                     {$directeurNom} AS directeur,
                     {$encadreurNom} AS encadreur,
-                    CONCAT(ms.prenom, ' ', ms.Nom) AS maitre_stage
+                    (SELECT CONCAT(ms2.prenom, ' ', ms2.Nom)
+                     FROM informations_stage ist2
+                     JOIN maitre_de_stage ms2 ON ms2.id_maitre_stage = ist2.id_maitre_stage
+                     WHERE ist2.num_etu = p.num_etud
+                     LIMIT 1) AS maitre_stage
                 FROM {$progTable} p
                 JOIN etudiants e ON " . $this->studentJoinCondition('e', 'p') . "
-                LEFT JOIN informations_stage ist ON ist.num_etu = e.num_carte_etud
-                LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 WHERE e.num_ident_etud = ?
                 ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
                 LIMIT 1

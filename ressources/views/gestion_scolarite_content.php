@@ -404,7 +404,6 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                                 <input type="checkbox" id="cmCheckAllVersements" class="cm-checkbox"
                                     aria-label="Sélectionner toutes les lignes">
                             </th>
-                            <th class="cm-data-table__th">ID MESRS</th>
                             <th class="cm-data-table__th">Nom &amp; Prénom</th>
                             <th class="cm-data-table__th">N° Versement</th>
                             <th class="cm-data-table__th">Date Versement</th>
@@ -412,8 +411,6 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                             <th class="cm-data-table__th">Montant versé</th>
                             <th class="cm-data-table__th">Reste</th>
                             <th class="cm-data-table__th">Solde</th>
-                            <th class="cm-data-table__th">Mode paiement</th>
-                            <th class="cm-data-table__th">N° Moyen Paiement</th>
                             <th class="cm-data-table__th">Actions</th>
                         </tr>
                     </thead>
@@ -421,7 +418,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                         <?php if (empty($versementsToShow)): ?>
                             <?php cm_component('ui/empty-state', [
                                 'in_table' => true,
-                                'colspan' => 12,
+                                'colspan' => 9,
                                 'title' => '',
                                 'message' => 'Aucune inscription / aucun versement trouve.',
                             ]); ?>
@@ -466,8 +463,6 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                                     <td class="cm-data-table__td cm-data-table__td--check">
                                         <input type="checkbox" class="cm-checkbox cm-row-checkbox">
                                     </td>
-                                    <td class="cm-data-table__td"><?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>
-                                    </td>
                                     <td class="cm-data-table__td">
                                         <?php echo htmlspecialchars($nomPrenom, ENT_QUOTES, 'UTF-8'); ?>
                                     </td>
@@ -488,11 +483,6 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                                     </td>
                                     <td class="cm-data-table__td">
                                         <?php echo htmlspecialchars(number_format($soldeVersement, 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?>
-                                    </td>
-                                    <td class="cm-data-table__td"><?php echo htmlspecialchars($mode, ENT_QUOTES, 'UTF-8'); ?>
-                                    </td>
-                                    <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars($numPiece, ENT_QUOTES, 'UTF-8'); ?>
                                     </td>
                                     <td class="cm-data-table__td is-center is-actions">
                                         <div class="cm-table-actions">

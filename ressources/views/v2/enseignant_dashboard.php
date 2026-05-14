@@ -592,12 +592,20 @@ function normalizeRoleName(string $role): string {
                         $icon = $roleIcons[$roleKey]['icon'] ?? 'fa-user';
                         $color = $roleIcons[$roleKey]['color'] ?? 'info';
                     ?>
-                        <?php cm_component('dashboard/stat-widget', [
+                        <?php 
+                        $widgetUrl = '?page=tableau_bord_enseignant&id_qualite_jury=' . urlencode((string)($qualite['id_role_jury'] ?? ''));
+                        if ($filtreAnnee !== null) $widgetUrl .= '&id_annee_acad=' . urlencode((string)$filtreAnnee);
+                        if ($filtreSession !== null) $widgetUrl .= '&id_session=' . urlencode((string)$filtreSession);
+                        if ($isAdmin && $enseignantSelectionne !== null) $widgetUrl .= '&id_enseignant_selected=' . urlencode((string)$enseignantSelectionne);
+
+                        cm_component('dashboard/stat-widget', [
                             'value' => number_format((int) ($qualite['total'] ?? 0), 0, ',', ' '),
                             'label' => htmlspecialchars($qualite['lib_role'] ?? '', ENT_QUOTES, 'UTF-8'),
                             'subtitle' => 'soutenance(s)',
                             'icon' => $icon,
-                            'color' => $color
+                            'color' => $color,
+                            'url' => $widgetUrl,
+                            'ajax' => true
                         ]); ?>
                     <?php endforeach; ?>
                 </div>

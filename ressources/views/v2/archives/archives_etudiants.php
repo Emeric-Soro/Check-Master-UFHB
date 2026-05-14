@@ -112,7 +112,7 @@ $filters = $data['filters'] ?? [];
                                 <strong><?php echo htmlspecialchars($e->nom_etu . ' ' . $e->prenom_etu); ?></strong><br>
                                 <small class="cm-text-muted"><?php echo htmlspecialchars($e->email_etu); ?></small>
                             </td>
-                            <td><?php echo htmlspecialchars($e->promotion_etu); ?></td>
+                            <td><?php echo htmlspecialchars(FormattingUtils::formatPromotion($e->promotion_etu)); ?></td>
                             <td><?php echo htmlspecialchars($e->lib_specialite ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($e->entreprise ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars(substr($e->theme ?? '', 0, 50)) . (strlen($e->theme ?? '') > 50 ? '...' : ''); ?></td>

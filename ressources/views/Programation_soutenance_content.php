@@ -62,7 +62,7 @@ foreach ($etudiants as $etu) {
         'id_etudiant' => $id,
         'nom_complet' => $label,
         'matricule_etudiant' => $matricule,
-        'promotion_etu' => (string) ($etu['promotion_etu'] ?? ''),
+        'promotion_etu' => FormattingUtils::formatPromotion((string) ($etu['promotion_etu'] ?? '')),
         'theme_rapport' => $themeRapport,
         'directeur_nom' => trim((string) ($etu['directeur_nom'] ?? '')),
         'directeur_id' => (string) ($etu['directeur_id'] ?? ''),
@@ -72,7 +72,7 @@ foreach ($etudiants as $etu) {
         'maitre_stage_id' => (string) ($etu['id_maitre_stage'] ?? ''),
     ];
     $studentOptions[$id] = $label . ' (' . $matricule . ')'
-        . (\AcademicYear::isAllSelectedFromSession() && !empty($etu['promotion_etu']) ? ' - ' . (string) $etu['promotion_etu'] : '');
+        . (\AcademicYear::isAllSelectedFromSession() && !empty($etu['promotion_etu']) ? ' - ' . \FormattingUtils::formatPromotion((string) $etu['promotion_etu']) : '');
 }
 $enseignantOptions = [];
 foreach ($enseignants as $ens) {
@@ -128,7 +128,7 @@ foreach ($attributions as $row) {
 
     $studentName = trim((string) ($row['nom_etudiant'] ?? 'Étudiant'));
     $studentMatricule = trim((string) ($row['matricule_etudiant'] ?? $studentId));
-    $promotion = trim((string) ($row['promotion_etu'] ?? ''));
+    $promotion = FormattingUtils::formatPromotion(trim((string) ($row['promotion_etu'] ?? '')));
 
     $studentMap[$studentId] = [
         'id_etudiant' => $studentId,
@@ -161,84 +161,6 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
     <div id="cmProgAlert"></div>
     <div class="cm-pole-superieur is-compact">
         <style>
-            /* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
-            #cmProgForm .cm-form-group:has(#FIELD_ID) {
-                width: 10ch !important;
-                min-width: 10ch !important;
-                max-width: 10ch !important;
-            }
-
-            .cm-prog-toolbar {
-                overflow-x: hidden;
-                padding-bottom: 0.01rem;
-                padding-top: 0.01rem;
-            }
-
-            .cm-prog-toolbar__row {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 0.22rem 0.28rem;
-                width: 100%;
-                min-width: 0;
-                font-size: 0.68rem;
-            }
-
-            .cm-prog-toolbar__row .cm-form-control.cm-toolbar-field-lg {
-                width: 7.2rem;
-                min-width: 7.2rem;
-            }
-
-            #cmProgSearch {
-                flex: 1 1 9.5rem;
-                min-width: 8rem;
-            }
-
-            .cm-prog-toolbar__row .cm-form-control.cm-toolbar-field-sm {
-                width: 5.2rem;
-                min-width: 5.2rem;
-            }
-
-            .cm-prog-toolbar__row .cm-form-control.cm-toolbar-field-xs {
-                width: 3.2rem;
-                min-width: 3.2rem;
-            }
-
-            .cm-prog-toolbar__row .cm-form-control {
-                min-height: 18px;
-                padding: 0.06rem 0.14rem;
-                font-size: 0.62rem;
-                line-height: 1.0;
-            }
-
-            .cm-prog-toolbar__row .cm-btn.is-sm {
-                min-height: 18px;
-                padding: 0.06rem 0.16rem;
-                font-size: 0.62rem;
-                line-height: 1.0;
-            }
-
-            #cmProgSelectedCount {
-                font-size: 0.68rem;
-                padding: 0.08rem 0.28rem;
-            }
-
-            .cm-prog-toolbar__row .cm-btn,
-            .cm-prog-toolbar__row a.cm-btn,
-            .cm-prog-toolbar__row label {
-                white-space: nowrap;
-            }
-
-            #cmProgPlanning {
-                margin-left: auto;
-            }
-
-            @media (max-width: 980px) {
-                #cmProgPlanning {
-                    margin-left: 0;
-                }
-            }
-
             .cm-prog-planning-panel {
                 background: #fff;
                 border: 1px solid #e9ecef;
@@ -311,6 +233,14 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 justify-content: flex-end;
                 gap: 0.5rem;
                 margin-top: 0.9rem;
+            }
+
+            #cmProgTable th.is-schedule,
+            #cmProgTable td:nth-child(4),
+            #cmProgTable td:nth-child(5),
+            #cmProgTable td:nth-child(6) {
+                background-color: #b3d4f0;
+                font-weight: 600;
             }
         </style>
         <form id="cmProgForm" autocomplete="off">
@@ -431,33 +361,39 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
         </form>
     </div>
     <div class="cm-barre-intermediaire">
-        <div class="cm-toolbar cm-prog-toolbar">
-            <div class="cm-prog-toolbar__row">
-                <label for="cmProgLimit"><strong>Afficher:</strong></label>
-                <select id="cmProgLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
-                    data-cm-ajax-param="limit_prog" data-cm-ajax-reset-param="page_prog" data-cm-ajax-reset-value="1">
-                    <?php foreach ($allowedLimits as $limit): ?>
-                        <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
-                            <?php echo $limit; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <input type="text" id="cmProgSearch" class="cm-form-control cm-toolbar-field-lg"
-                    placeholder="Rechercher...">
-                <button type="button" class="cm-btn is-info is-xs" id="cmProgSelectAllBtn">Tout sélectionner</button>
-                <button type="button" class="cm-btn is-light is-xs" id="cmProgDeselectBtn">Tout désélectionner</button>
-                <button type="button" class="cm-btn is-light is-xs" id="cmProgDeleteBtn" disabled>Supprimer (0)</button>
-                <span class="cm-badge is-info is-pill" id="cmProgSelectedCount">0 sélectionnée(s)</span>
-                <label for="cmProgSortMode"><strong>Organisation:</strong></label>
-                <select id="cmProgSortMode" class="cm-form-control cm-form-select is-sm cm-toolbar-field-sm">
-                    <option value="chrono">Chronologique</option>
-                    <option value="room">Chronologique (salle secondaire)</option>
-                </select>
-                <button type="button" class="cm-btn is-light is-xs" id="cmProgPrint">Imprimer</button>
-                <button type="button" class="cm-btn is-info is-xs" id="cmProgExport">Exporter</button>
-                <button type="button" class="cm-btn is-info is-sm" id="cmProgPlanning">Planning</button>
-            </div>
-        </div>
+        <?php cm_toolbar([
+            'screen' => 'programmation_soutenance',
+            'id_prefix' => 'cmProgSout',
+            'limit' => $perPage,
+            'limit_options' => $allowedLimits,
+            'search_placeholder' => 'Rechercher une soutenance...',
+            'custom_actions' => [
+                [
+                    'tag' => 'select',
+                    'id' => 'cmProgOrganisation',
+                    'class' => 'cm-form-control cm-form-select is-sm cm-toolbar-field-sm',
+                    'options' => [
+                        '' => 'Organisation',
+                        'p_e' => 'Par etudiant',
+                        'p_p' => 'Par president',
+                        'p_m' => 'Par maitre/directeur'
+                    ],
+                    'attrs' => [
+                        'data-cm-ajax-param' => 'organisation',
+                        'data-cm-ajax-reset-param' => 'page_prog_sout',
+                        'data-cm-ajax-reset-value' => '1'
+                    ]
+                ],
+                [
+                    'tag' => 'button',
+                    'id' => 'cmProgSoutPlanningBtn',
+                    'label' => 'Planning',
+                    'icon' => 'fa-calendar-alt',
+                    'class' => 'cm-btn is-info is-sm',
+                    'attrs' => ['data-cm-toolbar-action' => 'planning']
+                ]
+            ]
+        ]); ?>
     </div>
     <div class="cm-pole-inferieur">
         <div class="cm-table-wrapper">
@@ -469,9 +405,9 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                         </th>
                         <th class="cm-data-table__th">Nom &amp; Prénom Étudiant</th>
                         <th class="cm-data-table__th">Promotion</th>
-                        <th class="cm-data-table__th">Date Soutenance</th>
-                        <th class="cm-data-table__th">Heure</th>
-                        <th class="cm-data-table__th">Salle</th>
+                        <th class="cm-data-table__th is-schedule">Date Soutenance</th>
+                        <th class="cm-data-table__th is-schedule">Heure</th>
+                        <th class="cm-data-table__th is-schedule">Salle</th>
                         <th class="cm-data-table__th">Président</th>
                         <th class="cm-data-table__th">Directeur mémoire</th>
                         <th class="cm-data-table__th">Examinateur</th>
@@ -504,7 +440,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                             $heureDisplay = $heureRaw !== '' ? date('H:i', strtotime($heureRaw)) : '-';
                             $salleId = (string) ($row['id_salle'] ?? '');
                             $salleNom = trim((string) ($row['nom_salle'] ?? ''));
-                            $promotion = trim((string) ($row['promotion_etu'] ?? ''));
+                            $promotion = FormattingUtils::formatPromotion(trim((string) ($row['promotion_etu'] ?? '')));
                             $editTitle = $rowIsWritable
                                 ? 'Modifier'
                                 : 'Modification impossible: seule l\'année active ' . $writeYearLabel . ' accepte des écritures.';
@@ -630,16 +566,14 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
         const directeurIdInput = document.getElementById('cmProgDirecteurId');
         const encadreurIdInput = document.getElementById('cmProgEncadreurId');
         const maitreIdInput = document.getElementById('cmProgMaitreId');
-        const searchInput = document.getElementById('cmProgSearch');
-        const exportBtn = document.getElementById('cmProgExport');
-        const printBtn = document.getElementById('cmProgPrint');
-        const checkAll = document.getElementById('cmProgCheckAll');
-        const selectAllBtn = document.getElementById('cmProgSelectAllBtn');
-        const deselectBtn = document.getElementById('cmProgDeselectBtn');
-        const deleteBtn = document.getElementById('cmProgDeleteBtn');
-        const limitSelect = document.getElementById('cmProgLimit');
-        const planningBtn = document.getElementById('cmProgPlanning');
-        const sortModeSelect = document.getElementById('cmProgSortMode');
+        const limitSelect = document.getElementById('cmProgSout_limit');
+        const searchInput = document.getElementById('cmProgSout_search');
+        const selectAllBtn = document.getElementById('cmProgSout_selectAll');
+        const deselectAllBtn = document.getElementById('cmProgSout_deselectAll');
+        const deleteBtn = document.getElementById('cmProgSout_deleteBtn');
+        const planningBtn = document.getElementById('cmProgSoutPlanningBtn');
+        const printBtn = document.getElementById('cmProgSout_printBtn');
+        const sortModeSelect = document.getElementById('cmProgOrganisation');
         const selectedCountEl = document.getElementById('cmProgSelectedCount');
         function setAlert(type, message) {
             if (!alertBox) {

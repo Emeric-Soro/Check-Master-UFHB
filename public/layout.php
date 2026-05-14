@@ -77,6 +77,7 @@ include __DIR__ . '/../app/controllers/AuthController.php';
 include __DIR__ . '/../app/controllers/MenuController.php';
 include __DIR__ . '/../app/middlewares/PermissionMiddleware.php';
 include __DIR__ . '/../app/utils/permissions_helper.php';
+include_once __DIR__ . '/../app/utils/FormattingUtils.php';
 include_once __DIR__ . '/../app/utils/ComponentHelper.php';
 include_once __DIR__ . '/../app/utils/FormHelper.php';
 include_once __DIR__ . '/../app/utils/TableHelper.php';
@@ -1783,11 +1784,11 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         .cm-content-area .cm-prd3-crud-screen .cm-table-wrapper,
         .cm-content-area .cm-prd6-admin-screen .cm-table-wrapper {
             display: block !important;
-            height: clamp(180px, 46vh, 560px) !important;
-            min-height: 180px !important;
-            max-height: 560px !important;
-            overflow-x: scroll !important;
-            overflow-y: scroll !important;
+            height: auto !important;
+            min-height: 200px !important;
+            max-height: 75vh !important;
+            overflow-x: auto !important;
+            overflow-y: auto !important;
             scrollbar-gutter: stable both-edges !important;
             scrollbar-width: auto !important;
             scrollbar-color: #2a8fd4 #d6e6f5 !important;
@@ -1901,6 +1902,18 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
                 min-width: 100%;
                 max-width: 100%;
             }
+        }
+        /* Correction pour cm-screen-scrollable : autorise la liste à descendre naturellement */
+        .cm-screen-scrollable,
+        .cm-screen-scrollable .cm-crud-wrapper,
+        .cm-screen-scrollable .cm-pole-inferieur,
+        .cm-screen-scrollable .cm-table-wrapper {
+            height: auto !important;
+            max-height: none !important;
+            min-height: auto !important;
+            overflow-y: visible !important;
+            overflow-x: auto !important;
+            display: block !important;
         }
 
     </style>

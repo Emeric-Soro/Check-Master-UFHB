@@ -86,7 +86,7 @@ $dateSysteme = date('Y-m-d\TH:i');
                             <?php foreach ($etudiantsSansRapport as $e): ?>
                                 <option value="<?= htmlspecialchars($e->num_carte_etud ?? $e->num_ident_etud ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                     data-nom="<?= htmlspecialchars(($e->nom_etu ?? '') . ' ' . ($e->prenom_etu ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                    data-promotion="<?= htmlspecialchars($e->promotion_etu ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                    data-promotion="<?= htmlspecialchars(\FormattingUtils::formatPromotion($e->promotion_etu ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                                     <?= htmlspecialchars(($e->nom_etu ?? '') . ' ' . ($e->prenom_etu ?? '') . ' (' . ($e->num_carte_etud ?? $e->num_ident_etud ?? '') . ')', ENT_QUOTES, 'UTF-8') ?>
                                 </option>
                             <?php endforeach; ?>
@@ -205,9 +205,7 @@ $dateSysteme = date('Y-m-d\TH:i');
                     <table class="cm-data-table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
                         <thead>
                             <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
-                                <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #555; white-space: nowrap;">Matricule</th>
                                 <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #555;">Étudiant</th>
-                                <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #555;">Rapport</th>
                                 <th style="padding: 10px 12px; text-align: center; font-weight: 600; color: #555;">Statut</th>
                                 <th style="padding: 10px 12px; text-align: center; font-weight: 600; color: #555;">Date opération</th>
                                 <th style="padding: 10px 12px; text-align: center; font-weight: 600; color: #555;">Taille</th>
@@ -236,14 +234,8 @@ $dateSysteme = date('Y-m-d\TH:i');
                                 $matricule = $r->num_etu ?? '-';
                                 ?>
                                 <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 10px 12px; color: #666; font-size: 0.85rem;"><?= htmlspecialchars($matricule, ENT_QUOTES, 'UTF-8') ?></td>
                                     <td style="padding: 10px 12px; font-weight: 500;">
                                         <?= htmlspecialchars(($r->nom_etu ?? '') . ' ' . ($r->prenom_etu ?? ''), ENT_QUOTES, 'UTF-8') ?>
-                                    </td>
-                                    <td style="padding: 10px 12px; color: #333;">
-                                        <span title="<?= htmlspecialchars($r->theme_rapport ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                                            <?= htmlspecialchars(mb_substr((string) ($r->nom_rapport ?? ''), 0, 40) . (mb_strlen((string) ($r->nom_rapport ?? '')) > 40 ? '...' : ''), ENT_QUOTES, 'UTF-8') ?>
-                                        </span>
                                     </td>
                                     <td style="padding: 10px 12px; text-align: center;">
                                         <?php cm_component('ui/badge', ['type' => $statutBadge, 'text' => $statutText]); ?>

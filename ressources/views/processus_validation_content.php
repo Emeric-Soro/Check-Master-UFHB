@@ -116,24 +116,28 @@ foreach ($membresCommission as $membre) {
                     'label' => 'Total approuves',
                     'icon' => 'fa-file-lines',
                     'color' => 'primary',
+                    'url' => '?page=processus_validation&pv_status=all'
                 ]); ?>
                 <?php cm_component('dashboard/stat-widget', [
                     'value' => (string) ((int) ($statistiques['en_cours'] ?? 0)),
                     'label' => 'En cours',
                     'icon' => 'fa-hourglass-half',
                     'color' => 'info',
+                    'url' => '?page=processus_validation&pv_status=en_cours'
                 ]); ?>
                 <?php cm_component('dashboard/stat-widget', [
                     'value' => (string) ((int) ($statistiques['valides'] ?? 0)),
                     'label' => 'Validés',
                     'icon' => 'fa-check-circle',
                     'color' => 'success',
+                    'url' => '?page=processus_validation&pv_status=valide'
                 ]); ?>
                 <?php cm_component('dashboard/stat-widget', [
                     'value' => (string) ((int) ($statistiques['rejetes'] ?? 0)),
                     'label' => 'Rejetés',
                     'icon' => 'fa-xmark-circle',
                     'color' => 'warning',
+                    'url' => '?page=processus_validation&pv_status=rejete'
                 ]); ?>
             </div>
             <div class="cm-grid-2">
@@ -234,7 +238,7 @@ foreach ($membresCommission as $membre) {
                                         <?php echo htmlspecialchars($etudiant, ENT_QUOTES, 'UTF-8'); ?>
                                     </td>
                                     <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars((string) ($rapport['promotion_etu'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?>
+                                        <?php echo htmlspecialchars(\FormattingUtils::formatPromotion((string) ($rapport['promotion_etu'] ?? '-')), ENT_QUOTES, 'UTF-8'); ?>
                                     </td>
                                     <td class="cm-data-table__td">
                                         <?php cm_component('ui/badge', ['text' => $statutLabel, 'type' => $badgeType]); ?>

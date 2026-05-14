@@ -247,7 +247,7 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
                 <input type="hidden" name="page" value="gestion_utilisateurs">
                 <?php cm_toolbar([
                     'screen' => 'gestion_utilisateurs',
-                    'id_prefix' => 'users',
+                    'id_prefix' => 'cmUsers',
                     'search_value' => $filters['search'],
                     'can_delete' => canDelete(),
                     'can_view' => canView(),
@@ -255,9 +255,26 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
                         canEdit() ? [
                             'tag' => 'button',
                             'type' => 'button',
-                            'id' => 'cmUsersSendAccess',
+                            'id' => 'cmUsers_enableBtn',
+                            'label' => 'Activer',
+                            'class' => 'cm-btn is-success is-sm',
+                            'icon' => 'fa-check-circle',
+                        ] : null,
+                        canEdit() ? [
+                            'tag' => 'button',
+                            'type' => 'button',
+                            'id' => 'cmUsers_disableBtn',
+                            'label' => 'Désactiver',
+                            'class' => 'cm-btn is-warning is-sm',
+                            'icon' => 'fa-ban',
+                        ] : null,
+                        canEdit() ? [
+                            'tag' => 'button',
+                            'type' => 'button',
+                            'id' => 'cmUsers_sendAccessBtn',
                             'label' => 'Envoyer accès',
                             'class' => 'cm-btn is-info is-sm',
+                            'icon' => 'fa-paper-plane',
                             'attrs' => ['title' => 'Envoyer les identifiants'],
                         ] : null,
                     ]),
@@ -298,92 +315,6 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
 .cm-prd3-crud-screen #cmUserNameTextWrap.cm-user-name-hidden,
 .cm-prd3-crud-screen #cmUserNameSelectWrap.cm-user-name-hidden {
     display: none !important;
-}
-
-#users_toolbar .cm-toolbar.cm-toolbar--unified {
-    gap: 0.35rem !important;
-    padding: 0.2rem 0.35rem !important;
-    flex-wrap: wrap !important;
-    overflow-x: visible !important;
-    width: 100% !important;
-    max-width: 100% !important;
-}
-
-#users_toolbar .cm-toolbar-left,
-#users_toolbar .cm-toolbar-center,
-#users_toolbar .cm-toolbar-right {
-    gap: 0.35rem !important;
-    min-width: 0;
-}
-
-#users_toolbar .cm-toolbar-left {
-    display: none !important;
-}
-
-#users_toolbar .cm-toolbar-center {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-}
-
-#users_toolbar .cm-toolbar-right {
-    flex: 1 1 auto !important;
-    flex-wrap: wrap !important;
-    justify-content: flex-start !important;
-    margin-left: 0 !important;
-}
-
-#users_toolbar .cm-toolbar__actions-group {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 0.35rem !important;
-}
-
-#users_toolbar .cm-toolbar__search-icon {
-    display: none !important;
-}
-
-#users_toolbar .cm-toolbar__search-wrap {
-    width: clamp(8.5rem, 14vw, 11rem) !important;
-    min-width: 8.5rem !important;
-    max-width: 11rem !important;
-}
-
-#users_toolbar .cm-toolbar-field-lg,
-#users_toolbar .cm-toolbar__search-wrap input {
-    min-width: 8.5rem !important;
-    max-width: 11rem !important;
-    height: 1.85rem !important;
-    font-size: 0.8rem !important;
-    padding: 0.3rem 0.45rem !important;
-    padding-left: 0.45rem !important;
-}
-
-#users_toolbar .cm-toolbar-field-xs,
-#users_toolbar .cm-toolbar select.is-sm,
-#users_toolbar .cm-toolbar .cm-btn {
-    height: 1.85rem !important;
-    font-size: 0.8rem !important;
-}
-
-#users_toolbar .cm-toolbar .cm-btn {
-    min-height: 1.85rem !important;
-    padding: 0.28rem 0.5rem !important;
-    line-height: 1.1 !important;
-}
-
-#users_toolbar .cm-toolbar__control span,
-#users_toolbar .cm-toolbar .cm-btn span {
-    font-size: 0.8rem !important;
-}
-
-#users_toolbar .cm-toolbar .cm-dropdown__toggle,
-#users_toolbar .cm-toolbar .cm-form-control,
-#users_toolbar .cm-toolbar select.is-sm {
-    min-height: 1.85rem !important;
-}
-
-#users_toolbar {
-    overflow-x: hidden !important;
 }
 </style>
 
@@ -672,13 +603,35 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
             bulkForm.submit();
         }
     }
-    const selectAllBtn = document.getElementById('cmUsersSelectAll');
-    const deselectAllBtn = document.getElementById('cmUsersDeselectAll');
-    const disableBtn = document.getElementById('cmUsersDisable');
-    const enableBtn = document.getElementById('cmUsersEnable');
-    const sendBtn = document.getElementById('cmUsersSendAccess');
-    const printBtn = document.getElementById('cmUsersPrint');
-    const exportBtn = document.getElementById('cmUsersExport');
+    const selectAllBtn = document.getElementById('cmUsers_selectAll');
+    const deselectAllBtn = document.getElementById('cmUsers_deselectAll');
+    const deleteBtn = document.getElementById('cmUsers_deleteBtn');
+    const disableBtn = document.getElementById('cmUsers_disableBtn');
+    const enableBtn = document.getElementById('cmUsers_enableBtn');
+    const sendBtn = document.getElementById('cmUsers_sendAccessBtn');
+    const printBtn = document.getElementById('cmUsers_printBtn');
+    const exportBtn = document.getElementById('cmUsers_exportBtn');
+    const selectedCount = deleteBtn ? deleteBtn.querySelector('.cm-delete-count') : null;
+
+    const updateSelectionState = function () {
+        const checks = rowChecks();
+        const selected = checks.filter(cb => cb.checked);
+        if (selectedCount) {
+            selectedCount.textContent = selected.length > 0 ? (' (' + selected.length + ')') : '';
+        }
+        [deleteBtn, disableBtn, enableBtn, sendBtn].forEach(btn => {
+            if (btn) btn.disabled = selected.length === 0;
+        });
+    };
+
+    if (table) {
+        table.addEventListener('change', function (e) {
+            if (e.target.classList.contains('cm-table-check-row') || e.target.classList.contains('cm-table-check-all')) {
+                updateSelectionState();
+            }
+        });
+    }
+
     const confirmBulkAction = function (message) {
         return window.CM.confirm({
             title: 'Confirmation',
@@ -687,8 +640,9 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
             confirmText: 'Confirmer',
         });
     };
-    if (selectAllBtn) selectAllBtn.addEventListener('click', () => rowChecks().forEach(cb => cb.checked = true));
-    if (deselectAllBtn) deselectAllBtn.addEventListener('click', () => rowChecks().forEach(cb => cb.checked = false));
+    if (selectAllBtn) selectAllBtn.addEventListener('click', () => { rowChecks().forEach(cb => cb.checked = true); updateSelectionState(); });
+    if (deselectAllBtn) deselectAllBtn.addEventListener('click', () => { rowChecks().forEach(cb => cb.checked = false); updateSelectionState(); });
+    if (deleteBtn) deleteBtn.addEventListener('click', async () => { if (await confirmBulkAction('Supprimer les utilisateurs selectionnes ?')) submitBulk('delete'); });
     if (disableBtn) disableBtn.addEventListener('click', async () => { if (await confirmBulkAction('Desactiver les utilisateurs selectionnes ?')) submitBulk('disable'); });
     if (enableBtn) enableBtn.addEventListener('click', async () => { if (await confirmBulkAction('Activer les utilisateurs selectionnes ?')) submitBulk('enable'); });
     if (sendBtn) sendBtn.addEventListener('click', async () => { if (await confirmBulkAction('Envoyer les acces par email aux utilisateurs selectionnes ?')) submitBulk('send'); });

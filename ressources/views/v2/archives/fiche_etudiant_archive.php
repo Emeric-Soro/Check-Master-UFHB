@@ -25,7 +25,7 @@ $onglet = $_GET['onglet'] ?? 'infos';
                 </h1>
                 <p class="cm-page-subtitle">
                     <code><?php echo htmlspecialchars($etudiant->num_carte_etud); ?></code> • 
-                    <?php echo htmlspecialchars($etudiant->promotion_etu); ?>
+                    <?php echo htmlspecialchars(FormattingUtils::formatPromotion($etudiant->promotion_etu)); ?>
                 </p>
             </div>
             <div class="cm-flex cm-gap-2">
@@ -73,7 +73,7 @@ $onglet = $_GET['onglet'] ?? 'infos';
                             <div>
                                 <p class="cm-mb-2"><strong>Date naissance:</strong> <?php echo $etudiant->date_naiss_etu ?? '-'; ?></p>
                                 <p class="cm-mb-2"><strong>Genre:</strong> <?php echo htmlspecialchars($etudiant->libelle_genre ?? '-'); ?></p>
-                                <p class="cm-mb-2"><strong>Promotion:</strong> <?php echo htmlspecialchars($etudiant->promotion_etu); ?></p>
+                                <p class="cm-mb-2"><strong>Promotion:</strong> <?php echo htmlspecialchars(FormattingUtils::formatPromotion($etudiant->promotion_etu)); ?></p>
                             </div>
                         </div>
                     </div>

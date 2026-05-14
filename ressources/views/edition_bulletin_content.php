@@ -11,7 +11,7 @@ $rows = [];
 foreach ($anneesAcademiques as $annee) {
     $label = (string) ($annee['lib_annee'] ?? '');
     if ($label !== '') {
-        $anneeOptions[$label] = $label;
+        $anneeOptions[$label] = \FormattingUtils::formatPromotion($label);
     }
 }
 foreach ($soutenances as $row) {
@@ -23,7 +23,7 @@ foreach ($soutenances as $row) {
     $nameParts = preg_split('/\s+/', $fullName, 2);
     $prenom = trim((string) ($nameParts[0] ?? ''));
     $nom = trim((string) ($nameParts[1] ?? ''));
-    $promotion = trim((string) ($row['promotion_etu'] ?? ''));
+    $promotion = \FormattingUtils::formatPromotion(trim((string) ($row['promotion_etu'] ?? '')));
     $niveau = '-';
     if (stripos($promotion, 'M2') !== false) {
         $niveau = 'M2';
@@ -158,18 +158,6 @@ $baseUrl = '?page=edition_bulletin'
                         'placeholder' => 'Rechercher...',
                     ]);
                     ?>
-                    <div class="cm-form-group" style="display: flex; align-items: flex-end;">
-                        <?php if (canCreate() || canEdit()): ?>
-                            <button class="cm-btn is-success" type="button" id="cmBulletinGenerateAll">
-                                <i class="fas fa-file-circle-check" aria-hidden="true"></i>
-                                Generer tous les bulletins
-                            </button>
-                        <?php endif; ?>
-                    </div>
-                    <button class="cm-btn is-success" type="button" id="cmBulletinGenerateAll">
-                        <i class="fas fa-file-circle-check" aria-hidden="true"></i>
-                        Generer tous les bulletins
-                    </button>
                 </div>
             </div>
         </div>
@@ -178,10 +166,19 @@ $baseUrl = '?page=edition_bulletin'
             'id_prefix' => 'cmBulletin',
             'search_value' => $_GET['search'] ?? '',
             'limit' => $perPage,
-            'allowed_limits' => $allowedLimits,
+            'limit_options' => $allowedLimits,
             'can_delete' => canDelete(),
             'can_view' => canView(),
             'print_title' => 'Édition bulletin',
+            'custom_actions' => [
+                [
+                    'label' => 'Générer bulletins',
+                    'icon' => 'fa-file-circle-check',
+                    'class' => 'cm-btn is-success is-sm',
+                    'id' => 'cmBulletinGenerateSelected',
+                    'attrs' => ['title' => 'Générer les bulletins sélectionnés ou tous les visibles']
+                ]
+            ]
         ]); ?>
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
@@ -258,17 +255,9 @@ $baseUrl = '?page=edition_bulletin'
                                                 </button>
                                             <?php endif; ?>
                                         </div>
-                                        <?php if (!empty($row['is_evaluated'])): ?>
-                                            <button type="button" class="cm-btn-action is-view cm-bulletin-pdf"
-                                                data-num-etu="<?php echo htmlspecialchars((string) ($row['num_etu'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
-                                                title="Generer PDF">
-                                                <i class="fas fa-file-pdf" aria-hidden="true"></i>
-                                            </button>
-                                        <?php endif; ?>
-                    </div>
-                    </td>
-                    </tr>
-                <?php endforeach; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
             <?php endif; ?>
             </tbody>
             </table>
@@ -281,43 +270,19 @@ $baseUrl = '?page=edition_bulletin'
         ]);
         ?>
     </div>
-    <?php if (canCreate() || canEdit() || canView()): ?>
-        <div class="cm-barre-intermediaire">
-            <div class="cm-toolbar">
-                <div class="cm-toolbar-right">
-                    <?php if (canCreate() || canEdit()): ?>
-                        <button class="cm-btn is-success" type="button" id="cmBulletinGenerateSelected">
-                            <i class="fas fa-file-circle-check" aria-hidden="true"></i>
-                            Generer bulletins selectionnes
-                        </button>
-                    <?php endif; ?>
-                    <?php if (canView()): ?>
-                        <button class="cm-btn is-info" type="button" id="cmBulletinExportAll">
-                            <i class="fas fa-file-export" aria-hidden="true"></i>
-                            Exporter tous
-                        </button>
-                        <button class="cm-btn is-info" type="button" id="cmBulletinPrint">
-                            <i class="fas fa-print" aria-hidden="true"></i>
-                            Imprimer
-                        </button>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
     <?php endif; ?>
     </div>
     </div>
-<?php endif; ?>
 
 <script>
     (function () {
-        const searchInput = document.getElementById('cmBulletinSearch');
+        const searchInput = document.getElementById('cmBulletin_search');
         const checkAll = document.getElementById('cmBulletinCheckAll');
-        const selectAllBtn = document.getElementById('cmBulletinSelectAllBtn');
-        const deselectBtn = document.getElementById('cmBulletinDeselectBtn');
-        const deleteBtn = document.getElementById('cmBulletinDeleteBtn');
-        const printBtn = document.getElementById('cmBulletinPrint');
-        const exportAllBtn = document.getElementById('cmBulletinExportAll');
+        const selectAllBtn = document.getElementById('cmBulletin_selectAll');
+        const deselectBtn = document.getElementById('cmBulletin_deselectAll');
+        const deleteBtn = document.getElementById('cmBulletin_deleteBtn');
+        const printBtn = document.getElementById('cmBulletin_printBtn');
+        const exportAllBtn = document.getElementById('cmBulletin_excelBtn');
         const generateSelectedBtn = document.getElementById('cmBulletinGenerateSelected');
         function getRows() {
             return Array.from(document.querySelectorAll('#cmBulletinBody .cm-data-table__row'));

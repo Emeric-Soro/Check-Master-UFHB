@@ -84,31 +84,6 @@ foreach ($etudiants as $etudiant) {
         <!-- Formulaire de mise en ligne -->
         <div class="cm-pole-superieur">
             <div class="cm-text-md cm-text-semibold cm-mb-md">Mise en ligne de mémoire</div>
-            <style>
-/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
-#cmMemoireForm .cm-form-group:has(#FIELD_ID) {
-    width: 10ch !important;
-    min-width: 10ch !important;
-    max-width: 10ch !important;
-}
-
-.cm-memoire-toolbar .cm-toolbar-left {
-    flex: 1 1 20rem !important;
-}
-
-.cm-memoire-toolbar .cm-toolbar-center {
-    flex: 1 1 26rem !important;
-}
-
-.cm-memoire-toolbar .cm-toolbar-right {
-    flex: 0 0 auto !important;
-}
-
-.cm-memoire-toolbar .cm-toolbar-left .cm-toolbar-field-lg {
-    min-width: 13rem !important;
-    max-width: 18rem !important;
-}
-</style>
 <form id="cmMemoireForm" method="POST" action="?page=mise_en_ligne_memoire" enctype="multipart/form-data"
                 data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
@@ -173,54 +148,23 @@ foreach ($etudiants as $etudiant) {
 
         <!-- Barre d'outils -->
         <div class="cm-barre-intermediaire">
-            <div class="cm-toolbar cm-memoire-toolbar">
-                <div class="cm-toolbar-left">
-                    <label for="cmMemoireLimit"><strong>Afficher:</strong></label>
-                    <select id="cmMemoireLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
-                        data-cm-ajax-param="limit_memoire" data-cm-ajax-reset-param="page_memoire"
-                        data-cm-ajax-reset-value="1">
-                        <?php foreach ($allowedLimits as $limit): ?>
-                            <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
-                                <?php echo $limit; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <input type="text" id="cmMemoireSearch" class="cm-form-control cm-toolbar-field-lg"
-                        placeholder="Rechercher un mémoire...">
-                </div>
-
-                <div class="cm-toolbar-center">
-                    <button type="button" class="cm-btn is-secondary is-sm" id="cmMemoireSelectAllBtn"
-                        data-select-all="1">
-                        <i class="fas fa-square-check" aria-hidden="true"></i>
-                        Tout sélectionner
-                    </button>
-                    <button type="button" class="cm-btn is-secondary is-sm" id="cmMemoireDeselectBtn"
-                        data-deselect-all="1">
-                        <i class="fas fa-square" aria-hidden="true"></i>
-                        Tout désélectionner
-                    </button>
-                    <button type="button" class="cm-btn is-danger is-sm" id="cmMemoireDeleteBtn"
-                        data-bulk-delete="1" disabled>
-                        <i class="fas fa-trash" aria-hidden="true"></i>
-                        Supprimer (0)
-                    </button>
-                </div>
-
-                <div class="cm-toolbar-right">
-                    <button type="button" class="cm-btn is-secondary is-sm" id="cmMemoireExport"
-                        data-export="1">
-                        <i class="fas fa-file-export" aria-hidden="true"></i>
-                        Exporter
-                    </button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmMemoirePrint"
-                        data-print="1" onclick="window.print()">
-                        <i class="fas fa-print" aria-hidden="true"></i>
-                        Imprimer
-                    </button>
-                </div>
-            </div>
+            <?php cm_toolbar([
+                'screen' => 'mise_en_ligne_memoire',
+                'id_prefix' => 'cmMemoire',
+                'limit' => $perPage,
+                'limit_options' => $allowedLimits,
+                'search_placeholder' => 'Rechercher un mémoire...',
+                'custom_actions' => [
+                    [
+                        'tag' => 'button',
+                        'id' => 'cmMemoireExport',
+                        'label' => 'Exporter',
+                        'icon' => 'fa-file-export',
+                        'class' => 'cm-btn is-secondary is-sm',
+                        'attrs' => ['data-cm-toolbar-action' => 'export']
+                    ]
+                ]
+            ]); ?>
         </div>
 
         <!-- Tableau récapitulatif -->
@@ -368,14 +312,14 @@ foreach ($etudiants as $etudiant) {
             });
         }
 
-        const searchInput = document.getElementById('cmMemoireSearch');
+        const searchInput = document.getElementById('cmMemoire_search');
         const tableBody = document.getElementById('cmMemoireTableBody');
         const exportBtn = document.getElementById('cmMemoireExport');
-        const printBtn = document.getElementById('cmMemoirePrint');
+        const printBtn = document.getElementById('cmMemoire_printBtn');
         const checkAll = document.getElementById('cmMemoireCheckAll');
-        const selectAllBtn = document.getElementById('cmMemoireSelectAllBtn');
-        const deselectBtn = document.getElementById('cmMemoireDeselectBtn');
-        const deleteBtn = document.getElementById('cmMemoireDeleteBtn');
+        const selectAllBtn = document.getElementById('cmMemoire_selectAll');
+        const deselectBtn = document.getElementById('cmMemoire_deselectAll');
+        const deleteBtn = document.getElementById('cmMemoire_deleteBtn');
 
         function setAlert(type, message) {
             if (!alertBox) {

@@ -3,7 +3,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/Etudiant.php';
-require_once __DIR__ . '/../models/Approuver.php';
+require_once __DIR__ . '/../models/Valider.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../models/InfoStage.php';
 require_once __DIR__ . '/../models/Entreprise.php';
@@ -88,7 +88,7 @@ class GestionRapportService
 
     private function getDerniereDecisionRapport(int $rapportId): ?array
     {
-        $decisions = Approuver::getByRapport($rapportId);
+        $decisions = Valider::getByRapport($rapportId);
         if (empty($decisions)) {
             return null;
         }
@@ -107,7 +107,7 @@ class GestionRapportService
             return false;
         }
 
-        $statut = strtolower((string) ($decision['decision'] ?? $decision['decision_validation'] ?? $decision['lib_approb'] ?? ''));
+        $statut = strtolower((string) ($decision['decision_validation'] ?? ''));
         return $statut !== '' && (str_contains($statut, 'rejet') || $statut === 'desapprouve');
     }
 
@@ -638,6 +638,7 @@ class GestionRapportService
                     margin: 15px 0 10px 0;
                     padding: 0;
                     page-break-after: avoid;
+                }
                 
                 /* Paragraphes */
                 p {

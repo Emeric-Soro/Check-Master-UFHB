@@ -2,7 +2,6 @@
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/RapportEtudiant.php';
-require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../models/Note.php';
@@ -26,9 +25,6 @@ class VerificationRapportsService
     /** @var RapportEtudiant */
     private $rapportModel;
 
-    /** @var Approuver */
-    private $approbationModel;
-
     /** @var PersAdmin */
     private $persAdminModel;
 
@@ -50,7 +46,6 @@ class VerificationRapportsService
     {
         $this->pdo = $db;
         $this->rapportModel = new RapportEtudiant($db);
-        $this->approbationModel = new Approuver($db);
         $this->persAdminModel = new PersAdmin($db);
         $this->auditLog = new AuditLog($db);
         $this->notesModel = new Note($this->pdo);
@@ -201,7 +196,7 @@ class VerificationRapportsService
     // ========================= VALIDATION =========================
 
     /**
-     * Valider un rapport (approuver)
+     * Valider un rapport (approuvé par la commission)
      *
      * @param int    $id_rapport  ID du rapport
      * @param string $commentaire Commentaire de l'approbation
@@ -210,8 +205,6 @@ class VerificationRapportsService
     public function validerRapport($id_rapport, $commentaire)
     {
         try {
-            $id_approb = 4; // Niveau 2 (id_approb=4 dans la table niveau_approbation)
-
             $id_admin = $this->resolveCurrentAdminId();
 
             if (!$id_rapport || !$commentaire || !$id_admin) {
@@ -242,19 +235,6 @@ class VerificationRapportsService
                 }
             }
 
-            if ($this->tableExists('approuver')) {
-                $stmt = $this->pdo->prepare("
-                    INSERT INTO approuver (id_rapport, id_pers_admin, commentaire_approv, decision, date_approv, id_approb)
-                    VALUES (?, ?, ?, 'approuve', NOW(), ?)
-                ");
-
-                if (!$stmt->execute([$id_rapport, $id_admin, $commentaire, $id_approb])) {
-                    $errorInfo = $stmt->errorInfo();
-                    error_log('APPROBATION SQL ERROR: ' . ($errorInfo[2] ?? ''));
-                    return ['success' => false, 'message' => "Erreur lors de l'approbation : " . ($errorInfo[2] ?? 'inconnue')];
-                }
-            }
-
             $this->updateRapportEtape($id_rapport, 'approuve_communication', 'valider');
             return ['success' => true, 'message' => 'Rapport approuvé avec succès'];
         } catch (\Exception $e) {
@@ -266,7 +246,7 @@ class VerificationRapportsService
     // ========================= REJET =========================
 
     /**
-     * Rejeter un rapport (désapprouver)
+     * Rejeter un rapport (refusé par la commission)
      *
      * @param int    $id_rapport  ID du rapport
      * @param string $commentaire Commentaire du rejet
@@ -275,8 +255,6 @@ class VerificationRapportsService
     public function rejeterRapport($id_rapport, $commentaire)
     {
         try {
-            $id_approb = 4; // Niveau 2 (id_approb=4 dans la table niveau_approbation)
-
             $id_admin = $this->resolveCurrentAdminId();
 
             if (!$id_rapport || !$commentaire || !$id_admin) {
@@ -290,19 +268,6 @@ class VerificationRapportsService
             $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId((int) $id_rapport), 'une vérification de rapport');
             if (!$writeGuard['success']) {
                 return ['success' => false, 'message' => $writeGuard['message']];
-            }
-
-            if ($this->tableExists('approuver')) {
-                $stmt = $this->pdo->prepare("
-                    INSERT INTO approuver (id_rapport, id_pers_admin, commentaire_approv, decision, date_approv, id_approb)
-                    VALUES (?, ?, ?, 'desapprouve', NOW(), ?)
-                ");
-
-                if (!$stmt->execute([$id_rapport, $id_admin, $commentaire, $id_approb])) {
-                    $errorInfo = $stmt->errorInfo();
-                    error_log('APPROBATION SQL ERROR: ' . ($errorInfo[2] ?? ''));
-                    return ['success' => false, 'message' => "Erreur lors de la desapprobation : " . ($errorInfo[2] ?? 'inconnue')];
-                }
             }
 
             $this->updateRapportEtape($id_rapport, 'desapprouve_communication', 'rejeter');

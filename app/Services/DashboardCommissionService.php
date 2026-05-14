@@ -284,17 +284,10 @@ class DashboardCommissionService
     public function getRapportsEnAttente()
     {
         try {
-            if ($this->tableExists('approuver')) {
-                $query = "SELECT COUNT(DISTINCT a.id_rapport) as en_attente
-                          FROM approuver a
-                          LEFT JOIN valider v ON a.id_rapport = v.id_rapport
-                          WHERE v.id_rapport IS NULL";
-            } else {
-                $query = "SELECT COUNT(*) as en_attente
-                          FROM rapport_etudiants r
-                          LEFT JOIN valider v ON r.id_rapport = v.id_rapport
-                          WHERE v.id_rapport IS NULL";
-            }
+            $query = "SELECT COUNT(*) as en_attente
+                      FROM rapport_etudiants r
+                      LEFT JOIN valider v ON r.id_rapport = v.id_rapport
+                      WHERE v.id_rapport IS NULL";
             $stmt = $this->db->prepare($query);
             $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -339,37 +332,20 @@ class DashboardCommissionService
     public function getRepartitionStatuts()
     {
         try {
-            if ($this->tableExists('approuver')) {
-                $query = "SELECT 
-                            v.decision_validation as statut,
-                            COUNT(DISTINCT v.id_rapport) as nombre
-                          FROM valider v
-                          GROUP BY v.decision_validation
-                          
-                          UNION ALL
-                          
-                          SELECT 
-                            'en_attente' as statut,
-                            COUNT(DISTINCT a.id_rapport) as nombre
-                          FROM approuver a
-                          LEFT JOIN valider v ON a.id_rapport = v.id_rapport
-                          WHERE v.id_rapport IS NULL";
-            } else {
-                $query = "SELECT 
-                            v.decision_validation as statut,
-                            COUNT(DISTINCT v.id_rapport) as nombre
-                          FROM valider v
-                          GROUP BY v.decision_validation
-                          
-                          UNION ALL
-                          
-                          SELECT 
-                            'en_attente' as statut,
-                            COUNT(*) as nombre
-                          FROM rapport_etudiants r
-                          LEFT JOIN valider v2 ON r.id_rapport = v2.id_rapport
-                          WHERE v2.id_rapport IS NULL";
-            }
+            $query = "SELECT 
+                        v.decision_validation as statut,
+                        COUNT(DISTINCT v.id_rapport) as nombre
+                      FROM valider v
+                      GROUP BY v.decision_validation
+                      
+                      UNION ALL
+                      
+                      SELECT 
+                        'en_attente' as statut,
+                        COUNT(*) as nombre
+                      FROM rapport_etudiants r
+                      LEFT JOIN valider v2 ON r.id_rapport = v2.id_rapport
+                      WHERE v2.id_rapport IS NULL";
             $stmt = $this->db->prepare($query);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -427,7 +403,7 @@ class DashboardCommissionService
                         ens.prenom_enseignant
                       FROM valider v
                       LEFT JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                      LEFT JOIN etudiants e ON r.num_etu = e.num_ident_etud
+                      LEFT JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
                       LEFT JOIN enseignants ens ON v.id_enseignant = ens.id_enseignant
                       ORDER BY v.date_validation DESC
                       LIMIT 10";
@@ -463,7 +439,7 @@ class DashboardCommissionService
                         " . ($dateExpr === 'NULL' ? 'NULL' : "DATEDIFF(v.date_validation, $dateExpr)") . " as temps_traitement
                       FROM valider v
                       LEFT JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                      LEFT JOIN etudiants e ON r.num_etu = e.num_ident_etud
+                      LEFT JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
                       LEFT JOIN enseignants ens ON v.id_enseignant = ens.id_enseignant
                       ORDER BY v.date_validation DESC
                       LIMIT 20";

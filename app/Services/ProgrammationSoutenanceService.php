@@ -424,10 +424,10 @@ class ProgrammationSoutenanceService
                 FROM etudiants e
                 INNER JOIN rapport_etudiants r ON e.num_carte_etud = r.num_etu
                 LEFT JOIN valider v ON r.id_rapport = v.id_rapport
-                LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
+                LEFT JOIN informations_stage ist ON (e.num_carte_etud = ist.num_etu OR e.num_ident_etud = ist.num_etu)
                 LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 LEFT JOIN {$progTable} p ON (e.num_carte_etud = p.num_etud OR e.num_ident_etud = p.num_etud)
-                WHERE (v.decision_validation = 'valider' OR COALESCE(r.statut_rapport, '') IN ('valider', 'valide'))
+                WHERE v.decision_validation = 'valider'
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
@@ -569,8 +569,17 @@ class ProgrammationSoutenanceService
             $directeurNom = $this->juryNameExpr('directeur', 'p');
             $encadreurId = $this->juryIdExpr('encadreur', 'p');
             $encadreurNom = $this->juryNameExpr('encadreur', 'p');
-            $maitreId = $this->juryIdExpr('maitre_stage', 'p');
-            $maitreNom = $this->juryNameExpr('maitre_stage', 'p');
+            // Le maître de stage n'est pas dans `enseignants` mais dans `maitre_de_stage`.
+            // On utilise une sous-requête directe sur informations_stage → maitre_de_stage.
+            $maitreNomExpr = "(SELECT CONCAT(ms2.prenom, ' ', ms2.Nom)
+                              FROM informations_stage ist2
+                              JOIN maitre_de_stage ms2 ON ms2.id_maitre_stage = ist2.id_maitre_stage
+                              WHERE ist2.num_etu = p.num_etud
+                              LIMIT 1)";
+            $maitreIdExpr = "(SELECT ist2.id_maitre_stage
+                             FROM informations_stage ist2
+                             WHERE ist2.num_etu = p.num_etud
+                             LIMIT 1)";
             $yearSelect = $this->columnExists($progTable, 'id_annee_acad')
                 ? 'p.id_annee_acad as id_annee_acad,'
                 : 'NULL as id_annee_acad,';
@@ -598,14 +607,12 @@ class ProgrammationSoutenanceService
                     {$directeurNom} as directeur_nom,
                     {$encadreurId} as encadreur_id,
                     {$encadreurNom} as encadreur_nom,
-                    {$maitreId} as maitre_stage_id,
-                    COALESCE({$maitreNom}, CONCAT(ms.prenom, ' ', ms.Nom)) as maitre_stage_nom,
-                    COALESCE({$maitreId}, ist.id_maitre_stage) as maitre_stage_ref
+                    {$maitreIdExpr} as maitre_stage_id,
+                    {$maitreNomExpr} as maitre_stage_nom,
+                    {$maitreIdExpr} as maitre_stage_ref
                 FROM {$progTable} p
                 LEFT JOIN etudiants e ON {$studentJoin}
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
-                LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
-                LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {

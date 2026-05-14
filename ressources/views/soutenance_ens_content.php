@@ -207,9 +207,12 @@ $filterResetUrl = '?page=' . rawurlencode($currentPageSlug);
     </div>
 
     <?php if ($teacherId !== ''): ?>
-        <div class="cm-barre-intermediaire">
-            <div class="cm-toolbar cm-toolbar--unified cm-toolbar--space-between">
-                <div class="cm-toolbar-left">
+        <?php
+        cm_toolbar([
+            'left_html' => static function () use ($allowedLimits, $perPage, $filteredAttributions) {
+                ob_start();
+                ?>
+                <div class="cm-toolbar__actions-group">
                     <label class="cm-toolbar__control">
                         <span>Afficher:</span>
                         <select id="cmProgEnsLimit" name="limit_prog" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
@@ -220,26 +223,39 @@ $filterResetUrl = '?page=' . rawurlencode($currentPageSlug);
                     </label>
                     <span class="cm-text-muted"><small><?= count($filteredAttributions) ?> soutenance(s)</small></span>
                 </div>
-
-                <div class="cm-toolbar-center">
-                    <div class="cm-toolbar__search-wrap">
-                        <i class="fas fa-search cm-toolbar__search-icon" aria-hidden="true"></i>
-                        <input type="search" id="cmProgEnsSearch" class="cm-form-control is-sm cm-toolbar-field-lg"
-                            value="<?= htmlspecialchars((string) ($_GET['search_prog'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                            placeholder="Rechercher un etudiant, un theme, une salle...">
-                    </div>
+                <?php
+                return (string) ob_get_clean();
+            },
+            'center_html' => static function () {
+                ob_start();
+                ?>
+                <div class="cm-toolbar__search-wrap">
+                    <i class="fas fa-search cm-toolbar__search-icon" aria-hidden="true"></i>
+                    <input type="search" id="cmProgEnsSearch" class="cm-form-control is-sm cm-toolbar-field-lg"
+                        value="<?= htmlspecialchars((string) ($_GET['search_prog'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                        placeholder="Rechercher un etudiant, un theme, une salle...">
                 </div>
-
-                <div class="cm-toolbar-right">
+                <?php
+                return (string) ob_get_clean();
+            },
+            'right_html' => static function () {
+                ob_start();
+                ?>
+                <div class="cm-toolbar__actions-group">
                     <button type="button" id="cmProgEnsPrint" class="cm-btn is-light is-sm">
+                        <i class="fas fa-print cm-mr-xs"></i>
                         <span>Imprimer</span>
                     </button>
                     <button type="button" id="cmProgEnsExport" class="cm-btn is-secondary is-sm">
+                        <i class="fas fa-file-excel cm-mr-xs"></i>
                         <span>Excel</span>
                     </button>
                 </div>
-            </div>
-        </div>
+                <?php
+                return (string) ob_get_clean();
+            }
+        ]);
+        ?>
     <?php endif; ?>
 
     <div class="cm-pole-inferieur">
@@ -302,7 +318,7 @@ $filterResetUrl = '?page=' . rawurlencode($currentPageSlug);
                                 <?php
                                 $nomEtudiant = trim((string) ($row['nom_etudiant'] ?? ''));
                                 $matricule = trim((string) ($row['matricule_etudiant'] ?? ''));
-                                $promotion = trim((string) ($row['promotion_etu'] ?? ''));
+                                $promotion = \FormattingUtils::formatPromotion(trim((string) ($row['promotion_etu'] ?? '')));
                                 $theme = trim((string) ($row['theme_soutenance'] ?? ''));
                                 $dateRaw = (string) ($row['date_soutenance'] ?? '');
                                 $heureRaw = (string) ($row['heure_soutenance'] ?? '');
