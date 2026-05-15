@@ -97,13 +97,14 @@ class GestionRapportController
     public function traiterCreationRapport()
     {
         $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-                  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+            strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
         try {
 
             if (!canCreate('gestion_rapports')) {
                 if ($isAjax) {
-                    while (ob_get_level()) ob_end_clean();
+                    while (ob_get_level())
+                        ob_end_clean();
                     header('Content-Type: application/json; charset=utf-8');
                     http_response_code(403);
                     echo json_encode(['success' => false, 'message' => "Accès non autorisé. Vous n'avez pas la permission de créer un rapport."], JSON_UNESCAPED_UNICODE);
@@ -148,7 +149,8 @@ class GestionRapportController
 
             if (!empty($erreurs)) {
                 if ($isAjax) {
-                    while (ob_get_level()) ob_end_clean();
+                    while (ob_get_level())
+                        ob_end_clean();
                     header('Content-Type: application/json; charset=utf-8');
                     echo json_encode([
                         'success' => false,
@@ -172,7 +174,8 @@ class GestionRapportController
             // Vérifier que le nom du rapport est unique (sauf si on l'édite)
             if ($this->service->isRapportNomExist($nom_rapport, $num_etu, $isEdit ? $edit_id : null)) {
                 if ($isAjax) {
-                    while (ob_get_level()) ob_end_clean();
+                    while (ob_get_level())
+                        ob_end_clean();
                     header('Content-Type: application/json; charset=utf-8');
                     echo json_encode([
                         'success' => false,
@@ -209,7 +212,8 @@ class GestionRapportController
             if (!$rapport_id) {
                 $errorMessage = $resultat['message'] ?? "Une erreur est survenue lors de la sauvegarde du rapport.";
                 if ($isAjax) {
-                    while (ob_get_level()) ob_end_clean();
+                    while (ob_get_level())
+                        ob_end_clean();
                     header('Content-Type: application/json; charset=utf-8');
                     echo json_encode([
                         'success' => false,
@@ -235,7 +239,8 @@ class GestionRapportController
 
             if ($action === 'save_rapport') {
                 if ($isAjax) {
-                    while (ob_get_level()) ob_end_clean();
+                    while (ob_get_level())
+                        ob_end_clean();
                     header('Content-Type: application/json; charset=utf-8');
                     echo json_encode([
                         'success' => true,
@@ -267,7 +272,8 @@ class GestionRapportController
 
         } catch (Exception $e) {
             if ($isAjax) {
-                while (ob_get_level()) ob_end_clean();
+                while (ob_get_level())
+                    ob_end_clean();
                 header('Content-Type: application/json; charset=utf-8');
                 http_response_code(500);
                 echo json_encode(['success' => false, 'message' => 'Erreur : ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
@@ -305,12 +311,13 @@ class GestionRapportController
             $contenu_rapport = $contenu['contenu_rapport'] ?? '';
 
             // Nettoyer les tampons de sortie avant de générer le PDF
-            while (ob_get_level()) ob_end_clean();
+            while (ob_get_level())
+                ob_end_clean();
 
             // Générer le PDF
             require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
             require_once __DIR__ . '/../utils/PlanningDataUtils.php';
-            
+
             $dbWrapper = new \App\Support\Database();
             $planningDataUtils = new \App\Utils\PlanningDataUtils($dbWrapper);
             $pdfGen = new \App\Services\Document\PdfGeneratorService(
@@ -319,7 +326,7 @@ class GestionRapportController
             );
             $pdfGenerator = new \App\Services\Document\RapportPdfGeneratorService($pdfGen, $planningDataUtils);
 
-            $result = $pdfGenerator->generate((int)$id_rapport, (int)$_SESSION['id_utilisateur']);
+            $result = $pdfGenerator->generate((int) $id_rapport, (int) $_SESSION['id_utilisateur']);
 
             if (!$result['success']) {
                 throw new Exception($result['error'] ?? "Erreur lors de la génération du PDF.");
@@ -396,6 +403,13 @@ class GestionRapportController
         return in_array((int) $_SESSION['id_GU'], $adminGroups, true);
     }
 
+    private function getRapportAdminPage(): string
+    {
+        return (isset($_GET['page']) && $_GET['page'] === 'telecharger_rapport')
+            ? 'telecharger_rapport'
+            : 'gestion_rapports';
+    }
+
     // ======================== PRD 1 : Téléchargement/Dépôt côté étudiant ========================
 
     /**
@@ -406,19 +420,19 @@ class GestionRapportController
         if ($this->isEtudiant()) {
             // Préparer les données pour la vue étudiant
             $num_etu = $_SESSION['num_etu'];
-            
+
             // URL du modèle de rapport
             $GLOBALS['modeleRapportUrl'] = $this->service->getModeleRapportUrl();
-            
+
             // Récupérer les rapports de l'étudiant
             $rapports = $this->service->getRapportsRecentsEtudiant($num_etu, 20);
             $GLOBALS['rapportsRecents'] = $rapports;
-            
+
             // Dernier rapport uploadé
             $rapportModel = new RapportEtudiant(Database::getConnection());
             $dernierRapport = $rapportModel->getDernierRapportUploaded($num_etu);
             $GLOBALS['dernierRapport'] = $dernierRapport;
-            
+
             // Infos de dépôt
             $infosDepot = [];
             foreach ($rapports as $rapport) {
@@ -431,13 +445,13 @@ class GestionRapportController
             }
             $GLOBALS['infosDepot'] = $infosDepot;
             $GLOBALS['statistiquesRapports'] = $this->service->getStatsEtudiant($num_etu);
-            
+
             // Types et taille max autorisés
             $GLOBALS['typesAutorises'] = 'pdf,doc,docx';
             $GLOBALS['tailleMax'] = 20 * 1024 * 1024; // 20 MB
         } else {
             // Rediriger vers la page admin
-            header('Location: ?page=gestion_rapports&action=admin_telecharger_rapport');
+            header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
         }
     }
@@ -473,7 +487,7 @@ class GestionRapportController
 
             if ($resultat['success']) {
                 $_SESSION['success'] = $resultat['message'];
-                
+
                 // Si le rapport a été uploadé avec succès, optionnellement le déposer aussi
                 if (isset($_POST['deposer_apres_upload']) && $_POST['deposer_apres_upload'] === '1' && isset($resultat['id_rapport'])) {
                     $this->service->enregistrerDepotRapport($resultat['id_rapport'], $num_etu);
@@ -495,20 +509,48 @@ class GestionRapportController
     /**
      * Télécharge le modèle de rapport
      */
+    public function supprimerRapport()
+    {
+        try {
+            if (!$this->isEtudiant() || !canDelete('gestion_rapports')) {
+                $_SESSION['error'] = "AccÃ¨s non autorisÃ©.";
+                header('Location: ?page=gestion_rapports');
+                exit;
+            }
+
+            $idRapport = isset($_POST['id_rapport']) ? (int) $_POST['id_rapport'] : 0;
+            if ($idRapport <= 0) {
+                $_SESSION['error'] = "Rapport introuvable.";
+                header('Location: ?page=gestion_rapports');
+                exit;
+            }
+
+            $result = $this->service->supprimerBrouillonRapport($idRapport, (string) $_SESSION['num_etu']);
+            $_SESSION[$result['success'] ? 'success' : 'error'] = $result['message'];
+            header('Location: ?page=gestion_rapports');
+            exit;
+        } catch (Exception $e) {
+            $_SESSION['error'] = "Erreur : " . $e->getMessage();
+            header('Location: ?page=gestion_rapports');
+            exit;
+        }
+    }
+
     public function downloadModele()
     {
         $cheminModele = $this->service->getModeleRapportUrl();
         $cheminAbsolu = __DIR__ . '/../../' . $cheminModele;
-        
+
         if (file_exists($cheminAbsolu)) {
-            while (ob_get_level()) ob_end_clean();
+            while (ob_get_level())
+                ob_end_clean();
             header('Content-Type: application/octet-stream');
             header('Content-Disposition: attachment; filename="' . basename($cheminAbsolu) . '"');
             header('Content-Length: ' . filesize($cheminAbsolu));
             readfile($cheminAbsolu);
             exit;
         }
-        
+
         $_SESSION['error'] = "Le modèle de rapport n'est pas disponible actuellement.";
         header('Location: ?page=gestion_rapports&action=telecharger_rapport');
         exit;
@@ -522,7 +564,7 @@ class GestionRapportController
         $id_rapport = isset($_GET['id']) ? (int) $_GET['id'] : 0;
         if (!$id_rapport) {
             $_SESSION['error'] = "ID du rapport manquant.";
-            header('Location: ?page=gestion_rapports&action=admin_telecharger_rapport');
+            header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
         }
 
@@ -535,13 +577,14 @@ class GestionRapportController
         $rapport = $this->service->getRapportById($id_rapport);
         if (!$rapport || empty($rapport['chemin_fichier'])) {
             $_SESSION['error'] = "Fichier non trouvé.";
-            header('Location: ?page=gestion_rapports&action=admin_telecharger_rapport');
+            header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
         }
 
         $cheminFichier = $this->service->getUploadsPath() . $rapport['chemin_fichier'];
         if (file_exists($cheminFichier)) {
-            while (ob_get_level()) ob_end_clean();
+            while (ob_get_level())
+                ob_end_clean();
             header('Content-Type: application/octet-stream');
             header('Content-Disposition: attachment; filename="' . basename($cheminFichier) . '"');
             header('Content-Length: ' . filesize($cheminFichier));
@@ -550,7 +593,7 @@ class GestionRapportController
         }
 
         $_SESSION['error'] = "Fichier non trouvé sur le serveur.";
-        header('Location: ?page=gestion_rapports&action=admin_telecharger_rapport');
+        header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
         exit;
     }
 
@@ -569,17 +612,17 @@ class GestionRapportController
 
         // URL du modèle
         $GLOBALS['modeleRapportUrl'] = $this->service->getModeleRapportUrl();
-        
+
         // Liste des étudiants sans rapport
         $id_annee_acad = !empty($_SESSION['selected_academic_year_id']) ? (int) $_SESSION['selected_academic_year_id'] : null;
         $etudiantsSansRapport = $this->service->getEtudiantsSansRapport($id_annee_acad);
         $GLOBALS['etudiantsSansRapport'] = $etudiantsSansRapport;
-        
+
         // Liste de tous les rapports
         $search = isset($_GET['search']) ? trim($_GET['search']) : null;
         $rapports = $this->service->getAllRapportsAdmin($id_annee_acad, $search);
         $GLOBALS['rapportsAdmin'] = $rapports;
-        
+
         $GLOBALS['typesAutorises'] = 'pdf,doc,docx';
         $GLOBALS['tailleMax'] = 20 * 1024 * 1024; // 20 MB
     }
@@ -592,7 +635,7 @@ class GestionRapportController
         try {
             if (!$this->isAdminGroup()) {
                 $_SESSION['error'] = "Accès non autorisé.";
-                header('Location: ?page=gestion_rapports&action=admin_telecharger_rapport');
+                header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
                 exit;
             }
 
@@ -602,13 +645,13 @@ class GestionRapportController
 
             if (empty($num_etu)) {
                 $_SESSION['error'] = "Veuillez sélectionner un étudiant.";
-                header('Location: ?page=gestion_rapports&action=admin_telecharger_rapport');
+                header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
                 exit;
             }
 
             if (!isset($_FILES['rapport_fichier']) || $_FILES['rapport_fichier']['error'] === UPLOAD_ERR_NO_FILE) {
                 $_SESSION['error'] = "Veuillez sélectionner un fichier à uploader.";
-                header('Location: ?page=gestion_rapports&action=admin_telecharger_rapport');
+                header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
                 exit;
             }
 
@@ -626,12 +669,12 @@ class GestionRapportController
                 $_SESSION['error'] = $resultat['message'];
             }
 
-            header('Location: ?page=gestion_rapports&action=admin_telecharger_rapport');
+            header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
 
         } catch (Exception $e) {
             $_SESSION['error'] = "Erreur : " . $e->getMessage();
-            header('Location: ?page=gestion_rapports&action=admin_telecharger_rapport');
+            header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
         }
     }
@@ -642,7 +685,7 @@ class GestionRapportController
     public function getEtudiantsSansRapportAjax()
     {
         header('Content-Type: application/json; charset=utf-8');
-        
+
         if (!$this->isAdminGroup()) {
             echo json_encode(['success' => false, 'message' => 'Accès non autorisé.']);
             exit;
@@ -650,12 +693,12 @@ class GestionRapportController
 
         $search = isset($_GET['q']) ? trim($_GET['q']) : '';
         $id_annee_acad = !empty($_SESSION['selected_academic_year_id']) ? (int) $_SESSION['selected_academic_year_id'] : null;
-        
+
         $etudiants = $this->service->getEtudiantsSansRapport($id_annee_acad);
-        
+
         // Filtrer par terme de recherche
         if ($search !== '') {
-            $etudiants = array_filter($etudiants, function($e) use ($search) {
+            $etudiants = array_filter($etudiants, function ($e) use ($search) {
                 $search = strtolower($search);
                 return str_contains(strtolower($e->nom_etu ?? ''), $search)
                     || str_contains(strtolower($e->prenom_etu ?? ''), $search)
@@ -683,7 +726,7 @@ class GestionRapportController
     {
         if (!$this->isAdminGroup()) {
             $_SESSION['error'] = "Accès non autorisé.";
-            header('Location: ?page=gestion_rapports&action=admin_telecharger_rapport');
+            header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
         }
 
@@ -691,20 +734,30 @@ class GestionRapportController
         $search = isset($_GET['search']) ? trim($_GET['search']) : null;
         $rapports = $this->service->getAllRapportsAdmin($id_annee_acad, $search);
 
-        while (ob_get_level()) ob_end_clean();
+        while (ob_get_level())
+            ob_end_clean();
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="rapports_export_' . date('Ymd_His') . '.csv"');
-        
+
         $output = fopen('php://output', 'w');
         fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM UTF-8
-        
+
         // En-têtes
         fputcsv($output, [
-            'ID', 'Matricule', 'Nom', 'Prénom', 'Email',
-            'Nom rapport', 'Thème', 'Statut', 'Taille (Ko)',
-            'Date dépôt', 'Date opération', 'Date modification'
+            'ID',
+            'Matricule',
+            'Nom',
+            'Prénom',
+            'Email',
+            'Nom rapport',
+            'Thème',
+            'Statut',
+            'Taille (Ko)',
+            'Date dépôt',
+            'Date opération',
+            'Date modification'
         ]);
-        
+
         foreach ($rapports as $r) {
             fputcsv($output, [
                 $r->id_rapport ?? '',
@@ -721,7 +774,7 @@ class GestionRapportController
                 $r->date_modification ?? ''
             ]);
         }
-        
+
         fclose($output);
         exit;
     }
@@ -733,7 +786,7 @@ class GestionRapportController
     {
         if (!$this->isAdminGroup()) {
             $_SESSION['error'] = "Accès non autorisé.";
-            header('Location: ?page=gestion_rapports&action=admin_telecharger_rapport');
+            header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
         }
 
@@ -742,7 +795,7 @@ class GestionRapportController
 
         if (!$id_rapport || empty($nouvelle_date)) {
             $_SESSION['error'] = "Paramètres manquants.";
-            header('Location: ?page=gestion_rapports&action=admin_telecharger_rapport');
+            header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
         }
 
@@ -758,7 +811,7 @@ class GestionRapportController
             $_SESSION['error'] = "Erreur lors de la mise à jour de la date.";
         }
 
-        header('Location: ?page=gestion_rapports&action=admin_telecharger_rapport');
+        header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
         exit;
     }
 }

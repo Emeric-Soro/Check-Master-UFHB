@@ -27,6 +27,9 @@ $dernierStatut = strtolower((string) ($rapportEnCours->statut_rapport ?? ''));
 if ($rapportEnCours && $dernierStatut !== 'rejeter') {
     $peutCreerNouveau = false;
 }
+$csrfTokenValue = class_exists('\CheckMaster\Core\Csrf')
+    ? \CheckMaster\Core\Csrf::token()
+    : '';
 ?>
 
 <style>
@@ -93,6 +96,15 @@ if ($rapportEnCours && $dernierStatut !== 'rejeter') {
 
     .cm-btn.is-success:hover {
         background-color: #04785d !important;
+    }
+
+    .cm-btn.is-danger {
+        background-color: #dc2626 !important;
+        color: #fff !important;
+    }
+
+    .cm-btn.is-danger:hover {
+        background-color: #b91c1c !important;
     }
 
     .cm-suivi-card {
@@ -182,6 +194,7 @@ if ($rapportEnCours && $dernierStatut !== 'rejeter') {
                     $dejaDepose = (bool) ($infoDepot['dejaDepose'] ?? false);
 
                     $statutRapport = strtolower((string) ($rapport->statut_rapport ?? ''));
+                    $isDraftRapport = !$dejaDepose && in_array($statutRapport, ['', 'brouillon', 'en_attente'], true);
                     $badgeType = 'light';
                     $badgeText = 'Brouillon';
                     if ($statutRapport === 'en_cours') {
@@ -239,6 +252,17 @@ if ($rapportEnCours && $dernierStatut !== 'rejeter') {
                                     <a href="?page=gestion_rapports&action=creer_rapport&edit=<?= $rapportId ?>" class="cm-btn is-outline">
                                         <i class="fas fa-eye"></i> Voir
                                     </a>
+                                <?php endif; ?>
+
+                                <?php if ($isDraftRapport && canDelete('gestion_rapports')): ?>
+                                    <form method="POST" action="?page=gestion_rapports" style="margin: 0;" onsubmit="return confirm('Supprimer definitivement ce brouillon ?');">
+                                        <input type="hidden" name="action" value="supprimer_rapport">
+                                        <input type="hidden" name="id_rapport" value="<?= $rapportId ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfTokenValue, ENT_QUOTES, 'UTF-8') ?>">
+                                        <button type="submit" class="cm-btn is-danger" title="Supprimer ce brouillon">
+                                            <i class="fas fa-trash-alt"></i> Supprimer
+                                        </button>
+                                    </form>
                                 <?php endif; ?>
                             </div>
                         </div>

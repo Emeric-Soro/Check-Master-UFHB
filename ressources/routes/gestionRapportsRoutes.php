@@ -1,6 +1,6 @@
 <?php
 
-if ($_GET['page'] === 'gestion_rapports') {
+if (isset($_GET['page']) && in_array($_GET['page'], ['gestion_rapports', 'telecharger_rapport'], true)) {
     require_once __DIR__ . '/../../app/controllers/GestionRapportController.php';
     require_once __DIR__ . '/../../app/models/InfoStage.php';
     require_once __DIR__ . '/../../app/models/RapportEtudiant.php';
@@ -15,6 +15,9 @@ if ($_GET['page'] === 'gestion_rapports') {
         switch ($_POST['action']) {
             case 'upload_rapport':
                 $controller->traiterUploadRapport();
+                exit;
+            case 'supprimer_rapport':
+                $controller->supprimerRapport();
                 exit;
             case 'admin_upload_rapport':
                 $controller->traiterAdminUploadRapport();
@@ -109,21 +112,21 @@ if ($_GET['page'] === 'gestion_rapports') {
             // Récupérer les rapports et stats
             $GLOBALS['rapportsRecents'] = $service->getRapportsRecentsEtudiant($num_etu);
             $GLOBALS['statistiquesRapports'] = $service->getStatsEtudiant($num_etu);
-            
+
             // Préparer les infos de dépôt pour chaque rapport
             $infosDepot = [];
             foreach ($GLOBALS['rapportsRecents'] as $rapport) {
                 $rapportId = (int) ($rapport->id_rapport ?? 0);
                 $peutDeposer = !$service->isRapportDepose($num_etu, $rapportId) && !$service->aUnRapportEnCours($num_etu);
                 $dejaDepose = $service->isRapportDepose($num_etu, $rapportId);
-                
+
                 $messageDepot = '';
                 if ($dejaDepose) {
                     $messageDepot = 'Déjà déposé';
                 } elseif ($service->aUnRapportEnCours($num_etu)) {
                     $messageDepot = 'Un rapport est déjà en cours d\'évaluation';
                 }
-                
+
                 $infosDepot[$rapportId] = [
                     'peutDeposer' => $peutDeposer,
                     'dejaDepose' => $dejaDepose,

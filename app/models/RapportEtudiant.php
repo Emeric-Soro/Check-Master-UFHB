@@ -144,6 +144,53 @@ class RapportEtudiant
         return 'COALESCE(' . implode(', ', $candidates) . ')';
     }
 
+    private function getLatestStageSubquery($selectExpr, $etudiantAlias = 'e', $joins = '')
+    {
+        if (!$this->tableExists('informations_stage')) {
+            return 'NULL';
+        }
+
+        return "
+            (SELECT $selectExpr
+             FROM informations_stage ist
+             $joins
+             WHERE " . $this->studentJoinCondition('ist', $etudiantAlias) . "
+             ORDER BY ist.id_info_stage DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getStudentStageSelectExtras($etudiantAlias = 'e')
+    {
+        $parts = [
+            $this->getLatestStageSubquery('ist.sujet_stage', $etudiantAlias) . ' AS sujet_stage',
+            $this->getLatestStageSubquery('ist.date_debut_stage', $etudiantAlias) . ' AS date_debut_stage',
+            $this->getLatestStageSubquery('ist.date_fin_stage', $etudiantAlias) . ' AS date_fin_stage',
+        ];
+
+        if ($this->tableExists('entreprises')) {
+            $parts[] = $this->getLatestStageSubquery(
+                'ent.lib_long_entreprise',
+                $etudiantAlias,
+                'LEFT JOIN entreprises ent ON ent.id_entreprise = ist.id_entreprise'
+            ) . ' AS entreprise_stage';
+        } else {
+            $parts[] = 'NULL AS entreprise_stage';
+        }
+
+        if ($this->tableExists('maitre_de_stage')) {
+            $parts[] = $this->getLatestStageSubquery(
+                "TRIM(CONCAT(COALESCE(ms.Nom, ''), ' ', COALESCE(ms.prenom, '')))",
+                $etudiantAlias,
+                'LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage'
+            ) . ' AS maitre_stage_nom';
+        } else {
+            $parts[] = 'NULL AS maitre_stage_nom';
+        }
+
+        return implode(', ', $parts);
+    }
+
     public function getAllRapports()
     {
         try {
@@ -928,6 +975,7 @@ class RapportEtudiant
             $sql = "
                 SELECT DISTINCT e.num_carte_etud, e.num_ident_etud, e.nom_etu, e.prenom_etu, 
                        e.email_etu, e.promotion_etu,
+                       " . $this->getStudentStageSelectExtras('e') . ",
                        " . ($id_annee_acad !== null ? '?' : $this->getFallbackStudentYearExpr('e')) . " AS id_annee_acad,
                        cs.id_candidature, cs.statut_candidature,
                        (SELECT COUNT(*) FROM rapport_etudiants r 
@@ -985,7 +1033,8 @@ class RapportEtudiant
                 SELECT r.*, 
                        " . $this->getReportSelectExtras('r') . ",
                        $dateOpSelect,
-                       e.nom_etu, e.prenom_etu, e.email_etu, e.promotion_etu,
+                       e.num_carte_etud, e.num_ident_etud, e.nom_etu, e.prenom_etu, e.email_etu, e.promotion_etu,
+                       " . $this->getStudentStageSelectExtras('e') . ",
                        " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad,
                        cs.statut_candidature,
                        d.date_depot

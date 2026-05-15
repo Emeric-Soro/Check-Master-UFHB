@@ -558,6 +558,32 @@ switch ($currentMenuSlug) {
             $currentPageLabel = 'Gestion des rapports';
         }
         break;
+    case 'telecharger_rapport':
+        if (!isset($_GET['action']) || $_GET['action'] === '') {
+            $_GET['action'] = 'admin_telecharger_rapport';
+        }
+        include __DIR__ . '/../ressources/routes/gestionRapportsRoutes.php';
+        $allowedActions = [
+            'admin_telecharger_rapport',
+            'download_modele',
+            'export_rapports_csv',
+            'download_fichier_rapport',
+            'get_etudiants_sans_rapport',
+        ];
+        if (isset($_GET['action']) && in_array($_GET['action'], $allowedActions)) {
+            $currentAction = $_GET['action'];
+            if ($currentAction === 'admin_telecharger_rapport') {
+                $contentFile = $partialsBasePath . 'gestion_rapports/admin_telecharger_rapport.php';
+                $currentPageLabel = 'Import rapports étudiants';
+            } else {
+                $contentFile = $partialsBasePath . 'gestion_rapports/admin_telecharger_rapport.php';
+                $currentPageLabel = 'Import rapports étudiants';
+            }
+        } else {
+            $contentFile = $partialsBasePath . 'gestion_rapports/admin_telecharger_rapport.php';
+            $currentPageLabel = 'Import rapports étudiants';
+        }
+        break;
     case 'candidature_soutenance':
         include __DIR__ . '/../ressources/routes/candidatureSoutenanceRoutes.php';
         $allowedActions = ['compte_rendu_etudiant'];
