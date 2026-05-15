@@ -177,6 +177,70 @@ class GestionRapportService
         return $this->rapportModel->getRapportById($id);
     }
 
+    private function isDraftRapportStatus(?string $statut): bool
+    {
+        $statut = strtolower(trim((string) $statut));
+        return in_array($statut, ['', 'brouillon', 'en_attente'], true);
+    }
+
+    private function getRapportFileCandidates($rapport, int $rapportId): array
+    {
+        $candidates = [$this->uploadsPath . 'rapport_' . $rapportId . '.html'];
+        $cheminFichier = trim((string) (is_object($rapport) ? ($rapport->chemin_fichier ?? '') : ($rapport['chemin_fichier'] ?? '')));
+
+        if ($cheminFichier !== '') {
+            if (preg_match('/^[A-Za-z]:\\\\|^\\\\\\\\/', $cheminFichier) === 1) {
+                $candidates[] = $cheminFichier;
+            } else {
+                $candidates[] = $this->uploadsPath . basename($cheminFichier);
+            }
+        }
+
+        return array_values(array_unique($candidates));
+    }
+
+    private function isPathInsideUploads(string $path): bool
+    {
+        $uploadsRoot = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, strtolower($this->uploadsPath)), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $normalized = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, strtolower($path));
+        return str_starts_with($normalized, $uploadsRoot);
+    }
+
+    public function supprimerBrouillonRapport(int $rapportId, string $numEtu): array
+    {
+        $rapport = $this->rapportModel->getRapportByIdAndEtudiant($rapportId, $numEtu);
+        if (!$rapport) {
+            return ['success' => false, 'message' => 'Rapport introuvable ou acces non autorise.'];
+        }
+
+        $writeGuard = $this->ensureWritableForRapport($rapportId, 'la suppression d un brouillon de rapport');
+        if (empty($writeGuard['success'])) {
+            return ['success' => false, 'message' => (string) ($writeGuard['message'] ?? 'Operation interdite.')];
+        }
+
+        $statutRapport = (string) ($rapport->statut_rapport ?? '');
+        if ($this->isRapportDepose($numEtu, $rapportId) || !$this->isDraftRapportStatus($statutRapport)) {
+            return ['success' => false, 'message' => 'Seuls les rapports en brouillon peuvent etre supprimes.'];
+        }
+
+        $fileCandidates = $this->getRapportFileCandidates($rapport, $rapportId);
+        if (!$this->rapportModel->deleteRapport($rapportId, $numEtu)) {
+            return ['success' => false, 'message' => 'La suppression du brouillon a echoue.'];
+        }
+
+        foreach ($fileCandidates as $candidate) {
+            if (!$this->isPathInsideUploads($candidate) || !is_file($candidate)) {
+                continue;
+            }
+
+            if (!@unlink($candidate)) {
+                error_log('Impossible de supprimer le fichier du brouillon: ' . $candidate);
+            }
+        }
+
+        return ['success' => true, 'message' => 'Brouillon supprime avec succes.'];
+    }
+
     /**
      * Vérifie si un rapport est déjà déposé
      */
