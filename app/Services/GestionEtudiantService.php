@@ -39,6 +39,20 @@ class GestionEtudiantService
         $this->auditLog = new AuditLog($db);
     }
 
+    private function debugLog(string $message, array $context = []): void
+    {
+        $line = date('c') . ' ' . $message;
+        if (!empty($context)) {
+            $line .= ' ' . json_encode($context);
+        }
+
+        error_log($line);
+        $primary = __DIR__ . '/../../logs/gestion_etudiants.log';
+        $fallback = rtrim(sys_get_temp_dir(), '\\/') . DIRECTORY_SEPARATOR . 'gestion_etudiants.log';
+        @file_put_contents($primary, $line . PHP_EOL, FILE_APPEND);
+        @file_put_contents($fallback, $line . PHP_EOL, FILE_APPEND);
+    }
+
     private function niveauExists(int $idNiveau): bool
     {
         $stmt = $this->db->prepare("SELECT COUNT(*) FROM niveau_etude WHERE id_niv_etude = ?");
@@ -218,12 +232,29 @@ class GestionEtudiantService
      */
     public function ajouterEtudiant(array $data, int $idUtilisateur): array
     {
+        if (!isset($data['id_genre']) && isset($data['genre_etu'])) {
+            $data['id_genre'] = $data['genre_etu'];
+        }
+        $this->debugLog('[gestion_etudiants:add] Normalized payload', [
+            'num_etu' => $data['num_etu'] ?? null,
+            'nom_etu' => $data['nom_etu'] ?? null,
+            'prenom_etu' => $data['prenom_etu'] ?? null,
+            'date_naiss_etu' => $data['date_naiss_etu'] ?? null,
+            'id_genre' => $data['id_genre'] ?? null,
+            'email_etu' => $data['email_etu'] ?? null,
+            'promotion_etu' => $data['promotion_etu'] ?? null,
+            'id_annee_acad' => $data['id_annee_acad'] ?? null,
+            'id_niveau' => $data['id_niveau'] ?? null,
+            'identifiant_mesrs' => $data['identifiant_mesrs'] ?? null,
+            'num_ident_etud' => $data['num_ident_etud'] ?? null,
+        ]);
         // Validation des champs obligatoires
         if (
             empty($data['num_etu']) || empty($data['nom_etu']) ||
             empty($data['prenom_etu']) || empty($data['date_naiss_etu']) ||
             empty($data['id_genre']) || empty($data['email_etu'])
         ) {
+            $this->debugLog('[gestion_etudiants:add] Validation failed: required fields');
             return [
                 'success' => false,
                 'message' => "Les champs N° Étudiant, Nom, Prénom, Date de naissance, Genre et Email sont obligatoires."
@@ -235,6 +266,7 @@ class GestionEtudiantService
         // Vérifier si le numéro étudiant existe déjà
         $existingStudent = $this->etudiant->getEtudiantById($num_etu);
         if ($existingStudent) {
+            $this->debugLog('[gestion_etudiants:add] Validation failed: num_etu exists');
             return [
                 'success' => false,
                 'message' => "Ce numéro étudiant existe déjà. Veuillez en choisir un autre."
@@ -249,27 +281,32 @@ class GestionEtudiantService
         $email_etu = trim($data['email_etu']);
         $niveauResolved = $this->resolveNiveauId($data['id_niveau'] ?? null);
         if (!$niveauResolved['valid']) {
+            $this->debugLog('[gestion_etudiants:add] Validation failed: niveau invalid');
             return ['success' => false, 'message' => $niveauResolved['message']];
         }
         $id_niveau = $niveauResolved['value'];
 
         $anneeResolved = $this->resolveAnneeId($data['id_annee_acad'] ?? null);
         if (!$anneeResolved['valid']) {
+            $this->debugLog('[gestion_etudiants:add] Validation failed: annee invalid');
             return ['success' => false, 'message' => $anneeResolved['message']];
         }
         $id_annee_acad = $anneeResolved['value'];
         $selectedYearId = $this->getSelectedAcademicYearId();
         if ($selectedYearId !== null && $id_annee_acad !== null && $selectedYearId !== $id_annee_acad) {
+            $this->debugLog('[gestion_etudiants:add] Validation failed: selected year mismatch');
             return ['success' => false, 'message' => "L'année académique de l'étudiant doit correspondre à l'année actuellement sélectionnée."];
         }
         $writeGuard = \AcademicYear::ensureWritableYear($this->db, $id_annee_acad, "un etudiant");
         if (!$writeGuard['success']) {
+            $this->debugLog('[gestion_etudiants:add] Validation failed: write guard', ['message' => $writeGuard['message'] ?? null]);
             return ['success' => false, 'message' => $writeGuard['message']];
         }
         $identifiant_mesrs = !empty($data['identifiant_mesrs']) ? trim($data['identifiant_mesrs']) : null;
 
         // Validation de l'email
         if (!filter_var($email_etu, FILTER_VALIDATE_EMAIL)) {
+            $this->debugLog('[gestion_etudiants:add] Validation failed: invalid email');
             return [
                 'success' => false,
                 'message' => "L'adresse email n'est pas valide."
@@ -278,12 +315,14 @@ class GestionEtudiantService
 
         if ($this->etudiant->ajouterEtudiant($num_etu, $nom_etu, $prenom_etu, $date_naiss_etu, $genre_etu, $email_etu, $promotion_etu, $id_niveau, $id_annee_acad, $identifiant_mesrs)) {
             $this->auditLog->logCreation($idUtilisateur, "etudiants", "Succès");
+            $this->debugLog('[gestion_etudiants:add] Insert success');
             return [
                 'success' => true,
                 'message' => "Étudiant ajouté avec succès. Numéro étudiant : " . $num_etu
             ];
         } else {
             $this->auditLog->logCreation($idUtilisateur, "etudiants", "Erreur");
+            $this->debugLog('[gestion_etudiants:add] Insert failed');
             return [
                 'success' => false,
                 'message' => "Erreur lors de l'ajout de l'étudiant."
@@ -300,6 +339,9 @@ class GestionEtudiantService
      */
     public function modifierEtudiant(array $data, int $idUtilisateur): array
     {
+        if (!isset($data['id_genre']) && isset($data['genre_etu'])) {
+            $data['id_genre'] = $data['genre_etu'];
+        }
         // Validation des champs obligatoires
         if (
             empty($data['old_num_etu']) || empty($data['num_etu']) || empty($data['nom_etu']) ||

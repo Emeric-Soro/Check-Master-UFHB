@@ -26,26 +26,36 @@ $renderBtn = function (array $action) {
     $type = (string) ($action['type'] ?? 'button');
     $href = (string) ($action['href'] ?? '#');
     $attrs = is_array($action['attrs'] ?? null) ? $action['attrs'] : [];
+    if (!empty($action['name']) && !isset($attrs['name'])) {
+        $attrs['name'] = (string) $action['name'];
+    }
+    if (array_key_exists('value', $action) && !isset($attrs['value'])) {
+        $attrs['value'] = (string) $action['value'];
+    }
     $attrsString = function_exists('cm_form_attr_string') ? cm_form_attr_string($attrs) : '';
     if ($tag === 'a'): ?>
-    <a class="<?= htmlspecialchars($actionClass, ENT_QUOTES, 'UTF-8') ?>" href="<?= htmlspecialchars($href, ENT_QUOTES, 'UTF-8') ?>"<?= $attrsString ?>>
-        <?php if ($icon !== ''): ?><i class="fas <?= htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i><?php endif; ?>
-        <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
-    </a>
+        <a class="<?= htmlspecialchars($actionClass, ENT_QUOTES, 'UTF-8') ?>"
+            href="<?= htmlspecialchars($href, ENT_QUOTES, 'UTF-8') ?>" <?= $attrsString ?>>
+            <?php if ($icon !== ''): ?><i class="fas <?= htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') ?>"
+                    aria-hidden="true"></i><?php endif; ?>
+            <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
+        </a>
     <?php else: ?>
-    <button class="<?= htmlspecialchars($actionClass, ENT_QUOTES, 'UTF-8') ?>" type="<?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?>"<?= $attrsString ?>>
-        <?php if ($icon !== ''): ?><i class="fas <?= htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i><?php endif; ?>
-        <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
-    </button>
+        <button class="<?= htmlspecialchars($actionClass, ENT_QUOTES, 'UTF-8') ?>"
+            type="<?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?>" <?= $attrsString ?>>
+            <?php if ($icon !== ''): ?><i class="fas <?= htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') ?>"
+                    aria-hidden="true"></i><?php endif; ?>
+            <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
+        </button>
     <?php endif;
 };
 ?>
 <div class="<?= htmlspecialchars($wrapperClass, ENT_QUOTES, 'UTF-8') ?>">
     <?php if ($cancel_action !== null): ?>
-    <div class="cm-form-buttons__cancel">
-        <?php $cancel_action['class'] = (string) ($cancel_action['class'] ?? 'cm-btn is-light is-sm'); ?>
-        <?php $renderBtn($cancel_action); ?>
-    </div>
+        <div class="cm-form-buttons__cancel">
+            <?php $cancel_action['class'] = (string) ($cancel_action['class'] ?? 'cm-btn is-light is-sm'); ?>
+            <?php $renderBtn($cancel_action); ?>
+        </div>
     <?php endif; ?>
     <div class="cm-form-buttons__right">
         <?php foreach ($actions as $action): ?>
