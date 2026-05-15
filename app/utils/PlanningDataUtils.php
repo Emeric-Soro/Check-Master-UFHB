@@ -38,6 +38,9 @@ use PDO;
  */
 class PlanningDataUtils
 {
+    /** @var array<string, bool> */
+    private array $tableExistsCache = [];
+
     public function __construct(private readonly Database $db)
     {
     }
@@ -364,6 +367,7 @@ class PlanningDataUtils
      */
     public function getSoutenanceWithFullDetails(string $numSoutenance): ?array
     {
+        $latestInscriptionSql = $this->getLatestInscriptionSubquery();
         $stmt = $this->db->pdo()->prepare(
             'SELECT ps.num_soutenance, ps.num_etud, ps.theme_soutenance,
                     ps.date_soutenance, ps.heure_soutenance,
@@ -372,20 +376,18 @@ class PlanningDataUtils
                     e.nom_etu AS nom_etudiant,
                     e.prenom_etu AS prenom_etudiant,
                     e.email_etu AS email_etudiant,
-                    i.id_niveau,
+                    i.id_niv_etude,
+                    i.id_annee_acad AS inscription_annee_acad,
                     s.lib_session,
                     sa.lib_salle,
                     niv.lib_niv_etude AS libelle_niveau
              FROM programmer_soutenance ps
              LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
-             LEFT JOIN inscriptions i ON i.id_inscription = (
-                 SELECT i2.id_inscription FROM inscriptions i2
-                 WHERE i2.num_carte_etud = e.num_carte_etud
-                 ORDER BY i2.date_inscription DESC, i2.id_inscription DESC LIMIT 1
-             )
+             LEFT JOIN ' . $latestInscriptionSql . ' i
+                    ON i.num_carte_etud = COALESCE(NULLIF(e.num_carte_etud, \'\'), NULLIF(e.num_ident_etud, \'\'), ps.num_etud)
              LEFT JOIN session s ON s.id_session = ps.id_session
              LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
-             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niveau
+             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niv_etude
              WHERE ps.num_soutenance = :num_soutenance'
         );
         $stmt->execute(['num_soutenance' => $numSoutenance]);
@@ -565,11 +567,18 @@ class PlanningDataUtils
 
     private function tableExists(string $table): bool
     {
+        if (array_key_exists($table, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$table];
+        }
+
         try {
             $stmt = $this->db->pdo()->prepare('SHOW TABLES LIKE :table_name');
             $stmt->execute(['table_name' => $table]);
-            return (bool) $stmt->fetchColumn();
+            $exists = (bool) $stmt->fetchColumn();
+            $this->tableExistsCache[$table] = $exists;
+            return $exists;
         } catch (\Throwable) {
+            $this->tableExistsCache[$table] = false;
             return false;
         }
     }
@@ -680,6 +689,7 @@ class PlanningDataUtils
      */
     public function getRapportWithDetails(int $rapportId): ?array
     {
+        $latestInscriptionSql = $this->getLatestInscriptionSubquery();
         $stmt = $this->db->pdo()->prepare(
             'SELECT r.id_rapport, r.num_etu, r.date_redaction_rapport,
                     r.theme_rapport, r.chemin_fichier, r.statut_rapport,
@@ -693,13 +703,10 @@ class PlanningDataUtils
                     niv.lib_niv_etude AS libelle_niveau
              FROM rapport_etudiants r
              INNER JOIN etudiants e ON e.num_carte_etud = r.num_etu
-             LEFT JOIN inscriptions i ON i.id_inscription = (
-                 SELECT i2.id_inscription FROM inscriptions i2 
-                  WHERE i2.num_carte_etud = e.num_carte_etud 
-                  ORDER BY i2.date_inscription DESC LIMIT 1
-              )
+             LEFT JOIN ' . $latestInscriptionSql . ' i
+                    ON i.num_carte_etud = e.num_carte_etud
              LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
-             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niveau
+             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niv_etude
              WHERE r.id_rapport = :id_rapport'
         );
         $stmt->execute(['id_rapport' => $rapportId]);
@@ -716,18 +723,16 @@ class PlanningDataUtils
      */
     public function getEtudiantByNumCarte(string $numCarte): ?array
     {
+        $latestInscriptionSql = $this->getLatestInscriptionSubquery();
         $stmt = $this->db->pdo()->prepare(
             'SELECT e.num_carte_etud, e.num_ident_etud, e.nom_etu, e.prenom_etu,
                     e.email_etu, e.date_naiss_etu, e.genre_etu, e.promotion_etu,
-                    i.id_niveau, i.id_annee_acad,
+                    i.id_niv_etude, i.id_annee_acad,
                     niv.lib_niv_etude AS libelle_niveau
              FROM etudiants e
-             LEFT JOIN inscriptions i ON i.id_inscription = (
-                 SELECT i2.id_inscription FROM inscriptions i2 
-                 WHERE i2.num_carte_etud = e.num_carte_etud 
-                 ORDER BY i2.date_inscription DESC LIMIT 1
-             )
-             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niveau
+             LEFT JOIN ' . $latestInscriptionSql . ' i
+                    ON i.num_carte_etud = e.num_carte_etud
+             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niv_etude
              WHERE e.num_carte_etud = :num_carte'
         );
         $stmt->execute(['num_carte' => $numCarte]);
@@ -843,8 +848,7 @@ class PlanningDataUtils
 
     /**
      * Génère une référence unique de document au format TYPE-YYYY-NNNNN.
-     * Puisqu'il n'y a PAS de table `document_genere` dans la base,
-     * on génère un identifiant basé sur le timestamp et un numéro aléatoire.
+     * La génération reste indépendante d'une éventuelle persistance.
      */
     public function generateReference(string $type): string
     {
@@ -857,24 +861,73 @@ class PlanningDataUtils
     }
 
     /**
-     * Enregistrement factice d'un document généré.
-     * La table `document_genere` N'EXISTE PAS dans le schéma actuel (base.txt).
-     * Cette méthode fait un no-op mais retourne un ID fictif pour maintenir la compatibilité.
+     * Persiste un document généré si la table optionnelle `document_genere` existe.
+     * Sinon, conserve un no-op traçable pour rester compatible avec le schéma courant.
      *
      * @param array<string, mixed> $data Données du document
-     * @return int ID fictif du document (0)
+     * @return int ID du document ou 0 si la table n'est pas disponible
      */
     public function saveDocumentRecord(array $data): int
     {
-        // Pas de table document_genere dans le schéma.
-        // On log les informations pour traçabilité mais on ne persiste rien.
-        error_log(sprintf(
-            '[PlanningDataUtils] Document généré (non persisté): ref=%s, type=%s, fichier=%s',
-            (string) ($data['reference_document'] ?? '?'),
-            (string) ($data['type_document'] ?? '?'),
-            (string) ($data['chemin_fichier'] ?? '?')
-        ));
+        if (!$this->tableExists('document_genere')) {
+            error_log(sprintf(
+                '[PlanningDataUtils] Document généré (non persisté): ref=%s, type=%s, fichier=%s',
+                (string) ($data['reference_document'] ?? '?'),
+                (string) ($data['type_document'] ?? '?'),
+                (string) ($data['chemin_fichier'] ?? '?')
+            ));
 
-        return 0;
+            return 0;
+        }
+
+        $stmt = $this->db->pdo()->prepare(
+            'INSERT INTO document_genere (
+                reference,
+                type_document,
+                id_utilisateur,
+                id_source,
+                chemin_fichier,
+                nom_fichier,
+                taille_fichier
+             ) VALUES (
+                :reference,
+                :type_document,
+                :id_utilisateur,
+                :id_source,
+                :chemin_fichier,
+                :nom_fichier,
+                :taille_fichier
+             )'
+        );
+
+        $stmt->execute([
+            'reference' => (string) ($data['reference_document'] ?? ''),
+            'type_document' => (string) ($data['type_document'] ?? ''),
+            'id_utilisateur' => max(0, (int) ($data['id_utilisateur_generation'] ?? 0)),
+            'id_source' => isset($data['id_source']) ? (string) $data['id_source'] : null,
+            'chemin_fichier' => (string) ($data['chemin_fichier'] ?? ''),
+            'nom_fichier' => (string) ($data['nom_fichier'] ?? basename((string) ($data['chemin_fichier'] ?? 'document.pdf'))),
+            'taille_fichier' => isset($data['taille_fichier']) ? (int) $data['taille_fichier'] : 0,
+        ]);
+
+        return (int) $this->db->pdo()->lastInsertId();
     }
+
+    private function getLatestInscriptionSubquery(): string
+    {
+        return '(
+            SELECT i1.num_carte_etud, i1.id_annee_acad, i1.id_niv_etude, i1.num_versement
+            FROM inscriptions i1
+            INNER JOIN (
+                SELECT
+                    num_carte_etud,
+                    MAX(CONCAT(LPAD(id_annee_acad, 10, "0"), LPAD(num_versement, 10, "0"))) AS latest_key
+                FROM inscriptions
+                GROUP BY num_carte_etud
+            ) latest
+                ON latest.num_carte_etud = i1.num_carte_etud
+               AND CONCAT(LPAD(i1.id_annee_acad, 10, "0"), LPAD(i1.num_versement, 10, "0")) = latest.latest_key
+        )';
+    }
+
 }

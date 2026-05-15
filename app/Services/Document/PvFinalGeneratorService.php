@@ -55,7 +55,7 @@ final class PvFinalGeneratorService
     }
 
     /**
-     * @return array{success: bool, reference?: string, path?: string, pages?: int, error?: string}
+     * @return array{success: bool, reference?: string, path?: string, filename?: string, size?: int|null, pages?: int, error?: string}
      */
     public function generate(string $soutenanceId, int $userId): array
     {
@@ -223,7 +223,8 @@ final class PvFinalGeneratorService
 
             $this->dataUtils->saveDocumentRecord([
                 'reference_document' => $reference,
-                'type_document' => 'pv_final',
+                'type_document' => 'PVF',
+                'id_source' => $soutenanceId,
                 'nom_fichier' => basename($path),
                 'chemin_fichier' => $path,
                 'taille_fichier' => $fileSize !== false ? (int) $fileSize : 0,
@@ -244,6 +245,8 @@ final class PvFinalGeneratorService
                 'success' => true,
                 'reference' => $reference,
                 'path' => $path,
+                'filename' => basename($path),
+                'size' => $fileSize !== false ? (int) $fileSize : 0,
                 'pages' => 3,
             ];
         } catch (\Throwable $e) {

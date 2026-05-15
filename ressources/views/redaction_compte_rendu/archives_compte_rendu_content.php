@@ -103,18 +103,15 @@ $baseUrl = '?page=archive_comptes_rendus'
                                 </td>
                                 <td class="cm-data-table__td is-center">
                                     <div class="cm-table-actions">
-                                        <a class="cm-btn-action is-view"
-                                           href="?page=archive_comptes_rendus&action=view&id=<?php echo $idCr; ?>"
-                                           target="_blank"
-                                           rel="noopener"
-                                           title="Voir">
+                                        <button type="button"
+                                           class="cm-btn-action is-view"
+                                           title="Voir"
+                                           onclick="CM.openDocViewer('compte_rendu', '<?php echo htmlspecialchars((string) $idCr, ENT_QUOTES, 'UTF-8'); ?>', {title: '<?php echo htmlspecialchars($archive['nom_CR'] ?? 'Compte-rendu', ENT_QUOTES, 'UTF-8'); ?>'})">
                                             <i class="fas fa-eye" aria-hidden="true"></i>
-                                        </a>
+                                        </button>
                                         <?php if (!empty($archive['chemin_fichier_pdf'])): ?>
                                             <a class="cm-btn-action is-view"
-                                               href="?page=archive_comptes_rendus&action=download_pdf&chemin=<?php echo urlencode((string) $archive['chemin_fichier_pdf']); ?>"
-                                               target="_blank"
-                                               rel="noopener"
+                                               href="?page=docviewer&type=compte_rendu&id=<?php echo urlencode((string) $idCr); ?>&action=download"
                                                title="Telecharger PDF">
                                                 <i class="fas fa-file-pdf" aria-hidden="true"></i>
                                             </a>

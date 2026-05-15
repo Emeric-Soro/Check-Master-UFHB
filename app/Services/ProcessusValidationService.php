@@ -261,6 +261,7 @@ class ProcessusValidationService
                 FROM valider v
                 JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
                 {$joinCandidature}
                 WHERE v.decision_validation = 'valider'" . $yearFilter['sql'] . $candidatureWhere . "
             ");
@@ -273,6 +274,7 @@ class ProcessusValidationService
                 FROM valider v
                 JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
                 {$joinCandidature}
                 WHERE v.decision_validation = 'rejeter'" . $yearFilter['sql'] . $candidatureWhere . "
             ");
@@ -721,11 +723,12 @@ class ProcessusValidationService
                         require_once __DIR__ . '/../Utils/PlanningDataUtils.php';
 
                         $pdfGenerator = new \App\Services\Document\PdfGeneratorService(
-                            __DIR__ . '/../../storage',
+                            __DIR__ . '/../../storage/documents',
                             __DIR__ . '/../../public/assets/img/logo.png'
                         );
-                        $dataUtils = new \App\Utils\PlanningDataUtils(new \App\Support\Database($this->pdo));
-                        $pvService = new \App\Services\Document\PvCommissionGeneratorService($pdfGenerator, $dataUtils, new \App\Support\Database($this->pdo));
+                        $dbWrapper = new \App\Support\Database();
+                        $dataUtils = new \App\Utils\PlanningDataUtils($dbWrapper);
+                        $pvService = new \App\Services\Document\PvCommissionGeneratorService($pdfGenerator, $dataUtils, $dbWrapper);
 
                         $pvResult = $pvService->generate((int) $compteRendu['id_CR'], $id_enseignant);
 

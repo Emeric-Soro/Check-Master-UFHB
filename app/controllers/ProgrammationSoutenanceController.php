@@ -484,13 +484,16 @@ class ProgrammationSoutenanceController
                 return;
             }
 
+            $reference = trim((string) ($result['reference'] ?? ''));
             $path = (string) ($result['path'] ?? '');
-            $downloadUrl = '?page=programmation_soutenance&action=downloadPlanningPdf&file=' . urlencode($this->encodeFileToken($path));
+            $docId = $reference !== '' ? $reference : pathinfo($path, PATHINFO_FILENAME);
+            $downloadUrl = '?page=docviewer&type=planning&id=' . urlencode($docId) . '&action=download';
 
             $this->jsonResponse([
                 'success' => true,
-                'reference' => (string) ($result['reference'] ?? ''),
+                'reference' => $reference,
                 'download_url' => $downloadUrl,
+                'preview_url' => '?page=docviewer&type=planning&id=' . urlencode($docId) . '&action=preview',
             ]);
         } catch (Exception $e) {
             error_log(sprintf(
@@ -526,7 +529,7 @@ class ProgrammationSoutenanceController
         }
 
         $realPath = realpath($decoded);
-        $basePlanningDir = realpath(__DIR__ . '/../../storage/planning');
+        $basePlanningDir = realpath(__DIR__ . '/../../storage/documents/planning');
         if ($realPath === false || $basePlanningDir === false) {
             http_response_code(404);
             echo 'Fichier introuvable.';
@@ -555,7 +558,7 @@ class ProgrammationSoutenanceController
 
         $db = new AppDatabase();
         $pdfGenerator = new PdfGeneratorService(
-            __DIR__ . '/../../storage',
+            __DIR__ . '/../../storage/documents',
             __DIR__ . '/../../public/assets/img/logo.png'
         );
 

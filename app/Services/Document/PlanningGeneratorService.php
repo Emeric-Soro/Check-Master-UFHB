@@ -47,7 +47,7 @@ final class PlanningGeneratorService
      * @param string|null $dateFrom Date de début (YYYY-MM-DD format)
      * @param string|null $dateTo Date de fin (YYYY-MM-DD format)
      * @param int $userId ID de l'utilisateur générant le document
-     * @return array{success: bool, reference?: string, path?: string, error?: string, error_code?: string}
+     * @return array{success: bool, reference?: string, path?: string, filename?: string, size?: int|null, error?: string, error_code?: string}
      */
     public function generate(?int $sessionId, ?string $dateFrom, ?string $dateTo, int $userId): array
     {
@@ -217,6 +217,8 @@ final class PlanningGeneratorService
                 'success' => true,
                 'reference' => $reference,
                 'path' => $fullPath,
+                'filename' => basename($fullPath),
+                'size' => $fileSize !== false ? (int) $fileSize : null,
             ];
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {

@@ -34,7 +34,7 @@ final class RapportPdfGeneratorService
      *
      * @param int $rapportId Report ID
      * @param int $userId User generating the document
-     * @return array{success: bool, reference?: string, path?: string, error?: string}
+     * @return array{success: bool, reference?: string, path?: string, filename?: string, size?: int|null, error?: string}
      */
     public function generate(int $rapportId, int $userId): array
     {
@@ -89,6 +89,7 @@ final class RapportPdfGeneratorService
             $this->dataUtils->saveDocumentRecord([
                 'reference_document' => $reference,
                 'type_document' => self::TYPE_DOCUMENT,
+                'id_source' => (string) $rapportId,
                 'nom_fichier' => $filename . '.pdf',
                 'chemin_fichier' => $fullPath,
                 'taille_fichier' => $fileSize !== false ? (int) $fileSize : null,
@@ -109,6 +110,8 @@ final class RapportPdfGeneratorService
             'success' => true,
             'reference' => $reference,
             'path' => $fullPath,
+            'filename' => basename($fullPath),
+            'size' => $fileSize !== false ? (int) $fileSize : null,
         ];
     }
 

@@ -131,11 +131,12 @@ $pvFinaux = array_filter($documents, fn($d) => ($d['type_doc'] ?? '') === 'pv_fi
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <a href="?page=visionneuse_document&id=<?= urlencode($doc['id_doc']) ?>&type=<?= urlencode($doc['type_doc']) ?>"
-                                           class="cm-btn cm-btn-primary cm-btn-sm" title="Visualiser" target="_blank">
+                                        <button type="button"
+                                           class="cm-btn cm-btn-primary cm-btn-sm" title="Visualiser"
+                                           onclick="CM.openDocViewer('<?= htmlspecialchars($doc['type_doc'], ENT_QUOTES, 'UTF-8') ?>', '<?= htmlspecialchars((string) ($doc['id_doc'] ?? ''), ENT_QUOTES, 'UTF-8') ?>', {title: '<?= htmlspecialchars($doc['titre'] ?? 'Document', ENT_QUOTES, 'UTF-8') ?>'})">
                                             <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="?page=telecharger_document&id=<?= urlencode($doc['id_doc']) ?>&type=<?= urlencode($doc['type_doc']) ?>"
+                                        </button>
+                                        <a href="?page=docviewer&type=<?= urlencode((string) ($doc['type_doc'] ?? '')) ?>&id=<?= urlencode((string) ($doc['id_doc'] ?? '')) ?>&action=download"
                                            class="cm-btn cm-btn-outline cm-btn-sm" title="Télécharger">
                                             <i class="fas fa-download"></i>
                                         </a>

@@ -64,12 +64,14 @@ class CandidatureSoutenanceController
             // Ajouter la dernière candidature et la progression
             $GLOBALS["candidature_active"] = $this->service->getLastCandidature($_SESSION["num_etu"]);
             $GLOBALS["progression"] = $this->service->calculerProgression($_SESSION["num_etu"]);
+            $GLOBALS['dossier_soutenance'] = $this->service->getSuiviDossier($_SESSION['num_etu']);
         } else {
             // Pour l'administrateur, initialiser des valeurs par défaut
             $GLOBALS['stage_info'] = null;
             $GLOBALS['compte_rendu'] = null;
             $GLOBALS['has_candidature'] = false;
             $GLOBALS['candidatures_etudiant'] = [];
+            $GLOBALS['dossier_soutenance'] = [];
         }
 
         // Récupérer toutes les entreprises pour l'autocomplétion

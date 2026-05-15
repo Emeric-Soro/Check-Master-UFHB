@@ -142,7 +142,7 @@ class EvaluationSoutenanceController
             $db = new \App\Support\Database();
             $dataUtils = new PlanningDataUtils($db);
             $pdfGenerator = new \App\Services\Document\PdfGeneratorService(
-                __DIR__ . '/../../storage',
+                __DIR__ . '/../../storage/documents',
                 __DIR__ . '/../../public/assets/img/logo.png'
             );
             $pvService = new PvFinalGeneratorService($pdfGenerator, $dataUtils);

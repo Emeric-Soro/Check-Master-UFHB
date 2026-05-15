@@ -321,7 +321,7 @@ class GestionRapportController
             $dbWrapper = new \App\Support\Database();
             $planningDataUtils = new \App\Utils\PlanningDataUtils($dbWrapper);
             $pdfGen = new \App\Services\Document\PdfGeneratorService(
-                __DIR__ . '/../../storage',
+                __DIR__ . '/../../storage/documents',
                 __DIR__ . '/../../public/image/logo_ufhb.png'
             );
             $pdfGenerator = new \App\Services\Document\RapportPdfGeneratorService($pdfGen, $planningDataUtils);

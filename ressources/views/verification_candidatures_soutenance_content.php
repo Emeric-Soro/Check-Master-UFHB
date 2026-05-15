@@ -534,10 +534,10 @@ function traduireStatut($statut)
                                                 <i class="fas fa-times mr-1"></i> Rejeter
                                             </button>
 <?php endif; ?>
-                                            <a href="?page=gestion_dossiers_candidatures&action=telecharger_pdf&id_rapport=<?= urlencode((string) $rapport->id_rapport) ?>"
-                                                class="action-btn btn-pdf" title="PDF">
+                                            <button type="button" class="action-btn btn-pdf" title="Voir PDF"
+                                                onclick="CM.openDocViewer('rapport', '<?= htmlspecialchars((string) $rapport->id_rapport, ENT_QUOTES, 'UTF-8') ?>', {title: 'Rapport #<?= htmlspecialchars((string) $rapport->id_rapport, ENT_QUOTES, 'UTF-8') ?>'})">
                                                 <i class="fas fa-file-pdf mr-1"></i> PDF
-                                            </a>
+                                            </button>
                                             <a href="?page=gestion_dossiers_candidatures&id_rapport=<?= urlencode((string) $rapport->id_rapport) ?>"
                                                 class="action-btn btn-traiter" title="Traiter dans gestion_dossiers_candidatures">
                                                 <i class="fas fa-pen mr-1"></i> Traiter

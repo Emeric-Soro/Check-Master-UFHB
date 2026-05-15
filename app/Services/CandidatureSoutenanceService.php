@@ -66,6 +66,29 @@ class CandidatureSoutenanceService
         return $this->maitreDeStage->getAllMaitresDeStage();
     }
 
+    private function fetchOne(string $sql, array $params = []): ?array
+    {
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function fetchCount(string $sql, array $params = []): int
+    {
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return (int) $stmt->fetchColumn();
+        } catch (\Throwable $e) {
+            return 0;
+        }
+    }
+
     private function getStudentAcademicYearId(string $etudiantId): ?int
     {
         $etudiant = $this->etudiant->getEtudiantById($etudiantId);
@@ -215,6 +238,160 @@ class CandidatureSoutenanceService
     public function getLastCandidature($num_etu)
     {
         return $this->etudiant->getCandidature($num_etu);
+    }
+
+    public function getSuiviDossier(string $num_etu): array
+    {
+        $stage = $this->getStageInfo($num_etu) ?: [];
+        $candidature = $this->etudiant->getLastCandidatureByNumEtu($num_etu) ?: null;
+        $compteRendu = $this->getCompteRendu($num_etu) ?: null;
+
+        $rapport = $this->fetchOne("
+            SELECT re.*, d.date_depot
+            FROM rapport_etudiants re
+            LEFT JOIN deposer d ON d.id_rapport = re.id_rapport
+            WHERE re.num_etu = :num_etu
+            ORDER BY COALESCE(d.date_depot, re.date_redaction_rapport) DESC, re.id_rapport DESC
+            LIMIT 1
+        ", [':num_etu' => $num_etu]);
+
+        $decisionCommission = null;
+        $votesCommission = 0;
+        if ($rapport && !empty($rapport['id_rapport'])) {
+            $decisionCommission = $this->fetchOne("
+                SELECT v.*, CONCAT(COALESCE(e.prenom_enseignant, ''), ' ', COALESCE(e.nom_enseignant, '')) AS enseignant_decideur
+                FROM valider v
+                LEFT JOIN enseignants e ON e.id_enseignant = v.id_enseignant
+                WHERE v.id_rapport = :id_rapport
+                ORDER BY v.date_validation DESC
+                LIMIT 1
+            ", [':id_rapport' => (int) $rapport['id_rapport']]);
+
+            $votesCommission = $this->fetchCount("
+                SELECT COUNT(*)
+                FROM evaluations_rapports
+                WHERE id_rapport = :id_rapport
+            ", [':id_rapport' => (int) $rapport['id_rapport']]);
+        }
+
+        $soutenance = $this->fetchOne("
+            SELECT
+                ps.*,
+                s.lib_salle,
+                se.lib_session,
+                d.lib_domaine
+            FROM programmer_soutenance ps
+            LEFT JOIN salles s ON s.id_salle = ps.id_salle
+            LEFT JOIN session se ON se.id_session = ps.id_session
+            LEFT JOIN domaine d ON d.id_domaine = ps.id_domaine
+            WHERE ps.num_etud = :num_etu
+            ORDER BY ps.date_soutenance DESC, ps.heure_soutenance DESC
+            LIMIT 1
+        ", [':num_etu' => $num_etu]);
+
+        $pvDisponible = false;
+        $pvDate = null;
+        if ($soutenance && !empty($soutenance['num_soutenance'])) {
+            $notesSoutenance = $this->fetchCount("
+                SELECT COUNT(*)
+                FROM evaluer
+                WHERE num_etudiant = :num_etu AND num_jury = :num_jury
+            ", [
+                ':num_etu' => $num_etu,
+                ':num_jury' => $soutenance['num_soutenance'],
+            ]);
+            $pvDisponible = $notesSoutenance > 0;
+            $pvDate = $pvDisponible ? ($soutenance['date_soutenance'] ?? null) : null;
+        }
+
+        $commissionLabel = 'En attente';
+        $commissionDate = $rapport['date_depot'] ?? null;
+        if ($decisionCommission) {
+            $decision = strtolower((string) ($decisionCommission['decision_validation'] ?? ''));
+            if ($decision === 'valider') {
+                $commissionLabel = 'Validée';
+            } elseif ($decision === 'rejeter') {
+                $commissionLabel = 'À corriger';
+            }
+            $commissionDate = $decisionCommission['date_validation'] ?? $commissionDate;
+        } elseif ($votesCommission > 0) {
+            $commissionLabel = 'En évaluation';
+        } elseif ($rapport && !empty($rapport['date_depot'])) {
+            $commissionLabel = 'En attente';
+        }
+
+        $validationLabel = 'En attente';
+        if ($candidature) {
+            $statutCandidature = strtolower((string) ($candidature['statut_candidature'] ?? ''));
+            if (in_array($statutCandidature, ['validee', 'validée'], true)) {
+                $validationLabel = 'Validée';
+            } elseif (in_array($statutCandidature, ['rejetee', 'rejetée'], true)) {
+                $validationLabel = 'Rejetée';
+            }
+        }
+
+        return [
+            'stage' => $stage,
+            'candidature' => $candidature,
+            'rapport' => $rapport,
+            'commission' => [
+                'decision' => $decisionCommission,
+                'votes' => $votesCommission,
+                'label' => $commissionLabel,
+                'date' => $commissionDate,
+            ],
+            'compte_rendu' => $compteRendu,
+            'soutenance' => $soutenance,
+            'pv' => [
+                'disponible' => $pvDisponible,
+                'date' => $pvDate,
+            ],
+            'tracking_mode' => !empty($rapport['date_depot']),
+            'steps' => [
+                [
+                    'key' => 'candidature',
+                    'label' => 'Candidature',
+                    'status' => $candidature ? 'done' : 'pending',
+                    'state_label' => $candidature ? 'Enregistrée' : 'À faire',
+                    'date' => $candidature['date_candidature'] ?? null,
+                ],
+                [
+                    'key' => 'validation',
+                    'label' => 'Validation',
+                    'status' => !empty($candidature['date_traitement']) ? 'done' : ($candidature ? 'current' : 'pending'),
+                    'state_label' => $validationLabel,
+                    'date' => $candidature['date_traitement'] ?? null,
+                ],
+                [
+                    'key' => 'commission',
+                    'label' => 'Commission',
+                    'status' => $decisionCommission ? 'done' : (!empty($rapport['date_depot']) ? 'current' : 'pending'),
+                    'state_label' => $commissionLabel,
+                    'date' => $commissionDate,
+                ],
+                [
+                    'key' => 'compte_rendu',
+                    'label' => 'Compte Rendu',
+                    'status' => $compteRendu ? 'done' : ($decisionCommission ? 'current' : 'pending'),
+                    'state_label' => $compteRendu ? 'Disponible' : 'En attente',
+                    'date' => $compteRendu['date_CR'] ?? null,
+                ],
+                [
+                    'key' => 'soutenance',
+                    'label' => 'Soutenance',
+                    'status' => $soutenance ? 'done' : ($compteRendu ? 'current' : 'pending'),
+                    'state_label' => $soutenance ? 'Programmée' : 'Non programmée',
+                    'date' => $soutenance['date_soutenance'] ?? null,
+                ],
+                [
+                    'key' => 'pv',
+                    'label' => 'PV',
+                    'status' => $pvDisponible ? 'done' : ($soutenance ? 'current' : 'pending'),
+                    'state_label' => $pvDisponible ? 'Disponible' : 'En attente',
+                    'date' => $pvDate,
+                ],
+            ],
+        ];
     }
 
     public function calculerProgression($num_etu)

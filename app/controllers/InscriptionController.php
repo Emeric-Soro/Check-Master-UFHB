@@ -49,7 +49,7 @@ class InscriptionController
                     $db = new \App\Support\Database();
                     $recuDataUtils = new \App\Utils\RecuDataUtils($db);
                     $pdfGenerator = new \App\Services\Document\PdfGeneratorService(
-                        __DIR__ . '/../../storage',
+                        __DIR__ . '/../../storage/documents',
                         __DIR__ . '/../../public/assets/img/logo.png'
                     );
                     $recuService = new \App\Services\Document\RecuGeneratorService($pdfGenerator, $recuDataUtils, $db);

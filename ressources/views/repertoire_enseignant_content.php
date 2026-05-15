@@ -11,7 +11,6 @@ $filtreSession = $data['filtre_session'] ?? null;
 $search = (string) ($data['search'] ?? '');
 $error = (string) ($data['error'] ?? '');
 $tabCounts = (array) ($data['tab_counts'] ?? ['rapports' => 0, 'comptes_rendus' => 0, 'memoires' => 0]);
-$uploadsBase = __DIR__ . '/../../ressources/uploads/';
 function formatDate(?string $date): string {
     if (empty($date) || $date === '0000-00-00') return '—';
     $ts = strtotime($date);
@@ -20,11 +19,6 @@ function formatDate(?string $date): string {
 function truncate(string $text, int $max = 80): string {
     if (strlen($text) <= $max) return $text;
     return substr($text, 0, $max - 3) . '...';
-}
-function fileExistsSafe(?string $path, string $base): bool {
-    if (empty($path)) return false;
-    $full = realpath($base . ltrim($path, '/\\'));
-    return $full !== false && strpos($full, realpath($base)) === 0 && file_exists($full);
 }
 $tabs = [
     ['id' => 'rapports', 'label' => 'Rapports (' . $tabCounts['rapports'] . ')'],
@@ -104,20 +98,15 @@ $baseUrlParams = http_build_query([
                             <td><?= htmlspecialchars($item['annee_academique'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
                             <td><?= htmlspecialchars($item['lib_session'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
                             <td>
-                                <?php if (fileExistsSafe($item['chemin_fichier'] ?? null, $uploadsBase)): ?>
-                                    <a href="?page=voir_rapport&id=<?= urlencode((string) ($item['id_rapport'] ?? '')) ?>"
-                                       class="cm-btn cm-btn--sm cm-btn--ghost" title="Voir">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="?page=download&file=<?= urlencode($item['chemin_fichier']) ?>" 
-                                       class="cm-btn cm-btn--sm cm-btn--ghost" title="Télécharger">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                <?php else: ?>
-                                    <span class="cm-text-muted" title="Fichier non disponible">
-                                        <i class="fas fa-ban"></i>
-                                    </span>
-                                <?php endif; ?>
+                                <button type="button"
+                                   class="cm-btn cm-btn--sm cm-btn--ghost" title="Voir"
+                                   onclick="CM.openDocViewer('rapport', '<?= htmlspecialchars((string) ($item['id_rapport'] ?? ''), ENT_QUOTES, 'UTF-8') ?>', {title: '<?= htmlspecialchars($item['theme_rapport'] ?? 'Rapport', ENT_QUOTES, 'UTF-8') ?>'})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <a href="?page=docviewer&type=rapport&id=<?= urlencode((string) ($item['id_rapport'] ?? '')) ?>&action=download"
+                                   class="cm-btn cm-btn--sm cm-btn--ghost" title="Télécharger">
+                                    <i class="fas fa-download"></i>
+                                </a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -174,20 +163,15 @@ $baseUrlParams = http_build_query([
                                 </span>
                             </td>
                             <td>
-                                <a href="?page=voir_cr&id=<?= urlencode((string) ($item['id_CR'] ?? '')) ?>"
-                                   class="cm-btn cm-btn--sm cm-btn--ghost" title="Voir">
+                                <button type="button"
+                                   class="cm-btn cm-btn--sm cm-btn--ghost" title="Voir"
+                                   onclick="CM.openDocViewer('compte_rendu', '<?= htmlspecialchars((string) ($item['id_CR'] ?? ''), ENT_QUOTES, 'UTF-8') ?>', {title: '<?= htmlspecialchars($item['nom_CR'] ?? 'Compte-rendu', ENT_QUOTES, 'UTF-8') ?>'})">
                                     <i class="fas fa-eye"></i>
+                                </button>
+                                <a href="?page=docviewer&type=compte_rendu&id=<?= urlencode((string) ($item['id_CR'] ?? '')) ?>&action=download"
+                                   class="cm-btn cm-btn--sm cm-btn--ghost" title="Télécharger PDF">
+                                    <i class="fas fa-download"></i>
                                 </a>
-                                <?php if (fileExistsSafe($item['chemin_fichier_pdf'] ?? null, $uploadsBase)): ?>
-                                    <a href="?page=download&file=<?= urlencode($item['chemin_fichier_pdf']) ?>" 
-                                       class="cm-btn cm-btn--sm cm-btn--ghost" title="Télécharger PDF">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                <?php else: ?>
-                                    <span class="cm-text-muted" title="Fichier non disponible">
-                                        <i class="fas fa-ban"></i>
-                                    </span>
-                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -241,20 +225,15 @@ $baseUrlParams = http_build_query([
                             <td><?= htmlspecialchars(!empty($item['taille_fichier']) ? number_format((float) $item['taille_fichier'] / 1048576, 2) . ' Mo' : '—', ENT_QUOTES, 'UTF-8') ?></td>
                             <td><?= htmlspecialchars($item['annee_academique'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
                             <td>
-                                <a href="?page=voir_memoire&id=<?= urlencode((string) ($item['id_memoire'] ?? $item['num_soutenance'] ?? '')) ?>"
-                                   class="cm-btn cm-btn--sm cm-btn--ghost" title="Voir">
+                                <button type="button"
+                                   class="cm-btn cm-btn--sm cm-btn--ghost" title="Voir"
+                                   onclick="CM.openDocViewer('pv_final', '<?= htmlspecialchars((string) ($item['num_soutenance'] ?? ''), ENT_QUOTES, 'UTF-8') ?>', {title: '<?= htmlspecialchars($item['theme_soutenance'] ?? 'PV final', ENT_QUOTES, 'UTF-8') ?>'})">
                                     <i class="fas fa-eye"></i>
+                                </button>
+                                <a href="?page=docviewer&type=pv_final&id=<?= urlencode((string) ($item['num_soutenance'] ?? '')) ?>&action=download"
+                                   class="cm-btn cm-btn--sm cm-btn--ghost" title="Télécharger">
+                                    <i class="fas fa-download"></i>
                                 </a>
-                                <?php if (fileExistsSafe($item['chemin_fichier_memoire'] ?? null, $uploadsBase)): ?>
-                                    <a href="?page=download&file=<?= urlencode($item['chemin_fichier_memoire']) ?>"
-                                       class="cm-btn cm-btn--sm cm-btn--ghost" title="Télécharger">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                <?php else: ?>
-                                    <span class="cm-text-muted" title="Fichier non disponible">
-                                        <i class="fas fa-ban"></i>
-                                    </span>
-                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

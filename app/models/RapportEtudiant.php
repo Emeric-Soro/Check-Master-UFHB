@@ -144,6 +144,37 @@ class RapportEtudiant
         return 'COALESCE(' . implode(', ', $candidates) . ')';
     }
 
+    private function latestCandidatureJoin($rapportAlias = 'r', $etudiantAlias = 'e', $candidatureAlias = 'cs')
+    {
+        if (!$this->tableExists('candidature_soutenance')) {
+            return '';
+        }
+
+        $rapportHasCandidatureId = $this->columnExists('rapport_etudiants', 'id_candidature');
+        $joinCondition = $rapportHasCandidatureId
+            ? "
+                    cs2.id_candidature = {$rapportAlias}.id_candidature
+                    OR (
+                        ({$rapportAlias}.id_candidature IS NULL OR {$rapportAlias}.id_candidature = 0)
+                        AND (cs2.num_etu = {$etudiantAlias}.num_carte_etud OR cs2.num_etu = {$etudiantAlias}.num_ident_etud)
+                    )
+              "
+            : "
+                    cs2.num_etu = {$etudiantAlias}.num_carte_etud
+                    OR cs2.num_etu = {$etudiantAlias}.num_ident_etud
+              ";
+
+        return "
+            LEFT JOIN candidature_soutenance {$candidatureAlias} ON {$candidatureAlias}.id_candidature = (
+                SELECT cs2.id_candidature
+                FROM candidature_soutenance cs2
+                WHERE {$joinCondition}
+                ORDER BY cs2.date_candidature DESC, cs2.id_candidature DESC
+                LIMIT 1
+            )
+        ";
+    }
+
     private function getLatestStageSubquery($selectExpr, $etudiantAlias = 'e', $joins = '')
     {
         if (!$this->tableExists('informations_stage')) {
@@ -771,12 +802,20 @@ class RapportEtudiant
     public function getRapportsDeposes()
     {
         try {
+            $joinCandidature = $this->latestCandidatureJoin('r', 'e', 'cs');
+            $whereCandidature = $joinCandidature !== ''
+                ? "WHERE cs.statut_candidature IN ('Validee', 'Validée')"
+                : '';
+
             $stmt = $this->pdo->query("
                 SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu, e.promotion_etu, 
-                    " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad, d.date_depot
+                    " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad, d.date_depot,
+                    cs.id_candidature, cs.statut_candidature
                 FROM deposer d
                 JOIN rapport_etudiants r ON d.id_rapport = r.id_rapport
                 JOIN etudiants e ON (d.num_etu = e.num_carte_etud OR d.num_etu = e.num_ident_etud)
+                {$joinCandidature}
+                {$whereCandidature}
                 ORDER BY d.date_depot DESC
             ");
             return $stmt->fetchAll(PDO::FETCH_OBJ);

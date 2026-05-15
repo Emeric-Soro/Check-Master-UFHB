@@ -4,16 +4,19 @@
  */
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/CompteRendu.php';
+require_once __DIR__ . '/../Services/Document/DocumentRegistry.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 
 class ArchiveDocumentController
 {
     private $db;
+    private DocumentRegistry $registry;
     private const ALLOWED_TYPES = ['rapport', 'compte_rendu', 'pv_final'];
 
     public function __construct($db = null)
     {
         $this->db = $db ?: Database::getConnection();
+        $this->registry = new DocumentRegistry($this->db);
     }
 
     /**
@@ -159,12 +162,16 @@ class ArchiveDocumentController
                         e.num_carte_etud
                     FROM rapport_etudiants re
                     JOIN etudiants e ON re.num_etu = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
                     WHERE re.chemin_fichier IS NOT NULL AND re.chemin_fichier <> ''";
 
             $params = [];
             if (is_numeric($anneeId)) {
-                $sql .= " AND i.id_annee_acad = :annee_id";
+                $sql .= " AND EXISTS (
+                    SELECT 1
+                    FROM inscriptions i
+                    WHERE i.num_carte_etud = re.num_etu
+                      AND i.id_annee_acad = :annee_id
+                )";
                 $params['annee_id'] = (int) $anneeId;
             }
 
@@ -186,12 +193,16 @@ class ArchiveDocumentController
                         e.num_carte_etud
                     FROM compte_rendu cr
                     JOIN etudiants e ON cr.num_etu = e.num_carte_etud
-                    JOIN inscriptions i ON e.num_carte_etud = i.id_etudiant
                     WHERE cr.chemin_fichier_pdf IS NOT NULL AND cr.chemin_fichier_pdf <> ''";
 
             $params = [];
             if (is_numeric($anneeId)) {
-                $sql .= " AND i.id_annee_acad = :annee_id";
+                $sql .= " AND EXISTS (
+                    SELECT 1
+                    FROM inscriptions i
+                    WHERE i.num_carte_etud = cr.num_etu
+                      AND i.id_annee_acad = :annee_id
+                )";
                 $params['annee_id'] = (int) $anneeId;
             }
 
@@ -217,39 +228,7 @@ class ArchiveDocumentController
 
     private function getCheminDocument($type, $id)
     {
-        switch ($type) {
-            case 'rapport':
-                $sql = "SELECT chemin_fichier FROM rapport_etudiants WHERE id_rapport = ?";
-                break;
-            case 'compte_rendu':
-                $sql = "SELECT chemin_fichier_pdf as chemin_fichier FROM compte_rendu WHERE id_CR = ?";
-                break;
-            case 'pv_final':
-                $decoded = $this->decodeFileId((string) $id);
-                if ($decoded === null) {
-                    return null;
-                }
-
-                $realPath = realpath($decoded);
-                if ($realPath === false || !is_file($realPath)) {
-                    return null;
-                }
-
-                $basePvDir = realpath(__DIR__ . '/../../storage/documents/pv_finaux');
-                if ($basePvDir === false || !$this->isPathInside($realPath, $basePvDir)) {
-                    return null;
-                }
-
-                return $realPath;
-            default:
-                return null;
-        }
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$id]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        return is_array($result) ? ($result['chemin_fichier'] ?? null) : null;
+        return $this->registry->resolve((string) $type, (string) $id);
     }
 
     /**

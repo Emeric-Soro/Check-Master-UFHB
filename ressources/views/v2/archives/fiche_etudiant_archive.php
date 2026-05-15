@@ -154,9 +154,14 @@ $onglet = $_GET['onglet'] ?? 'infos';
                                             <strong><?php echo htmlspecialchars($d->titre); ?></strong>
                                             <small class="cm-text-muted">(<?php echo $d->type; ?>)</small>
                                         </div>
-                                        <a href="?page=telecharger_document&type=<?php echo $d->type; ?>&id=<?php echo $d->id; ?>" 
-                                           class="cm-btn cm-btn-sm cm-btn-outline">
-                                            <i class="fas fa-download"></i> Télécharger
+                                        <button type="button"
+                                           class="cm-btn cm-btn-sm cm-btn-primary" title="Visualiser"
+                                           onclick="CM.openDocViewer('<?php echo htmlspecialchars($d->type, ENT_QUOTES, 'UTF-8'); ?>', '<?php echo htmlspecialchars($d->id, ENT_QUOTES, 'UTF-8'); ?>', {title: '<?php echo htmlspecialchars($d->titre ?? 'Document', ENT_QUOTES, 'UTF-8'); ?>'})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <a href="?page=docviewer&type=<?php echo urlencode($d->type); ?>&id=<?php echo urlencode($d->id); ?>&action=download"
+                                           class="cm-btn cm-btn-sm cm-btn-outline" title="Télécharger">
+                                            <i class="fas fa-download"></i>
                                         </a>
                                     </div>
                                 <?php endforeach; ?>

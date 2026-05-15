@@ -201,6 +201,8 @@ include __DIR__ . '/../ressources/routes/archivesCompteRenduRoutes.php';
 include __DIR__ . '/../ressources/routes/archiveHistoryRoutes.php';
 include __DIR__ . '/../ressources/routes/archiveRoutes.php';
 include __DIR__ . '/../ressources/routes/editionBulletinRoutes.php';
+include __DIR__ . '/../ressources/routes/docviewerRoutes.php';
+include __DIR__ . '/../ressources/routes/documentsRoutes.php';
 
 $menuController = new MenuController();
 
@@ -614,7 +616,7 @@ switch ($currentMenuSlug) {
             $dbWrapper = new \App\Support\Database();
             $recuDataUtils = new \App\Utils\RecuDataUtils($dbWrapper);
             $pdfGen = new \App\Services\Document\PdfGeneratorService(
-                __DIR__ . '/../storage',
+                __DIR__ . '/../storage/documents',
                 __DIR__ . '/../public/assets/img/logo.png'
             );
             $recuService = new \App\Services\Document\RecuGeneratorService($pdfGen, $recuDataUtils, $dbWrapper);
@@ -713,7 +715,7 @@ switch ($currentMenuSlug) {
             $dbWrapper = new \App\Support\Database();
             $recuDataUtils = new \App\Utils\RecuDataUtils($dbWrapper);
             $pdfGen = new \App\Services\Document\PdfGeneratorService(
-                __DIR__ . '/../storage',
+                __DIR__ . '/../storage/documents',
                 __DIR__ . '/../public/assets/img/logo.png'
             );
             $recuService = new \App\Services\Document\RecuGeneratorService($pdfGen, $recuDataUtils, $dbWrapper);
@@ -813,6 +815,9 @@ switch ($currentMenuSlug) {
         break;
     case 'archives_documents':
         $contentFile = $partialsBasePath . 'v2/archives/archives_documents.php';
+        break;
+    case 'documents':
+        $contentFile = $partialsBasePath . 'documents_content.php';
         break;
     case 'archives_candidatures':
         $contentFile = $partialsBasePath . 'v2/archives/archives_candidatures.php';
@@ -2170,6 +2175,8 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         src="<?php echo htmlspecialchars($publicPrefix . 'js/historique_reclamation.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script defer
         src="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('js/inline-confirm.js') : 'assets/js/inline-confirm.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script defer
+        src="<?php echo htmlspecialchars($publicPrefix . 'js/docviewer.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body>
 
 </html>

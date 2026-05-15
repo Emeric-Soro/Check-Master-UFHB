@@ -34,7 +34,7 @@ final class RecuGeneratorService
      *
      * @param string|int $versementId ID composite du versement
      * @param int $userId ID de l'utilisateur générant le document
-     * @return array{success: bool, reference?: string, path?: string, error?: string}
+     * @return array{success: bool, reference?: string, path?: string, filename?: string, size?: int|null, error?: string}
      */
     public function generate(string|int $versementId, int $userId): array
     {
@@ -108,6 +108,7 @@ final class RecuGeneratorService
             $documentId = $this->recuDataUtils->saveDocumentRecord([
                 'reference_document' => $reference,
                 'type_document' => self::TYPE_DOCUMENT,
+                'id_source' => (string) $versementId,
                 'nom_fichier' => $filename . '.pdf',
                 'chemin_fichier' => $fullPath,
                 'taille_fichier' => $fileSize !== false ? (int) $fileSize : null,
@@ -126,6 +127,8 @@ final class RecuGeneratorService
                 'success' => true,
                 'reference' => $reference,
                 'path' => $fullPath,
+                'filename' => basename($fullPath),
+                'size' => $fileSize !== false ? (int) $fileSize : null,
             ];
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {

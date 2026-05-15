@@ -340,14 +340,13 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                                             </div>
                                         <?php endif; ?>
                                         <div class="cm-form-buttons cm-mt-md">
-                                            <a class="cm-btn is-info"
-                                                href="?page=gestion_dossiers_candidatures&action=consulter_rapport&id_rapport=<?php echo urlencode((string) $row['id_rapport']); ?>"
-                                                target="_blank">
+                                            <button type="button" class="cm-btn is-info"
+                                                onclick="CM.openDocViewer('rapport', '<?php echo htmlspecialchars((string) $row['id_rapport'], ENT_QUOTES, 'UTF-8'); ?>', {title: '<?php echo htmlspecialchars('Rapport - ' . ($row['nom_complet'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>'})">
                                                 <i class="fas fa-eye" aria-hidden="true"></i>
                                                 Consulter
-                                            </a>
+                                            </button>
                                             <a class="cm-btn is-info"
-                                                href="?page=gestion_dossiers_candidatures&action=telecharger_pdf&id_rapport=<?php echo urlencode((string) $row['id_rapport']); ?>">
+                                                href="?page=docviewer&type=rapport&id=<?php echo urlencode((string) $row['id_rapport']); ?>&action=download">
                                                 <i class="fas fa-file-pdf" aria-hidden="true"></i>
                                                 PDF
                                             </a>

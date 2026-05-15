@@ -22,7 +22,7 @@ if ($idUtilisateur > 0) {
         $idEnseignant = '';
     }
 }
-$allRapports = $rapportModel->getAllRapports();
+$allRapports = $rapportModel->getRapportsDeposes();
 $rapports = [];
 $totalNouveaux = 0;
 $totalTraites = 0;

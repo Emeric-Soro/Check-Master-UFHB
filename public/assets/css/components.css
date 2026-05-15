@@ -414,6 +414,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  scrollbar-gutter: stable;
   /*padding: var(--cm-spacing-lg);
     padding-top: calc(var(--cm-spacing-lg) + var(--cm-spacing-md));
     */
@@ -428,6 +429,41 @@
 
 .cm-layout-main--scroll {
   overflow: auto;
+}
+
+.cm-layout-main,
+.cm-prd3-screen,
+.cm-etu-screen {
+  scrollbar-width: thin;
+  scrollbar-color: var(--cm-scrollbar-thumb) var(--cm-scrollbar-track);
+}
+
+.cm-layout-main::-webkit-scrollbar,
+.cm-prd3-screen::-webkit-scrollbar,
+.cm-etu-screen::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.cm-layout-main::-webkit-scrollbar-track,
+.cm-prd3-screen::-webkit-scrollbar-track,
+.cm-etu-screen::-webkit-scrollbar-track {
+  background: var(--cm-scrollbar-track);
+  border-radius: 999px;
+}
+
+.cm-layout-main::-webkit-scrollbar-thumb,
+.cm-prd3-screen::-webkit-scrollbar-thumb,
+.cm-etu-screen::-webkit-scrollbar-thumb {
+  background: var(--cm-scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid var(--cm-scrollbar-track);
+}
+
+.cm-layout-main::-webkit-scrollbar-thumb:hover,
+.cm-prd3-screen::-webkit-scrollbar-thumb:hover,
+.cm-etu-screen::-webkit-scrollbar-thumb:hover {
+  background: var(--cm-scrollbar-thumb-hover);
 }
 
 .cm-layout-main--locked {
@@ -2752,7 +2788,7 @@
   display: flex;
   justify-content: center;
   padding: 0.75rem;
-  overflow: auto;
+  overflow: visible;
 }
 
 .cm-etu-panel {
@@ -6859,4 +6895,124 @@ form .cm-grid-auto {
 .cm-toolbar.cm-toolbar--unified select,
 .cm-toolbar.cm-toolbar--unified input {
   flex-shrink: 0 !important;
+}
+
+/* ==========================================================================
+   DocViewer Overlay — previsualisation PDF unifiee
+   ========================================================================== */
+
+.cm-docviewer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+  animation: cm-docviewer-fade-in 0.15s ease-out;
+}
+
+@keyframes cm-docviewer-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.cm-docviewer-overlay__container {
+  width: 95vw;
+  height: 92vh;
+  max-width: 1200px;
+  background: var(--cm-card-bg, #fff);
+  border-radius: var(--cm-border-radius-lg, 8px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: cm-docviewer-slide-up 0.2s ease-out;
+}
+
+@keyframes cm-docviewer-slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.cm-docviewer-overlay__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--cm-border-color, #e0e0e0);
+  flex-shrink: 0;
+  background: var(--cm-card-bg, #fff);
+}
+
+.cm-docviewer-overlay__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--cm-text-primary, #1a1a1a);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60%;
+}
+
+.cm-docviewer-overlay__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.cm-docviewer-overlay__body {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.cm-docviewer-overlay__body iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.cm-docviewer-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--cm-card-bg, #fff);
+  z-index: 1;
+}
+
+.cm-docviewer-loading.is-hidden {
+  display: none;
+}
+
+.cm-docviewer-loading__spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--cm-border-color, #e0e0e0);
+  border-top-color: var(--cm-primary, #2563eb);
+  border-radius: 50%;
+  animation: cm-docviewer-spin 0.8s linear infinite;
+}
+
+.cm-docviewer-loading__text {
+  font-size: 0.875rem;
+  color: var(--cm-text-secondary, #666);
+}
+
+@keyframes cm-docviewer-spin {
+  to { transform: rotate(360deg); }
+}
+
+.cm-docviewer-overlay.is-fullscreen .cm-docviewer-overlay__container {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  border-radius: 0;
 }

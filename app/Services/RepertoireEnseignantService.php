@@ -293,14 +293,19 @@ class RepertoireEnseignantService
             $countStmt->execute($params);
             $total = (int) $countStmt->fetchColumn();
 
-            $sql = "SELECT DISTINCT
+            $sql = "SELECT
                         cr.id_CR,
                         cr.nom_CR,
                         cr.date_CR,
                         cr.chemin_fichier_pdf,
                         e.num_carte_etud,
                         e.nom_etu,
-                        e.prenom_etu
+                        e.prenom_etu,
+                        COALESCE(GROUP_CONCAT(DISTINCT r.id_rapport ORDER BY r.id_rapport SEPARATOR ', '), '—') AS rapports_inclus,
+                        CASE
+                            WHEN cr.chemin_fichier_pdf IS NOT NULL AND cr.chemin_fichier_pdf <> '' THEN 'Publié'
+                            ELSE 'Brouillon'
+                        END AS statut_CR
                     FROM compte_rendu cr
                     LEFT JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
                     LEFT JOIN rapport_etudiants r ON r.id_rapport = crr.id_rapport
@@ -315,6 +320,7 @@ class RepertoireEnseignantService
                     LEFT JOIN rendre rd ON rd.id_CR = cr.id_CR
                     LEFT JOIN programmer_soutenance ps ON (ps.num_etud = e.num_carte_etud OR ps.num_etud = e.num_ident_etud)
                     WHERE {$whereClause}
+                    GROUP BY cr.id_CR, cr.nom_CR, cr.date_CR, cr.chemin_fichier_pdf, e.num_carte_etud, e.nom_etu, e.prenom_etu
                     ORDER BY cr.date_CR DESC
                     LIMIT :limit OFFSET :offset";
 
@@ -362,7 +368,7 @@ class RepertoireEnseignantService
             $params[':id_enseignant'] = $idEnseignant;
 
             if ($annee !== null) {
-                $whereConditions[] = "i.id_annee_acad = :id_annee_acad";
+                $whereConditions[] = "ps.id_annee_acad = :id_annee_acad";
                 $params[':id_annee_acad'] = $annee;
             }
 
@@ -381,11 +387,6 @@ class RepertoireEnseignantService
             $countSql = "SELECT COUNT(DISTINCT ps.num_soutenance)
                          FROM {$progTable} ps
                          JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
-                         LEFT JOIN inscriptions i ON i.id_inscription = (
-                             SELECT i2.id_inscription FROM inscriptions i2 
-                             WHERE i2.num_carte_etud = e.num_carte_etud 
-                             ORDER BY i2.date_inscription DESC LIMIT 1
-                         )
                          WHERE {$whereClause}";
 
             $countStmt = $this->pdo->prepare($countSql);
@@ -405,13 +406,8 @@ class RepertoireEnseignantService
                         SUM(COALESCE(ev.note, 0)) AS note_memoire
                     FROM {$progTable} ps
                     JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
-                    LEFT JOIN inscriptions i ON i.id_inscription = (
-                        SELECT i2.id_inscription FROM inscriptions i2 
-                        WHERE i2.num_carte_etud = e.num_carte_etud 
-                        ORDER BY i2.date_inscription DESC LIMIT 1
-                    )
                     LEFT JOIN session s ON s.id_session = ps.id_session
-                    LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
+                    LEFT JOIN annee_academique aa ON aa.id_annee_acad = ps.id_annee_acad
                     LEFT JOIN evaluer ev ON ev.num_etudiant = ps.num_etud AND ev.num_jury = ps.num_soutenance
                     WHERE {$whereClause}
                     GROUP BY ps.num_soutenance, ps.theme_soutenance, ps.date_soutenance, ps.heure_soutenance,

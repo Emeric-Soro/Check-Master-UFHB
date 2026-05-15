@@ -256,11 +256,11 @@ foreach ($membresCommission as $membre) {
                                                 title="Voir détails">
                                                 <i class="fas fa-eye" aria-hidden="true"></i>
                                             </a>
-                                            <a class="cm-btn-action is-view"
-                                                href="?page=processus_validation&fichier=<?php echo urlencode((string) $idRapport); ?>"
-                                                target="_blank" rel="noopener" title="Voir rapport">
+                                            <button type="button" class="cm-btn-action is-view"
+                                                title="Voir rapport"
+                                                onclick="CM.openDocViewer('rapport', '<?php echo htmlspecialchars((string) $idRapport, ENT_QUOTES, 'UTF-8'); ?>', {title: 'Rapport #<?php echo htmlspecialchars((string) $idRapport, ENT_QUOTES, 'UTF-8'); ?>'})">
                                                 <i class="fas fa-file-pdf" aria-hidden="true"></i>
-                                            </a>
+                                            </button>
                                             <?php if ($canFinalize && (function_exists('canEdit') ? canEdit() : true)): ?>
                                                 <style>
                                                     /* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */

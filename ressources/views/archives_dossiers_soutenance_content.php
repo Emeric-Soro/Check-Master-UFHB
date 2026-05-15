@@ -522,7 +522,7 @@ function getTimeAgo($date)
         }
 
         function downloadRapport(idRapport) {
-            window.open(`?page=archives_dossiers_soutenance&action=download_rapport&id=${idRapport}`, '_blank');
+            CM.openDocViewer('rapport', idRapport, {title: 'Rapport #' + idRapport});
         }
 
         function exportArchives() {
