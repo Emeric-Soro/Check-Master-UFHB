@@ -133,6 +133,57 @@ class EvaluationDossiersService
         );
     }
 
+    private function getFallbackStudentYearExpr(string $etudiantAlias = 'e'): string
+    {
+        return "
+            (SELECT i.id_annee_acad
+             FROM inscriptions i
+             WHERE i.num_carte_etud = " . $this->studentCarteExpr($etudiantAlias) . "
+             ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getAcademicYearFromDateExpr(string $dateExpr): string
+    {
+        return "
+            (SELECT aa.id_annee_acad
+             FROM annee_academique aa
+             WHERE DATE($dateExpr) BETWEEN aa.date_deb AND aa.date_fin
+             ORDER BY aa.date_deb DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getReportDateExpr(string $rapportAlias = 'r'): string
+    {
+        if ($this->columnExists('rapport_etudiants', 'date_rapport')) {
+            return $rapportAlias . '.date_rapport';
+        }
+        if ($this->columnExists('rapport_etudiants', 'date_redaction_rapport')) {
+            return $rapportAlias . '.date_redaction_rapport';
+        }
+        return 'NULL';
+    }
+
+    private function getReportAcademicYearExpr(string $rapportAlias = 'r', string $etudiantAlias = 'e', ?string $depotAlias = null): string
+    {
+        $candidates = [];
+
+        if ($depotAlias !== null && $this->tableExists('deposer')) {
+            $candidates[] = $this->getAcademicYearFromDateExpr($depotAlias . '.date_depot');
+        }
+
+        $dateExpr = $this->getReportDateExpr($rapportAlias);
+        if ($dateExpr !== 'NULL') {
+            $candidates[] = $this->getAcademicYearFromDateExpr($dateExpr);
+        }
+
+        $candidates[] = $this->getFallbackStudentYearExpr($etudiantAlias);
+
+        return 'COALESCE(' . implode(', ', $candidates) . ')';
+    }
+
     private function getRapportYearId($idRapport): ?int
     {
         $rapport = $this->rapportEtudiant->getRapportById($idRapport);
@@ -187,7 +238,7 @@ class EvaluationDossiersService
                 $yearWhere = '';
                 $yearParams = [];
                 if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
-                    $yearWhere = " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " AND i.id_annee_acad = ?)";
+                    $yearWhere = " AND " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " = ?";
                     $yearParams[] = $selectedYearId;
                 }
                 $stmt = $this->db->prepare("
@@ -205,6 +256,7 @@ class EvaluationDossiersService
                     SELECT COUNT(*) as total
                     FROM rapport_etudiants r
                     INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                    LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                     WHERE r.etape_validation = 'valide'
                     {$yearWhere}
                 ");
@@ -215,6 +267,7 @@ class EvaluationDossiersService
                     SELECT COUNT(*) as total
                     FROM rapport_etudiants r
                     INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                    LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                     WHERE r.etape_validation = 'desapprouve_commission'
                     {$yearWhere}
                 ");
@@ -225,13 +278,14 @@ class EvaluationDossiersService
                     $yearWhere = '';
                     $yearParams = [];
                     if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
-                        $yearWhere = " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " AND i.id_annee_acad = ?)";
+                        $yearWhere = " AND " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " = ?";
                         $yearParams[] = $selectedYearId;
                     }
                     $stmt = $this->db->prepare("
                         SELECT COUNT(*) as total
                         FROM rapport_etudiants r
                         INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                        LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                         LEFT JOIN valider v ON r.id_rapport = v.id_rapport
                         WHERE v.id_rapport IS NULL
                         {$yearWhere}
@@ -244,6 +298,7 @@ class EvaluationDossiersService
                         FROM valider v
                         INNER JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
                         INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                        LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                         WHERE decision_validation = 'valider'
                         {$yearWhere}
                     ");
@@ -255,6 +310,7 @@ class EvaluationDossiersService
                         FROM valider v
                         INNER JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
                         INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                        LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                         WHERE decision_validation = 'rejeter'
                         {$yearWhere}
                     ");
@@ -264,7 +320,7 @@ class EvaluationDossiersService
                     $yearWhere = '';
                     $yearParams = [];
                     if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
-                        $yearWhere = " WHERE EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " AND i.id_annee_acad = ?)";
+                        $yearWhere = " WHERE " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " = ?";
                         $yearParams[] = $selectedYearId;
                     }
                     $stmt = $this->db->prepare("
@@ -274,6 +330,7 @@ class EvaluationDossiersService
                             SUM(CASE WHEN COALESCE(statut_rapport, '') NOT IN ('valider', 'valide', 'rejeter', 'desapprouve_commission') THEN 1 ELSE 0 END) as en_cours
                         FROM rapport_etudiants r
                         INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                        LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                         {$yearWhere}
                     ");
                     $stmt->execute($yearParams);

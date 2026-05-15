@@ -404,6 +404,14 @@ if ($contenuRapportJson === false) {
     font-size: 12pt !important;
     line-height: 1.65 !important;
     color: #111827 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+.fm-editor-zone .jodit-wysiwyg > [data-cm-report-document="1"] {
+    max-width: 210mm;
+    width: 100%;
+    margin: 0 auto;
 }
 .fm-editor-zone .jodit-status-bar {
     display: none !important;

@@ -70,6 +70,15 @@ if ($_GET['page'] === 'gestion_rapports') {
                 }
 
                 $controller->creerRapport();
+
+                // Vérifier si le rapport est déjà déposé pour activer le mode lecture seule
+                if (isset($_SESSION['num_etu'])) {
+                    $rapportData = $GLOBALS['rapport'] ?? null;
+                    $rapportIdCheck = is_array($rapportData) ? ((int) ($rapportData['id_rapport'] ?? 0)) : 0;
+                    if ($rapportIdCheck > 0 && $service->isRapportDepose($_SESSION['num_etu'], $rapportIdCheck)) {
+                        $GLOBALS['rapportDejaDepose'] = true;
+                    }
+                }
                 break;
             default:
                 // Action non reconnue, on continue pour afficher le dashboard
@@ -93,7 +102,10 @@ if ($_GET['page'] === 'gestion_rapports') {
     if (!$isDataAlreadySet) {
         if (isset($_SESSION['num_etu'])) {
             $num_etu = $_SESSION['num_etu'];
-            
+
+            // Récupérer le dernier rapport déposé (indépendant du filtre académique)
+            $GLOBALS['dernierRapportDepose'] = $service->getDernierRapportDepose($num_etu);
+
             // Récupérer les rapports et stats
             $GLOBALS['rapportsRecents'] = $service->getRapportsRecentsEtudiant($num_etu);
             $GLOBALS['statistiquesRapports'] = $service->getStatsEtudiant($num_etu);

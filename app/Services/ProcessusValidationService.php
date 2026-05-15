@@ -108,36 +108,91 @@ class ProcessusValidationService
         );
     }
 
+    private function getFallbackStudentYearExpr(string $etudiantAlias = 'e'): string
+    {
+        return "
+            (SELECT i.id_annee_acad
+             FROM inscriptions i
+             WHERE i.num_carte_etud = " . $this->studentCarteExpr($etudiantAlias) . "
+             ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getAcademicYearFromDateExpr(string $dateExpr): string
+    {
+        return "
+            (SELECT aa.id_annee_acad
+             FROM annee_academique aa
+             WHERE DATE($dateExpr) BETWEEN aa.date_deb AND aa.date_fin
+             ORDER BY aa.date_deb DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getReportAcademicYearExpr(string $rapportAlias = 'r', string $etudiantAlias = 'e', ?string $depotAlias = null): string
+    {
+        $candidates = [];
+
+        if ($depotAlias !== null && $this->tableExists('deposer')) {
+            $candidates[] = $this->getAcademicYearFromDateExpr($depotAlias . '.date_depot');
+        }
+
+        $dateExpr = $this->rapportDateExpr($rapportAlias);
+        if ($dateExpr !== 'NULL') {
+            $candidates[] = $this->getAcademicYearFromDateExpr($dateExpr);
+        }
+
+        $candidates[] = $this->getFallbackStudentYearExpr($etudiantAlias);
+
+        return 'COALESCE(' . implode(', ', $candidates) . ')';
+    }
+
+    private function latestCandidatureJoin(string $rapportAlias = 'r', string $etudiantAlias = 'e', string $candidatureAlias = 'cs'): string
+    {
+        if (!$this->tableExists('candidature_soutenance')) {
+            return '';
+        }
+
+        return "
+            LEFT JOIN candidature_soutenance {$candidatureAlias} ON {$candidatureAlias}.id_candidature = (
+                SELECT cs2.id_candidature
+                FROM candidature_soutenance cs2
+                WHERE (
+                    cs2.id_candidature = {$rapportAlias}.id_candidature
+                    OR (
+                        ({$rapportAlias}.id_candidature IS NULL OR {$rapportAlias}.id_candidature = 0)
+                        AND (cs2.num_etu = {$etudiantAlias}.num_carte_etud OR cs2.num_etu = {$etudiantAlias}.num_ident_etud)
+                    )
+                )
+                ORDER BY cs2.date_candidature DESC, cs2.id_candidature DESC
+                LIMIT 1
+            )
+        ";
+    }
+
+    private function validatedCandidatureWhere(string $candidatureAlias = 'cs'): string
+    {
+        return $this->tableExists('candidature_soutenance')
+            ? " AND {$candidatureAlias}.statut_candidature IN ('Validee', 'Validée')"
+            : '';
+    }
+
     private function getSelectedYearId(): ?int
     {
         return \AcademicYear::getSelectedIdFromSession();
     }
 
-    private function yearCondition(string $alias = 'e'): array
+    private function yearCondition(string $rapportAlias = 'r', string $etudiantAlias = 'e', ?string $depotAlias = null): array
     {
         $selectedYearId = $this->getSelectedYearId();
         if ($selectedYearId === null || $selectedYearId <= 0) {
             return ['sql' => '', 'params' => []];
         }
 
-        $studentCarteExpr = $this->studentCarteExpr($alias);
-        if ($this->columnExists('inscriptions', 'num_carte_etud') && $this->columnExists('inscriptions', 'id_annee_acad')) {
-            return [
-                'sql' => " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = {$studentCarteExpr} AND i.id_annee_acad = :id_annee_acad)",
-                'params' => [':id_annee_acad' => $selectedYearId],
-            ];
-        }
-
-        if ($this->columnExists('etudiants', 'id_annee_acad')) {
-            return [
-                'sql' => " AND {$alias}.id_annee_acad = :id_annee_acad",
-                'params' => [':id_annee_acad' => $selectedYearId],
-            ];
-        }
-
         return [
-            'sql' => '',
-            'params' => [],
+            'sql' => " AND " . $this->getReportAcademicYearExpr($rapportAlias, $etudiantAlias, $depotAlias) . " = :id_annee_acad",
+            'params' => [':id_annee_acad' => $selectedYearId],
         ];
     }
 
@@ -146,14 +201,14 @@ class ProcessusValidationService
         try {
             $stmt = $this->pdo->prepare("
                 SELECT i.id_annee_acad
-                FROM rapport_etudiants r
-                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
-                JOIN inscriptions i ON i.id_inscription = (
-                    SELECT i2.id_inscription FROM inscriptions i2
-                    WHERE i2.num_carte_etud = " . $this->studentCarteExpr('e') . "
-                    ORDER BY i2.date_inscription DESC, i2.id_inscription DESC LIMIT 1
-                )
-                WHERE r.id_rapport = ?
+                FROM (
+                    SELECT " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad
+                    FROM rapport_etudiants r
+                    JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                    LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
+                    WHERE r.id_rapport = ?
+                    LIMIT 1
+                ) i
                 LIMIT 1
             ");
             $stmt->execute([$idRapport]);
@@ -173,18 +228,31 @@ class ProcessusValidationService
     public function getStatistiques()
     {
         try {
-            $yearFilter = $this->yearCondition('e');
-            $stmt = $this->pdo->prepare("SELECT COUNT(*) as total_rapports FROM rapport_etudiants");
-            $stmt->execute();
+            $yearFilter = $this->yearCondition('r', 'e', 'd');
+            $joinCandidature = $this->latestCandidatureJoin('r', 'e', 'cs');
+            $candidatureWhere = $this->validatedCandidatureWhere('cs');
+            $stmt = $this->pdo->prepare("
+                SELECT COUNT(*) as total_rapports
+                FROM rapport_etudiants r
+                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
+                {$joinCandidature}
+                WHERE 1=1" . $yearFilter['sql'] . $candidatureWhere
+            );
+            $stmt->execute($yearFilter['params']);
             $totalRapports = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total_rapports'] ?? 0);
 
             $stmt = $this->pdo->prepare("
                 SELECT COUNT(*) as en_cours
                 FROM rapport_etudiants r
+                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
+                {$joinCandidature}
                 LEFT JOIN valider v ON r.id_rapport = v.id_rapport
                 WHERE v.id_rapport IS NULL
+                " . $yearFilter['sql'] . $candidatureWhere . "
             ");
-            $stmt->execute();
+            $stmt->execute($yearFilter['params']);
             $enCours = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['en_cours'] ?? 0);
 
             // Rapports validés par la commission
@@ -193,7 +261,8 @@ class ProcessusValidationService
                 FROM valider v
                 JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
-                WHERE v.decision_validation = 'valider'" . $yearFilter['sql'] . "
+                {$joinCandidature}
+                WHERE v.decision_validation = 'valider'" . $yearFilter['sql'] . $candidatureWhere . "
             ");
             $stmt->execute($yearFilter['params']);
             $valides = $stmt->fetch(PDO::FETCH_ASSOC)['valides'];
@@ -204,7 +273,8 @@ class ProcessusValidationService
                 FROM valider v
                 JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
-                WHERE v.decision_validation = 'rejeter'" . $yearFilter['sql'] . "
+                {$joinCandidature}
+                WHERE v.decision_validation = 'rejeter'" . $yearFilter['sql'] . $candidatureWhere . "
             ");
             $stmt->execute($yearFilter['params']);
             $rejetes = $stmt->fetch(PDO::FETCH_ASSOC)['rejetes'];
@@ -238,7 +308,9 @@ class ProcessusValidationService
             $titleExpr = $this->rapportTitleExpr('r');
             $dateExpr = $this->rapportDateExpr('r');
             $hasEtape = $this->columnExists('rapport_etudiants', 'etape_validation');
-            $yearFilter = $this->yearCondition('e');
+            $yearFilter = $this->yearCondition('r', 'e', 'd');
+            $joinCandidature = $this->latestCandidatureJoin('r', 'e', 'cs');
+            $candidatureWhere = $this->validatedCandidatureWhere('cs');
 
             $sql = "
                 SELECT 
@@ -251,12 +323,15 @@ class ProcessusValidationService
                     e.prenom_etu,
                     e.email_etu,
                     e.promotion_etu,
+                    " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad,
                     v.date_validation AS date_approv,
                     v.commentaire_validation AS commentaire_approv,
                     ens.nom_enseignant AS nom_pers_admin,
                     ens.prenom_enseignant AS prenom_pers_admin
                 FROM rapport_etudiants r
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
+                {$joinCandidature}
                 LEFT JOIN (
                     SELECT vv.id_rapport, MAX(vv.date_validation) AS max_date
                     FROM valider vv
@@ -264,7 +339,7 @@ class ProcessusValidationService
                 ) lv ON lv.id_rapport = r.id_rapport
                 LEFT JOIN valider v ON v.id_rapport = lv.id_rapport AND v.date_validation = lv.max_date
                 LEFT JOIN enseignants ens ON v.id_enseignant = ens.id_enseignant
-                WHERE 1=1" . $yearFilter['sql'] . "
+                WHERE 1=1" . $yearFilter['sql'] . $candidatureWhere . "
                 ORDER BY COALESCE(v.date_validation, $dateExpr) DESC
             ";
             $stmt = $this->pdo->prepare($sql);

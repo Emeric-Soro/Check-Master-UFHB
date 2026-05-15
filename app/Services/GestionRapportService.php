@@ -515,6 +515,23 @@ class GestionRapportService
         return false;
     }
 
+    /**
+     * Récupère le dernier rapport déposé par l'étudiant avec ses données complètes
+     */
+    public function getDernierRapportDepose($num_etu)
+    {
+        $stmt = $this->rapportModel->pdo->prepare("
+            SELECT r.*, d.date_depot
+            FROM deposer d
+            JOIN rapport_etudiants r ON r.id_rapport = d.id_rapport
+            WHERE d.num_etu = ?
+            ORDER BY d.date_depot DESC
+            LIMIT 1
+        ");
+        $stmt->execute([$num_etu]);
+        return $stmt->fetch(\PDO::FETCH_OBJ) ?: null;
+    }
+
     // ========================= SUIVI =========================
 
     // ========================= COMMENTAIRES / COMPTE RENDU =========================

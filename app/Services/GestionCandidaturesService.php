@@ -192,6 +192,16 @@ class GestionCandidaturesService
         // Enregistrer le résumé
         $this->etudiant->saveResumeCandidature($idCandidature, $numEtu, $resume, $decision);
 
+        // Si la candidature est validée, mettre le rapport en attente de la commission
+        if ($decision === 'Validée' && $idCandidature) {
+            try {
+                $stmt = $this->db->prepare("UPDATE rapport_etudiants SET etape_validation = 'en_attente_commission' WHERE id_candidature = ?");
+                $stmt->execute([$idCandidature]);
+            } catch (\PDOException $e) {
+                error_log("Erreur lors de la transition vers commission : " . $e->getMessage());
+            }
+        }
+
         // Envoyer l'email
         $this->envoyerEmailResultat($numEtu, $resume, $decision);
     }

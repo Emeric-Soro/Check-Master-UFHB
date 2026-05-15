@@ -89,6 +89,69 @@ class EvaluationRapport
         );
     }
 
+    private function getFallbackStudentYearExpr(string $etudiantAlias = 'e'): string
+    {
+        return "
+            (SELECT i.id_annee_acad
+             FROM inscriptions i
+             WHERE i.num_carte_etud = " . $this->studentCarteExpr($etudiantAlias) . "
+             ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getAcademicYearFromDateExpr(string $dateExpr): string
+    {
+        return "
+            (SELECT aa.id_annee_acad
+             FROM annee_academique aa
+             WHERE DATE($dateExpr) BETWEEN aa.date_deb AND aa.date_fin
+             ORDER BY aa.date_deb DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getReportAcademicYearExpr(string $rapportAlias = 'r', string $etudiantAlias = 'e', ?string $depotAlias = null): string
+    {
+        $candidates = [];
+
+        if ($depotAlias !== null) {
+            $candidates[] = $this->getAcademicYearFromDateExpr($depotAlias . '.date_depot');
+        }
+
+        $dateExpr = $this->rapportDateExpr($rapportAlias);
+        if ($dateExpr !== 'NULL') {
+            $candidates[] = $this->getAcademicYearFromDateExpr($dateExpr);
+        }
+
+        $candidates[] = $this->getFallbackStudentYearExpr($etudiantAlias);
+
+        return 'COALESCE(' . implode(', ', $candidates) . ')';
+    }
+
+    private function latestCandidatureJoin(string $rapportAlias = 'r', string $etudiantAlias = 'e', string $candidatureAlias = 'cs'): string
+    {
+        if (!$this->tableExists('candidature_soutenance')) {
+            return '';
+        }
+
+        return "
+            LEFT JOIN candidature_soutenance {$candidatureAlias} ON {$candidatureAlias}.id_candidature = (
+                SELECT cs2.id_candidature
+                FROM candidature_soutenance cs2
+                WHERE (
+                    cs2.id_candidature = {$rapportAlias}.id_candidature
+                    OR (
+                        ({$rapportAlias}.id_candidature IS NULL OR {$rapportAlias}.id_candidature = 0)
+                        AND (cs2.num_etu = {$etudiantAlias}.num_carte_etud OR cs2.num_etu = {$etudiantAlias}.num_ident_etud)
+                    )
+                )
+                ORDER BY cs2.date_candidature DESC, cs2.id_candidature DESC
+                LIMIT 1
+            )
+        ";
+    }
+
     /**
      * Ajoute une évaluation pour un rapport
      */
@@ -289,8 +352,12 @@ class EvaluationRapport
             $joinValider = $hasValider
                 ? "LEFT JOIN valider v ON r.id_rapport = v.id_rapport"
                 : "";
+            $joinCandidature = $this->latestCandidatureJoin('r', 'e', 'cs');
 
             $where = [];
+            if ($joinCandidature !== '') {
+                $where[] = "cs.statut_candidature IN ('Validee', 'Validée')";
+            }
             if ($hasEtape) {
                 $where[] = "r.etape_validation IN ('approuve_communication', 'en_attente_commission', 'valide', 'desapprouve_commission')";
             } elseif ($hasValider) {
@@ -312,9 +379,7 @@ class EvaluationRapport
                     e.prenom_etu,
                     e.email_etu,
                     e.promotion_etu,
-                    (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
-                     ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad,
+                    " . $this->getReportAcademicYearExpr('r', 'e', $hasDeposer ? 'd' : null) . " AS id_annee_acad,
                     " . ($hasDeposer ? "d.date_depot" : "$dateExpr") . " AS date_depot,
                     COUNT(ev.id_evaluation) as total_votes,
                     COUNT(CASE WHEN ev.decision_evaluation = 'valider' THEN 1 END) as votes_valider,
@@ -323,11 +388,12 @@ class EvaluationRapport
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 $joinDeposer
                 $joinValider
+                $joinCandidature
                 LEFT JOIN evaluations_rapports ev ON r.id_rapport = ev.id_rapport
                 $whereSql
                 GROUP BY r.id_rapport, nom_rapport, r.theme_rapport, date_rapport, 
                          etape_validation, r.statut_rapport, e.nom_etu, e.prenom_etu, 
-                         e.email_etu, e.promotion_etu, e.num_carte_etud, e.num_ident_etud, date_depot
+                         e.email_etu, e.promotion_etu, e.num_carte_etud, e.num_ident_etud, date_depot, cs.id_candidature, cs.statut_candidature
                 $orderSql
             ";
             $stmt = $this->pdo->prepare($sql);
