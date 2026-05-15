@@ -104,14 +104,52 @@ class RapportEtudiant
         );
     }
 
+    private function getFallbackStudentYearExpr($etudiantAlias = 'e')
+    {
+        return "
+            (SELECT i.id_annee_acad
+             FROM inscriptions i
+             WHERE i.num_carte_etud = " . $this->studentCarteExpr($etudiantAlias) . "
+             ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getAcademicYearFromDateExpr($dateExpr)
+    {
+        return "
+            (SELECT aa.id_annee_acad
+             FROM annee_academique aa
+             WHERE DATE($dateExpr) BETWEEN aa.date_deb AND aa.date_fin
+             ORDER BY aa.date_deb DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getReportAcademicYearExpr($rapportAlias = 'r', $etudiantAlias = 'e', $depotAlias = null)
+    {
+        $candidates = [];
+
+        if ($depotAlias !== null) {
+            $candidates[] = $this->getAcademicYearFromDateExpr($depotAlias . '.date_depot');
+        }
+
+        $dateCol = $this->getReportDateColumn();
+        if ($dateCol !== null) {
+            $candidates[] = $this->getAcademicYearFromDateExpr($rapportAlias . '.' . $dateCol);
+        }
+
+        $candidates[] = $this->getFallbackStudentYearExpr($etudiantAlias);
+
+        return 'COALESCE(' . implode(', ', $candidates) . ')';
+    }
+
     public function getAllRapports()
     {
         try {
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
-                    (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
-                     ORDER BY i.id_annee_acad DESC, i.date_inscription DESC LIMIT 1) AS id_annee_acad
+                    " . $this->getReportAcademicYearExpr('r', 'e') . " AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 " . $this->getReportOrderBy('r') . "
@@ -134,9 +172,7 @@ class RapportEtudiant
                 e.prenom_etu, 
                 e.email_etu,
                 e.promotion_etu,
-                (SELECT i.id_annee_acad FROM inscriptions i 
-                 WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
-                 ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad,
+                " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad,
                 d.date_depot
             FROM rapport_etudiants r
             JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
@@ -151,9 +187,7 @@ class RapportEtudiant
     {
         $stmt = $this->pdo->prepare("
             SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
-                (SELECT i.id_annee_acad FROM inscriptions i 
-                 WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
-                 ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad, d.date_depot
+                " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad, d.date_depot
             FROM rapport_etudiants r
             JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
             LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
@@ -167,9 +201,7 @@ class RapportEtudiant
     {
         $stmt = $this->pdo->prepare("
             SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
-                (SELECT i.id_annee_acad FROM inscriptions i 
-                 WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
-                 ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
+                " . $this->getReportAcademicYearExpr('r', 'e') . " AS id_annee_acad
             FROM rapport_etudiants r
             JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
             WHERE r.id_rapport = ? AND (r.num_etu = ? OR " . $this->studentCarteExpr('e') . " = ?)
@@ -183,9 +215,7 @@ class RapportEtudiant
         try {
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
-                    (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
-                     ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
+                    " . $this->getReportAcademicYearExpr('r', 'e') . " AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 WHERE r.num_etu = ? OR " . $this->studentCarteExpr('e') . " = ?
@@ -396,9 +426,7 @@ class RapportEtudiant
             $hasNomRapport = $this->columnExists('rapport_etudiants', 'nom_rapport');
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
-                    (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
-                     ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
+                    " . $this->getReportAcademicYearExpr('r', 'e') . " AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 WHERE " . ($hasNomRapport ? "(r.nom_rapport LIKE ? OR r.theme_rapport LIKE ?)" : "(r.theme_rapport LIKE ?)") . "
@@ -433,9 +461,7 @@ class RapportEtudiant
 
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
-                    (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
-                     ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
+                    " . $this->getReportAcademicYearExpr('r', 'e') . " AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 " . $this->getReportOrderBy('r') . "
@@ -518,9 +544,7 @@ class RapportEtudiant
         try {
             $sql = "
                 SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
-                    (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
-                     ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
+                    " . $this->getReportAcademicYearExpr('r', 'e') . " AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 WHERE r.statut_rapport = ?
@@ -682,9 +706,7 @@ class RapportEtudiant
                 SELECT r.*, 
                        " . $this->getReportSelectExtras('r') . ", 
                        e.nom_etu, e.prenom_etu, e.email_etu,
-                       (SELECT i.id_annee_acad FROM inscriptions i 
-                        WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
-                        ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad
+                       " . $this->getReportAcademicYearExpr('r', 'e') . " AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 WHERE r.num_etu = ? OR " . $this->studentCarteExpr('e') . " = ?
@@ -704,9 +726,7 @@ class RapportEtudiant
         try {
             $stmt = $this->pdo->query("
                 SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu, e.promotion_etu, 
-                    (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . " 
-                     ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad, d.date_depot
+                    " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad, d.date_depot
                 FROM deposer d
                 JOIN rapport_etudiants r ON d.id_rapport = r.id_rapport
                 JOIN etudiants e ON (d.num_etu = e.num_carte_etud OR d.num_etu = e.num_ident_etud)
@@ -901,28 +921,25 @@ class RapportEtudiant
     {
         try {
             $params = [];
-            $anneeFilter = '';
-
-            if ($id_annee_acad !== null) {
-                $anneeFilter = 'AND i.id_annee_acad = ?';
-                $params[] = $id_annee_acad;
-            }
+            $anneeFilter = $id_annee_acad !== null
+                ? 'AND ' . $this->getReportAcademicYearExpr('r', 'e', 'd') . ' = ?'
+                : '';
 
             $sql = "
                 SELECT DISTINCT e.num_carte_etud, e.num_ident_etud, e.nom_etu, e.prenom_etu, 
                        e.email_etu, e.promotion_etu,
-                       i.id_annee_acad,
+                       " . ($id_annee_acad !== null ? '?' : $this->getFallbackStudentYearExpr('e')) . " AS id_annee_acad,
                        cs.id_candidature, cs.statut_candidature,
                        (SELECT COUNT(*) FROM rapport_etudiants r 
+                        LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
                         WHERE (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)" .
-                        ($id_annee_acad !== null ? " AND r.id_annee_acad = ?" : "") . 
+                        ($id_annee_acad !== null ? " AND " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " = ?" : "") . 
                         ") AS nb_rapports
                 FROM etudiants e
                 INNER JOIN inscriptions i ON (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud)
                 LEFT JOIN candidature_soutenance cs ON (cs.num_etu = e.num_carte_etud OR cs.num_etu = e.num_ident_etud)
-                LEFT JOIN rapport_etudiants r ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)" .
-                ($id_annee_acad !== null ? " AND r.id_annee_acad = ?" : "") . 
-                "
+                LEFT JOIN rapport_etudiants r ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
+                LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
                 WHERE 1=1
                 " . $anneeFilter . "
                 AND (
@@ -937,6 +954,7 @@ class RapportEtudiant
             ";
 
             if ($id_annee_acad !== null) {
+                $params[] = $id_annee_acad;
                 $params[] = $id_annee_acad;
                 $params[] = $id_annee_acad;
             }
@@ -968,7 +986,7 @@ class RapportEtudiant
                        " . $this->getReportSelectExtras('r') . ",
                        $dateOpSelect,
                        e.nom_etu, e.prenom_etu, e.email_etu, e.promotion_etu,
-                       i.id_annee_acad,
+                       " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad,
                        cs.statut_candidature,
                        d.date_depot
                 FROM rapport_etudiants r
@@ -982,7 +1000,7 @@ class RapportEtudiant
             $params = [];
 
             if ($id_annee_acad !== null) {
-                $sql .= " AND i.id_annee_acad = ?";
+                $sql .= " AND " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " = ?";
                 $params[] = $id_annee_acad;
             }
 

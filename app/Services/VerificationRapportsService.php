@@ -220,20 +220,6 @@ class VerificationRapportsService
                 return ['success' => false, 'message' => $writeGuard['message']];
             }
 
-            // Vérifier que l'étudiant a validé le premier semestre du Master 2
-            $rapport = $this->rapportModel->getRapportDetail((int) $id_rapport);
-            $numEtu = '';
-            if (is_object($rapport) && isset($rapport->num_etu)) {
-                $numEtu = $rapport->num_etu;
-            } elseif (is_array($rapport) && isset($rapport['num_etu'])) {
-                $numEtu = $rapport['num_etu'];
-            }
-            if ($numEtu !== '') {
-                $semestreValide = $this->notesModel->estSemestreValide($numEtu, 'S1', 'Master 2');
-                if (!$semestreValide) {
-                    return ['success' => false, 'message' => "L'étudiant n'a pas validé le premier semestre du Master 2. La validation du rapport est refusée."];
-                }
-            }
 
             $this->updateRapportEtape($id_rapport, 'approuve_communication', 'valider');
             return ['success' => true, 'message' => 'Rapport approuvé avec succès'];

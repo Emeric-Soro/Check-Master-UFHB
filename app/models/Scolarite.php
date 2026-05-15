@@ -55,6 +55,51 @@ class Scolarite
         }
     }
 
+    private function studentJoinCondition(string $inscriptionAlias = 'i', string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            '(%1$s.num_carte_etud = %2$s.num_carte_etud OR %1$s.num_carte_etud = %2$s.num_ident_etud)',
+            $inscriptionAlias,
+            $etudiantAlias
+        );
+    }
+
+    private function getStudentIdentifiers($studentId): array
+    {
+        $studentId = trim((string) $studentId);
+        if ($studentId === '') {
+            return [];
+        }
+
+        $identifiers = [$studentId];
+
+        try {
+            $stmt = $this->db->prepare("
+                SELECT num_carte_etud, num_ident_etud
+                FROM etudiants
+                WHERE num_carte_etud = ? OR num_ident_etud = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$studentId, $studentId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+            foreach (['num_carte_etud', 'num_ident_etud'] as $field) {
+                $value = trim((string) ($row[$field] ?? ''));
+                if ($value !== '') {
+                    $identifiers[] = $value;
+                }
+            }
+        } catch (Throwable $e) {
+            error_log("Erreur getStudentIdentifiers: " . $e->getMessage());
+        }
+
+        return array_values(array_unique($identifiers));
+    }
+
+    private function buildPlaceholders(array $values): string
+    {
+        return implode(', ', array_fill(0, count($values), '?'));
+    }
+
     private function getAcademicYearLabelById($id_annee_acad)
     {
         if ($id_annee_acad === null || (int) $id_annee_acad <= 0) {
@@ -104,7 +149,7 @@ class Scolarite
         $sql = "
             UPDATE etudiants
             SET " . implode(', ', $setParts) . "
-            WHERE num_carte_etud = :id_etudiant
+            WHERE num_carte_etud = :id_etudiant OR num_ident_etud = :id_etudiant
         ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -189,9 +234,11 @@ class Scolarite
      */
     public function getInfoEtudiant($numEtu)
     {
-        $query = "SELECT num_carte_etud as num_etu, nom_etu, prenom_etu FROM etudiants WHERE num_carte_etud = ?";
+        $query = "SELECT num_carte_etud as num_etu, num_ident_etud, nom_etu, prenom_etu
+                  FROM etudiants
+                  WHERE num_carte_etud = ? OR num_ident_etud = ?";
         $stmt = $this->db->prepare($query);
-        $stmt->execute([$numEtu]);
+        $stmt->execute([$numEtu, $numEtu]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -228,7 +275,7 @@ class Scolarite
             COALESCE(MAX(i.solde), 0) as solde,
             MAX(i.date_versement) as derniere_date_versement
         FROM inscriptions i
-        LEFT JOIN etudiants e ON i.num_carte_etud = e.num_ident_etud
+        LEFT JOIN etudiants e ON " . $this->studentJoinCondition('i', 'e') . "
         LEFT JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
         LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
                                       AND f.id_niv_etude = i.id_niv_etude";
@@ -272,7 +319,7 @@ class Scolarite
             a.date_deb,
             a.date_fin
         FROM inscriptions i
-        LEFT JOIN etudiants e ON i.num_carte_etud = e.num_ident_etud
+        LEFT JOIN etudiants e ON " . $this->studentJoinCondition('i', 'e') . "
         LEFT JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
         LEFT JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
         LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
@@ -294,7 +341,7 @@ class Scolarite
                   WHERE NOT EXISTS (
                       SELECT 1
                       FROM inscriptions i
-                      WHERE i.num_carte_etud = e.num_carte_etud";
+                      WHERE i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud";
         $params = [];
         if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
             $query .= " AND i.id_annee_acad = ?";
@@ -469,10 +516,14 @@ class Scolarite
      */
     public function estEtudiantInscritPourAnnee($id_etudiant, $id_annee_acad)
     {
+        $identifiers = $this->getStudentIdentifiers($id_etudiant);
+        if ($identifiers === []) {
+            return false;
+        }
         $query = "SELECT COUNT(*) as total FROM inscriptions 
-                 WHERE id_etudiant = ? AND id_annee_acad = ?";
+                 WHERE num_carte_etud IN (" . $this->buildPlaceholders($identifiers) . ") AND id_annee_acad = ?";
         $stmt = $this->db->prepare($query);
-        $stmt->execute([$id_etudiant, $id_annee_acad]);
+        $stmt->execute(array_merge($identifiers, [$id_annee_acad]));
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result['total'] > 0;
     }
@@ -493,13 +544,14 @@ class Scolarite
             COALESCE(MAX(i.solde), 0) as solde
         FROM inscriptions i
         INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
+        INNER JOIN etudiants e ON (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud)
         LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
                                       AND f.id_niv_etude = i.id_niv_etude
-        WHERE i.num_carte_etud = ? AND i.id_annee_acad = ?
+        WHERE (e.num_carte_etud = ? OR e.num_ident_etud = ?) AND i.id_annee_acad = ?
         GROUP BY i.num_carte_etud, i.id_niv_etude, i.id_annee_acad, f.montant";
 
         $stmt = $this->db->prepare($query);
-        $stmt->execute([$id_etudiant, $id_annee_acad]);
+        $stmt->execute([$id_etudiant, $id_etudiant, $id_annee_acad]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -525,7 +577,7 @@ class Scolarite
                          COALESCE(f.montant, 0) AS montant_total,
                          CONCAT(i.num_carte_etud, '-', i.id_annee_acad, '-', i.num_versement) as id_inscription
                  FROM inscriptions i
-                 INNER JOIN etudiants e ON i.num_carte_etud = e.num_carte_etud
+                 INNER JOIN etudiants e ON " . $this->studentJoinCondition('i', 'e') . "
                  INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                  LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
                                               AND f.id_niv_etude = i.id_niv_etude
@@ -623,11 +675,15 @@ class Scolarite
      */
     public function getVersementsEtudiant($id_etudiant, $id_annee_acad)
     {
+        $identifiers = $this->getStudentIdentifiers($id_etudiant);
+        if ($identifiers === []) {
+            return [];
+        }
         $query = "SELECT * FROM inscriptions 
-                 WHERE num_carte_etud = ? AND id_annee_acad = ?
+                 WHERE num_carte_etud IN (" . $this->buildPlaceholders($identifiers) . ") AND id_annee_acad = ?
                  ORDER BY num_versement ASC";
         $stmt = $this->db->prepare($query);
-        $stmt->execute([$id_etudiant, $id_annee_acad]);
+        $stmt->execute(array_merge($identifiers, [$id_annee_acad]));
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -636,18 +692,26 @@ class Scolarite
      */
     public function getDerniereInscription($num_carte_etud)
     {
+        $identifiers = $this->getStudentIdentifiers($num_carte_etud);
+        if ($identifiers === []) {
+            return false;
+        }
         $query = "SELECT id_niv_etude, id_annee_acad 
                  FROM inscriptions 
-                 WHERE num_carte_etud = ? 
+                 WHERE num_carte_etud IN (" . $this->buildPlaceholders($identifiers) . ")
                  ORDER BY id_annee_acad DESC, date_inscription DESC 
                  LIMIT 1";
         $stmt = $this->db->prepare($query);
-        $stmt->execute([$num_carte_etud]);
+        $stmt->execute($identifiers);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function getInscriptionByEtudiantId($num_carte_etud)
     {
+        $identifiers = $this->getStudentIdentifiers($num_carte_etud);
+        if ($identifiers === []) {
+            return false;
+        }
         $derniereInscription = $this->getDerniereInscription($num_carte_etud);
         if (!is_array($derniereInscription) || empty($derniereInscription['id_annee_acad'])) {
             return false;
@@ -665,15 +729,15 @@ class Scolarite
             INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
             LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
                                           AND f.id_niv_etude = i.id_niv_etude
-            WHERE i.num_carte_etud = ? AND i.id_annee_acad = ?
+            WHERE i.num_carte_etud IN (" . $this->buildPlaceholders($identifiers) . ") AND i.id_annee_acad = ?
             GROUP BY i.num_carte_etud, i.id_niv_etude, i.id_annee_acad, f.montant
             LIMIT 1
         ";
         $stmt = $this->db->prepare($query);
-        $stmt->execute([
-            (string) $num_carte_etud,
-            (int) $derniereInscription['id_annee_acad'],
-        ]);
+        $stmt->execute(array_merge(
+            $identifiers,
+            [(int) $derniereInscription['id_annee_acad']]
+        ));
 
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -738,7 +802,7 @@ class Scolarite
                 FROM inscriptions i
                 LEFT JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                 LEFT JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
-                LEFT JOIN etudiants e ON i.num_carte_etud = e.num_ident_etud
+                LEFT JOIN etudiants e ON " . $this->studentJoinCondition('i', 'e') . "
                 LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
                                               AND f.id_niv_etude = i.id_niv_etude
                 WHERE i.num_carte_etud = ?
@@ -779,7 +843,7 @@ class Scolarite
                     e.prenom_etu AS prenom_etudiant,
                     CONCAT(i.num_carte_etud, '-', i.id_annee_acad, '-', i.num_versement) as id_versement
                 FROM inscriptions i
-                JOIN etudiants e ON i.num_carte_etud = e.num_carte_etud
+                JOIN etudiants e ON " . $this->studentJoinCondition('i', 'e') . "
                 WHERE i.num_carte_etud = ?
                   AND i.id_annee_acad = ?
                 ORDER BY i.num_versement DESC, i.date_versement DESC
@@ -923,11 +987,15 @@ class Scolarite
     private function getLastPaymentDate($numEtu, $id_annee_acad)
     {
         try {
+            $identifiers = $this->getStudentIdentifiers($numEtu);
+            if ($identifiers === []) {
+                return null;
+            }
             $query = "SELECT MAX(i.date_versement) as derniere_date_versement
                      FROM inscriptions i
-                     WHERE i.num_carte_etud = ? AND i.id_annee_acad = ?";
+                     WHERE i.num_carte_etud IN (" . $this->buildPlaceholders($identifiers) . ") AND i.id_annee_acad = ?";
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$numEtu, $id_annee_acad]);
+            $stmt->execute(array_merge($identifiers, [$id_annee_acad]));
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             return $result['derniere_date_versement'] ?? null;
         } catch (Exception $e) {

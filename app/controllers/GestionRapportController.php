@@ -90,8 +90,6 @@ class GestionRapportController
             }
 
             $stage_info = $this->service->getStageInfo($_SESSION['num_etu']);
-
-            include $this->baseViewPath . 'creer_rapport.php';
         }
     }
 
