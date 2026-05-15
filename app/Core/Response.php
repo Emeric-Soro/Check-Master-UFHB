@@ -25,6 +25,9 @@ final class Response
     {
         http_response_code($this->status);
         foreach ($this->headers as $k => $v) {
+            // Nettoyer les en-têtes pour prévenir l'injection d'en-têtes HTTP
+            $k = str_replace(["\r", "\n"], '', $k);
+            $v = str_replace(["\r", "\n"], '', $v);
             header($k . ': ' . $v);
         }
         echo $this->body;

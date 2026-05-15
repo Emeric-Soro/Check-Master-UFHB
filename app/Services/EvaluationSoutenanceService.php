@@ -592,7 +592,11 @@ class EvaluationSoutenanceService
                     {$examinateurNom} AS examinateur_nom,
                     {$directeurNom} AS directeur_nom,
                     {$encadreurNom} AS encadreur_nom,
-                    CONCAT(ms.prenom, ' ', ms.Nom) AS maitre_stage_nom,
+                    (SELECT CONCAT(ms2.prenom, ' ', ms2.Nom)
+                     FROM informations_stage ist2
+                     JOIN maitre_de_stage ms2 ON ms2.id_maitre_stage = ist2.id_maitre_stage
+                     WHERE ist2.num_etu = p.num_etud
+                     LIMIT 1) AS maitre_stage_nom,
                     (
                         SELECT COUNT(*)
                         FROM evaluer ev
@@ -618,8 +622,6 @@ class EvaluationSoutenanceService
                 FROM {$progTable} p
                 LEFT JOIN etudiants e ON {$studentJoin}
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
-                LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(e.num_carte_etud, p.num_etud)
-                LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 WHERE p.id_salle IS NOT NULL
                   AND p.date_soutenance IS NOT NULL
                   AND p.heure_soutenance IS NOT NULL
@@ -761,22 +763,22 @@ class EvaluationSoutenanceService
     {
         try {
             if ($numEtu === '') {
-                throw new Exception('Numero etudiant requis');
+                throw new Exception('Numéro étudiant requis');
             }
 
             $juryRef = $this->resolveJuryRefForEtudiant($numEtu);
             if ($juryRef === null || $juryRef === '') {
-                throw new Exception('Aucune soutenance programmee pour cet etudiant');
+                throw new Exception('Aucune soutenance programmée pour cet étudiant');
             }
 
             $studentYearId = $this->getStudentAcademicYearId($numEtu);
             if ($studentYearId === null || $studentYearId <= 0) {
-                throw new Exception("Impossible de determiner l'annee academique de l'etudiant");
+                throw new Exception("Impossible de déterminer l'année académique de l'étudiant");
             }
 
             $selectedYearId = \AcademicYear::getSelectedIdFromSession();
             if ($selectedYearId !== null && $selectedYearId > 0 && $selectedYearId !== $studentYearId) {
-                throw new Exception("L'etudiant ne correspond pas a l'annee academique actuellement selectionnee.");
+                throw new Exception("L'étudiant ne correspond pas à l'année académique actuellement sélectionnée.");
             }
 
             $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $studentYearId, 'une evaluation de soutenance');
@@ -799,7 +801,7 @@ class EvaluationSoutenanceService
             }
 
             if (empty($notesValides)) {
-                throw new Exception('Au moins un critere doit etre renseigne');
+                throw new Exception('Au moins un critère doit être renseigné');
             }
 
             $noteFinale = $this->calculerSommeNotes($notesValides, (string) $idAnneeAcad);
@@ -823,7 +825,7 @@ class EvaluationSoutenanceService
 
             return [
                 'success' => true,
-                'message' => 'Evaluation enregistree avec succes',
+                'message' => 'Évaluation enregistrée avec succès',
                 'note_finale' => $noteFinale,
             ];
         } catch (Throwable $e) {
@@ -847,12 +849,12 @@ class EvaluationSoutenanceService
 
             $note = (float) $note;
             if ($note < 0) {
-                throw new Exception('Une note ne peut pas etre negative');
+                throw new Exception('Une note ne peut pas être négative');
             }
 
             $bareme = $this->getBaremeForCritere((string) $idCritere, $idAnneeAcad);
             if ($note > $bareme) {
-                throw new Exception('La note du critere ' . $idCritere . ' depasse le bareme (' . $bareme . ')');
+                throw new Exception('La note du critère ' . $idCritere . ' dépasse le barème (' . $bareme . ')');
             }
 
             $somme += $note;
@@ -865,23 +867,23 @@ class EvaluationSoutenanceService
     {
         try {
             if ($numEtu === '') {
-                throw new Exception('Numero etudiant requis');
+                throw new Exception('Numéro étudiant requis');
             }
 
             $studentYearId = $this->getStudentAcademicYearId($numEtu);
             $selectedYearId = \AcademicYear::getSelectedIdFromSession();
             if ($selectedYearId !== null && $studentYearId !== null && $selectedYearId !== $studentYearId) {
-                throw new Exception("L'etudiant ne correspond pas a l'annee academique actuellement selectionnee.");
+                throw new Exception("L'étudiant ne correspond pas à l'année académique actuellement sélectionnée.");
             }
 
-            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $studentYearId, 'une suppression d evaluation de soutenance');
+            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $studentYearId, "une suppression d'évaluation de soutenance");
             if (!$writeGuard['success']) {
                 throw new Exception((string) $writeGuard['message']);
             }
 
             $juryRef = $this->resolveEvaluationJuryRefForEtudiant($numEtu);
             if ($juryRef === null || $juryRef === '') {
-                throw new Exception('Aucune evaluation cible n a ete trouvee pour cet etudiant.');
+                throw new Exception("Aucune évaluation cible n'a été trouvée pour cet étudiant.");
             }
 
             $stmt = $this->pdo->prepare("DELETE FROM evaluer WHERE num_etudiant = ? AND num_jury = ?");
@@ -889,7 +891,7 @@ class EvaluationSoutenanceService
 
             return [
                 'success' => true,
-                'message' => 'Evaluation supprimee avec succes',
+                'message' => 'Évaluation supprimée avec succès',
             ];
         } catch (Throwable $e) {
             return [
@@ -903,7 +905,7 @@ class EvaluationSoutenanceService
     {
         try {
             if ($idAnneeAcad === '') {
-                throw new Exception('ID annee academique requis');
+                throw new Exception('ID année académique requis');
             }
 
             return [
@@ -921,7 +923,7 @@ class EvaluationSoutenanceService
     public function getDonneesPV(string $numEtu, ?float $moyenneMaster1Input = null): array
     {
         if ($numEtu === '') {
-            throw new Exception('Numero etudiant requis');
+            throw new Exception('Numéro étudiant requis');
         }
 
         $progTable = $this->getProgrammationTable();
@@ -951,11 +953,13 @@ class EvaluationSoutenanceService
                 {$examinateurNom} AS examinateur,
                 {$directeurNom} AS directeur,
                 {$encadreurNom} AS encadreur,
-                CONCAT(ms.prenom, ' ', ms.Nom) AS maitre_stage
+                (SELECT CONCAT(ms2.prenom, ' ', ms2.Nom)
+                 FROM informations_stage ist2
+                 JOIN maitre_de_stage ms2 ON ms2.id_maitre_stage = ist2.id_maitre_stage
+                 WHERE ist2.num_etu = p.num_etud
+                 LIMIT 1) AS maitre_stage
             FROM {$progTable} p
             LEFT JOIN etudiants e ON " . $this->studentJoinCondition('e', 'p') . "
-            LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(e.num_carte_etud, p.num_etud)
-            LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
             WHERE p.num_etud = ?
             ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
             LIMIT 1
@@ -979,11 +983,13 @@ class EvaluationSoutenanceService
                     {$examinateurNom} AS examinateur,
                     {$directeurNom} AS directeur,
                     {$encadreurNom} AS encadreur,
-                    CONCAT(ms.prenom, ' ', ms.Nom) AS maitre_stage
+                    (SELECT CONCAT(ms2.prenom, ' ', ms2.Nom)
+                     FROM informations_stage ist2
+                     JOIN maitre_de_stage ms2 ON ms2.id_maitre_stage = ist2.id_maitre_stage
+                     WHERE ist2.num_etu = p.num_etud
+                     LIMIT 1) AS maitre_stage
                 FROM {$progTable} p
                 JOIN etudiants e ON " . $this->studentJoinCondition('e', 'p') . "
-                LEFT JOIN informations_stage ist ON ist.num_etu = e.num_carte_etud
-                LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 WHERE e.num_ident_etud = ?
                 ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
                 LIMIT 1
@@ -994,12 +1000,12 @@ class EvaluationSoutenanceService
         }
 
         if (!$soutenance) {
-            throw new Exception('Soutenance non trouvee');
+            throw new Exception('Soutenance non trouvée');
         }
 
         $juryRef = (string) ($soutenance['jury_ref'] ?? '');
         if ($juryRef === '') {
-            throw new Exception('Jury non trouve pour cette soutenance');
+            throw new Exception('Jury non trouvé pour cette soutenance');
         }
 
         $annee = $this->resolveAcademicYear();

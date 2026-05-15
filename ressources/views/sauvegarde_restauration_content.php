@@ -15,16 +15,16 @@ foreach ($backups as $backup) {
 ?>
 <section class="cm-prd3-crud-screen cm-prd6-admin-screen">
     <?php if (isset($_GET['success'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => 'Sauvegarde creee avec succes.']); ?>
+        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => 'Sauvegarde créée avec succès.']); ?>
     <?php endif; ?>
     <?php if (isset($_GET['restored'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => 'Restauration effectuee avec succes.']); ?>
+        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => 'Restauration effectuée avec succès.']); ?>
     <?php endif; ?>
     <?php if (isset($_GET['deleted'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => 'Sauvegarde supprimee avec succes.']); ?>
+        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => 'Sauvegarde supprimée avec succès.']); ?>
     <?php endif; ?>
     <?php if (isset($_GET['error'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => 'Erreur operation sauvegarde/restauration: ' . (string) $_GET['error']]); ?>
+        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => 'Erreur opération sauvegarde/restauration: ' . (string) $_GET['error']]); ?>
     <?php endif; ?>
 
     <div class="cm-crud-wrapper">
@@ -59,14 +59,14 @@ foreach ($backups as $backup) {
                 'actions' => [[
                     'tag' => 'button',
                     'type' => 'submit',
-                    'label' => 'Creer une sauvegarde',
+                    'label' => 'Créer une sauvegarde',
                     'icon' => 'fa-database',
                     'class' => 'cm-btn is-primary',
                 ]],
             ]); ?>
         </form>
         <?php else: ?>
-            <?php cm_component('ui/alert-box', ['type' => 'info', 'message' => 'Mode lecture: seules les actions de telechargement sont autorisees.']); ?>
+            <?php cm_component('ui/alert-box', ['type' => 'info', 'message' => 'Mode lecture: seules les actions de téléchargement sont autorisées.']); ?>
         <?php endif; ?>
         <?php
         cm_component('crud/form-pole', [

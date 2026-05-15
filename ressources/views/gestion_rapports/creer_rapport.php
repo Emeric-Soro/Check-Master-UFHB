@@ -123,10 +123,22 @@ $editorMeta = [
     'cmLogo' => $logoCmData,
 ];
 $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
-?>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.js"></script>
 
+// Garantir un encodage JSON valide même en présence de données corrompues
+$editorMetaJson = json_encode($editorMeta, $jsFlags);
+if ($editorMetaJson === false) {
+    $editorMetaJson = json_encode(array_map(function ($v) {
+        return is_string($v) ? @iconv('UTF-8', 'UTF-8//IGNORE', $v) : $v;
+    }, $editorMeta), $jsFlags);
+    if ($editorMetaJson === false) {
+        $editorMetaJson = '{}';
+    }
+}
+$contenuRapportJson = json_encode($contenuRapport, $jsFlags);
+if ($contenuRapportJson === false) {
+    $contenuRapportJson = '""';
+}
+?>
 <style>
 /* ── Focus Mode: 3-zone layout ── */
 .fm-wrapper {
@@ -662,8 +674,10 @@ $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON
 (function () {
 function initRapportEditorPage() {
     var isReadOnly = <?= $isReadOnly ? 'true' : 'false' ?>;
-    var editorMeta = <?= json_encode($editorMeta, $jsFlags) ?>;
-    var rawContent = <?= json_encode($contenuRapport, $jsFlags) ?>;
+    var editorMeta = <?= $editorMetaJson ?>;
+    var rawContent = <?= $contenuRapportJson ?>;
+    if (typeof editorMeta !== 'object' || editorMeta === null) editorMeta = {};
+    if (typeof rawContent !== 'string') rawContent = '';
 
     var rapportForm = document.getElementById('rapportForm');
     var saveBtn = document.getElementById('saveBtn');
@@ -679,11 +693,8 @@ function initRapportEditorPage() {
     var joditEditor = null;
     var fallbackEditorMode = false;
 
-    if (!rapportForm || rapportForm.getAttribute('data-cm-rapport-editor-init') === '1') {
-        return;
-    }
-
-    rapportForm.setAttribute('data-cm-rapport-editor-init', '1');
+    if (window.__cmRapportEditorReady) return;
+    window.__cmRapportEditorReady = true;
 
     if (rapportForm) {
         rapportForm.setAttribute('action', reportEndpoint);
@@ -766,19 +777,20 @@ function initRapportEditorPage() {
     /* ── Cover page HTML builder ── */
 
     function buildCoverSectionHTML() {
-        var theme = String(titleInput.value || editorMeta.theme || 'Thème du rapport');
-        var studentName = String(editorMeta.studentName || 'Etudiant');
-        var mentor = String(editorMeta.mentor || 'Maître de stage');
-        var company = String(editorMeta.company || '');
-        var academicYear = String(editorMeta.academicYear || '');
-        var studentNumber = String(editorMeta.studentNumber || '');
+        var meta = editorMeta || {};
+        var theme = String(titleInput.value || meta.theme || 'Thème du rapport');
+        var studentName = String(meta.studentName || 'Étudiant');
+        var mentor = String(meta.mentor || 'Maître de stage');
+        var company = String(meta.company || '');
+        var academicYear = String(meta.academicYear || '');
+        var studentNumber = String(meta.studentNumber || '');
         var companyLogos = '';
 
-        if (editorMeta.civLogo) {
-            companyLogos += '<img src="' + editorMeta.civLogo + '" alt="Armoiries" style="max-width:68px; width:68px; height:auto; display:inline-block; vertical-align:middle;">';
+        if (meta.civLogo) {
+            companyLogos += '<img src="' + meta.civLogo + '" alt="Armoiries" style="max-width:68px; width:68px; height:auto; display:inline-block; vertical-align:middle;">';
         }
-        if (editorMeta.cmLogo) {
-            companyLogos += '<img src="' + editorMeta.cmLogo + '" alt="Logo CM" style="max-width:64px; width:64px; height:auto; display:inline-block; vertical-align:middle; margin-left:12px;">';
+        if (meta.cmLogo) {
+            companyLogos += '<img src="' + meta.cmLogo + '" alt="Logo CM" style="max-width:64px; width:64px; height:auto; display:inline-block; vertical-align:middle; margin-left:12px;">';
         }
 
         return '' +
@@ -792,7 +804,7 @@ function initRapportEditorPage() {
                 '<table style="width:100%; border:none; margin:0 0 12mm; border-collapse:collapse;">' +
                     '<tr>' +
                         '<td style="width:50%; vertical-align:top; border:none; padding:0 10mm 0 0; text-align:center;">' +
-                            (editorMeta.ufhbLogo ? '<img src="' + editorMeta.ufhbLogo + '" alt="Logo UFHB" style="max-width:72px; width:72px; height:auto; display:block; margin:0 auto 10px;">' : '') +
+                            (meta.ufhbLogo ? '<img src="' + meta.ufhbLogo + '" alt="Logo UFHB" style="max-width:72px; width:72px; height:auto; display:block; margin:0 auto 10px;">' : '') +
                             '<div style="font-size:11pt; font-weight:bold; color:#0f4666; line-height:1.5;">UNIVERSITE FELIX HOUPHOUET BOIGNY</div>' +
                             '<div style="font-size:10pt; line-height:1.55; margin-top:6px;">UFR MATHEMATIQUES ET INFORMATIQUE<br>FILIERES PROFESSIONNALISEES MIAGE-GI</div>' +
                         '</td>' +
@@ -1025,8 +1037,9 @@ function initRapportEditorPage() {
         .catch(function (error) {
             console.error('[persistDraft] Error:', error);
             saveStatusEl.textContent = options.failureMessage || ('Échec à ' + nowLabel());
-            if (!options.silentError) showNotification('error', error.message || 'Erreur lors de la sauvegarde.');
-            throw error;
+            var errMsg = (error && typeof error.message === 'string') ? error.message : String(error || 'Erreur inconnue');
+            if (!options.silentError) showNotification('error', errMsg);
+            // Ne pas re-throw pour éviter les popups [object Object] du handler unhandledrejection global
         })
         .finally(function () {
             saveInFlight = null;
@@ -1154,8 +1167,15 @@ function initRapportEditorPage() {
     /* ── Notifications ── */
 
     function showNotification(type, message) {
+        var msgText = message;
+        if (typeof message === 'object' && message !== null) {
+            msgText = message.message || JSON.stringify(message);
+        } else {
+            msgText = String(message || '');
+        }
+
         if (typeof window.cmToast === 'function') {
-            window.cmToast({ type: type, title: type === 'success' ? 'Succès' : 'Erreur', message: message });
+            window.cmToast(msgText, type);
             return;
         }
         var container = document.getElementById('fmNotifications');

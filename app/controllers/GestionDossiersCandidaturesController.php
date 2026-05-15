@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/GestionDossiersCandidaturesService.php';
 require_once __DIR__ . '/../Services/VerificationRapportsService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\GestionDossiersCandidaturesService;
 
@@ -19,6 +20,11 @@ class GestionDossiersCandidaturesController
 
     public function index()
     {
+        if (!canView('gestion_dossiers_candidatures')) {
+            $_SESSION['error'] = "Accès non autorisé.";
+            header('Location: layout.php?page=dashboard');
+            exit;
+        }
         $data = $this->verificationService->getIndexData();
         $GLOBALS['rapports'] = $data['rapports'] ?? [];
         $GLOBALS['nbRapports'] = $data['nbRapports'] ?? 0;
@@ -27,11 +33,17 @@ class GestionDossiersCandidaturesController
 
     public function validerRapport()
     {
+        if (!canEdit('gestion_dossiers_candidatures')) {
+            return ['success' => false, 'message' => 'Accès non autorisé pour valider un rapport.'];
+        }
         return $this->verificationService->validerRapport($_POST['id_rapport'] ?? 0, $_POST['commentaire'] ?? '');
     }
 
     public function rejeterRapport()
     {
+        if (!canEdit('gestion_dossiers_candidatures')) {
+            return ['success' => false, 'message' => 'Accès non autorisé pour rejeter un rapport.'];
+        }
         return $this->verificationService->rejeterRapport($_POST['id_rapport'] ?? 0, $_POST['commentaire'] ?? '');
     }
 

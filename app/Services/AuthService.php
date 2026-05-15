@@ -88,6 +88,9 @@ class AuthService
                 }
             } else {
                 $etudiant = $this->etudiantModel->getEtudiantByLogin($infoUtilisateur['nom_utilisateur']);
+                if (!$etudiant && !empty($infoUtilisateur['login_utilisateur'])) {
+                    $etudiant = $this->etudiantModel->getEtudiantByEmail($infoUtilisateur['login_utilisateur']);
+                }
                 if ($etudiant) {
                     $_SESSION['num_etu'] = $etudiant->num_carte_etud;
                     $_SESSION['nom_etu'] = $etudiant->nom_etu;

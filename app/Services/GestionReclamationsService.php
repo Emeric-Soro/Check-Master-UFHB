@@ -332,6 +332,35 @@ class GestionReclamationsService
         return $stats;
     }
 
+    // ===================== HISTORIQUE =====================
+
+    /**
+     * Récupère l'historique des actions pour une réclamation.
+     *
+     * @param int $reclamationId
+     * @return array
+     */
+    public function getHistoriqueReclamation(int $reclamationId): array
+    {
+        try {
+            $db = \Database::getConnection();
+            $query = "SELECT al.action, al.date_action, al.commentaire,
+                             e.nom_etu, e.prenom_etu
+                      FROM audit_log al
+                      LEFT JOIN etudiants e ON al.id_utilisateur = e.id_utilisateur
+                      WHERE al.id_reference = :id
+                        AND al.type_action = 'reclamation'
+                      ORDER BY al.date_action DESC";
+            $stmt = $db->prepare($query);
+            $stmt->bindParam(':id', $reclamationId, \PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log('Erreur getHistoriqueReclamation: ' . $e->getMessage());
+            return [];
+        }
+    }
+
     // ===================== EXPORT =====================
 
     /**

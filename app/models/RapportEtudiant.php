@@ -587,9 +587,9 @@ class RapportEtudiant
             $stmt = $this->pdo->prepare("
                 SELECT COUNT(*) as count
                 FROM rapport_etudiants r
-                JOIN approuver a ON r.id_rapport = a.id_rapport
-                WHERE r.num_etu = ? AND a.decision = 'approuve'
-                ORDER BY a.date_approv DESC
+                JOIN valider v ON r.id_rapport = v.id_rapport
+                WHERE r.num_etu = ? AND v.decision_validation = 'valider'
+                ORDER BY v.date_validation DESC
                 LIMIT 1
             ");
             $stmt->execute([$numEtu]);
@@ -748,6 +748,337 @@ class RapportEtudiant
         } catch (PDOException $e) {
             error_log("Erreur récupération décisions évaluation: " . $e->getMessage());
             return [];
+        }
+    }
+
+    // ======================== PRD 1 & 2 & 3 : Upload / Date opération / Étudiants sans rapport ========================
+
+    /**
+     * Détecte la colonne date_operation si elle existe
+     */
+    private function getDateOperationColumn()
+    {
+        if ($this->columnExists('rapport_etudiants', 'date_operation')) {
+            return 'date_operation';
+        }
+        return null;
+    }
+
+    /**
+     * Crée une nouvelle entrée rapport_etudiants avec un fichier uploadé
+     * Utilisé par PRD 1 (étudiant) et PRD 2 (admin)
+     *
+     * @param string $num_etu
+     * @param string $nom_rapport Nom du fichier
+     * @param string $theme_rapport Thème ou laissé vide
+     * @param string $chemin_fichier Chemin physique du fichier
+     * @param int $taille_fichier Taille en bytes
+     * @param int|null $id_annee_acad Année académique
+     * @param string|null $date_operation Date métier (optionnelle)
+     * @return int|false ID du rapport ou false
+     */
+    public function creerRapportAvecFichier($num_etu, $nom_rapport, $theme_rapport, $chemin_fichier, $taille_fichier, $id_annee_acad = null, $date_operation = null)
+    {
+        try {
+            if (!$this->isEtudiantExist($num_etu)) {
+                error_log("Tentative d'ajout de rapport pour étudiant inexistant: " . $num_etu);
+                return false;
+            }
+
+            $dateCol = $this->getReportDateColumn();
+            $dateOpCol = $this->getDateOperationColumn();
+            $hasNomRapport = $this->columnExists('rapport_etudiants', 'nom_rapport');
+
+            $fields = ['num_etu'];
+            $values = [$num_etu];
+            $placeholders = ['?'];
+
+            if ($hasNomRapport) {
+                $fields[] = 'nom_rapport';
+                $values[] = $nom_rapport;
+                $placeholders[] = '?';
+            }
+
+            $fields[] = 'theme_rapport';
+            $values[] = !empty($theme_rapport) ? $theme_rapport : $nom_rapport;
+            $placeholders[] = '?';
+
+            if ($dateCol !== null) {
+                $fields[] = $dateCol;
+                $placeholders[] = 'NOW()';
+            }
+
+            if ($dateOpCol !== null) {
+                $fields[] = $dateOpCol;
+                $values[] = $date_operation ?? date('Y-m-d H:i:s');
+                $placeholders[] = '?';
+            }
+
+            if ($this->columnExists('rapport_etudiants', 'statut_rapport')) {
+                $fields[] = 'statut_rapport';
+                $values[] = 'en_attente';
+                $placeholders[] = '?';
+            }
+
+            if ($this->columnExists('rapport_etudiants', 'version')) {
+                $fields[] = 'version';
+                $values[] = 1;
+                $placeholders[] = '?';
+            }
+
+            // chemin_fichier et taille_fichier
+            $fields[] = 'chemin_fichier';
+            $values[] = $chemin_fichier;
+            $placeholders[] = '?';
+
+            $fields[] = 'taille_fichier';
+            $values[] = $taille_fichier;
+            $placeholders[] = '?';
+
+            $sql = 'INSERT INTO rapport_etudiants (' . implode(', ', $fields) . ') VALUES (' . implode(', ', $placeholders) . ')';
+            $stmt = $this->pdo->prepare($sql);
+
+            if ($stmt->execute($values)) {
+                return $this->pdo->lastInsertId();
+            }
+            return false;
+        } catch (PDOException $e) {
+            error_log("Erreur creerRapportAvecFichier: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Met à jour un rapport existant avec un nouveau fichier (version incrémentée)
+     *
+     * @param int $id_rapport
+     * @param string $chemin_fichier
+     * @param int $taille_fichier
+     * @param string|null $date_operation
+     * @return bool
+     */
+    public function mettreAJourRapportAvecFichier($id_rapport, $chemin_fichier, $taille_fichier, $date_operation = null)
+    {
+        try {
+            $dateOpCol = $this->getDateOperationColumn();
+            $parts = [
+                'chemin_fichier = ?',
+                'taille_fichier = ?',
+                'date_modification = NOW()',
+                'version = version + 1'
+            ];
+            $values = [$chemin_fichier, $taille_fichier];
+
+            if ($dateOpCol !== null) {
+                $parts[] = $dateOpCol . ' = ?';
+                $values[] = $date_operation ?? date('Y-m-d H:i:s');
+            }
+
+            $parts[] = 'statut_rapport = ?';
+            $values[] = 'en_attente';
+
+            $values[] = $id_rapport;
+
+            $sql = 'UPDATE rapport_etudiants SET ' . implode(', ', $parts) . ' WHERE id_rapport = ?';
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute($values);
+        } catch (PDOException $e) {
+            error_log("Erreur mettreAJourRapportAvecFichier: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Récupère la liste des étudiants sans rapport (ou n'ayant pas soutenu)
+     * pour l'année académique donnée.
+     * Croise etudiants, candidature_soutenance et rapport_etudiants.
+     * PRD 2 F2.1
+     *
+     * @param int|null $id_annee_acad
+     * @return array
+     */
+    public function getEtudiantsSansRapport($id_annee_acad = null)
+    {
+        try {
+            $params = [];
+            $anneeFilter = '';
+
+            if ($id_annee_acad !== null) {
+                $anneeFilter = 'AND i.id_annee_acad = ?';
+                $params[] = $id_annee_acad;
+            }
+
+            $sql = "
+                SELECT DISTINCT e.num_carte_etud, e.num_ident_etud, e.nom_etu, e.prenom_etu, 
+                       e.email_etu, e.promotion_etu,
+                       i.id_annee_acad,
+                       cs.id_candidature, cs.statut_candidature,
+                       (SELECT COUNT(*) FROM rapport_etudiants r 
+                        WHERE (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)" .
+                        ($id_annee_acad !== null ? " AND r.id_annee_acad = ?" : "") . 
+                        ") AS nb_rapports
+                FROM etudiants e
+                INNER JOIN inscriptions i ON (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud)
+                LEFT JOIN candidature_soutenance cs ON (cs.num_etu = e.num_carte_etud OR cs.num_etu = e.num_ident_etud)
+                LEFT JOIN rapport_etudiants r ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)" .
+                ($id_annee_acad !== null ? " AND r.id_annee_acad = ?" : "") . 
+                "
+                WHERE 1=1
+                " . $anneeFilter . "
+                AND (
+                    r.id_rapport IS NULL
+                    OR (
+                        cs.statut_candidature IS NOT NULL 
+                        AND cs.statut_candidature IN ('Validee', 'Validée')
+                        AND r.id_rapport IS NULL
+                    )
+                )
+                ORDER BY e.nom_etu ASC, e.prenom_etu ASC
+            ";
+
+            if ($id_annee_acad !== null) {
+                $params[] = $id_annee_acad;
+                $params[] = $id_annee_acad;
+            }
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (PDOException $e) {
+            error_log("Erreur getEtudiantsSansRapport: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Récupère tous les rapports pour la vue admin (PRD 2)
+     *
+     * @param int|null $id_annee_acad Filtre par année académique
+     * @param string|null $search Terme de recherche
+     * @return array
+     */
+    public function getAllRapportsAdmin($id_annee_acad = null, $search = null)
+    {
+        try {
+            $dateOpCol = $this->getDateOperationColumn();
+            $dateOpSelect = $dateOpCol !== null ? ('r.' . $dateOpCol . ' AS date_operation') : 'NULL AS date_operation';
+
+            $sql = "
+                SELECT r.*, 
+                       " . $this->getReportSelectExtras('r') . ",
+                       $dateOpSelect,
+                       e.nom_etu, e.prenom_etu, e.email_etu, e.promotion_etu,
+                       i.id_annee_acad,
+                       cs.statut_candidature,
+                       d.date_depot
+                FROM rapport_etudiants r
+                JOIN etudiants e ON (" . $this->studentJoinCondition('r', 'e') . ")
+                LEFT JOIN inscriptions i ON (i.num_carte_etud = " . $this->studentCarteExpr('e') . ")
+                LEFT JOIN candidature_soutenance cs ON (cs.num_etu = " . $this->studentCarteExpr('e') . ")
+                LEFT JOIN deposer d ON (d.id_rapport = r.id_rapport)
+                WHERE 1=1
+            ";
+
+            $params = [];
+
+            if ($id_annee_acad !== null) {
+                $sql .= " AND i.id_annee_acad = ?";
+                $params[] = $id_annee_acad;
+            }
+
+            if ($search !== null && trim($search) !== '') {
+                $sql .= " AND (e.nom_etu LIKE ? OR e.prenom_etu LIKE ? OR r.nom_rapport LIKE ? OR r.theme_rapport LIKE ?)";
+                $s = '%' . $search . '%';
+                $params[] = $s;
+                $params[] = $s;
+                $params[] = $s;
+                $params[] = $s;
+            }
+
+            $sql .= " GROUP BY r.id_rapport " . $this->getReportOrderBy('r');
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (PDOException $e) {
+            error_log("Erreur getAllRapportsAdmin: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Met à jour la date d'opération d'un rapport
+     * PRD 3 F3.4
+     *
+     * @param int $id_rapport
+     * @param string $date_operation
+     * @return bool
+     */
+    public function updateDateOperation($id_rapport, $date_operation)
+    {
+        try {
+            $dateOpCol = $this->getDateOperationColumn();
+            if ($dateOpCol === null) {
+                return false;
+            }
+            $stmt = $this->pdo->prepare("UPDATE rapport_etudiants SET $dateOpCol = ?, date_modification = NOW() WHERE id_rapport = ?");
+            return $stmt->execute([$date_operation, $id_rapport]);
+        } catch (PDOException $e) {
+            error_log("Erreur updateDateOperation: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Vérifie si un étudiant a déjà un rapport uploadé (via chemin_fichier non vide)
+     *
+     * @param string $num_etu
+     * @return bool
+     */
+    public function aDejaUnRapportUploaded($num_etu)
+    {
+        try {
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM rapport_etudiants WHERE (num_etu = ? OR num_etu = ?) AND chemin_fichier IS NOT NULL AND chemin_fichier != ''");
+            $stmt->execute([$num_etu, $num_etu]);
+            return $stmt->fetchColumn() > 0;
+        } catch (PDOException $e) {
+            error_log("Erreur aDejaUnRapportUploaded: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Récupère le dernier rapport uploadé d'un étudiant
+     *
+     * @param string $num_etu
+     * @return object|null
+     */
+    public function getDernierRapportUploaded($num_etu)
+    {
+        try {
+            $dateOpCol = $this->getDateOperationColumn();
+            $dateOpSelect = $dateOpCol !== null ? ('r.' . $dateOpCol . ' AS date_operation') : 'NULL AS date_operation';
+
+            $sql = "
+                SELECT r.*, 
+                       " . $this->getReportSelectExtras('r') . ",
+                       $dateOpSelect,
+                       e.nom_etu, e.prenom_etu
+                FROM rapport_etudiants r
+                JOIN etudiants e ON (" . $this->studentJoinCondition('r', 'e') . ")
+                WHERE (r.num_etu = ? OR r.num_etu = ?) 
+                  AND r.chemin_fichier IS NOT NULL 
+                  AND r.chemin_fichier != ''
+                ORDER BY r.date_modification DESC, r.id_rapport DESC
+                LIMIT 1
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$num_etu, $num_etu]);
+            $result = $stmt->fetch(PDO::FETCH_OBJ);
+            return $result ?: null;
+        } catch (PDOException $e) {
+            error_log("Erreur getDernierRapportUploaded: " . $e->getMessage());
+            return null;
         }
     }
 }

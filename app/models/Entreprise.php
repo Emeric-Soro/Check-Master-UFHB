@@ -76,10 +76,6 @@ class Entreprise
 
     public function getLastInsertedId()
     {
-        $sql = "SELECT id_entreprise FROM entreprises ORDER BY id_entreprise DESC LIMIT 1";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result ? $result['id_entreprise'] : null;
+        return $this->db->lastInsertId();
     }
 }

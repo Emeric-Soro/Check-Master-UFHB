@@ -132,6 +132,45 @@ class Note
     }
 
     /**
+     * Vérifier si un étudiant a validé un semestre donné pour un niveau donné.
+     * Un semestre est considéré validé si la moyenne du niveau >= 10.
+     *
+     * @param string $numEtu Numéro étudiant
+     * @param string $codeSemestre Code du semestre (S1, S2)
+     * @param string $libNiveau Libellé du niveau (Master 1, Master 2)
+     * @return bool
+     */
+    public function estSemestreValide(string $numEtu, string $codeSemestre, string $libNiveau): bool
+    {
+        try {
+            $note = $this->getLatestNote($numEtu);
+            if (!$note) {
+                return false;
+            }
+
+            // Pour le S1 du Master 2, on vérifie que la moyenne M2 >= 10
+            if ($codeSemestre === 'S1' && $libNiveau === 'Master 2') {
+                return ($note->moyenne_M2 ?? 0) >= 10;
+            }
+
+            // Pour le S2 du Master 1, on vérifie que la moyenne M1 >= 10
+            if ($codeSemestre === 'S2' && $libNiveau === 'Master 1') {
+                return ($note->moyenne_M1 ?? 0) >= 10;
+            }
+
+            // Par défaut, on accepte si la note de ce niveau existe
+            if ($libNiveau === 'Master 2') {
+                return ($note->moyenne_M2 ?? 0) >= 10;
+            }
+
+            return ($note->moyenne_M1 ?? 0) >= 10;
+        } catch (Exception $e) {
+            error_log("Erreur estSemestreValide: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Calculer la moyenne générale d'un étudiant pour une année académique
      */
     public function getMoyenneGenerale($studentId, $anneeAcadId = null)

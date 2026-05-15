@@ -441,7 +441,7 @@ class GestionUtilisateurService
                 $temporaryPassword = $this->generateRandomPassword(12);
                 $passwordHash = password_hash($temporaryPassword, PASSWORD_DEFAULT);
                 if (!$utilisateurModel->updatePasswordByLogin($utilisateur['login'], $passwordHash)) {
-                    $emailErrors[] = $utilisateur['nom'] . ': mise a jour du mot de passe impossible';
+                    $emailErrors[] = $utilisateur['nom'] . ': mise à jour du mot de passe impossible';
                     continue;
                 }
                 $emailResult = $this->envoyerEmailInscriptionPHPMailer(
@@ -588,7 +588,7 @@ class GestionUtilisateurService
                     $passwordHash = password_hash($temporaryPassword, PASSWORD_DEFAULT);
                     if (!$this->utilisateur->updatePasswordByLogin($user->login_utilisateur, $passwordHash)) {
                         $errorCount++;
-                        $errors[] = $user->nom_utilisateur . ' (mise a jour du mot de passe impossible)';
+                        $errors[] = $user->nom_utilisateur . ' (mise à jour du mot de passe impossible)';
                         continue;
                     }
 

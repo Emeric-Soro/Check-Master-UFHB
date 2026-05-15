@@ -172,9 +172,30 @@ function showToast(message, type = 'info') {
 }
 
 function confirmAction(message, callback) {
-    if (confirm(message)) {
-        callback();
-    }
+    window.CM.confirm(message).then(c => {
+        if (c) {
+            fetch('/api/audit/clear', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ olderThan: days })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message || 'Erreur lors du nettoyage');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                alert('Erreur lors du nettoyage des logs');
+            });
+        }
+    });
 }
 
 function exportWithProgress() {

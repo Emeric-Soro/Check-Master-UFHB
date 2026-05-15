@@ -67,7 +67,7 @@ foreach ($etudiants as $etu) {
     }
     $label = trim((string) ($etu->nom_etu ?? '') . ' ' . (string) ($etu->prenom_etu ?? '')) . ' (' . $num . ')';
     if ($allYearsSelected && !empty($etu->promotion_etu)) {
-        $label .= ' - ' . (string) $etu->promotion_etu;
+        $label .= ' - ' . \FormattingUtils::formatPromotion($etu->promotion_etu);
     }
     $studentOptions[$num] = $label;
     $studentCatalog[$num] = [
@@ -199,7 +199,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                 cm_component('form/select-search', [
                     'name' => 'student_picker',
                     'id' => 'cmStudentPicker',
-                    'label' => 'Etudiant',
+                    'label' => 'Étudiant',
                     'options' => $studentOptions,
                     'selected' => $selectedStudentId,
                     'required' => true,
@@ -469,7 +469,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
             }
             if (isNaN(m1) || isNaN(m2) || m1 < 0 || m1 > 20 || m2 < 0 || m2 > 20) {
                 event.preventDefault();
-                window.alert('Les moyennes doivent etre comprises entre 0 et 20.');
+                window.alert('Les moyennes doivent être comprises entre 0 et 20.');
                 return;
             }
             const actionUrl = new URL(notesForm.action, window.location.origin + window.location.pathname);
@@ -507,7 +507,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
     document.addEventListener('cm:toolbar:delete', function (event) {
         if (!event.detail || !event.detail.toolbar) return;
         if (event.detail.toolbar.id !== 'cmNotes_toolbar') return;
-        window.alert('Suppression multiple indisponible sur cet ecran.');
+        window.alert('Suppression multiple indisponible sur cet écran.');
     });
 
     document.addEventListener('cm:toolbar:limit:change', function (event) {

@@ -297,19 +297,19 @@ if (!function_exists('cm_render_param_crud_view')) {
 
         $rowsPage = array_slice($list, (int) ($pagination['offset'] ?? 0), $perPage);
 
-        $uid = 'cmParamCrud_' . preg_replace('/[^a-zA-Z0-9]/', '_', $action) . '_' . substr(md5($action . $title), 0, 8);
+        $uid = (string) ($config['uid'] ?? ('cmParamCrud_' . preg_replace('/[^a-zA-Z0-9]/', '_', $action) . '_' . substr(md5($action . $title), 0, 8)));
         $tableId = $uid . '_table';
-        $filterFormId = $uid . '_filters';
+        $filterFormId = $uid . '_filterForm';
         $bulkFormId = $uid . '_bulk';
         $limitId = $uid . '_limit';
         $searchId = $uid . '_search';
-        $deleteBtnId = $uid . '_delete_selected';
-        $selectAllBtnId = $uid . '_select_all';
-        $deselectAllBtnId = $uid . '_deselect_all';
+        $deleteBtnId = $uid . '_deleteBtn';
+        $selectAllBtnId = $uid . '_selectAll';
+        $deselectAllBtnId = $uid . '_deselectAll';
         $selectedCountId = $uid . '_selected_count';
-        $printBtnId = $uid . '_print';
-        $xlsxBtnId = $uid . '_xlsx';
-        $exportBtnId = $uid . '_export';
+        $printBtnId = $uid . '_printBtn';
+        $xlsxBtnId = $uid . '_excelBtn';
+        $exportBtnId = $uid . '_exportBtn';
         $deleteFlagId = $uid . '_delete_flag';
 
         $columns = [];
@@ -507,88 +507,6 @@ if (!function_exists('cm_render_param_crud_view')) {
         $formContent = (string) ob_get_clean();
 
         ob_start();
-        ?>
-        <form id="<?= htmlspecialchars($filterFormId, ENT_QUOTES, 'UTF-8') ?>" method="GET" action="" data-cm-ajax-form="true">
-            <input type="hidden" name="page" value="<?= htmlspecialchars($pageSlug, ENT_QUOTES, 'UTF-8') ?>">
-            <input type="hidden" name="action" value="<?= htmlspecialchars($action, ENT_QUOTES, 'UTF-8') ?>">
-            <?php foreach ($extraQuery as $k => $v): ?>
-                <input type="hidden" name="<?= htmlspecialchars((string) $k, ENT_QUOTES, 'UTF-8') ?>"
-                    value="<?= htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8') ?>">
-            <?php endforeach; ?>
-            <input type="hidden" name="<?= htmlspecialchars($pageParam, ENT_QUOTES, 'UTF-8') ?>" value="1">
-            <?php
-            ob_start();
-            ?>
-            <label class="cm-toolbar__control">
-                <span>Afficher:</span>
-                <select id="<?= htmlspecialchars($limitId, ENT_QUOTES, 'UTF-8') ?>" class="cm-form-control cm-toolbar__select"
-                    name="<?= htmlspecialchars($limitParam, ENT_QUOTES, 'UTF-8') ?>">
-                    <?php foreach ($perPageOptions as $opt): ?>
-                        <?php $optValue = (int) $opt; ?>
-                        <option value="<?= $optValue ?>" <?= $optValue === $perPage ? 'selected' : '' ?>><?= $optValue ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <?php
-            $leftHtml = (string) ob_get_clean();
-
-            ob_start();
-            ?>
-            <div class="cm-toolbar__search-wrap">
-                <input id="<?= htmlspecialchars($searchId, ENT_QUOTES, 'UTF-8') ?>" type="search" class="cm-form-control"
-                    name="<?= htmlspecialchars($searchParam, ENT_QUOTES, 'UTF-8') ?>"
-                    value="<?= htmlspecialchars($search, ENT_QUOTES, 'UTF-8') ?>" placeholder="Rechercher...">
-                <button type="submit" class="cm-btn is-info is-sm">
-                    <span>Rechercher</span>
-                </button>
-            </div>
-            <?php
-            $centerHtml = (string) ob_get_clean();
-
-            ob_start();
-            ?>
-            <div class="cm-toolbar__actions">
-                <?php if (function_exists('canDelete') ? canDelete() : true): ?>
-                    <button type="button" id="<?= htmlspecialchars($selectAllBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-secondary is-sm" data-select-all="1">
-                        <span>Tout sélectionner</span>
-                    </button>
-                    <button type="button" id="<?= htmlspecialchars($deselectAllBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-secondary is-sm" data-deselect-all="1">
-                        <span>Tout désélectionner</span>
-                    </button>
-                    <button type="button" id="<?= htmlspecialchars($deleteBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-danger is-sm" data-bulk-delete="1" disabled>
-                        <span>Supprimer (<span id="<?= htmlspecialchars($selectedCountId, ENT_QUOTES, 'UTF-8') ?>">0</span>)</span>
-                    </button>
-                <?php endif; ?>
-                <?php if (function_exists('canView') ? canView() : true): ?>
-                    <button type="button" id="<?= htmlspecialchars($printBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-light is-sm">
-                        <span>Imprimer</span>
-                    </button>
-                    <button type="button" id="<?= htmlspecialchars($xlsxBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-secondary is-sm" title="Télécharger en Excel">
-                        <span>Excel</span>
-                    </button>
-                    <!-- <button type="button" id="<?= htmlspecialchars($exportBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-info is-sm">
-                        <span>Exporter</span>
-                    </button> -->
-                <?php endif; ?>
-            </div>
-            <?php
-            $rightHtml = (string) ob_get_clean();
-
-            cm_component('crud/toolbar', [
-                'left_html' => $leftHtml,
-                'center_html' => $centerHtml,
-                'right_html' => $rightHtml,
-            ]);
-            ?>
-        </form>
-        <?php
-        $toolbarHtml = (string) ob_get_clean();
 
         $tableActions = [];
         $noDelete = !empty($config['no_delete']);
@@ -644,7 +562,22 @@ if (!function_exists('cm_render_param_crud_view')) {
                 ]);
                 ?>
 
-                <?= $toolbarHtml ?>
+                <?php
+                cm_toolbar([
+                    'id_prefix' => $uid,
+                    'screen' => $action,
+                    'search_name' => $searchParam,
+                    'search_value' => $search,
+                    'limit' => $perPage,
+                    'limit_options' => $perPageOptions,
+                    'limit_name' => $limitParam,
+                    'show_filters' => false,
+                    'show_actions' => true,
+                    'can_delete' => function_exists('canDelete') ? canDelete() : true,
+                    'can_view' => function_exists('canView') ? canView() : true,
+                    'can_excel' => true,
+                ]);
+                ?>
 
                 <div class="cm-pole-inferieur">
                     <form id="<?= htmlspecialchars($bulkFormId, ENT_QUOTES, 'UTF-8') ?>" method="POST"
@@ -660,7 +593,7 @@ if (!function_exists('cm_render_param_crud_view')) {
                             'row_key' => '_id',
                             'selectable' => (function_exists('canDelete') ? canDelete() : true),
                             'actions' => $tableActions,
-                            'empty_title' => 'Aucune donnee',
+                            'empty_title' => 'Aucune donnée',
                             'empty_message' => 'Aucun enregistrement trouve.',
                         ]);
                         ?>
@@ -682,15 +615,16 @@ if (!function_exists('cm_render_param_crud_view')) {
                     return;
                 }
 
-                const filterForm = document.getElementById(<?= json_encode($filterFormId) ?>);
+                const filterForm = document.getElementById(<?= json_encode($filterFormId) ?>) || root.querySelector('form');
                 const bulkForm = document.getElementById(<?= json_encode($bulkFormId) ?>);
                 const table = document.getElementById(<?= json_encode($tableId) ?>);
                 const limitSelect = document.getElementById(<?= json_encode($limitId) ?>);
+                const searchInput = document.getElementById(<?= json_encode($searchId) ?>);
                 const deleteFlag = document.getElementById(<?= json_encode($deleteFlagId) ?>);
                 const deleteBtn = document.getElementById(<?= json_encode($deleteBtnId) ?>);
                 const selectAllBtn = document.getElementById(<?= json_encode($selectAllBtnId) ?>);
                 const deselectAllBtn = document.getElementById(<?= json_encode($deselectAllBtnId) ?>);
-                const selectedCount = document.getElementById(<?= json_encode($selectedCountId) ?>);
+                const selectedCount = deleteBtn ? deleteBtn.querySelector('.cm-delete-count') : null;
                 const printBtn = document.getElementById(<?= json_encode($printBtnId) ?>);
                 const xlsxBtn = document.getElementById(<?= json_encode($xlsxBtnId) ?>);
                 const exportBtn = document.getElementById(<?= json_encode($exportBtnId) ?>);
@@ -723,7 +657,7 @@ if (!function_exists('cm_render_param_crud_view')) {
                     const checks = rowChecks();
                     const selected = checks.filter(function (input) { return input.checked; });
                     if (selectedCount) {
-                        selectedCount.textContent = String(selected.length);
+                        selectedCount.textContent = selected.length > 0 ? (' (' + selected.length + ')') : '';
                     }
                     if (deleteBtn) {
                         deleteBtn.disabled = selected.length === 0;
@@ -757,9 +691,14 @@ if (!function_exists('cm_render_param_crud_view')) {
 
                 if (limitSelect && filterForm) {
                     limitSelect.addEventListener('change', function () {
-                        if (typeof filterForm.requestSubmit === 'function') {
-                            filterForm.requestSubmit();
-                        } else {
+                        // Si c'est dans un cm_toolbar, le form est englobant
+                        filterForm.submit();
+                    });
+                }
+                if (searchInput && filterForm) {
+                    searchInput.addEventListener('keypress', function (e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
                             filterForm.submit();
                         }
                     });
@@ -1468,194 +1407,223 @@ if (!function_exists('cm_toolbar')) {
         $align = (string) ($config['align'] ?? 'space-between');
         $alignClass = 'cm-toolbar--' . $align;
 
+        $leftHtml = (string) ($config['left_html'] ?? '');
+        $centerHtml = (string) ($config['center_html'] ?? '');
+        $rightHtml = (string) ($config['right_html'] ?? '');
+
         ?>
         <div class="cm-barre-intermediaire" id="<?= htmlspecialchars($toolbarId, ENT_QUOTES, 'UTF-8') ?>">
             <div class="cm-toolbar cm-toolbar--unified <?= htmlspecialchars($alignClass, ENT_QUOTES, 'UTF-8') ?>">
                 <!-- GAUCHE : Pagination -->
                 <div class="cm-toolbar-left">
-                    <label class="cm-toolbar__control">
-                        <span>Afficher:</span>
-                        <select id="<?= htmlspecialchars($limitId, ENT_QUOTES, 'UTF-8') ?>"
-                            name="<?= htmlspecialchars($limitName, ENT_QUOTES, 'UTF-8') ?>"
-                            class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
-                            <?php foreach ($limitOptions as $opt): ?>
-                                <?php $optValue = (int) $opt; ?>
-                                <option value="<?= $optValue ?>" <?= $optValue === $limit ? 'selected' : '' ?>><?= $optValue ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
+                    <?php if ($leftHtml !== ''): ?>
+                        <?= $leftHtml ?>
+                    <?php else: ?>
+                        <label class="cm-toolbar__control">
+                            <span>Afficher:</span>
+                            <select id="<?= htmlspecialchars($limitId, ENT_QUOTES, 'UTF-8') ?>"
+                                name="<?= htmlspecialchars($limitName, ENT_QUOTES, 'UTF-8') ?>"
+                                class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
+                                data-cm-toolbar-action="limit">
+                                <?php foreach ($limitOptions as $opt): ?>
+                                    <?php $optValue = (int) $opt; ?>
+                                    <option value="<?= $optValue ?>" <?= $optValue === $limit ? 'selected' : '' ?>><?= $optValue ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                    <?php endif; ?>
                 </div>
 
                 <!-- CENTRE : Recherche -->
                 <div class="cm-toolbar-center">
-                    <div class="cm-toolbar__search-wrap">
-                        <i class="fas fa-search cm-toolbar__search-icon" aria-hidden="true"></i>
-                        <input type="search" id="<?= htmlspecialchars($searchId, ENT_QUOTES, 'UTF-8') ?>"
-                            name="<?= htmlspecialchars($searchName, ENT_QUOTES, 'UTF-8') ?>"
-                            class="cm-form-control is-sm cm-toolbar-field-lg"
-                            value="<?= htmlspecialchars($searchValue, ENT_QUOTES, 'UTF-8') ?>"
-                            placeholder="<?= htmlspecialchars($searchPlaceholder, ENT_QUOTES, 'UTF-8') ?>"
-                            data-cm-toolbar-action="search">
-                    </div>
+                    <?php if ($centerHtml !== ''): ?>
+                        <?= $centerHtml ?>
+                    <?php else: ?>
+                        <div class="cm-toolbar__search-wrap">
+                            <i class="fas fa-search cm-toolbar__search-icon" aria-hidden="true"></i>
+                            <input type="search" id="<?= htmlspecialchars($searchId, ENT_QUOTES, 'UTF-8') ?>"
+                                name="<?= htmlspecialchars($searchName, ENT_QUOTES, 'UTF-8') ?>"
+                                class="cm-form-control is-sm cm-toolbar-field-lg"
+                                value="<?= htmlspecialchars($searchValue, ENT_QUOTES, 'UTF-8') ?>"
+                                placeholder="<?= htmlspecialchars($searchPlaceholder, ENT_QUOTES, 'UTF-8') ?>"
+                                data-cm-toolbar-action="search">
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <!-- DROITE : Filtres + Actions -->
                 <div class="cm-toolbar-right">
-                    <?php if ($showFilters && !empty($customFilters)): ?>
-                        <!-- Bouton Filtre unique avec dropdown -->
-                        <div class="cm-dropdown cm-dropdown--toolbar"
-                            id="<?= htmlspecialchars($filterDropdownId, ENT_QUOTES, 'UTF-8') ?>">
-                            <button type="button" class="cm-btn is-light is-sm cm-dropdown__toggle"
-                                id="<?= htmlspecialchars($filterToggleId, ENT_QUOTES, 'UTF-8') ?>" aria-haspopup="true"
-                                aria-expanded="false">
-                                <span>Filtres</span>
-                                <?php if ($activeFilterCount > 0): ?>
-                                    <span class="cm-badge cm-badge--filter"
-                                        id="<?= htmlspecialchars($filterCountId, ENT_QUOTES, 'UTF-8') ?>"><?= $activeFilterCount ?></span>
-                                <?php else: ?>
-                                    <span class="cm-badge cm-badge--filter"
-                                        id="<?= htmlspecialchars($filterCountId, ENT_QUOTES, 'UTF-8') ?>" style="display:none">0</span>
-                                <?php endif; ?>
-                            </button>
-                            <div class="cm-dropdown__menu cm-dropdown__menu--right cm-dropdown__menu--filters" role="menu"
-                                aria-labelledby="<?= htmlspecialchars($filterToggleId, ENT_QUOTES, 'UTF-8') ?>">
-                                <div id="<?= htmlspecialchars($filterFormId, ENT_QUOTES, 'UTF-8') ?>" class="cm-filter-form">
-                                    <?php foreach ($customFilters as $filter): ?>
-                                        <?php
-                                        $fType = $filter['type'] ?? 'select';
-                                        $fName = $filter['name'] ?? '';
-                                        $fLabel = $filter['label'] ?? $fName;
-                                        $fValue = $_GET[$fName] ?? '';
-                                        ?>
-                                        <div class="cm-filter-section">
-                                            <label class="cm-filter-section__label"
-                                                for="<?= htmlspecialchars($idPrefix . '_filter_' . $fName, ENT_QUOTES, 'UTF-8') ?>">
-                                                <?= htmlspecialchars($fLabel, ENT_QUOTES, 'UTF-8') ?>
-                                            </label>
-                                            <?php if ($fType === 'select'): ?>
-                                                <select name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>"
-                                                    id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName, ENT_QUOTES, 'UTF-8') ?>"
-                                                    class="cm-form-control is-sm cm-filter-field"
-                                                    data-filter-name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>">
-                                                    <?php
-                                                    $fOptions = $filter['options'] ?? ['' => 'Tous'];
-                                                    foreach ($fOptions as $optValue => $optLabel):
-                                                        ?>
-                                                        <option value="<?= htmlspecialchars((string) $optValue, ENT_QUOTES, 'UTF-8') ?>"
-                                                            <?= (string) $fValue === (string) $optValue ? 'selected' : '' ?>>
-                                                            <?= htmlspecialchars((string) $optLabel, ENT_QUOTES, 'UTF-8') ?>
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            <?php elseif ($fType === 'date'): ?>
-                                                <input type="date" name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>"
-                                                    id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName, ENT_QUOTES, 'UTF-8') ?>"
-                                                    class="cm-form-control is-sm cm-filter-field"
-                                                    value="<?= htmlspecialchars((string) $fValue, ENT_QUOTES, 'UTF-8') ?>"
-                                                    data-filter-name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>">
-                                            <?php elseif ($fType === 'date_range'): ?>
-                                                <div class="cm-filter-date-range">
-                                                    <input type="date"
-                                                        name="<?= htmlspecialchars($fName . '_debut', ENT_QUOTES, 'UTF-8') ?>"
-                                                        id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName . '_debut', ENT_QUOTES, 'UTF-8') ?>"
+                    <?php if ($rightHtml !== ''): ?>
+                        <?= $rightHtml ?>
+                    <?php else: ?>
+                        <?php if ($showFilters && !empty($customFilters)): ?>
+                            <!-- Bouton Filtre unique avec dropdown -->
+                            <div class="cm-dropdown cm-dropdown--toolbar"
+                                id="<?= htmlspecialchars($filterDropdownId, ENT_QUOTES, 'UTF-8') ?>">
+                                <button type="button" class="cm-btn is-light is-sm cm-dropdown__toggle"
+                                    id="<?= htmlspecialchars($filterToggleId, ENT_QUOTES, 'UTF-8') ?>" aria-haspopup="true"
+                                    aria-expanded="false">
+                                    <span>Filtres</span>
+                                    <?php if ($activeFilterCount > 0): ?>
+                                        <span class="cm-badge cm-badge--filter"
+                                            id="<?= htmlspecialchars($filterCountId, ENT_QUOTES, 'UTF-8') ?>"><?= $activeFilterCount ?></span>
+                                    <?php else: ?>
+                                        <span class="cm-badge cm-badge--filter"
+                                            id="<?= htmlspecialchars($filterCountId, ENT_QUOTES, 'UTF-8') ?>" style="display:none">0</span>
+                                    <?php endif; ?>
+                                </button>
+                                <div class="cm-dropdown__menu cm-dropdown__menu--right cm-dropdown__menu--filters" role="menu"
+                                    aria-labelledby="<?= htmlspecialchars($filterToggleId, ENT_QUOTES, 'UTF-8') ?>">
+                                    <div id="<?= htmlspecialchars($filterFormId, ENT_QUOTES, 'UTF-8') ?>" class="cm-filter-form">
+                                        <?php foreach ($customFilters as $filter): ?>
+                                            <?php
+                                            $fType = $filter['type'] ?? 'select';
+                                            $fName = $filter['name'] ?? '';
+                                            $fLabel = $filter['label'] ?? $fName;
+                                            $fValue = $_GET[$fName] ?? '';
+                                            ?>
+                                            <div class="cm-filter-section">
+                                                <label class="cm-filter-section__label"
+                                                    for="<?= htmlspecialchars($idPrefix . '_filter_' . $fName, ENT_QUOTES, 'UTF-8') ?>">
+                                                    <?= htmlspecialchars($fLabel, ENT_QUOTES, 'UTF-8') ?>
+                                                </label>
+                                                <?php if ($fType === 'select'): ?>
+                                                    <select name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>"
+                                                        id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName, ENT_QUOTES, 'UTF-8') ?>"
                                                         class="cm-form-control is-sm cm-filter-field"
-                                                        value="<?= htmlspecialchars((string) ($_GET[$fName . '_debut'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                                        placeholder="Du"
                                                         data-filter-name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>">
-                                                    <input type="date" name="<?= htmlspecialchars($fName . '_fin', ENT_QUOTES, 'UTF-8') ?>"
-                                                        id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName . '_fin', ENT_QUOTES, 'UTF-8') ?>"
+                                                        <?php
+                                                        $fOptions = $filter['options'] ?? ['' => 'Tous'];
+                                                        foreach ($fOptions as $optValue => $optLabel):
+                                                            ?>
+                                                            <option value="<?= htmlspecialchars((string) $optValue, ENT_QUOTES, 'UTF-8') ?>"
+                                                                <?= (string) $fValue === (string) $optValue ? 'selected' : '' ?>>
+                                                                <?= htmlspecialchars((string) $optLabel, ENT_QUOTES, 'UTF-8') ?>
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                <?php elseif ($fType === 'date'): ?>
+                                                    <input type="date" name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>"
+                                                        id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName, ENT_QUOTES, 'UTF-8') ?>"
                                                         class="cm-form-control is-sm cm-filter-field"
-                                                        value="<?= htmlspecialchars((string) ($_GET[$fName . '_fin'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                                        placeholder="Au"
+                                                        value="<?= htmlspecialchars((string) $fValue, ENT_QUOTES, 'UTF-8') ?>"
                                                         data-filter-name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>">
-                                                </div>
-                                            <?php endif; ?>
+                                                <?php elseif ($fType === 'date_range'): ?>
+                                                    <div class="cm-filter-date-range">
+                                                        <input type="date"
+                                                            name="<?= htmlspecialchars($fName . '_debut', ENT_QUOTES, 'UTF-8') ?>"
+                                                            id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName . '_debut', ENT_QUOTES, 'UTF-8') ?>"
+                                                            class="cm-form-control is-sm cm-filter-field"
+                                                            value="<?= htmlspecialchars((string) ($_GET[$fName . '_debut'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                                            placeholder="Du"
+                                                            data-filter-name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>">
+                                                        <input type="date" name="<?= htmlspecialchars($fName . '_fin', ENT_QUOTES, 'UTF-8') ?>"
+                                                            id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName . '_fin', ENT_QUOTES, 'UTF-8') ?>"
+                                                            class="cm-form-control is-sm cm-filter-field"
+                                                            value="<?= htmlspecialchars((string) ($_GET[$fName . '_fin'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                                            placeholder="Au"
+                                                            data-filter-name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>">
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endforeach; ?>
+                                        <div class="cm-filter-actions">
+                                            <button type="button" class="cm-btn is-light is-xs cm-filter-reset"
+                                                data-cm-toolbar-action="filter-reset">
+                                                Réinitialiser
+                                            </button>
+                                            <button type="button" class="cm-btn is-info is-xs cm-filter-apply"
+                                                data-cm-toolbar-action="filter-apply">
+                                                Appliquer
+                                            </button>
                                         </div>
-                                    <?php endforeach; ?>
-                                    <div class="cm-filter-actions">
-                                        <button type="button" class="cm-btn is-light is-xs cm-filter-reset"
-                                            data-cm-toolbar-action="filter-reset">
-                                            Réinitialiser
-                                        </button>
-                                        <button type="button" class="cm-btn is-info is-xs cm-filter-apply"
-                                            data-cm-toolbar-action="filter-apply">
-                                            Appliquer
-                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($showActions): ?>
-                        <!-- Groupe Sélection -->
-                        <div class="cm-toolbar__actions-group" role="group" aria-label="Actions de sélection">
-                            <button type="button" id="<?= htmlspecialchars($selectAllId, ENT_QUOTES, 'UTF-8') ?>"
-                                class="cm-btn is-secondary is-sm" title="Tout sélectionner" data-cm-toolbar-action="select-all">
-                                <span>Tout sélectionner</span>
-                            </button>
-                            <button type="button" id="<?= htmlspecialchars($deselectAllId, ENT_QUOTES, 'UTF-8') ?>"
-                                class="cm-btn is-secondary is-sm" title="Tout désélectionner" data-cm-toolbar-action="deselect-all">
-                                <span>Tout désélectionner</span>
-                            </button>
-                        </div>
-
-                        <?php if ($canDelete): ?>
-                            <button type="button" id="<?= htmlspecialchars($deleteBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                                class="cm-btn is-danger is-sm" disabled data-cm-toolbar-action="delete">
-                                <span>Supprimer</span>
-                                <span class="cm-delete-count" data-selected-count="0"></span>
-                            </button>
                         <?php endif; ?>
 
-                        <?php if ($canView): ?>
-                            <!-- <button type="button" id="<?= htmlspecialchars($exportBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                                class="cm-btn is-info is-sm" title="Exporter" data-cm-toolbar-action="export">
-                                <span>Exporter</span>
-                            </button> -->
-                            <button type="button" id="<?= htmlspecialchars($printBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                                class="cm-btn is-light is-sm" title="Imprimer" data-cm-toolbar-action="print">
-                                <span>Imprimer</span>
-                            </button>
-                            <?php if ($canExcel): ?>
-                                <button type="button" id="<?= htmlspecialchars($excelBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                                    class="cm-btn is-secondary is-sm" title="Télécharger en Excel"
-                                    data-cm-toolbar-action="excel">
-                                    <span>Excel</span>
+                        <?php if ($showActions): ?>
+                            <!-- Groupe Sélection -->
+                            <div class="cm-toolbar__actions-group" role="group" aria-label="Actions de sélection">
+                                <button type="button" id="<?= htmlspecialchars($selectAllId, ENT_QUOTES, 'UTF-8') ?>"
+                                    class="cm-btn is-secondary is-sm" title="Tout sélectionner" data-cm-toolbar-action="select-all">
+                                    <span>Tout sélectionner</span>
                                 </button>
+                                <button type="button" id="<?= htmlspecialchars($deselectAllId, ENT_QUOTES, 'UTF-8') ?>"
+                                    class="cm-btn is-secondary is-sm" title="Tout désélectionner" data-cm-toolbar-action="deselect-all">
+                                    <span>Tout désélectionner</span>
+                                </button>
+                            </div>
+
+                            <?php if ($canDelete): ?>
+                                <button type="button" id="<?= htmlspecialchars($deleteBtnId, ENT_QUOTES, 'UTF-8') ?>"
+                                    class="cm-btn is-danger is-sm" disabled data-cm-toolbar-action="delete">
+                                    <i class="fas fa-trash" aria-hidden="true"></i>
+                                    <span>Supprimer</span>
+                                    <span class="cm-delete-count" data-selected-count="0"></span>
+                                </button>
+                            <?php endif; ?>
+
+                            <?php if ($canView): ?>
+                                <button type="button" id="<?= htmlspecialchars($printBtnId, ENT_QUOTES, 'UTF-8') ?>"
+                                    class="cm-btn is-light is-sm" title="Imprimer" data-cm-toolbar-action="print">
+                                    <i class="fas fa-print" aria-hidden="true"></i>
+                                    <span>Imprimer</span>
+                                </button>
+                                <?php if ($canExcel): ?>
+                                    <button type="button" id="<?= htmlspecialchars($excelBtnId, ENT_QUOTES, 'UTF-8') ?>"
+                                        class="cm-btn is-secondary is-sm" title="Télécharger en Excel"
+                                        data-cm-toolbar-action="excel">
+                                        <i class="fas fa-file-excel" aria-hidden="true"></i>
+                                        <span>Excel</span>
+                                    </button>
+                                <?php endif; ?>
                             <?php endif; ?>
                         <?php endif; ?>
-                    <?php endif; ?>
 
-                    <!-- Actions personnalisées -->
-                    <?php if (!empty($config['custom_actions']) && is_array($config['custom_actions'])): ?>
-                        <?php foreach ($config['custom_actions'] as $action): ?>
-                            <?php
-                            $aTag = strtolower((string) ($action['tag'] ?? 'button'));
-                            $aLabel = (string) ($action['label'] ?? 'Action');
-                            $aClass = (string) ($action['class'] ?? 'cm-btn is-light is-sm');
-                            $aAttrs = is_array($action['attrs'] ?? null) ? $action['attrs'] : [];
-                            $aHref = (string) ($action['href'] ?? '#');
-                            $aType = (string) ($action['type'] ?? 'button');
-                            $aId = !empty($action['id']) ? ' id="' . htmlspecialchars((string) $action['id'], ENT_QUOTES, 'UTF-8') . '"' : '';
-                            ?>
-                            <?php if ($aTag === 'a'): ?>
-                                <a href="<?= htmlspecialchars($aHref, ENT_QUOTES, 'UTF-8') ?>" <?= $aId ?>
-                                    class="<?= htmlspecialchars($aClass, ENT_QUOTES, 'UTF-8') ?>" <?= cm_form_attr_string($aAttrs) ?>>
-                                    <span><?= htmlspecialchars($aLabel, ENT_QUOTES, 'UTF-8') ?></span>
-                                </a>
-                            <?php else: ?>
-                                <button type="<?= htmlspecialchars($aType, ENT_QUOTES, 'UTF-8') ?>" <?= $aId ?>
-                                    class="<?= htmlspecialchars($aClass, ENT_QUOTES, 'UTF-8') ?>" <?= cm_form_attr_string($aAttrs) ?>>
-                                    <span><?= htmlspecialchars($aLabel, ENT_QUOTES, 'UTF-8') ?></span>
-                                </button>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
+                        <!-- Actions personnalisées -->
+                        <?php if (!empty($config['custom_actions']) && is_array($config['custom_actions'])): ?>
+                            <?php foreach ($config['custom_actions'] as $action): ?>
+                                <?php
+                                $aTag = strtolower((string) ($action['tag'] ?? 'button'));
+                                $aLabel = (string) ($action['label'] ?? 'Action');
+                                $aClass = (string) ($action['class'] ?? 'cm-btn is-light is-sm');
+                                $aAttrs = is_array($action['attrs'] ?? null) ? $action['attrs'] : [];
+                                $aHref = (string) ($action['href'] ?? '#');
+                                $aType = (string) ($action['type'] ?? 'button');
+                                $aId = !empty($action['id']) ? ' id="' . htmlspecialchars((string) $action['id'], ENT_QUOTES, 'UTF-8') . '"' : '';
+                                $aIcon = !empty($action['icon']) ? '<i class="fas ' . htmlspecialchars((string) $action['icon'], ENT_QUOTES, 'UTF-8') . '" aria-hidden="true"></i> ' : '';
+                                ?>
+                                <?php if ($aTag === 'a'): ?>
+                                    <a href="<?= htmlspecialchars($aHref, ENT_QUOTES, 'UTF-8') ?>" <?= $aId ?>
+                                        class="<?= htmlspecialchars($aClass, ENT_QUOTES, 'UTF-8') ?>" <?= cm_form_attr_string($aAttrs) ?>>
+                                        <?= $aIcon ?><span><?= htmlspecialchars($aLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                                    </a>
+                                <?php elseif ($aTag === 'select'): ?>
+                                    <select <?= $aId ?> class="<?= htmlspecialchars($aClass, ENT_QUOTES, 'UTF-8') ?>" <?= cm_form_attr_string($aAttrs) ?>>
+                                        <?php
+                                        $aOptions = is_array($action['options'] ?? null) ? $action['options'] : [];
+                                        foreach ($aOptions as $optValue => $optLabel):
+                                            ?>
+                                            <option value="<?= htmlspecialchars((string) $optValue, ENT_QUOTES, 'UTF-8') ?>">
+                                                <?= htmlspecialchars((string) $optLabel, ENT_QUOTES, 'UTF-8') ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                <?php else: ?>
+                                    <button type="<?= htmlspecialchars($aType, ENT_QUOTES, 'UTF-8') ?>" <?= $aId ?>
+                                        class="<?= htmlspecialchars($aClass, ENT_QUOTES, 'UTF-8') ?>" <?= cm_form_attr_string($aAttrs) ?>>
+                                        <?= $aIcon ?><span><?= htmlspecialchars($aLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                                    </button>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
+
 
         <script>
             (function () {
@@ -2691,7 +2659,12 @@ if (!function_exists('cm_data_table_selectable')) {
                             const action = btn.getAttribute('data-action');
                             const confirmMsg = btn.getAttribute('data-confirm');
 
-                            if (confirmMsg && !confirm(confirmMsg)) return;
+                            if (confirmMsg) {
+                                window.CM.confirm(confirmMsg).then(c => {
+                                    if (c) window.location.href = url;
+                                });
+                                return;
+                            }
 
                             document.dispatchEvent(new CustomEvent('cm:table:row:action', {
                                 detail: { table: table, rowId: rowId, action: action, button: btn }

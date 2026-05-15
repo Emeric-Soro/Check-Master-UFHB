@@ -20,9 +20,9 @@ foreach ($rapports as $rapport) {
     $rapportData = is_object($rapport) ? get_object_vars($rapport) : (array) $rapport;
     $numEtu = (string) ($rapportData['num_etu'] ?? '');
     $rowYearId = !empty($rapportData['id_annee_acad']) ? (int) $rapportData['id_annee_acad'] : null;
-    $promotionLabel = trim((string) ($rapportData['promotion_etu'] ?? ''));
+    $promotionLabel = FormattingUtils::formatPromotion(trim((string) ($rapportData['promotion_etu'] ?? '')));
     if ($promotionLabel === '' && $rowYearId !== null) {
-        $promotionLabel = $academicYearLabels[$rowYearId] ?? '';
+        $promotionLabel = FormattingUtils::formatPromotion($academicYearLabels[$rowYearId] ?? '');
     }
     $paiement = null;
     $niveauLabel = '-';
@@ -114,7 +114,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
     cm_component('layout/page-header', [
         'title' => '',
         'subtitle' => 'Traitement inline des dossiers (sans modal).',
-        'annee' => trim((string) ($_SESSION['global_annee_selected'] ?? '')),
+        'annee' => \FormattingUtils::formatPromotion(trim((string) ($_SESSION['global_annee_selected'] ?? ''))),
         'icon' => 'fa-folder-open',
     ]);
     if ($allYearsSelected) {
@@ -127,23 +127,25 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
     <div class="cm-grid-3 cm-mb-md">
         <?php
         cm_component('dashboard/stat-widget', [
-            'value' => (string) ((int) ($statistiques['total'] ?? 0)),
             'value' => (string) ((int) ($statsRapports['total'] ?? 0)),
             'label' => 'En attente',
             'icon' => 'fa-list-check',
             'color' => 'info',
+            'url' => '?page=gestion_dossiers_candidatures&statut=en+attente'
         ]);
         cm_component('dashboard/stat-widget', [
             'value' => (string) ((int) ($statsRapports['approuves'] ?? 0)),
             'label' => 'Validées',
             'icon' => 'fa-circle-check',
             'color' => 'success',
+            'url' => '?page=gestion_dossiers_candidatures&statut=valider'
         ]);
         cm_component('dashboard/stat-widget', [
             'value' => (string) ((int) ($statsRapports['desapprouves'] ?? 0)),
             'label' => 'Rejetées',
             'icon' => 'fa-circle-xmark',
             'color' => 'warning',
+            'url' => '?page=gestion_dossiers_candidatures&statut=rejeter'
         ]);
         ?>
     </div>
@@ -168,7 +170,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                     cm_component('form/input-text', [
                         'name' => 'traitement_etudiant',
                         'id' => 'cmTraitementEtudiant',
-                        'label' => 'Etudiant',
+                        'label' => 'Étudiant',
                         'readonly' => true,
                     ]);
                     cm_component('form/input-date', [
@@ -256,7 +258,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                                 'in_table' => true,
                                 'colspan' => 10,
                                 'title' => '',
-                                'message' => 'Aucun dossier de candidature en attente pour l annee selectionnee.',
+                                'message' => 'Aucun dossier de candidature en attente pour l\'année sélectionnée.',
                             ]); ?>
                         <?php else: ?>
                             <?php foreach ($rowsPage as $row): ?>
@@ -577,7 +579,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                 if (deleteBtn.disabled) {
                     return;
                 }
-                window.alert('Suppression multiple indisponible sur cet ecran.');
+                window.alert('Suppression multiple indisponible sur cet écran.');
             });
         }
         const exportBtn = document.getElementById('cmExportCandidatures');

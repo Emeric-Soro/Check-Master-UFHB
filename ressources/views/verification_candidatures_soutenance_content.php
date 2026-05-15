@@ -10,8 +10,8 @@ foreach (\AcademicYear::fetchAll(Database::getConnection()) as $academicYear) {
     $academicYearLabels[(int) ($academicYear['id'] ?? 0)] = (string) ($academicYear['label'] ?? '');
 }
 
-// Charger le modèle Approuver si disponible
-require_once __DIR__ . '/../../app/models/Approuver.php';
+// Charger le modèle Valider pour les décisions
+require_once __DIR__ . '/../../app/models/Valider.php';
 
 // Fonction pour obtenir la classe CSS du statut
 function getStatutClass($statut)
@@ -460,6 +460,7 @@ function traduireStatut($statut)
                                 if ($promotionLabel === '' && !empty($rapport->id_annee_acad)) {
                                     $promotionLabel = $academicYearLabels[(int) $rapport->id_annee_acad] ?? '-';
                                 }
+                                $promotionLabel = \FormattingUtils::formatPromotion($promotionLabel);
                                 ?>
                                 <tr class="cm-data-table__row">
                                     <td class="cm-data-table__td">
@@ -497,17 +498,17 @@ function traduireStatut($statut)
                                     // Récupérer l'approbation la plus récente si elle existe
                                     $approb = null;
                                     try {
-                                        $apprList = Approuver::getByRapport($rapport->id_rapport);
+                                        $apprList = Valider::getByRapport($rapport->id_rapport);
                                         if (!empty($apprList)) {
                                             $last = end($apprList);
-                                            $approb = isset($last['decision']) ? $last['decision'] : ($last->decision ?? null);
+                                            $approb = is_array($last) ? ($last['decision_validation'] ?? null) : ($last->decision_validation ?? null);
                                         }
                                     } catch (Exception $e) {
-                                        $approb = null; // en cas d'erreur, considérer comme non approuvé
+                                        $approb = null;
                                     }
                                     ?>
                                     <td class="text-center">
-                                        <?php if ($approb === 'approuve'): ?>
+                                        <?php if ($approb === 'valider'): ?>
                                             <span
                                                 class="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-semibold">
                                                 <i class="fas fa-check mr-2"></i> Approuvé

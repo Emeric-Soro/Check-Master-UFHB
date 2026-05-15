@@ -79,7 +79,7 @@ $alertItems = [
 cm_component('layout/page-header', [
     'title' => '',
     'subtitle' => 'Pilotage global des étudiants, paiements et réclamations.',
-    'annee' => $anneeLabel,
+    'annee' => \FormattingUtils::formatPromotion($anneeLabel),
     'icon' => 'fa-school',
 ]);
 ?>
@@ -92,10 +92,8 @@ cm_component('layout/page-header', [
             'subtitle' => 'Étudiants inscrits',
             'icon' => 'fa-users',
             'color' => 'primary',
+            'url' => canView() ? '?page=maj_etudiant' : ''
         ]); ?>
-        <?php if (canView()): ?>
-            <a class="cm-stat-card__link" href="?page=maj_etudiant" data-cm-ajax-link="true">Voir ▸</a>
-        <?php endif; ?>
     </div>
 
     <div>
@@ -105,11 +103,8 @@ cm_component('layout/page-header', [
             'subtitle' => 'Nouvelles inscriptions (7j)',
             'icon' => 'fa-user-plus',
             'color' => 'info',
+            'url' => canView() ? $kpiNouvellesInscriptionsUrl : ''
         ]); ?>
-        <?php if (canView()): ?>
-            <a class="cm-stat-card__link" href="<?= htmlspecialchars($kpiNouvellesInscriptionsUrl, ENT_QUOTES, 'UTF-8') ?>"
-                data-cm-ajax-link="true">Voir ▸</a>
-        <?php endif; ?>
     </div>
 
     <div>
@@ -119,10 +114,8 @@ cm_component('layout/page-header', [
             'subtitle' => 'Versements enregistrés',
             'icon' => 'fa-money-bill-wave',
             'color' => 'success',
+            'url' => canView() ? '?page=gestion_scolarite' : ''
         ]); ?>
-        <?php if (canView()): ?>
-            <a class="cm-stat-card__link" href="?page=gestion_scolarite" data-cm-ajax-link="true">Voir ▸</a>
-        <?php endif; ?>
     </div>
 
     <div>
@@ -132,10 +125,8 @@ cm_component('layout/page-header', [
             'subtitle' => 'Réclamations + reste à payer',
             'icon' => 'fa-triangle-exclamation',
             'color' => 'warning',
+            'url' => canView() ? '?page=gestion_reclamations_scolarite' : ''
         ]); ?>
-        <?php if (canView()): ?>
-            <a class="cm-stat-card__link" href="?page=gestion_reclamations_scolarite" data-cm-ajax-link="true">Voir ▸</a>
-        <?php endif; ?>
     </div>
 </div>
 

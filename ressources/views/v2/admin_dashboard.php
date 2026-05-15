@@ -97,7 +97,7 @@ try {
                             p.date_creation
                         FROM pister p
                         LEFT JOIN utilisateur u ON u.id_utilisateur = p.id_utilisateur
-                        WHERE (p.action = 'Connexion' OR p.action = 'Accès' OR p.action = 'Acces')
+                        WHERE (p.action = 'Connexion' OR p.action = 'Accès' OR p.action = 'Accès')
                           AND p.statut_action = 'Succès'
                         ORDER BY p.date_creation DESC
                         LIMIT 10";
@@ -114,7 +114,7 @@ try {
         $recentActivityItems[] = [
             'type' => 'info',
             'icon' => 'fa-right-to-bracket',
-            'text' => 'Connexion reussie: ' . (string) ($login['nom_utilisateur'] ?? 'Utilisateur'),
+            'text' => 'Connexion réussie: ' . (string) ($login['nom_utilisateur'] ?? 'Utilisateur'),
             'time' => $formattedDate,
         ];
     }
@@ -214,19 +214,54 @@ try {
 <section class="cm-prd3-screen">
     <div class="cm-grid cm-dashboard-stats-grid-5">
         <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format($activeUsers, 0, ',', ' '), 'label' => 'Utilisateurs actifs', 'icon' => 'fa-user-check', 'color' => 'primary']); ?>
+            <?php cm_component('dashboard/stat-widget', [
+                'value' => number_format($activeUsers, 0, ',', ' '),
+                'label' => 'Utilisateurs actifs',
+                'icon' => 'fa-user-check',
+                'color' => 'primary',
+                'url' => '?page=gestion_utilisateurs',
+                'ajax' => true
+            ]); ?>
         </div>
         <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format($totalStudents, 0, ',', ' '), 'label' => 'Total Etudiants', 'icon' => 'fa-user-graduate', 'color' => 'info']); ?>
+            <?php cm_component('dashboard/stat-widget', [
+                'value' => number_format($totalStudents, 0, ',', ' '),
+                'label' => 'Total Etudiants',
+                'icon' => 'fa-user-graduate',
+                'color' => 'info',
+                'url' => '?page=maj_etudiant',
+                'ajax' => true
+            ]); ?>
         </div>
         <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format($totalTeachers, 0, ',', ' '), 'label' => 'Total Enseignants', 'icon' => 'fa-chalkboard-teacher', 'color' => 'success']); ?>
+            <?php cm_component('dashboard/stat-widget', [
+                'value' => number_format($totalTeachers, 0, ',', ' '),
+                'label' => 'Total Enseignants',
+                'icon' => 'fa-chalkboard-teacher',
+                'color' => 'success',
+                'url' => '?page=repertoire_enseignant',
+                'ajax' => true
+            ]); ?>
         </div>
         <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format($totalStaff, 0, ',', ' '), 'label' => 'Total Personnel Admin', 'icon' => 'fa-user-tie', 'color' => 'warning']); ?>
+            <?php cm_component('dashboard/stat-widget', [
+                'value' => number_format($totalStaff, 0, ',', ' '),
+                'label' => 'Total Personnel Admin',
+                'icon' => 'fa-user-tie',
+                'color' => 'warning',
+                'url' => '?page=gestion_rh',
+                'ajax' => true
+            ]); ?>
         </div>
         <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format($errors24h, 0, ',', ' '), 'label' => 'Erreurs 24h', 'icon' => 'fa-triangle-exclamation', 'color' => 'danger']); ?>
+            <?php cm_component('dashboard/stat-widget', [
+                'value' => number_format($errors24h, 0, ',', ' '),
+                'label' => 'Erreurs 24h',
+                'icon' => 'fa-triangle-exclamation',
+                'color' => 'danger',
+                'url' => '?page=piste_audit&statut=Erreur',
+                'ajax' => true
+            ]); ?>
         </div>
     </div>
 

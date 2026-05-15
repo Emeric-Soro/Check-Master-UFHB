@@ -196,7 +196,9 @@ const PlanningSoutenance = {
             date_to: dateTo ?? (f.date_to || null),
         };
 
-        this.showLoadingModal('Génération du planning PDF en cours…');
+        const calContainer = document.getElementById('planningCalendar');
+        const originalCalHtml = calContainer ? calContainer.innerHTML : '';
+        this.showInlineLoading(calContainer, 'Génération du planning PDF en cours…');
 
         try {
             const res = await fetch('layout.php?page=programmation_soutenance&action=generatePlanningPdf', {
@@ -205,16 +207,25 @@ const PlanningSoutenance = {
                 body: JSON.stringify(body),
             });
             const json = await res.json();
-            this.hideLoadingModal();
+
+            if (calContainer) calContainer.innerHTML = originalCalHtml;
 
             if (json.success) {
-                this.showSuccessModal(json.reference, json.download_url);
+                this.showPlanningToast(json.reference, json.download_url);
             } else {
-                alert('Erreur : ' + (json.error ?? 'Inconnue'));
+                if (window.CM && window.CM.toast) {
+                    window.CM.toast.show('Erreur : ' + (json.error ?? 'Inconnue'), 'error');
+                } else {
+                    alert('Erreur : ' + (json.error ?? 'Inconnue'));
+                }
             }
         } catch (e) {
-            this.hideLoadingModal();
-            alert('Erreur réseau lors de la génération.');
+            if (calContainer) calContainer.innerHTML = originalCalHtml;
+            if (window.CM && window.CM.toast) {
+                window.CM.toast.show('Erreur réseau lors de la génération.', 'error');
+            } else {
+                alert('Erreur réseau lors de la génération.');
+            }
         }
     },
 
@@ -222,42 +233,27 @@ const PlanningSoutenance = {
         this.generatePdf(date, date);
     },
 
-    // ─── Modals ─────────────────────────────────────────────────────────────
+    // ─── Loading / Success (inline + toast) ─────────────────────────────────
 
-    showLoadingModal(message) {
-        const overlay = document.createElement('div');
-        overlay.id = 'planningLoadingOverlay';
-        overlay.className = 'cm-planning-modal-overlay';
-        overlay.innerHTML = `
-            <div class="cm-planning-modal cm-text-center">
-                <i class="fas fa-spinner fa-spin fa-2x" style="margin-bottom:12px;color:var(--cm-primary,#3273DC)"></i>
-                <p>${message}</p>
-            </div>`;
-        document.body.appendChild(overlay);
+    showInlineLoading(container, message) {
+        if (!container) return;
+        container.innerHTML = `<div class="cm-empty-state"><i class="fas fa-spinner fa-spin fa-2x" style="margin-bottom:12px;color:var(--cm-primary,#3273DC)"></i><p>${this.escHtml(message)}</p></div>`;
     },
 
-    hideLoadingModal() {
-        document.getElementById('planningLoadingOverlay')?.remove();
-    },
-
-    showSuccessModal(reference, downloadUrl) {
-        const overlay = document.createElement('div');
-        overlay.id = 'planningSuccessOverlay';
-        overlay.className = 'cm-planning-modal-overlay';
-        overlay.innerHTML = `
-            <div class="cm-planning-modal" style="max-width:460px">
-                <h3 style="margin:0 0 8px"><i class="fas fa-check-circle" style="color:var(--cm-success,#48c774)"></i> Planning généré</h3>
-                <p>Référence : <strong>${this.escHtml(reference)}</strong></p>
-                <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
-                    <a href="${downloadUrl}" target="_blank" class="cm-btn is-primary" download>
-                        <i class="fas fa-download"></i> Télécharger
-                    </a>
-                    <button type="button" class="cm-btn is-light" onclick="document.getElementById('planningSuccessOverlay').remove()">
-                        Fermer
-                    </button>
-                </div>
-            </div>`;
-        document.body.appendChild(overlay);
+    showPlanningToast(reference, downloadUrl) {
+        if (window.CM && window.CM.toast) {
+            window.CM.toast.show('Planning PDF généré — Réf. ' + this.escHtml(reference || ''), 'success', 6000);
+        }
+        // Déclencher le téléchargement automatiquement
+        if (downloadUrl && downloadUrl !== '#') {
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
     },
 
     // ─── Utilitaires ────────────────────────────────────────────────────────

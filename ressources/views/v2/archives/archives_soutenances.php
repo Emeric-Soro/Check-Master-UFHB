@@ -115,7 +115,7 @@ $filters     = $data['filters'] ?? [];
                                         <strong><?= htmlspecialchars($s['etudiant']) ?></strong>
                                         <br><small class="cm-text-muted"><?= htmlspecialchars($s['num_carte_etud']) ?></small>
                                     </td>
-                                    <td><?= htmlspecialchars($s['promotion_etu']) ?></td>
+                                    <td><?= htmlspecialchars(\FormattingUtils::formatPromotion($s['promotion_etu'])) ?></td>
                                     <td>
                                         <span title="<?= htmlspecialchars($s['theme_soutenance']) ?>">
                                             <?= htmlspecialchars(mb_strimwidth($s['theme_soutenance'], 0, 50, '…')) ?>

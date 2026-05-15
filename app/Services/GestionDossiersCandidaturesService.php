@@ -5,14 +5,12 @@ namespace CheckMaster\Services;
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/Etudiant.php';
-require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use RapportEtudiant;
 use Etudiant;
-use Approuver;
 use PersAdmin;
 use AuditLog;
 use PDO;
@@ -33,7 +31,6 @@ class GestionDossiersCandidaturesService
     private $db;
     private $rapportModel;
     private $etudiant;
-    private $approuver;
     private $persAdmin;
     private $auditLog;
     private $tableExistsCache = [];
@@ -44,7 +41,6 @@ class GestionDossiersCandidaturesService
         $this->db = $db;
         $this->rapportModel = new RapportEtudiant($db);
         $this->etudiant = new Etudiant($db);
-        $this->approuver = new Approuver($db);
         $this->persAdmin = new PersAdmin($db);
         $this->auditLog = new AuditLog($db);
     }
@@ -141,40 +137,7 @@ class GestionDossiersCandidaturesService
             : ($this->columnExists('rapport_etudiants', 'date_redaction_rapport') ? 'r.date_redaction_rapport' : 'NULL');
         $yearFilter = $this->yearCondition('e');
 
-        if ($this->tableExists('approuver')) {
-            $sql = "
-                SELECT 
-                    r.id_rapport,
-                    {$titleColumn} as titre_rapport,
-                    r.theme_rapport,
-                    {$dateColumn} as date_depot,
-                    r.statut_rapport,
-                    " . $this->studentCarteExpr('e') . " as num_etu,
-                    e.nom_etu,
-                    e.prenom_etu,
-                    e.email_etu,
-                    (
-                        SELECT i.id_annee_acad
-                        FROM inscriptions i
-                        WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . "
-                        ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
-                        LIMIT 1
-                    ) AS id_annee_acad,
-                    e.promotion_etu,
-                    a.date_approv as date_approbation,
-                    a.commentaire_approv as commentaire,
-                    a.decision as statut_approbation,
-                    pa.nom_pers_admin,
-                    pa.prenom_pers_admin
-                FROM rapport_etudiants r
-                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
-                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-                LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
-                WHERE a.decision IN ('approuve', 'desapprouve')
-                {$yearFilter['sql']}
-                ORDER BY a.date_approv DESC
-            ";
-        } elseif ($this->tableExists('valider')) {
+        if ($this->tableExists('valider')) {
             $sql = "
                 SELECT 
                     r.id_rapport,
@@ -227,46 +190,7 @@ class GestionDossiersCandidaturesService
     public function getStatistiques()
     {
         $yearFilter = $this->yearCondition('e');
-        if ($this->tableExists('approuver')) {
-            // Total des rapports vérifiés
-            $sql = "
-                SELECT COUNT(*) as total
-                FROM rapport_etudiants r
-                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
-                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-                WHERE a.decision IN ('approuve', 'desapprouve')
-                {$yearFilter['sql']}
-            ";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($yearFilter['params']);
-            $total = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
-
-            // Rapports approuvés
-            $sql = "
-                SELECT COUNT(*) as approuves
-                FROM rapport_etudiants r
-                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
-                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-                WHERE a.decision = 'approuve'
-                {$yearFilter['sql']}
-            ";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($yearFilter['params']);
-            $approuves = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['approuves'] ?? 0);
-
-            // Rapports désapprouvés
-            $sql = "
-                SELECT COUNT(*) as desapprouves
-                FROM rapport_etudiants r
-                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
-                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-                WHERE a.decision = 'desapprouve'
-                {$yearFilter['sql']}
-            ";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($yearFilter['params']);
-            $desapprouves = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['desapprouves'] ?? 0);
-        } elseif ($this->tableExists('valider')) {
+        if ($this->tableExists('valider')) {
             $sql = "
                 SELECT COUNT(*) as total
                 FROM rapport_etudiants r
@@ -328,28 +252,7 @@ class GestionDossiersCandidaturesService
             : ($this->columnExists('rapport_etudiants', 'date_redaction_rapport') ? 'r.date_redaction_rapport' : 'NULL');
         $yearFilter = $this->yearCondition('e');
 
-        if ($this->tableExists('approuver')) {
-            $sql = "
-                SELECT 
-                    r.*,
-                    {$titleColumn} as nom_rapport,
-                    {$dateColumn} as date_rapport,
-                    e.nom_etu,
-                    e.prenom_etu,
-                    e.email_etu,
-                    a.date_approv as date_approbation,
-                    a.commentaire_approv as commentaire,
-                    a.decision as statut_approbation,
-                    pa.nom_pers_admin,
-                    pa.prenom_pers_admin
-                FROM rapport_etudiants r
-                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
-                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-                LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
-                WHERE r.id_rapport = :id_rapport
-                {$yearFilter['sql']}
-            ";
-        } elseif ($this->tableExists('valider')) {
+        if ($this->tableExists('valider')) {
             $sql = "
                 SELECT 
                     r.*,

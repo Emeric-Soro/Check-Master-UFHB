@@ -27,7 +27,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['action']))
     }
 }
 
-$soutenances = $controller->getSoutenancesProgrammeesForView();
+$soutenances = array_map(static function (array $row): array {
+    $row['promotion_etu'] = FormattingUtils::formatPromotion((string) ($row['promotion_etu'] ?? ''));
+    $row['promotion_label'] = FormattingUtils::formatPromotion((string) ($row['promotion_label'] ?? ''));
+    return $row;
+}, $controller->getSoutenancesProgrammeesForView());
 $criteres = $controller->getCriteresEvaluation();
 
 $anneesAcademiques = $controller->getAnneesAcademiques();
@@ -73,7 +77,7 @@ foreach ($soutenances as $soutenance) {
     if ($num === '') {
         continue;
     }
-    $label = trim((string) ($soutenance['nom_etudiant'] ?? 'Etudiant')) . ' - ' . trim((string) ($soutenance['matricule_etudiant'] ?? $num));
+    $label = trim((string) ($soutenance['nom_etudiant'] ?? 'Étudiant')) . ' - ' . trim((string) ($soutenance['matricule_etudiant'] ?? $num));
     $soutenanceOptions[$num] = $label;
 }
 ?>
@@ -90,31 +94,7 @@ foreach ($soutenances as $soutenance) {
 
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur is-compact">
-            <style>
-/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
-#cmEvalSoutForm .cm-form-group:has(#FIELD_ID) {
-    width: 10ch !important;
-    min-width: 10ch !important;
-    max-width: 10ch !important;
-}
 
-.cm-eval-sout-toolbar .cm-toolbar-left {
-    flex: 1 1 20rem !important;
-}
-
-.cm-eval-sout-toolbar .cm-toolbar-center {
-    flex: 1 1 28rem !important;
-}
-
-.cm-eval-sout-toolbar .cm-toolbar-right {
-    flex: 0 0 auto !important;
-}
-
-.cm-eval-sout-toolbar .cm-toolbar-left .cm-toolbar-field-lg {
-    min-width: 13rem !important;
-    max-width: 18rem !important;
-}
-</style>
 <form id="cmEvalSoutForm" method="POST" action="?page=evaluation_soutenance" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" name="action" value="evaluerSoutenance">
@@ -125,7 +105,7 @@ foreach ($soutenances as $soutenance) {
                     cm_component('form/select', [
                         'name' => 'cm_eval_soutenance',
                         'id' => 'cmEvalSoutenanceSelect',
-                        'label' => 'Etudiant',
+                        'label' => 'Étudiant',
                         'required' => true,
                         'options' => $soutenanceOptions,
                         'control_class' => 'cm-field-lg cm-size-personne',
@@ -143,20 +123,20 @@ foreach ($soutenances as $soutenance) {
                 cm_component('form/textarea', [
                     'name' => 'cm_eval_theme',
                     'id' => 'cmEvalTheme',
-                    'label' => 'Theme',
+                    'label' => 'Thème',
                     'readonly' => true,
                     'rows' => 2,
                     'control_class' => 'cm-field-full cm-size-theme',
                 ]);
                 ?>
 
-                <p class="cm-text-sm cm-text-muted cm-m-0" id="cmEvalSelectedLabel">Soutenance selectionnee: -</p>
+                <p class="cm-text-sm cm-text-muted cm-m-0" id="cmEvalSelectedLabel">Soutenance sélectionnée: -</p>
                 <div class="cm-grid-3">
                     <?php
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_president',
                         'id' => 'cmProgPresident',
-                        'label' => 'President du jury',
+                        'label' => 'Président du jury',
                         'required' => true,
                         'readonly' => true,
                         'control_class' => 'cm-field-lg cm-size-personne',
@@ -210,7 +190,7 @@ foreach ($soutenances as $soutenance) {
                     'name_prefix' => 'criteres',
                     'id_prefix' => 'cmEval',
                     'commentaire_name' => 'commentaire_general',
-                    'commentaire_label' => 'Commentaire general',
+                    'commentaire_label' => 'Commentaire général',
                     'show_header' => false,
                     'show_buttons' => false,
                     'show_commentaire' => false,
@@ -222,14 +202,14 @@ foreach ($soutenances as $soutenance) {
                         <?php cm_component('form/select', [
                             'name' => 'cm_eval_decision',
                             'id' => 'cmEvalDecision',
-                            'label' => 'Decision',
-                            'options' => ['admis' => 'Admis', 'ajourne' => 'Ajourne'],
+                            'label' => 'Décision',
+                            'options' => ['admis' => 'Admis', 'ajourne' => 'Ajourné'],
                             'control_class' => 'cm-field-sm cm-size-salle',
                         ]); ?>
                     </div>
 
                     <div class="cm-form-group">
-                        <label class="cm-form-label" for="cmEvalComment">Commentaire general</label>
+                        <label class="cm-form-label" for="cmEvalComment">Commentaire général</label>
                         <textarea id="cmEvalComment" name="commentaire_general" class="cm-form-control cm-field-full cm-size-commentaire"
                             rows="2"></textarea>
                     </div>
@@ -255,49 +235,23 @@ foreach ($soutenances as $soutenance) {
         </div>
 
         <div class="cm-barre-intermediaire">
-            <div class="cm-toolbar cm-eval-sout-toolbar">
-                <div class="cm-toolbar-left">
-                    <label for="cmEvalSoutLimit"><strong>Afficher:</strong></label>
-                    <select id="cmEvalSoutLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
-                        data-cm-ajax-param="limit_eval_sout" data-cm-ajax-reset-param="page_eval_sout"
-                        data-cm-ajax-reset-value="1">
-                        <?php foreach ($allowedLimits as $limit): ?>
-                            <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
-                                <?php echo $limit; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <input type="text" id="cmEvalSoutSearch" class="cm-form-control cm-toolbar-field-lg"
-                        placeholder="Rechercher une soutenance...">
-                </div>
-
-                <div class="cm-toolbar-center">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmEvalSoutSelectAllBtn">
-                        <i class="fas fa-square-check" aria-hidden="true"></i>
-                        Select. tout
-                    </button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmEvalSoutDeselectBtn">
-                        <i class="fas fa-square" aria-hidden="true"></i>
-                        Deselect.
-                    </button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmEvalSoutDeleteBtn" disabled>
-                        <i class="fas fa-trash" aria-hidden="true"></i>
-                        Supprimer (0)
-                    </button>
-                    <button type="button" class="cm-btn is-info is-sm" id="cmEvalSoutExport">
-                        <i class="fas fa-file-export" aria-hidden="true"></i>
-                        Export
-                    </button>
-                </div>
-
-                <div class="cm-toolbar-right">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmEvalSoutPrint">
-                        <i class="fas fa-print" aria-hidden="true"></i>
-                        Imprimer
-                    </button>
-                </div>
-            </div>
+            <?php cm_toolbar([
+                'screen' => 'evaluation_soutenance',
+                'id_prefix' => 'cmEvalSout',
+                'limit' => $perPage,
+                'limit_options' => $allowedLimits,
+                'search_placeholder' => 'Rechercher une soutenance...',
+                'custom_actions' => [
+                    [
+                        'tag' => 'button',
+                        'id' => 'cmEvalSoutExport',
+                        'label' => 'Export',
+                        'icon' => 'fa-file-export',
+                        'class' => 'cm-btn is-info is-sm',
+                        'attrs' => ['data-cm-toolbar-action' => 'export']
+                    ]
+                ]
+            ]); ?>
         </div>
 
         <div class="cm-pole-inferieur">
@@ -324,7 +278,7 @@ foreach ($soutenances as $soutenance) {
                                 'in_table' => true,
                                 'colspan' => 8,
                                 'title' => 'Aucune soutenance',
-                                'message' => 'Aucune soutenance programmee disponible.',
+                                'message' => 'Aucune soutenance programmée disponible.',
                             ]); ?>
                         <?php else: ?>
                             <?php foreach ($rowsToShow as $index => $soutenance): ?>
@@ -370,7 +324,7 @@ foreach ($soutenances as $soutenance) {
                                     <td class="cm-data-table__td"><?php echo (int) ($pagination['offset'] ?? 0) + $index + 1; ?>
                                     </td>
                                     <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars((string) ($soutenance['nom_etudiant'] ?? 'Etudiant'), ENT_QUOTES, 'UTF-8'); ?><br>
+                                        <?php echo htmlspecialchars((string) ($soutenance['nom_etudiant'] ?? 'Étudiant'), ENT_QUOTES, 'UTF-8'); ?><br>
                                         <small><?php echo htmlspecialchars((string) ($soutenance['matricule_etudiant'] ?? $numEtu), ENT_QUOTES, 'UTF-8'); ?></small>
                                     </td>
                                     <td class="cm-data-table__td">
@@ -578,7 +532,7 @@ foreach ($soutenances as $soutenance) {
             if (directeurInput) directeurInput.value = '';
             if (encadreurInput) encadreurInput.value = '';
             if (maitreStageInput) maitreStageInput.value = '';
-            if (selectedLabel) selectedLabel.textContent = 'Soutenance selectionnee: -';
+            if (selectedLabel) selectedLabel.textContent = 'Soutenance sélectionnée: -';
             const commentaireEl = document.getElementById('cmEvalComment');
             if (commentaireEl) {
                 commentaireEl.value = '';
@@ -646,7 +600,7 @@ foreach ($soutenances as $soutenance) {
             const heurePart = formatTimeFr(info.heure_soutenance);
             const dateHeure = [datePart, heurePart].filter(Boolean).join(' ');
             if (selectedLabel) {
-                selectedLabel.textContent = 'Soutenance selectionnee: ' + (info.nom_etudiant || 'Etudiant') + ' - ' + (dateHeure || '-');
+                selectedLabel.textContent = 'Soutenance sélectionnée: ' + (info.nom_etudiant || 'Étudiant') + ' - ' + (dateHeure || '-');
             }
 
             const commentaireEl = document.getElementById('cmEvalComment');
@@ -865,7 +819,7 @@ foreach ($soutenances as $soutenance) {
                             setAlert('error', payload && payload.message ? payload.message : 'Suppression impossible.');
                             return;
                         }
-                        setAlert('success', payload.message || 'Evaluation supprimee.');
+                        setAlert('success', payload.message || 'Évaluation supprimée.');
                         if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
                             window.CM.ajax.load(window.location.href, { replaceHistory: true, skipHistory: true });
                         } else {
@@ -873,7 +827,7 @@ foreach ($soutenances as $soutenance) {
                         }
                     })
                     .catch(function () {
-                        setAlert('error', 'Erreur reseau.');
+                        setAlert('error', 'Erreur réseau.');
                     });
             });
         });
@@ -915,14 +869,14 @@ foreach ($soutenances as $soutenance) {
                         }
                     })
                     .catch(function () {
-                        setAlert('error', 'Erreur reseau.');
+                        setAlert('error', 'Erreur réseau.');
                     });
             });
         }
 
         if (exportBtn) {
             exportBtn.addEventListener('click', function () {
-                const headers = ['N', 'Etudiant', 'Date soutenance', 'Moyenne', 'Mention', 'Commentaire'];
+                const headers = ['N', 'Étudiant', 'Date soutenance', 'Moyenne', 'Mention', 'Commentaire'];
                 const csvRows = [headers.join(';')];
 
                 getVisibleRows().forEach(function (row) {

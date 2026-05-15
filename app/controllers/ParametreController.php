@@ -62,7 +62,6 @@ if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !can
     //=============================GESTION FONCTION UTILISATEUR=============================
     public function gestionFonctionUtilisateur()
     {
-        $result = $this->service->gestionFonctionUtilisateur($_POST, $_GET, $_SESSION['id_utilisateur']);
 if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
@@ -74,6 +73,7 @@ if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !can
             header('Location: layout.php?page=access_denied');
             exit;
         }
+        $result = $this->service->gestionFonctionUtilisateur($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
         }
@@ -106,7 +106,6 @@ if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !can
     //=============================GESTION NIVEAU ETUDE=============================
     public function gestionNiveauEtude()
     {
-        $result = $this->service->gestionNiveauEtude($_POST, $_GET, $_SESSION['id_utilisateur']);
 if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !canDelete('parametres_generaux')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
@@ -118,6 +117,7 @@ if (!canCreate('parametres_generaux') && !canEdit('parametres_generaux') && !can
             header('Location: layout.php?page=access_denied');
             exit;
         }
+        $result = $this->service->gestionNiveauEtude($_POST, $_GET, $_SESSION['id_utilisateur']);
         foreach ($result as $key => $value) {
             $GLOBALS[$key] = $value;
         }

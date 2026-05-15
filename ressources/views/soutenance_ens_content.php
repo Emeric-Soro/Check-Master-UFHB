@@ -157,7 +157,8 @@ $filterResetUrl = '?page=' . rawurlencode($currentPageSlug);
                 Programme des soutenances enseignant
             </h3>
             <p class="cm-text-muted">
-                <small>Contexte d'affichage : <?= htmlspecialchars($pageSummary !== '' ? $pageSummary : $writeYearLabel, ENT_QUOTES, 'UTF-8') ?></small>
+                <small>Contexte d'affichage :
+                    <?= htmlspecialchars($pageSummary !== '' ? $pageSummary : $writeYearLabel, ENT_QUOTES, 'UTF-8') ?></small>
             </p>
         </div>
         <div class="cm-card__body">
@@ -182,7 +183,8 @@ $filterResetUrl = '?page=' . rawurlencode($currentPageSlug);
                                 <i class="fas fa-filter cm-mr-sm" aria-hidden="true"></i>
                                 Filtrer
                             </button>
-                            <a href="<?= htmlspecialchars($filterResetUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn is-light is-sm">
+                            <a href="<?= htmlspecialchars($filterResetUrl, ENT_QUOTES, 'UTF-8') ?>"
+                                class="cm-btn is-light is-sm">
                                 Reinitialiser
                             </a>
                         </div>
@@ -207,39 +209,57 @@ $filterResetUrl = '?page=' . rawurlencode($currentPageSlug);
     </div>
 
     <?php if ($teacherId !== ''): ?>
-        <div class="cm-barre-intermediaire">
-            <div class="cm-toolbar cm-toolbar--unified cm-toolbar--space-between">
-                <div class="cm-toolbar-left">
-                    <label class="cm-toolbar__control">
-                        <span>Afficher:</span>
-                        <select id="cmProgEnsLimit" name="limit_prog" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
-                            <?php foreach ($allowedLimits as $limitOption): ?>
-                                <option value="<?= $limitOption ?>" <?= $limitOption === $perPage ? 'selected' : '' ?>><?= $limitOption ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <span class="cm-text-muted"><small><?= count($filteredAttributions) ?> soutenance(s)</small></span>
-                </div>
-
-                <div class="cm-toolbar-center">
-                    <div class="cm-toolbar__search-wrap">
-                        <i class="fas fa-search cm-toolbar__search-icon" aria-hidden="true"></i>
-                        <input type="search" id="cmProgEnsSearch" class="cm-form-control is-sm cm-toolbar-field-lg"
-                            value="<?= htmlspecialchars((string) ($_GET['search_prog'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                            placeholder="Rechercher un etudiant, un theme, une salle...">
-                    </div>
-                </div>
-
-                <div class="cm-toolbar-right">
-                    <button type="button" id="cmProgEnsPrint" class="cm-btn is-light is-sm">
-                        <span>Imprimer</span>
-                    </button>
-                    <button type="button" id="cmProgEnsExport" class="cm-btn is-secondary is-sm">
-                        <span>Excel</span>
-                    </button>
-                </div>
+        <?php
+        cm_toolbar([
+            'left_html' => static function () use ($allowedLimits, $perPage, $filteredAttributions) {
+                ob_start();
+                ?>
+            <div class="cm-toolbar__actions-group">
+                <label class="cm-toolbar__control">
+                    <span>Afficher:</span>
+                    <select id="cmProgEnsLimit" name="limit_prog"
+                        class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
+                        <?php foreach ($allowedLimits as $limitOption): ?>
+                            <option value="<?= $limitOption ?>" <?= $limitOption === $perPage ? 'selected' : '' ?>><?= $limitOption ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <span class="cm-text-muted"><small><?= count($filteredAttributions) ?> soutenance(s)</small></span>
             </div>
-        </div>
+            <?php
+                return (string) ob_get_clean();
+            },
+            'center_html' => static function () {
+                ob_start();
+                ?>
+            <div class="cm-toolbar__search-wrap">
+                <i class="fas fa-search cm-toolbar__search-icon" aria-hidden="true"></i>
+                <input type="search" id="cmProgEnsSearch" class="cm-form-control is-sm cm-toolbar-field-lg"
+                    value="<?= htmlspecialchars((string) ($_GET['search_prog'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                    placeholder="Rechercher un etudiant, un theme, une salle...">
+            </div>
+            <?php
+                return (string) ob_get_clean();
+            },
+            'right_html' => static function () {
+                ob_start();
+                ?>
+            <div class="cm-toolbar__actions-group">
+                <button type="button" id="cmProgEnsPrint" class="cm-btn is-light is-sm">
+                    <i class="fas fa-print cm-mr-xs"></i>
+                    <span>Imprimer</span>
+                </button>
+                <button type="button" id="cmProgEnsExport" class="cm-btn is-secondary is-sm">
+                    <i class="fas fa-file-excel cm-mr-xs"></i>
+                    <span>Excel</span>
+                </button>
+            </div>
+            <?php
+                return (string) ob_get_clean();
+            }
+        ]);
+        ?>
     <?php endif; ?>
 
     <div class="cm-pole-inferieur">
@@ -302,7 +322,7 @@ $filterResetUrl = '?page=' . rawurlencode($currentPageSlug);
                                 <?php
                                 $nomEtudiant = trim((string) ($row['nom_etudiant'] ?? ''));
                                 $matricule = trim((string) ($row['matricule_etudiant'] ?? ''));
-                                $promotion = trim((string) ($row['promotion_etu'] ?? ''));
+                                $promotion = \FormattingUtils::formatPromotion(trim((string) ($row['promotion_etu'] ?? '')));
                                 $theme = trim((string) ($row['theme_soutenance'] ?? ''));
                                 $dateRaw = (string) ($row['date_soutenance'] ?? '');
                                 $heureRaw = (string) ($row['heure_soutenance'] ?? '');
@@ -326,23 +346,35 @@ $filterResetUrl = '?page=' . rawurlencode($currentPageSlug);
                                     $theme,
                                 ]));
                                 ?>
-                                <tr class="cm-data-table__row" data-search="<?= htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8') ?>">
+                                <tr class="cm-data-table__row"
+                                    data-search="<?= htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8') ?>">
                                     <td class="cm-data-table__td"><?= (int) ($pagination['offset'] ?? 0) + $index + 1 ?></td>
                                     <td class="cm-data-table__td">
                                         <?= htmlspecialchars($nomEtudiant !== '' ? $nomEtudiant : '-', ENT_QUOTES, 'UTF-8') ?><br>
                                         <small><?= htmlspecialchars($matricule !== '' ? $matricule : '-', ENT_QUOTES, 'UTF-8') ?></small>
                                     </td>
-                                    <td class="cm-data-table__td"><?= htmlspecialchars($promotion !== '' ? $promotion : '-', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?= htmlspecialchars($promotion !== '' ? $promotion : '-', ENT_QUOTES, 'UTF-8') ?></td>
                                     <td class="cm-data-table__td"><?= htmlspecialchars($dateDisplay, ENT_QUOTES, 'UTF-8') ?></td>
                                     <td class="cm-data-table__td"><?= htmlspecialchars($heureDisplay, ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td class="cm-data-table__td"><?= htmlspecialchars($salleNom !== '' ? $salleNom : '-', ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td class="cm-data-table__td"><?= htmlspecialchars($teacherRoles !== '' ? $teacherRoles : '-', ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td class="cm-data-table__td"><?= htmlspecialchars((string) ($row['president_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td class="cm-data-table__td"><?= htmlspecialchars((string) ($row['directeur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td class="cm-data-table__td"><?= htmlspecialchars((string) ($row['examinateur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td class="cm-data-table__td"><?= htmlspecialchars((string) ($row['encadreur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td class="cm-data-table__td"><?= htmlspecialchars((string) ($row['maitre_stage_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td class="cm-data-table__td"><?= htmlspecialchars($theme !== '' ? $theme : '-', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?= htmlspecialchars($salleNom !== '' ? $salleNom : '-', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?= htmlspecialchars($teacherRoles !== '' ? $teacherRoles : '-', ENT_QUOTES, 'UTF-8') ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?= htmlspecialchars((string) ($row['president_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?= htmlspecialchars((string) ($row['directeur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?= htmlspecialchars((string) ($row['examinateur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?= htmlspecialchars((string) ($row['encadreur_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?= htmlspecialchars((string) ($row['maitre_stage_nom'] ?? '-'), ENT_QUOTES, 'UTF-8') ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?= htmlspecialchars($theme !== '' ? $theme : '-', ENT_QUOTES, 'UTF-8') ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>

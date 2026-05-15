@@ -18,7 +18,7 @@ $center_class = trim((string) ($center_class ?? ''));
 $right_class = trim((string) ($right_class ?? ''));
 ?>
 <div class="cm-barre-intermediaire">
-    <div class="cm-toolbar<?= $toolbar_class !== '' ? ' ' . htmlspecialchars($toolbar_class, ENT_QUOTES, 'UTF-8') : '' ?>">
+    <div class="cm-toolbar cm-toolbar--unified cm-toolbar--space-between<?= $toolbar_class !== '' ? ' ' . htmlspecialchars($toolbar_class, ENT_QUOTES, 'UTF-8') : '' ?>">
         <div class="cm-toolbar-left<?= $left_class !== '' ? ' ' . htmlspecialchars($left_class, ENT_QUOTES, 'UTF-8') : '' ?>">
             <?php if ($left_html !== ''): ?>
                 <?= $left_html ?>

@@ -77,6 +77,7 @@ include __DIR__ . '/../app/controllers/AuthController.php';
 include __DIR__ . '/../app/controllers/MenuController.php';
 include __DIR__ . '/../app/middlewares/PermissionMiddleware.php';
 include __DIR__ . '/../app/utils/permissions_helper.php';
+include_once __DIR__ . '/../app/utils/FormattingUtils.php';
 include_once __DIR__ . '/../app/utils/ComponentHelper.php';
 include_once __DIR__ . '/../app/utils/FormHelper.php';
 include_once __DIR__ . '/../app/utils/TableHelper.php';
@@ -539,8 +540,8 @@ switch ($currentMenuSlug) {
         break;
     case 'gestion_rapports':
         include __DIR__ . '/../ressources/routes/gestionRapportsRoutes.php';
-        $allowedActions = ['creer_rapport', 'suivi_rapport', 'commentaire_rapport'];
-        $ajaxActions = ['get_commentaires', 'get_rapport'];
+        $allowedActions = ['creer_rapport', 'telecharger_rapport', 'admin_telecharger_rapport'];
+        $ajaxActions = [];
         if (isset($_GET['action'])) {
             if (in_array($_GET['action'], $ajaxActions)) {
                 exit;
@@ -607,8 +608,8 @@ switch ($currentMenuSlug) {
         }
         $allowedActions = ['ajouter_des_etudiants', 'inscrire_des_etudiants'];
         $actionLabels = [
-            'ajouter_des_etudiants' => 'Mise a jour etudiant',
-            'inscrire_des_etudiants' => 'Inscrire des etudiants'
+            'ajouter_des_etudiants' => 'Mise à jour étudiant',
+            'inscrire_des_etudiants' => 'Inscrire des étudiants'
         ];
         if (isset($_GET['action']) && in_array($_GET['action'], $allowedActions)) {
             $currentAction = $_GET['action'];
@@ -1783,11 +1784,11 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         .cm-content-area .cm-prd3-crud-screen .cm-table-wrapper,
         .cm-content-area .cm-prd6-admin-screen .cm-table-wrapper {
             display: block !important;
-            height: clamp(180px, 46vh, 560px) !important;
-            min-height: 180px !important;
-            max-height: 560px !important;
-            overflow-x: scroll !important;
-            overflow-y: scroll !important;
+            height: auto !important;
+            min-height: 200px !important;
+            max-height: 75vh !important;
+            overflow-x: auto !important;
+            overflow-y: auto !important;
             scrollbar-gutter: stable both-edges !important;
             scrollbar-width: auto !important;
             scrollbar-color: #2a8fd4 #d6e6f5 !important;
@@ -1902,6 +1903,18 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
                 max-width: 100%;
             }
         }
+        /* Correction pour cm-screen-scrollable : autorise la liste à descendre naturellement */
+        .cm-screen-scrollable,
+        .cm-screen-scrollable .cm-crud-wrapper,
+        .cm-screen-scrollable .cm-pole-inferieur,
+        .cm-screen-scrollable .cm-table-wrapper {
+            height: auto !important;
+            max-height: none !important;
+            min-height: auto !important;
+            overflow-y: visible !important;
+            overflow-x: auto !important;
+            display: block !important;
+        }
 
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
@@ -1954,7 +1967,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
                     <div class="cm-navbar__year-selector<?= $lockAcademicYearOnNavbar ? ' is-readonly' : '' ?>">
                         <label for="globalAnneeAcademique">Année académique</label>
                         <?php if ($lockAcademicYearOnNavbar): ?>
-                            <div class="cm-navbar__year-display" aria-readonly="true" title="<?= htmlspecialchars((string) $navbarAcademicYearLabel, ENT_QUOTES, 'UTF-8') ?>">
+                            <div id="globalAnneeAcademique" class="cm-navbar__year-display" aria-readonly="true" title="<?= htmlspecialchars((string) $navbarAcademicYearLabel, ENT_QUOTES, 'UTF-8') ?>">
                                 <?= htmlspecialchars((string) $navbarAcademicYearLabel, ENT_QUOTES, 'UTF-8') ?>
                             </div>
                         <?php else: ?>
@@ -1995,10 +2008,8 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             class="cm-content-area cm-layout-main <?php echo $isPolarizedPage ? 'cm-layout-main--locked' : 'cm-layout-main--scroll'; ?>"
             data-page="<?php echo htmlspecialchars((string) $currentMenuSlug, ENT_QUOTES, 'UTF-8'); ?>"
             data-action="<?php echo htmlspecialchars((string) ($currentAction ?? ($_GET['action'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
-            <script
-                src="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('js/components/confirm-modal.js') : 'assets/js/components/confirm-modal.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 
-            <?php // Les variables $globalAcademicYears, $currentGlobalYear, $currentGlobalYearId
+    <?php // Les variables $globalAcademicYears, $currentGlobalYear, $currentGlobalYearId
             // sont calculées en haut du fichier (après database.php) et $_SESSION['global_annee_id'] est déjà défini. ?>
 
 
@@ -2022,8 +2033,6 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             <?php cm_component('ui/toast'); ?>
         </main>
     </div>
-
-    <?php cm_component('ui/confirm-modal'); ?>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -2077,13 +2086,11 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
                     confirmText: confirmText,
                 }).then(function (confirmed) {
                     if (confirmed) {
+                        form.setAttribute('data-cm-confirmed', 'true');
                         form.submit();
                     }
                 });
-                return;
-            }
-
-            if (window.confirm(confirmMessage)) {
+            } else if (window.confirm(confirmMessage)) {
                 form.submit();
             }
         });
@@ -2117,7 +2124,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             });
 
             document.querySelectorAll('.cm-modal-overlay, .cm-etu-modal, .cm-etu-preview-modal, [id$="Modal"]').forEach(function (panel) {
-                if (!panel || panel.id === 'cm-confirm-modal') {
+                if (!panel) {
                     return;
                 }
                 if (!/^(DIV|SECTION|ASIDE|DIALOG)$/i.test(panel.tagName)) {

@@ -35,7 +35,7 @@ class VerificationRapportsController
     }
 
     /**
-     * Valider un rapport (approuver)
+     * Valider un rapport (approuvé par la commission)
      */
     public function validerRapport()
     {
@@ -49,7 +49,7 @@ class VerificationRapportsController
     }
 
     /**
-     * Rejeter un rapport (désapprouver)
+     * Rejeter un rapport (refusé par la commission)
      */
     public function rejeterRapport()
     {

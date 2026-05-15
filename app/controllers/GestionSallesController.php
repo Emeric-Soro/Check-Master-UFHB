@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/GestionSallesService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\GestionSallesService;
 
@@ -23,6 +24,9 @@ class GestionSallesController
      */
     public function ajouterOuModifierSalle($postData)
     {
+        if (!canCreate('salles') && !canEdit('salles')) {
+            return ['success' => false, 'message' => 'Accès non autorisé pour gérer les salles.'];
+        }
         return $this->service->ajouterOuModifierSalle($postData);
     }
 
@@ -34,6 +38,9 @@ class GestionSallesController
      */
     public function supprimerSallesMultiples($selectedIds)
     {
+        if (!canDelete('salles')) {
+            return ['success' => false, 'message' => 'Accès non autorisé pour supprimer des salles.'];
+        }
         return $this->service->supprimerSallesMultiples($selectedIds);
     }
 

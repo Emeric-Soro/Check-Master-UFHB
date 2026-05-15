@@ -98,10 +98,10 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                         <div class="font-semibold">Année académique affichée : <?= htmlspecialchars($selectedYearLabel) ?></div>
                         <div class="text-sm">
                             <?= $allYearsSelected
-                                ? 'Affichage multi-années actif. Les modifications restent possibles uniquement pour les étudiants rattachés à l année active ' . htmlspecialchars($writableYearLabel) . '.'
+                                ? 'Affichage multi-années actif. Les modifications restent possibles uniquement pour les étudiants rattachés à l\'année active ' . htmlspecialchars($writableYearLabel) . '.'
                                 : ($isWritableYear
-                                    ? 'Les dossiers académiques affichés et modifiables correspondent à l année active.'
-                                    : 'Consultation historique uniquement. Les enregistrements restent réservés à l année active ' . htmlspecialchars($activeYearLabel) . '.') ?>
+                                    ? 'Les dossiers académiques affichés et modifiables correspondent à l\'année active.'
+                                    : 'Consultation historique uniquement. Les enregistrements restent réservés à l\'année active ' . htmlspecialchars($activeYearLabel) . '.') ?>
                         </div>
                     </div>
                 </div>

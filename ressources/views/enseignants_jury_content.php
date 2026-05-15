@@ -196,16 +196,44 @@ if (!empty($searchTerm)) {
 <section class="cm-prd3-screen">
     <div class="cm-grid cm-dashboard-stats-grid-4 cm-mb-md">
         <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format($enseignantsJuryPagination['total'] ?? 0, 0, ',', ' '), 'label' => 'Enseignants', 'icon' => 'fa-chalkboard-teacher', 'color' => 'primary']); ?>
+            <?php cm_component('dashboard/stat-widget', [
+                'value' => number_format($enseignantsJuryPagination['total'] ?? 0, 0, ',', ' '), 
+                'label' => 'Enseignants', 
+                'icon' => 'fa-chalkboard-teacher', 
+                'color' => 'primary',
+                'url' => '?page=enseignants_jury',
+                'ajax' => true
+            ]); ?>
         </div>
         <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format((int)($totalStats['total_jurys'] ?? 0), 0, ',', ' '), 'label' => 'Total Jurys', 'icon' => 'fa-gavel', 'color' => 'info']); ?>
+            <?php cm_component('dashboard/stat-widget', [
+                'value' => number_format((int)($totalStats['total_jurys'] ?? 0), 0, ',', ' '), 
+                'label' => 'Total Jurys', 
+                'icon' => 'fa-gavel', 
+                'color' => 'info',
+                'url' => '?page=enseignants_jury&sort=nb_soutenances_jury&direction=DESC',
+                'ajax' => true
+            ]); ?>
         </div>
         <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format((int)($totalStats['total_encadrees'] ?? 0), 0, ',', ' '), 'label' => 'Total Encadrées', 'icon' => 'fa-user-graduate', 'color' => 'success']); ?>
+            <?php cm_component('dashboard/stat-widget', [
+                'value' => number_format((int)($totalStats['total_encadrees'] ?? 0), 0, ',', ' '), 
+                'label' => 'Total Encadrées', 
+                'icon' => 'fa-user-graduate', 
+                'color' => 'success',
+                'url' => '?page=enseignants_jury&sort=nb_soutenances_encadrees&direction=DESC',
+                'ajax' => true
+            ]); ?>
         </div>
         <div>
-            <?php cm_component('dashboard/stat-widget', ['value' => number_format((int)($totalStats['total_dirigees'] ?? 0), 0, ',', ' '), 'label' => 'Total Dirigées', 'icon' => 'fa-user-tie', 'color' => 'warning']); ?>
+            <?php cm_component('dashboard/stat-widget', [
+                'value' => number_format((int)($totalStats['total_dirigees'] ?? 0), 0, ',', ' '), 
+                'label' => 'Total Dirigées', 
+                'icon' => 'fa-user-tie', 
+                'color' => 'warning',
+                'url' => '?page=enseignants_jury&sort=nb_soutenances_dirigees&direction=DESC',
+                'ajax' => true
+            ]); ?>
         </div>
     </div>
     <div class="cm-card">

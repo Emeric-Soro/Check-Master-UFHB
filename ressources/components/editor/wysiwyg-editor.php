@@ -26,7 +26,7 @@ $height_class = $height_map[$height] ?? $height_map['md'];
             <button type="button" data-cmd="underline" aria-label="Souligne"><i class="fas fa-underline" aria-hidden="true"></i></button>
             <span class="cm-editor-toolbar__sep" aria-hidden="true"></span>
             <button type="button" data-cmd="insertUnorderedList" aria-label="Liste"><i class="fas fa-list-ul" aria-hidden="true"></i></button>
-            <button type="button" data-cmd="insertOrderedList" aria-label="Liste ordonnee"><i class="fas fa-list-ol" aria-hidden="true"></i></button>
+            <button type="button" data-cmd="insertOrderedList" aria-label="Liste ordonnée"><i class="fas fa-list-ol" aria-hidden="true"></i></button>
         </div>
 
         <div class="cm-rich-editor <?= htmlspecialchars($height_class, ENT_QUOTES, 'UTF-8') ?>"

@@ -169,7 +169,7 @@ final class RecuGeneratorService
         
         $reglement = match ($versement['type_versement']) {
             'inscription' => 'DROIT D\'INSCRIPTION',
-            'scolarite' => 'FRAIS DE SCOLARITE',
+            'scolarite' => 'FRAIS DE SCOLARITÉ',
             default => strtoupper($versement['type_versement']),
         };
 

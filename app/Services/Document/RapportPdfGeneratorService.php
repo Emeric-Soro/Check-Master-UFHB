@@ -248,7 +248,7 @@ final class RapportPdfGeneratorService
         $entreprise = $this->escapeHtml((string) ($infoStage['nom_entreprise'] ?? 'Entreprise d\'accueil'));
         $maitreStage = trim((string) ($infoStage['nom_maitre_stage'] ?? '') . ' ' . (string) ($infoStage['prenom_maitre_stage'] ?? ''));
         $maitreStage = $this->escapeHtml($maitreStage !== '' ? strtoupper($maitreStage) : 'MAITRE DE STAGE');
-        $theme = $this->escapeHtml((string) ($rapport['theme_rapport'] ?? 'Theme du rapport'));
+        $theme = $this->escapeHtml((string) ($rapport['theme_rapport'] ?? 'Thème du rapport'));
         $nomComplet = $this->escapeHtml($nomComplet !== '' ? $nomComplet : 'ETUDIANT NON RENSEIGNE');
         $academicYear = $this->escapeHtml((string) ($rapport['libelle_annee'] ?? ($rapport['id_annee_acad'] ?? '')));
         $logoUfhb = $this->imageDataUri(__DIR__ . '/../../../public/image/logo_ufhb.png');
@@ -313,7 +313,7 @@ final class RapportPdfGeneratorService
         </tr>
     </table>
 
-    <div style="margin-top:14mm; text-align:center; font-size:10pt; color:#475569;">Annee academique {$academicYear}</div>
+    <div style="margin-top:14mm; text-align:center; font-size:10pt; color:#475569;">Année académique {$academicYear}</div>
 </div>
 HTML;
     }

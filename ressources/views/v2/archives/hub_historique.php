@@ -4,7 +4,7 @@
  * Onglets: Vue d'ensemble | Étudiants | Jurys | Statistiques | Import
  */
 $anneeId = $data['annee_id'] ?? null;
-$anneeLibelle = $data['annee_libelle'] ?? '';
+$anneeLibelle = \FormattingUtils::formatPromotion($data['annee_libelle'] ?? '');
 $annees = $data['annees'] ?? [];
 $activeTab = $data['active_tab'] ?? 'vue_ensemble';
 $stats = $data['stats'] ?? [];
@@ -89,72 +89,30 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
             <!-- Compteurs par catégorie -->
             <div class="cm-grid-3 cm-gap-4 cm-mb-4">
-                <div class="cm-card cm-card-hover cm-p-4">
-                    <div class="cm-flex cm-items-center cm-gap-3">
-                        <div class="cm-icon-box cm-icon-box-primary cm-icon-box-lg">
-                            <i class="fas fa-user-graduate"></i>
-                        </div>
-                        <div>
-                            <p class="cm-text-muted cm-mb-0 cm-text-sm">Étudiants inscrits</p>
-                            <p class="cm-text-2xl cm-font-bold cm-text-primary cm-mb-0"><?= number_format($stats['etudiants'] ?? 0) ?></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="cm-card cm-card-hover cm-p-4">
-                    <div class="cm-flex cm-items-center cm-gap-3">
-                        <div class="cm-icon-box cm-icon-box-success cm-icon-box-lg">
-                            <i class="fas fa-graduation-cap"></i>
-                        </div>
-                        <div>
-                            <p class="cm-text-muted cm-mb-0 cm-text-sm">Soutenances</p>
-                            <p class="cm-text-2xl cm-font-bold cm-text-success cm-mb-0"><?= number_format($stats['soutenances'] ?? 0) ?></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="cm-card cm-card-hover cm-p-4">
-                    <div class="cm-flex cm-items-center cm-gap-3">
-                        <div class="cm-icon-box cm-icon-box-warning cm-icon-box-lg">
-                            <i class="fas fa-gavel"></i>
-                        </div>
-                        <div>
-                            <p class="cm-text-muted cm-mb-0 cm-text-sm">Membres de jury</p>
-                            <p class="cm-text-2xl cm-font-bold cm-text-warning cm-mb-0"><?= number_format($stats['jurys'] ?? 0) ?></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="cm-card cm-card-hover cm-p-4">
-                    <div class="cm-flex cm-items-center cm-gap-3">
-                        <div class="cm-icon-box cm-icon-box-info cm-icon-box-lg">
-                            <i class="fas fa-file-alt"></i>
-                        </div>
-                        <div>
-                            <p class="cm-text-muted cm-mb-0 cm-text-sm">Documents / Rapports</p>
-                            <p class="cm-text-2xl cm-font-bold cm-text-info cm-mb-0"><?= number_format($stats['documents'] ?? 0) ?></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="cm-card cm-card-hover cm-p-4">
-                    <div class="cm-flex cm-items-center cm-gap-3">
-                        <div class="cm-icon-box cm-icon-box-secondary cm-icon-box-lg">
-                            <i class="fas fa-folder-open"></i>
-                        </div>
-                        <div>
-                            <p class="cm-text-muted cm-mb-0 cm-text-sm">Candidatures</p>
-                            <p class="cm-text-2xl cm-font-bold cm-text-secondary cm-mb-0"><?= number_format($stats['candidatures'] ?? 0) ?></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="cm-card cm-card-hover cm-p-4">
-                    <div class="cm-flex cm-items-center cm-gap-3">
-                        <div class="cm-icon-box cm-icon-box-danger cm-icon-box-lg">
-                            <i class="fas fa-exclamation-circle"></i>
-                        </div>
-                        <div>
-                            <p class="cm-text-muted cm-mb-0 cm-text-sm">Réclamations</p>
-                            <p class="cm-text-2xl cm-font-bold cm-text-danger cm-mb-0"><?= number_format($stats['reclamations'] ?? 0) ?></p>
-                        </div>
-                    </div>
-                </div>
+                <?php cm_component('dashboard/stat-widget', [
+                    'label' => 'Étudiants inscrits',
+                    'value' => number_format($stats['etudiants'] ?? 0),
+                    'icon' => 'fa-user-graduate',
+                    'color' => 'primary',
+                    'url' => $tabBase . '&tab=etudiants',
+                    'ajax' => true
+                ]); ?>
+                <?php cm_component('dashboard/stat-widget', [
+                    'label' => 'Candidatures',
+                    'value' => number_format($stats['candidatures'] ?? 0),
+                    'icon' => 'fa-folder-open',
+                    'color' => 'secondary',
+                    'url' => $tabBase . '&tab=etudiants',
+                    'ajax' => true
+                ]); ?>
+                <?php cm_component('dashboard/stat-widget', [
+                    'label' => 'Réclamations',
+                    'value' => number_format($stats['reclamations'] ?? 0),
+                    'icon' => 'fa-exclamation-circle',
+                    'color' => 'danger',
+                    'url' => $tabBase . '&tab=vue_ensemble',
+                    'ajax' => true
+                ]); ?>
             </div>
 
             <!-- Indicateurs clés -->
@@ -169,24 +127,32 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             'value' => ($quickStats['taux_reussite'] ?? 0) . '%',
                             'icon' => 'fa-trophy',
                             'color' => 'success',
+                            'url' => $tabBase . '&tab=statistiques',
+                            'ajax' => true
                         ]); ?>
                         <?php cm_component('dashboard/stat-widget', [
                             'label' => 'Moyenne générale',
                             'value' => ($quickStats['moyenne_generale'] ?? 0) . '/20',
                             'icon' => 'fa-chart-line',
                             'color' => 'primary',
+                            'url' => $tabBase . '&tab=statistiques',
+                            'ajax' => true
                         ]); ?>
                         <?php cm_component('dashboard/stat-widget', [
                             'label' => 'Jours de soutenance',
                             'value' => number_format($quickStats['jours_soutenance'] ?? 0),
                             'icon' => 'fa-calendar-check',
                             'color' => 'info',
+                            'url' => $tabBase . '&tab=jurys',
+                            'ajax' => true
                         ]); ?>
                         <?php cm_component('dashboard/stat-widget', [
                             'label' => 'Rapports déposés',
                             'value' => number_format($quickStats['rapports_deposes'] ?? 0),
                             'icon' => 'fa-file-circle-check',
                             'color' => 'warning',
+                            'url' => $tabBase . '&tab=vue_ensemble',
+                            'ajax' => true
                         ]); ?>
                     </div>
                 </div>
@@ -349,7 +315,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 </td>
                                 <td class="cm-data-table__td"><?= htmlspecialchars((string) ($student['entreprise'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
                                 <td class="cm-data-table__td">
-                                    <small class="cm-text-muted"><?= htmlspecialchars((string) ($student['annee_academique'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></small>
+                                    <small class="cm-text-muted"><?= htmlspecialchars(\FormattingUtils::formatPromotion($student['annee_academique'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small>
                                 </td>
                                 <td class="cm-data-table__td"><?php cm_component('ui/badge', ['text' => $statusLabel, 'type' => $statusType]); ?></td>
                                 <td class="cm-data-table__td is-center">
@@ -453,24 +419,32 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     'value' => (int) ($globalStats['total_students'] ?? 0),
                     'icon' => 'fa-user-graduate',
                     'color' => 'info',
+                    'url' => $tabBase . '&tab=etudiants',
+                    'ajax' => true
                 ]); ?>
                 <?php cm_component('dashboard/stat-widget', [
                     'label' => 'Soutenances (total)',
                     'value' => (int) ($globalStats['total_soutenances'] ?? 0),
                     'icon' => 'fa-chalkboard-teacher',
                     'color' => 'success',
+                    'url' => $tabBase . '&tab=jurys',
+                    'ajax' => true
                 ]); ?>
                 <?php cm_component('dashboard/stat-widget', [
                     'label' => 'Entreprises partenaires',
                     'value' => (int) ($globalStats['total_entreprises'] ?? 0),
                     'icon' => 'fa-building',
                     'color' => 'warning',
+                    'url' => $tabBase . '&tab=statistiques',
+                    'ajax' => true
                 ]); ?>
                 <?php cm_component('dashboard/stat-widget', [
                     'label' => 'Encadreurs',
                     'value' => (int) ($globalStats['total_encadreurs'] ?? 0),
                     'icon' => 'fa-users',
                     'color' => 'primary',
+                    'url' => $tabBase . '&tab=statistiques',
+                    'ajax' => true
                 ]); ?>
             </div>
 
@@ -495,7 +469,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <tbody>
                                 <?php foreach ($yearlyEvolution as $row): ?>
                                 <tr class="cm-data-table__row">
-                                    <td class="cm-data-table__td cm-font-semibold"><?= htmlspecialchars((string) ($row['annee'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td cm-font-semibold"><?= htmlspecialchars(\FormattingUtils::formatPromotion($row['annee'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                                     <td class="cm-data-table__td is-center"><?= (int) ($row['inscrits'] ?? 0) ?></td>
                                     <td class="cm-data-table__td is-center"><?= (int) ($row['admis'] ?? 0) ?></td>
                                     <td class="cm-data-table__td is-center">

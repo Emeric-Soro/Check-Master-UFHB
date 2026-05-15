@@ -159,7 +159,7 @@ class PlanificationSoutenanceService
         $selectedYearId = $this->getSelectedAcademicYearId();
 
         if ($selectedYearId !== null && $targetYearId !== null && $selectedYearId !== $targetYearId) {
-            throw new Exception("La soutenance ne correspond pas a l'annee academique actuellement selectionnee.");
+            throw new Exception("La soutenance ne correspond pas à l'année académique actuellement sélectionnée.");
         }
 
         $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $targetYearId, $context);
@@ -359,7 +359,7 @@ class PlanificationSoutenanceService
 
             $selectedDateTime = new \DateTime($dateSoutenance . ' ' . $heureSoutenance);
             if ($selectedDateTime <= new \DateTime()) {
-                throw new Exception("La date et l'heure de soutenance doivent etre dans le futur");
+                throw new Exception("La date et l'heure de soutenance doivent être dans le futur");
             }
 
             $progTable = $this->requireProgrammationTable();
@@ -373,11 +373,11 @@ class PlanificationSoutenanceService
             $etudiantStmt->execute([(string) $targetId]);
             $etudiantData = $etudiantStmt->fetch(\PDO::FETCH_ASSOC);
             if (!$etudiantData) {
-                throw new Exception('Programmation non trouvee');
+                throw new Exception('Programmation non trouvée');
             }
 
             if ($this->etudiantDejaPlannifie($etudiantData['num_etud'] ?? '', $editId ?: null)) {
-                throw new Exception('Cet etudiant a deja une soutenance completement planifiee');
+                throw new Exception('Cet étudiant a déjà une soutenance complètement planifiée');
             }
 
             $conflictStmt = $this->pdo->prepare("
@@ -396,7 +396,7 @@ class PlanificationSoutenanceService
             ]);
 
             if ((int) ($conflictStmt->fetch(\PDO::FETCH_ASSOC)['conflicts'] ?? 0) > 0) {
-                throw new Exception('Conflit : cette salle est deja occupee a cette date et heure');
+                throw new Exception('Conflit : cette salle est déjà occupée à cette date et heure');
             }
 
             $stmt = $this->pdo->prepare("
@@ -414,14 +414,14 @@ class PlanificationSoutenanceService
             ]);
 
             if (!$success) {
-                throw new Exception('Erreur lors de la mise a jour en base de donnees');
+                throw new Exception('Erreur lors de la mise à jour en base de données');
             }
 
             $this->pdo->commit();
 
             return [
                 'success' => true,
-                'message' => $editId ? 'Planification modifiee avec succes' : 'Soutenance planifiee avec succes',
+                'message' => $editId ? 'Planification modifiée avec succès' : 'Soutenance planifiée avec succès',
             ];
         } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
@@ -455,12 +455,12 @@ class PlanificationSoutenanceService
             ");
             $success = $stmt->execute([(string) $idProgrammation]);
             if (!$success) {
-                throw new Exception('Erreur lors de la suppression en base de donnees');
+                throw new Exception('Erreur lors de la suppression en base de données');
             }
 
             return [
                 'success' => true,
-                'message' => 'Planification supprimee avec succes',
+                'message' => 'Planification supprimée avec succès',
             ];
         } catch (\Throwable $e) {
             return [
@@ -496,13 +496,13 @@ class PlanificationSoutenanceService
             $stmt->execute([(string) $id]);
             $planification = $stmt->fetch(\PDO::FETCH_ASSOC);
             if (!$planification) {
-                throw new Exception('Planification non trouvee');
+                throw new Exception('Planification non trouvée');
             }
 
             $selectedYearId = $this->getSelectedAcademicYearId();
             $targetYearId = $this->getProgrammationAcademicYearId($id);
             if ($selectedYearId !== null && $targetYearId !== null && $selectedYearId !== $targetYearId) {
-                throw new Exception("La planification ne correspond pas a l'annee academique actuellement selectionnee.");
+                throw new Exception("La planification ne correspond pas à l'année académique actuellement sélectionnée.");
             }
 
             return [

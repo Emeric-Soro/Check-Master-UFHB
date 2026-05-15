@@ -93,13 +93,21 @@ class EmailService
         $hasEmbeddedLogo = file_exists($logoPath);
         $htmlMessage = str_replace('{{logo_src}}', $hasEmbeddedLogo ? 'cid:logo_cm' : '', $htmlMessage);
 
-        return $this->doSend($to, $subject, function() use ($htmlMessage, $attachments, $hasEmbeddedLogo, $logoPath) {
+        return $this->doSend($to, $subject, function() use ($htmlMessage, $attachments, $hasEmbeddedLogo, $logoPath, $subject) {
             $this->mailer->isHTML(true);
             $this->mailer->Body = $htmlMessage;
 
-            $altBody = str_ireplace(['<br>', '<br/>', '<br />', '</p>', '</tr>'], "\n", $htmlMessage);
+            // Correction AltBody : On s'assure qu'il commence bien par le sujet et on enlève les styles.
+            // On strip les tags de htmlMessage direct, mais les styles css risquent de rester dans le texte.
+            // Une meilleure approche est d'utiliser le body interpolé pur, sans le layout.
+            // Cependant, on n'a pas accès au $body ici directement dans la closure si on ne le passe pas.
+            // On peut au moins s'assurer que le altBody est propre.
+            $altBody = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', "", $htmlMessage);
+            $altBody = str_ireplace(['<br>', '<br/>', '<br />', '</p>', '</tr>'], "\n", $altBody);
             $altBody = strip_tags($altBody);
-            $this->mailer->AltBody = trim($altBody);
+            
+            // Pour être sûr que le AltBody commence par quelque chose de propre et non "Check Master .email-body {..."
+            $this->mailer->AltBody = $subject . "\n\n" . trim($altBody);
 
             if ($hasEmbeddedLogo) {
                 $this->mailer->addEmbeddedImage($logoPath, 'logo_cm');

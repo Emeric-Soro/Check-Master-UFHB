@@ -618,20 +618,55 @@ $addFeature([
     'routes' => [
         ['pattern' => 'page=gestion_rapports', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_rapports&action=creer_rapport', 'method' => 'GET', 'crud' => 'creer'],
-        ['pattern' => 'page=gestion_rapports&action=suivi_rapport', 'method' => 'GET', 'crud' => 'voir'],
-        ['pattern' => 'page=gestion_rapports&action=commentaire_rapport', 'method' => 'GET', 'crud' => 'voir'],
-        ['pattern' => 'page=gestion_rapports&action=supprimer_rapport', 'method' => 'GET', 'crud' => 'supprimer'],
-        ['pattern' => 'page=gestion_rapports&action=get_rapport', 'method' => 'GET', 'crud' => 'voir'],
-        ['pattern' => 'page=gestion_rapports&action=get_commentaires', 'method' => 'GET', 'crud' => 'voir'],
-        ['pattern' => 'page=gestion_rapports&action=exporter_rapports', 'method' => 'GET', 'crud' => 'voir'],
+
         ['pattern' => 'page=gestion_rapports&action=save_rapport', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=gestion_rapports&action=deposer_rapport', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=gestion_rapports&action=export_pdf', 'method' => 'POST', 'crud' => 'voir'],
-        ['pattern' => 'page=gestion_rapports&action=supprimer_rapport', 'method' => 'POST', 'crud' => 'supprimer'],
+
     ],
     'permissions' => [
         $groups['administrateur'] => $full,
         $groups['etudiant'] => $full,
+    ],
+]);
+
+// ======================== PRD 1 & 2 & 4 : Téléchargement rapport étudiant ========================
+
+$addFeature([
+    'slug' => 'telechargement_rapport_etudiant_etu',
+    'code' => 'RAPPORT_ETU',
+    'label' => 'Téléchargement rapport étudiant (vue étudiant)',
+    'category_code' => 'ETUDIANT_ENV',
+    'menu_url' => '?page=gestion_rapports&action=telecharger_rapport',
+    'routes' => [
+        ['pattern' => 'page=gestion_rapports&action=telecharger_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_rapports&action=upload_rapport', 'method' => 'POST', 'crud' => 'creer'],
+        ['pattern' => 'page=gestion_rapports&action=download_modele', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['etudiant'] => $createEdit,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'telechargement_rapport_etudiant_admin',
+    'code' => 'RAPPORT_ADMIN',
+    'label' => 'Téléchargement rapport étudiant (vue administration)',
+    'category_code' => 'SCOLARITE',
+    'menu_url' => '?page=gestion_rapports&action=admin_telecharger_rapport',
+    'routes' => [
+        ['pattern' => 'page=gestion_rapports&action=admin_telecharger_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_rapports&action=admin_upload_rapport', 'method' => 'POST', 'crud' => 'creer'],
+        ['pattern' => 'page=gestion_rapports&action=get_etudiants_sans_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_rapports&action=export_rapports_csv', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_rapports&action=download_fichier_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_rapports&action=update_date_operation', 'method' => 'POST', 'crud' => 'modifier'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['secretaire'] => $full,
+        $groups['responsable_scolarite'] => $full,
     ],
 ]);
 

@@ -78,14 +78,16 @@ class EvaluationDossiersController {
                 echo json_encode(['success' => false, 'message' => 'Méthode non autorisée']);
             }
         } catch (Exception $e) {
+            error_log('EvaluationDossiersController::traiterAction - Exception: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
             echo json_encode([
                 'success' => false, 
-                'message' => 'Exception: ' . $e->getMessage() . ' dans ' . $e->getFile() . ' ligne ' . $e->getLine()
+                'message' => 'Une erreur est survenue lors du traitement de votre demande.'
             ]);
         } catch (Error $e) {
+            error_log('EvaluationDossiersController::traiterAction - Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
             echo json_encode([
                 'success' => false, 
-                'message' => 'Erreur PHP: ' . $e->getMessage() . ' dans ' . $e->getFile() . ' ligne ' . $e->getLine()
+                'message' => 'Une erreur interne est survenue. Veuillez réessayer.'
             ]);
         }
     }

@@ -64,24 +64,28 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             'label' => 'En attente',
             'icon' => 'fa-clock',
             'color' => 'warning',
+            'url' => '?page=gestion_reclamations_scolarite&statut=en+attente'
         ]);
         cm_component('dashboard/stat-widget', [
             'value' => (string) $stats['en_cours'],
             'label' => 'En cours',
             'icon' => 'fa-spinner',
             'color' => 'info',
+            'url' => '?page=gestion_reclamations_scolarite&statut=en+cours'
         ]);
         cm_component('dashboard/stat-widget', [
             'value' => (string) $stats['resolue'],
             'label' => 'Resolues',
             'icon' => 'fa-circle-check',
             'color' => 'success',
+            'url' => '?page=gestion_reclamations_scolarite&statut=resolue'
         ]);
         cm_component('dashboard/stat-widget', [
             'value' => (string) $stats['rejetee'],
             'label' => 'Rejetées',
             'icon' => 'fa-circle-xmark',
             'color' => 'danger',
+            'url' => '?page=gestion_reclamations_scolarite&statut=rejetee'
         ]);
         ?>
     </div>
@@ -138,7 +142,7 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             cm_component('form/textarea', [
                 'name' => 'reponse_admin',
                 'id' => 'cmReponseAdmin',
-                'label' => 'Reponse',
+                'label' => 'Réponse',
                 'required' => true,
                 'rows' => 4,
             ]);
@@ -338,7 +342,7 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
             }
             if (!reponseField.value.trim()) {
                 event.preventDefault();
-                window.alert('La reponse est obligatoire.');
+                window.alert('La réponse est obligatoire.');
                 return;
             }
             form.action = '?page=gestion_reclamations_scolarite&action=changer_statut&id=' + encodeURIComponent(idField.value);
@@ -386,7 +390,7 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
     document.addEventListener('cm:toolbar:delete', function (event) {
         if (!event.detail || !event.detail.toolbar) return;
         if (event.detail.toolbar.id !== 'cmReclamations_toolbar') return;
-        window.alert('Suppression multiple indisponible sur cet ecran.');
+        window.alert('Suppression multiple indisponible sur cet écran.');
     });
 
     document.addEventListener('cm:toolbar:limit:change', function (event) {

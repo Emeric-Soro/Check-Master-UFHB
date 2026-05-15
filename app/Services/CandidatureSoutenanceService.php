@@ -100,13 +100,6 @@ class CandidatureSoutenanceService
             return ['success' => false, 'message' => "Vous avez déjà soumis une candidature."];
         }
 
-        // Vérifier si l'étudiant a rempli ses informations de stage
-        $stage_info = $this->stage->getStageInfo($etudiant_id);
-        if (!$stage_info) {
-            $this->auditLog->logCreation($id_utilisateur, "candidature_soutenance", "Erreur");
-            return ['success' => false, 'message' => "Veuillez d'abord remplir les informations de stage."];
-        }
-
         // Créer la candidature
         $result = $this->etudiant->createCandidature($etudiant_id);
 
@@ -128,6 +121,7 @@ class CandidatureSoutenanceService
             return ['success' => false, 'message' => "L'étudiant ne correspond pas à l'année académique actuellement sélectionnée."];
         }
 
+        // La candidature n'est plus requise à cette étape — elle sera créée automatiquement au dépôt du rapport
         $writeGuard = \AcademicYear::ensureWritableYear($this->db, $studentYearId, 'des informations de stage');
         if (!$writeGuard['success']) {
             $this->auditLog->logCreation($id_utilisateur, "candidature_soutenance", "Erreur");
@@ -216,5 +210,42 @@ class CandidatureSoutenanceService
             $this->auditLog->logCreation($id_utilisateur, "candidature_soutenance", "Erreur");
             return ['success' => false, 'message' => "Une erreur est survenue lors de l'enregistrement des informations."];
         }
+    }
+
+    public function getLastCandidature($num_etu)
+    {
+        return $this->etudiant->getCandidature($num_etu);
+    }
+
+    public function calculerProgression($num_etu)
+    {
+        $progression = [
+            'candidature' => false,
+            'stage' => false,
+            'rapport' => false
+        ];
+
+        // Vérifier stage (déclaré en premier maintenant)
+        $stage = $this->stage->getStageInfo($num_etu);
+        if ($stage) {
+            $progression['stage'] = true;
+        }
+
+        // Vérifier candidature (créée automatiquement au dépôt du rapport)
+        $candidature = $this->etudiant->getCandidature($num_etu);
+        if ($candidature) {
+            $progression['candidature'] = true;
+        }
+
+        // Vérifier rapport — chercher dans rapport_etudiants (la candidature est créée au dépôt)
+        $pdo = $this->db;
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM rapport_etudiants WHERE num_etu = ? AND statut_rapport IN ('soumis', 'en_attente_validation', 'valide')");
+        $stmt->execute([$num_etu]);
+        $rapportCount = (int) $stmt->fetchColumn();
+        if ($rapportCount > 0) {
+            $progression['rapport'] = true;
+        }
+
+        return $progression;
     }
 }

@@ -89,7 +89,7 @@ class ArchivesCompteRenduController
             return;
         }
 
-        echo json_encode(['success' => true, 'message' => 'Archive supprimee.']);
+        echo json_encode(['success' => true, 'message' => 'Archive supprimée.']);
     }
 
     public function searchArchives()

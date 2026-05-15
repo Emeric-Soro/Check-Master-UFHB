@@ -39,7 +39,7 @@ cm_render_param_crud_view([
         ],
         [
             'name' => 'montant_scolarite',
-            'label' => 'Montant scolarite',
+            'label' => 'Montant scolarité',
             'type' => 'number',
             'required' => true,
             'min' => 0,
@@ -67,7 +67,7 @@ cm_render_param_crud_view([
     'columns' => [
         ['key' => 'id_niv_etude', 'label' => 'ID'],
         ['key' => 'lib_niv_etude', 'label' => 'Niveau'],
-        ['key' => 'montant_scolarite', 'label' => 'Scolarite'],
+        ['key' => 'montant_scolarite', 'label' => 'Scolarité'],
         ['key' => 'montant_inscription', 'label' => 'Inscription'],
         ['key' => 'responsable', 'label' => 'Responsable', 'value' => static function ($row): string {
             $nom = (string) ($row->nom_enseignant ?? '');

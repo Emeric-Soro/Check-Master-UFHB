@@ -4,7 +4,6 @@ namespace CheckMaster\Services;
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/Valider.php';
-require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/EvaluationRapport.php';
 require_once __DIR__ . '/../models/AuditLog.php';
@@ -151,7 +150,7 @@ class EvaluationDossiersService
         $rapportYearId = $this->getRapportYearId($idRapport);
         $selectedYearId = $this->getSelectedYearId();
         if ($selectedYearId !== null && $rapportYearId !== null && $selectedYearId !== $rapportYearId) {
-            throw new Exception("Le rapport ne correspond pas a l'annee academique actuellement selectionnee.");
+            throw new Exception("Le rapport ne correspond pas à l'année académique actuellement sélectionnée.");
         }
 
         $writeGuard = \AcademicYear::ensureWritableYear($this->db, $rapportYearId, $context);

@@ -4,120 +4,223 @@ $entreprises = is_array($GLOBALS['entreprises'] ?? null) ? $GLOBALS['entreprises
 $successMessage = (string) ($_SESSION['success'] ?? '');
 $errorMessage = (string) ($_SESSION['error'] ?? '');
 unset($_SESSION['success'], $_SESSION['error']);
+
+$candidature_active = $GLOBALS['candidature_active'] ?? null;
+$progression = $GLOBALS['progression'] ?? ['candidature' => false, 'stage' => false, 'rapport' => false];
+
 $entrepriseValue = (string) ($stage_info['nom_entreprise'] ?? '');
 $dateDebutValue = (string) ($stage_info['date_debut_stage'] ?? '');
 $dateFinValue = (string) ($stage_info['date_fin_stage'] ?? '');
 $sujetValue = (string) ($stage_info['sujet_stage'] ?? '');
-// Reconstituer le nom complet de l'encadrant à partir du nom et prénom
 $encadrantNom = (string) ($stage_info['encadrant_nom'] ?? '');
 $encadrantPrenom = (string) ($stage_info['encadrant_prenom'] ?? '');
 $encadrantValue = trim($encadrantNom . ' ' . $encadrantPrenom);
 $emailEncadrantValue = (string) ($stage_info['encadrant_email'] ?? '');
 $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
 ?>
+<style>
+    .cm-etu-panel {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    
+    .cm-etu-field {
+        margin-bottom: 20px;
+    }
+    
+    .cm-etu-label {
+        display: block !important;
+        font-weight: 600 !important;
+        color: #333 !important;
+        margin-bottom: 8px !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .cm-etu-input {
+        background: #fff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 4px !important;
+        padding: 8px 12px !important;
+        font-size: 0.9rem !important;
+        width: 100%;
+        transition: border-color 0.2s;
+        color: #333 !important;
+    }
+    
+    .cm-etu-input:focus {
+        border-color: #3182ce !important;
+        outline: none !important;
+        box-shadow: 0 0 0 1px #3182ce !important;
+    }
+    
+    .cm-required-star {
+        color: #e53e3e !important;
+        margin-left: 2px;
+    }
+
+    .cm-btn {
+        padding: 8px 16px !important;
+        border-radius: 4px !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+
+    .cm-btn.is-primary {
+        background-color: #3182ce !important;
+        color: #fff !important;
+        border-color: #3182ce !important;
+    }
+
+    .cm-btn.is-primary:hover {
+        background-color: #2b6cb0 !important;
+    }
+
+    .cm-btn.is-outline {
+        background-color: #fff !important;
+        color: #4a5568 !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    .cm-btn.is-outline:hover {
+        background-color: #f7fafc !important;
+    }
+
+    .cm-btn.is-ghost {
+        background-color: #edf2f7 !important;
+        color: #4a5568 !important;
+        border-color: #edf2f7 !important;
+    }
+
+    .cm-btn.is-ghost:hover {
+        background-color: #e2e8f0 !important;
+    }
+
+    .cm-form-section-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin: 30px 0 15px 0;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    /* Autocomplete list alignment */
+    .cm-etu-autocomplete__list {
+        border-radius: 4px !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+</style>
 <div class="cm-etu-screen">
-    <section class="cm-etu-panel">
-        <header class="cm-etu-panel__header">
-            <div>
-                <p class="cm-etu-panel__subtitle">Renseignez vos informations de stage avant la rédaction du rapport.
-                </p>
-            </div>
-            <span class="cm-etu-step-badge"><strong>1</strong> Remplissez vos informations de stage</span>
-        </header>
+    <div style="padding: 20px;">
+
+        <!-- MESSAGES D'ALERTE -->
         <?php if ($successMessage !== ''): ?>
-            <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => $successMessage]); ?>
+            <div style="margin-bottom: 20px;">
+                <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => $successMessage]); ?>
+            </div>
         <?php endif; ?>
         <?php if ($errorMessage !== ''): ?>
-            <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $errorMessage]); ?>
+            <div style="margin-bottom: 20px;">
+                <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $errorMessage]); ?>
+            </div>
         <?php endif; ?>
-        <style>
-/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
-#stageInfoForm .cm-form-group:has(#FIELD_ID) {
-    width: 10ch !important;
-    min-width: 10ch !important;
-    max-width: 10ch !important;
-}
-</style>
-<form id="stageInfoForm" method="POST" action="?page=candidature_soutenance&action=info_stage"
-            class="cm-etu-form" novalidate>
-            <div class="cm-etu-grid cm-etu-grid--2">
-                <div class="cm-etu-field">
-                    <label class="cm-etu-label" for="entreprise">Entreprise <span
-                            class="cm-required-star">*</span></label>
-                    <p class="cm-etu-help">Choisissez ou tapez pour ajouter</p>
-                    <div class="cm-etu-autocomplete">
-                        <input type="text" id="entreprise" name="entreprise" class="cm-etu-input cm-field-lg"
-                            autocomplete="off" required maxlength="50"
-                            value="<?= htmlspecialchars($entrepriseValue, ENT_QUOTES, 'UTF-8') ?>"
-                            placeholder="Ex: Orange Côte d'Ivoire">
-                        <div id="entrepriseSuggestions" class="cm-etu-autocomplete__list" aria-live="polite"></div>
+
+        <!-- CONTENEUR PRINCIPAL -->
+        <div class="cm-etu-panel">
+            
+            <form id="stageInfoForm" method="POST" action="?page=candidature_soutenance&action=info_stage" novalidate>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; margin-bottom: 30px;">
+                    
+                    <div class="cm-etu-field">
+                        <label class="cm-etu-label" for="entreprise">Entreprise d'accueil <span class="cm-required-star">*</span></label>
+                        <div class="cm-etu-autocomplete">
+                            <input type="text" id="entreprise" name="entreprise" class="cm-etu-input" autocomplete="off" required maxlength="50"
+                                value="<?= htmlspecialchars($entrepriseValue, ENT_QUOTES, 'UTF-8') ?>" placeholder="Rechercher ou saisir..." style="padding: 12px 15px !important; font-size: 0.95rem !important;">
+                            <div id="entrepriseSuggestions" class="cm-etu-autocomplete__list" aria-live="polite"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="cm-etu-field">
+                        <label class="cm-etu-label" for="encadrant">Maître de stage <span class="cm-required-star">*</span></label>
+                        <div class="cm-etu-autocomplete">
+                            <input type="text" id="encadrant" name="encadrant" class="cm-etu-input" autocomplete="off" required maxlength="35"
+                                value="<?= htmlspecialchars($encadrantValue, ENT_QUOTES, 'UTF-8') ?>" placeholder="Nom et Prénoms" style="padding: 12px 15px !important; font-size: 0.95rem !important;">
+                            <div id="encadrantSuggestions" class="cm-etu-autocomplete__list" aria-live="polite"></div>
+                        </div>
+                    </div>
+
+                    <div class="cm-etu-field">
+                        <label class="cm-etu-label" for="email_encadrant">E-mail <span class="cm-required-star">*</span></label>
+                        <input type="email" id="email_encadrant" name="email_encadrant" class="cm-etu-input" required maxlength="50" 
+                            value="<?= htmlspecialchars($emailEncadrantValue, ENT_QUOTES, 'UTF-8') ?>" placeholder="exemple@domaine.com" style="padding: 12px 15px !important; font-size: 0.95rem !important;">
+                    </div>
+                    
+                    <div class="cm-etu-field">
+                        <label class="cm-etu-label" for="telephone_encadrant">Téléphone <span class="cm-required-star">*</span></label>
+                        <input type="tel" id="telephone_encadrant" name="telephone_encadrant" class="cm-etu-input" required 
+                            value="<?= htmlspecialchars($telephoneEncadrantValue, ENT_QUOTES, 'UTF-8') ?>" placeholder="Ex: 0700000000" style="padding: 12px 15px !important; font-size: 0.95rem !important;">
+                    </div>
+
+                    <div class="cm-etu-field">
+                        <label class="cm-etu-label" for="date_debut">Date Début <span class="cm-required-star">*</span></label>
+                        <input type="date" id="date_debut" name="date_debut" class="cm-etu-input" required max="<?= date('Y-m-d') ?>"
+                            value="<?= htmlspecialchars($dateDebutValue, ENT_QUOTES, 'UTF-8') ?>" style="padding: 11px 15px !important; font-size: 0.95rem !important;">
+                    </div>
+                    
+                    <div class="cm-etu-field">
+                        <label class="cm-etu-label" for="date_fin">Date Fin <span class="cm-required-star">*</span></label>
+                        <input type="date" id="date_fin" name="date_fin" class="cm-etu-input" required max="<?= date('Y-m-d') ?>" 
+                            value="<?= htmlspecialchars($dateFinValue, ENT_QUOTES, 'UTF-8') ?>" style="padding: 11px 15px !important; font-size: 0.95rem !important;">
+                    </div>
+
+                    <div class="cm-etu-field" style="grid-column: span 2;">
+                        <label class="cm-etu-label" for="sujet">Thème de stage <span class="cm-required-star">*</span></label>
+                        <textarea id="sujet" name="sujet" class="cm-etu-input" required
+                            placeholder="Saisissez le titre exact de votre rapport" style="padding: 12px 15px !important; font-size: 0.95rem !important; resize: vertical; min-height: 80px;" rows="3"><?= htmlspecialchars($sujetValue, ENT_QUOTES, 'UTF-8') ?></textarea>
                     </div>
                 </div>
-                <div class="cm-etu-field">
-                    <label class="cm-etu-label" for="encadrant">Nom du maître de stage <span
-                            class="cm-required-star">*</span></label>
-                    <p class="cm-etu-help">Sélectionnez d'abord une entreprise, puis choisissez ou ajoutez</p>
-                    <div class="cm-etu-autocomplete">
-                        <input type="text" id="encadrant" name="encadrant" class="cm-etu-input cm-field-lg"
-                            autocomplete="off" required maxlength="35"
-                            value="<?= htmlspecialchars($encadrantValue, ENT_QUOTES, 'UTF-8') ?>"
-                            placeholder="Ex: Koné Seydou">
-                        <div id="encadrantSuggestions" class="cm-etu-autocomplete__list" aria-live="polite"></div>
+
+                <p id="stageDateError" style="margin-top: -10px; margin-bottom: 20px; color: #e53e3e; font-size: 0.85rem; font-weight: 600;"></p>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 20px;">
+                    <button type="button" class="cm-btn is-outline" onclick="window.history.back();">Annuler</button>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <?php if (canEdit()): ?>
+                            <button type="reset" class="cm-btn is-ghost">Réinitialiser</button>
+                            <button type="submit" name="btn_enregistrer" value="1" class="cm-btn is-primary">Enregistrer</button>
+                        <?php else: ?>
+                            <div style="color: #718096; font-size: 0.85rem; font-style: italic; background: #edf2f7; padding: 8px 16px; border-radius: 4px;">
+                                Informations en lecture seule (candidature validée).
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
-                <div class="cm-etu-field">
-                    <label class="cm-etu-label" for="date_debut">Date de début <span
-                            class="cm-required-star">*</span></label>
-                    <input type="date" id="date_debut" name="date_debut" class="cm-etu-input cm-field-sm" size="10" required
-                        max="<?= date('Y-m-d') ?>"
-                        value="<?= htmlspecialchars($dateDebutValue, ENT_QUOTES, 'UTF-8') ?>">
-                </div>
-                <div class="cm-etu-field">
-                    <label class="cm-etu-label" for="date_fin">Date de fin <span
-                            class="cm-required-star">*</span></label>
-                    <input type="date" id="date_fin" name="date_fin" class="cm-etu-input cm-field-sm" size="10" required
-                        max="<?= date('Y-m-d') ?>" value="<?= htmlspecialchars($dateFinValue, ENT_QUOTES, 'UTF-8') ?>">
-                </div>
-                <div class="cm-etu-field" style="grid-column: 1/-1;">
-                    <label class="cm-etu-label" for="sujet">Thème du rapport <span
-                            class="cm-required-star">*</span></label>
-                    <input type="text" id="sujet" name="sujet" class="cm-etu-input cm-field-full" required maxlength="150"
-                        value="<?= htmlspecialchars($sujetValue, ENT_QUOTES, 'UTF-8') ?>"
-                        placeholder="Ex: Mise en place d'une API REST sécurisée">
-                </div>
-                <div class="cm-etu-field">
-                    <label class="cm-etu-label" for="email_encadrant">Email Maître de Stage <span
-                            class="cm-required-star">*</span></label>
-                    <input type="email" id="email_encadrant" name="email_encadrant" class="cm-etu-input cm-field-lg"
-                        required maxlength="50" value="<?= htmlspecialchars($emailEncadrantValue, ENT_QUOTES, 'UTF-8') ?>"
-                        placeholder="email@entreprise.ci">
-                </div>
-                <div class="cm-etu-field">
-                    <label class="cm-etu-label" for="telephone_encadrant">Téléphone Maître de Stage <span
-                            class="cm-required-star">*</span></label>
-                    <input type="tel" id="telephone_encadrant" name="telephone_encadrant"
-                        class="cm-etu-input cm-field-sm" size="10" required
-                        value="<?= htmlspecialchars($telephoneEncadrantValue, ENT_QUOTES, 'UTF-8') ?>"
-                        placeholder="+225 07 00 00 00 00">
-                </div>
-            </div>
-            <p id="stageDateError" class="cm-etu-error" aria-live="assertive"></p>
-            <div class="cm-etu-actions">
-                <?php if (canEdit()): ?>
-                    <button type="submit" name="btn_enregistrer" value="1" class="cm-btn is-primary">
-                        <i class="fas fa-pen" aria-hidden="true"></i>
-                        <span>Rédiger mon rapport</span>
-                    </button>
-                <?php else: ?>
-                    <div class="cm-etu-alert cm-etu-alert--info">
-                        <i class="fas fa-lock"></i>
-                        <span>Vous n'avez pas la permission de modifier ce formulaire</span>
+            </form>
+
+            <!-- SECTION DÉPÔT -->
+            <?php if ($progression['stage']): ?>
+                <div style="margin-top: 40px; padding: 20px; background: #f0fdf4; border-radius: 4px; border: 1px solid #dcfce7; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <i class="fas fa-check-circle" style="color: #16a34a; font-size: 1.2rem;"></i>
+                        <span style="font-weight: 600; color: #166534; font-size: 0.95rem;">Informations de stage validées.</span>
                     </div>
-                <?php endif; ?>
-            </div>
-        </form>
-    </section>
+                    <a href="?page=gestion_rapports&action=creer_rapport" class="cm-btn is-primary">
+                        Déposer mon rapport
+                    </a>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
 </div>
+
 <script>
     (function () {
         const entreprisesData = <?= json_encode(array_map(static function ($entreprise) {
@@ -143,7 +246,7 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
                 'id_entreprise' => (int) ($maitre->id_entreprise ?? 0),
                 'entreprise' => $nomEntreprise
             ];
-        }, $maitres_de_stage), JSON_UNESCAPED_UNICODE) ?>;
+        }, $maitres_de_stage ?? []), JSON_UNESCAPED_UNICODE) ?>;
         let selectedEntrepriseId = null;
         const inputEntreprise = document.getElementById('entreprise');
         const suggestions = document.getElementById('entrepriseSuggestions');
@@ -155,7 +258,6 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
             return;
         }
         let currentIndex = -1;
-        // Initialiser selectedEntrepriseId si une entreprise est déjà sélectionnée (mode édition)
         if (inputEntreprise.value.trim() !== '') {
             const entrepriseExistante = entreprisesData.find(e => e.nom === inputEntreprise.value.trim());
             if (entrepriseExistante) {
@@ -182,7 +284,6 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
                 } else {
                     selectedEntrepriseId = null;
                 }
-                // Réinitialiser le champ maître de stage quand on change d'entreprise
                 inputEncadrant.value = '';
                 inputEmailEncadrant.value = '';
                 inputTelephoneEncadrant.value = '';
@@ -263,21 +364,21 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
                 return false;
             }
             if (debut > now) {
-                dateError.textContent = 'La date de début ne peut pas être dans le futur.';
+                dateError.innerHTML = '<i class="fas fa-exclamation-triangle"></i> La date de début ne peut pas être dans le futur.';
                 return false;
             }
             if (fin > now) {
-                dateError.textContent = 'La date de fin ne peut pas être dans le futur.';
+                dateError.innerHTML = '<i class="fas fa-exclamation-triangle"></i> La date de fin ne peut pas être dans le futur.';
                 return false;
             }
             if (fin <= debut) {
-                dateError.textContent = 'La date de fin doit être après la date de début.';
+                dateError.innerHTML = '<i class="fas fa-exclamation-triangle"></i> La date de fin doit être après la date de début.';
                 return false;
             }
             const days = Math.ceil((fin - debut) / (1000 * 60 * 60 * 24));
             const months = days / 30.44;
             if (months < 6) {
-                dateError.textContent = 'La période de stage doit être d\'au minimum 6 mois.';
+                dateError.innerHTML = '<i class="fas fa-exclamation-triangle"></i> La période de stage doit être d\'au minimum 6 mois.';
                 return false;
             }
             return true;
@@ -290,7 +391,6 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
                 dateError.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         });
-        // === Autocomplete pour Maître de Stage ===
         const inputEncadrant = document.getElementById('encadrant');
         const suggestionsEncadrant = document.getElementById('encadrantSuggestions');
         const inputEmailEncadrant = document.getElementById('email_encadrant');
@@ -319,7 +419,6 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
                 });
             } else {
                 item.dataset.value = maitre.nom_complet;
-                // Afficher l'entreprise seulement si aucune entreprise n'est sélectionnée
                 const entrepriseInfo = selectedEntrepriseId === null && maitre.entreprise
                     ? '<br><small style="margin-left: 24px; color: #0066cc;"><i class="fas fa-building"></i> ' + maitre.entreprise + '</small>'
                     : '';
@@ -342,14 +441,12 @@ $telephoneEncadrantValue = (string) ($stage_info['encadrant_telephone'] ?? '');
                 hideSuggestionsEncadrant();
                 return;
             }
-            // Filtrer d'abord par entreprise si une entreprise est sélectionnée
             let maitresFiltres = maitresDeStage;
             if (selectedEntrepriseId !== null) {
                 maitresFiltres = maitresDeStage.filter(function (maitre) {
                     return maitre.id_entreprise === selectedEntrepriseId;
                 });
             }
-            // Ensuite filtrer par le nom
             const matches = maitresFiltres.filter(function (maitre) {
                 return String(maitre.nom_complet).toLowerCase().includes(value.toLowerCase());
             });

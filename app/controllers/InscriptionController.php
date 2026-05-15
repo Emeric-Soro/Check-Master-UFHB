@@ -4,6 +4,7 @@ require_once __DIR__ . '/../Services/InscriptionService.php';
 require_once __DIR__ . '/../Support/Database.php';
 require_once __DIR__ . '/../Services/Document/RecuGeneratorService.php';
 require_once __DIR__ . '/../utils/RecuDataUtils.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\InscriptionService;
 
@@ -19,6 +20,13 @@ class InscriptionController
 
     public function index()
     {
+        // Vérification permission d'accès à la page inscription/scolarité
+        if (!canView('gestion_scolarite')) {
+            $_SESSION['error'] = "Accès non autorisé à la gestion des inscriptions.";
+            header('Location: layout.php?page=dashboard');
+            exit;
+        }
+
         // Populate page data from service
         $data = $this->service->getIndexData($_GET);
         $GLOBALS['etudiantsNonInscrits'] = $data['etudiantsNonInscrits'];
@@ -77,6 +85,11 @@ class InscriptionController
 
         // Gestion de la suppression d'inscription
         if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'supprimer' && isset($_GET['id'])) {
+            if (!canDelete('gestion_scolarite')) {
+                $_SESSION['error'] = "Accès non autorisé pour supprimer une inscription.";
+                header('Location: layout.php?page=gestion_scolarite');
+                exit;
+            }
             $result = $this->service->supprimerInscription($_GET['id'], $_SESSION['id_utilisateur']);
             if ($result['success']) {
                 $GLOBALS['messageSuccess'] = $result['message'];
@@ -90,9 +103,19 @@ class InscriptionController
             if (isset($_POST['modalAction'])) {
                 switch ($_POST['modalAction']) {
                     case 'inscrire':
+                        if (!canCreate('gestion_scolarite')) {
+                            $_SESSION['error'] = "Accès non autorisé pour inscrire un étudiant.";
+                            header('Location: layout.php?page=gestion_scolarite');
+                            exit;
+                        }
                         $this->traiterInscription();
                         break;
                     case 'modifier':
+                        if (!canEdit('gestion_scolarite')) {
+                            $_SESSION['error'] = "Accès non autorisé pour modifier une inscription.";
+                            header('Location: layout.php?page=gestion_scolarite');
+                            exit;
+                        }
                         $this->modifierInscription();
                         break;
                 }

@@ -7,12 +7,14 @@ require_once __DIR__ . '/../models/Scolarite.php';
 require_once __DIR__ . '/../models/Inscription.php';
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/CompteRendu.php';
+require_once __DIR__ . '/../models/Note.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 use Etudiant;
 use Scolarite;
 use Inscription;
 use RapportEtudiant;
 use CompteRendu;
+use Note;
 use PDO;
 use Exception;
 
@@ -27,6 +29,7 @@ class EditionBulletinService
     private $inscriptionModel;
     private $rapportModel;
     private $compteRenduModel;
+    private $notesModel;
 
     public function __construct($pdo = null)
     {
@@ -36,6 +39,7 @@ class EditionBulletinService
         $this->inscriptionModel = new Inscription($this->pdo);
         $this->rapportModel = new RapportEtudiant($this->pdo);
         $this->compteRenduModel = new CompteRendu($this->pdo);
+        $this->notesModel = new Note($this->pdo);
     }
 
     /**
@@ -167,10 +171,11 @@ class EditionBulletinService
                 return false;
             }
 
-            // 2. Semestre requis validé (we assume S1 of M2 is required, but we need to check the academic year)
-            // We'll check if the student has validated the required semestre via the notes table?
-            // For simplicity, we'll skip this check for now and assume it's done via scolarity.
-            // In a real implementation, we would check the notes table for semestre validation.
+            // 2. Semestre requis validé (S1 du Master 2)
+            $semestreValide = $this->notesModel->estSemestreValide($numEtu, 'S1', 'Master 2');
+            if (!$semestreValide) {
+                return false;
+            }
 
             // 3. Rapport validé communication
             $rapportValide = $this->rapportModel->estRapportValideCommunication($numEtu);
@@ -284,9 +289,22 @@ class EditionBulletinService
         $theme = $soutenance['theme_rapport'] ?? 'Non défini';
         $dateSoutenance = $soutenance['date_soutenance'] ?? date('Y-m-d');
 
-        // Get average score and mention
-        $moyenne = $this->getMoyenneSoutenance($numEtu);
+        // Get average score (combine soutenance + cycle Master)
+        $moyenneSoutenance = $this->getMoyenneSoutenance($numEtu);
+        $moyenneMaster = $this->notesModel->getMoyenneGenerale($numEtu);
+
+        if ($moyenneMaster && (float)$moyenneMaster->moyenne_generale > 0) {
+            // Moyenne combinée : (cycle Master + soutenance) / 2
+            $moyenne = round(((float)$moyenneMaster->moyenne_generale + $moyenneSoutenance) / 2, 2);
+        } else {
+            // Fallback : uniquement la moyenne de soutenance (backward compat)
+            $moyenne = round($moyenneSoutenance, 2);
+        }
         $mention = $this->calculerMention($moyenne);
+
+        // Pré-calcul pour l'affichage (les heredocs PHP ne supportent pas les expressions)
+        $moyenneSoutenanceDisplay = round($moyenneSoutenance, 2);
+        $moyenneMasterDisplay = $moyenneMaster ? round($moyenneMaster->moyenne_generale, 2) : 'N/A';
 
         // Get academic year info
         $anneeAcad = $this->getAnneAcademiqueEtudiant($numEtu);
@@ -321,6 +339,8 @@ class EditionBulletinService
                 <p><span class="label">Date de soutenance :</span> $dateSoutenance</p>
             </div>
             <div class="section">
+                <p><span class="label">Moyenne de soutenance :</span> $moyenneSoutenanceDisplay / 20</p>
+                <p><span class="label">Moyenne du cycle Master :</span> $moyenneMasterDisplay / 20</p>
                 <p><span class="label">Moyenne générale :</span> $moyenne / 20</p>
                 <p><span class="label">Mention :</span> $mention</p>
             </div>

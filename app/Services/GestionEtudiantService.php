@@ -96,7 +96,7 @@ class GestionEtudiantService
             if ($id > 0 && $this->anneeExists($id)) {
                 return ['valid' => true, 'value' => $id, 'message' => ''];
             }
-            return ['valid' => false, 'value' => null, 'message' => "Annee academique invalide."];
+            return ['valid' => false, 'value' => null, 'message' => "Année académique invalide."];
         }
 
         if (preg_match('/^(\d{4})\s*-\s*(\d{4})$/', (string) $raw, $m)) {
@@ -113,7 +113,7 @@ class GestionEtudiantService
             }
         }
 
-        return ['valid' => false, 'value' => null, 'message' => "Annee academique invalide."];
+        return ['valid' => false, 'value' => null, 'message' => "Année académique invalide."];
     }
 
     /**

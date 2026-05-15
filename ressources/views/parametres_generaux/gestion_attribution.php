@@ -111,7 +111,7 @@ $isEditable = function_exists('canEdit') ? (bool) canEdit() : true;
         cm_toolbar([
             'screen' => 'gestion_attribution',
             'id_prefix' => 'cmAttribToolbar',
-            'search_placeholder' => 'Rechercher un ecran...',
+            'search_placeholder' => 'Rechercher un écran...',
             'show_actions' => false,
             'show_filters' => false,
             'custom_actions' => $attribActions,

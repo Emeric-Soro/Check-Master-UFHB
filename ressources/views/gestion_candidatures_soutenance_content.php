@@ -64,10 +64,10 @@ function cmCandPromotionLabel(array $candidature, array $academicYearLabels): st
 {
     $label = trim((string)($candidature['promotion_etu'] ?? ''));
     if ($label !== '') {
-        return $label;
+        return \FormattingUtils::formatPromotion($label);
     }
     if (!empty($candidature['id_annee_acad'])) {
-        return $academicYearLabels[(int)$candidature['id_annee_acad']] ?? '-';
+        return \FormattingUtils::formatPromotion($academicYearLabels[(int)$candidature['id_annee_acad']] ?? '-');
     }
     return '-';
 }

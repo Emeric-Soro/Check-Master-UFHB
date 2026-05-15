@@ -62,7 +62,7 @@ $evaluations = $data['evaluations'] ?? [];
                             </tr>
                             <tr>
                                 <th class="cm-text-muted">Promotion</th>
-                                <td><?= htmlspecialchars($soutenance['promotion_etu'] ?? '—') ?></td>
+                                <td><?= htmlspecialchars(\FormattingUtils::formatPromotion($soutenance['promotion_etu'] ?? '—')) ?></td>
                             </tr>
                             <tr>
                                 <th class="cm-text-muted">Domaine</th>

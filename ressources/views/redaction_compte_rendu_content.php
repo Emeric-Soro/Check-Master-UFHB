@@ -42,7 +42,7 @@ foreach ($rapportsValides as $rapport) {
         'theme_rapport' => $theme,
         'student' => $studentName,
         'decision' => $decision,
-        'promotion' => trim((string) ($rapport['promotion_etu'] ?? '')),
+        'promotion' => \FormattingUtils::formatPromotion(trim((string) ($rapport['promotion_etu'] ?? ''))),
         'deja_lie_cr' => !empty($rapport['deja_lie_cr']),
     ];
 
@@ -55,6 +55,7 @@ foreach ($rapportsValides as $rapport) {
         if ($promotionLabel === '' && !empty($rapport['id_annee_acad'])) {
             $promotionLabel = $academicYearLabels[(int) $rapport['id_annee_acad']] ?? '';
         }
+        $promotionLabel = \FormattingUtils::formatPromotion($promotionLabel);
         if ($promotionLabel !== '') {
             $reportOptionLabel .= ' - ' . $promotionLabel;
             $reportsById[$idRapport]['promotion'] = $promotionLabel;
@@ -115,52 +116,52 @@ $legacyTemplateHtml = <<<HTML
     <tr>
         <td style="width:15%; text-align:left; vertical-align:middle;">%LOGO_LEFT%</td>
         <td style="width:70%; text-align:center; vertical-align:middle;">
-            <div style="font-size:11pt; font-weight:bold; letter-spacing:0.5px;">Proces-Verbal de séance de validation de themes</div>
+            <div style="font-size:11pt; font-weight:bold; letter-spacing:0.5px;">Procès-Verbal de séance de validation de thèmes</div>
         </td>
         <td style="width:15%; text-align:right; vertical-align:middle;">%LOGO_RIGHT%</td>
     </tr>
 </table>
 <hr style="border: 1px solid #C4A000; margin: 10px 0;">
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
-    Lieu de réunion : [], le [DATE] s'est tenue de 11 h 00 a 12 h 30 une séance de validation de themes de soutenance des étudiants en fin de cycle de la filiere MIAGE-GI.
+    Lieu de réunion : [], le [DATE] s'est tenue de 11 h 00 à 12 h 30 une séance de validation de thèmes de soutenance des étudiants en fin de cycle de la filière MIAGE-GI.
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
-    La reunion etait animee par Prof KOUA Brou le responsable de ladite filiere. Les membres de la commission de validation ont examine [N] dossiers.
+    La réunion était animée par Prof KOUA Brou le responsable de ladite filière. Les membres de la commission de validation ont examiné [N] dossiers.
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:0;">
     L'ordre du jour debattu est le suivant :
 </p>
 <ul style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; margin-left:2em;">
     <li>Informations</li>
-    <li>Validation de themes</li>
+    <li>Validation de thèmes</li>
     <li>Divers</li>
 </ul>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; font-weight:bold; margin-top:20px; margin-bottom:10px;">
     1. Informations
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
-    Le responsable de la filiere a expose sur l'interet des séances de validation. Il a donne des informations sur le choix des themes niveau ingenieur et la tenue mensuelle des séances de validation.
+    Le responsable de la filière a exposé sur l'intérêt des séances de validation. Il a donné des informations sur le choix des thèmes niveau ingénieur et la tenue mensuelle des séances de validation.
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
     L'organisation des séances de validation permet de faire le point des encadrements, le contenu potentiel de thèmes, et le suivi des mémoires par des encadreurs pédagogiques.
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; font-weight:bold; margin-top:20px; margin-bottom:10px;">
-    2. Validation de themes
+    2. Validation de thèmes
 </p>
 <div id="casDynamique"></div>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; font-weight:bold; margin-top:20px; margin-bottom:10px;">
     3. Divers
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
-    La commission a recommande au Directeur de la filiere d'ameliorer le partenariat avec les entreprises.
+    La commission a recommandé au Directeur de la filière d'améliorer le partenariat avec les entreprises.
 </p>
 <ul style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; margin-left:2em;">
-    <li>Respecter toutes les rubriques du template de presentation de theme.</li>
-    <li>Joindre un CV contenant une photo d'identite.</li>
-    <li>Soutenir au plus tard a la session suivante.</li>
+    <li>Respecter toutes les rubriques du template de présentation de thème.</li>
+    <li>Joindre un CV contenant une photo d'identité.</li>
+    <li>Soutenir au plus tard à la session suivante.</li>
 </ul>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
-    Les travaux de la commission ont pris fin a 12 h 30.
+    Les travaux de la commission ont pris fin à 12 h 30.
 </p>
 <div style="text-align:right; margin-top:30px; font-family:'Times New Roman', Times, serif; font-size:12pt; font-weight:bold;">
     La commission
@@ -366,14 +367,14 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                  '<div style="text-align:center; margin:15px 0;"><div style="border:1px solid #000; padding:8px 15px; display:inline-block;">Cas ' + (index + 1) + '</div></div>' +
                  '<div style="margin-bottom:15px; font-family:\\"Times New Roman\\", Times, serif; font-size:12pt; line-height:1.5;">' +
                 '<p style="text-indent:0;"><strong>Etudiant :</strong> ' + String(report.student || '').replace(/[<>]/g, '') + '</p>' +
-                '<p style="text-indent:0;"><strong>Theme :</strong> ' + String(report.theme_rapport || '').replace(/[<>]/g, '') + '</p>' +
+                '<p style="text-indent:0;"><strong>Thème :</strong> ' + String(report.theme_rapport || '').replace(/[<>]/g, '') + '</p>' +
                 '<p style="text-indent:0; font-weight:bold;">Recommandations de la commission :</p>' +
                 '<ul style="list-style-type:none; margin-left:1em;">' +
                 '<li>- thème validé ;</li>' +
-                '<li>- bien decrire le processus ;</li>' +
-                '<li>- decrire exactement le contexte.</li>' +
+                '<li>- bien décrire le processus ;</li>' +
+                '<li>- décrire exactement le contexte.</li>' +
                 '</ul>' +
-                '<p style="text-indent:0; margin-top:15px;"><strong>Directeur de memoire :</strong> ' + String(dirText || '[Non attribué]').replace(/[<>]/g, '') + '</p>' +
+                '<p style="text-indent:0; margin-top:15px;"><strong>Directeur de mémoire :</strong> ' + String(dirText || '[Non attribué]').replace(/[<>]/g, '') + '</p>' +
                 '<p style="text-indent:0;"><strong>Encadreur pédagogique :</strong> ' + String(encText || '[Non attribué]').replace(/[<>]/g, '') + '</p>' +
                 '</div>';
         });
@@ -458,7 +459,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
             block.innerHTML = '<div class=\"cm-text-sm cm-text-semibold cm-mb-sm\">Rapport #' + id + '</div>' +
                 '<div class=\"cm-grid-2\">' +
                     '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrEnc_' + id + '\">Encadrant pédagogique</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrEnc_' + id + '\" name=\"encadrant_pedagogique[' + id + ']\">' + formatOptionHtml(draftState['enc_' + id] || '') + '</select></div>' +
-                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrDir_' + id + '\">Directeur memoire</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrDir_' + id + '\" name=\"directeur_memoire[' + id + ']\">' + formatOptionHtml(draftState['dir_' + id] || '') + '</select></div>' +
+                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrDir_' + id + '\">Directeur mémoire</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrDir_' + id + '\" name=\"directeur_memoire[' + id + ']\">' + formatOptionHtml(draftState['dir_' + id] || '') + '</select></div>' +
                 '</div>';
             assignmentsContainer.appendChild(block);
         });
