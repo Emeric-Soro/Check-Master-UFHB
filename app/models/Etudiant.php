@@ -235,6 +235,11 @@ class Etudiant
             return $stmt->execute();
         } catch (PDOException $e) {
             error_log("Erreur lors de l'ajout de l'étudiant : " . $e->getMessage());
+            $logPath = __DIR__ . '/../../logs/gestion_etudiants.log';
+            $fallbackLogPath = rtrim(sys_get_temp_dir(), '\\/') . DIRECTORY_SEPARATOR . 'gestion_etudiants.log';
+            $line = date('c') . ' [gestion_etudiants:add] PDOException ' . $e->getMessage();
+            @file_put_contents($logPath, $line . PHP_EOL, FILE_APPEND);
+            @file_put_contents($fallbackLogPath, $line . PHP_EOL, FILE_APPEND);
             return false;
         }
     }
