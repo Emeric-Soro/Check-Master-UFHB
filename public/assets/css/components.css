@@ -83,6 +83,47 @@
   color: var(--cm-text-on-primary);
 }
 
+/* Dérivés du bleu principal */
+.cm-btn.is-primary-deep {
+  background: var(--cm-primary);
+  color: #ffffff;
+}
+
+.cm-btn.is-primary-deep:hover {
+  background: var(--cm-primary-dark);
+  color: #ffffff;
+}
+
+.cm-btn.is-primary-dark {
+  background: var(--cm-primary-dark);
+  color: #ffffff;
+}
+
+.cm-btn.is-primary-dark:hover {
+  background: #0f2d40;
+  color: #ffffff;
+}
+
+.cm-btn.is-primary-accent {
+  background: var(--cm-primary-light);
+  color: #ffffff;
+}
+
+.cm-btn.is-primary-accent:hover {
+  background: var(--cm-primary);
+  color: #ffffff;
+}
+
+.cm-btn.is-primary-sky {
+  background: var(--cm-primary-lighter);
+  color: var(--cm-primary-dark);
+}
+
+.cm-btn.is-primary-sky:hover {
+  background: var(--cm-primary-light);
+  color: #ffffff;
+}
+
 .cm-btn[disabled],
 .cm-btn.is-disabled {
   opacity: 0.65;

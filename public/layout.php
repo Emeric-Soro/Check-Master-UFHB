@@ -1967,7 +1967,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
                     <div class="cm-navbar__year-selector<?= $lockAcademicYearOnNavbar ? ' is-readonly' : '' ?>">
                         <label for="globalAnneeAcademique">Année académique</label>
                         <?php if ($lockAcademicYearOnNavbar): ?>
-                            <div class="cm-navbar__year-display" aria-readonly="true" title="<?= htmlspecialchars((string) $navbarAcademicYearLabel, ENT_QUOTES, 'UTF-8') ?>">
+                            <div id="globalAnneeAcademique" class="cm-navbar__year-display" aria-readonly="true" title="<?= htmlspecialchars((string) $navbarAcademicYearLabel, ENT_QUOTES, 'UTF-8') ?>">
                                 <?= htmlspecialchars((string) $navbarAcademicYearLabel, ENT_QUOTES, 'UTF-8') ?>
                             </div>
                         <?php else: ?>
@@ -2078,24 +2078,19 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             var confirmType = form.getAttribute('data-cm-confirm-type') || 'warning';
             var confirmText = form.getAttribute('data-cm-confirm-text') || 'Confirmer';
 
-                if (window.CM && typeof window.CM.confirm === 'function') {
-                    window.CM.confirm({
-                        title: 'Confirmation',
-                        message: confirmMessage,
-                        type: confirmType,
-                        confirmText: confirmText,
-                    }).then(function (confirmed) {
-                        if (confirmed) {
-                            form.setAttribute('data-cm-confirmed', 'true');
-                            form.submit();
-                        }
-                    });
-                }
+            if (window.CM && typeof window.CM.confirm === 'function') {
+                window.CM.confirm({
+                    title: 'Confirmation',
+                    message: confirmMessage,
+                    type: confirmType,
+                    confirmText: confirmText,
+                }).then(function (confirmed) {
+                    if (confirmed) {
+                        form.setAttribute('data-cm-confirmed', 'true');
+                        form.submit();
+                    }
                 });
-                return;
-            }
-
-            if (window.confirm(confirmMessage)) {
+            } else if (window.confirm(confirmMessage)) {
                 form.submit();
             }
         });

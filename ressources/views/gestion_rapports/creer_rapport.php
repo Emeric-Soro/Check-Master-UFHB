@@ -693,11 +693,8 @@ function initRapportEditorPage() {
     var joditEditor = null;
     var fallbackEditorMode = false;
 
-    if (!rapportForm || rapportForm.getAttribute('data-cm-rapport-editor-init') === '1') {
-        return;
-    }
-
-    rapportForm.setAttribute('data-cm-rapport-editor-init', '1');
+    if (window.__cmRapportEditorReady) return;
+    window.__cmRapportEditorReady = true;
 
     if (rapportForm) {
         rapportForm.setAttribute('action', reportEndpoint);
@@ -1170,8 +1167,15 @@ function initRapportEditorPage() {
     /* ── Notifications ── */
 
     function showNotification(type, message) {
+        var msgText = message;
+        if (typeof message === 'object' && message !== null) {
+            msgText = message.message || JSON.stringify(message);
+        } else {
+            msgText = String(message || '');
+        }
+
         if (typeof window.cmToast === 'function') {
-            window.cmToast({ type: type, title: type === 'success' ? 'Succès' : 'Erreur', message: message });
+            window.cmToast(msgText, type);
             return;
         }
         var container = document.getElementById('fmNotifications');

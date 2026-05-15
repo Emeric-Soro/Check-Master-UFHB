@@ -148,7 +148,7 @@ séquentiels permettent de tracer l'historique des paiements.
 ----------------------------------------------------------------------
 1.3 — Gestion des notes et évaluations
 ----------------------------------------------------------------------
-La scolarité saisit les notes des UE/ECUE pour chaque étudiant inscrit.
+La scolarité saisit les notes pour chaque étudiant inscrit.
 Ces notes alimentent le relevé de notes et conditionnent l'accès à la
 candidature de soutenance (l'étudiant doit avoir validé son année).
 

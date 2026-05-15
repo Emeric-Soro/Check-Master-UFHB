@@ -287,7 +287,6 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                                 <th class="cm-data-table__th" data-sort-field="nom">Nom &amp; Prénom</th>
                                 <th class="cm-data-table__th cm-col-date" data-sort-field="date_naiss">Date Nais.</th>
                                 <th class="cm-data-table__th cm-col-genre" data-sort-field="genre">Genre</th>
-                                <th class="cm-data-table__th" data-sort-field="email">Email</th>
                                 <th class="cm-data-table__th" data-sort-field="promotion">Promotion</th>
                                 <?php if (canEdit()): ?>
                                     <th class="cm-data-table__th is-center">Actions</th>
@@ -343,9 +342,6 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                                         </td>
                                         <td class="cm-data-table__td cm-col-genre">
                                             <?php echo htmlspecialchars($genre, ENT_QUOTES, 'UTF-8'); ?>
-                                        </td>
-                                        <td class="cm-data-table__td">
-                                            <?php echo htmlspecialchars($email, ENT_QUOTES, 'UTF-8'); ?>
                                         </td>
                                         <td class="cm-data-table__td">
                                             <?php echo htmlspecialchars($promotion, ENT_QUOTES, 'UTF-8'); ?>
@@ -563,7 +559,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
         const exportBtn = document.getElementById('cmExportBtn');
         if (exportBtn) {
             exportBtn.addEventListener('click', function () {
-                const headers = ['ID MESRS', 'N° Carte Etud.', 'Nom', 'Prénom', 'Date Nais.', 'Genre', 'Email', 'Promotion'];
+                const headers = ['ID MESRS', 'N° Carte Etud.', 'Nom', 'Prénom', 'Date Nais.', 'Genre', 'Promotion'];
                 const lines = [headers.join(';')];
                 visibleRows().forEach(function (row) {
                     const cells = Array.from(row.querySelectorAll('td'));

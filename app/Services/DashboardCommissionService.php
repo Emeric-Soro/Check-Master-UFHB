@@ -142,6 +142,28 @@ class DashboardCommissionService
     }
 
     /**
+     * Récupère le nombre de rapports validés
+     * Combine la table valider (finalisation formelle) et le statut_rapport (approbation directe)
+     *
+     * @return int
+     */
+    public function getNombreRapportsValides()
+    {
+        try {
+            $query = "SELECT COUNT(DISTINCT id_rapport) as valides
+                      FROM rapport_etudiants
+                      WHERE statut_rapport = 'valider'";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return (int)($result['valides'] ?? 0);
+        } catch (Exception $e) {
+            error_log("Erreur getNombreRapportsValides: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
      * Récupère le nombre de rapports rejetés
      *
      * @return int
@@ -149,13 +171,18 @@ class DashboardCommissionService
     public function getNombreRapportsRejetes()
     {
         try {
+            // Compter depuis valider ET depuis statut_rapport pour cohérence
             $query = "SELECT COUNT(DISTINCT id_rapport) as rejetes
-                      FROM valider
-                      WHERE decision_validation = 'rejeter'";
+                      FROM rapport_etudiants
+                      WHERE statut_rapport = 'rejeter'
+                         OR id_rapport IN (
+                             SELECT DISTINCT id_rapport FROM valider
+                             WHERE decision_validation = 'rejeter'
+                         )";
             $stmt = $this->db->prepare($query);
             $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result['rejetes'] ?? 0;
+            return (int)($result['rejetes'] ?? 0);
         } catch (Exception $e) {
             error_log("Erreur getNombreRapportsRejetes: " . $e->getMessage());
             return 0;
@@ -190,6 +217,7 @@ class DashboardCommissionService
             $stats['taux_validation'] = $this->getTauxValidation();
             $stats['temps_moyen'] = $this->getTempsMoyenTraitement();
             $stats['en_attente'] = $this->getRapportsEnAttente();
+            $stats['rapports_valides'] = $this->getNombreRapportsValides();
             $stats['rapports_rejetes'] = $this->getNombreRapportsRejetes();
             $stats['evolution_mensuelle'] = $this->getEvolutionMensuelle();
             $stats['repartition_statuts'] = $this->getRepartitionStatuts();
@@ -278,6 +306,7 @@ class DashboardCommissionService
 
     /**
      * Récupère le nombre de rapports en attente
+     * Un rapport est "en attente" si son statut_rapport n'est ni 'valider' ni 'rejeter'
      *
      * @return int
      */
@@ -285,13 +314,13 @@ class DashboardCommissionService
     {
         try {
             $query = "SELECT COUNT(*) as en_attente
-                      FROM rapport_etudiants r
-                      LEFT JOIN valider v ON r.id_rapport = v.id_rapport
-                      WHERE v.id_rapport IS NULL";
+                      FROM rapport_etudiants
+                      WHERE (statut_rapport IS NULL
+                         OR statut_rapport NOT IN ('valider', 'rejeter'))";
             $stmt = $this->db->prepare($query);
             $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result['en_attente'] ?? 0;
+            return (int)($result['en_attente'] ?? 0);
         } catch (Exception $e) {
             error_log("Erreur getRapportsEnAttente: " . $e->getMessage());
             return 0;
@@ -332,20 +361,21 @@ class DashboardCommissionService
     public function getRepartitionStatuts()
     {
         try {
+            // Utiliser statut_rapport comme source de vérité principale
             $query = "SELECT 
-                        v.decision_validation as statut,
-                        COUNT(DISTINCT v.id_rapport) as nombre
-                      FROM valider v
-                      GROUP BY v.decision_validation
-                      
-                      UNION ALL
-                      
-                      SELECT 
-                        'en_attente' as statut,
+                        CASE 
+                            WHEN statut_rapport = 'valider' THEN 'valider'
+                            WHEN statut_rapport = 'rejeter' THEN 'rejeter'
+                            ELSE 'en_attente'
+                        END as statut,
                         COUNT(*) as nombre
-                      FROM rapport_etudiants r
-                      LEFT JOIN valider v2 ON r.id_rapport = v2.id_rapport
-                      WHERE v2.id_rapport IS NULL";
+                      FROM rapport_etudiants
+                      GROUP BY 
+                        CASE 
+                            WHEN statut_rapport = 'valider' THEN 'valider'
+                            WHEN statut_rapport = 'rejeter' THEN 'rejeter'
+                            ELSE 'en_attente'
+                        END";
             $stmt = $this->db->prepare($query);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);

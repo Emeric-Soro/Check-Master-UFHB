@@ -27,7 +27,10 @@ $countByStatut = static function (array $rows, string $needle): int {
     return $count;
 };
 
-$valides = $countByStatut($repartition, 'valider');
+// Priorité : clé rapports_valides (basée sur statut_rapport) > repartition_statuts (basée sur table valider)
+$valides = isset($dashboardData['rapports_valides'])
+    ? (int) $dashboardData['rapports_valides']
+    : $countByStatut($repartition, 'valider');
 $rejetes = $rapportsRejetes;
 $crRediges = count($rapportsDetails);
 $totalRapports = max(1, $enAttente + $valides + $rejetes);
@@ -226,23 +229,23 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
             <div class="cm-chart-container__body">
                 <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
                     <?php if (canView()): ?>
-                        <a class="cm-btn is-info" href="?page=reception_rapport_com" data-cm-ajax-link="true">
+                        <a class="cm-btn is-primary-accent" href="?page=reception_rapport_com" data-cm-ajax-link="true">
                             <i class="fas fa-inbox" aria-hidden="true"></i>
                             Réception rapports
                         </a>
-                        <a class="cm-btn is-primary" href="?page=processus_validation" data-cm-ajax-link="true">
+                        <a class="cm-btn is-primary-deep" href="?page=processus_validation" data-cm-ajax-link="true">
                             <i class="fas fa-check-double" aria-hidden="true"></i>
                             Processus validation
                         </a>
                     <?php endif; ?>
                     <?php if (canCreate()): ?>
-                        <a class="cm-btn is-primary" href="?page=redaction_compte_rendu" data-cm-ajax-link="true">
+                        <a class="cm-btn is-primary-dark" href="?page=redaction_compte_rendu" data-cm-ajax-link="true">
                             <i class="fas fa-pen-to-square" aria-hidden="true"></i>
                             Rédaction CR
                         </a>
                     <?php endif; ?>
                     <?php if (canView()): ?>
-                        <a class="cm-btn is-warning" href="?page=programmation_soutenance" data-cm-ajax-link="true">
+                        <a class="cm-btn is-primary-sky" href="?page=programmation_soutenance" data-cm-ajax-link="true">
                             <i class="fas fa-calendar-days" aria-hidden="true"></i>
                             Soutenances
                         </a>
