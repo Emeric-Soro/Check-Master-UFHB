@@ -3,6 +3,8 @@ namespace CheckMaster\Services;
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
+require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../utils/NotificationService.php';
 
 use Exception;
 use PDO;
@@ -13,10 +15,12 @@ class ProgrammationSoutenanceService
     private $tableExistsCache = [];
     private $columnExistsCache = [];
     private $roleIdsCache = null;
+    private $emailService;
 
     public function __construct($pdo = null)
     {
         $this->pdo = $pdo ?: \Database::getConnection();
+        $this->emailService = new \EmailService();
     }
 
     private function getSelectedAcademicYearId(): ?int
@@ -1105,6 +1109,99 @@ class ProgrammationSoutenanceService
             return $enseignantJury;
         } catch (Exception $e) {
             throw $e;
+        }
+    }
+
+    public function notifierAjoutJury(array $data): void
+    {
+        $notifService = new \NotificationService();
+        $membres = [
+            'president' => 'President',
+            'examinateur' => 'Examinateur',
+            'directeur' => 'Directeur de memoire',
+            'encadreur' => 'Encadreur',
+        ];
+        foreach ($membres as $field => $roleLabel) {
+            $enseignantId = trim((string)($data[$field . '_id'] ?? ''));
+            if ($enseignantId === '') {
+                continue;
+            }
+            $email = $notifService->getEnseignantEmail($enseignantId);
+            $nomEns = $notifService->getEnseignantNom($enseignantId);
+            if ($email === null) {
+                continue;
+            }
+            $this->emailService->sendTemplate('AJOUT_JURY', $email, [
+                'nom_enseignant' => htmlspecialchars($nomEns),
+                'role' => $roleLabel,
+                'nom_etudiant' => htmlspecialchars((string)($data['nom_etudiant'] ?? $data['id_etudiant'] ?? '')),
+                'theme' => htmlspecialchars((string)($data['theme_soutenance'] ?? '')),
+                'date_soutenance' => (string)($data['date_soutenance'] ?? ''),
+                'heure_soutenance' => (string)($data['heure_soutenance'] ?? ''),
+                'salle' => htmlspecialchars((string)($data['lib_salle'] ?? $data['id_salle'] ?? '')),
+            ]);
+        }
+    }
+
+    public function notifierRetraitJury(string $enseignantId, string $roleLabel, array $soutenanceData): void
+    {
+        $notifService = new \NotificationService();
+        $email = $notifService->getEnseignantEmail($enseignantId);
+        $nomEns = $notifService->getEnseignantNom($enseignantId);
+        if ($email === null) {
+            return;
+        }
+        $this->emailService->sendTemplate('RETRAIT_JURY', $email, [
+            'nom_enseignant' => htmlspecialchars($nomEns),
+            'role' => $roleLabel,
+            'nom_etudiant' => htmlspecialchars((string)($soutenanceData['nom_etudiant'] ?? '')),
+            'theme' => htmlspecialchars((string)($soutenanceData['theme_soutenance'] ?? '')),
+        ]);
+    }
+
+    public function notifierProgrammationSoutenance(string $numSoutenance, array $data): void
+    {
+        $notifService = new \NotificationService();
+        $nomEtudiant = htmlspecialchars((string)($data['nom_etudiant'] ?? $data['id_etudiant'] ?? ''));
+        $theme = htmlspecialchars((string)($data['theme_soutenance'] ?? ''));
+        $dateSout = (string)($data['date_soutenance'] ?? '');
+        $heureSout = (string)($data['heure_soutenance'] ?? '');
+        $salle = htmlspecialchars((string)($data['lib_salle'] ?? $data['id_salle'] ?? ''));
+
+        // Notifier l'etudiant
+        $etudiantEmail = $data['email_etudiant'] ?? '';
+        if ($etudiantEmail !== '') {
+            $this->emailService->sendTemplate('SOUTENANCE_PROGRAMMEE', $etudiantEmail, [
+                'nom' => $nomEtudiant,
+                'nom_etudiant' => $nomEtudiant,
+                'theme' => $theme,
+                'date_soutenance' => $dateSout,
+                'heure_soutenance' => $heureSout,
+                'salle' => $salle,
+                'composition_jury' => '',
+            ]);
+        }
+
+        // Notifier les membres du jury
+        try {
+            $juryMembres = $notifService->getJuryMembres($numSoutenance);
+        } catch (\Exception $e) {
+            $juryMembres = [];
+        }
+        foreach ($juryMembres as $membre) {
+            $email = trim((string)($membre['email'] ?? ''));
+            if ($email === '') {
+                continue;
+            }
+            $this->emailService->sendTemplate('SOUTENANCE_PROGRAMMEE', $email, [
+                'nom' => htmlspecialchars((string)($membre['nom'] ?? '')),
+                'nom_etudiant' => $nomEtudiant,
+                'theme' => $theme,
+                'date_soutenance' => $dateSout,
+                'heure_soutenance' => $heureSout,
+                'salle' => $salle,
+                'composition_jury' => '',
+            ]);
         }
     }
 }

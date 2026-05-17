@@ -8,6 +8,7 @@ require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/EvaluationRapport.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
+require_once __DIR__ . '/../utils/EmailService.php';
 
 use RapportEtudiant;
 use EvaluationRapport;
@@ -565,6 +566,26 @@ class EvaluationDossiersService
                 Valider::insererDecision($id_enseignant, $id_rapport, 'valider', 'Validé par consensus de la commission');
                 $this->auditLog->logValidation($id_utilisateur, 'rapport_etudiants', 'Succès');
 
+                try {
+                    $emailService = new \EmailService();
+                    $rapport = $this->rapportEtudiant->getRapportById($id_rapport);
+                    if (is_object($rapport)) { $rapport = (array) $rapport; }
+                    $stmt = $this->db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_carte_etud = ? OR num_ident_etud = ?");
+                    $stmt->execute([$rapport['num_etu'] ?? '', $rapport['num_etu'] ?? '']);
+                    $etudiant = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+                    $commentaire = 'Validé par consensus de la commission';
+                    if (!empty($etudiant['email_etu'])) {
+                        $nom = ($etudiant['prenom_etu'] ?? '') . ' ' . ($etudiant['nom_etu'] ?? '');
+                        $emailService->sendTemplate('EVALUATION_RAPPORT_VALIDE', $etudiant['email_etu'], [
+                            'nom' => htmlspecialchars(trim($nom), ENT_QUOTES, 'UTF-8'),
+                            'nom_rapport' => htmlspecialchars((string)($rapport['nom_rapport'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                            'commentaires' => '<p style="background: #f1f5f9; padding: 12px; border-radius: 6px; margin-top: 8px;">' . nl2br(htmlspecialchars((string)($commentaire ?? ''), ENT_QUOTES, 'UTF-8')) . '</p>',
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    error_log('Erreur notification evaluation: ' . $e->getMessage());
+                }
+
                 return ['success' => true, 'message' => 'Rapport validé par consensus de la commission'];
 
             } elseif ($decision === 'rejeter') {
@@ -572,6 +593,26 @@ class EvaluationDossiersService
 
                 Valider::insererDecision($id_enseignant, $id_rapport, 'rejeter', 'Rejeté par la commission');
                 $this->auditLog->logRejet($id_utilisateur, 'rapport_etudiants', 'Succès');
+
+                try {
+                    $emailService = new \EmailService();
+                    $rapport = $this->rapportEtudiant->getRapportById($id_rapport);
+                    if (is_object($rapport)) { $rapport = (array) $rapport; }
+                    $stmt = $this->db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_carte_etud = ? OR num_ident_etud = ?");
+                    $stmt->execute([$rapport['num_etu'] ?? '', $rapport['num_etu'] ?? '']);
+                    $etudiant = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+                    $commentaire = 'Rejeté par la commission';
+                    if (!empty($etudiant['email_etu'])) {
+                        $nom = ($etudiant['prenom_etu'] ?? '') . ' ' . ($etudiant['nom_etu'] ?? '');
+                        $emailService->sendTemplate('EVALUATION_RAPPORT_REJETE', $etudiant['email_etu'], [
+                            'nom' => htmlspecialchars(trim($nom), ENT_QUOTES, 'UTF-8'),
+                            'nom_rapport' => htmlspecialchars((string)($rapport['nom_rapport'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                            'commentaires' => '<p style="background: #f1f5f9; padding: 12px; border-radius: 6px; margin-top: 8px;">' . nl2br(htmlspecialchars((string)($commentaire ?? ''), ENT_QUOTES, 'UTF-8')) . '</p>',
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    error_log('Erreur notification evaluation: ' . $e->getMessage());
+                }
 
                 return ['success' => true, 'message' => 'Rapport rejeté par la commission'];
             }

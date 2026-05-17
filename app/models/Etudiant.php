@@ -342,9 +342,24 @@ class Etudiant
 
     public function getCompteRendu($etudiant_id)
     {
-        $sql = "SELECT * FROM compte_rendu WHERE num_etu = ?";
+        $sql = "
+            SELECT DISTINCT cr.*
+            FROM compte_rendu cr
+            LEFT JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
+            LEFT JOIN rapport_etudiants r ON r.id_rapport = crr.id_rapport
+            LEFT JOIN etudiants e_cr ON (e_cr.num_carte_etud = cr.num_etu OR e_cr.num_ident_etud = cr.num_etu)
+            LEFT JOIN etudiants e_r ON (e_r.num_carte_etud = r.num_etu OR e_r.num_ident_etud = r.num_etu)
+            WHERE cr.num_etu = ?
+               OR r.num_etu = ?
+               OR e_cr.num_carte_etud = ?
+               OR e_cr.num_ident_etud = ?
+               OR e_r.num_carte_etud = ?
+               OR e_r.num_ident_etud = ?
+            ORDER BY cr.date_CR DESC, cr.id_CR DESC
+            LIMIT 1
+        ";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$etudiant_id]);
+        $stmt->execute([$etudiant_id, $etudiant_id, $etudiant_id, $etudiant_id, $etudiant_id, $etudiant_id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -859,8 +874,17 @@ class Etudiant
             FROM inscriptions i
             LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
             WHERE i.num_carte_etud = :matricule
-              AND i.fiche_inscription IS NOT NULL
-              AND i.fiche_inscription <> ''
+              AND (
+                    (i.fiche_inscription IS NOT NULL AND i.fiche_inscription <> '')
+                    OR EXISTS (
+                        SELECT 1
+                        FROM documents d
+                        WHERE d.entite_type = 'inscriptions'
+                          AND d.entite_id = CONCAT(i.num_carte_etud, '-', i.id_annee_acad, '-', i.num_versement)
+                          AND d.statut = 'actif'
+                          AND d.type_document = 'fiche_inscription'
+                    )
+                  )
               {$yearFilter}
 
             UNION ALL
@@ -875,8 +899,17 @@ class Etudiant
             FROM rapport_etudiants re
             INNER JOIN inscriptions i ON i.num_carte_etud = re.num_etu
             WHERE re.num_etu = :matricule
-              AND re.chemin_fichier IS NOT NULL
-              AND re.chemin_fichier <> ''
+              AND (
+                    (re.chemin_fichier IS NOT NULL AND re.chemin_fichier <> '')
+                    OR EXISTS (
+                        SELECT 1
+                        FROM documents d
+                        WHERE d.entite_type = 'rapport_etudiants'
+                          AND d.entite_id = CAST(re.id_rapport AS CHAR)
+                          AND d.statut = 'actif'
+                          AND d.type_document IN ('rapport', 'html_doc')
+                    )
+                  )
               {$yearFilter}
 
             UNION ALL
@@ -891,8 +924,17 @@ class Etudiant
             FROM compte_rendu cr
             INNER JOIN inscriptions i ON i.num_carte_etud = cr.num_etu
             WHERE cr.num_etu = :matricule
-              AND cr.chemin_fichier_pdf IS NOT NULL
-              AND cr.chemin_fichier_pdf <> ''
+              AND (
+                    (cr.chemin_fichier_pdf IS NOT NULL AND cr.chemin_fichier_pdf <> '')
+                    OR EXISTS (
+                        SELECT 1
+                        FROM documents d
+                        WHERE d.entite_type = 'compte_rendu'
+                          AND d.entite_id = CAST(cr.id_CR AS CHAR)
+                          AND d.statut = 'actif'
+                          AND d.type_document = 'compte_rendu'
+                    )
+                  )
               {$yearFilter}
 
             ORDER BY date_document DESC

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Utils;
 
+require_once __DIR__ . '/../Services/Document/DocumentStorageService.php';
+
+use App\Services\Document\DocumentStorageService;
 use App\Support\Database;
 use PDO;
 
@@ -572,9 +575,14 @@ class PlanningDataUtils
         }
 
         try {
-            $stmt = $this->db->pdo()->prepare('SHOW TABLES LIKE :table_name');
+            $stmt = $this->db->pdo()->prepare(
+                'SELECT COUNT(*)
+                 FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                   AND table_name = :table_name'
+            );
             $stmt->execute(['table_name' => $table]);
-            $exists = (bool) $stmt->fetchColumn();
+            $exists = (int) $stmt->fetchColumn() > 0;
             $this->tableExistsCache[$table] = $exists;
             return $exists;
         } catch (\Throwable) {
@@ -586,9 +594,18 @@ class PlanningDataUtils
     private function columnExists(string $table, string $column): bool
     {
         try {
-            $stmt = $this->db->pdo()->prepare("SHOW COLUMNS FROM {$table} LIKE :column_name");
-            $stmt->execute(['column_name' => $column]);
-            return (bool) $stmt->fetchColumn();
+            $stmt = $this->db->pdo()->prepare(
+                'SELECT COUNT(*)
+                 FROM information_schema.columns
+                 WHERE table_schema = DATABASE()
+                   AND table_name = :table_name
+                   AND column_name = :column_name'
+            );
+            $stmt->execute([
+                'table_name' => $table,
+                'column_name' => $column,
+            ]);
+            return (int) $stmt->fetchColumn() > 0;
         } catch (\Throwable) {
             return false;
         }
@@ -724,9 +741,12 @@ class PlanningDataUtils
     public function getEtudiantByNumCarte(string $numCarte): ?array
     {
         $latestInscriptionSql = $this->getLatestInscriptionSubquery();
+        $genreSelect = $this->columnExists('etudiants', 'genre_etu')
+            ? 'e.genre_etu'
+            : ($this->columnExists('etudiants', 'id_genre') ? 'e.id_genre AS genre_etu' : 'NULL AS genre_etu');
         $stmt = $this->db->pdo()->prepare(
             'SELECT e.num_carte_etud, e.num_ident_etud, e.nom_etu, e.prenom_etu,
-                    e.email_etu, e.date_naiss_etu, e.genre_etu, e.promotion_etu,
+                    e.email_etu, e.date_naiss_etu, ' . $genreSelect . ', e.promotion_etu,
                     i.id_niv_etude, i.id_annee_acad,
                     niv.lib_niv_etude AS libelle_niveau
              FROM etudiants e
@@ -869,6 +889,8 @@ class PlanningDataUtils
      */
     public function saveDocumentRecord(array $data): int
     {
+        $storageDocumentId = $this->persistBinaryDocument($data);
+
         if (!$this->tableExists('document_genere')) {
             error_log(sprintf(
                 '[PlanningDataUtils] Document généré (non persisté): ref=%s, type=%s, fichier=%s',
@@ -877,7 +899,7 @@ class PlanningDataUtils
                 (string) ($data['chemin_fichier'] ?? '?')
             ));
 
-            return 0;
+            return $storageDocumentId;
         }
 
         $stmt = $this->db->pdo()->prepare(
@@ -928,6 +950,63 @@ class PlanningDataUtils
                 ON latest.num_carte_etud = i1.num_carte_etud
                AND CONCAT(LPAD(i1.id_annee_acad, 10, "0"), LPAD(i1.num_versement, 10, "0")) = latest.latest_key
         )';
+    }
+
+    private function persistBinaryDocument(array $data): int
+    {
+        $path = trim((string) ($data['chemin_fichier'] ?? ''));
+        if ($path === '') {
+            return 0;
+        }
+
+        $mapping = $this->mapLegacyDocumentType((string) ($data['type_document'] ?? ''));
+        if ($mapping === null) {
+            return 0;
+        }
+
+        $storage = new DocumentStorageService($this->db->pdo(), dirname(__DIR__, 2));
+        $document = $storage->storeFileFromPath(
+            $mapping['type_document'],
+            $path,
+            $mapping['entite_type'],
+            isset($data['id_source']) ? (string) $data['id_source'] : null,
+            max(0, (int) ($data['id_utilisateur_generation'] ?? 0)),
+            (string) ($data['reference_document'] ?? ''),
+            $mapping['sous_type'],
+            true
+        );
+
+        return is_array($document) ? (int) ($document['id_document'] ?? 0) : 0;
+    }
+
+    /**
+     * @return array{type_document: string, entite_type: string|null, sous_type: string|null}|null
+     */
+    private function mapLegacyDocumentType(string $legacyType): ?array
+    {
+        return match (strtoupper(trim($legacyType))) {
+            'RAP' => [
+                'type_document' => 'rapport',
+                'entite_type' => 'rapport_etudiants',
+                'sous_type' => 'generated',
+            ],
+            'PVC' => [
+                'type_document' => 'pv_commission',
+                'entite_type' => 'compte_rendu',
+                'sous_type' => null,
+            ],
+            'PVF', 'PV_FINAL' => [
+                'type_document' => 'pv_final',
+                'entite_type' => 'programmer_soutenance',
+                'sous_type' => null,
+            ],
+            'PLN' => [
+                'type_document' => 'planning',
+                'entite_type' => null,
+                'sous_type' => null,
+            ],
+            default => null,
+        };
     }
 
 }

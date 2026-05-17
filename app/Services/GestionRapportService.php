@@ -8,6 +8,9 @@ require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../models/InfoStage.php';
 require_once __DIR__ . '/../models/Entreprise.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
+require_once __DIR__ . '/../Services/Document/DocumentStorageService.php';
+require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../utils/NotificationService.php';
 
 /**
  * Service métier de la gestion des rapports
@@ -42,6 +45,9 @@ class GestionRapportService
     /** @var string */
     private $uploadsPath;
 
+    /** @var EmailService */
+    private $emailService;
+
     /**
      * @param \PDO $db Connexion à la base de données
      */
@@ -54,6 +60,7 @@ class GestionRapportService
         $this->infoStageModel = new InfoStage($db);
         $this->entrepriseModel = new Entreprise($db);
         $this->uploadsPath = __DIR__ . '/../../ressources/uploads/rapports/';
+        $this->emailService = new EmailService();
     }
 
     private function filterReportsBySelectedYear(array $rapports): array
@@ -468,6 +475,18 @@ class GestionRapportService
         // Mettre à jour le chemin du fichier et sa taille dans la base
         $tailleFichier = filesize($cheminComplet);
         $this->rapportModel->updateCheminFichier($rapport_id, $nomFichier, $tailleFichier);
+
+        $this->persistDocumentInDatabase(
+            'html_doc',
+            $nomFichier,
+            (string) $contenu,
+            'text/html',
+            'rapport_etudiants',
+            (string) $rapport_id,
+            'rapport',
+            $cheminComplet,
+            true
+        );
     }
 
     // ========================= DÉPÔT =========================
@@ -539,6 +558,22 @@ class GestionRapportService
 
             if ($transactionStarted && $pdo->inTransaction()) {
                 $pdo->commit();
+            }
+
+            try {
+                $this->notifierDepotRapport($id_rapport, $num_etu, $date_depot);
+            } catch (\Throwable $notifErr) {
+                error_log('Erreur notification depot: ' . $notifErr->getMessage());
+            }
+
+            if ($idCandidature) {
+                try {
+                    require_once __DIR__ . '/GestionCandidaturesService.php';
+                    $candidatureService = new \CheckMaster\Services\GestionCandidaturesService($this->db);
+                    $candidatureService->notifierSoumissionCandidature($num_etu, (int)$idCandidature, $date_depot);
+                } catch (\Throwable $notifErr) {
+                    error_log('Erreur notification candidature: ' . $notifErr->getMessage());
+                }
             }
 
             return true;
@@ -957,6 +992,10 @@ class GestionRapportService
                 date('Y-m-d H:i:s')
             );
             if ($updated) {
+                $this->persistUploadedReportDocument(
+                    $cheminComplet,
+                    $rapportExistant->id_rapport
+                );
                 // Audit
                 $this->auditLog->logModification(
                     $_SESSION['id_utilisateur'] ?? 0,
@@ -980,6 +1019,10 @@ class GestionRapportService
         );
 
         if ($id_rapport) {
+            $this->persistUploadedReportDocument(
+                $cheminComplet,
+                $id_rapport
+            );
             // Audit
             $this->auditLog->logDepot(
                 $_SESSION['id_utilisateur'] ?? 0,
@@ -1045,6 +1088,10 @@ class GestionRapportService
                 $date_operation
             );
             if ($updated) {
+                $this->persistUploadedReportDocument(
+                    $cheminComplet,
+                    $rapportExistant->id_rapport
+                );
                 // Audit PRD 3
                 $this->auditLog->logModification(
                     $_SESSION['id_utilisateur'] ?? 0,
@@ -1068,6 +1115,10 @@ class GestionRapportService
         );
 
         if ($id_rapport) {
+            $this->persistUploadedReportDocument(
+                $cheminComplet,
+                $id_rapport
+            );
             // Audit
             $this->auditLog->logAction(
                 $_SESSION['id_utilisateur'] ?? 0,
@@ -1147,5 +1198,88 @@ class GestionRapportService
         }
 
         return $result;
+    }
+
+    private function persistUploadedReportDocument(string $filePath, $rapportId): void
+    {
+        $rapportId = (int) $rapportId;
+        if ($rapportId <= 0 || !is_file($filePath)) {
+            return;
+        }
+
+        try {
+            $storage = new \App\Services\Document\DocumentStorageService($this->db, dirname(__DIR__, 2));
+            $storage->storeFileFromPath(
+                'rapport',
+                $filePath,
+                'rapport_etudiants',
+                (string) $rapportId,
+                isset($_SESSION['id_utilisateur']) ? (int) $_SESSION['id_utilisateur'] : null,
+                null,
+                'source',
+                true
+            );
+        } catch (\Throwable $e) {
+            error_log('Erreur persistUploadedReportDocument: ' . $e->getMessage());
+        }
+    }
+
+    private function persistDocumentInDatabase(
+        string $typeDocument,
+        string $nomFichier,
+        string $contenu,
+        string $mimeType,
+        ?string $entiteType,
+        ?string $entiteId,
+        ?string $sousType = null,
+        ?string $cheminOriginal = null,
+        bool $archiveExisting = false
+    ): void {
+        try {
+            $storage = new \App\Services\Document\DocumentStorageService($this->db, dirname(__DIR__, 2));
+            $storage->storeDocument(
+                $typeDocument,
+                $nomFichier,
+                $contenu,
+                $mimeType,
+                $entiteType,
+                $entiteId,
+                isset($_SESSION['id_utilisateur']) ? (int) $_SESSION['id_utilisateur'] : null,
+                null,
+                $sousType,
+                $cheminOriginal,
+                $archiveExisting
+            );
+        } catch (\Throwable $e) {
+            error_log('Erreur persistDocumentInDatabase: ' . $e->getMessage());
+        }
+    }
+
+    public function notifierDepotRapport(int $idRapport, string $numEtu, string $dateDepot): void
+    {
+        $rapport = $this->rapportModel->getRapportById($idRapport);
+        $etudiant = $this->etudiant->getEtudiantByNumEtu($numEtu);
+        if (!$rapport || !$etudiant) {
+            return;
+        }
+        $nomEtudiant = ($etudiant['prenom_etu'] ?? '') . ' ' . ($etudiant['nom_etu'] ?? '');
+        $nomRapport = is_array($rapport) ? ($rapport['nom_rapport'] ?? 'Sans titre') : ($rapport->nom_rapport ?? 'Sans titre');
+        $themeRapport = is_array($rapport) ? ($rapport['theme_rapport'] ?? '') : ($rapport->theme_rapport ?? '');
+        $notifService = new \NotificationService();
+        $encadrants = $notifService->getEncadrantsForRapport($idRapport);
+        foreach ($encadrants as $enc) {
+            $email = trim((string)($enc['email'] ?? ''));
+            if ($email === '') {
+                continue;
+            }
+            $this->emailService->sendTemplate('DEPOT_RAPPORT', $email, [
+                'nom_enseignant' => htmlspecialchars((string)($enc['nom'] ?? '')),
+                'nom_etudiant' => htmlspecialchars(trim($nomEtudiant)),
+                'nom_rapport' => htmlspecialchars($nomRapport),
+                'theme_rapport' => htmlspecialchars($themeRapport),
+                'date_depot' => $dateDepot,
+                'role' => htmlspecialchars((string)($enc['role'] ?? '')),
+            ]);
+        }
     }
 }

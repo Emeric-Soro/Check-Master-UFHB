@@ -316,7 +316,7 @@ unset($_SESSION['success'], $_SESSION['error']);
                                 : (!empty($rapport->date_modification) 
                                     ? date('d/m/Y', strtotime($rapport->date_modification)) 
                                     : '-');
-                            $aUnFichier = !empty($rapport->chemin_fichier);
+                            $aUnFichier = !empty($rapport->id_rapport);
                             ?>
                             <div class="cm-report-card">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">

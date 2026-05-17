@@ -42,6 +42,7 @@ class RedactionCompteRenduController {
                 'rapports'              => isset($_POST['rapports']) ? $_POST['rapports'] : [],
                 'encadrant_pedagogique' => $_POST['encadrant_pedagogique'] ?? [],
                 'directeur_memoire'     => $_POST['directeur_memoire'] ?? [],
+                'submit_action'         => $_POST['submit_action'] ?? 'save',
             ]);
 
             $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])

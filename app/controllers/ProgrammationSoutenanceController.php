@@ -218,6 +218,15 @@ class ProgrammationSoutenanceController
             }
             $result = $this->service->createAttribution($input);
 
+            if (!empty($result['success']) && !empty($result['data']['id'])) {
+                try {
+                    $this->service->notifierAjoutJury($input);
+                    $this->service->notifierProgrammationSoutenance((string)$result['data']['id'], $input);
+                } catch (\Throwable $notifErr) {
+                    error_log('Erreur notification programmation: ' . $notifErr->getMessage());
+                }
+            }
+
             header('Content-Type: application/json');
             echo json_encode($result);
         } catch (Exception $e) {

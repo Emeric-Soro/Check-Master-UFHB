@@ -648,7 +648,7 @@ if ($hasPrefill) {
                                             <input type="hidden" name="theme_rapport" value="<?= htmlspecialchars((string) ($r->theme_rapport ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                                         </form>
                                         <div class="cm-rapport-admin-actions" style="justify-content: flex-end;">
-                                            <?php if (!empty($r->chemin_fichier)): ?>
+                                            <?php if (!empty($r->id_rapport)): ?>
                                                 <a href="?page=<?= htmlspecialchars($basePage, ENT_QUOTES, 'UTF-8') ?>&action=download_fichier_rapport&id=<?= (int) ($r->id_rapport ?? 0) ?>"
                                                     class="cm-btn is-light is-sm" title="Telecharger le PDF du rapport">
                                                     <i class="fas fa-download" aria-hidden="true"></i>

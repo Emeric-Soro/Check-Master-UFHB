@@ -1,6 +1,10 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/DocumentStorageService.php';
+
+use App\Services\Document\DocumentStorageService;
+
 /**
  * Registry centralise des types de documents.
  * Il resout les chemins PDF a partir du schema reel, des references generees
@@ -15,6 +19,10 @@ final class DocumentRegistry
         'rapport' => [
             'codes' => ['RAP'],
             'subdir' => 'rapports',
+        ],
+        'fiche_inscription' => [
+            'codes' => ['FIC'],
+            'subdir' => 'fiches',
         ],
         'recu' => [
             'codes' => ['REC'],
@@ -45,6 +53,7 @@ final class DocumentRegistry
     private string $storagePath;
     private string $documentsPath;
     private string $uploadsPath;
+    private DocumentStorageService $documentStorage;
 
     /** @var array<string, bool> */
     private array $tableExistsCache = [];
@@ -56,6 +65,7 @@ final class DocumentRegistry
         $this->storagePath = $this->projectRoot . DIRECTORY_SEPARATOR . 'storage';
         $this->documentsPath = $this->storagePath . DIRECTORY_SEPARATOR . 'documents';
         $this->uploadsPath = $this->projectRoot . DIRECTORY_SEPARATOR . 'ressources' . DIRECTORY_SEPARATOR . 'uploads';
+        $this->documentStorage = new DocumentStorageService($pdo, $this->projectRoot);
     }
 
     public function resolve(string $type, string $id): ?string
@@ -67,8 +77,17 @@ final class DocumentRegistry
             return null;
         }
 
+        $storedDocument = $this->getStoredDocument($type, $id);
+        if (is_array($storedDocument)) {
+            $cachedPath = $this->documentStorage->materializeToCache($storedDocument);
+            if (is_string($cachedPath) && $cachedPath !== '' && is_file($cachedPath)) {
+                return $cachedPath;
+            }
+        }
+
         return match ($type) {
             'rapport' => $this->resolveRapport($id),
+            'fiche_inscription' => $this->resolveFicheInscriptionDocument($id),
             'recu' => $this->resolveGeneratedDocument($type, $id),
             'pv_commission' => $this->resolveCompteRenduDocument($id, false, true),
             'pv_final' => $this->resolvePvFinal($id),
@@ -79,9 +98,26 @@ final class DocumentRegistry
         };
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getStoredDocument(string $type, string $id): ?array
+    {
+        return $this->documentStorage->findForViewer($type, $id);
+    }
+
+    public function hasDocument(string $type, string $id): bool
+    {
+        if ($this->getStoredDocument($type, $id) !== null) {
+            return true;
+        }
+
+        return $this->resolve($type, $id) !== null;
+    }
+
     public function canView(string $type, string $id): bool
     {
-        if (!function_exists('canView') || !canView('docviewer')) {
+        if (!isset($_SESSION['id_GU'])) {
             return false;
         }
 
@@ -92,7 +128,7 @@ final class DocumentRegistry
         }
 
         if ($userGroup === 12) {
-            return in_array($type, ['rapport', 'pv_commission', 'pv_final', 'planning', 'compte_rendu', 'bulletin'], true);
+            return in_array($type, ['rapport', 'fiche_inscription', 'pv_commission', 'pv_final', 'planning', 'compte_rendu', 'bulletin'], true);
         }
 
         if ($userGroup === 13) {
@@ -151,6 +187,33 @@ final class DocumentRegistry
         }
 
         return $this->resolveGeneratedDocument('rapport', $id);
+    }
+
+    private function resolveFicheInscriptionDocument(string $id): ?string
+    {
+        [$numCarteEtud, $idAnneeAcad, $numVersement] = $this->parseInscriptionDocumentId($id);
+        if ($numCarteEtud === null || $idAnneeAcad === null || $numVersement === null) {
+            return null;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT fiche_inscription
+             FROM inscriptions
+             WHERE num_carte_etud = :num_carte_etud
+               AND id_annee_acad = :id_annee_acad
+               AND num_versement = :num_versement
+             LIMIT 1'
+        );
+        $stmt->execute([
+            ':num_carte_etud' => $numCarteEtud,
+            ':id_annee_acad' => $idAnneeAcad,
+            ':num_versement' => $numVersement,
+        ]);
+        $storedPath = $stmt->fetchColumn();
+
+        return is_string($storedPath) && $storedPath !== ''
+            ? $this->resolveStoredFilePath($storedPath)
+            : null;
     }
 
     private function resolveCompteRenduDocument(string $id, bool $bulletinOnly, bool $preferGenerated): ?string
@@ -282,6 +345,38 @@ final class DocumentRegistry
             }
 
             if ($this->isAllowedPdfPath($realPath)) {
+                return $realPath;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveStoredFilePath(string $storedPath): ?string
+    {
+        $storedPath = trim($storedPath);
+        if ($storedPath === '') {
+            return null;
+        }
+
+        $candidates = [];
+        if ($this->isAbsolutePath($storedPath)) {
+            $candidates[] = $storedPath;
+        } else {
+            $relativePath = ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $storedPath), DIRECTORY_SEPARATOR);
+            $candidates[] = $this->projectRoot . DIRECTORY_SEPARATOR . $relativePath;
+            $candidates[] = $this->storagePath . DIRECTORY_SEPARATOR . $relativePath;
+            $candidates[] = $this->documentsPath . DIRECTORY_SEPARATOR . $relativePath;
+            $candidates[] = $this->uploadsPath . DIRECTORY_SEPARATOR . $relativePath;
+        }
+
+        foreach ($candidates as $candidate) {
+            $realPath = realpath($candidate);
+            if ($realPath === false || !is_file($realPath)) {
+                continue;
+            }
+
+            if ($this->isAllowedStoredPath($realPath)) {
                 return $realPath;
             }
         }
@@ -441,14 +536,34 @@ final class DocumentRegistry
             'compte_rendu', 'bulletin', 'pv_commission' => $this->existsForStudent(
                 'SELECT 1
                  FROM compte_rendu cr
+                 LEFT JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
+                 LEFT JOIN rapport_etudiants r ON r.id_rapport = crr.id_rapport
                  LEFT JOIN etudiants e ON (e.num_carte_etud = cr.num_etu OR e.num_ident_etud = cr.num_etu)
+                 LEFT JOIN etudiants er ON (er.num_carte_etud = r.num_etu OR er.num_ident_etud = r.num_etu)
                  WHERE cr.id_CR = :id
-                   AND (cr.num_etu = :etu OR e.num_carte_etud = :etu OR e.num_ident_etud = :etu)
+                   AND (
+                        cr.num_etu = :etu
+                        OR r.num_etu = :etu
+                        OR e.num_carte_etud = :etu
+                        OR e.num_ident_etud = :etu
+                        OR er.num_carte_etud = :etu
+                        OR er.num_ident_etud = :etu
+                   )
                  LIMIT 1',
                 $id,
                 $studentNum
             ),
             'recu' => $this->existsForStudent(
+                'SELECT 1
+                 FROM inscriptions i
+                 LEFT JOIN etudiants e ON (e.num_carte_etud = i.num_carte_etud OR e.num_ident_etud = i.num_carte_etud)
+                 WHERE CONCAT(i.num_carte_etud, \'-\', i.id_annee_acad, \'-\', i.num_versement) = :id
+                   AND (i.num_carte_etud = :etu OR e.num_carte_etud = :etu OR e.num_ident_etud = :etu)
+                 LIMIT 1',
+                $id,
+                $studentNum
+            ),
+            'fiche_inscription' => $this->existsForStudent(
                 'SELECT 1
                  FROM inscriptions i
                  LEFT JOIN etudiants e ON (e.num_carte_etud = i.num_carte_etud OR e.num_ident_etud = i.num_carte_etud)
@@ -490,9 +605,14 @@ final class DocumentRegistry
         }
 
         try {
-            $stmt = $this->pdo->prepare('SHOW TABLES LIKE :table_name');
+            $stmt = $this->pdo->prepare(
+                'SELECT COUNT(*)
+                 FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                   AND table_name = :table_name'
+            );
             $stmt->execute([':table_name' => $tableName]);
-            $exists = (bool) $stmt->fetchColumn();
+            $exists = (int) $stmt->fetchColumn() > 0;
             $this->tableExistsCache[$tableName] = $exists;
             return $exists;
         } catch (\Throwable) {
@@ -561,6 +681,15 @@ final class DocumentRegistry
             return false;
         }
 
+        return $this->isAllowedStoredPath($path);
+    }
+
+    private function isAllowedStoredPath(string $path): bool
+    {
+        if (!is_file($path)) {
+            return false;
+        }
+
         foreach ([$this->storagePath, $this->documentsPath, $this->uploadsPath] as $baseDir) {
             if ($this->isPathInside($path, $baseDir)) {
                 return true;
@@ -588,5 +717,26 @@ final class DocumentRegistry
     {
         $clean = preg_replace('/[^A-Za-z0-9_-]+/', '_', $value);
         return is_string($clean) ? trim($clean, '_') : '';
+    }
+
+    /**
+     * @return array{0: ?string, 1: ?int, 2: ?int}
+     */
+    private function parseInscriptionDocumentId(string $id): array
+    {
+        $parts = preg_split('/[-|]/', $id);
+        if (!is_array($parts) || count($parts) < 3) {
+            return [null, null, null];
+        }
+
+        $numVersement = array_pop($parts);
+        $idAnneeAcad = array_pop($parts);
+        $numCarteEtud = implode('-', $parts);
+
+        if ($numCarteEtud === '' || !is_numeric($idAnneeAcad) || !is_numeric($numVersement)) {
+            return [null, null, null];
+        }
+
+        return [$numCarteEtud, (int) $idAnneeAcad, (int) $numVersement];
     }
 }

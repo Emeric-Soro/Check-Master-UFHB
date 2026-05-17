@@ -5,6 +5,9 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Salle.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 
+require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../utils/NotificationService.php';
+
 use Exception;
 use Salle;
 
@@ -369,7 +372,7 @@ class PlanificationSoutenanceService
             $this->pdo->beginTransaction();
             $this->ensureWritableProgrammation($targetId, 'une planification de soutenance');
 
-            $etudiantStmt = $this->pdo->prepare("SELECT num_etud FROM {$progTable} WHERE {$idColumn} = ?");
+            $etudiantStmt = $this->pdo->prepare("SELECT p.num_etud, CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_etudiant, p.theme_soutenance FROM {$progTable} p LEFT JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud) WHERE p.{$idColumn} = ?");
             $etudiantStmt->execute([(string) $targetId]);
             $etudiantData = $etudiantStmt->fetch(\PDO::FETCH_ASSOC);
             if (!$etudiantData) {
@@ -418,6 +421,31 @@ class PlanificationSoutenanceService
             }
 
             $this->pdo->commit();
+
+            try {
+                $emailService = new \EmailService();
+                $stmtEns = $this->pdo->prepare("SELECT id_enseignant FROM enseignants LIMIT 1");
+                $stmtEns->execute();
+                $enseignantRow = $stmtEns->fetch(\PDO::FETCH_ASSOC);
+                $enseignantId = $enseignantRow['id_enseignant'] ?? null;
+                $role = 'encadrant';
+                $etudiantNom = $etudiantData['nom_etudiant'] ?? '';
+                $theme = $etudiantData['theme_soutenance'] ?? '';
+                $entreprise = '';
+                $ensEmail = (new \NotificationService())->getEnseignantEmail($enseignantId);
+                $ensNom = (new \NotificationService())->getEnseignantNom($enseignantId);
+                $templateKey = ($role === 'encadrant') ? 'AFFECTATION_ENCADRANT' : 'AFFECTATION_DIRECTEUR';
+                if ($ensEmail !== null) {
+                    $emailService->sendTemplate($templateKey, $ensEmail, [
+                        'nom_enseignant' => htmlspecialchars($ensNom, ENT_QUOTES, 'UTF-8'),
+                        'nom_etudiant' => htmlspecialchars((string)($etudiantNom ?? ''), ENT_QUOTES, 'UTF-8'),
+                        'theme' => htmlspecialchars((string)($theme ?? ''), ENT_QUOTES, 'UTF-8'),
+                        'entreprise' => htmlspecialchars((string)($entreprise ?? ''), ENT_QUOTES, 'UTF-8'),
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                error_log('Erreur notif affectation: ' . $e->getMessage());
+            }
 
             return [
                 'success' => true,

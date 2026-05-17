@@ -21,7 +21,7 @@ class DocumentsController
 
     public function index(): array
     {
-        if (!canView('docviewer')) {
+        if (!canView('documents')) {
             $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'acceder a cette page.";
             header('Location: layout.php?page=access_denied');
             exit;
@@ -101,8 +101,7 @@ class DocumentsController
                     FROM compte_rendu cr
                     LEFT JOIN etudiants e ON (e.num_carte_etud = cr.num_etu OR e.num_ident_etud = cr.num_etu)
                     WHERE (cr.num_etu = :num_etu OR e.num_carte_etud = :num_etu OR e.num_ident_etud = :num_etu)
-                      AND cr.chemin_fichier_pdf IS NOT NULL
-                      AND cr.chemin_fichier_pdf <> ''
+                      AND " . $this->buildCompteRenduAvailabilitySql('cr', 'compte_rendu') . "
                       AND cr.nom_CR NOT LIKE 'BULLETIN_%'";
             $params = [':num_etu' => $numEtu];
             if ($anneeFilter !== null) {
@@ -128,8 +127,7 @@ class DocumentsController
                     FROM compte_rendu cr
                     LEFT JOIN etudiants e ON (e.num_carte_etud = cr.num_etu OR e.num_ident_etud = cr.num_etu)
                     WHERE (cr.num_etu = :num_etu OR e.num_carte_etud = :num_etu OR e.num_ident_etud = :num_etu)
-                      AND cr.chemin_fichier_pdf IS NOT NULL
-                      AND cr.chemin_fichier_pdf <> ''
+                      AND " . $this->buildCompteRenduAvailabilitySql('cr', 'bulletin') . "
                       AND cr.nom_CR LIKE 'BULLETIN_%'";
             $params = [':num_etu' => $numEtu];
             if ($anneeFilter !== null) {
@@ -232,8 +230,7 @@ class DocumentsController
                     LEFT JOIN rendre rd ON rd.id_CR = cr.id_CR
                     LEFT JOIN etudiants e ON e.num_carte_etud = COALESCE(re.num_etu, cr.num_etu)
                     WHERE (a.id_enseignant = :id_ens OR rd.id_enseignant = :id_ens)
-                      AND cr.chemin_fichier_pdf IS NOT NULL
-                      AND cr.chemin_fichier_pdf <> ''
+                      AND " . $this->buildCompteRenduAvailabilitySql('cr', 'compte_rendu', ['pv_commission']) . "
                       AND cr.nom_CR NOT LIKE 'BULLETIN_%'";
             $params = [':id_ens' => $enseignantId];
             if ($anneeFilter !== null) {
@@ -340,8 +337,7 @@ class DocumentsController
                         CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant
                     FROM compte_rendu cr
                     INNER JOIN etudiants e ON e.num_carte_etud = cr.num_etu
-                    WHERE cr.chemin_fichier_pdf IS NOT NULL
-                      AND cr.chemin_fichier_pdf <> ''
+                    WHERE " . $this->buildCompteRenduAvailabilitySql('cr', 'compte_rendu') . "
                       AND cr.nom_CR NOT LIKE 'BULLETIN_%'";
             $params = [];
             if ($anneeFilter !== null) {
@@ -367,8 +363,7 @@ class DocumentsController
                         CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant
                     FROM compte_rendu cr
                     INNER JOIN etudiants e ON e.num_carte_etud = cr.num_etu
-                    WHERE cr.chemin_fichier_pdf IS NOT NULL
-                      AND cr.chemin_fichier_pdf <> ''
+                    WHERE " . $this->buildCompteRenduAvailabilitySql('cr', 'bulletin') . "
                       AND cr.nom_CR LIKE 'BULLETIN_%'";
             $params = [];
             if ($anneeFilter !== null) {
@@ -575,7 +570,7 @@ class DocumentsController
                 continue;
             }
 
-            if ($this->registry->resolve($type, $id) !== null || in_array($type, $generatorBackedTypes, true)) {
+            if ($this->registry->hasDocument($type, $id) || in_array($type, $generatorBackedTypes, true)) {
                 $filtered[] = $document;
             }
         }
@@ -594,5 +589,29 @@ class DocumentsController
 
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         return is_array($rows) ? $rows : [];
+    }
+
+    /**
+     * @param array<int, string> $additionalTypes
+     */
+    private function buildCompteRenduAvailabilitySql(string $alias, string $primaryType, array $additionalTypes = []): string
+    {
+        $types = array_values(array_unique(array_merge([$primaryType], $additionalTypes)));
+        $quotedTypes = array_map(
+            static fn(string $type): string => "'" . str_replace("'", "''", $type) . "'",
+            $types
+        );
+
+        return "((
+                    {$alias}.chemin_fichier_pdf IS NOT NULL
+                    AND {$alias}.chemin_fichier_pdf <> ''
+                ) OR EXISTS (
+                    SELECT 1
+                    FROM documents d
+                    WHERE d.entite_type = 'compte_rendu'
+                      AND d.entite_id = CAST({$alias}.id_CR AS CHAR)
+                      AND d.statut = 'actif'
+                      AND d.type_document IN (" . implode(', ', $quotedTypes) . ')
+                ))';
     }
 }

@@ -4,6 +4,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../Services/GestionReclamationsScolariteService.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
+require_once __DIR__ . '/../Services/GestionReclamationsService.php';
 
 use CheckMaster\Services\GestionReclamationsScolariteService;
 class GestionReclamationsScolariteController {
@@ -31,6 +32,17 @@ class GestionReclamationsScolariteController {
             $nouveauStatut = $_POST['nouveau_statut'];
             $idUtilisateur = $_SESSION['id_utilisateur'] ?? 0;
             $this->service->changerStatut($id, $nouveauStatut, $idUtilisateur);
+
+            try {
+                $reclamationService = new \CheckMaster\Services\GestionReclamationsService(new Reclamation(\Database::getConnection()), new AuditLog(\Database::getConnection()));
+                $idReclamation = $id;
+                $objet = $_POST['objet'] ?? '';
+                $numEtu = $_POST['num_etu'] ?? '';
+                $commentaire = $_POST['commentaire'] ?? '';
+                $reclamationService->notifierReclamationStatut($idReclamation, $objet, $nouveauStatut, $numEtu, $commentaire);
+            } catch (\Throwable $e) {
+                error_log('Erreur notif reclamation: ' . $e->getMessage());
+            }
         }
         header('Location: ?page=gestion_reclamations_scolarite');
         exit;

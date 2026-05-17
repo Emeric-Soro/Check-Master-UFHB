@@ -705,8 +705,11 @@ class GestionUtilisateurService
             if ($motDePasse) {
                 $password_row = '
                 <tr>
-                    <td style="padding-bottom: 10px; color: #64748b;">Mot de passe :</td>
-                    <td style="padding-bottom: 10px;"><span class="password-box">' . htmlspecialchars($motDePasse) . '</span></td>
+                    <td style="padding-bottom: 12px;" class="info-label">Mot de passe :</td>
+                    <td style="padding-bottom: 12px;">
+                        <code class="code-block">' . htmlspecialchars($motDePasse) . '</code>
+                        <span class="copy-hint">(Double-cliquez pour copier)</span>
+                    </td>
                 </tr>';
             }
 

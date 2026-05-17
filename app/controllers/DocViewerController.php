@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../Services/Document/DocumentRegistry.php';
+require_once __DIR__ . '/../Services/Document/DocumentStorageService.php';
 require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
 require_once __DIR__ . '/../Services/Document/RapportPdfGeneratorService.php';
 require_once __DIR__ . '/../Services/Document/RecuGeneratorService.php';
@@ -12,6 +13,7 @@ require_once __DIR__ . '/../utils/permissions_helper.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 
 use App\Services\Document\PdfGeneratorService;
+use App\Services\Document\DocumentStorageService;
 use App\Services\Document\PvCommissionGeneratorService;
 use App\Services\Document\PvFinalGeneratorService;
 use App\Services\Document\RapportPdfGeneratorService;
@@ -28,6 +30,7 @@ class DocViewerController
 {
     private $db;
     private DocumentRegistry $registry;
+    private DocumentStorageService $documentStorage;
     private ?AppDatabase $appDb = null;
     private ?PdfGeneratorService $pdfGenerator = null;
     private ?PlanningDataUtils $planningDataUtils = null;
@@ -35,13 +38,14 @@ class DocViewerController
 
     private const ALLOWED_TYPES = [
         'rapport', 'recu', 'pv_commission', 'pv_final',
-        'planning', 'bulletin', 'compte_rendu',
+        'planning', 'bulletin', 'compte_rendu', 'fiche_inscription',
     ];
 
     public function __construct($db = null)
     {
         $this->db = $db ?: Database::getConnection();
         $this->registry = new DocumentRegistry($this->db);
+        $this->documentStorage = new DocumentStorageService($this->db, dirname(__DIR__, 2));
     }
 
     public function preview(): void
@@ -72,28 +76,26 @@ class DocViewerController
             exit;
         }
 
-        $filePath = $this->registry->resolve($type, $id);
-        if ($filePath === null) {
-            $filePath = $this->generateDocumentIfSupported($type, $id);
+        $storedDocument = $this->registry->getStoredDocument($type, $id);
+        $filePath = null;
+
+        if ($storedDocument === null) {
+            $filePath = $this->registry->resolve($type, $id);
         }
 
-        if ($filePath === null || !is_file($filePath)) {
+        if ($storedDocument === null && $filePath === null) {
+            $generatedPath = $this->generateDocumentIfSupported($type, $id);
+            if ($generatedPath !== null) {
+                $storedDocument = $this->registry->getStoredDocument($type, $id);
+                $filePath = $storedDocument === null ? $generatedPath : null;
+            }
+        }
+
+        if ($storedDocument === null && ($filePath === null || !is_file($filePath))) {
             $this->logAudit('Document non trouve', 'document', 'Erreur');
             http_response_code(404);
             echo 'Document non trouve';
             exit;
-        }
-
-        header('Content-Type: application/pdf');
-        header('Cache-Control: private, max-age=300');
-        header('X-Content-Type-Options: nosniff');
-
-        $filename = basename($filePath);
-        header('Content-Disposition: ' . $disposition . '; filename="' . $filename . '"');
-
-        $size = filesize($filePath);
-        if ($size !== false && $size > 0) {
-            header('Content-Length: ' . $size);
         }
 
         $actionLabel = $disposition === 'inline'
@@ -102,8 +104,46 @@ class DocViewerController
         $this->logAudit($actionLabel, 'document', 'Succes');
         $this->incrementConsultation($type, $id);
 
-        readfile($filePath);
+        if (is_array($storedDocument)) {
+            $this->documentStorage->serve(
+                $storedDocument,
+                $disposition,
+                (int) ($_SESSION['id_utilisateur'] ?? 0),
+                (string) ($_SERVER['REMOTE_ADDR'] ?? '')
+            );
+        }
+
+        $mimeType = $this->detectMimeTypeFromPath((string) $filePath);
+        header('Content-Type: ' . $mimeType);
+        header('Cache-Control: private, max-age=300');
+        header('X-Content-Type-Options: nosniff');
+
+        $filename = basename((string) $filePath);
+        header('Content-Disposition: ' . $disposition . '; filename="' . $filename . '"');
+
+        $size = filesize((string) $filePath);
+        if ($size !== false && $size > 0) {
+            header('Content-Length: ' . $size);
+        }
+
+        readfile((string) $filePath);
         exit;
+    }
+
+    private function detectMimeTypeFromPath(string $path): string
+    {
+        if ($path !== '' && function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo !== false) {
+                $mimeType = finfo_file($finfo, $path);
+                finfo_close($finfo);
+                if (is_string($mimeType) && $mimeType !== '') {
+                    return $mimeType;
+                }
+            }
+        }
+
+        return 'application/pdf';
     }
 
     private function logAudit(string $action, string $table, string $status): void

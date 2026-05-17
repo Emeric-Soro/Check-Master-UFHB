@@ -5,6 +5,7 @@ require_once __DIR__ . '/../Support/Database.php';
 require_once __DIR__ . '/../Services/Document/RecuGeneratorService.php';
 require_once __DIR__ . '/../utils/RecuDataUtils.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
+require_once __DIR__ . '/../utils/EmailService.php';
 
 use CheckMaster\Services\InscriptionService;
 
@@ -149,6 +150,33 @@ class InscriptionController
         $result = $this->service->traiterInscription($_POST, $_SESSION['id_utilisateur']);
         if ($result['success']) {
             $GLOBALS['messageSuccess'] = $result['message'];
+
+            try {
+                $dbNotif = \Database::getConnection();
+                $inscService = new \CheckMaster\Services\InscriptionService($dbNotif);
+                $numEtu = $_POST['etudiant'] ?? '';
+                $niveau = (string) ($_POST['niveau'] ?? '');
+                $montantVerse = floatval($_POST['premier_versement'] ?? 0);
+                $idAnnee = $_POST['annee_academique'] ?? 0;
+
+                $stmtAnnee = $dbNotif->prepare("SELECT lib_annee_acad FROM annee_academique WHERE id_annee_acad = ?");
+                $stmtAnnee->execute([$idAnnee]);
+                $anneeLabel = (string) ($stmtAnnee->fetchColumn() ?: '');
+
+                $stmtNiv = $dbNotif->prepare("SELECT montant_scolarite FROM niveaux_etudes WHERE id_niveau = ?");
+                $stmtNiv->execute([$niveau]);
+                $montantTotal = (float) ($stmtNiv->fetchColumn() ?: 0);
+
+                $solde = max(0, $montantTotal - $montantVerse);
+                $inscService->notifierInscription($numEtu, $niveau, $montantTotal, $montantVerse, $solde, $anneeLabel);
+
+                $inscService->notifierPaiement($numEtu, $montantVerse, $_POST['methode_paiement'] ?? '', $solde);
+                if ($solde <= 0) {
+                    $inscService->notifierInscriptionValidee($numEtu, $anneeLabel);
+                }
+            } catch (\Throwable $e) {
+                error_log('Erreur notif inscription: ' . $e->getMessage());
+            }
         } else {
             $GLOBALS['messageErreur'] = $result['message'];
         }

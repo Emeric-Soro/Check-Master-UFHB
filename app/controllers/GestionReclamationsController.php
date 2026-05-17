@@ -99,6 +99,17 @@ class GestionReclamationsController {
             );
 
             if ($resultat['success']) {
+                try {
+                    $this->service->notifierReclamationSoumise(
+                        $resultat['reclamationId'], 
+                        $donneesReclamation['titre'], 
+                        $donneesReclamation['type'], 
+                        $_SESSION['num_etu']
+                    );
+                } catch (\Throwable $e) {
+                    error_log('Erreur notif reclamation: ' . $e->getMessage());
+                }
+                
                 $this->afficherMessage($resultat['message'], 'success');
                 header('Location: ?page=gestion_reclamations');
                 exit;

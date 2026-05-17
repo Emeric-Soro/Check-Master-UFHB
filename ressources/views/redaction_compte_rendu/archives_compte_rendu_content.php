@@ -109,7 +109,7 @@ $baseUrl = '?page=archive_comptes_rendus'
                                            onclick="CM.openDocViewer('compte_rendu', '<?php echo htmlspecialchars((string) $idCr, ENT_QUOTES, 'UTF-8'); ?>', {title: '<?php echo htmlspecialchars($archive['nom_CR'] ?? 'Compte-rendu', ENT_QUOTES, 'UTF-8'); ?>'})">
                                             <i class="fas fa-eye" aria-hidden="true"></i>
                                         </button>
-                                        <?php if (!empty($archive['chemin_fichier_pdf'])): ?>
+                                        <?php if ($idCr > 0): ?>
                                             <a class="cm-btn-action is-view"
                                                href="?page=docviewer&type=compte_rendu&id=<?php echo urlencode((string) $idCr); ?>&action=download"
                                                title="Telecharger PDF">
@@ -329,4 +329,3 @@ $baseUrl = '?page=archive_comptes_rendus'
     updateDeleteState();
 })();
 </script>
-

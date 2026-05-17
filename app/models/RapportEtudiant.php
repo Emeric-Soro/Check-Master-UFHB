@@ -1151,7 +1151,21 @@ class RapportEtudiant
         try {
             $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM rapport_etudiants WHERE (num_etu = ? OR num_etu = ?) AND chemin_fichier IS NOT NULL AND chemin_fichier != ''");
             $stmt->execute([$num_etu, $num_etu]);
-            return $stmt->fetchColumn() > 0;
+            if ((int) $stmt->fetchColumn() > 0) {
+                return true;
+            }
+
+            $docStmt = $this->pdo->prepare("
+                SELECT COUNT(*)
+                FROM documents d
+                INNER JOIN rapport_etudiants r ON d.entite_id = CAST(r.id_rapport AS CHAR)
+                WHERE d.entite_type = 'rapport_etudiants'
+                  AND d.statut = 'actif'
+                  AND d.type_document IN ('rapport', 'html_doc')
+                  AND (r.num_etu = ? OR r.num_etu = ?)
+            ");
+            $docStmt->execute([$num_etu, $num_etu]);
+            return (int) $docStmt->fetchColumn() > 0;
         } catch (PDOException $e) {
             error_log("Erreur aDejaUnRapportUploaded: " . $e->getMessage());
             return false;

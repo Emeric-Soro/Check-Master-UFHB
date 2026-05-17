@@ -4,6 +4,8 @@ namespace CheckMaster\Services;
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Reclamation.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../utils/NotificationService.php';
 
 use Reclamation;
 use AuditLog;
@@ -29,6 +31,8 @@ class GestionReclamationsService
 
     /** @var AuditLog */
     private $auditLog;
+
+    private $emailService;
 
     /** @var array Types de réclamation affichés dans le formulaire */
     private const TYPES_RECLAMATION = [
@@ -75,6 +79,7 @@ class GestionReclamationsService
     {
         $this->reclamationModel = $reclamationModel;
         $this->auditLog = $auditLog;
+        $this->emailService = new \EmailService();
     }
 
     // ===================== DASHBOARD =====================
@@ -422,5 +427,80 @@ class GestionReclamationsService
             'error'        => null,
             'httpCode'     => 200,
         ];
+    }
+
+    public function notifierReclamationSoumise(int $idReclamation, string $objet, string $type, string $numEtu): void
+    {
+        try {
+            $db = \Database::getConnection();
+            $stmt = $db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_etu = ?");
+            $stmt->execute([$numEtu]);
+            $etu = $stmt->fetch(PDO::FETCH_ASSOC);
+            $nomEtudiant = $etu ? trim(($etu['prenom_etu'] ?? '') . ' ' . ($etu['nom_etu'] ?? '')) : $numEtu;
+
+            $notifService = new \NotificationService();
+            $notifService->sendToUserGroups([5, 6, 7, 8], 'RECLAMATION_SOUMISE_ADMIN', [
+                'nom_etudiant' => htmlspecialchars($nomEtudiant, ENT_QUOTES, 'UTF-8'),
+                'objet' => htmlspecialchars($objet, ENT_QUOTES, 'UTF-8'),
+                'type' => htmlspecialchars($type, ENT_QUOTES, 'UTF-8'),
+                'id' => $idReclamation,
+                'admin_url' => 'http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/checkmaster/?page=gestion_reclamations_scolarite',
+            ]);
+        } catch (\Exception $e) {
+            error_log('Erreur notifierReclamationSoumise: ' . $e->getMessage());
+        }
+    }
+
+    public function notifierReclamationStatut(int $idReclamation, string $objet, string $statut, string $numEtu, string $commentaire = ''): void
+    {
+        try {
+            $db = \Database::getConnection();
+            $stmt = $db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_etu = ?");
+            $stmt->execute([$numEtu]);
+            $etu = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$etu || empty($etu['email_etu'])) {
+                return;
+            }
+            $nom = trim(($etu['prenom_etu'] ?? '') . ' ' . ($etu['nom_etu'] ?? ''));
+            $couleurs = ['En attente' => '#f59e0b', 'En cours' => '#3b82f6', 'Resolue' => '#10b981', 'Rejetee' => '#ef4444'];
+
+            $data = [
+                'nom' => htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'),
+                'id' => $idReclamation,
+                'objet' => htmlspecialchars($objet, ENT_QUOTES, 'UTF-8'),
+                'statut' => htmlspecialchars($statut, ENT_QUOTES, 'UTF-8'),
+                'statut_couleur' => $couleurs[$statut] ?? '#64748b',
+            ];
+            if ($commentaire !== '') {
+                $data['commentaire'] = '<p style="background: #f1f5f9; padding: 12px; border-radius: 6px; margin-top: 8px;">' . htmlspecialchars($commentaire, ENT_QUOTES, 'UTF-8') . '</p>';
+            } else {
+                $data['commentaire'] = '';
+            }
+            $this->emailService->sendTemplate('RECLAMATION_STATUT', $etu['email_etu'], $data);
+        } catch (\Exception $e) {
+            error_log('Erreur notifierReclamationStatut: ' . $e->getMessage());
+        }
+    }
+
+    public function notifierReclamationReponse(int $idReclamation, string $objet, string $reponse, string $numEtu): void
+    {
+        try {
+            $db = \Database::getConnection();
+            $stmt = $db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_etu = ?");
+            $stmt->execute([$numEtu]);
+            $etu = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$etu || empty($etu['email_etu'])) {
+                return;
+            }
+            $nom = trim(($etu['prenom_etu'] ?? '') . ' ' . ($etu['nom_etu'] ?? ''));
+            $this->emailService->sendTemplate('RECLAMATION_REPONSE', $etu['email_etu'], [
+                'nom' => htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'),
+                'id' => $idReclamation,
+                'objet' => htmlspecialchars($objet, ENT_QUOTES, 'UTF-8'),
+                'reponse' => nl2br(htmlspecialchars($reponse, ENT_QUOTES, 'UTF-8')),
+            ]);
+        } catch (\Exception $e) {
+            error_log('Erreur notifierReclamationReponse: ' . $e->getMessage());
+        }
     }
 }

@@ -162,7 +162,17 @@ class ArchiveDocumentController
                         e.num_carte_etud
                     FROM rapport_etudiants re
                     JOIN etudiants e ON re.num_etu = e.num_carte_etud
-                    WHERE re.chemin_fichier IS NOT NULL AND re.chemin_fichier <> ''";
+                    WHERE (
+                        (re.chemin_fichier IS NOT NULL AND re.chemin_fichier <> '')
+                        OR EXISTS (
+                            SELECT 1
+                            FROM documents d
+                            WHERE d.entite_type = 'rapport_etudiants'
+                              AND d.entite_id = CAST(re.id_rapport AS CHAR)
+                              AND d.statut = 'actif'
+                              AND d.type_document IN ('rapport', 'html_doc')
+                        )
+                    )";
 
             $params = [];
             if (is_numeric($anneeId)) {
@@ -193,7 +203,8 @@ class ArchiveDocumentController
                         e.num_carte_etud
                     FROM compte_rendu cr
                     JOIN etudiants e ON cr.num_etu = e.num_carte_etud
-                    WHERE cr.chemin_fichier_pdf IS NOT NULL AND cr.chemin_fichier_pdf <> ''";
+                    WHERE " . $this->buildCompteRenduAvailabilitySql('cr') . "
+                      AND cr.nom_CR NOT LIKE 'BULLETIN_%'";
 
             $params = [];
             if (is_numeric($anneeId)) {
@@ -376,6 +387,21 @@ class ArchiveDocumentController
         }
 
         return '';
+    }
+
+    private function buildCompteRenduAvailabilitySql(string $alias): string
+    {
+        return "((
+                    {$alias}.chemin_fichier_pdf IS NOT NULL
+                    AND {$alias}.chemin_fichier_pdf <> ''
+                ) OR EXISTS (
+                    SELECT 1
+                    FROM documents d
+                    WHERE d.entite_type = 'compte_rendu'
+                      AND d.entite_id = CAST({$alias}.id_CR AS CHAR)
+                      AND d.statut = 'actif'
+                      AND d.type_document = 'compte_rendu'
+                ))";
     }
 
 

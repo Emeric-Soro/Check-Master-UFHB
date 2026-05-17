@@ -132,18 +132,7 @@ class EditionBulletinController
                 return;
             }
 
-            // Check if file exists
-            $filePath = $bulletin['chemin_fichier_pdf'] ?? '';
-            if (!$filePath || !file_exists($filePath)) {
-                $this->outputJson(['success' => false, 'message' => 'Fichier PDF non trouvé']);
-                return;
-            }
-
-            // Serve the PDF file
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="' . basename($filePath) . '"');
-            header('Content-Length: ' . filesize($filePath));
-            readfile($filePath);
+            header('Location: ?page=docviewer&type=bulletin&id=' . urlencode((string) $id) . '&action=download');
             exit;
         } else {
             $this->outputJson(['success' => false, 'message' => 'Méthode non autorisée']);

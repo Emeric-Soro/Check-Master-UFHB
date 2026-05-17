@@ -43,12 +43,16 @@ foreach ($rapportsValides as $rapport) {
         'student' => $studentName,
         'decision' => $decision,
         'promotion' => \FormattingUtils::formatPromotion(trim((string) ($rapport['promotion_etu'] ?? ''))),
-        'deja_lie_cr' => !empty($rapport['deja_lie_cr']),
+        'deja_lie_cr' => (int) ($rapport['existing_cr_id'] ?? 0) > 0,
+        'existing_cr_id' => (int) ($rapport['existing_cr_id'] ?? 0),
+        'existing_cr_count' => (int) ($rapport['existing_cr_count'] ?? 0),
+        'current_encadrant_id' => (string) ($rapport['current_encadrant_id'] ?? ''),
+        'current_directeur_id' => (string) ($rapport['current_directeur_id'] ?? ''),
     ];
 
     $reportOptionLabel = '#' . $idRapport . ' - ' . $theme . ' (' . $studentName . ')';
-    if (!empty($rapport['deja_lie_cr'])) {
-        $reportOptionLabel .= ' - CR existant';
+    if ((int) ($rapport['existing_cr_id'] ?? 0) > 0) {
+        $reportOptionLabel .= ' - CR #' . (int) $rapport['existing_cr_id'];
     }
     if ($allYearsSelected) {
         $promotionLabel = trim((string) ($rapport['promotion_etu'] ?? ''));
@@ -305,9 +309,29 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                                 <i class="fas fa-print" aria-hidden="true"></i>
                                 Imprimer
                             </button>
-                            <button class="cm-btn is-primary" type="submit" id="cmCrSubmitBtn">
+                            <button class="cm-btn is-light" type="button" id="cmCrResetBtn">
+                                <i class="fas fa-undo" aria-hidden="true"></i>
+                                Remettre à 0
+                            </button>
+                            <button class="cm-btn is-primary" type="submit" id="cmCrSubmitBtn" name="submit_action" value="save">
                                 <i class="fas fa-check" aria-hidden="true"></i>
-                                Enregistrer PDF
+                                Enregistrer
+                            </button>
+                            <button class="cm-btn is-info" type="submit" name="submit_action" value="save_notify_students">
+                                <i class="fas fa-user-graduate" aria-hidden="true"></i>
+                                Enreg. + Étudiants
+                            </button>
+                            <button class="cm-btn is-info" type="submit" name="submit_action" value="save_notify_commission">
+                                <i class="fas fa-users" aria-hidden="true"></i>
+                                Enreg. + Commission
+                            </button>
+                            <button class="cm-btn is-info" type="submit" name="submit_action" value="save_notify_responsables">
+                                <i class="fas fa-user-tie" aria-hidden="true"></i>
+                                Enreg. + Responsables
+                            </button>
+                            <button class="cm-btn is-light" type="submit" name="submit_action" value="save_notify_all">
+                                <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                                Tout envoyer
                             </button>
                         </div>
                     </form>
@@ -339,6 +363,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     const autoSaveBtn = document.getElementById('cmCrToggleAutoSaveBtn');
     const previewBtn = document.getElementById('cmCrPreviewBtn');
     const loadTemplateBtn = document.getElementById('cmCrLoadTemplateBtn');
+    const resetBtn = document.getElementById('cmCrResetBtn');
     const draftCountEl = document.getElementById('cmCrDraftCount');
     const autoSaveLabel = document.getElementById('cmCrAutoSaveLabel');
     const lastSaveLabel = document.getElementById('cmCrLastSaveLabel');
@@ -346,6 +371,14 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     let selectedIds = [];
     let autoSaveTimer = null;
     let draftState = {};
+
+    function syncEditorValue() {
+        const editorDiv = document.getElementById('cmCrContenu_editor');
+        if (!editorDiv || !editorInput) {
+            return;
+        }
+        editorInput.value = editorDiv.innerHTML;
+    }
 
     function buildCasesHtml() {
         let html = '';
@@ -429,9 +462,11 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         }
         const r = reports[selectedIds[0]];
         const status = r && r.decision === 'valider' ? 'Validé' : 'Rejeté';
+        const existingCr = r && r.existing_cr_id ? ('<div class=\"cm-text-sm\"><strong>CR existant:</strong> #' + r.existing_cr_id + '</div>') : '';
         reportInfo.innerHTML = '<div class=\"cm-text-sm\"><strong>Theme:</strong> ' + (r ? r.theme_rapport : '-') + '</div>' +
             '<div class=\"cm-text-sm\"><strong>Etudiant:</strong> ' + (r ? r.student : '-') + '</div>' +
-            '<div class=\"cm-text-sm\"><strong>Statut:</strong> ' + status + '</div>';
+            '<div class=\"cm-text-sm\"><strong>Statut:</strong> ' + status + '</div>' +
+            existingCr;
     }
 
     function renderSelected() {
@@ -446,10 +481,13 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
 
             const item = document.createElement('div');
             item.className = 'cm-card cm-p-sm';
+            const existingCrNotice = report.existing_cr_id
+                ? '<div class=\"cm-text-xs cm-text-muted\" style=\"margin-top:0.35rem;\">Ce rapport est déjà lié au CR #' + report.existing_cr_id + '. Un nouvel enregistrement mettra ce CR à jour.</div>'
+                : '';
             item.innerHTML = '<input type=\"hidden\" name=\"rapports[]\" value=\"' + id + '\">' +
                 '<div style=\"display:flex;justify-content:space-between;align-items:center;gap:0.5rem;\">' +
                     '<div class=\"cm-text-sm\"><strong>#' + id + '</strong> - ' + String(report.theme_rapport || '').replace(/[<>]/g, '') +
-                    '<br><span class=\"cm-text-muted\">' + String(report.student || '').replace(/[<>]/g, '') + '</span></div>' +
+                    '<br><span class=\"cm-text-muted\">' + String(report.student || '').replace(/[<>]/g, '') + '</span>' + existingCrNotice + '</div>' +
                     '<button type=\"button\" class=\"cm-btn-action is-delete\" data-remove-id=\"' + id + '\"><i class=\"fas fa-times\" aria-hidden=\"true\"></i></button>' +
                 '</div>';
             selectedContainer.appendChild(item);
@@ -458,8 +496,8 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
             block.className = 'cm-card cm-p-sm';
             block.innerHTML = '<div class=\"cm-text-sm cm-text-semibold cm-mb-sm\">Rapport #' + id + '</div>' +
                 '<div class=\"cm-grid-2\">' +
-                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrEnc_' + id + '\">Encadrant pédagogique</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrEnc_' + id + '\" name=\"encadrant_pedagogique[' + id + ']\">' + formatOptionHtml(draftState['enc_' + id] || '') + '</select></div>' +
-                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrDir_' + id + '\">Directeur mémoire</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrDir_' + id + '\" name=\"directeur_memoire[' + id + ']\">' + formatOptionHtml(draftState['dir_' + id] || '') + '</select></div>' +
+                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrEnc_' + id + '\">Encadrant pédagogique</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrEnc_' + id + '\" name=\"encadrant_pedagogique[' + id + ']\">' + formatOptionHtml(draftState['enc_' + id] || report.current_encadrant_id || '') + '</select></div>' +
+                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrDir_' + id + '\">Directeur mémoire</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrDir_' + id + '\" name=\"directeur_memoire[' + id + ']\">' + formatOptionHtml(draftState['dir_' + id] || report.current_directeur_id || '') + '</select></div>' +
                 '</div>';
             assignmentsContainer.appendChild(block);
         });
@@ -486,6 +524,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     }
 
     function saveDraft(notify) {
+        syncEditorValue();
         const payload = {
             nom: nomInput ? nomInput.value : '',
             contenu: editorInput ? editorInput.value : '',
@@ -524,6 +563,9 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
             if (Array.isArray(draftState.selectedIds)) {
                 selectedIds = draftState.selectedIds.map(function (id) { return parseInt(id, 10); }).filter(Boolean);
             }
+            if (nomInput && draftState.nom) {
+                nomInput.value = draftState.nom;
+            }
             if (editorInput && draftState.contenu) {
                 editorInput.value = draftState.contenu;
                 const editorDiv = document.getElementById('cmCrContenu_editor');
@@ -550,6 +592,43 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         editorDiv.innerHTML = template;
         editorInput.value = template;
         refreshTemplateCases();
+    }
+
+    function resetWorkspace() {
+        if (autoSaveTimer) {
+            clearInterval(autoSaveTimer);
+            autoSaveTimer = null;
+        }
+        if (autoSaveLabel) {
+            autoSaveLabel.textContent = 'Sauvegarde auto: inactive';
+        }
+
+        localStorage.removeItem(storageKey);
+        localStorage.removeItem(storageKey + '_count');
+        draftState = {};
+        selectedIds = [];
+
+        if (reportPicker) {
+            reportPicker.value = '';
+        }
+        if (hiddenNumEtu) {
+            hiddenNumEtu.value = '';
+        }
+        if (hiddenPayload) {
+            hiddenPayload.value = '';
+        }
+        if (nomInput) {
+            nomInput.value = <?php echo json_encode($generatedCrName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        }
+        if (lastSaveLabel) {
+            lastSaveLabel.textContent = 'Derniere sauvegarde: --:--';
+        }
+        if (draftCountEl) {
+            draftCountEl.textContent = '0';
+        }
+
+        loadTemplate();
+        renderSelected();
     }
 
     if (addBtn && reportPicker) {
@@ -591,8 +670,18 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         loadTemplateBtn.addEventListener('click', loadTemplate);
     }
 
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function () {
+            if (!window.confirm('Réinitialiser la rédaction en cours et vider les rapports sélectionnés ?')) {
+                return;
+            }
+            resetWorkspace();
+        });
+    }
+
     if (previewBtn && form) {
         previewBtn.addEventListener('click', function () {
+            syncEditorValue();
             const tokenInput = form.querySelector('input[name=\"csrf_token\"]');
             if (!tokenInput || !nomInput || !editorInput) {
                 return;
@@ -623,6 +712,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
 
     if (form) {
         form.addEventListener('submit', function (event) {
+            syncEditorValue();
             if (selectedIds.length === 0) {
                 event.preventDefault();
                 window.alert('Sélectionnez au moins un rapport.');

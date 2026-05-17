@@ -12,6 +12,8 @@ require_once __DIR__ . '/../models/Grade.php';
 require_once __DIR__ . '/../models/Fonction.php';
 require_once __DIR__ . '/../models/Specialite.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../utils/NotificationService.php';
 
 use CheckMaster\Security\DbRateLimiter;
 use Utilisateur;
@@ -27,6 +29,7 @@ class AuthService
     private $persAdminModel;
     private $etudiantModel;
     private $auditLog;
+    private $emailService;
 
     public function __construct($db)
     {
@@ -35,6 +38,7 @@ class AuthService
         $this->persAdminModel = new PersAdmin($db);
         $this->etudiantModel = new Etudiant($db);
         $this->auditLog = new AuditLog($db);
+        $this->emailService = new \EmailService();
     }
 
     public function login($login, $password, $ip)
@@ -284,5 +288,52 @@ class AuthService
         }
 
         return ['success' => false, 'message' => 'Erreur lors de la mise à jour du mot de passe.'];
+    }
+
+    public function notifierMdpChange(int $idUtilisateur): void
+    {
+        $utilisateur = new \Utilisateur($this->db);
+        $user = $utilisateur->getUtilisateurById($idUtilisateur);
+        if (!$user) {
+            return;
+        }
+        $emailContact = $this->getContactEmail($idUtilisateur);
+        if ($emailContact === null) {
+            return;
+        }
+        $nom = (string)($user->nom_utilisateur ?? '');
+        $this->emailService->sendTemplate('MDP_CHANGE', $emailContact, [
+            'nom' => htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'),
+            'date_changement' => date('d/m/Y H:i'),
+        ]);
+    }
+
+    public function notifierEmailModifie(int $idUtilisateur, string $ancienEmail, string $nouvelEmail): void
+    {
+        $utilisateur = new \Utilisateur($this->db);
+        $user = $utilisateur->getUtilisateurById($idUtilisateur);
+        $nom = $user ? (string)($user->nom_utilisateur ?? '') : '';
+        $data = [
+            'nom' => htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'),
+            'ancien_email' => htmlspecialchars($ancienEmail, ENT_QUOTES, 'UTF-8'),
+            'nouvel_email' => htmlspecialchars($nouvelEmail, ENT_QUOTES, 'UTF-8'),
+            'date_modification' => date('d/m/Y H:i'),
+        ];
+        if ($ancienEmail !== '') {
+            $this->emailService->sendTemplate('EMAIL_MODIFIE', $ancienEmail, $data);
+        }
+        if ($nouvelEmail !== '' && $nouvelEmail !== $ancienEmail) {
+            $this->emailService->sendTemplate('EMAIL_MODIFIE', $nouvelEmail, $data);
+        }
+    }
+
+    public function notifierCompteVerrouille(string $login, string $email, int $dureeMinutes): void
+    {
+        $this->emailService->sendTemplate('COMPTE_VERROUILLE', $email, [
+            'nom' => htmlspecialchars($login, ENT_QUOTES, 'UTF-8'),
+            'login' => htmlspecialchars($login, ENT_QUOTES, 'UTF-8'),
+            'date_verrouillage' => date('d/m/Y H:i'),
+            'duree' => $dureeMinutes,
+        ]);
     }
 }

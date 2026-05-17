@@ -1,6 +1,74 @@
 <?php
 $compte_rendu = $GLOBALS['compte_rendu'] ?? null;
 
+if (!function_exists('cm_cr_sanitize_html')) {
+    function cm_cr_sanitize_html(string $html): string
+    {
+        $html = trim($html);
+        if ($html === '') {
+            return '';
+        }
+
+        if (!class_exists(\DOMDocument::class)) {
+            $html = preg_replace('~<script\b[^>]*>.*?</script>~is', '', $html) ?? '';
+            $html = preg_replace('~<(iframe|object|embed)\b[^>]*>.*?</\1>~is', '', $html) ?? '';
+            $html = preg_replace('~\son[a-z]+\s*=\s*([\"\']).*?\1~is', '', $html) ?? '';
+            $html = preg_replace('~\s(href|src)\s*=\s*([\"\'])\s*javascript:.*?\2~is', '', $html) ?? '';
+            return $html;
+        }
+
+        $dom = new \DOMDocument('1.0', 'UTF-8');
+        libxml_use_internal_errors(true);
+        $wrappedHtml = '<div id="cm-cr-root">' . $html . '</div>';
+        $dom->loadHTML('<?xml encoding="utf-8" ?>' . $wrappedHtml, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+
+        $xpath = new \DOMXPath($dom);
+        foreach ($xpath->query('//script|//iframe|//object|//embed') ?: [] as $node) {
+            if ($node->parentNode) {
+                $node->parentNode->removeChild($node);
+            }
+        }
+
+        foreach ($xpath->query('//*') ?: [] as $element) {
+            if (!$element instanceof \DOMElement || !$element->hasAttributes()) {
+                continue;
+            }
+
+            $attrsToRemove = [];
+            foreach ($element->attributes as $attribute) {
+                $attrName = strtolower((string) $attribute->name);
+                $attrValue = trim((string) $attribute->value);
+
+                if (str_starts_with($attrName, 'on')) {
+                    $attrsToRemove[] = $attribute->name;
+                    continue;
+                }
+
+                if (in_array($attrName, ['href', 'src'], true) && preg_match('~^\s*javascript:~i', $attrValue)) {
+                    $attrsToRemove[] = $attribute->name;
+                }
+            }
+
+            foreach ($attrsToRemove as $attrName) {
+                $element->removeAttribute($attrName);
+            }
+        }
+
+        $root = $dom->getElementById('cm-cr-root');
+        if (!$root instanceof \DOMElement) {
+            return $html;
+        }
+
+        $output = '';
+        foreach ($root->childNodes as $childNode) {
+            $output .= $dom->saveHTML($childNode);
+        }
+
+        return $output;
+    }
+}
+
 $statut = (string) ($compte_rendu['statut'] ?? 'en_attente');
 $statutLower = strtolower($statut);
 $badgeType = 'light';
@@ -22,8 +90,12 @@ $notePresentation = (int) ($compte_rendu['note_presentation'] ?? 0);
 $commentaires = (string) ($compte_rendu['commentaires'] ?? 'Aucun commentaire disponible.');
 $nomCr = (string) ($compte_rendu['nom_CR'] ?? 'Compte Rendu de Soutenance');
 $dateCr = (string) ($compte_rendu['date_CR'] ?? '');
-$pdfPath = (string) ($compte_rendu['chemin_fichier_pdf'] ?? '');
+$idCr = isset($compte_rendu['id_CR']) ? (int) $compte_rendu['id_CR'] : 0;
+$pdfDownloadUrl = $idCr > 0
+    ? '?page=docviewer&type=compte_rendu&id=' . urlencode((string) $idCr) . '&action=download'
+    : '';
 $contenuCr = (string) ($compte_rendu['contenu_CR'] ?? '');
+$contenuCrHtml = cm_cr_sanitize_html($contenuCr);
 ?>
 
 <div class="cm-etu-screen">
@@ -54,8 +126,8 @@ $contenuCr = (string) ($compte_rendu['contenu_CR'] ?? '');
                             <p>Publié le <?= date('d/m/Y à H:i', strtotime($dateCr)) ?></p>
                         <?php endif; ?>
                     </div>
-                    <?php if ($pdfPath !== '' && (function_exists('canView') ? canView() : true)): ?>
-                        <a href="<?= htmlspecialchars($pdfPath, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="cm-btn is-info is-sm">
+                    <?php if ($pdfDownloadUrl !== '' && (function_exists('canView') ? canView() : true)): ?>
+                        <a href="<?= htmlspecialchars($pdfDownloadUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn is-info is-sm">
                             <i class="fas fa-download" aria-hidden="true"></i>
                             <span>Télécharger</span>
                         </a>
@@ -100,10 +172,9 @@ $contenuCr = (string) ($compte_rendu['contenu_CR'] ?? '');
                     </div>
 
                     <!-- Contenu texte du CR -->
-                    <?php if ($contenuCr !== ''): ?>
+                    <?php if ($contenuCrHtml !== ''): ?>
                         <div class="cm-etu-cr-section">
-
-                            <p><?= nl2br(htmlspecialchars($contenuCr, ENT_QUOTES, 'UTF-8')) ?></p>
+                            <div class="cm-etu-cr-rendered"><?= $contenuCrHtml ?></div>
                         </div>
                     <?php endif; ?>
 

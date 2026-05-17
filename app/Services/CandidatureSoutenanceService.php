@@ -330,6 +330,28 @@ class CandidatureSoutenanceService
             }
         }
 
+        $condCandidature = (bool)$candidature;
+        $condValidation = !empty($candidature['date_traitement']) || in_array($validationLabel, ['Validée', 'Rejetée']);
+        $condCommission = (bool)$decisionCommission;
+        $condCompteRendu = (bool)$compteRendu;
+        $condSoutenance = (bool)$soutenance;
+        $condPv = (bool)$pvDisponible;
+
+        // Backward propagation of "done" state to fix anomalies
+        if ($condPv) $condSoutenance = true;
+        if ($condSoutenance) $condCompteRendu = true;
+        if ($condCompteRendu) $condCommission = true;
+        if ($condCommission) $condValidation = true;
+        if ($condValidation) $condCandidature = true;
+
+        if ($condValidation && $validationLabel === 'En attente') {
+            $validationLabel = 'Validée';
+        }
+
+        if ($condCommission && in_array($commissionLabel, ['En attente', 'En évaluation'])) {
+            $commissionLabel = 'Validée';
+        }
+
         return [
             'stage' => $stage,
             'candidature' => $candidature,
@@ -351,42 +373,42 @@ class CandidatureSoutenanceService
                 [
                     'key' => 'candidature',
                     'label' => 'Candidature',
-                    'status' => $candidature ? 'done' : 'pending',
+                    'status' => $condCandidature ? 'done' : 'current',
                     'state_label' => $candidature ? 'Enregistrée' : 'À faire',
                     'date' => $candidature['date_candidature'] ?? null,
                 ],
                 [
                     'key' => 'validation',
                     'label' => 'Validation',
-                    'status' => !empty($candidature['date_traitement']) ? 'done' : ($candidature ? 'current' : 'pending'),
+                    'status' => $condValidation ? 'done' : ($condCandidature ? 'current' : 'pending'),
                     'state_label' => $validationLabel,
                     'date' => $candidature['date_traitement'] ?? null,
                 ],
                 [
                     'key' => 'commission',
                     'label' => 'Commission',
-                    'status' => $decisionCommission ? 'done' : (!empty($rapport['date_depot']) ? 'current' : 'pending'),
+                    'status' => $condCommission ? 'done' : ($condValidation ? 'current' : 'pending'),
                     'state_label' => $commissionLabel,
                     'date' => $commissionDate,
                 ],
                 [
                     'key' => 'compte_rendu',
                     'label' => 'Compte Rendu',
-                    'status' => $compteRendu ? 'done' : ($decisionCommission ? 'current' : 'pending'),
+                    'status' => $condCompteRendu ? 'done' : ($condCommission ? 'current' : 'pending'),
                     'state_label' => $compteRendu ? 'Disponible' : 'En attente',
                     'date' => $compteRendu['date_CR'] ?? null,
                 ],
                 [
                     'key' => 'soutenance',
                     'label' => 'Soutenance',
-                    'status' => $soutenance ? 'done' : ($compteRendu ? 'current' : 'pending'),
+                    'status' => $condSoutenance ? 'done' : ($condCompteRendu ? 'current' : 'pending'),
                     'state_label' => $soutenance ? 'Programmée' : 'Non programmée',
                     'date' => $soutenance['date_soutenance'] ?? null,
                 ],
                 [
                     'key' => 'pv',
                     'label' => 'PV',
-                    'status' => $pvDisponible ? 'done' : ($soutenance ? 'current' : 'pending'),
+                    'status' => $condPv ? 'done' : ($condSoutenance ? 'current' : 'pending'),
                     'state_label' => $pvDisponible ? 'Disponible' : 'En attente',
                     'date' => $pvDate,
                 ],

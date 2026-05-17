@@ -7,6 +7,7 @@ require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../Services/Document/DocumentStorageService.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use RapportEtudiant;
@@ -299,17 +300,10 @@ class GestionDossiersCandidaturesService
             return null;
         }
 
-        $chemin = $rapport['chemin_fichier'] ?? '';
-        if (empty($chemin)) {
-            $chemin = 'rapport_' . $id_rapport . '.html';
-        }
-        $fichierContenu = __DIR__ . "/../../ressources/uploads/rapports/" . $chemin;
-
-        if (!file_exists($fichierContenu)) {
+        $contenu = $this->loadRapportHtmlContent((int) $id_rapport, $rapport);
+        if ($contenu === null) {
             return ['error' => 'file_not_found', 'rapport' => $rapport];
         }
-
-        $contenu = file_get_contents($fichierContenu);
 
         $html = '
         <!DOCTYPE html>
@@ -360,17 +354,10 @@ class GestionDossiersCandidaturesService
             return null;
         }
 
-        $chemin = $rapport['chemin_fichier'] ?? '';
-        if (empty($chemin)) {
-            $chemin = 'rapport_' . $id_rapport . '.html';
-        }
-        $fichierContenu = __DIR__ . "/../../ressources/uploads/rapports/" . $chemin;
-
-        if (!file_exists($fichierContenu)) {
+        $contenu = $this->loadRapportHtmlContent((int) $id_rapport, $rapport);
+        if ($contenu === null) {
             return ['error' => 'file_not_found', 'rapport' => $rapport];
         }
-
-        $contenu = file_get_contents($fichierContenu);
 
         return [
             'rapport' => $rapport,
@@ -394,5 +381,50 @@ class GestionDossiersCandidaturesService
     public function logConsultation($userId)
     {
         $this->auditLog->logAction($userId, 'Consultation', 'rapport_etudiants', 'Succès');
+    }
+
+    private function loadRapportHtmlContent(int $idRapport, array $rapport): ?string
+    {
+        $legacyPath = $this->resolveRapportHtmlPath($idRapport, $rapport);
+        if ($legacyPath !== null) {
+            $contenu = file_get_contents($legacyPath);
+            if (is_string($contenu) && $contenu !== '') {
+                return $contenu;
+            }
+        }
+
+        try {
+            $storage = new \App\Services\Document\DocumentStorageService($this->db, dirname(__DIR__, 2));
+            $document = $storage->findLatestByEntity('rapport_etudiants', (string) $idRapport, ['html_doc'], 'rapport');
+            if (is_array($document) && isset($document['contenu']) && is_string($document['contenu']) && $document['contenu'] !== '') {
+                return $document['contenu'];
+            }
+        } catch (Throwable $e) {
+            error_log('Erreur loadRapportHtmlContent: ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    private function resolveRapportHtmlPath(int $idRapport, array $rapport): ?string
+    {
+        $chemin = trim((string) ($rapport['chemin_fichier'] ?? ''));
+        if ($chemin === '') {
+            $chemin = 'rapport_' . $idRapport . '.html';
+        }
+
+        $candidates = [
+            __DIR__ . "/../../ressources/uploads/rapports/" . $chemin,
+            __DIR__ . "/../../ressources/uploads/" . ltrim($chemin, '/\\'),
+            __DIR__ . "/../../storage/documents/rapports/" . basename($chemin),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate) && is_readable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 }

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Utils;
 
+require_once __DIR__ . '/../Services/Document/DocumentStorageService.php';
+
+use App\Services\Document\DocumentStorageService;
 use App\Support\Database;
 use PDO;
 
@@ -205,6 +208,8 @@ class RecuDataUtils
      */
     public function saveDocumentRecord(array $data): int
     {
+        $storageDocumentId = $this->persistBinaryDocument($data);
+
         if (!$this->tableExists('document_genere')) {
             error_log(sprintf(
                 '[RecuDataUtils] Document généré (non persisté): ref=%s, type=%s, fichier=%s',
@@ -213,7 +218,7 @@ class RecuDataUtils
                 (string) ($data['chemin_fichier'] ?? '?')
             ));
 
-            return 0;
+            return $storageDocumentId;
         }
 
         $stmt = $this->db->pdo()->prepare(
@@ -266,14 +271,41 @@ class RecuDataUtils
         }
 
         try {
-            $stmt = $this->db->pdo()->prepare('SHOW TABLES LIKE :table_name');
+            $stmt = $this->db->pdo()->prepare(
+                'SELECT COUNT(*)
+                 FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                   AND table_name = :table_name'
+            );
             $stmt->execute(['table_name' => $table]);
-            $exists = (bool) $stmt->fetchColumn();
+            $exists = (int) $stmt->fetchColumn() > 0;
             $this->tableExistsCache[$table] = $exists;
             return $exists;
         } catch (\Throwable) {
             $this->tableExistsCache[$table] = false;
             return false;
         }
+    }
+
+    private function persistBinaryDocument(array $data): int
+    {
+        $path = trim((string) ($data['chemin_fichier'] ?? ''));
+        if ($path === '') {
+            return 0;
+        }
+
+        $storage = new DocumentStorageService($this->db->pdo(), dirname(__DIR__, 2));
+        $document = $storage->storeFileFromPath(
+            'recu',
+            $path,
+            'inscriptions',
+            isset($data['id_source']) ? (string) $data['id_source'] : null,
+            max(0, (int) ($data['id_utilisateur_generation'] ?? 0)),
+            (string) ($data['reference_document'] ?? ''),
+            null,
+            true
+        );
+
+        return is_array($document) ? (int) ($document['id_document'] ?? 0) : 0;
     }
 }

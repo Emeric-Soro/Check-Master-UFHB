@@ -9,6 +9,7 @@ require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/EmailService.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
+require_once __DIR__ . '/../utils/NotificationService.php';
 
 use Etudiant;
 use Scolarite;
@@ -390,6 +391,32 @@ class GestionCandidaturesService
             'status_border_color' => $statusBorderColor,
             'details_html' => $details_html,
             'action_message' => $action_message,
+        ]);
+    }
+
+    public function notifierSoumissionCandidature(string $numEtu, int $idCandidature, string $dateCandidature): void
+    {
+        $etudiant = $this->etudiant->getEtudiantByNumEtu($numEtu);
+        if (!$etudiant || empty($etudiant['email_etu'])) {
+            error_log("Email non trouve pour l'etudiant: $numEtu");
+            return;
+        }
+
+        $studentName = ($etudiant['prenom_etu'] ?? '') . ' ' . ($etudiant['nom_etu'] ?? '');
+
+        $this->emailService->sendTemplate('CANDIDATURE_SOUMISE_ETUDIANT', $etudiant['email_etu'], [
+            'nom' => htmlspecialchars(trim($studentName)),
+            'id_candidature' => $idCandidature,
+            'date_candidature' => $dateCandidature,
+        ]);
+
+        $notifService = new \NotificationService();
+        $notifService->sendToUserGroups([5, 6, 7, 8], 'CANDIDATURE_SOUMISE_ADMIN', [
+            'nom' => htmlspecialchars(trim($studentName)),
+            'num_etu' => htmlspecialchars($numEtu),
+            'date_candidature' => $dateCandidature,
+            'id_candidature' => $idCandidature,
+            'admin_url' => 'http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/checkmaster/?page=gestion_dossiers_candidatures',
         ]);
     }
 }

@@ -7,8 +7,10 @@ require_once __DIR__ . '/../models/Scolarite.php';
 require_once __DIR__ . '/../models/Inscription.php';
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/CompteRendu.php';
+require_once __DIR__ . '/../Services/Document/DocumentStorageService.php';
 require_once __DIR__ . '/../models/Note.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
+require_once __DIR__ . '/../utils/EmailService.php';
 
 use Etudiant;
 use Scolarite;
@@ -31,6 +33,7 @@ class EditionBulletinService
     private $notesModel;
     private $tableExistsCache = [];
     private $columnExistsCache = [];
+    private $emailService;
 
     public function __construct($pdo = null)
     {
@@ -41,6 +44,7 @@ class EditionBulletinService
         $this->rapportModel = new RapportEtudiant($this->pdo);
         $this->compteRenduModel = new CompteRendu($this->pdo);
         $this->notesModel = new Note($this->pdo);
+        $this->emailService = new \EmailService();
     }
 
     private function getSelectedAcademicYearId(): ?int
@@ -689,6 +693,11 @@ class EditionBulletinService
             return ['success' => false, 'message' => "Erreur lors de l'enregistrement du bulletin."];
         }
 
+        $this->persistBulletinDocument((int) $idCR, $nomCR, (string) ($pdfResult['path'] ?? ''));
+
+        // Notification
+        $this->notifierBulletinDisponible($numEtu, 'Semestre Final', 0.0, 'Validation');
+
         return [
             'success' => true,
             'message' => 'Bulletin généré avec succès.',
@@ -843,6 +852,29 @@ HTML;
         }
     }
 
+    private function persistBulletinDocument(int $idCR, string $nomCR, string $pdfPath): void
+    {
+        if ($idCR <= 0 || $pdfPath === '' || !is_file($pdfPath)) {
+            return;
+        }
+
+        try {
+            $storage = new \App\Services\Document\DocumentStorageService($this->pdo, dirname(__DIR__, 2));
+            $storage->storeFileFromPath(
+                'bulletin',
+                $pdfPath,
+                'compte_rendu',
+                (string) $idCR,
+                isset($_SESSION['id_utilisateur']) ? (int) $_SESSION['id_utilisateur'] : null,
+                null,
+                null,
+                true
+            );
+        } catch (\Throwable $e) {
+            error_log('Erreur persistBulletinDocument: ' . $e->getMessage());
+        }
+    }
+
     public function getHistoriqueBulletins(string $numEtu): array
     {
         try {
@@ -908,6 +940,27 @@ HTML;
         } catch (Exception $e) {
             error_log('Erreur getBulletinById: ' . $e->getMessage());
             return null;
+        }
+    }
+
+    public function notifierBulletinDisponible(string $numEtu, string $semestre, float $moyenne, string $credits): void
+    {
+        try {
+            $stmt = $this->pdo->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_carte_etud = ? OR num_ident_etud = ?");
+            $stmt->execute([$numEtu, $numEtu]);
+            $etu = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$etu || empty($etu['email_etu'])) {
+                return;
+            }
+            $nom = trim(($etu['prenom_etu'] ?? '') . ' ' . ($etu['nom_etu'] ?? ''));
+            $this->emailService->sendTemplate('BULLETIN_NOTES', $etu['email_etu'], [
+                'nom' => htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'),
+                'semestre' => htmlspecialchars($semestre, ENT_QUOTES, 'UTF-8'),
+                'moyenne' => number_format($moyenne, 2) . '/20',
+                'credits' => htmlspecialchars($credits, ENT_QUOTES, 'UTF-8'),
+            ]);
+        } catch (\Exception $e) {
+            error_log('Erreur notifierBulletinDisponible: ' . $e->getMessage());
         }
     }
 }

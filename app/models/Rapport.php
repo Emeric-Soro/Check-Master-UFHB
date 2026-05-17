@@ -47,8 +47,17 @@ class Rapport
                 INNER JOIN etudiants e ON e.num_carte_etud = re.num_etu
                 INNER JOIN inscriptions i1 ON i1.num_carte_etud = e.num_carte_etud
                 WHERE i1.id_annee_acad = :id_annee_rapport
-                  AND re.chemin_fichier IS NOT NULL
-                  AND re.chemin_fichier <> ''
+                  AND (
+                        (re.chemin_fichier IS NOT NULL AND re.chemin_fichier <> '')
+                        OR EXISTS (
+                            SELECT 1
+                            FROM documents d
+                            WHERE d.entite_type = 'rapport_etudiants'
+                              AND d.entite_id = CAST(re.id_rapport AS CHAR)
+                              AND d.statut = 'actif'
+                              AND d.type_document IN ('rapport', 'html_doc')
+                        )
+                      )
 
                 UNION ALL
 
@@ -65,14 +74,23 @@ class Rapport
                 INNER JOIN etudiants e ON e.num_carte_etud = cr.num_etu
                 INNER JOIN inscriptions i2 ON i2.num_carte_etud = e.num_carte_etud
                 WHERE i2.id_annee_acad = :id_annee_cr
-                  AND cr.chemin_fichier_pdf IS NOT NULL
-                  AND cr.chemin_fichier_pdf <> ''
+                  AND (
+                        (cr.chemin_fichier_pdf IS NOT NULL AND cr.chemin_fichier_pdf <> '')
+                        OR EXISTS (
+                            SELECT 1
+                            FROM documents d
+                            WHERE d.entite_type = 'compte_rendu'
+                              AND d.entite_id = CAST(cr.id_CR AS CHAR)
+                              AND d.statut = 'actif'
+                              AND d.type_document = 'compte_rendu'
+                        )
+                      )
 
                 UNION ALL
 
                 SELECT
                     'fiche_inscription' AS type_doc,
-                    CONCAT(i3.num_carte_etud, '_', i3.id_annee_acad, '_', i3.num_versement) AS id_doc,
+                    CONCAT(i3.num_carte_etud, '-', i3.id_annee_acad, '-', i3.num_versement) AS id_doc,
                     i3.fiche_inscription AS chemin,
                     CONCAT('Fiche inscription ', e.num_carte_etud) AS titre,
                     i3.date_inscription AS date_depot,
@@ -82,8 +100,17 @@ class Rapport
                 FROM inscriptions i3
                 INNER JOIN etudiants e ON e.num_carte_etud = i3.num_carte_etud
                 WHERE i3.id_annee_acad = :id_annee_fiche
-                  AND i3.fiche_inscription IS NOT NULL
-                  AND i3.fiche_inscription <> ''
+                  AND (
+                        (i3.fiche_inscription IS NOT NULL AND i3.fiche_inscription <> '')
+                        OR EXISTS (
+                            SELECT 1
+                            FROM documents d
+                            WHERE d.entite_type = 'inscriptions'
+                              AND d.entite_id = CONCAT(i3.num_carte_etud, '-', i3.id_annee_acad, '-', i3.num_versement)
+                              AND d.statut = 'actif'
+                              AND d.type_document = 'fiche_inscription'
+                        )
+                      )
             ) AS docs
             WHERE 1 = 1
         ";
@@ -179,14 +206,20 @@ class Rapport
 
             if ($type === 'fiche_inscription') {
                 // $id doit être au format composé 'num_carte_etud|id_annee_acad|num_versement'
-                $parts = explode('|', (string) $id);
-                if (count($parts) !== 3 || $parts[0] === '' || $parts[1] === '' || $parts[2] === '') {
+                $parts = preg_split('/[-|]/', (string) $id);
+                if (!is_array($parts) || count($parts) < 3) {
+                    return null;
+                }
+                $versement = array_pop($parts);
+                $annee = array_pop($parts);
+                $numCarteEtud = implode('-', $parts);
+                if ($numCarteEtud === '' || $annee === '' || $versement === '') {
                     return null;
                 }
                 $stmt = $this->db->prepare("
                     SELECT
                         'fiche_inscription' AS type_doc,
-                        CONCAT(i.num_carte_etud, '|', i.id_annee_acad, '|', i.num_versement) AS id_doc,
+                        CONCAT(i.num_carte_etud, '-', i.id_annee_acad, '-', i.num_versement) AS id_doc,
                         i.fiche_inscription AS chemin,
                         CONCAT('Fiche inscription ', e.num_carte_etud) AS titre,
                         i.date_inscription AS date_depot,
@@ -200,9 +233,9 @@ class Rapport
                     LIMIT 1
                 ");
                 $stmt->execute([
-                    ':num_etu' => $parts[0],
-                    ':annee' => (int) $parts[1],
-                    ':versement' => (int) $parts[2],
+                    ':num_etu' => $numCarteEtud,
+                    ':annee' => (int) $annee,
+                    ':versement' => (int) $versement,
                 ]);
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
                 return $row ?: null;
@@ -215,4 +248,3 @@ class Rapport
         }
     }
 }
-

@@ -5,6 +5,7 @@
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../models/Note.php';
+require_once __DIR__ . '/../Services/Document/DocumentRegistry.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 
 class ArchiveEtudiantController
@@ -12,12 +13,14 @@ class ArchiveEtudiantController
     private $db;
     private $etudiantModel;
     private $anneeModel;
+    private DocumentRegistry $registry;
 
     public function __construct($db = null)
     {
         $this->db = $db ?: Database::getConnection();
         $this->etudiantModel = new Etudiant($this->db);
         $this->anneeModel = new AnneeAcademique($this->db);
+        $this->registry = new DocumentRegistry($this->db);
     }
 
     /**
@@ -233,6 +236,18 @@ class ArchiveEtudiantController
     {
         $docs = [];
 
+        // Fiches d'inscription
+        $sql = "SELECT 'fiche_inscription' as type,
+                       CONCAT(num_carte_etud, '-', id_annee_acad, '-', num_versement) as id,
+                       CONCAT('Fiche inscription - Versement ', num_versement) as titre,
+                       fiche_inscription as chemin,
+                       date_inscription as date
+                FROM inscriptions
+                WHERE num_carte_etud = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$matricule]);
+        $docs = array_merge($docs, $stmt->fetchAll(PDO::FETCH_OBJ));
+
         // Rapports
         $sql = "SELECT 'rapport' as type, id_rapport as id, theme_rapport as titre, 
                        chemin_fichier as chemin, date_redaction_rapport as date
@@ -249,7 +264,12 @@ class ArchiveEtudiantController
         $stmt->execute([$matricule]);
         $docs = array_merge($docs, $stmt->fetchAll(PDO::FETCH_OBJ));
 
-        return $docs;
+        return array_values(array_filter($docs, function ($doc) {
+            $type = trim((string) ($doc->type ?? ''));
+            $id = trim((string) ($doc->id ?? ''));
+
+            return $type !== '' && $id !== '' && $this->registry->hasDocument($type, $id);
+        }));
     }
 
     private function getReclamationsEtudiant($matricule)

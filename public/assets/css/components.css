@@ -3321,6 +3321,42 @@
   font-size: 0.88rem;
 }
 
+.cm-etu-cr-rendered {
+  font-family: "Times New Roman", serif;
+  font-size: 12pt;
+  line-height: 1.6;
+  color: var(--cm-text-main);
+  overflow-x: auto;
+}
+
+.cm-etu-cr-rendered table {
+  width: 100% !important;
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.cm-etu-cr-rendered img {
+  max-width: 100%;
+  height: auto;
+}
+
+.cm-etu-cr-rendered p,
+.cm-etu-cr-rendered div,
+.cm-etu-cr-rendered li {
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.cm-etu-cr-rendered ul,
+.cm-etu-cr-rendered ol {
+  margin: 0 0 0.85rem;
+  padding-left: 1.5rem;
+}
+
+.cm-etu-cr-rendered hr {
+  max-width: 100%;
+}
+
 .cm-etu-note-box {
   border: 1px solid rgba(243, 156, 18, 0.35);
   background: #fff7ea;

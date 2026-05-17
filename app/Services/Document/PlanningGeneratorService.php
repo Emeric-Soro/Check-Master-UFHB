@@ -9,6 +9,8 @@ use App\Utils\PlanningDataUtils;
 use DateTimeImmutable;
 use Throwable;
 
+require_once __DIR__ . '/../../utils/EmailService.php';
+
 /**
  * Service de génération de planning des soutenances PDF.
  *
@@ -620,25 +622,26 @@ HTML;
      */
     private function notifyStudentsOfPlanning(array $soutenances, int $userId): void
     {
-        if ($this->notificationService === null) {
-            return;
-        }
-
+        $emailService = new \EmailService();
         foreach ($soutenances as $soutenance) {
-            if (empty($soutenance['email_etudiant'])) {
+            $email = $soutenance['email_etudiant'] ?? null;
+            if (empty($email)) {
                 continue;
             }
-
-            $this->notificationService->dispatchEvent('SOUTENANCE_SCHEDULED', [
-                'nom_utilisateur' => (string) ($soutenance['nom_etudiant'] ?? '') . ' ' . (string) ($soutenance['prenom_etudiant'] ?? ''),
-                'theme' => (string) ($soutenance['theme_soutenance'] ?? ''),
-                'date' => (string) ($soutenance['date_soutenance'] ?? ''),
-                'heure' => (string) substr((string) ($soutenance['heure_debut'] ?? '00:00'), 0, 5),
-                'salle' => (string) ($soutenance['lib_salle'] ?? $soutenance['id_salle'] ?? 'N/A'),
-            ], [
-                'email' => (string) $soutenance['email_etudiant'],
-                'name' => (string) ($soutenance['nom_etudiant'] ?? '') . ' ' . (string) ($soutenance['prenom_etudiant'] ?? ''),
-            ], $userId);
+            $nom = ($soutenance['nom_etudiant'] ?? '') . ' ' . ($soutenance['prenom_etudiant'] ?? '');
+            $dateSout = (string)($soutenance['date_soutenance'] ?? '');
+            $heureSout = (string)substr((string)($soutenance['heure_soutenance'] ?? $soutenance['heure_debut'] ?? '00:00'), 0, 5);
+            $salle = (string)($soutenance['lib_salle'] ?? $soutenance['id_salle'] ?? 'N/A');
+            
+            $emailService->sendTemplate('SOUTENANCE_PROGRAMMEE', $email, [
+                'nom' => htmlspecialchars(trim($nom), ENT_QUOTES, 'UTF-8'),
+                'nom_etudiant' => htmlspecialchars(trim($nom), ENT_QUOTES, 'UTF-8'),
+                'theme' => htmlspecialchars((string)($soutenance['theme_soutenance'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'date_soutenance' => $dateSout,
+                'heure_soutenance' => $heureSout,
+                'salle' => htmlspecialchars($salle, ENT_QUOTES, 'UTF-8'),
+                'composition_jury' => '',
+            ]);
         }
     }
 

@@ -343,10 +343,16 @@ $buildStateClass = static function (string $status): string {
     <section class="cm-cand-box">
         <div class="cm-cand-head">
             <h2 class="cm-cand-head__title">Ma candidature à la soutenance</h2>
-            <?php if ($trackingMode && $candidature): ?>
-                <?php [$badgeType, $badgeText] = $statusBadge((string) ($candidature['statut_candidature'] ?? 'En attente')); ?>
-                <?php cm_component('ui/badge', ['type' => $badgeType, 'text' => $badgeText]); ?>
-            <?php endif; ?>
+                <?php if ($trackingMode && $candidature): ?>
+                    <?php
+                    $overallStatus = ($steps[1]['state_label'] ?? 'En attente');
+                    if ($overallStatus === '—') {
+                        $overallStatus = 'En attente';
+                    }
+                    [$badgeType, $badgeText] = $statusBadge($overallStatus);
+                    ?>
+                    <?php cm_component('ui/badge', ['type' => $badgeType, 'text' => $badgeText]); ?>
+                <?php endif; ?>
         </div>
 
         <div class="cm-cand-topline">
@@ -441,7 +447,10 @@ $buildStateClass = static function (string $status): string {
                     <article class="cm-cand-step <?= htmlspecialchars($buildStateClass((string) ($step['status'] ?? 'pending')), ENT_QUOTES, 'UTF-8') ?>">
                         <h3 class="cm-cand-step__title"><?= htmlspecialchars((string) ($step['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></h3>
                         <div class="cm-cand-step__state"><?= htmlspecialchars((string) ($step['state_label'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></div>
-                        <div class="cm-cand-step__date"><?= htmlspecialchars($formatDate($step['date'] ?? null), ENT_QUOTES, 'UTF-8') ?></div>
+                        <?php $stepDateStr = $formatDate($step['date'] ?? null); ?>
+                        <?php if ($stepDateStr !== '—'): ?>
+                            <div class="cm-cand-step__date"><?= htmlspecialchars($stepDateStr, ENT_QUOTES, 'UTF-8') ?></div>
+                        <?php endif; ?>
                     </article>
                 <?php endforeach; ?>
             </div>
@@ -450,7 +459,7 @@ $buildStateClass = static function (string $status): string {
         <section class="cm-cand-details">
             <article class="cm-cand-detail">
                 <div class="cm-cand-key">Candidature</div>
-                <div class="cm-cand-value"><?= htmlspecialchars((string) ($candidature['statut_candidature'] ?? 'En attente'), ENT_QUOTES, 'UTF-8') ?></div>
+                <div class="cm-cand-value"><?= htmlspecialchars((string) ($candidature ? ($steps[0]['state_label'] ?? 'Enregistrée') : 'En attente'), ENT_QUOTES, 'UTF-8') ?></div>
                 <div class="cm-cand-help"><?= htmlspecialchars($formatDate($candidature['date_candidature'] ?? null), ENT_QUOTES, 'UTF-8') ?></div>
             </article>
             <article class="cm-cand-detail">

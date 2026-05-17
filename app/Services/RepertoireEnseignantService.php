@@ -303,7 +303,17 @@ class RepertoireEnseignantService
                         e.prenom_etu,
                         COALESCE(GROUP_CONCAT(DISTINCT r.id_rapport ORDER BY r.id_rapport SEPARATOR ', '), '—') AS rapports_inclus,
                         CASE
-                            WHEN cr.chemin_fichier_pdf IS NOT NULL AND cr.chemin_fichier_pdf <> '' THEN 'Publié'
+                            WHEN (
+                                (cr.chemin_fichier_pdf IS NOT NULL AND cr.chemin_fichier_pdf <> '')
+                                OR EXISTS (
+                                    SELECT 1
+                                    FROM documents d
+                                    WHERE d.entite_type = 'compte_rendu'
+                                      AND d.entite_id = CAST(cr.id_CR AS CHAR)
+                                      AND d.statut = 'actif'
+                                      AND d.type_document = 'compte_rendu'
+                                )
+                            ) THEN 'Publié'
                             ELSE 'Brouillon'
                         END AS statut_CR
                     FROM compte_rendu cr

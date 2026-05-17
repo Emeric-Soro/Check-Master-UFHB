@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Scolarite.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../Services/Document/DocumentStorageService.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use Scolarite;
@@ -527,11 +528,35 @@ class GestionScolariteService
         $relativePath = 'fiches/' . $safeFilename;
 
         if ($this->scolariteModel->updateFicheInscription($idInscription, $relativePath)) {
+            $this->persistFicheInscriptionDocument($idInscription, $destination, $userId);
             $this->auditLog->logModification($userId, 'inscriptions', 'Succès - Fiche uploadée');
             return ['success' => true, 'message' => 'Fiche d\'inscription uploadée avec succès.'];
         }
 
         $this->auditLog->logModification($userId, 'inscriptions', 'Erreur - Upload fiche');
         return ['success' => false, 'message' => 'Erreur lors de l\'enregistrement du chemin de la fiche.'];
+    }
+
+    private function persistFicheInscriptionDocument(string $idInscription, string $filePath, int $userId): void
+    {
+        if ($idInscription === '' || !is_file($filePath)) {
+            return;
+        }
+
+        try {
+            $storage = new \App\Services\Document\DocumentStorageService($this->db, dirname(__DIR__, 2));
+            $storage->storeFileFromPath(
+                'fiche_inscription',
+                $filePath,
+                'inscriptions',
+                $idInscription,
+                $userId > 0 ? $userId : null,
+                null,
+                'source',
+                true
+            );
+        } catch (\Throwable $e) {
+            error_log('Erreur persistFicheInscriptionDocument: ' . $e->getMessage());
+        }
     }
 }

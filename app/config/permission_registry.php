@@ -1086,6 +1086,8 @@ return [
         ['pattern' => 'page=access_denied', 'method' => 'GET'],
         ['pattern' => 'page=page_connexion', 'method' => 'GET'],
         ['pattern' => 'page=reset_password', 'method' => 'GET'],
+        ['pattern' => 'page=docviewer&action=preview', 'method' => 'GET'],
+        ['pattern' => 'page=docviewer&action=download', 'method' => 'GET'],
     ],
     'slug_aliases' => [
         'dashboard_admin' => 'dashboard',
