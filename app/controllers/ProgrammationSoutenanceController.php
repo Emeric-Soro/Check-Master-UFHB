@@ -510,7 +510,12 @@ class ProgrammationSoutenanceController
     }
 
     /**
-     * Téléchargement sécurisé d'un planning PDF généré.
+     * Téléchargement d'un planning PDF via le DocViewer unifié.
+     *
+     * La méthode legacy acceptait un token base64 encodant le chemin.
+     * Désormais, on redirige vers le DocViewer :
+     *   - si le paramètre est un token base64, on extrait la référence depuis le nom de fichier
+     *   - sinon on traite le paramètre comme une référence directe (PLN-YYYY-NNNNN)
      */
     public function downloadPlanningPdf()
     {
@@ -521,33 +526,53 @@ class ProgrammationSoutenanceController
         }
 
         $token = trim((string) ($_GET['file'] ?? ''));
+        if ($token === '') {
+            http_response_code(400);
+            echo 'Paramètre fichier manquant.';
+            return;
+        }
+
+        // Essayer de décoder comme base64 (legacy) ; en cas d'échec, utiliser le token brut
+        $reference = $this->resolveReferenceFromToken($token);
+        if ($reference === null || $reference === '') {
+            http_response_code(400);
+            echo 'Référence invalide.';
+            return;
+        }
+
+        $redirectUrl = '?page=docviewer&type=planning&id=' . urlencode($reference) . '&action=download';
+        header('Location: ' . $redirectUrl);
+        exit;
+    }
+
+    /**
+     * Résout une référence planning (PLN-YYYY-NNNNN) depuis un token legacy ou direct.
+     */
+    private function resolveReferenceFromToken(string $token): ?string
+    {
+        // Si le token ressemble déjà à une référence PLN, l'utiliser directement
+        if (preg_match('/^PLN-\d{4}-\d{5}$/', $token) === 1) {
+            return $token;
+        }
+
+        // Tenter le décodage base64 (legacy)
         $decoded = $this->decodeFileToken($token);
         if ($decoded === null || $decoded === '') {
-            http_response_code(400);
-            echo 'Fichier invalide.';
-            return;
+            return null;
         }
 
-        $realPath = realpath($decoded);
-        $basePlanningDir = realpath(__DIR__ . '/../../storage/documents/planning');
-        if ($realPath === false || $basePlanningDir === false) {
-            http_response_code(404);
-            echo 'Fichier introuvable.';
-            return;
+        // Extraire le nom de fichier (sans extension) du chemin décodé
+        $filename = pathinfo($decoded, PATHINFO_FILENAME);
+        if ($filename !== '' && preg_match('/^PLN-\d{4}-\d{5}$/', $filename) === 1) {
+            return $filename;
         }
 
-        $normalizedPath = str_replace('\\', '/', $realPath);
-        $normalizedBase = rtrim(str_replace('\\', '/', $basePlanningDir), '/') . '/';
-        if (!str_starts_with($normalizedPath, $normalizedBase) || !is_file($realPath) || strtolower((string) pathinfo($realPath, PATHINFO_EXTENSION)) !== 'pdf') {
-            http_response_code(403);
-            echo 'Accès au fichier refusé.';
-            return;
+        // Fallback : tenter d'utiliser le décodage complet comme référence
+        if (preg_match('/^[A-Za-z0-9_-]+$/', $decoded) === 1) {
+            return $decoded;
         }
 
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="' . basename($realPath) . '"');
-        header('Content-Length: ' . filesize($realPath));
-        readfile($realPath);
+        return null;
     }
 
     private function getPlanningGeneratorService(): PlanningGeneratorService
@@ -715,7 +740,13 @@ class ProgrammationSoutenanceController
 
     private function decodeFileToken(string $token): ?string
     {
-        if ($token === '') {
+        if ($token === '' || !preg_match('/^[A-Za-z0-9_-]+$/', $token)) {
+            return null;
+        }
+
+        // Ne décoder que les tokens suffisamment longs pour être du vrai base64.
+        // Les références courtes (PLN-YYYY-NNNNN) ne doivent pas être décodées.
+        if (strlen($token) < 24) {
             return null;
         }
 
@@ -726,7 +757,16 @@ class ProgrammationSoutenanceController
         }
 
         $decoded = base64_decode($normalized, true);
-        return is_string($decoded) ? $decoded : null;
+        if (!is_string($decoded) || $decoded === '') {
+            return null;
+        }
+
+        // Rejeter les chaînes contenant des null bytes
+        if (str_contains($decoded, "\0")) {
+            return null;
+        }
+
+        return $decoded;
     }
 }
 ?>

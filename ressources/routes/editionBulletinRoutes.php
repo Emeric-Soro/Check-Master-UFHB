@@ -1,7 +1,7 @@
 <?php
 if (isset($_GET['page']) && $_GET['page'] == 'edition_bulletin') {
 
-    require_once __DIR__ . '/../../app/Controllers/EditionBulletinController.php';
+    require_once __DIR__ . '/../../app/controllers/EditionBulletinController.php';
     $controller = new EditionBulletinController();
 
     // Handle AJAX actions

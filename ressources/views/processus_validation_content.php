@@ -2,35 +2,33 @@
 require_once __DIR__ . '/../../app/controllers/ProcessusValidationController.php';
 $controller = new ProcessusValidationController();
 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-$resolveEnseignantId = static function (ProcessusValidationController $ctrl): ?int {
-    $candidateKeys = ['id_enseignant', 'id_utilisateur', 'enseignant_id'];
-    foreach ($candidateKeys as $key) {
-        if (!empty($_SESSION[$key])) {
-            $candidate = (int) $_SESSION[$key];
-            if ($candidate > 0 && $ctrl->verifierIdEnseignant($candidate)) {
-                return $candidate;
-            }
+$resolveEnseignantId = static function (ProcessusValidationController $ctrl): ?string {
+    $resolved = $ctrl->resolveEnseignantIdFromSession($_SESSION);
+    if ($resolved !== null && trim((string) $resolved) !== '') {
+        return trim((string) $resolved);
+    }
 
-            if ($key === 'id_utilisateur' && $candidate > 0) {
-                $resolved = (int) $ctrl->resoudreIdEnseignantDepuisUtilisateur($candidate);
-                if ($resolved > 0) {
-                    return $resolved;
-                }
-            }
+    $idUtilisateur = (int) ($_SESSION['id_utilisateur'] ?? 0);
+    if ($idUtilisateur > 0) {
+        $resolved = $ctrl->resoudreIdEnseignantDepuisUtilisateur($idUtilisateur);
+        if ($resolved !== null && trim((string) $resolved) !== '') {
+            return trim((string) $resolved);
         }
     }
+
     return null;
 };
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (string) ($_POST['action'] ?? '') === 'finaliser') {
+$requestedAction = trim((string) ($_POST['action'] ?? $_GET['action'] ?? ''));
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $requestedAction === 'finaliser') {
     $idRapport = (int) ($_POST['id_rapport'] ?? 0);
     $commentaire = trim((string) ($_POST['commentaire_validation'] ?? ''));
     $idEnseignant = $resolveEnseignantId($controller);
-    if ($idRapport > 0 && $idEnseignant) {
+    if ($idRapport > 0) {
         $result = $controller->finaliserRapport($idRapport, $idEnseignant, $commentaire !== '' ? $commentaire : null);
     } else {
         $result = [
             'success' => false,
-            'message' => 'Impossible de finaliser: identifiant manquant.',
+            'message' => 'Impossible de finaliser: rapport introuvable.',
         ];
     }
     if ($isAjax) {
@@ -270,11 +268,10 @@ foreach ($membresCommission as $membre) {
                                                         max-width: 10ch !important;
                                                     }
                                                 </style>
-                                                <form method="POST" action="?page=processus_validation" data-cm-ajax-form="true"
+                                                <form method="POST" action="?page=processus_validation&amp;action=finaliser" data-cm-ajax-form="true"
                                                     class="cm-inline-finalize-form"
                                                     style="display:inline-flex; align-items:center; gap:6px;">
                                                     <?php cm_component('form/csrf-token'); ?>
-                                                    <input type="hidden" name="action" value="finaliser">
                                                     <input type="hidden" name="id_rapport" value="<?php echo $idRapport; ?>">
                                                     <input type="text" name="commentaire_validation" class="cm-form-control is-sm"
                                                         placeholder="Commentaire" style="width:120px;">

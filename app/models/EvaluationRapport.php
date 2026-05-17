@@ -129,6 +129,31 @@ class EvaluationRapport
         return 'COALESCE(' . implode(', ', $candidates) . ')';
     }
 
+    private function normalizeSqlExpr(string $expr): string
+    {
+        return "LOWER(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(COALESCE($expr, '')), ' ', ''), '-', ''), '''', ''), '.', ''))";
+    }
+
+    private function enseignantResolutionSubquery(string $userAlias = 'u'): string
+    {
+        $userLoginExpr = "LOWER(COALESCE({$userAlias}.login_utilisateur, ''))";
+        $userNameExpr = $this->normalizeSqlExpr($userAlias . '.nom_utilisateur');
+        $teacherForwardExpr = $this->normalizeSqlExpr("CONCAT(COALESCE(e2.nom_enseignant, ''), COALESCE(e2.prenom_enseignant, ''))");
+        $teacherReverseExpr = $this->normalizeSqlExpr("CONCAT(COALESCE(e2.prenom_enseignant, ''), COALESCE(e2.nom_enseignant, ''))");
+        $emailMatch = "({$userLoginExpr} <> '' AND LOWER(COALESCE(e2.mail_enseignant, '')) = {$userLoginExpr})";
+        $nameMatch = "({$userNameExpr} <> '' AND ({$userNameExpr} = {$teacherForwardExpr} OR {$userNameExpr} = {$teacherReverseExpr}))";
+
+        return "
+            (
+                SELECT e2.id_enseignant
+                FROM enseignants e2
+                WHERE {$emailMatch} OR {$nameMatch}
+                ORDER BY CASE WHEN {$emailMatch} THEN 0 ELSE 1 END, e2.id_enseignant
+                LIMIT 1
+            )
+        ";
+    }
+
     private function latestCandidatureJoin(string $rapportAlias = 'r', string $etudiantAlias = 'e', string $candidatureAlias = 'cs'): string
     {
         if (!$this->tableExists('candidature_soutenance')) {
@@ -150,6 +175,46 @@ class EvaluationRapport
                 LIMIT 1
             )
         ";
+    }
+
+    private function resolveEnseignantIdFromVoteActor($idEvaluateur): ?string
+    {
+        $idEvaluateur = trim((string) $idEvaluateur);
+        if ($idEvaluateur === '') {
+            return null;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT id_enseignant
+                FROM enseignants
+                WHERE id_enseignant = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$idEvaluateur]);
+            $value = $stmt->fetchColumn();
+            if ($value !== false) {
+                return trim((string) $value);
+            }
+
+            if (!$this->tableExists('utilisateur')) {
+                return null;
+            }
+
+            $enseignantResolution = $this->enseignantResolutionSubquery('u');
+            $stmt = $this->pdo->prepare("
+                SELECT {$enseignantResolution} AS id_enseignant
+                FROM utilisateur u
+                WHERE u.id_utilisateur = ?
+                LIMIT 1
+            ");
+            $stmt->execute([(int) $idEvaluateur]);
+            $value = $stmt->fetchColumn();
+            return $value !== false ? trim((string) $value) : null;
+        } catch (Throwable $e) {
+            error_log("Erreur résolution enseignant depuis l'acteur du vote {$idEvaluateur}: " . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -195,10 +260,15 @@ class EvaluationRapport
             $totalValide = (int) $stmt->fetchColumn();
 
             if ($totalValide >= 4) {
+                $idEnseignant = $this->resolveEnseignantIdFromVoteActor($id_evaluateur);
+                if ($idEnseignant === null || $idEnseignant === '') {
+                    error_log("Auto-finalisation ignorée pour le rapport {$id_rapport}: impossible de résoudre l'enseignant finalisateur.");
+                    return;
+                }
                 $this->pdo->beginTransaction();
                 try {
                     $insertValider = $this->pdo->prepare("INSERT INTO valider (id_enseignant, id_rapport, date_validation, commentaire_validation, decision_validation) VALUES (?, ?, NOW(), ?, 'valider')");
-                    $insertValider->execute([$id_evaluateur, $id_rapport, 'Validation automatique (4 votes atteints)']);
+                    $insertValider->execute([$idEnseignant, $id_rapport, 'Validation automatique (4 votes atteints)']);
                     $this->pdo->commit();
                     error_log("Auto-finalisation effectuée pour le rapport $id_rapport");
                 } catch (Exception $e) {
@@ -253,15 +323,18 @@ class EvaluationRapport
     public function getEvaluationsRapport($id_rapport)
     {
         try {
+            $enseignantResolution = $this->enseignantResolutionSubquery('u');
             $stmt = $this->pdo->prepare("
-                SELECT e.*, 
-                       ens.nom_enseignant,
-                       ens.prenom_enseignant,
-                       ens.mail_enseignant
+                SELECT e.*,
+                       COALESCE(ens.nom_enseignant, u.nom_utilisateur) AS nom_enseignant,
+                       COALESCE(ens.prenom_enseignant, '') AS prenom_enseignant,
+                       COALESCE(ens.mail_enseignant, u.login_utilisateur) AS mail_enseignant,
+                       u.login_utilisateur
                 FROM evaluations_rapports e
-                JOIN enseignants ens ON e.id_evaluateur = ens.id_enseignant
+                LEFT JOIN utilisateur u ON e.id_evaluateur = u.id_utilisateur
+                LEFT JOIN enseignants ens ON ens.id_enseignant = {$enseignantResolution}
                 WHERE e.id_rapport = ?
-                ORDER BY e.date_evaluation DESC
+                ORDER BY COALESCE(e.date_modification, e.date_evaluation) DESC
             ");
             $stmt->execute([$id_rapport]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -356,7 +429,7 @@ class EvaluationRapport
 
             $where = [];
             if ($joinCandidature !== '') {
-                $where[] = "cs.statut_candidature IN ('Validee', 'Validée')";
+                $where[] = "cs.statut_candidature IN ('En attente', 'Validee', 'Validée')";
             }
             if ($hasEtape) {
                 $where[] = "r.etape_validation IN ('approuve_communication', 'en_attente_commission', 'valide', 'desapprouve_commission')";

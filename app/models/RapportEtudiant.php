@@ -655,20 +655,14 @@ class RapportEtudiant
     {
         try {
             $stmt = $this->pdo->prepare("
-            SELECT e.*, 
-                    CASE 
-                        WHEN e.type_evaluateur = 'enseignant' THEN ens.nom_enseignant
-                        ELSE pa.nom_pers_admin 
-                    END as nom_evaluateur,
-                    CASE 
-                        WHEN e.type_evaluateur = 'enseignant' THEN ens.prenom_enseignant
-                        ELSE pa.prenom_pers_admin 
-                    END as prenom_evaluateur
+            SELECT e.*,
+                    COALESCE(ens.nom_enseignant, u.nom_utilisateur) as nom_evaluateur,
+                    COALESCE(ens.prenom_enseignant, '') as prenom_evaluateur
             FROM evaluations_rapports e
-            LEFT JOIN enseignants ens ON e.id_evaluateur = ens.id_enseignant AND e.type_evaluateur = 'enseignant'
-            LEFT JOIN personnel_admin pa ON e.id_evaluateur = pa.id_pers_admin AND e.type_evaluateur = 'personnel_admin'
+            LEFT JOIN utilisateur u ON e.id_evaluateur = u.id_utilisateur
+            LEFT JOIN enseignants ens ON LOWER(ens.mail_enseignant) = LOWER(u.login_utilisateur)
             WHERE e.id_rapport = ?
-            ORDER BY e.date_evaluation DESC
+            ORDER BY COALESCE(e.date_modification, e.date_evaluation) DESC
             ");
             $stmt->execute([$id_rapport]);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -804,7 +798,7 @@ class RapportEtudiant
         try {
             $joinCandidature = $this->latestCandidatureJoin('r', 'e', 'cs');
             $whereCandidature = $joinCandidature !== ''
-                ? "WHERE cs.statut_candidature IN ('Validee', 'Validée')"
+                ? "WHERE cs.statut_candidature IN ('En attente', 'Validee', 'Validée')"
                 : '';
 
             $stmt = $this->pdo->query("
@@ -831,23 +825,17 @@ class RapportEtudiant
             $stmt = $this->pdo->prepare("
                 SELECT 
                     e.*,
+                    COALESCE(ens.nom_enseignant, u.nom_utilisateur) as nom_evaluateur,
+                    COALESCE(ens.prenom_enseignant, '') as prenom_evaluateur,
                     CASE 
-                        WHEN e.type_evaluateur = 'enseignant' THEN ens.nom_enseignant
-                        ELSE pa.nom_pers_admin 
-                    END as nom_evaluateur,
-                    CASE 
-                        WHEN e.type_evaluateur = 'enseignant' THEN ens.prenom_enseignant
-                        ELSE pa.prenom_pers_admin 
-                    END as prenom_evaluateur,
-                    CASE 
-                        WHEN e.type_evaluateur = 'enseignant' THEN 'Enseignant'
-                        ELSE 'Personnel administratif'
+                        WHEN ens.id_enseignant IS NOT NULL THEN 'Enseignant'
+                        ELSE 'Utilisateur'
                     END as fonction_evaluateur
                 FROM evaluations_rapports e
-                LEFT JOIN enseignants ens ON e.id_evaluateur = ens.id_enseignant AND e.type_evaluateur = 'enseignant'
-                LEFT JOIN personnel_admin pa ON e.id_evaluateur = pa.id_pers_admin AND e.type_evaluateur = 'personnel_admin'
-                WHERE e.id_rapport = ? AND e.statut_evaluation = 'terminee'
-                ORDER BY e.date_evaluation DESC
+                LEFT JOIN utilisateur u ON e.id_evaluateur = u.id_utilisateur
+                LEFT JOIN enseignants ens ON LOWER(ens.mail_enseignant) = LOWER(u.login_utilisateur)
+                WHERE e.id_rapport = ?
+                ORDER BY COALESCE(e.date_modification, e.date_evaluation) DESC
             ");
             $stmt->execute([$id_rapport]);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -1066,7 +1054,9 @@ class RapportEtudiant
     {
         try {
             $dateOpCol = $this->getDateOperationColumn();
-            $dateOpSelect = $dateOpCol !== null ? ('r.' . $dateOpCol . ' AS date_operation') : 'NULL AS date_operation';
+            $dateOpSelect = $dateOpCol !== null
+                ? ("COALESCE(r.$dateOpCol, NOW()) AS date_operation")
+                : 'NOW() AS date_operation';
 
             $sql = "
                 SELECT r.*, 
@@ -1120,17 +1110,32 @@ class RapportEtudiant
      * @param string $date_operation
      * @return bool
      */
-    public function updateDateOperation($id_rapport, $date_operation)
+    public function updateRapportInline($id_rapport, $date_operation, $nom_rapport, $theme_rapport)
     {
         try {
             $dateOpCol = $this->getDateOperationColumn();
-            if ($dateOpCol === null) {
-                return false;
+            $hasNomRapport = $this->columnExists('rapport_etudiants', 'nom_rapport');
+            
+            $sql = "UPDATE rapport_etudiants SET theme_rapport = ?";
+            $params = [$theme_rapport];
+            
+            if ($dateOpCol !== null) {
+                $sql .= ", $dateOpCol = ?";
+                $params[] = $date_operation;
             }
-            $stmt = $this->pdo->prepare("UPDATE rapport_etudiants SET $dateOpCol = ?, date_modification = NOW() WHERE id_rapport = ?");
-            return $stmt->execute([$date_operation, $id_rapport]);
+            
+            if ($hasNomRapport) {
+                $sql .= ", nom_rapport = ?";
+                $params[] = $nom_rapport;
+            }
+            
+            $sql .= ", date_modification = NOW() WHERE id_rapport = ?";
+            $params[] = $id_rapport;
+            
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute($params);
         } catch (PDOException $e) {
-            error_log("Erreur updateDateOperation: " . $e->getMessage());
+            error_log("Erreur updateRapportInline: " . $e->getMessage());
             return false;
         }
     }

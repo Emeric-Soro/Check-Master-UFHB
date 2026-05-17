@@ -296,6 +296,11 @@ final class DocumentRegistry
             return null;
         }
 
+        // Defence-in-depth: reject strings with null bytes before realpath().
+        if (str_contains($decoded, "\0")) {
+            return null;
+        }
+
         $realPath = realpath($decoded);
         if ($realPath === false || !is_file($realPath)) {
             return null;
@@ -498,7 +503,15 @@ final class DocumentRegistry
 
     private function decodeOpaqueToken(string $token): ?string
     {
+        // Must be a non-empty token containing only URL-safe base64 characters
         if ($token === '' || !preg_match('/^[A-Za-z0-9_-]+$/', $token)) {
+            return null;
+        }
+
+        // Never attempt to decode short tokens: they are always regular IDs
+        // (references like "PLN-2025-12345", compound keys like "MATRICULE-ANNEE-VERS",
+        // numeric IDs, etc.), never base64-encoded paths.
+        if (strlen($token) < 24) {
             return null;
         }
 
@@ -509,7 +522,23 @@ final class DocumentRegistry
         }
 
         $decoded = base64_decode($normalized, true);
-        return is_string($decoded) && $decoded !== '' ? $decoded : null;
+        if (!is_string($decoded) || $decoded === '') {
+            return null;
+        }
+
+        // Reject decoded strings containing null bytes — they would crash realpath().
+        if (str_contains($decoded, "\0")) {
+            return null;
+        }
+
+        // The decoded result must look like a plausible file path:
+        // it must contain at least one directory separator to be a path.
+        $hasSeparator = str_contains($decoded, '/') || str_contains($decoded, '\\');
+        if (!$hasSeparator) {
+            return null;
+        }
+
+        return $decoded;
     }
 
     private function containsPathTraversal(string $path): bool

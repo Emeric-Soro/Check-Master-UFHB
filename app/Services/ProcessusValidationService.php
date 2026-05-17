@@ -171,11 +171,25 @@ class ProcessusValidationService
         ";
     }
 
-    private function validatedCandidatureWhere(string $candidatureAlias = 'cs'): string
+    private function validatedCandidatureWhere(string $candidatureAlias = 'cs', string $rapportAlias = 'r'): string
     {
-        return $this->tableExists('candidature_soutenance')
-            ? " AND {$candidatureAlias}.statut_candidature IN ('Validee', 'Validée')"
-            : '';
+        $conditions = [];
+
+        if ($this->tableExists('candidature_soutenance')) {
+            $conditions[] = "{$candidatureAlias}.statut_candidature IN ('Validee', 'Validée')";
+        }
+
+        if ($this->columnExists('rapport_etudiants', 'etape_validation')) {
+            $conditions[] = "{$rapportAlias}.etape_validation IN ('approuve_communication', 'en_attente_commission', 'valide', 'desapprouve_commission')";
+        } elseif ($this->columnExists('rapport_etudiants', 'statut_rapport')) {
+            $conditions[] = "COALESCE({$rapportAlias}.statut_rapport, '') IN ('valider', 'valide', 'rejeter')";
+        }
+
+        if ($conditions === []) {
+            return '';
+        }
+
+        return ' AND (' . implode(' OR ', $conditions) . ')';
     }
 
     private function getSelectedYearId(): ?int
@@ -194,6 +208,31 @@ class ProcessusValidationService
             'sql' => " AND " . $this->getReportAcademicYearExpr($rapportAlias, $etudiantAlias, $depotAlias) . " = :id_annee_acad",
             'params' => [':id_annee_acad' => $selectedYearId],
         ];
+    }
+
+    private function normalizeSqlExpr(string $expr): string
+    {
+        return "LOWER(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(COALESCE($expr, '')), ' ', ''), '-', ''), '''', ''), '.', ''))";
+    }
+
+    private function enseignantResolutionSubquery(string $userAlias = 'u'): string
+    {
+        $userLoginExpr = "LOWER(COALESCE({$userAlias}.login_utilisateur, ''))";
+        $userNameExpr = $this->normalizeSqlExpr($userAlias . '.nom_utilisateur');
+        $teacherForwardExpr = $this->normalizeSqlExpr("CONCAT(COALESCE(e2.nom_enseignant, ''), COALESCE(e2.prenom_enseignant, ''))");
+        $teacherReverseExpr = $this->normalizeSqlExpr("CONCAT(COALESCE(e2.prenom_enseignant, ''), COALESCE(e2.nom_enseignant, ''))");
+        $emailMatch = "({$userLoginExpr} <> '' AND LOWER(COALESCE(e2.mail_enseignant, '')) = {$userLoginExpr})";
+        $nameMatch = "({$userNameExpr} <> '' AND ({$userNameExpr} = {$teacherForwardExpr} OR {$userNameExpr} = {$teacherReverseExpr}))";
+
+        return "
+            (
+                SELECT e2.id_enseignant
+                FROM enseignants e2
+                WHERE {$emailMatch} OR {$nameMatch}
+                ORDER BY CASE WHEN {$emailMatch} THEN 0 ELSE 1 END, e2.id_enseignant
+                LIMIT 1
+            )
+        ";
     }
 
     private function getRapportYearId(int $idRapport): ?int
@@ -230,7 +269,7 @@ class ProcessusValidationService
         try {
             $yearFilter = $this->yearCondition('r', 'e', 'd');
             $joinCandidature = $this->latestCandidatureJoin('r', 'e', 'cs');
-            $candidatureWhere = $this->validatedCandidatureWhere('cs');
+            $candidatureWhere = $this->validatedCandidatureWhere('cs', 'r');
             $stmt = $this->pdo->prepare("
                 SELECT COUNT(*) as total_rapports
                 FROM rapport_etudiants r
@@ -312,7 +351,7 @@ class ProcessusValidationService
             $hasEtape = $this->columnExists('rapport_etudiants', 'etape_validation');
             $yearFilter = $this->yearCondition('r', 'e', 'd');
             $joinCandidature = $this->latestCandidatureJoin('r', 'e', 'cs');
-            $candidatureWhere = $this->validatedCandidatureWhere('cs');
+            $candidatureWhere = $this->validatedCandidatureWhere('cs', 'r');
 
             $sql = "
                 SELECT 
@@ -371,6 +410,7 @@ class ProcessusValidationService
     public function getEvaluationsRapport($id_rapport)
     {
         try {
+            $enseignantResolution = $this->enseignantResolutionSubquery('u');
             $stmt = $this->pdo->prepare("
                 SELECT 
                     er.id_evaluation,
@@ -378,13 +418,15 @@ class ProcessusValidationService
                     er.decision_evaluation,
                     er.commentaire,
                     er.date_evaluation,
-                    e.nom_enseignant,
-                    e.prenom_enseignant,
-                    e.mail_enseignant
+                    COALESCE(e.nom_enseignant, u.nom_utilisateur) AS nom_enseignant,
+                    COALESCE(e.prenom_enseignant, '') AS prenom_enseignant,
+                    COALESCE(e.mail_enseignant, u.login_utilisateur) AS mail_enseignant,
+                    u.login_utilisateur
                 FROM evaluations_rapports er
-                JOIN enseignants e ON er.id_evaluateur = e.id_enseignant
+                LEFT JOIN utilisateur u ON er.id_evaluateur = u.id_utilisateur
+                LEFT JOIN enseignants e ON e.id_enseignant = {$enseignantResolution}
                 WHERE er.id_rapport = ?
-                ORDER BY er.date_evaluation DESC
+                ORDER BY COALESCE(er.date_modification, er.date_evaluation) DESC
             ");
             $stmt->execute([$id_rapport]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -492,15 +534,16 @@ class ProcessusValidationService
     public function getMembresCommission()
     {
         try {
+            $enseignantResolution = $this->enseignantResolutionSubquery('u');
             $stmt = $this->pdo->prepare("
-                SELECT 
+                SELECT DISTINCT
                     e.id_enseignant,
                     e.nom_enseignant,
                     e.prenom_enseignant,
                     e.mail_enseignant
-                FROM enseignants e
-                JOIN utilisateur u ON e.mail_enseignant = u.login_utilisateur
-                WHERE u.id_GU = 11 or u.id_GU = 5
+                FROM utilisateur u
+                JOIN enseignants e ON e.id_enseignant = {$enseignantResolution}
+                WHERE u.id_GU IN (11, 5)
                 ORDER BY e.nom_enseignant, e.prenom_enseignant
             ");
             $stmt->execute();
@@ -578,10 +621,10 @@ class ProcessusValidationService
             if ($idUtilisateur <= 0 || !$this->tableExists('utilisateur')) {
                 return null;
             }
+            $enseignantResolution = $this->enseignantResolutionSubquery('u');
             $stmt = $this->pdo->prepare("
-                SELECT e.id_enseignant
+                SELECT {$enseignantResolution} AS id_enseignant
                 FROM utilisateur u
-                JOIN enseignants e ON LOWER(e.mail_enseignant) = LOWER(u.login_utilisateur)
                 WHERE u.id_utilisateur = ?
                 LIMIT 1
             ");
@@ -620,7 +663,7 @@ class ProcessusValidationService
      * Résout l'identifiant enseignant à partir de l'identifiant utilisateur.
      *
      * @param int $id_utilisateur
-     * @return int|null
+     * @return string|null
      */
     public function resoudreIdEnseignantDepuisUtilisateur($id_utilisateur)
     {
@@ -632,7 +675,12 @@ class ProcessusValidationService
         // Compatibilité: sur certaines installations, l'id utilisateur peut déjà
         // correspondre à l'id enseignant.
         if ($this->verifierIdEnseignant($idUtilisateur)) {
-            return $idUtilisateur;
+            return (string) $idUtilisateur;
+        }
+
+        $resolvedByUser = $this->findEnseignantIdByUtilisateurId($idUtilisateur);
+        if ($resolvedByUser !== null && $resolvedByUser !== '') {
+            return $resolvedByUser;
         }
 
         try {
@@ -647,9 +695,37 @@ class ProcessusValidationService
             $stmt->execute([$login]);
             $idEnseignant = $stmt->fetchColumn();
 
-            return is_numeric($idEnseignant) ? (int) $idEnseignant : null;
+            return $idEnseignant !== false ? trim((string) $idEnseignant) : null;
         } catch (Exception $e) {
             error_log("Erreur résolution id enseignant depuis utilisateur: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function resolveEnseignantIdForFinalization(int $idRapport, $preferredIdEnseignant = null): ?string
+    {
+        $preferred = trim((string) $preferredIdEnseignant);
+        if ($preferred !== '' && $this->verifierIdEnseignant($preferred)) {
+            return $preferred;
+        }
+
+        try {
+            $enseignantResolution = $this->enseignantResolutionSubquery('u');
+            $stmt = $this->pdo->prepare("
+                SELECT ens.id_enseignant
+                FROM evaluations_rapports er
+                LEFT JOIN utilisateur u ON er.id_evaluateur = u.id_utilisateur
+                LEFT JOIN enseignants ens ON ens.id_enseignant = {$enseignantResolution}
+                WHERE er.id_rapport = ?
+                  AND ens.id_enseignant IS NOT NULL
+                ORDER BY COALESCE(er.date_modification, er.date_evaluation) DESC, er.id_evaluation DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$idRapport]);
+            $value = $stmt->fetchColumn();
+            return $value !== false ? trim((string) $value) : null;
+        } catch (Exception $e) {
+            error_log("Erreur résolution enseignant pour finalisation du rapport {$idRapport}: " . $e->getMessage());
             return null;
         }
     }
@@ -665,7 +741,23 @@ class ProcessusValidationService
     public function finaliserRapport($id_rapport, $id_enseignant, $commentaire = null)
     {
         try {
-            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId((int) $id_rapport), 'une finalisation de rapport');
+            $idRapport = (int) $id_rapport;
+            if ($idRapport <= 0) {
+                return [
+                    'success' => false,
+                    'message' => 'Rapport non spécifié.'
+                ];
+            }
+
+            $idEnseignantFinaliseur = $this->resolveEnseignantIdForFinalization($idRapport, $id_enseignant);
+            if ($idEnseignantFinaliseur === null || $idEnseignantFinaliseur === '') {
+                return [
+                    'success' => false,
+                    'message' => 'Impossible de résoudre un enseignant finalisateur pour ce rapport.'
+                ];
+            }
+
+            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId($idRapport), 'une finalisation de rapport');
             if (!$writeGuard['success']) {
                 return [
                     'success' => false,
@@ -675,7 +767,7 @@ class ProcessusValidationService
 
             // Compter le nombre de validations 'valider'
             $stmt = $this->pdo->prepare("SELECT COUNT(*) as total FROM evaluations_rapports WHERE id_rapport = ? AND decision_evaluation = 'valider'");
-            $stmt->execute([$id_rapport]);
+            $stmt->execute([$idRapport]);
             $row = $stmt->fetch();
             $totalValide = $row['total'];
 
@@ -690,16 +782,16 @@ class ProcessusValidationService
 
             // Insérer/metre à jour la décision finale pour éviter les blocages en cas de doublon.
             $stmtInsert = $this->pdo->prepare("INSERT INTO valider (id_enseignant, id_rapport, date_validation, commentaire_validation, decision_validation) VALUES (?, ?, NOW(), ?, ?) ON DUPLICATE KEY UPDATE date_validation = NOW(), commentaire_validation = VALUES(commentaire_validation), decision_validation = VALUES(decision_validation)");
-            $stmtInsert->execute([$id_enseignant, $id_rapport, $commentaireFinal, $decision]);
+            $stmtInsert->execute([$idEnseignantFinaliseur, $idRapport, $commentaireFinal, $decision]);
 
             // Mettre à jour le statut du rapport et l'étape de validation
             if ($this->columnExists('rapport_etudiants', 'etape_validation')) {
                 $etapeValidation = ($decision === 'valider') ? 'valide' : 'desapprouve_commission';
                 $stmtUpdate = $this->pdo->prepare("UPDATE rapport_etudiants SET statut_rapport = ?, etape_validation = ? WHERE id_rapport = ?");
-                $stmtUpdate->execute([$decision, $etapeValidation, $id_rapport]);
+                $stmtUpdate->execute([$decision, $etapeValidation, $idRapport]);
             } else {
                 $stmtUpdate = $this->pdo->prepare("UPDATE rapport_etudiants SET statut_rapport = ? WHERE id_rapport = ?");
-                $stmtUpdate->execute([$decision, $id_rapport]);
+                $stmtUpdate->execute([$decision, $idRapport]);
             }
 
             // Générer le PV de commission si la décision est favorable et qu'un compte-rendu existe
@@ -712,7 +804,7 @@ class ProcessusValidationService
                     WHERE crr.id_rapport = ?
                     LIMIT 1
                 ");
-                $compteRenduExist->execute([$id_rapport]);
+                $compteRenduExist->execute([$idRapport]);
                 $compteRendu = $compteRenduExist->fetch(PDO::FETCH_ASSOC);
 
                 if ($compteRendu && !empty($compteRendu['id_CR'])) {
@@ -730,7 +822,7 @@ class ProcessusValidationService
                         $dataUtils = new \App\Utils\PlanningDataUtils($dbWrapper);
                         $pvService = new \App\Services\Document\PvCommissionGeneratorService($pdfGenerator, $dataUtils, $dbWrapper);
 
-                        $pvResult = $pvService->generate((int) $compteRendu['id_CR'], $id_enseignant);
+                        $pvResult = $pvService->generate((int) $compteRendu['id_CR'], $idEnseignantFinaliseur);
 
                         if (!$pvResult['success']) {
                             error_log("Erreur génération PV commission: " . ($pvResult['error'] ?? 'Erreur inconnue'));

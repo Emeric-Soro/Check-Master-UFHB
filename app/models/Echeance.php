@@ -10,10 +10,29 @@ class Echeance
     }
 
     /**
+     * Verifier si une table existe dans la base de donnees
+     */
+    private function tableExists($tableName)
+    {
+        try {
+            $query = "SHOW TABLES LIKE ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$tableName]);
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            error_log("Erreur lors de la verification de l'existence de la table : " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Récupérer toutes les échéances
      */
     public function getAllEcheances()
     {
+        if (!$this->tableExists('echeances')) {
+            return [];
+        }
         try {
             $query = "SELECT e.*, 
                             i.num_carte_etud,
@@ -38,6 +57,9 @@ class Echeance
      */
     public function getEcheanceById($id_echeance)
     {
+        if (!$this->tableExists('echeances')) {
+            return null;
+        }
         try {
             $query = "SELECT e.*, 
                             i.num_carte_etud,
@@ -62,6 +84,9 @@ class Echeance
      */
     public function getEcheancesByInscription($id_inscription)
     {
+        if (!$this->tableExists('echeances')) {
+            return [];
+        }
         try {
             $query = "SELECT * FROM echeances 
                      WHERE id_inscription = ? 
@@ -80,6 +105,9 @@ class Echeance
      */
     public function getEcheancesByEtudiant($num_etu)
     {
+        if (!$this->tableExists('echeances')) {
+            return [];
+        }
         try {
             $query = "SELECT e.*, i.id_niv_etude, n.lib_niv_etude
                      FROM echeances e
@@ -101,6 +129,9 @@ class Echeance
      */
     public function creerEcheance($id_inscription, $montant, $date_echeance, $statut_echeance = 'En attente')
     {
+        if (!$this->tableExists('echeances')) {
+            return false;
+        }
         try {
             // Vérifier que le statut est valide
             if (!in_array($statut_echeance, ['En attente', 'Payée', 'En retard'])) {
@@ -128,6 +159,9 @@ class Echeance
      */
     public function modifierEcheance($id_echeance, $montant, $date_echeance, $statut_echeance)
     {
+        if (!$this->tableExists('echeances')) {
+            return false;
+        }
         try {
             // Vérifier que le statut est valide
             if (!in_array($statut_echeance, ['En attente', 'Payée', 'En retard'])) {
@@ -150,6 +184,9 @@ class Echeance
      */
     public function changerStatut($id_echeance, $statut_echeance)
     {
+        if (!$this->tableExists('echeances')) {
+            return false;
+        }
         try {
             // Vérifier que le statut est valide
             if (!in_array($statut_echeance, ['En attente', 'Payée', 'En retard'])) {
@@ -170,6 +207,9 @@ class Echeance
      */
     public function supprimerEcheance($id_echeance)
     {
+        if (!$this->tableExists('echeances')) {
+            return false;
+        }
         try {
             $query = "DELETE FROM echeances WHERE id_echeance = ?";
             $stmt = $this->db->prepare($query);
@@ -185,6 +225,9 @@ class Echeance
      */
     public function supprimerEcheancesByInscription($id_inscription)
     {
+        if (!$this->tableExists('echeances')) {
+            return false;
+        }
         try {
             $query = "DELETE FROM echeances WHERE id_inscription = ?";
             $stmt = $this->db->prepare($query);
@@ -200,6 +243,9 @@ class Echeance
      */
     public function getEcheancesEnRetard()
     {
+        if (!$this->tableExists('echeances')) {
+            return [];
+        }
         try {
             $query = "SELECT e.*, 
                             i.num_carte_etud,
@@ -226,6 +272,9 @@ class Echeance
      */
     public function getEcheancesAVenir($jours = 30)
     {
+        if (!$this->tableExists('echeances')) {
+            return [];
+        }
         try {
             $query = "SELECT e.*, 
                             i.num_carte_etud,
@@ -252,6 +301,9 @@ class Echeance
      */
     public function marquerEcheancesEnRetard()
     {
+        if (!$this->tableExists('echeances')) {
+            return false;
+        }
         try {
             $query = "UPDATE echeances 
                      SET statut_echeance = 'En retard' 

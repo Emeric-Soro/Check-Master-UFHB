@@ -369,7 +369,7 @@ class GestionScolariteService
             ];
         }
 
-        $id_inscription = $this->scolariteModel->creerInscription(
+        $inscriptionSuccess = $this->scolariteModel->creerInscription(
             $id_etudiant,
             $id_niveau,
             $id_annee_acad,
@@ -378,7 +378,7 @@ class GestionScolariteService
             $num_piece
         );
 
-        if ($id_inscription) {
+        if ($inscriptionSuccess) {
             $reste_a_payer = $montant_total - $montant_premier_versement;
             $this->auditLog->logCreation($userId, 'inscriptions', 'Succès');
             return [
@@ -449,7 +449,7 @@ class GestionScolariteService
             ];
         }
 
-        $id_inscription = $this->scolariteModel->creerInscription(
+        $inscriptionSuccess = $this->scolariteModel->creerInscription(
             $id_etudiant,
             $id_niveau,
             $id_annee_acad,
@@ -458,7 +458,7 @@ class GestionScolariteService
             $num_piece
         );
 
-        if ($id_inscription) {
+        if ($inscriptionSuccess) {
             $this->auditLog->logCreation($userId, 'inscriptions', 'Succès - Versement');
             $nouveau_reste = $infos_paiement['reste_a_payer'] - $montant;
             return [
@@ -470,5 +470,68 @@ class GestionScolariteService
             $this->auditLog->logCreation($userId, 'inscriptions', 'Erreur');
             return ['success' => false, 'message' => "❌ Erreur lors de l'enregistrement.", 'refreshLists' => false];
         }
+    }
+
+    /**
+     * Upload de la fiche d'inscription (scan du dossier).
+     *
+     * @param array $post  Données POST (doit contenir 'id_inscription')
+     * @param array $files Fichier uploadé (doit contenir 'fiche')
+     * @param int   $userId
+     * @return array{success: bool, message: string}
+     */
+    public function uploadFicheInscription(array $post, array $files, int $userId): array
+    {
+        $idInscription = isset($post['id_inscription']) ? trim((string) $post['id_inscription']) : '';
+        if ($idInscription === '') {
+            return ['success' => false, 'message' => 'Identifiant d\'inscription manquant.'];
+        }
+
+        if (empty($files['fiche']) || $files['fiche']['error'] !== UPLOAD_ERR_OK) {
+            $errorCode = $files['fiche']['error'] ?? -1;
+            return ['success' => false, 'message' => 'Erreur lors du téléchargement du fichier (code ' . $errorCode . ').'];
+        }
+
+        $fileInfo = $files['fiche'];
+        $allowedMimes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $detectedMime = finfo_file($finfo, $fileInfo['tmp_name']);
+        finfo_close($finfo);
+
+        if (!in_array($detectedMime, $allowedMimes, true)) {
+            return ['success' => false, 'message' => 'Type de fichier non autorisé (PDF, JPEG, PNG acceptés).'];
+        }
+
+        $maxSize = 5 * 1024 * 1024; // 5 Mo
+        if ($fileInfo['size'] > $maxSize) {
+            return ['success' => false, 'message' => 'Le fichier dépasse la taille maximale autorisée (5 Mo).'];
+        }
+
+        $extension = pathinfo($fileInfo['name'], PATHINFO_EXTENSION);
+        $safeFilename = 'fiche_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $idInscription) . '.' . $extension;
+        $uploadDir = __DIR__ . '/../../ressources/uploads/fiches';
+
+        if (!is_dir($uploadDir)) {
+            if (!mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+                error_log("Impossible de créer le dossier: $uploadDir");
+                return ['success' => false, 'message' => 'Erreur interne lors de la création du dossier de stockage.'];
+            }
+        }
+
+        $destination = $uploadDir . DIRECTORY_SEPARATOR . $safeFilename;
+
+        if (!move_uploaded_file($fileInfo['tmp_name'], $destination)) {
+            return ['success' => false, 'message' => 'Erreur lors du déplacement du fichier.'];
+        }
+
+        $relativePath = 'fiches/' . $safeFilename;
+
+        if ($this->scolariteModel->updateFicheInscription($idInscription, $relativePath)) {
+            $this->auditLog->logModification($userId, 'inscriptions', 'Succès - Fiche uploadée');
+            return ['success' => true, 'message' => 'Fiche d\'inscription uploadée avec succès.'];
+        }
+
+        $this->auditLog->logModification($userId, 'inscriptions', 'Erreur - Upload fiche');
+        return ['success' => false, 'message' => 'Erreur lors de l\'enregistrement du chemin de la fiche.'];
     }
 }

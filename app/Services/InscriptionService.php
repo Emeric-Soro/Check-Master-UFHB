@@ -155,7 +155,7 @@ class InscriptionService
             }
 
             // Create inscription
-            $id_inscription = $this->scolarite->creerInscription(
+            $inscriptionSuccess = $this->scolarite->creerInscription(
                 $id_etudiant,
                 $id_niveau,
                 $id_annee_acad,
@@ -164,8 +164,10 @@ class InscriptionService
                 $num_piece !== '' ? $num_piece : null
             );
 
-            if ($id_inscription) {
-                $this->creerEcheancesSiNecessaire($id_inscription, $id_niveau, $montant_premier_versement, $nombre_tranches);
+            if ($inscriptionSuccess) {
+                // Build composite key for echeances (first versement = 1)
+                $compositeKey = $id_etudiant . '-' . $id_annee_acad . '-1';
+                $this->creerEcheancesSiNecessaire($compositeKey, $id_niveau, $montant_premier_versement, $nombre_tranches);
                 $this->auditLog->logCreation($idUtilisateur, 'inscriptions', 'Succès');
                 return ['success' => true, 'message' => 'Inscription créée avec succès.'];
             }

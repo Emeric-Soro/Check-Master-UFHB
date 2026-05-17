@@ -20,8 +20,7 @@ class EditionBulletinController
         $data = $this->service->getIndexData();
         $GLOBALS['etudiants'] = $data['etudiants'];
         $GLOBALS['anneesAcademiques'] = $data['anneesAcademiques'];
-        // Note: the view edition_bulletin_content.php currently does not use these globals.
-        // We will need to update the view to use them, but for now we set them.
+        $GLOBALS['selectedYearId'] = $data['selectedYearId'] ?? null;
         // Ne pas inclure la vue ici, le layout s'en charge
     }
 

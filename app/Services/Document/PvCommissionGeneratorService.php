@@ -102,7 +102,7 @@ final class PvCommissionGeneratorService
             $filename = $reference;
             $fullPath = $this->pdfGenerator->save($pdf, self::SUBDIR, $filename);
 
-            // 8. Enregistrer le document (no-op car table document_genere n'existe pas)
+            // 8. Enregistrer le document dans document_genere pour traçabilité et compteurs
             $fileSize = file_exists($fullPath) ? filesize($fullPath) : null;
 
             $this->dataUtils->saveDocumentRecord([

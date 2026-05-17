@@ -337,17 +337,10 @@ class GestionRapportController
                 throw new Exception("Le fichier PDF n'a pas pu être trouvé après génération.");
             }
 
-            // Envoyer le fichier au navigateur
-            $filename = basename($filepath);
-            header('Content-Type: application/pdf');
-            $isDownload = isset($_POST['download']) && $_POST['download'] === '1';
-            if ($isDownload) {
-                header('Content-Disposition: attachment; filename="' . $filename . '"');
-            } else {
-                header('Content-Disposition: inline; filename="' . $filename . '"');
-            }
-            header('Content-Length: ' . filesize($filepath));
-            readfile($filepath);
+            // Rediriger vers le DocViewer unifié
+            $action = (isset($_POST['download']) && $_POST['download'] === '1') ? 'download' : 'preview';
+            $redirectUrl = '?page=docviewer&type=rapport&id=' . (int) $id_rapport . '&action=' . $action;
+            header('Location: ' . $redirectUrl);
             exit;
 
         } catch (Exception $e) {
@@ -557,7 +550,8 @@ class GestionRapportController
     }
 
     /**
-     * Télécharge le fichier physique d'un rapport (pour l'admin)
+     * Télécharge le PDF d'un rapport.
+     * L'ancien fichier source uploadé n'est plus servi directement.
      */
     public function downloadFichierRapport()
     {
@@ -568,32 +562,27 @@ class GestionRapportController
             exit;
         }
 
-        if (!$this->isAdminGroup()) {
+        $rapport = $this->service->getRapportById($id_rapport);
+        if (!$rapport) {
+            $_SESSION['error'] = "Rapport introuvable.";
+            header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
+            exit;
+        }
+
+        $isAuthorized = $this->isAdminGroup();
+
+        if (!$isAuthorized && $this->isEtudiant()) {
+            $rapportModel = new RapportEtudiant(Database::getConnection());
+            $isAuthorized = (bool) $rapportModel->getRapportByIdAndEtudiant($id_rapport, (string) $_SESSION['num_etu']);
+        }
+
+        if (!$isAuthorized) {
             $_SESSION['error'] = "Accès non autorisé.";
             header('Location: ?page=gestion_rapports&action=telecharger_rapport');
             exit;
         }
 
-        $rapport = $this->service->getRapportById($id_rapport);
-        if (!$rapport || empty($rapport['chemin_fichier'])) {
-            $_SESSION['error'] = "Fichier non trouvé.";
-            header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
-            exit;
-        }
-
-        $cheminFichier = $this->service->getUploadsPath() . $rapport['chemin_fichier'];
-        if (file_exists($cheminFichier)) {
-            while (ob_get_level())
-                ob_end_clean();
-            header('Content-Type: application/octet-stream');
-            header('Content-Disposition: attachment; filename="' . basename($cheminFichier) . '"');
-            header('Content-Length: ' . filesize($cheminFichier));
-            readfile($cheminFichier);
-            exit;
-        }
-
-        $_SESSION['error'] = "Fichier non trouvé sur le serveur.";
-        header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
+        header('Location: ?page=docviewer&type=rapport&id=' . $id_rapport . '&action=download');
         exit;
     }
 
@@ -782,7 +771,7 @@ class GestionRapportController
     /**
      * Met à jour la date d'opération d'un rapport (PRD 3)
      */
-    public function updateDateOperation()
+    public function updateRapportInline()
     {
         if (!$this->isAdminGroup()) {
             $_SESSION['error'] = "Accès non autorisé.";
@@ -792,23 +781,27 @@ class GestionRapportController
 
         $id_rapport = isset($_POST['id_rapport']) ? (int) $_POST['id_rapport'] : 0;
         $nouvelle_date = isset($_POST['date_operation']) ? trim($_POST['date_operation']) : '';
+        $nom_rapport = isset($_POST['nom_rapport']) ? trim($_POST['nom_rapport']) : '';
+        $theme_rapport = isset($_POST['theme_rapport']) ? trim($_POST['theme_rapport']) : '';
 
-        if (!$id_rapport || empty($nouvelle_date)) {
+        if (!$id_rapport) {
             $_SESSION['error'] = "Paramètres manquants.";
             header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
         }
 
-        // Récupérer l'ancienne date pour l'audit
+        // Récupérer les anciennes valeurs pour l'audit
         $rapport = $this->service->getRapportById($id_rapport);
         $ancienne_date = $rapport['date_operation'] ?? '';
+        $ancien_nom = $rapport['nom_rapport'] ?? '';
+        $ancien_theme = $rapport['theme_rapport'] ?? '';
 
-        $result = $this->service->updateDateOperationWithAudit($id_rapport, $nouvelle_date, $ancienne_date);
+        $result = $this->service->updateRapportInlineWithAudit($id_rapport, $nouvelle_date, $ancienne_date, $nom_rapport, $ancien_nom, $theme_rapport, $ancien_theme);
 
         if ($result) {
-            $_SESSION['success'] = "Date d'opération mise à jour avec succès.";
+            $_SESSION['success'] = "Rapport mis à jour avec succès.";
         } else {
-            $_SESSION['error'] = "Erreur lors de la mise à jour de la date.";
+            $_SESSION['error'] = "Erreur lors de la mise à jour.";
         }
 
         header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');

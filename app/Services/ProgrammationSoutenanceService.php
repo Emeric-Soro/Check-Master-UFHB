@@ -1033,6 +1033,39 @@ class ProgrammationSoutenanceService
     /**
      * Insérer les membres du jury avec leurs rôles.
      */
+    private function enseignantExists(string $enseignantId): bool
+    {
+        if ($enseignantId === '') {
+            return false;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("SELECT 1 FROM enseignants WHERE id_enseignant = ? LIMIT 1");
+            $stmt->execute([$enseignantId]);
+            return (bool) $stmt->fetchColumn();
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    private function resolveJuryTeacherId(string $roleKey, $rawValue): string
+    {
+        $submittedId = trim((string) $rawValue);
+        if ($submittedId === '') {
+            return '';
+        }
+
+        if ($this->enseignantExists($submittedId)) {
+            return $submittedId;
+        }
+
+        if ($roleKey === 'maitre_stage' && $this->enseignantExists('MS_NON_RENSEIGNE')) {
+            return 'MS_NON_RENSEIGNE';
+        }
+
+        return '';
+    }
+
     private function insertJuryMembers($juryRef, array $data): void
     {
         $juryTable = $this->getJuryTable();
@@ -1042,7 +1075,7 @@ class ProgrammationSoutenanceService
 
         $roleIds = $this->getRoleIds();
         $juryRefCol = $this->getJuryRefColumn($juryTable);
-        $insertSql = "INSERT INTO {$juryTable} ({$juryRefCol}, id_enseignant, id_qualite_jury, date_composer_jury) VALUES (?, ?, ?, UNIX_TIMESTAMP())";
+        $insertSql = "INSERT INTO {$juryTable} ({$juryRefCol}, id_enseignant, id_qualite_jury, date_composer_jury) VALUES (?, ?, ?, NOW())";
         $stmt = $this->pdo->prepare($insertSql);
 
         $members = [
@@ -1054,7 +1087,7 @@ class ProgrammationSoutenanceService
         ];
 
         foreach ($members as $field => $roleKey) {
-            $enseignantId = $data[$field] ?? '';
+            $enseignantId = $this->resolveJuryTeacherId($roleKey, $data[$field] ?? '');
             $roleId = $roleIds[$roleKey] ?? '';
             if ($enseignantId !== '' && $roleId !== '') {
                 $stmt->execute([(string) $juryRef, (string) $enseignantId, (string) $roleId]);

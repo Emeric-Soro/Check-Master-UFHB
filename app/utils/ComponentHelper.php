@@ -1335,6 +1335,7 @@ cm_handle_toolbar_xlsx_export();
  *   - on_filter_apply: string JS callback for filter apply
  *   - on_filter_reset: string JS callback for filter reset
  *   - align: string 'left'|'center'|'right'|'space-between' (default: 'space-between')
+ *   - left_html|center_html|right_html: string|callable Custom slot content
  */
 if (!function_exists('cm_toolbar')) {
     function cm_toolbar(array $config = []): void
@@ -1407,9 +1408,24 @@ if (!function_exists('cm_toolbar')) {
         $align = (string) ($config['align'] ?? 'space-between');
         $alignClass = 'cm-toolbar--' . $align;
 
-        $leftHtml = (string) ($config['left_html'] ?? '');
-        $centerHtml = (string) ($config['center_html'] ?? '');
-        $rightHtml = (string) ($config['right_html'] ?? '');
+        $resolveToolbarHtml = static function ($slot): string {
+            if (is_callable($slot)) {
+                $slot = $slot();
+            }
+            if ($slot === null) {
+                return '';
+            }
+            if (is_scalar($slot)) {
+                return (string) $slot;
+            }
+            if (is_object($slot) && method_exists($slot, '__toString')) {
+                return (string) $slot;
+            }
+            return '';
+        };
+        $leftHtml = $resolveToolbarHtml($config['left_html'] ?? '');
+        $centerHtml = $resolveToolbarHtml($config['center_html'] ?? '');
+        $rightHtml = $resolveToolbarHtml($config['right_html'] ?? '');
 
         ?>
         <div class="cm-barre-intermediaire" id="<?= htmlspecialchars($toolbarId, ENT_QUOTES, 'UTF-8') ?>">

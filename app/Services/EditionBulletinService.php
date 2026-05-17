@@ -9,18 +9,17 @@ require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/CompteRendu.php';
 require_once __DIR__ . '/../models/Note.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
+
 use Etudiant;
 use Scolarite;
 use Inscription;
 use RapportEtudiant;
 use CompteRendu;
 use Note;
-use PDO;
 use Exception;
+use PDO;
+use Throwable;
 
-/**
- * Service métier pour l'édition des bulletins.
- */
 class EditionBulletinService
 {
     private $pdo;
@@ -30,6 +29,8 @@ class EditionBulletinService
     private $rapportModel;
     private $compteRenduModel;
     private $notesModel;
+    private $tableExistsCache = [];
+    private $columnExistsCache = [];
 
     public function __construct($pdo = null)
     {
@@ -42,26 +43,498 @@ class EditionBulletinService
         $this->notesModel = new Note($this->pdo);
     }
 
-    /**
-     * Récupérer les données pour la vue d'édition des bulletins.
-     * @return array ['etudiants' => array, 'anneesAcademiques' => array, ...]
-     */
+    private function getSelectedAcademicYearId(): ?int
+    {
+        $selectedId = \AcademicYear::getSelectedIdFromSession();
+        return ($selectedId !== null && $selectedId > 0) ? (int) $selectedId : null;
+    }
+
+    private function tableExists($tableName): bool
+    {
+        if (array_key_exists($tableName, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$tableName];
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("SHOW TABLES LIKE ?");
+            $stmt->execute([$tableName]);
+            $this->tableExistsCache[$tableName] = (bool) $stmt->fetchColumn();
+        } catch (Throwable $e) {
+            $this->tableExistsCache[$tableName] = false;
+        }
+
+        return $this->tableExistsCache[$tableName];
+    }
+
+    private function columnExists($tableName, $columnName): bool
+    {
+        $cacheKey = strtolower((string) $tableName . '.' . (string) $columnName);
+        if (array_key_exists($cacheKey, $this->columnExistsCache)) {
+            return $this->columnExistsCache[$cacheKey];
+        }
+
+        if (!$this->tableExists($tableName)) {
+            $this->columnExistsCache[$cacheKey] = false;
+            return false;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
+            $stmt->execute([$columnName]);
+            $this->columnExistsCache[$cacheKey] = (bool) $stmt->fetchColumn();
+        } catch (Throwable $e) {
+            $this->columnExistsCache[$cacheKey] = false;
+        }
+
+        return $this->columnExistsCache[$cacheKey];
+    }
+
+    private function getProgrammationTable(): ?string
+    {
+        if ($this->tableExists('programmer_soutenance')) {
+            return 'programmer_soutenance';
+        }
+
+        if ($this->tableExists('programmer')) {
+            return 'programmer';
+        }
+
+        return null;
+    }
+
+    private function getProgrammationIdColumn($table = null): string
+    {
+        $table = $table ?: $this->getProgrammationTable();
+        return $table === 'programmer' ? 'id_programmation' : 'num_soutenance';
+    }
+
+    private function getProgrammationJuryColumn($table = null): string
+    {
+        $table = $table ?: $this->getProgrammationTable();
+        return $table === 'programmer' ? 'num_jury' : 'num_soutenance';
+    }
+
+    private function studentJoinCondition(string $studentAlias = 'e', string $programmationAlias = 'p'): string
+    {
+        $conditions = [
+            "{$programmationAlias}.num_etud = {$studentAlias}.num_carte_etud",
+        ];
+
+        if ($this->columnExists('etudiants', 'num_ident_etud')) {
+            $conditions[] = "{$programmationAlias}.num_etud = {$studentAlias}.num_ident_etud";
+        }
+
+        return implode(' OR ', $conditions);
+    }
+
+    private function evaluationStudentRefExpr(string $studentAlias = 'e', string $programmationAlias = 'p'): string
+    {
+        if ($this->columnExists('etudiants', 'num_carte_etud')) {
+            return "COALESCE(NULLIF({$studentAlias}.num_carte_etud, ''), {$programmationAlias}.num_etud)";
+        }
+
+        return "{$programmationAlias}.num_etud";
+    }
+
+    private function studentMatriculeExpr(string $studentAlias = 'e', string $programmationAlias = 'p'): string
+    {
+        if ($this->columnExists('etudiants', 'num_ident_etud')) {
+            return "COALESCE(NULLIF({$studentAlias}.num_carte_etud, ''), NULLIF({$studentAlias}.num_ident_etud, ''), {$programmationAlias}.num_etud)";
+        }
+
+        return "COALESCE(NULLIF({$studentAlias}.num_carte_etud, ''), {$programmationAlias}.num_etud)";
+    }
+
+    private function getAcademicYearLabelById(?int $yearId): string
+    {
+        if ($yearId === null || $yearId <= 0) {
+            return '';
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT CONCAT(YEAR(date_deb), '-', YEAR(date_fin)) AS lib_annee
+                FROM annee_academique
+                WHERE id_annee_acad = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$yearId]);
+            return (string) ($stmt->fetchColumn() ?: '');
+        } catch (Throwable $e) {
+            return '';
+        }
+    }
+
+    private function getAcademicYearDateBounds(?int $yearId): ?array
+    {
+        if ($yearId === null || $yearId <= 0) {
+            return null;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT date_deb, date_fin
+                FROM annee_academique
+                WHERE id_annee_acad = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$yearId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row || empty($row['date_deb']) || empty($row['date_fin'])) {
+                return null;
+            }
+
+            $dateDebut = date('Y-m-d', strtotime((string) $row['date_deb']));
+            $dateFin = date('Y-m-d', strtotime((string) $row['date_fin'])) . ' 23:59:59';
+
+            return [
+                'start' => $dateDebut,
+                'end' => $dateFin,
+            ];
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    private function resolveStudentReferences(string $numEtu): array
+    {
+        $refs = [];
+        $value = trim($numEtu);
+        if ($value === '') {
+            return $refs;
+        }
+
+        $refs[$value] = true;
+
+        if (!$this->columnExists('etudiants', 'num_ident_etud')) {
+            return array_keys($refs);
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT num_carte_etud, num_ident_etud
+                FROM etudiants
+                WHERE num_carte_etud = ? OR num_ident_etud = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$value, $value]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                $numCarte = trim((string) ($row['num_carte_etud'] ?? ''));
+                $numIdent = trim((string) ($row['num_ident_etud'] ?? ''));
+                if ($numCarte !== '') {
+                    $refs[$numCarte] = true;
+                }
+                if ($numIdent !== '') {
+                    $refs[$numIdent] = true;
+                }
+            }
+        } catch (Throwable $e) {
+            // Keep only the input reference on lookup failure.
+        }
+
+        return array_keys($refs);
+    }
+
+    private function getProgrammedSoutenances(?int $yearId = null): array
+    {
+        $progTable = $this->getProgrammationTable();
+        if ($progTable === null) {
+            return [];
+        }
+
+        $idCol = $this->getProgrammationIdColumn($progTable);
+        $juryCol = $this->getProgrammationJuryColumn($progTable);
+        $studentJoin = $this->studentJoinCondition('e', 'p');
+        $evalStudentRef = $this->evaluationStudentRefExpr('e', 'p');
+        $matriculeExpr = $this->studentMatriculeExpr('e', 'p');
+        $hasYearColumn = $this->columnExists($progTable, 'id_annee_acad');
+
+        try {
+            $sql = "
+                SELECT
+                    p.{$idCol} AS id_programmation,
+                    p.{$juryCol} AS jury_ref,
+                    " . ($hasYearColumn ? 'p.id_annee_acad' : 'NULL') . " AS id_annee_acad,
+                    p.num_etud,
+                    p.theme_soutenance,
+                    p.date_soutenance,
+                    p.heure_soutenance,
+                    {$evalStudentRef} AS num_etu,
+                    {$matriculeExpr} AS matricule_etudiant,
+                    COALESCE(e.nom_etu, '') AS nom_etu,
+                    COALESCE(e.prenom_etu, '') AS prenom_etu,
+                    COALESCE(e.promotion_etu, '') AS promotion_etu
+                FROM {$progTable} p
+                LEFT JOIN etudiants e ON {$studentJoin}
+                WHERE p.id_salle IS NOT NULL
+                  AND p.date_soutenance IS NOT NULL
+                  AND p.heure_soutenance IS NOT NULL
+            ";
+
+            $params = [];
+            if ($yearId !== null && $yearId > 0 && $hasYearColumn) {
+                $sql .= " AND p.id_annee_acad = ?";
+                $params[] = $yearId;
+            } elseif ($yearId !== null && $yearId > 0) {
+                $sql .= " AND EXISTS (
+                    SELECT 1
+                    FROM inscriptions i
+                    WHERE (i.num_carte_etud = e.num_carte_etud";
+                if ($this->columnExists('etudiants', 'num_ident_etud')) {
+                    $sql .= " OR i.num_carte_etud = e.num_ident_etud";
+                }
+                $sql .= ")
+                      AND i.id_annee_acad = ?
+                )";
+                $params[] = $yearId;
+            }
+
+            $sql .= "
+                ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC, p.{$idCol} DESC
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            error_log('Erreur getProgrammedSoutenances: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function resolveSoutenanceRow(string $numEtu, ?int $yearId = null): ?array
+    {
+        foreach ($this->getProgrammedSoutenances($yearId) as $row) {
+            $rowNum = (string) ($row['num_etu'] ?? '');
+            $rowMatricule = (string) ($row['matricule_etudiant'] ?? '');
+            $rowProgrammationNum = (string) ($row['num_etud'] ?? '');
+
+            if ($numEtu === $rowNum || $numEtu === $rowMatricule || $numEtu === $rowProgrammationNum) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    private function getCriteriaCount(?int $yearId): int
+    {
+        try {
+            if ($yearId !== null && $yearId > 0 && $this->tableExists('correspondre') && $this->columnExists('correspondre', 'id_annee_acad')) {
+                $stmt = $this->pdo->prepare("SELECT COUNT(DISTINCT id_critere) FROM correspondre WHERE id_annee_acad = ?");
+                $stmt->execute([$yearId]);
+                $count = (int) $stmt->fetchColumn();
+                if ($count > 0) {
+                    return $count;
+                }
+            }
+
+            if ($yearId !== null && $yearId > 0 && $this->tableExists('bareme_critere') && $this->columnExists('bareme_critere', 'id_annee_acad')) {
+                $stmt = $this->pdo->prepare("SELECT COUNT(DISTINCT id_critere) FROM bareme_critere WHERE id_annee_acad = ?");
+                $stmt->execute([$yearId]);
+                $count = (int) $stmt->fetchColumn();
+                if ($count > 0) {
+                    return $count;
+                }
+            }
+
+            if ($this->tableExists('critere_evaluation')) {
+                $stmt = $this->pdo->query("SELECT COUNT(*) FROM critere_evaluation");
+                return (int) $stmt->fetchColumn();
+            }
+        } catch (Throwable $e) {
+            error_log('Erreur getCriteriaCount: ' . $e->getMessage());
+        }
+
+        return 0;
+    }
+
+    private function getSoutenanceEvaluationSummary(string $numEtu, string $juryRef, ?int $yearId = null): array
+    {
+        try {
+            $studentRefs = $this->resolveStudentReferences($numEtu);
+            if (empty($studentRefs)) {
+                return [
+                    'count' => 0,
+                    'total' => 0.0,
+                    'criteria_count' => $this->getCriteriaCount($yearId),
+                    'complete' => false,
+                ];
+            }
+
+            $studentPlaceholders = implode(',', array_fill(0, count($studentRefs), '?'));
+            $sql = "
+                SELECT COUNT(*) AS nb_notes, COALESCE(SUM(note), 0) AS total_notes
+                FROM evaluer
+                WHERE num_etudiant IN ({$studentPlaceholders}) AND num_jury = ?
+            ";
+
+            $params = $studentRefs;
+            $params[] = $juryRef;
+
+            $yearBounds = $this->getAcademicYearDateBounds($yearId);
+            if ($yearBounds !== null && $this->columnExists('evaluer', 'date_eval')) {
+                $sql .= " AND date_eval >= ? AND date_eval <= ?";
+                $params[] = $yearBounds['start'];
+                $params[] = $yearBounds['end'];
+            }
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+            $count = (int) ($row['nb_notes'] ?? 0);
+            $total = (float) ($row['total_notes'] ?? 0);
+            $criteriaCount = $this->getCriteriaCount($yearId);
+
+            return [
+                'count' => $count,
+                'total' => $total,
+                'criteria_count' => $criteriaCount,
+                'complete' => $criteriaCount > 0 && $count >= $criteriaCount,
+            ];
+        } catch (Throwable $e) {
+            error_log('Erreur getSoutenanceEvaluationSummary: ' . $e->getMessage());
+            return [
+                'count' => 0,
+                'total' => 0.0,
+                'criteria_count' => $this->getCriteriaCount($yearId),
+                'complete' => false,
+            ];
+        }
+    }
+
+    private function getNoteRecordForStudent(string $numEtu, ?int $yearId = null): ?array
+    {
+        try {
+            $sql = "
+                SELECT moyenne_M1, moyenne_M2, id_annee_acad, date_creation, date_modification
+                FROM notes
+                WHERE num_etu = ?
+            ";
+            $params = [$numEtu];
+            if ($yearId !== null && $yearId > 0 && $this->columnExists('notes', 'id_annee_acad')) {
+                $sql .= " AND id_annee_acad = ?";
+                $params[] = $yearId;
+            }
+            $sql .= " ORDER BY COALESCE(date_modification, date_creation) DESC, id_annee_acad DESC LIMIT 1";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                return $row;
+            }
+
+            if ($this->columnExists('etudiants', 'num_ident_etud')) {
+                $sql = "
+                    SELECT n.moyenne_M1, n.moyenne_M2, n.id_annee_acad, n.date_creation, n.date_modification
+                    FROM notes n
+                    JOIN etudiants e ON n.num_etu = e.num_ident_etud
+                    WHERE e.num_carte_etud = ?
+                ";
+                $params = [$numEtu];
+                if ($yearId !== null && $yearId > 0 && $this->columnExists('notes', 'id_annee_acad')) {
+                    $sql .= " AND n.id_annee_acad = ?";
+                    $params[] = $yearId;
+                }
+                $sql .= " ORDER BY COALESCE(n.date_modification, n.date_creation) DESC, n.id_annee_acad DESC LIMIT 1";
+
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row) {
+                    return $row;
+                }
+            }
+        } catch (Throwable $e) {
+            error_log('Erreur getNoteRecordForStudent: ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    private function calculateBulletinAverage(string $numEtu, string $juryRef, ?int $yearId = null): float
+    {
+        $evaluation = $this->getSoutenanceEvaluationSummary($numEtu, $juryRef, $yearId);
+        $moyenneSoutenance = (float) ($evaluation['total'] ?? 0);
+        $noteRow = $this->getNoteRecordForStudent($numEtu, $yearId);
+
+        if ($noteRow && isset($noteRow['moyenne_M1'], $noteRow['moyenne_M2'])) {
+            $moyenneMaster = ((float) $noteRow['moyenne_M1'] + (float) $noteRow['moyenne_M2']) / 2;
+            return round(($moyenneMaster + $moyenneSoutenance) / 2, 2);
+        }
+
+        return round($moyenneSoutenance, 2);
+    }
+
+    private function calculerMention(float $moyenne): string
+    {
+        if ($moyenne >= 18) {
+            return 'Honorable';
+        }
+        if ($moyenne >= 16) {
+            return 'Tres Bien';
+        }
+        if ($moyenne >= 14) {
+            return 'Bien';
+        }
+        if ($moyenne >= 12) {
+            return 'Assez Bien';
+        }
+        if ($moyenne >= 10) {
+            return 'Passable';
+        }
+        return 'Insuffisant';
+    }
+
+    private function getLatestBulletinForStudent(string $numEtu, ?int $yearId = null): ?array
+    {
+        try {
+            $studentRefs = $this->resolveStudentReferences($numEtu);
+            if (empty($studentRefs)) {
+                return null;
+            }
+
+            $placeholders = implode(',', array_fill(0, count($studentRefs), '?'));
+            $sql = "
+                SELECT id_CR, nom_CR, contenu_CR, chemin_fichier_pdf, date_CR
+                FROM compte_rendu
+                WHERE num_etu IN ({$placeholders}) AND nom_CR LIKE 'BULLETIN_%'
+            ";
+
+            $params = $studentRefs;
+            $yearBounds = $this->getAcademicYearDateBounds($yearId);
+            if ($yearBounds !== null) {
+                $sql .= " AND date_CR >= ? AND date_CR <= ?";
+                $params[] = $yearBounds['start'];
+                $params[] = $yearBounds['end'];
+            }
+
+            $sql .= "
+                ORDER BY date_CR DESC, id_CR DESC
+                LIMIT 1
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (Throwable $e) {
+            error_log('Erreur getLatestBulletinForStudent: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     public function getIndexData(): array
     {
-        $anneesAcademiques = $this->getAnneesAcademiques();
-        $etudiants = $this->getEtudiantsWithBulletinStatus();
-
         return [
-            'etudiants' => $etudiants,
-            'anneesAcademiques' => $anneesAcademiques,
-            // Add other data as needed by the view
+            'etudiants' => $this->getEtudiantsWithBulletinStatus(),
+            'anneesAcademiques' => $this->getAnneesAcademiques(),
+            'selectedYearId' => $this->getSelectedAcademicYearId(),
         ];
     }
 
-    /**
-     * Récupérer les années académiques disponibles.
-     * @return array
-     */
     public function getAnneesAcademiques(): array
     {
         try {
@@ -79,42 +552,32 @@ class EditionBulletinService
         }
     }
 
-    /**
-     * Récupérer la liste des étudiants avec leur statut de bulletin.
-     * @return array
-     */
     public function getEtudiantsWithBulletinStatus(): array
     {
         try {
-            // Get all students
-            $etudiants = $this->etudiantModel->getAllEtudiants();
+            $selectedYearId = $this->getSelectedAcademicYearId();
+            $soutenances = $this->getProgrammedSoutenances($selectedYearId);
             $result = [];
 
-            foreach ($etudiants as $etudiant) {
-                $numEtu = $etudiant->num_carte_etud ?? $etudiant->num_ident_etud ?? '';
-                if ($numEtu === '') {
+            foreach ($soutenances as $soutenance) {
+                $numEtu = (string) ($soutenance['num_etu'] ?? '');
+                $juryRef = (string) ($soutenance['jury_ref'] ?? '');
+                if ($numEtu === '' || $juryRef === '') {
                     continue;
                 }
 
-                // Check eligibility
+                $yearId = isset($soutenance['id_annee_acad']) && is_numeric($soutenance['id_annee_acad'])
+                    ? (int) $soutenance['id_annee_acad']
+                    : $selectedYearId;
+
+                $evaluation = $this->getSoutenanceEvaluationSummary($numEtu, $juryRef, $yearId);
                 $eligible = $this->estEligiblePourBulletin($numEtu);
-                $status = $eligible ? 'eligible' : 'non_eligible';
-
-                // Check if bulletin has been generated
-                $hasBulletin = $this->existeBulletinPourEtudiant($numEtu);
-                if ($hasBulletin) {
-                    $status = 'genere';
-                    // Check if published (we consider generated as published for now)
-                    // In the future, we could have a published flag
-                }
-
-                // Get student info
-                $info = $this->etudiantModel->getEtudiantByNumEtu($numEtu);
-                $nom = $info['nom_etu'] ?? '';
-                $prenom = $info['prenom_etu'] ?? '';
-                $promotion = $info['promotion_etu'] ?? '';
-
-                // Determine level from promotion
+                $latestBulletin = $this->getLatestBulletinForStudent($numEtu, $yearId);
+                $hasBulletin = $latestBulletin !== null;
+                $status = $hasBulletin ? 'genere' : ($eligible ? 'eligible' : 'non_eligible');
+                $moyenne = $evaluation['count'] > 0 ? $this->calculateBulletinAverage($numEtu, $juryRef, $yearId) : 0.0;
+                $mention = $evaluation['complete'] ? $this->calculerMention($moyenne) : '-';
+                $promotion = trim((string) ($soutenance['promotion_etu'] ?? ''));
                 $niveau = '-';
                 if (stripos($promotion, 'M2') !== false) {
                     $niveau = 'M2';
@@ -122,25 +585,24 @@ class EditionBulletinService
                     $niveau = 'M1';
                 }
 
-                // Semestre (hardcoded to S1 for now, as in the original view)
-                $semestre = 'S1';
-
-                // Get average score if available (from soutenance evaluation)
-                $moyenne = $this->getMoyenneSoutenance($numEtu);
-                $mention = $this->calculerMention($moyenne);
-
                 $result[] = [
                     'num_etu' => $numEtu,
-                    'nom' => $nom,
-                    'prenom' => $prenom,
+                    'matricule' => (string) ($soutenance['matricule_etudiant'] ?? $numEtu),
+                    'nom' => (string) ($soutenance['nom_etu'] ?? ''),
+                    'prenom' => (string) ($soutenance['prenom_etu'] ?? ''),
                     'promotion' => $promotion,
                     'niveau' => $niveau,
-                    'semestre' => $semestre,
+                    'semestre' => 'S1',
                     'moyenne' => $moyenne,
                     'mention' => $mention,
                     'eligible' => $eligible,
                     'has_bulletin' => $hasBulletin,
                     'status' => $status,
+                    'bulletin_id' => $latestBulletin['id_CR'] ?? null,
+                    'annee_id' => $yearId,
+                    'annee_label' => $this->getAcademicYearLabelById($yearId),
+                    'theme' => (string) ($soutenance['theme_soutenance'] ?? ''),
+                    'evaluation_complete' => (bool) ($evaluation['complete'] ?? false),
                 ];
             }
 
@@ -151,347 +613,265 @@ class EditionBulletinService
         }
     }
 
-    /**
-     * Vérifier si un étudiant est éligible pour le bulletin.
-     * Conditions:
-     *   - scolarité soldée
-     *   - semestre requis validé
-     *   - rapport validé communication
-     *   - décision commission finalisée favorable
-     *   - évaluation soutenance complète
-     * @param string $numEtu
-     * @return bool
-     */
     public function estEligiblePourBulletin(string $numEtu): bool
     {
         try {
-            // 1. Scolarité soldée
-            $scolarite = $this->scolariteModel->getScolariteEtudiant($numEtu);
-            if (!$scolarite || $scolarite['reste_a_payer'] > 0) {
+            $selectedYearId = $this->getSelectedAcademicYearId();
+            $soutenance = $this->resolveSoutenanceRow($numEtu, $selectedYearId);
+            if (!$soutenance) {
                 return false;
             }
 
-            // 2. Semestre requis validé (S1 du Master 2)
-            $semestreValide = $this->notesModel->estSemestreValide($numEtu, 'S1', 'Master 2');
-            if (!$semestreValide) {
+            $targetNumEtu = (string) ($soutenance['num_etu'] ?? $numEtu);
+            $juryRef = (string) ($soutenance['jury_ref'] ?? '');
+            $yearId = isset($soutenance['id_annee_acad']) && is_numeric($soutenance['id_annee_acad'])
+                ? (int) $soutenance['id_annee_acad']
+                : $selectedYearId;
+
+            $scolarite = $this->scolariteModel->getScolariteEtudiant($targetNumEtu);
+            if (!$scolarite || (float) ($scolarite['reste_a_payer'] ?? 0) > 0) {
                 return false;
             }
 
-            // 3. Rapport validé communication
-            $rapportValide = $this->rapportModel->estRapportValideCommunication($numEtu);
-            if (!$rapportValide) {
+            $noteRow = $this->getNoteRecordForStudent($targetNumEtu, $yearId);
+            if (!$noteRow || (float) ($noteRow['moyenne_M2'] ?? 0) < 10) {
                 return false;
             }
 
-            // 4. Décision commission finalisée favorable
-            $decisionCommission = $this->rapportModel->getDerniereDecisionCommission($numEtu);
-            if ($decisionCommission !== 'favorable') {
+            if (!$this->rapportModel->estRapportValideCommunication($targetNumEtu)) {
                 return false;
             }
 
-            // 5. Évaluation soutenance complète
-            $evaluationComplete = $this->rapportModel->estEvaluationSoutenanceComplete($numEtu);
-            if (!$evaluationComplete) {
+            if ($this->rapportModel->getDerniereDecisionCommission($targetNumEtu) !== 'favorable') {
                 return false;
             }
 
-            return true;
+            $evaluation = $this->getSoutenanceEvaluationSummary($targetNumEtu, $juryRef, $yearId);
+            return (bool) ($evaluation['complete'] ?? false);
         } catch (Exception $e) {
             error_log('Erreur estEligiblePourBulletin: ' . $e->getMessage());
             return false;
         }
     }
 
-    /**
-     * Vérifier si un bulletin existe déjà pour un étudiant.
-     * @param string $numEtu
-     * @return bool
-     */
     public function existeBulletinPourEtudiant(string $numEtu): bool
     {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT COUNT(*) as count 
-                FROM compte_rendu 
-                WHERE num_etu = ? AND nom_CR LIKE 'BULLETIN_%'
-            ");
-            $stmt->execute([$numEtu]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result['count'] > 0;
-        } catch (Exception $e) {
-            error_log('Erreur existeBulletinPourEtudiant: ' . $e->getMessage());
-            return false;
-        }
+        return $this->getLatestBulletinForStudent($numEtu, $this->getSelectedAcademicYearId()) !== null;
     }
 
-    /**
-     * Générer le bulletin pour un étudiant.
-     * @param string $numEtu
-     * @return array ['success' => bool, 'message' => string, 'bulletinId' => int|null]
-     */
     public function genererBulletin(string $numEtu): array
     {
         if (!$this->estEligiblePourBulletin($numEtu)) {
             return ['success' => false, 'message' => "L'étudiant n'est pas éligible pour le bulletin."];
         }
 
-        // Generate bulletin content (HTML)
         $contenu = $this->genererContenuBulletin($numEtu);
-        if (empty($contenu)) {
-            return ['success' => false, 'message' => "Impossible de générer le contenu du bulletin."];
+        if ($contenu === '') {
+            return ['success' => false, 'message' => 'Impossible de générer le contenu du bulletin.'];
         }
 
-        // Generate PDF
-        $nom_CR = 'BULLETIN_' . $numEtu . '_' . date('Y-m-d_His');
-        $pdfResult = $this->exporterPdf($contenu, $nom_CR);
+        $nomCR = 'BULLETIN_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $numEtu) . '_' . date('Y-m-d_His');
+        $pdfResult = $this->exporterPdf($contenu, $nomCR);
         if (!$pdfResult['success']) {
-            return ['success' => false, 'message' => "Erreur lors de la génération du PDF : " . $pdfResult['message']];
+            return ['success' => false, 'message' => 'Erreur lors de la génération du PDF : ' . ($pdfResult['message'] ?? '')];
         }
 
-        // Save to database (compte_rendu)
-        $date_CR = date('Y-m-d H:i:s');
-        $chemin_pdf = $pdfResult['path']; // Assuming exporterPdf returns path
-        $id_CR = $this->compteRenduModel->creer(
+        $idCR = $this->compteRenduModel->creer(
             $numEtu,
-            $nom_CR,
+            $nomCR,
             $contenu,
-            $chemin_pdf,
-            $date_CR,
-            [] // No rapports linked for bulletin
+            (string) ($pdfResult['path'] ?? ''),
+            date('Y-m-d H:i:s'),
+            []
         );
 
-        if (!$id_CR) {
+        if (!$idCR) {
             return ['success' => false, 'message' => "Erreur lors de l'enregistrement du bulletin."];
         }
 
         return [
             'success' => true,
             'message' => 'Bulletin généré avec succès.',
-            'bulletinId' => $id_CR
+            'bulletinId' => $idCR,
         ];
     }
 
-    /**
-     * Générer le contenu HTML du bulletin pour un étudiant.
-     * @param string $numEtu
-     * @return string
-     */
     public function genererContenuBulletin(string $numEtu): string
     {
-        // Get student info
-        $etudiant = $this->etudiantModel->getEtudiantByNumEtu($numEtu);
-        $nom = $etudiant['nom_etu'] ?? 'Inconnu';
-        $prenom = $etudiant['prenom_etu'] ?? '';
-        $promotion = $etudiant['promotion_etu'] ?? '';
-
-        // Get soutenance info
-        $soutenance = $this->rapportModel->getDerniereSoutenance($numEtu);
-        $theme = $soutenance['theme_rapport'] ?? 'Non défini';
-        $dateSoutenance = $soutenance['date_soutenance'] ?? date('Y-m-d');
-
-        // Get average score (combine soutenance + cycle Master)
-        $moyenneSoutenance = $this->getMoyenneSoutenance($numEtu);
-        $moyenneMaster = $this->notesModel->getMoyenneGenerale($numEtu);
-
-        if ($moyenneMaster && (float)$moyenneMaster->moyenne_generale > 0) {
-            // Moyenne combinée : (cycle Master + soutenance) / 2
-            $moyenne = round(((float)$moyenneMaster->moyenne_generale + $moyenneSoutenance) / 2, 2);
-        } else {
-            // Fallback : uniquement la moyenne de soutenance (backward compat)
-            $moyenne = round($moyenneSoutenance, 2);
+        $selectedYearId = $this->getSelectedAcademicYearId();
+        $soutenance = $this->resolveSoutenanceRow($numEtu, $selectedYearId);
+        if (!$soutenance) {
+            return '';
         }
-        $mention = $this->calculerMention($moyenne);
 
-        // Pré-calcul pour l'affichage (les heredocs PHP ne supportent pas les expressions)
-        $moyenneSoutenanceDisplay = round($moyenneSoutenance, 2);
-        $moyenneMasterDisplay = $moyenneMaster ? round($moyenneMaster->moyenne_generale, 2) : 'N/A';
+        $targetNumEtu = (string) ($soutenance['num_etu'] ?? $numEtu);
+        $juryRef = (string) ($soutenance['jury_ref'] ?? '');
+        $yearId = isset($soutenance['id_annee_acad']) && is_numeric($soutenance['id_annee_acad'])
+            ? (int) $soutenance['id_annee_acad']
+            : $selectedYearId;
+        $evaluation = $this->getSoutenanceEvaluationSummary($targetNumEtu, $juryRef, $yearId);
+        $moyenneSoutenance = (float) ($evaluation['total'] ?? 0);
+        $noteRow = $this->getNoteRecordForStudent($targetNumEtu, $yearId);
 
-        // Get academic year info
-        $anneeAcad = $this->getAnneAcademiqueEtudiant($numEtu);
-        $libAnnee = $anneeAcad['lib_annee'] ?? '';
+        $moyenneMaster1 = (float) ($noteRow['moyenne_M1'] ?? 0);
+        $moyenneMaster2 = (float) ($noteRow['moyenne_M2'] ?? 0);
+        $moyenneMaster = ($moyenneMaster1 > 0 || $moyenneMaster2 > 0)
+            ? round(($moyenneMaster1 + $moyenneMaster2) / 2, 2)
+            : 0.0;
+        $moyenneGenerale = $moyenneMaster > 0
+            ? round(($moyenneMaster + $moyenneSoutenance) / 2, 2)
+            : round($moyenneSoutenance, 2);
 
-        // Build HTML (simplified)
-        $html = <<<HTML
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Bulletin de $prenom $nom</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 40px; }
-                .header { text-align: center; margin-bottom: 30px; }
-                .section { margin-bottom: 20px; }
-                .label { font-weight: bold; }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>Bulletin de l'étudiant</h1>
-                <h2>$prenom $nom</h2>
-                <p>Promotion : $promotion</p>
-                <p>Année académique : $libAnnee</p>
-            </div>
-            <div class="section">
-                <p><span class="label">Numéro étudiant :</span> $numEtu</p>
-            </div>
-            <div class="section">
-                <p><span class="label">Theme de soutenance :</span> $theme</p>
-                <p><span class="label">Date de soutenance :</span> $dateSoutenance</p>
-            </div>
-            <div class="section">
-                <p><span class="label">Moyenne de soutenance :</span> $moyenneSoutenanceDisplay / 20</p>
-                <p><span class="label">Moyenne du cycle Master :</span> $moyenneMasterDisplay / 20</p>
-                <p><span class="label">Moyenne générale :</span> $moyenne / 20</p>
-                <p><span class="label">Mention :</span> $mention</p>
-            </div>
-            <div class="section">
-                <p><span class="label">Date de génération :</span> ' . date('d/m/Y H:i') . '</p>
-            </div>
-        </body>
-        </html>
-        HTML;
+        $nom = trim((string) ($soutenance['nom_etu'] ?? ''));
+        $prenom = trim((string) ($soutenance['prenom_etu'] ?? ''));
+        $promotion = trim((string) ($soutenance['promotion_etu'] ?? ''));
+        $anneeLabel = $this->getAcademicYearLabelById($yearId);
+        $dateSoutenance = !empty($soutenance['date_soutenance'])
+            ? date('d/m/Y', strtotime((string) $soutenance['date_soutenance']))
+            : date('d/m/Y');
+        $mention = $this->calculerMention($moyenneGenerale);
+        $dateGeneration = date('d/m/Y H:i');
+        $theme = (string) ($soutenance['theme_soutenance'] ?? 'Non défini');
+        $matricule = (string) ($soutenance['matricule_etudiant'] ?? $targetNumEtu);
 
-        return $html;
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Bulletin de {$prenom} {$nom}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 36px; color: #18324b; }
+        h1, h2 { margin: 0 0 8px; }
+        .header { text-align: center; margin-bottom: 28px; }
+        .section { margin-bottom: 18px; }
+        .label { font-weight: bold; }
+        .box { border: 1px solid #c9d9e8; border-radius: 8px; padding: 16px; margin-top: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        td { border: 1px solid #d5e0ea; padding: 10px 12px; }
+        .footer { margin-top: 26px; font-size: 12px; color: #61758a; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Bulletin de soutenance</h1>
+        <h2>{$prenom} {$nom}</h2>
+        <div>Année académique : {$anneeLabel}</div>
+    </div>
+
+    <div class="section box">
+        <p><span class="label">Matricule :</span> {$matricule}</p>
+        <p><span class="label">Promotion :</span> {$promotion}</p>
+        <p><span class="label">Thème de soutenance :</span> {$theme}</p>
+        <p><span class="label">Date de soutenance :</span> {$dateSoutenance}</p>
+    </div>
+
+    <div class="section box">
+        <table>
+            <tr>
+                <td><span class="label">Note soutenance</span></td>
+                <td>{$moyenneSoutenance} / 20</td>
+            </tr>
+            <tr>
+                <td><span class="label">Moyenne Master 1</span></td>
+                <td>{$moyenneMaster1} / 20</td>
+            </tr>
+            <tr>
+                <td><span class="label">Moyenne Semestre M2</span></td>
+                <td>{$moyenneMaster2} / 20</td>
+            </tr>
+            <tr>
+                <td><span class="label">Moyenne générale</span></td>
+                <td>{$moyenneGenerale} / 20</td>
+            </tr>
+            <tr>
+                <td><span class="label">Mention</span></td>
+                <td>{$mention}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        Généré le {$dateGeneration}
+    </div>
+</body>
+</html>
+HTML;
     }
 
-    /**
-     * Récupérer la moyenne de soutenance pour un étudiant.
-     * @param string $numEtu
-     * @return float
-     */
-    private function getMoyenneSoutenance(string $numEtu): float
+    public function exporterPdf(string $contenuCR, string $nomCR): array
     {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT AVG(ev.note) as moyenne
-                FROM evaluer ev
-                WHERE ev.num_etudiant = ?
-            ");
-            $stmt->execute([$numEtu]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return (float)($result['moyenne'] ?? 0);
-        } catch (Exception $e) {
-            error_log('Erreur getMoyenneSoutenance: ' . $e->getMessage());
-            return 0.0;
-        }
-    }
-
-    /**
-     * Calculer la mention à partir de la moyenne.
-     * @param float $moyenne
-     * @return string
-     */
-    private function calculerMention(float $moyenne): string
-    {
-        if ($moyenne >= 18) {
-            return 'Honorable';
-        } elseif ($moyenne >= 16) {
-            return 'Tres Bien';
-        } elseif ($moyenne >= 14) {
-            return 'Bien';
-        } elseif ($moyenne >= 12) {
-            return 'Assez Bien';
-        } elseif ($moyenne >= 10) {
-            return 'Passable';
-        } else {
-            return 'Insuffisant';
-        }
-    }
-
-    /**
-     * Récupérer l'année académique de l'étudiant (dernière inscription).
-     * @param string $numEtu
-     * @return array|null
-     */
-    private function getAnneAcademiqueEtudiant(string $numEtu): ?array
-    {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT aa.id_annee_acad, aa.date_deb, aa.date_fin,
-                       CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) AS lib_annee
-                FROM inscriptions i
-                JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
-                WHERE i.num_carte_etud = ?
-                ORDER BY i.date_inscription DESC
-                LIMIT 1
-            ");
-            $stmt->execute([$numEtu]);
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
-            error_log('Erreur getAnneAcademiqueEtudiant: ' . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Exporter un contenu en PDF et retourner les données brutes.
-     * @param string $contenu_CR Contenu HTML
-     * @param string $nom_CR Nom du compte rendu
-     * @return array ['success' => bool, 'pdf' => string, 'path' => string, 'message' => string]
-     */
-    public function exporterPdf(string $contenu_CR, string $nom_CR): array
-    {
-        if (empty($contenu_CR)) {
+        if ($contenuCR === '') {
             return ['success' => false, 'message' => 'Le contenu du bulletin est vide.'];
         }
 
         try {
-            // HTML complet ou enveloppement
-            if (strpos($contenu_CR, '<!DOCTYPE html>') !== false || strpos($contenu_CR, '<html') !== false) {
-                $html = $contenu_CR;
+            if (strpos($contenuCR, '<!DOCTYPE html>') !== false || strpos($contenuCR, '<html') !== false) {
+                $html = $contenuCR;
             } else {
-                $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:"Times New Roman",serif;line-height:1.6;margin:40px;}</style></head><body>' . $contenu_CR . '</body></html>';
+                $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' . $contenuCR . '</body></html>';
             }
 
-            // Générer le PDF avec PdfGeneratorService (TCPDF)
             $pdfGen = new \App\Services\Document\PdfGeneratorService(
                 __DIR__ . '/../../storage',
                 __DIR__ . '/../../public/assets/img/logo.png'
             );
-            $pdf = $pdfGen->createDocument('P', 'A4', $nom_CR);
+            $pdf = $pdfGen->createDocument('P', 'A4', $nomCR);
             $pdf->AddPage();
             $pdfGen->writeHtml($pdf, $html);
 
-            $pdfOutput = $pdf->Output($nom_CR . '.pdf', 'S');
-            $pdfName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nom_CR) . '.pdf';
-
-            // Sauvegarde du PDF sur disque
-            $pdf_dir = __DIR__ . '/../../ressources/uploads/bulletins/';
-            if (!is_dir($pdf_dir)) {
-                mkdir($pdf_dir, 0777, true);
+            $pdfOutput = $pdf->Output($nomCR . '.pdf', 'S');
+            $pdfName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nomCR) . '.pdf';
+            $pdfDir = __DIR__ . '/../../storage/documents/bulletins/';
+            if (!is_dir($pdfDir)) {
+                mkdir($pdfDir, 0777, true);
             }
-            $pdf_path = $pdf_dir . $pdfName;
-            file_put_contents($pdf_path, $pdfOutput);
+            $pdfPath = $pdfDir . $pdfName;
+            file_put_contents($pdfPath, $pdfOutput);
 
             return [
                 'success' => true,
                 'pdf' => $pdfOutput,
-                'path' => $pdf_path,
-                'message' => 'PDF généré avec succès.'
+                'path' => $pdfPath,
+                'message' => 'PDF généré avec succès.',
             ];
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
             return [
                 'success' => false,
-                'message' => 'Erreur lors de la génération du PDF : ' . $e->getMessage()
+                'message' => 'Erreur lors de la génération du PDF : ' . $e->getMessage(),
             ];
         }
     }
 
-    /**
-     * Récupérer l'historique des bulletins pour un étudiant.
-     * @param string $numEtu
-     * @return array
-     */
     public function getHistoriqueBulletins(string $numEtu): array
     {
         try {
-            $stmt = $this->pdo->prepare("
+            $studentRefs = $this->resolveStudentReferences($numEtu);
+            if (empty($studentRefs)) {
+                return [];
+            }
+
+            $placeholders = implode(',', array_fill(0, count($studentRefs), '?'));
+            $sql = "
                 SELECT id_CR, nom_CR, date_CR, chemin_fichier_pdf
                 FROM compte_rendu
-                WHERE num_etu = ? AND nom_CR LIKE 'BULLETIN_%'
-                ORDER BY date_CR DESC
-            ");
-            $stmt->execute([$numEtu]);
+                WHERE num_etu IN ({$placeholders}) AND nom_CR LIKE 'BULLETIN_%'
+            ";
+
+            $params = $studentRefs;
+            $yearBounds = $this->getAcademicYearDateBounds($this->getSelectedAcademicYearId());
+            if ($yearBounds !== null) {
+                $sql .= " AND date_CR >= ? AND date_CR <= ?";
+                $params[] = $yearBounds['start'];
+                $params[] = $yearBounds['end'];
+            }
+
+            $sql .= "
+                ORDER BY date_CR DESC, id_CR DESC
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
             error_log('Erreur getHistoriqueBulletins: ' . $e->getMessage());
@@ -499,34 +879,32 @@ class EditionBulletinService
         }
     }
 
-    /**
-     * Supprimer un bulletin (en réalité, on ne supprime pas, on archive en changeant le statut?)
-     * Mais comme on ne peut pas supprimer, on ne fait rien ou on marque comme supprimé?
-     * Pour l'instant, on ne supporte pas la suppression.
-     * @param int $id_CR
-     * @return array ['success' => bool, 'message' => string]
-     */
-    public function supprimerBulletin(int $id_CR): array
+    public function supprimerBulletin(int $idCR): array
     {
-        // Nous ne supprimons pas les bulletins pour conserver l'historique.
-        return ['success' => false, 'message' => 'La suppression des bulletins n\'est pas autorisée pour conserver l\'historique.'];
+        return ['success' => false, 'message' => "La suppression des bulletins n'est pas autorisée pour conserver l'historique."];
     }
 
-    /**
-     * Récupérer un bulletin par son ID.
-     * @param int $id_CR
-     * @return array|null
-     */
-    public function getBulletinById(int $id_CR): ?array
+    public function getBulletinById(int $idCR): ?array
     {
         try {
-            $stmt = $this->pdo->prepare("
+            $sql = "
                 SELECT id_CR, nom_CR, contenu_CR, chemin_fichier_pdf, date_CR
                 FROM compte_rendu
                 WHERE id_CR = ? AND nom_CR LIKE 'BULLETIN_%'
-            ");
-            $stmt->execute([$id_CR]);
-            return $stmt->fetch(PDO::FETCH_ASSOC);
+            ";
+
+            $params = [$idCR];
+            $yearBounds = $this->getAcademicYearDateBounds($this->getSelectedAcademicYearId());
+            if ($yearBounds !== null) {
+                $sql .= " AND date_CR >= ? AND date_CR <= ?";
+                $params[] = $yearBounds['start'];
+                $params[] = $yearBounds['end'];
+            }
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
         } catch (Exception $e) {
             error_log('Erreur getBulletinById: ' . $e->getMessage());
             return null;

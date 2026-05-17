@@ -813,7 +813,7 @@ class GestionRapportService
     {
         // Cherche d'abord dans les paramètres de configuration
         try {
-            $stmt = $this->db->prepare("SELECT valeur_parametre FROM parametres WHERE code_parametre = 'MODELE_RAPPORT_URL' LIMIT 1");
+            $stmt = $this->db->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'MODELE_RAPPORT_URL' LIMIT 1");
             $stmt->execute();
             $url = $stmt->fetchColumn();
             if ($url && $url !== '') {
@@ -1131,16 +1131,16 @@ class GestionRapportService
      * @param string $ancienne_date
      * @return bool
      */
-    public function updateDateOperationWithAudit($id_rapport, $nouvelle_date, $ancienne_date)
+    public function updateRapportInlineWithAudit($id_rapport, $nouvelle_date, $ancienne_date, $nom_rapport, $ancien_nom, $theme_rapport, $ancien_theme)
     {
-        $result = $this->rapportModel->updateDateOperation($id_rapport, $nouvelle_date);
+        $result = $this->rapportModel->updateRapportInline($id_rapport, $nouvelle_date, $nom_rapport, $theme_rapport);
 
         if ($result) {
             // Journalisation dans l'audit
-            $details = "Ancienne date: {$ancienne_date}, Nouvelle date: {$nouvelle_date}";
+            $details = "Date: {$ancienne_date} -> {$nouvelle_date}, Nom: {$ancien_nom} -> {$nom_rapport}, Theme: {$ancien_theme} -> {$theme_rapport}";
             $this->auditLog->logAction(
                 $_SESSION['id_utilisateur'] ?? 0,
-                'Modification date opération',
+                'Modification inline rapport',
                 'rapport_etudiants',
                 'Succès'
             );
@@ -1149,4 +1149,3 @@ class GestionRapportService
         return $result;
     }
 }
-

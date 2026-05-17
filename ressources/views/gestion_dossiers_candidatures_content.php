@@ -435,6 +435,10 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                 const statut = fieldStatut.value || '';
                 const commentaire = (fieldCommentaire.value || '').trim();
                 const normalized = statut.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (normalized !== 'validee' && normalized !== 'rejetee') {
+                    window.alert('Sélectionnez un statut avant d\'appliquer le traitement.');
+                    return;
+                }
                 if (normalized === 'rejetee' && commentaire === '') {
                     window.alert('Le commentaire est obligatoire pour un dossier rejeté.');
                     return;

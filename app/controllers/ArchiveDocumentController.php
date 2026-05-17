@@ -268,7 +268,7 @@ class ArchiveDocumentController
 
                 $documents[] = [
                     'type_doc' => 'pv_final',
-                    'id_doc' => $this->encodeFileId($filePath),
+                    'id_doc' => pathinfo($filename, PATHINFO_FILENAME),
                     'chemin' => $filePath,
                     'titre' => 'PV Final - ' . ($matricule !== '' ? $matricule : $filename),
                     'date_depot' => date('Y-m-d H:i:s', filemtime($filePath) ?: time()),
@@ -378,38 +378,5 @@ class ArchiveDocumentController
         return '';
     }
 
-    private function encodeFileId($path)
-    {
-        $encoded = base64_encode((string) $path);
-        return rtrim(strtr($encoded, '+/', '-_'), '=');
-    }
 
-    private function decodeFileId($id)
-    {
-        $token = trim((string) $id);
-        if ($token === '') {
-            return null;
-        }
-
-        $base64 = strtr($token, '-_', '+/');
-        $padding = strlen($base64) % 4;
-        if ($padding > 0) {
-            $base64 .= str_repeat('=', 4 - $padding);
-        }
-
-        $decoded = base64_decode($base64, true);
-        if (!is_string($decoded) || $decoded === '') {
-            return null;
-        }
-
-        return $decoded;
-    }
-
-    private function isPathInside($path, $basePath)
-    {
-        $normalizedPath = str_replace('\\', '/', (string) $path);
-        $normalizedBase = rtrim(str_replace('\\', '/', (string) $basePath), '/') . '/';
-
-        return strncmp($normalizedPath, $normalizedBase, strlen($normalizedBase)) === 0;
-    }
 }

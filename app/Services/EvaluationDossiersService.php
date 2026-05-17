@@ -487,16 +487,16 @@ class EvaluationDossiersService
     {
         try {
             $this->ensureWritableRapport($id_rapport, 'une evaluation de commission');
-            $id_enseignant = $this->getEnseignantIdFromAdmin($id_utilisateur);
-            if (!$id_enseignant) {
-                return ['success' => false, 'message' => 'Enseignant non trouvé'];
+            $idEvaluateur = (int) $id_utilisateur;
+            if ($idEvaluateur <= 0) {
+                return ['success' => false, 'message' => 'Utilisateur non identifié'];
             }
 
-            error_log("DEBUG: Traitement décision commission - Rapport: $id_rapport, Décision: $decision, Enseignant: $id_enseignant");
+            error_log("DEBUG: Traitement décision commission - Rapport: $id_rapport, Décision: $decision, Utilisateur: $idEvaluateur");
 
             $evaluationRapport = new EvaluationRapport();
 
-            $evaluationExistante = $evaluationRapport->evaluationExiste($id_rapport, $id_enseignant);
+            $evaluationExistante = $evaluationRapport->evaluationExiste($id_rapport, $idEvaluateur);
 
             if ($evaluationExistante) {
                 $success = $evaluationRapport->mettreAJourEvaluation(
@@ -508,7 +508,7 @@ class EvaluationDossiersService
             } else {
                 $success = $evaluationRapport->ajouterEvaluation(
                     $id_rapport,
-                    $id_enseignant,
+                    $idEvaluateur,
                     $decision,
                     $commentaire
                 );

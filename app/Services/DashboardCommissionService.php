@@ -494,11 +494,12 @@ class DashboardCommissionService
             $stmt = $this->db->query('
                 SELECT e.*, 
                        ' . $titleExpr . ' as nom_rapport, 
-                       ens.nom_enseignant, 
-                       ens.prenom_enseignant
+                       COALESCE(ens.nom_enseignant, u.nom_utilisateur) as nom_enseignant, 
+                       COALESCE(ens.prenom_enseignant, \'\') as prenom_enseignant
                 FROM evaluations_rapports e
                 LEFT JOIN rapport_etudiants r ON e.id_rapport = r.id_rapport
-                LEFT JOIN enseignants ens ON e.id_evaluateur = ens.id_enseignant
+                LEFT JOIN utilisateur u ON e.id_evaluateur = u.id_utilisateur
+                LEFT JOIN enseignants ens ON LOWER(ens.mail_enseignant) = LOWER(u.login_utilisateur)
                 ORDER BY e.date_evaluation DESC
             ');
             return $stmt->fetchAll(PDO::FETCH_ASSOC);

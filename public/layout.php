@@ -253,7 +253,9 @@ if (empty($currentMenuSlug) && !empty($menuHierarchique)) {
     $firstCategorie = $menuHierarchique[0];
     if (!empty($firstCategorie['fonctionnalites'])) {
         $firstFonc = $firstCategorie['fonctionnalites'][0];
-        parse_str(parse_url($firstFonc->url_fonctionnalite, PHP_URL_QUERY), $params);
+        $firstFoncUrl = (string) ($firstFonc->url_fonctionnalite ?? '');
+        $firstFoncQuery = (string) (parse_url($firstFoncUrl, PHP_URL_QUERY) ?? '');
+        parse_str($firstFoncQuery, $params);
         if (isset($params['page'])) {
             $currentMenuSlug = $params['page'];
             $currentPageLabel = $firstFonc->label_fonctionnalite;
@@ -624,10 +626,7 @@ switch ($currentMenuSlug) {
             if (count($parts) >= 3) {
                 $result = $recuService->generate($id_inscription, (int) ($_SESSION['id_utilisateur'] ?? 0));
                 if ($result['success'] && !empty($result['path']) && file_exists($result['path'])) {
-                    header('Content-Type: application/pdf');
-                    header('Content-Disposition: inline; filename="recu_paiement_' . $id_inscription . '.pdf"');
-                    header('Content-Length: ' . filesize($result['path']));
-                    readfile($result['path']);
+                    header('Location: ?page=docviewer&type=recu&id=' . urlencode((string) $id_inscription) . '&action=preview');
                     exit;
                 }
             }
@@ -721,10 +720,7 @@ switch ($currentMenuSlug) {
             $recuService = new \App\Services\Document\RecuGeneratorService($pdfGen, $recuDataUtils, $dbWrapper);
             $result = $recuService->generate($id_versement, (int) ($_SESSION['id_utilisateur'] ?? 0));
             if ($result['success'] && !empty($result['path']) && file_exists($result['path'])) {
-                header('Content-Type: application/pdf');
-                header('Content-Disposition: inline; filename="recu_paiement_' . $id_versement . '.pdf"');
-                header('Content-Length: ' . filesize($result['path']));
-                readfile($result['path']);
+                header('Location: ?page=docviewer&type=recu&id=' . urlencode((string) $id_versement) . '&action=preview');
                 exit;
             }
             // Fallback : erreur silencieuse, on continue vers la page normale

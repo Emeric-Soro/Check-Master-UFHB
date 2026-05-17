@@ -439,7 +439,7 @@ class Scolarite
 
         try {
             $existing = $this->getInscriptionById($id_inscription);
-            if (!is_array($existing) || empty($existing['id_etudiant'])) {
+            if (!is_array($existing) || empty($existing['num_carte_etud'])) {
                 return false;
             }
 
@@ -448,7 +448,19 @@ class Scolarite
             }
 
             $oldYearId = !empty($existing['id_annee_acad']) ? (int) $existing['id_annee_acad'] : null;
-            $idEtudiant = (string) $existing['id_etudiant'];
+            $idEtudiant = (string) $existing['num_carte_etud'];
+
+            // Parser l'ID composite pour obtenir les clés primaires
+            $parts = explode('-', (string) $id_inscription);
+            if (count($parts) < 3) {
+                if ($manageTransaction && $this->db->inTransaction()) {
+                    $this->db->rollBack();
+                }
+                return false;
+            }
+            $numVersement = array_pop($parts);
+            $idAnneeAcad = array_pop($parts);
+            $numCarteEtud = implode('-', $parts);
 
             $query = "
                 UPDATE inscriptions
@@ -456,7 +468,7 @@ class Scolarite
                     id_annee_acad = ?,
                     montant_verser = ?,
                     methode_paiement = ?
-                WHERE id_inscription = ?
+                WHERE num_carte_etud = ? AND id_annee_acad = ? AND num_versement = ?
             ";
             $stmt = $this->db->prepare($query);
             $stmt->execute([
@@ -464,7 +476,9 @@ class Scolarite
                 (int) $id_annee_acad,
                 (float) $montant_versement,
                 $methode_paiement,
-                (int) $id_inscription,
+                $numCarteEtud,
+                (int) $idAnneeAcad,
+                (int) $numVersement,
             ]);
 
             if ($oldYearId !== null && $oldYearId !== (int) $id_annee_acad) {
@@ -601,7 +615,7 @@ class Scolarite
 
         try {
             $existing = $this->getInscriptionById($id_inscription);
-            if (!is_array($existing) || empty($existing['id_etudiant']) || empty($existing['id_annee_acad'])) {
+            if (!is_array($existing) || empty($existing['num_carte_etud']) || empty($existing['id_annee_acad'])) {
                 return false;
             }
 
@@ -609,12 +623,24 @@ class Scolarite
                 $this->db->beginTransaction();
             }
 
-            $query = "DELETE FROM inscriptions WHERE id_inscription = ?";
+            // Parser l'ID composite pour obtenir les clés primaires
+            $parts = explode('-', (string) $id_inscription);
+            if (count($parts) < 3) {
+                if ($manageTransaction && $this->db->inTransaction()) {
+                    $this->db->rollBack();
+                }
+                return false;
+            }
+            $numVersement = array_pop($parts);
+            $idAnneeAcad = array_pop($parts);
+            $numCarteEtud = implode('-', $parts);
+
+            $query = "DELETE FROM inscriptions WHERE num_carte_etud = ? AND id_annee_acad = ? AND num_versement = ?";
             $stmt = $this->db->prepare($query);
-            $result = $stmt->execute([(int) $id_inscription]);
+            $result = $stmt->execute([$numCarteEtud, (int) $idAnneeAcad, (int) $numVersement]);
 
             if ($result) {
-                $this->refreshStudentYearBalances($existing['id_etudiant'], $existing['id_annee_acad']);
+                $this->refreshStudentYearBalances($existing['num_carte_etud'], $existing['id_annee_acad']);
             }
 
             if ($manageTransaction) {
@@ -638,16 +664,25 @@ class Scolarite
     {
         try {
             $existing = $this->getVersementById($id_inscription);
-            if (!is_array($existing) || empty($existing['id_etudiant']) || empty($existing['id_annee_acad'])) {
+            if (!is_array($existing) || empty($existing['num_carte_etud']) || empty($existing['id_annee_acad'])) {
                 return false;
             }
+
+            // Parser l'ID composite pour obtenir les clés primaires
+            $parts = explode('-', (string) $id_inscription);
+            if (count($parts) < 3) {
+                return false;
+            }
+            $numVersement = array_pop($parts);
+            $idAnneeAcad = array_pop($parts);
+            $numCarteEtud = implode('-', $parts);
 
             $query = "UPDATE inscriptions SET 
                      montant_verser = ?,
                      methode_paiement = ?,
                      date_versement = ?,
                      num_piece_mp = ?
-                     WHERE id_inscription = ?";
+                     WHERE num_carte_etud = ? AND id_annee_acad = ? AND num_versement = ?";
 
             $stmt = $this->db->prepare($query);
             $result = $stmt->execute([
@@ -655,12 +690,14 @@ class Scolarite
                 $data['methode_paiement'],
                 $data['date_versement'] ?? ($existing['date_versement'] ?? date('Y-m-d H:i:s')),
                 array_key_exists('num_piece', $data) ? $data['num_piece'] : ($existing['num_piece_mp'] ?? null),
-                $id_inscription
+                $numCarteEtud,
+                (int) $idAnneeAcad,
+                (int) $numVersement
             ]);
 
             if ($result) {
-                $this->refreshStudentYearBalances($existing['id_etudiant'], $existing['id_annee_acad'], $existing['id_niveau'] ?? null);
-                $this->synchronizeStudentAcademicContext($existing['id_etudiant'], $existing['id_niveau'] ?? null, $existing['id_annee_acad']);
+                $this->refreshStudentYearBalances($existing['num_carte_etud'], $existing['id_annee_acad'], $existing['id_niveau'] ?? null);
+                $this->synchronizeStudentAcademicContext($existing['num_carte_etud'], $existing['id_niveau'] ?? null, $existing['id_annee_acad']);
             }
 
             return $result;
@@ -932,11 +969,26 @@ class Scolarite
     public function updateFicheInscription($idInscription, $fichePath)
     {
         try {
-            $sql = "UPDATE inscriptions SET fiche_inscription = :fiche WHERE id_inscription = :id";
+            // Parser l'ID composite (format: num_carte_etud-id_annee_acad-num_versement)
+            $parts = explode('-', $idInscription);
+            if (count($parts) < 3) {
+                error_log("Format id_inscription invalide: $idInscription");
+                return false;
+            }
+            $numVersement = array_pop($parts);
+            $idAnneeAcad = array_pop($parts);
+            $numCarteEtud = implode('-', $parts);
+
+            $sql = "UPDATE inscriptions SET fiche_inscription = :fiche
+                    WHERE num_carte_etud = :num_carte_etud
+                      AND id_annee_acad = :id_annee_acad
+                      AND num_versement = :num_versement";
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([
                 'fiche' => $fichePath,
-                'id' => $idInscription
+                'num_carte_etud' => $numCarteEtud,
+                'id_annee_acad' => (int) $idAnneeAcad,
+                'num_versement' => (int) $numVersement,
             ]);
         } catch (Exception $e) {
             error_log("Erreur updateFicheInscription: " . $e->getMessage());
@@ -1003,4 +1055,5 @@ class Scolarite
             return null;
         }
     }
+
 }

@@ -34,7 +34,7 @@ class DossierAcademiqueService
         $numEtu = (string) ($data['num_etu'] ?? '');
         if ($numEtu !== '') {
             try {
-                $stmt = $this->db->prepare('SELECT id_annee_acad FROM inscriptions WHERE num_carte_etud = ? ORDER BY date_inscription DESC, num_versement DESC LIMIT 1 ORDER BY date_inscription DESC, id_inscription DESC LIMIT 1');
+                $stmt = $this->db->prepare('SELECT id_annee_acad FROM inscriptions WHERE num_carte_etud = ? ORDER BY date_inscription DESC, num_versement DESC LIMIT 1');
                 $stmt->execute([$numEtu]);
                 $yearId = $stmt->fetchColumn();
                 $writeGuard = \AcademicYear::ensureWritableYear($this->db, $yearId, 'un dossier academique');

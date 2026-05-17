@@ -2687,13 +2687,51 @@
   padding-right: 36px;
 }
 
-.cm-login-input-icon i {
+.cm-login-input-icon > i {
   position: absolute;
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--cm-primary);
   opacity: 0.8;
+  pointer-events: none;
+}
+
+.cm-login-password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  background: transparent;
+  color: var(--cm-primary);
+  opacity: 0.8;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.cm-login-password-toggle:hover,
+.cm-login-password-toggle:focus {
+  opacity: 1;
+}
+
+.cm-login-password-toggle:focus {
+  outline: none;
+}
+
+.cm-login-password-toggle i {
+  position: static;
+  transform: none;
+  color: inherit;
+  opacity: 1;
   pointer-events: none;
 }
 

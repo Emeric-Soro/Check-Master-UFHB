@@ -60,10 +60,7 @@ class InscriptionController
                     if (count($parts) >= 3) {
                         $result = $recuService->generate($id_inscription, (int) $_SESSION['id_utilisateur']);
                         if ($result['success'] && !empty($result['path']) && file_exists($result['path'])) {
-                            header('Content-Type: application/pdf');
-                            header('Content-Disposition: inline; filename="recu_' . ($inscription['num_carte_etud'] ?? 'inconnu') . '_' . ($inscription['id_annee_acad'] ?? 'inconnu') . '.pdf"');
-                            header('Content-Length: ' . filesize($result['path']));
-                            readfile($result['path']);
+                            header('Location: ?page=docviewer&type=recu&id=' . urlencode((string) $id_inscription) . '&action=preview');
                             $this->service->logPrint($_SESSION['id_utilisateur'], 'Succès');
                             exit;
                         }

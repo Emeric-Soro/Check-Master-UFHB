@@ -27,7 +27,9 @@ if ($authController->login($_POST['login'], $_POST['password'])) {
     $defaultPage = 'dashboard'; // Fallback
     if (!empty($menuHierarchique) && !empty($menuHierarchique[0]['fonctionnalites'])) {
         $firstFonc = $menuHierarchique[0]['fonctionnalites'][0];
-        parse_str(parse_url($firstFonc->url_fonctionnalite, PHP_URL_QUERY), $params);
+        $firstFoncUrl = (string) ($firstFonc->url_fonctionnalite ?? '');
+        $firstFoncQuery = (string) (parse_url($firstFoncUrl, PHP_URL_QUERY) ?? '');
+        parse_str($firstFoncQuery, $params);
         if (isset($params['page'])) {
             $defaultPage = $params['page'];
         }

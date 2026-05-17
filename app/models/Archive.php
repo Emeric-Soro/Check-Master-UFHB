@@ -1026,4 +1026,171 @@ class Archive
         // Implementation for updating soutenance info
         // Add fields as needed
     }
+
+    /**
+     * Récupère l'historique des soutenances pour une année avec pagination.
+     */
+    public function getSoutenanceHistory($anneeAcad, $limit = 50, $offset = 0)
+    {
+        $sql = "
+            SELECT 
+                ps.num_soutenance,
+                ps.num_etud,
+                CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant_nom,
+                ps.theme_soutenance,
+                ps.date_soutenance,
+                ps.heure_soutenance,
+                s.libelle_session,
+                sal.nom_salle,
+                d.lib_domaine
+            FROM programmer_soutenance ps
+            INNER JOIN etudiants e ON (ps.num_etud = e.num_carte_etud OR ps.num_etud = e.num_ident_etud)
+            LEFT JOIN session s ON ps.id_session = s.id_session
+            LEFT JOIN salle sal ON ps.id_salle = sal.id_salle
+            LEFT JOIN domaine d ON ps.id_domaine = d.id_domaine
+            WHERE ps.id_annee_acad = :annee_acad
+            ORDER BY ps.date_soutenance DESC, ps.heure_soutenance DESC
+            LIMIT :limit OFFSET :offset
+        ";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':annee_acad', $anneeAcad, \PDO::PARAM_INT);
+            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('Archive::getSoutenanceHistory: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Compte le nombre total de soutenances pour une année.
+     */
+    public function countSoutenances($anneeAcad)
+    {
+        try {
+            $sql = "SELECT COUNT(*) FROM programmer_soutenance WHERE id_annee_acad = :annee_acad";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':annee_acad', $anneeAcad, \PDO::PARAM_INT);
+            $stmt->execute();
+            return (int) $stmt->fetchColumn();
+        } catch (\PDOException $e) {
+            error_log('Archive::countSoutenances: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Récupère l'historique des documents (rapports) pour une année.
+     */
+    public function getDocumentHistory($anneeAcad, $limit = 50, $offset = 0)
+    {
+        $sql = "
+            SELECT 
+                re.id_rapport,
+                re.num_etu,
+                CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant_nom,
+                re.theme_rapport,
+                re.nom_rapport,
+                re.chemin_fichier,
+                re.statut_rapport,
+                re.date_redaction_rapport,
+                re.date_modification,
+                re.version
+            FROM rapport_etudiants re
+            INNER JOIN etudiants e ON re.num_etu = e.num_carte_etud
+            INNER JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
+            WHERE i.id_annee_acad = :annee_acad
+            ORDER BY COALESCE(re.date_modification, re.date_redaction_rapport) DESC
+            LIMIT :limit OFFSET :offset
+        ";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':annee_acad', $anneeAcad, \PDO::PARAM_INT);
+            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('Archive::getDocumentHistory: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Récupère l'historique des candidatures pour une année.
+     */
+    public function getCandidatureHistory($anneeAcad, $limit = 50, $offset = 0)
+    {
+        $sql = "
+            SELECT 
+                cs.id_candidature,
+                cs.num_etu,
+                CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant_nom,
+                cs.date_candidature,
+                cs.statut_candidature,
+                cs.date_traitement,
+                cs.commentaire_admin
+            FROM candidature_soutenance cs
+            INNER JOIN etudiants e ON cs.num_etu = e.num_carte_etud
+            INNER JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
+            WHERE i.id_annee_acad = :annee_acad
+            ORDER BY cs.date_candidature DESC
+            LIMIT :limit OFFSET :offset
+        ";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':annee_acad', $anneeAcad, \PDO::PARAM_INT);
+            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('Archive::getCandidatureHistory: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Récupère l'historique des réclamations pour une année.
+     */
+    public function getReclamationHistory($anneeAcad, $limit = 50, $offset = 0)
+    {
+        $sql = "
+            SELECT 
+                r.id_reclamation,
+                r.num_carte_etud,
+                CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant_nom,
+                r.objet_reclamation,
+                r.description_reclamation,
+                r.statut_reclamation,
+                sr.libelle_statut_reclamation,
+                r.date_creation,
+                r.date_mise_a_jour
+            FROM reclamations r
+            INNER JOIN etudiants e ON r.num_carte_etud = e.num_carte_etud
+            INNER JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
+            LEFT JOIN statut_reclamation sr ON r.statut_reclamation = sr.id_statut_reclamation
+            WHERE i.id_annee_acad = :annee_acad
+            ORDER BY r.date_creation DESC
+            LIMIT :limit OFFSET :offset
+        ";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':annee_acad', $anneeAcad, \PDO::PARAM_INT);
+            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('Archive::getReclamationHistory: ' . $e->getMessage());
+            return [];
+        }
+    }
 }

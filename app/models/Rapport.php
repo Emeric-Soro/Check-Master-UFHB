@@ -178,10 +178,15 @@ class Rapport
             }
 
             if ($type === 'fiche_inscription') {
+                // $id doit être au format composé 'num_carte_etud|id_annee_acad|num_versement'
+                $parts = explode('|', (string) $id);
+                if (count($parts) !== 3 || $parts[0] === '' || $parts[1] === '' || $parts[2] === '') {
+                    return null;
+                }
                 $stmt = $this->db->prepare("
                     SELECT
                         'fiche_inscription' AS type_doc,
-                        CAST(i.id_inscription AS CHAR) AS id_doc,
+                        CONCAT(i.num_carte_etud, '|', i.id_annee_acad, '|', i.num_versement) AS id_doc,
                         i.fiche_inscription AS chemin,
                         CONCAT('Fiche inscription ', e.num_carte_etud) AS titre,
                         i.date_inscription AS date_depot,
@@ -189,11 +194,16 @@ class Rapport
                         e.num_carte_etud
                     FROM inscriptions i
                     INNER JOIN etudiants e ON e.num_carte_etud = i.num_carte_etud
-                    /* FIXME: id_inscription n'existe plus. Utiliser PK composite (num_carte_etud, id_annee_acad, num_versement) */
-                    WHERE i.id_inscription = :id
+                    WHERE i.num_carte_etud = :num_etu
+                      AND i.id_annee_acad = :annee
+                      AND i.num_versement = :versement
                     LIMIT 1
                 ");
-                $stmt->execute([':id' => (int) $id]);
+                $stmt->execute([
+                    ':num_etu' => $parts[0],
+                    ':annee' => (int) $parts[1],
+                    ':versement' => (int) $parts[2],
+                ]);
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
                 return $row ?: null;
             }

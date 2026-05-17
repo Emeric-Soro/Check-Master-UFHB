@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/controllers/EvaluationDossiersController.php';
 $controller = new EvaluationDossiersController(Database::getConnection());
 $currentPageSlug = (string) ($_GET['page'] ?? 'evaluation_dossiers');
+$decisionActionUrl = '?page=evaluations_dossiers_soutenance&action=traiter_decision';
 if (isset($_GET['action']) && $_GET['action'] === 'traiter_decision' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     header('Content-Type: application/json; charset=UTF-8');
     $_POST['action'] = 'traiter_decision';
@@ -64,22 +65,10 @@ foreach ($dossiers as $dossier) {
 $myEvaluationsByRapport = [];
 try {
     $pdo = Database::getConnection();
-    $enseignantId = '';
     $idUtilisateur = (int) ($_SESSION['id_utilisateur'] ?? 0);
-    if ($idUtilisateur > 0) {
-        $stmtUser = $pdo->prepare('SELECT login_utilisateur FROM utilisateur WHERE id_utilisateur = ?');
-        $stmtUser->execute([$idUtilisateur]);
-        $userRow = $stmtUser->fetch(PDO::FETCH_ASSOC);
-        if (!empty($userRow['login_utilisateur'])) {
-            $stmtEns = $pdo->prepare('SELECT id_enseignant FROM enseignants WHERE mail_enseignant = ? LIMIT 1');
-            $stmtEns->execute([(string) $userRow['login_utilisateur']]);
-            $ensRow = $stmtEns->fetch(PDO::FETCH_ASSOC);
-            $enseignantId = trim((string) ($ensRow['id_enseignant'] ?? ''));
-        }
-    }
-    if ($enseignantId !== '' && !empty($dossierIds)) {
+    if ($idUtilisateur > 0 && !empty($dossierIds)) {
         $placeholders = implode(',', array_fill(0, count($dossierIds), '?'));
-        $params = array_merge([$enseignantId], $dossierIds);
+        $params = array_merge([$idUtilisateur], $dossierIds);
         $sql = "
             SELECT
                 id_rapport,
@@ -137,9 +126,8 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
 </style>
 <form id="cmEvaluationDecisionForm"
                   method="POST"
-                  action="?page=<?php echo htmlspecialchars(urlencode($currentPageSlug), ENT_QUOTES, 'UTF-8'); ?>&action=traiter_decision">
+                  action="<?php echo htmlspecialchars($decisionActionUrl, ENT_QUOTES, 'UTF-8'); ?>">
                 <?php cm_component('form/csrf-token'); ?>
-                <input type="hidden" name="action" value="traiter_decision">
                 <div class="cm-grid-2">
                     <?php
                     cm_component('form/select', [
@@ -491,6 +479,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
     if (decisionForm) {
         decisionForm.addEventListener('submit', function (event) {
             event.preventDefault();
+            const actionUrl = decisionForm.getAttribute('action') || window.location.href;
             const decision = decisionSelect ? decisionSelect.value : '';
             const commentaire = commentaireInput ? commentaireInput.value.trim() : '';
             if (decision === 'rejeter' && commentaire === '') {
@@ -501,7 +490,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                 return;
             }
             const formData = new FormData(decisionForm);
-            fetch(decisionForm.action, {
+            fetch(actionUrl, {
                 method: 'POST',
                 body: formData,
                 credentials: 'same-origin',

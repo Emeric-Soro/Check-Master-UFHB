@@ -642,6 +642,8 @@ $addFeature([
         ['pattern' => 'page=gestion_rapports&action=telecharger_rapport', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_rapports&action=upload_rapport', 'method' => 'POST', 'crud' => 'creer'],
         ['pattern' => 'page=gestion_rapports&action=download_modele', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_rapports&action=download_fichier_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=telecharger_rapport&action=download_fichier_rapport', 'method' => 'GET', 'crud' => 'voir'],
     ],
     'permissions' => [
         $groups['administrateur'] => $full,
@@ -661,7 +663,7 @@ $addFeature([
         ['pattern' => 'page=gestion_rapports&action=get_etudiants_sans_rapport', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_rapports&action=export_rapports_csv', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_rapports&action=download_fichier_rapport', 'method' => 'GET', 'crud' => 'voir'],
-        ['pattern' => 'page=gestion_rapports&action=update_date_operation', 'method' => 'POST', 'crud' => 'modifier'],
+        ['pattern' => 'page=gestion_rapports&action=update_rapport_inline', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=telecharger_rapport', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=telecharger_rapport&action=admin_telecharger_rapport', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=telecharger_rapport&action=admin_upload_rapport', 'method' => 'POST', 'crud' => 'creer'],
@@ -669,7 +671,7 @@ $addFeature([
         ['pattern' => 'page=telecharger_rapport&action=export_rapports_csv', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=telecharger_rapport&action=download_fichier_rapport', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=telecharger_rapport&action=download_modele', 'method' => 'GET', 'crud' => 'voir'],
-        ['pattern' => 'page=telecharger_rapport&action=update_date_operation', 'method' => 'POST', 'crud' => 'modifier'],
+        ['pattern' => 'page=telecharger_rapport&action=update_rapport_inline', 'method' => 'POST', 'crud' => 'modifier'],
     ],
     'permissions' => [
         $groups['administrateur'] => $full,

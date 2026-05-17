@@ -24,6 +24,12 @@ class EvaluationSoutenanceService
         $this->critereModel = new CritereEvaluation($this->pdo);
     }
 
+    private function getSelectedAcademicYearId(): ?int
+    {
+        $selectedId = \AcademicYear::getSelectedIdFromSession();
+        return ($selectedId !== null && $selectedId > 0) ? (int) $selectedId : null;
+    }
+
     /**
      * @return array<string, mixed>|null
      */
@@ -378,16 +384,26 @@ class EvaluationSoutenanceService
         }
 
         $juryCol = $this->getProgrammationJuryColumn($progTable);
+        $selectedYearId = $this->getSelectedAcademicYearId();
+        $hasYearColumn = $this->columnExists($progTable, 'id_annee_acad');
 
         try {
-            $stmt = $this->pdo->prepare("
+            $sql = "
                 SELECT {$juryCol} AS jury_ref
-                FROM {$progTable}
+                FROM {$progTable} p
                 WHERE num_etud = ?
-                ORDER BY date_soutenance DESC, heure_soutenance DESC
+            ";
+            $params = [(string) $numEtu];
+            if ($selectedYearId !== null && $hasYearColumn) {
+                $sql .= " AND p.id_annee_acad = ?";
+                $params[] = $selectedYearId;
+            }
+            $sql .= "
+                ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
                 LIMIT 1
-            ");
-            $stmt->execute([(string) $numEtu]);
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($row && $row['jury_ref'] !== null && $row['jury_ref'] !== '') {
                 return (string) $row['jury_ref'];
@@ -398,15 +414,23 @@ class EvaluationSoutenanceService
 
         if ($this->columnExists('etudiants', 'num_ident_etud')) {
             try {
-                $stmt = $this->pdo->prepare("
+                $sql = "
                     SELECT p.{$juryCol} AS jury_ref
                     FROM {$progTable} p
                     JOIN etudiants e ON " . $this->studentJoinCondition('e', 'p') . "
                     WHERE e.num_ident_etud = ?
+                ";
+                $params = [(string) $numEtu];
+                if ($selectedYearId !== null && $hasYearColumn) {
+                    $sql .= " AND p.id_annee_acad = ?";
+                    $params[] = $selectedYearId;
+                }
+                $sql .= "
                     ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
                     LIMIT 1
-                ");
-                $stmt->execute([(string) $numEtu]);
+                ";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
                 if ($row && $row['jury_ref'] !== null && $row['jury_ref'] !== '') {
                     return (string) $row['jury_ref'];
@@ -572,13 +596,15 @@ class EvaluationSoutenanceService
             $directeurNom = $this->juryNameExpr('directeur', 'p');
             $encadreurNom = $this->juryNameExpr('encadreur', 'p');
             $promotionLabel = $this->getPromotionLabelExpr('e', 'p');
-            $selectedYearId = \AcademicYear::getSelectedIdFromSession();
+            $selectedYearId = $this->getSelectedAcademicYearId();
             $studentJoin = $this->studentJoinCondition('e', 'p');
+            $hasYearColumn = $this->columnExists($progTable, 'id_annee_acad');
 
             $sql = "
                 SELECT
                     p.{$idCol} AS id_programmation,
                     p.{$juryCol} AS jury_ref,
+                    " . ($hasYearColumn ? 'p.id_annee_acad' : 'NULL') . " AS id_annee_acad,
                     p.theme_soutenance,
                     p.date_soutenance,
                     p.heure_soutenance,
@@ -628,14 +654,18 @@ class EvaluationSoutenanceService
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
-                $sql .= " AND EXISTS (
-                    SELECT 1
-                    FROM inscriptions i
-                    WHERE (i.num_carte_etud = e.num_carte_etud"
-                    . ($this->columnExists('etudiants', 'num_ident_etud') ? " OR i.num_carte_etud = e.num_ident_etud" : "")
-                    . ")
-                      AND i.id_annee_acad = :id_annee_acad
-                )";
+                if ($hasYearColumn) {
+                    $sql .= " AND p.id_annee_acad = :id_annee_acad";
+                } else {
+                    $sql .= " AND EXISTS (
+                        SELECT 1
+                        FROM inscriptions i
+                        WHERE (i.num_carte_etud = e.num_carte_etud"
+                        . ($this->columnExists('etudiants', 'num_ident_etud') ? " OR i.num_carte_etud = e.num_ident_etud" : "")
+                        . ")
+                          AND i.id_annee_acad = :id_annee_acad
+                    )";
+                }
             }
 
             $sql .= "
@@ -961,11 +991,19 @@ class EvaluationSoutenanceService
             FROM {$progTable} p
             LEFT JOIN etudiants e ON " . $this->studentJoinCondition('e', 'p') . "
             WHERE p.num_etud = ?
+        ";
+        $params = [$numEtu];
+        $selectedYearId = $this->getSelectedAcademicYearId();
+        if ($selectedYearId !== null && $this->columnExists($progTable, 'id_annee_acad')) {
+            $sql .= " AND p.id_annee_acad = ?";
+            $params[] = $selectedYearId;
+        }
+        $sql .= "
             ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
             LIMIT 1
         ";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$numEtu]);
+        $stmt->execute($params);
         $soutenance = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$soutenance && $this->columnExists('etudiants', 'num_ident_etud')) {
@@ -991,11 +1029,18 @@ class EvaluationSoutenanceService
                 FROM {$progTable} p
                 JOIN etudiants e ON " . $this->studentJoinCondition('e', 'p') . "
                 WHERE e.num_ident_etud = ?
+            ";
+            $params = [$numEtu];
+            if ($selectedYearId !== null && $this->columnExists($progTable, 'id_annee_acad')) {
+                $sql .= " AND p.id_annee_acad = ?";
+                $params[] = $selectedYearId;
+            }
+            $sql .= "
                 ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
                 LIMIT 1
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([$numEtu]);
+            $stmt->execute($params);
             $soutenance = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
@@ -1191,16 +1236,46 @@ class EvaluationSoutenanceService
             }
 
             $idCol = $this->getProgrammationIdColumn($progTable);
+            $selectedYearId = $this->getSelectedAcademicYearId();
 
-            $stmt = $this->pdo->prepare("
+            $sql = "
                 SELECT {$idCol}
-                FROM {$progTable}
+                FROM {$progTable} p
                 WHERE num_etud = ?
-                ORDER BY date_soutenance DESC, heure_soutenance DESC
+            ";
+            $params = [$numEtu];
+            if ($selectedYearId !== null && $this->columnExists($progTable, 'id_annee_acad')) {
+                $sql .= " AND p.id_annee_acad = ?";
+                $params[] = $selectedYearId;
+            }
+            $sql .= "
+                ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
                 LIMIT 1
-            ");
-            $stmt->execute([$numEtu]);
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
             $result = $stmt->fetchColumn();
+
+            if (($result === false || $result === null) && $this->columnExists('etudiants', 'num_ident_etud')) {
+                $sql = "
+                    SELECT p.{$idCol}
+                    FROM {$progTable} p
+                    JOIN etudiants e ON " . $this->studentJoinCondition('e', 'p') . "
+                    WHERE e.num_ident_etud = ?
+                ";
+                $params = [$numEtu];
+                if ($selectedYearId !== null && $this->columnExists($progTable, 'id_annee_acad')) {
+                    $sql .= " AND p.id_annee_acad = ?";
+                    $params[] = $selectedYearId;
+                }
+                $sql .= "
+                    ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
+                    LIMIT 1
+                ";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
+                $result = $stmt->fetchColumn();
+            }
 
             return $result !== false && $result !== null ? (string)$result : null;
         } catch (Throwable $e) {
@@ -1218,26 +1293,47 @@ class EvaluationSoutenanceService
                 ];
             }
 
-            $stmt = $this->pdo->prepare("
+            $selectedYearId = $this->getSelectedAcademicYearId();
+            if ($selectedYearId === null || $selectedYearId <= 0) {
+                $selectedYearId = $this->getStudentAcademicYearId($numEtu);
+            }
+
+            $sql = "
                 SELECT moyenne_M1, moyenne_M2
                 FROM notes
                 WHERE num_etu = ?
-                ORDER BY COALESCE(date_modification, date_creation) DESC, id DESC
+            ";
+            $params = [$numEtu];
+            if ($selectedYearId !== null && $selectedYearId > 0 && $this->columnExists('notes', 'id_annee_acad')) {
+                $sql .= " AND id_annee_acad = ?";
+                $params[] = $selectedYearId;
+            }
+            $sql .= "
+                ORDER BY COALESCE(date_modification, date_creation) DESC, id_annee_acad DESC
                 LIMIT 1
-            ");
-            $stmt->execute([$numEtu]);
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$row && $this->columnExists('etudiants', 'num_ident_etud')) {
-                $stmt = $this->pdo->prepare("
+                $sql = "
                     SELECT n.moyenne_M1, n.moyenne_M2
                     FROM notes n
                     JOIN etudiants e ON n.num_etu = e.num_ident_etud
                     WHERE e.num_carte_etud = ?
-                    ORDER BY COALESCE(n.date_modification, n.date_creation) DESC, n.id DESC
+                ";
+                $params = [$numEtu];
+                if ($selectedYearId !== null && $selectedYearId > 0 && $this->columnExists('notes', 'id_annee_acad')) {
+                    $sql .= " AND n.id_annee_acad = ?";
+                    $params[] = $selectedYearId;
+                }
+                $sql .= "
+                    ORDER BY COALESCE(n.date_modification, n.date_creation) DESC, n.id_annee_acad DESC
                     LIMIT 1
-                ");
-                $stmt->execute([$numEtu]);
+                ";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
             }
 

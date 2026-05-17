@@ -285,6 +285,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     ]);
                     ?>
                 </div>
+
                 <!-- Ligne 3: Versement + Paiement (compact) -->
                 <div class="cm-grid-5">
                     <?php

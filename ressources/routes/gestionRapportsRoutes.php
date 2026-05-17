@@ -22,8 +22,8 @@ if (isset($_GET['page']) && in_array($_GET['page'], ['gestion_rapports', 'telech
             case 'admin_upload_rapport':
                 $controller->traiterAdminUploadRapport();
                 exit;
-            case 'update_date_operation':
-                $controller->updateDateOperation();
+            case 'update_rapport_inline':
+                $controller->updateRapportInline();
                 exit;
         }
     }
