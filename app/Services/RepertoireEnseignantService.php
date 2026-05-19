@@ -73,6 +73,7 @@ class RepertoireEnseignantService
         try {
             $teacherId = '';
             $teacherName = trim((string) ($_SESSION['nom_utilisateur'] ?? 'Enseignant'));
+            $error = '';
 
             if (!class_exists('Enseignant')) {
                 require_once __DIR__ . '/../models/Enseignant.php';
@@ -87,7 +88,10 @@ class RepertoireEnseignantService
                 }
             }
 
-            $tab = $_GET['tab'] ?? 'rapports';
+            $tab = (string) ($_GET['tab'] ?? 'rapports');
+            if (!in_array($tab, ['rapports', 'comptes_rendus', 'memoires'], true)) {
+                $tab = 'rapports';
+            }
             $pageNum = max(1, (int) ($_GET['page_num'] ?? 1));
             $perPage = 15;
             $selectedYearId = \AcademicYear::getSelectedIdFromSession();
@@ -124,6 +128,8 @@ class RepertoireEnseignantService
                         $pagination = $result['pagination'];
                         break;
                 }
+            } else {
+                $error = "Aucun profil enseignant n'est rattaché à ce compte utilisateur.";
             }
 
             $GLOBALS['repertoire_data'] = [
@@ -138,6 +144,7 @@ class RepertoireEnseignantService
                 'filtre_session' => $filtreSession,
                 'search' => $search,
                 'tab_counts' => $tabCounts,
+                'error' => $error,
             ];
 
         } catch (Exception $e) {
@@ -153,6 +160,7 @@ class RepertoireEnseignantService
                 'filtre_annee' => null,
                 'filtre_session' => null,
                 'search' => null,
+                'tab_counts' => ['rapports' => 0, 'comptes_rendus' => 0, 'memoires' => 0],
                 'error' => 'Erreur lors du chargement des données.',
             ];
         }
@@ -362,6 +370,24 @@ class RepertoireEnseignantService
         try {
             $offset = ($page - 1) * $perPage;
             $progTable = $this->getProgrammationTable();
+            $documentsTableAvailable = $this->tableExists('documents');
+
+            $documentsJoin = '';
+            $documentsSelect = 'NULL AS taille_fichier, NULL AS nom_fichier_document, NULL AS date_depot_memoire,';
+            if ($documentsTableAvailable) {
+                $documentsJoin = "LEFT JOIN (
+                                    SELECT entite_id, MAX(id_document) AS latest_document_id
+                                    FROM documents
+                                    WHERE entite_type = 'programmer_soutenance'
+                                      AND type_document = 'pv_final'
+                                      AND statut = 'actif'
+                                    GROUP BY entite_id
+                                  ) doc_ref ON doc_ref.entite_id = CAST(ps.num_soutenance AS CHAR)
+                                  LEFT JOIN documents doc ON doc.id_document = doc_ref.latest_document_id";
+                $documentsSelect = "MAX(doc.taille_fichier) AS taille_fichier,
+                                    MAX(doc.nom_fichier) AS nom_fichier_document,
+                                    MAX(doc.date_creation) AS date_depot_memoire,";
+            }
 
             $whereConditions = [];
             $params = [];
@@ -416,15 +442,17 @@ class RepertoireEnseignantService
                         e.prenom_etu,
                         s.lib_session,
                         CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) AS annee_academique,
+                        {$documentsSelect}
                         SUM(COALESCE(ev.note, 0)) AS note_memoire
                     FROM {$progTable} ps
                     JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                     LEFT JOIN session s ON s.id_session = ps.id_session
                     LEFT JOIN annee_academique aa ON aa.id_annee_acad = ps.id_annee_acad
+                    {$documentsJoin}
                     LEFT JOIN evaluer ev ON ev.num_etudiant = ps.num_etud AND ev.num_jury = ps.num_soutenance
                     WHERE {$whereClause}
                     GROUP BY ps.num_soutenance, ps.theme_soutenance, ps.date_soutenance, ps.heure_soutenance,
-                             e.num_carte_etud, e.nom_etu, e.prenom_etu, s.lib_session, aa.date_deb, aa.date_fin
+                             e.num_carte_etud, e.num_ident_etud, e.nom_etu, e.prenom_etu, s.lib_session, aa.date_deb, aa.date_fin
                     ORDER BY ps.date_soutenance DESC, ps.heure_soutenance DESC
                     LIMIT :limit OFFSET :offset";
 

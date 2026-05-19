@@ -27,6 +27,20 @@ $formatPromotion = static function ($value) use ($formatText) {
     return $formatText($value);
 };
 
+$formatAcademicYear = static function ($value) use ($formatText) {
+    $formatted = \FormattingUtils::formatPromotion((string) $value);
+    return $formatText($formatted);
+};
+
+$resolveThemeValue = static function ($themeRapport, $sujetStage = '') {
+    $themeRapport = trim((string) $themeRapport);
+    if ($themeRapport !== '') {
+        return $themeRapport;
+    }
+
+    return trim((string) $sujetStage);
+};
+
 $formatDate = static function ($value, $fallback = '-') {
     $value = trim((string) $value);
     if ($value === '') {
@@ -100,8 +114,8 @@ $prefill = [
     'num_carte' => trim((string) ($_GET['prefill_num_carte'] ?? '')),
     'num_ident' => trim((string) ($_GET['prefill_num_ident'] ?? '')),
     'email' => trim((string) ($_GET['prefill_email'] ?? '')),
-    'promotion' => trim((string) ($_GET['prefill_promotion'] ?? '')),
-    'annee' => trim((string) ($_GET['prefill_annee'] ?? '')),
+    'promotion' => $formatPromotion($_GET['prefill_promotion'] ?? ''),
+    'annee' => $formatAcademicYear($_GET['prefill_annee'] ?? ''),
     'candidature' => trim((string) ($_GET['prefill_candidature'] ?? '')),
     'entreprise' => trim((string) ($_GET['prefill_entreprise'] ?? '')),
     'sujet' => trim((string) ($_GET['prefill_sujet'] ?? '')),
@@ -419,7 +433,7 @@ if ($hasPrefill) {
                                     data-num-ident="<?= htmlspecialchars($identifiant, ENT_QUOTES, 'UTF-8') ?>"
                                     data-email="<?= htmlspecialchars((string) ($e->email_etu ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                                     data-promotion="<?= htmlspecialchars($formatPromotion($e->promotion_etu ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                    data-annee="<?= htmlspecialchars((string) ($e->id_annee_acad ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                    data-annee="<?= htmlspecialchars($formatAcademicYear($e->id_annee_acad ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                                     data-candidature="<?= htmlspecialchars((string) ($e->statut_candidature ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                                     data-entreprise="<?= htmlspecialchars((string) ($e->entreprise_stage ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                                     data-sujet="<?= htmlspecialchars((string) ($e->sujet_stage ?? ''), ENT_QUOTES, 'UTF-8') ?>"
@@ -437,7 +451,7 @@ if ($hasPrefill) {
                                     data-num-carte="<?= htmlspecialchars($prefill['num_carte'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-num-ident="<?= htmlspecialchars($prefill['num_ident'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-email="<?= htmlspecialchars($prefill['email'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-promotion="<?= htmlspecialchars($prefill['promotion'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-promotion="<?= htmlspecialchars($formatPromotion($prefill['promotion']), ENT_QUOTES, 'UTF-8') ?>"
                                     data-annee="<?= htmlspecialchars($prefill['annee'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-candidature="<?= htmlspecialchars($prefill['candidature'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-entreprise="<?= htmlspecialchars($prefill['entreprise'], ENT_QUOTES, 'UTF-8') ?>"
@@ -585,6 +599,7 @@ if ($hasPrefill) {
                                 $matricule = (string) ($r->num_carte_etud ?? $r->num_etu ?? '');
                                 $numSelection = (string) ($r->num_etu ?? $matricule);
                                 $dateOperationForm = $normalizeDateTimeLocal($r->date_operation ?? '', $dateSysteme);
+                                $resolvedTheme = $resolveThemeValue($r->theme_rapport ?? '', $r->sujet_stage ?? '');
                                 $prefillUrl = '?' . http_build_query([
                                     'page' => $basePage,
                                     'action' => 'admin_telecharger_rapport',
@@ -596,10 +611,10 @@ if ($hasPrefill) {
                                     'prefill_num_ident' => (string) ($r->num_ident_etud ?? ''),
                                     'prefill_email' => (string) ($r->email_etu ?? ''),
                                     'prefill_promotion' => $formatPromotion($r->promotion_etu ?? ''),
-                                    'prefill_annee' => (string) ($r->id_annee_acad ?? ''),
+                                    'prefill_annee' => $formatAcademicYear($r->id_annee_acad ?? ''),
                                     'prefill_candidature' => (string) ($r->statut_candidature ?? ''),
                                     'prefill_entreprise' => (string) ($r->entreprise_stage ?? ''),
-                                    'prefill_sujet' => (string) ($r->theme_rapport ?? $r->sujet_stage ?? ''),
+                                    'prefill_sujet' => $resolvedTheme,
                                     'prefill_maitre' => (string) ($r->maitre_stage_nom ?? ''),
                                     'prefill_periode' => $formatStagePeriod($r->date_debut_stage ?? null, $r->date_fin_stage ?? null),
                                     'prefill_nb_rapports' => 'Rapport deja importe',
@@ -617,10 +632,10 @@ if ($hasPrefill) {
                                             data-num-ident="<?= htmlspecialchars((string) ($r->num_ident_etud ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                                             data-email="<?= htmlspecialchars((string) ($r->email_etu ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                                             data-promotion="<?= htmlspecialchars($formatPromotion($r->promotion_etu ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                            data-annee="<?= htmlspecialchars((string) ($r->id_annee_acad ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                            data-annee="<?= htmlspecialchars($formatAcademicYear($r->id_annee_acad ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                                             data-candidature="<?= htmlspecialchars((string) ($r->statut_candidature ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                                             data-entreprise="<?= htmlspecialchars((string) ($r->entreprise_stage ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                            data-sujet="<?= htmlspecialchars((string) ($r->theme_rapport ?? $r->sujet_stage ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                            data-sujet="<?= htmlspecialchars($resolvedTheme, ENT_QUOTES, 'UTF-8') ?>"
                                             data-maitre="<?= htmlspecialchars((string) ($r->maitre_stage_nom ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                                             data-periode="<?= htmlspecialchars($formatStagePeriod($r->date_debut_stage ?? null, $r->date_fin_stage ?? null), ENT_QUOTES, 'UTF-8') ?>"
                                             data-nb-rapports="<?= htmlspecialchars('Rapport deja importe', ENT_QUOTES, 'UTF-8') ?>"
@@ -630,7 +645,7 @@ if ($hasPrefill) {
                                             <small class="cm-rapport-admin-student-meta"><?= htmlspecialchars($formatText($matricule), ENT_QUOTES, 'UTF-8') ?></small>
                                             <span class="cm-rapport-admin-student-theme">
                                                 <span class="cm-rapport-admin-student-theme-label">Theme :</span>
-                                                <?= htmlspecialchars($formatText($r->theme_rapport ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                                <?= htmlspecialchars($formatText($resolvedTheme), ENT_QUOTES, 'UTF-8') ?>
                                             </span>
                                         </a>
                                     </td>
@@ -709,6 +724,9 @@ if ($hasPrefill) {
                     infoBox.style.display = 'none';
                     importLabel.textContent = 'Importer le rapport';
                     importHint.textContent = 'Choisissez d abord un etudiant.';
+                    if (themeField) {
+                        themeField.value = '';
+                    }
                     return;
                 }
 
@@ -728,6 +746,10 @@ if ($hasPrefill) {
                 setText('info_stage_periode', option.getAttribute('data-periode'));
                 setText('info_sujet_stage', option.getAttribute('data-sujet'));
                 setText('info_nb_rapports', option.getAttribute('data-nb-rapports'));
+
+                if (themeField) {
+                    themeField.value = option.getAttribute('data-sujet') || '';
+                }
 
                 infoBox.style.display = 'block';
 

@@ -676,6 +676,7 @@ $addFeature([
     'permissions' => [
         $groups['administrateur'] => $full,
         $groups['secretaire'] => $full,
+        $groups['charge_communication'] => $full,
         $groups['responsable_scolarite'] => $full,
     ],
 ]);
@@ -1199,7 +1200,7 @@ $addFeature([
     'slug' => 'etudiants_sans_compte',
     'code' => 'ETU_SANS_COMPTE',
     'label' => 'Étudiants sans compte',
-    'category_code' => 'ADMIN_PLATEFORME',
+    'category_code' => 'SCOLARITE',
     'menu_url' => '?page=etudiants_sans_compte',
     'routes' => [
         ['pattern' => 'page=etudiants_sans_compte', 'method' => 'GET', 'crud' => 'voir'],
@@ -1302,6 +1303,110 @@ $addFeature([
         $groups['responsable_scolarite'] => $view,
     ],
 ]);
+
+// ════════════════════════════════════════════════════════════════
+// HUBS DE NAVIGATION (remaniement menus 2026-05-19)
+// ════════════════════════════════════════════════════════════════
+
+$addFeature([
+    'slug' => 'suivi_scolarite',
+    'code' => 'SCOLA_SUIVI',
+    'label' => 'Suivi & Scolarité',
+    'category_code' => 'SCOLARITE',
+    'menu_url' => '?page=suivi_scolarite',
+    'routes' => [
+        ['pattern' => 'page=suivi_scolarite', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=fiche_financiere_annee', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=historique_inscriptions', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=etudiants_sans_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=etudiants_non_inscrits', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=etudiants_sans_compte', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=etudiants_sans_compte&action=creer_comptes_masse', 'method' => 'POST', 'crud' => 'creer'],
+        ['pattern' => 'page=suivi_scolarite&tab=echeancier_etudiant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=visualisation_fiche_inscription', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=fiche_etudiant_complete', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=timeline_parcours_etudiant', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['secretaire'] => $viewEdit,
+        $groups['responsable_scolarite'] => $full,
+        $groups['responsable_filiere'] => $view,
+        $groups['responsable_niveau'] => $view,
+        $groups['commission'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'commissions_archives',
+    'code' => 'COMM_ARCHIVES',
+    'label' => 'Commissions & Archives',
+    'category_code' => 'COMMISSION',
+    'menu_url' => '?page=commissions_archives',
+    'routes' => [
+        ['pattern' => 'page=commissions_archives', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=commissions_archives&tab=archives_documents', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=commissions_archives&tab=archives_etudiants', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=commissions_archives&tab=archive_comptes_rendus', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=commissions_archives&tab=fiche_commission', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=commissions_archives&tab=workflow_validation', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['commission'] => $full,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'enseignant_gestion',
+    'code' => 'ENS_GESTION',
+    'label' => 'Gestion des Enseignants',
+    'category_code' => 'ENV_ENSEIGNANT',
+    'menu_url' => '?page=enseignant_gestion',
+    'routes' => [
+        ['pattern' => 'page=enseignant_gestion', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=enseignant_gestion&tab=repertoire_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=enseignant_gestion&tab=fiche_enseignante', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=enseignant_gestion&tab=planning_jurys_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=enseignant_gestion&tab=stats_encadrement_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=enseignant_gestion&tab=portfolio_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=enseignant_gestion&tab=annuaire_enseignants', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['responsable_filiere'] => $view,
+        $groups['responsable_niveau'] => $view,
+        $groups['commission'] => $view,
+        $groups['enseignant'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'outils_direction',
+    'code' => 'ADM_OUTILS_DIRECTION',
+    'label' => 'Outils & Direction',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=outils_direction',
+    'routes' => [
+        ['pattern' => 'page=outils_direction', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=documents', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=historique_modifications', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=historique_modifications&export=csv', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=export_masse_documents', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=export_masse_documents&action=generate_zip', 'method' => 'POST', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=dashboard_securite', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=comparaison_versions_document', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=fiche_personnel_admin', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=dashboard_direction', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['secretaire'] => $view,
+        $groups['responsable_scolarite'] => $view,
+    ],
+]);
+
+// ════════════════════════════════════════════════════════════════
 
 return [
     'version' => '2026-03-12',

@@ -1648,11 +1648,16 @@ table .cm-clickable-row:focus-visible td {
 }
 
 .cm-tab-nav__item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-right: 1px solid var(--cm-border-color);
   background: transparent;
   color: var(--cm-primary-dark);
   padding: var(--cm-spacing-sm) var(--cm-spacing-md);
+  text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
   font-size: var(--cm-font-size-sm);
 }

@@ -979,6 +979,182 @@ switch ($currentMenuSlug) {
         $contentFile = $partialsBasePath . 'v2/archives/timeline_interactive.php';
         $currentPageLabel = 'Timeline parcours etudiant';
         break;
+
+    // ════════════════════════════════════════════════════════
+    // HUBS DE NAVIGATION (remaniement menus 2026-05-19)
+    // Les routeurs sont déjà include'd plus haut mais leurs
+    // conditions vérifient $_GET['page'] === 'slugoriginel', ce
+    // qui échoue depuis un hub. On initialise donc directement
+    // les contrôleurs ici pour chaque onglet.
+    // ════════════════════════════════════════════════════════
+
+    case 'suivi_scolarite':
+        $hubTab = (string) ($_GET['tab'] ?? 'fiche_financiere_annee');
+        // Les routeurs sont include'd plus haut mais leurs
+        // conditions vérifient $_GET['page'] !== hub → on initialise ici
+        switch ($hubTab) {
+            case 'fiche_financiere_annee':
+                require_once __DIR__ . '/../app/controllers/FicheFinanciereController.php';
+                (new FicheFinanciereController())->index();
+                break;
+            case 'historique_inscriptions':
+                require_once __DIR__ . '/../app/controllers/HistoriqueInscriptionsController.php';
+                $histData = (new HistoriqueInscriptionsController())->index();
+                $etudiant = $histData['etudiant'] ?? null;
+                if ($etudiant !== null && is_object($etudiant)) $etudiant = (array) $etudiant;
+                $parcours = $histData['parcours'] ?? [];
+                $notes = $histData['notes'] ?? [];
+                break;
+            case 'timeline_parcours_etudiant':
+                try {
+                    require_once __DIR__ . '/../app/controllers/ArchiveEtudiantController.php';
+                    $matriculeTl = trim((string) ($_GET['num_etu'] ?? $_GET['matricule'] ?? $_GET['id'] ?? ''));
+                    if ($matriculeTl === '') {
+                        $GLOBALS['timeline_error'] = 'Matricule étudiant requis.';
+                        $GLOBALS['timeline_data'] = ['matricule' => '', 'evenements' => []];
+                    } else {
+                        $GLOBALS['timeline_data'] = (new ArchiveEtudiantController(Database::getConnection()))->parcours($matriculeTl);
+                    }
+                } catch (Exception $e) {
+                    error_log('Erreur timeline hub: ' . $e->getMessage());
+                    $GLOBALS['timeline_error'] = 'Erreur de chargement.';
+                    $GLOBALS['timeline_data'] = ['matricule' => '', 'evenements' => []];
+                }
+                break;
+            case 'fiche_etudiant_complete':
+                break;
+            case 'etudiants_sans_compte':
+                require_once __DIR__ . '/../app/models/Utilisateur.php';
+                $utilisateurModel = new Utilisateur(Database::getConnection());
+                $etudiantsSansCompteList = $utilisateurModel->getEtudiantsNonUtilisateurs();
+                break;
+        }
+        $contentFile = $partialsBasePath . 'suivi_scolarite_content.php';
+        $currentPageLabel = 'Suivi & Scolarité';
+        break;
+
+    case 'commissions_archives':
+        $hubTab = (string) ($_GET['tab'] ?? 'archives_documents');
+        if ($hubTab === 'fiche_commission') {
+            require_once __DIR__ . '/../app/controllers/FicheCommissionController.php';
+            $fcData = (new FicheCommissionController())->index();
+            $membres = $fcData['membres'] ?? [];
+            $rapportsEvalues = $fcData['rapports_evalues'] ?? [];
+            $rapportsAttente = $fcData['rapports_attente'] ?? [];
+            $statsVote = $fcData['stats_vote'] ?? [];
+            $decisions = $fcData['decisions'] ?? [];
+            $planning = $fcData['planning'] ?? [];
+        }
+        $contentFile = $partialsBasePath . 'commissions_archives_content.php';
+        $currentPageLabel = 'Commissions & Archives';
+        break;
+
+    case 'enseignant_gestion':
+        $hubTab = (string) ($_GET['tab'] ?? 'repertoire_enseignant');
+        switch ($hubTab) {
+            case 'repertoire_enseignant':
+                $repService = new \CheckMaster\Services\RepertoireEnseignantService(Database::getConnection());
+                $repService->index();
+                break;
+            case 'fiche_enseignante':
+                require_once __DIR__ . '/../app/controllers/FicheEnseignantController.php';
+                $ensCtrl = new FicheEnseignantController();
+                if ((string) ($_GET['view'] ?? 'liste') === 'fiche' && isset($_GET['id']) && $_GET['id'] !== '') {
+                    $ensCtrl->fiche((string) $_GET['id']);
+                } else {
+                    $ensCtrl->index();
+                }
+                break;
+            case 'annuaire_enseignants':
+                try {
+                    $dbAnn = Database::getConnection();
+                    $filtreGrade = isset($_GET['grade']) ? (int) $_GET['grade'] : null;
+                    $filtreSpecialite = isset($_GET['specialite']) ? (int) $_GET['specialite'] : null;
+                    $filtreType = isset($_GET['type_enseignant']) ? (int) $_GET['type_enseignant'] : null;
+                    $searchAnn = trim((string) ($_GET['search'] ?? ''));
+                    $page = max(1, (int) ($_GET['p'] ?? 1));
+                    $perPage = 20;
+                    $offset = ($page - 1) * $perPage;
+
+                    $where = []; $params = [];
+                    if ($filtreGrade !== null && $filtreGrade > 0) { $where[] = 'a.id_grade = :grade'; $params[':grade'] = $filtreGrade; }
+                    if ($filtreSpecialite !== null && $filtreSpecialite > 0) { $where[] = 'ens.id_specialite = :specialite'; $params[':specialite'] = $filtreSpecialite; }
+                    if ($filtreType !== null && $filtreType > 0) { $where[] = 'ens.type_enseignant = :type_ens'; $params[':type_ens'] = $filtreType; }
+                    if ($searchAnn !== '') { $where[] = '(ens.nom_enseignant LIKE :search OR ens.prenom_enseignant LIKE :search2 OR ens.mail_enseignant LIKE :search3)'; $params[':search'] = '%'.$searchAnn.'%'; $params[':search2'] = '%'.$searchAnn.'%'; $params[':search3'] = '%'.$searchAnn.'%'; }
+                    $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
+                    $countStmt = $dbAnn->prepare("SELECT COUNT(*) FROM enseignants ens LEFT JOIN avoir a ON ens.id_enseignant = a.id_enseignant {$whereClause}");
+                    $countStmt->execute($params);
+                    $total = (int) ($countStmt->fetchColumn() ?: 0);
+
+                    $sql = "SELECT ens.*, g.lib_grade, s.lib_specialite, te.libelle AS lib_type_enseignant FROM enseignants ens LEFT JOIN avoir a ON ens.id_enseignant = a.id_enseignant LEFT JOIN grade g ON a.id_grade = g.id_grade LEFT JOIN specialite s ON ens.id_specialite = s.id_specialite LEFT JOIN type_enseignant te ON ens.type_enseignant = te.id_type_enseignant {$whereClause} ORDER BY ens.nom_enseignant ASC LIMIT :limit OFFSET :offset";
+                    $params[':limit'] = $perPage; $params[':offset'] = $offset;
+                    $stmt = $dbAnn->prepare($sql);
+                    foreach ($params as $key => $value) { $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR); }
+                    $stmt->execute();
+                    $enseignantsAnn = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    $annuaireGrades = $dbAnn->query("SELECT id_grade, lib_grade FROM grade ORDER BY lib_grade")->fetchAll(PDO::FETCH_ASSOC);
+                    $annuaireSpecialites = $dbAnn->query("SELECT id_specialite, lib_specialite FROM specialite ORDER BY lib_specialite")->fetchAll(PDO::FETCH_ASSOC);
+                    $annuaireTypes = $dbAnn->query("SELECT id_type_enseignant, libelle AS lib_type_enseignant FROM type_enseignant ORDER BY libelle")->fetchAll(PDO::FETCH_ASSOC);
+
+                    if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+                        header('Content-Type: text/csv; charset=utf-8');
+                        header('Content-Disposition: attachment; filename="annuaire_enseignants_' . date('Y-m-d') . '.csv"');
+                        $output = fopen('php://output', 'w');
+                        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+                        fputcsv($output, ['N','Nom','Prenom','Grade','Specialite','Type','Email','Telephone']);
+                        foreach ($enseignantsAnn as $i => $ens) { fputcsv($output, [$i+1,$ens['nom_enseignant']??'',$ens['prenom_enseignant']??'',$ens['lib_grade']??'',$ens['lib_specialite']??'',$ens['lib_type_enseignant']??'',$ens['mail_enseignant']??'',$ens['tel_enseignant']??'']); }
+                        fclose($output); exit;
+                    }
+
+                    $totalPages = max(1, (int) ceil($total / $perPage));
+                    $GLOBALS['annuaire_enseignants'] = $enseignantsAnn;
+                    $GLOBALS['annuaire_grades'] = $annuaireGrades;
+                    $GLOBALS['annuaire_specialites'] = $annuaireSpecialites;
+                    $GLOBALS['annuaire_types'] = $annuaireTypes;
+                    $GLOBALS['annuaire_pagination'] = ['total'=>$total,'current'=>$page,'last'=>$totalPages,'per_page'=>$perPage,'offset'=>$offset,'has_prev'=>$page>1,'has_next'=>$page<$totalPages,'pages'=>range(1,$totalPages)];
+                    $GLOBALS['annuaire_filtre_grade'] = $filtreGrade;
+                    $GLOBALS['annuaire_filtre_specialite'] = $filtreSpecialite;
+                    $GLOBALS['annuaire_filtre_type'] = $filtreType;
+                    $GLOBALS['annuaire_search'] = $searchAnn;
+                } catch (Exception $e) {
+                    error_log('Erreur annuaire hub: ' . $e->getMessage());
+                    $GLOBALS['annuaire_enseignants'] = [];
+                    $GLOBALS['annuaire_grades'] = []; $GLOBALS['annuaire_specialites'] = []; $GLOBALS['annuaire_types'] = [];
+                    $GLOBALS['annuaire_pagination'] = ['total'=>0,'current'=>1,'last'=>1,'per_page'=>20,'offset'=>0,'has_prev'=>false,'has_next'=>false,'pages'=>[1]];
+                }
+                break;
+        }
+        $contentFile = $partialsBasePath . 'enseignant_gestion_content.php';
+        $currentPageLabel = 'Gestion des Enseignants';
+        break;
+
+    case 'outils_direction':
+        $hubTab = (string) ($_GET['tab'] ?? 'documents');
+        switch ($hubTab) {
+            case 'documents':
+                require_once __DIR__ . '/../app/controllers/DocumentsController.php';
+                $data = (new DocumentsController())->index();
+                break;
+            case 'dashboard_direction':
+                require_once __DIR__ . '/../app/controllers/DashboardDirectionController.php';
+                (new DashboardDirectionController())->index();
+                break;
+            case 'fiche_personnel_admin':
+                require_once __DIR__ . '/../app/controllers/FichePersAdminController.php';
+                $fpData = (new FichePersAdminController())->index();
+                $identite = $fpData['identite'] ?? null;
+                $compte = $fpData['compte'] ?? null;
+                $candidatures = $fpData['candidatures'] ?? [];
+                $historique = $fpData['historique'] ?? [];
+                $stats = $fpData['stats'] ?? [];
+                break;
+        }
+        $contentFile = $partialsBasePath . 'outils_direction_content.php';
+        $currentPageLabel = 'Outils & Direction';
+        break;
+
     default:
         $groupeUtilisateur = $_SESSION['lib_GU'];
         if ($groupeUtilisateur) {
@@ -1027,6 +1203,10 @@ $canonicalPageLabels = [
     'sauvegarde_restauration' => 'Sauvegardes et restauration',
     'tableau_bord_enseignant' => 'Mon tableau de bord — Enseignant',
     'fiche_etudiant_complete' => 'Fiche Étudiante Complete',
+    'suivi_scolarite' => 'Suivi & Scolarité',
+    'commissions_archives' => 'Commissions & Archives',
+    'enseignant_gestion' => 'Gestion des Enseignants',
+    'outils_direction' => 'Outils & Direction',
 ];
 $labelKey = $currentMenuSlug . ($currentAction !== null ? ':' . $currentAction : '');
 if (isset($canonicalActionLabels[$labelKey])) {

@@ -564,6 +564,13 @@ foreach ($rapportsRecents as $rapportItem) {
             $statutBadge = 'success';
             $statutText = 'Validé';
         }
+        $decisionDisponible = in_array($dernierStatut, ['valider', 'rejeter'], true);
+        $decisionLabel = $dernierStatut === 'valider'
+            ? 'Décision favorable'
+            : ($dernierStatut === 'rejeter' ? 'Décision défavorable' : 'À venir');
+        $decisionDate = $decisionDisponible
+            ? $formatDate((string) ($rapportEnCours->date_modification ?? $rapportEnCours->date_depot ?? ''), true)
+            : 'En attente';
 
         $followSteps = [
                 [
@@ -582,19 +589,17 @@ foreach ($rapportsRecents as $rapportItem) {
                 ],
                 [
                         'title' => 'Commission',
-                        'meta' => $statutText,
-                        'date' => in_array($dernierStatut, ['valider', 'rejeter'], true)
-                                ? $formatDate((string) ($rapportEnCours->date_depot ?? ''), true)
-                                : 'En attente',
-                        'class' => in_array($dernierStatut, ['valider', 'rejeter'], true) ? 'is-done' : ($isDepose ? 'is-current' : ''),
-                        'dot' => in_array($dernierStatut, ['valider', 'rejeter'], true) ? '✓' : '•',
+                        'meta' => $decisionDisponible ? 'Décision rendue' : 'En attente de décision',
+                        'date' => $decisionDate,
+                        'class' => $decisionDisponible ? 'is-done' : ($isDepose ? 'is-current' : ''),
+                        'dot' => $decisionDisponible ? '✓' : '•',
                 ],
                 [
                         'title' => 'Résultat',
-                        'meta' => in_array($dernierStatut, ['valider', 'rejeter'], true) ? $statutText : 'À venir',
-                        'date' => in_array($dernierStatut, ['valider', 'rejeter'], true) ? 'Décision disponible' : '—',
-                        'class' => in_array($dernierStatut, ['valider', 'rejeter'], true) ? 'is-done' : '',
-                        'dot' => in_array($dernierStatut, ['valider', 'rejeter'], true) ? '✓' : '•',
+                        'meta' => $decisionLabel,
+                        'date' => $decisionDisponible ? 'Décision disponible' : '—',
+                        'class' => $decisionDisponible ? 'is-done' : '',
+                        'dot' => $decisionDisponible ? '✓' : '•',
                 ],
         ];
         ?>

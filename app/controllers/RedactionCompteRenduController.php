@@ -35,13 +35,36 @@ class RedactionCompteRenduController {
                 header('Location: layout.php?page=access_denied');
                 exit;
             }
+            $reportsPayload = $this->decodeReportsPayload($_POST['cm_reports_payload'] ?? '');
+            $rapportIds = isset($_POST['rapports']) ? (array) $_POST['rapports'] : [];
+            $encadrants = is_array($_POST['encadrant_pedagogique'] ?? null) ? $_POST['encadrant_pedagogique'] : [];
+            $directeurs = is_array($_POST['directeur_memoire'] ?? null) ? $_POST['directeur_memoire'] : [];
+            $numEtu = $_POST['num_etu'] ?? null;
+
+            foreach ($reportsPayload as $payloadRow) {
+                $idRapport = (int) ($payloadRow['id_rapport'] ?? 0);
+                if ($idRapport <= 0) {
+                    continue;
+                }
+                $rapportIds[] = $idRapport;
+                if (!isset($encadrants[$idRapport]) && isset($payloadRow['encadrant'])) {
+                    $encadrants[$idRapport] = (string) $payloadRow['encadrant'];
+                }
+                if (!isset($directeurs[$idRapport]) && isset($payloadRow['directeur'])) {
+                    $directeurs[$idRapport] = (string) $payloadRow['directeur'];
+                }
+                if ((empty($numEtu) || trim((string) $numEtu) === '') && !empty($payloadRow['num_etu'])) {
+                    $numEtu = (string) $payloadRow['num_etu'];
+                }
+            }
+
             $result = $this->service->enregistrer([
-                'num_etu'               => $_POST['num_etu'] ?? null,
+                'num_etu'               => $numEtu,
                 'nom_CR'                => $_POST['nom_CR'] ?? '',
                 'contenu_CR'            => $_POST['contenu_CR'] ?? '',
-                'rapports'              => isset($_POST['rapports']) ? $_POST['rapports'] : [],
-                'encadrant_pedagogique' => $_POST['encadrant_pedagogique'] ?? [],
-                'directeur_memoire'     => $_POST['directeur_memoire'] ?? [],
+                'rapports'              => $rapportIds,
+                'encadrant_pedagogique' => $encadrants,
+                'directeur_memoire'     => $directeurs,
                 'submit_action'         => $_POST['submit_action'] ?? 'save',
             ]);
 
@@ -91,5 +114,24 @@ class RedactionCompteRenduController {
             echo '<p><a href="javascript:history.back()">Retour</a></p>';
             exit;
         }
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function decodeReportsPayload($rawPayload): array
+    {
+        if (!is_string($rawPayload) || trim($rawPayload) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($rawPayload, true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        return array_values(array_filter($decoded, static function ($row): bool {
+            return is_array($row) && (int) ($row['id_rapport'] ?? 0) > 0;
+        }));
     }
 }

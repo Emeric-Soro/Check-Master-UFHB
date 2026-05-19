@@ -384,23 +384,32 @@ class GestionRapportController
 
     private function verifierDroitsAdmin()
     {
-        return isset($_SESSION['lib_GU']) && in_array($_SESSION['lib_GU'], ['administrateur', 'admin']);
+        return $this->hasRapportAdminPermission('voir');
     }
 
     private function isAdminGroup()
     {
-        if (!isset($_SESSION['id_GU'])) {
-            return false;
+        return $this->hasRapportAdminPermission('voir');
+    }
+
+    private function hasRapportAdminPermission(string $action = 'voir'): bool
+    {
+        switch ($action) {
+            case 'creer':
+                return canCreate('telecharger_rapport');
+            case 'modifier':
+                return canEdit('telecharger_rapport');
+            case 'supprimer':
+                return canDelete('telecharger_rapport');
+            case 'voir':
+            default:
+                return canView('telecharger_rapport');
         }
-        $adminGroups = [5, 6, 8]; // administrateur, secretaire, responsable_scolarite
-        return in_array((int) $_SESSION['id_GU'], $adminGroups, true);
     }
 
     private function getRapportAdminPage(): string
     {
-        return (isset($_GET['page']) && $_GET['page'] === 'telecharger_rapport')
-            ? 'telecharger_rapport'
-            : 'gestion_rapports';
+        return 'telecharger_rapport';
     }
 
     // ======================== PRD 1 : Téléchargement/Dépôt côté étudiant ========================
@@ -593,7 +602,7 @@ class GestionRapportController
      */
     public function adminTelechargerRapport()
     {
-        if (!$this->isAdminGroup()) {
+        if (!$this->hasRapportAdminPermission('voir')) {
             $_SESSION['error'] = "Accès non autorisé.";
             header('Location: ?page=gestion_rapports&action=telecharger_rapport');
             exit;
@@ -622,7 +631,7 @@ class GestionRapportController
     public function traiterAdminUploadRapport()
     {
         try {
-            if (!$this->isAdminGroup()) {
+            if (!$this->hasRapportAdminPermission('creer')) {
                 $_SESSION['error'] = "Accès non autorisé.";
                 header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
                 exit;
@@ -675,7 +684,7 @@ class GestionRapportController
     {
         header('Content-Type: application/json; charset=utf-8');
 
-        if (!$this->isAdminGroup()) {
+        if (!$this->hasRapportAdminPermission('voir')) {
             echo json_encode(['success' => false, 'message' => 'Accès non autorisé.']);
             exit;
         }
@@ -714,7 +723,7 @@ class GestionRapportController
      */
     public function exporterRapportsCsv()
     {
-        if (!$this->isAdminGroup()) {
+        if (!$this->hasRapportAdminPermission('voir')) {
             $_SESSION['error'] = "Accès non autorisé.";
             header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
@@ -774,7 +783,7 @@ class GestionRapportController
      */
     public function updateRapportInline()
     {
-        if (!$this->isAdminGroup()) {
+        if (!$this->hasRapportAdminPermission('modifier')) {
             $_SESSION['error'] = "Accès non autorisé.";
             header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;

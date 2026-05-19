@@ -504,7 +504,7 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
         if (loginHint) {
             loginHint.textContent = sourceEmail
                 ? "Email de l'entité détecté pour les notifications. Login généré automatiquement."
-                : "Aucun email source valide trouvé pour ce profil. Renseignez l'email dans l'entité avant création.";
+                : "Info: aucun email source valide. La création du compte reste possible, mais aucun accès ne sera envoyé tant que l'email n'est pas renseigné.";
         }
         if (suggestedLogin) {
             checkLoginAvailability(suggestedLogin.trim());
@@ -517,9 +517,14 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
             .then(function (data) {
                 const prefix = String(getSelectedSourceEmail() || '').trim()
                     ? "Email entité détecté. "
-                    : "Aucun email source valide. ";
+                    : "Info: aucun email source valide. ";
                 if (!data || !data.success) { loginHint.textContent = prefix + 'Verification login impossible.'; return; }
-                if (data.available) { loginHint.textContent = prefix + 'Login disponible.'; return; }
+                if (data.available) {
+                    loginHint.textContent = prefix + (String(getSelectedSourceEmail() || '').trim()
+                        ? 'Login disponible.'
+                        : "Login disponible. Le compte sera créé sans envoi d'accès.");
+                    return;
+                }
                 loginHint.textContent = data.suggestedLogin ? ('Login deja pris. Suggestion: ' + data.suggestedLogin) : (data.message || 'Login indisponible.');
             })
             .catch(function () { loginHint.textContent = ''; });

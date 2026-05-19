@@ -128,6 +128,7 @@ class RecuDataUtils
                 i.num_carte_etud,
                 i.id_annee_acad,
                 i.num_versement,
+                i.date_inscription,
                 i.solde AS reste_a_payer,
                 (
                     SELECT COALESCE(SUM(i2.montant_verser), 0)
@@ -135,12 +136,15 @@ class RecuDataUtils
                     WHERE i2.num_carte_etud = i.num_carte_etud
                       AND i2.id_annee_acad = i.id_annee_acad
                 ) AS montant_paye,
+                COALESCE(f.montant, 0) AS montant_total,
                 CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) AS libelle_annee,
                 COALESCE(n.lib_niv_etude, '') AS code_niveau,
                 COALESCE(n.lib_niv_etude, '') AS code_filiere
              FROM inscriptions i
              LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
              LEFT JOIN niveau_etude n ON n.id_niv_etude = i.id_niv_etude
+             LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad
+                AND f.id_niv_etude = i.id_niv_etude
              WHERE i.num_carte_etud = :num_carte_etud
                AND i.id_annee_acad = :id_annee_acad
                AND i.num_versement = :num_versement

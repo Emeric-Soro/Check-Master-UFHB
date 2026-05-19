@@ -3,6 +3,9 @@ $rapportsValides = is_array($GLOBALS['rapports_valides'] ?? null) ? $GLOBALS['ra
 $enseignantsRaw = is_array($GLOBALS['enseignants'] ?? null) ? $GLOBALS['enseignants'] : [];
 $allYearsSelected = \AcademicYear::isAllSelectedFromSession();
 $writableYearLabel = \AcademicYear::getWritableLabelFromSession();
+$successMessage = (string) ($_SESSION['success'] ?? '');
+$errorMessage = (string) ($_SESSION['error'] ?? '');
+unset($_SESSION['success'], $_SESSION['error']);
 $academicYearLabels = [];
 foreach (\AcademicYear::fetchAll(Database::getConnection()) as $academicYear) {
     $academicYearLabels[(int) ($academicYear['id'] ?? 0)] = (string) ($academicYear['label'] ?? '');
@@ -178,6 +181,12 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
 ?>
 
 <div class="cm-prd3-screen cm-prd3-crud-screen">
+    <?php if ($successMessage !== ''): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => $successMessage]); ?>
+    <?php endif; ?>
+    <?php if ($errorMessage !== ''): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $errorMessage]); ?>
+    <?php endif; ?>
     <?php if ($allYearsSelected): ?>
         <?php cm_component('ui/alert-box', [
             'type' => 'info',
@@ -266,6 +275,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                         <?php cm_component('form/csrf-token'); ?>
                         <input type="hidden" name="num_etu" id="cmCrNumEtu" value="">
                         <input type="hidden" name="cm_reports_payload" id="cmCrReportsPayload" value="">
+                        <div id="cmCrReportInputs" hidden></div>
 
                         <?php
                         cm_component('form/input-text', [
@@ -291,19 +301,22 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                             <span id="cmCrAutoSaveLabel">Sauvegarde auto: inactive</span>
                             <span id="cmCrLastSaveLabel">Derniere sauvegarde: --:--</span>
                         </div>
+                        <div class="cm-text-xs cm-text-muted cm-mb-sm">
+                            Enregistrer sauvegarde le compte rendu. Les boutons avec notification enregistrent puis envoient l'information au groupe choisi.
+                        </div>
 
                         <div class="cm-form-buttons cm-cr-actions">
                             <button class="cm-btn is-info" type="button" id="cmCrSaveDraftBtn">
                                 <i class="fas fa-save" aria-hidden="true"></i>
-                                Sauv. brouillon
+                                Brouillon local
                             </button>
                             <button class="cm-btn is-info" type="button" id="cmCrToggleAutoSaveBtn">
                                 <i class="fas fa-clock" aria-hidden="true"></i>
-                                Sauvegarde auto
+                                Auto local
                             </button>
                             <button class="cm-btn is-info" type="button" id="cmCrPreviewBtn">
                                 <i class="fas fa-eye" aria-hidden="true"></i>
-                                Aperçu
+                                Aperçu PDF
                             </button>
                             <button class="cm-btn is-light" type="button" id="cmCrPrintBtn" onclick="window.print()">
                                 <i class="fas fa-print" aria-hidden="true"></i>
@@ -311,7 +324,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                             </button>
                             <button class="cm-btn is-light" type="button" id="cmCrResetBtn">
                                 <i class="fas fa-undo" aria-hidden="true"></i>
-                                Remettre à 0
+                                Réinitialiser
                             </button>
                             <button class="cm-btn is-primary" type="submit" id="cmCrSubmitBtn" name="submit_action" value="save">
                                 <i class="fas fa-check" aria-hidden="true"></i>
@@ -319,19 +332,19 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                             </button>
                             <button class="cm-btn is-info" type="submit" name="submit_action" value="save_notify_students">
                                 <i class="fas fa-user-graduate" aria-hidden="true"></i>
-                                Enreg. + Étudiants
+                                Enregistrer + étudiants
                             </button>
                             <button class="cm-btn is-info" type="submit" name="submit_action" value="save_notify_commission">
                                 <i class="fas fa-users" aria-hidden="true"></i>
-                                Enreg. + Commission
+                                Enregistrer + commission
                             </button>
                             <button class="cm-btn is-info" type="submit" name="submit_action" value="save_notify_responsables">
                                 <i class="fas fa-user-tie" aria-hidden="true"></i>
-                                Enreg. + Responsables
+                                Enregistrer + responsables
                             </button>
                             <button class="cm-btn is-light" type="submit" name="submit_action" value="save_notify_all">
                                 <i class="fas fa-paper-plane" aria-hidden="true"></i>
-                                Tout envoyer
+                                Enregistrer + tout notifier
                             </button>
                         </div>
                     </form>
@@ -347,6 +360,8 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     const enseignantOptions = <?php echo json_encode($enseignantOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const legacyTemplate = <?php echo json_encode($legacyTemplateHtml, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const storageKey = 'cm_cr_draft_v1';
+    const flashSuccess = <?php echo json_encode($successMessage, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const flashError = <?php echo json_encode($errorMessage, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
     const form = document.getElementById('cmCompteRenduForm');
     const reportPicker = document.getElementById('cmCrReportPicker');
@@ -356,6 +371,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     const assignmentsContainer = document.getElementById('cmCrAssignments');
     const hiddenNumEtu = document.getElementById('cmCrNumEtu');
     const hiddenPayload = document.getElementById('cmCrReportsPayload');
+    const reportInputsHost = document.getElementById('cmCrReportInputs');
     const editorInput = document.getElementById('cmCrContenu');
     const nomInput = document.getElementById('cmCrNom');
 
@@ -371,6 +387,20 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     let selectedIds = [];
     let autoSaveTimer = null;
     let draftState = {};
+
+    function normalizeSelectedIds(ids) {
+        const unique = [];
+        const seen = {};
+        (Array.isArray(ids) ? ids : []).forEach(function (rawId) {
+            const id = parseInt(rawId, 10);
+            if (!id || !reports[id] || seen[id]) {
+                return;
+            }
+            seen[id] = true;
+            unique.push(id);
+        });
+        return unique;
+    }
 
     function syncEditorValue() {
         const editorDiv = document.getElementById('cmCrContenu_editor');
@@ -420,11 +450,14 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
             return;
         }
         const currentHtml = editorDiv.innerHTML || '';
-        if (currentHtml.indexOf('id=\"casDynamique\"') === -1) {
+        if (!/id=(["'])casDynamique\1/i.test(currentHtml)) {
             return;
         }
         const casesHtml = buildCasesHtml();
-        const updated = currentHtml.replace(/<div id=\"casDynamique\">[\s\S]*?<\/div>/, '<div id=\"casDynamique\">' + casesHtml + '</div>');
+        const updated = currentHtml.replace(
+            /<div id=(["'])casDynamique\1>[\s\S]*?<\/div>/i,
+            '<div id="casDynamique">' + casesHtml + '</div>'
+        );
         editorDiv.innerHTML = updated;
         editorInput.value = updated;
     }
@@ -440,11 +473,22 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     }
 
     function syncHiddenData() {
+        selectedIds = normalizeSelectedIds(selectedIds);
         const payload = [];
         const firstReport = selectedIds.length > 0 ? reports[selectedIds[0]] : null;
         hiddenNumEtu.value = firstReport ? (firstReport.num_etu || '') : '';
+        if (reportInputsHost) {
+            reportInputsHost.innerHTML = '';
+        }
 
         selectedIds.forEach(function (id) {
+            if (reportInputsHost) {
+                const reportInput = document.createElement('input');
+                reportInput.type = 'hidden';
+                reportInput.name = 'rapports[]';
+                reportInput.value = String(id);
+                reportInputsHost.appendChild(reportInput);
+            }
             payload.push({
                 id_rapport: id,
                 num_etu: reports[id] ? reports[id].num_etu : '',
@@ -470,6 +514,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     }
 
     function renderSelected() {
+        selectedIds = normalizeSelectedIds(selectedIds);
         selectedContainer.innerHTML = '';
         assignmentsContainer.innerHTML = '';
 
@@ -484,8 +529,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
             const existingCrNotice = report.existing_cr_id
                 ? '<div class=\"cm-text-xs cm-text-muted\" style=\"margin-top:0.35rem;\">Ce rapport est déjà lié au CR #' + report.existing_cr_id + '. Un nouvel enregistrement mettra ce CR à jour.</div>'
                 : '';
-            item.innerHTML = '<input type=\"hidden\" name=\"rapports[]\" value=\"' + id + '\">' +
-                '<div style=\"display:flex;justify-content:space-between;align-items:center;gap:0.5rem;\">' +
+            item.innerHTML = '<div style=\"display:flex;justify-content:space-between;align-items:center;gap:0.5rem;\">' +
                     '<div class=\"cm-text-sm\"><strong>#' + id + '</strong> - ' + String(report.theme_rapport || '').replace(/[<>]/g, '') +
                     '<br><span class=\"cm-text-muted\">' + String(report.student || '').replace(/[<>]/g, '') + '</span>' + existingCrNotice + '</div>' +
                     '<button type=\"button\" class=\"cm-btn-action is-delete\" data-remove-id=\"' + id + '\"><i class=\"fas fa-times\" aria-hidden=\"true\"></i></button>' +
@@ -561,7 +605,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         try {
             draftState = JSON.parse(raw) || {};
             if (Array.isArray(draftState.selectedIds)) {
-                selectedIds = draftState.selectedIds.map(function (id) { return parseInt(id, 10); }).filter(Boolean);
+                selectedIds = normalizeSelectedIds(draftState.selectedIds);
             }
             if (nomInput && draftState.nom) {
                 nomInput.value = draftState.nom;
@@ -641,6 +685,8 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                 return;
             }
             selectedIds.push(id);
+            selectedIds = normalizeSelectedIds(selectedIds);
+            reportPicker.value = '';
             renderSelected();
         });
     }
@@ -729,6 +775,13 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
 
     if (draftCountEl) {
         draftCountEl.textContent = localStorage.getItem(storageKey + '_count') || '0';
+    }
+
+    if (flashSuccess) {
+        localStorage.removeItem(storageKey);
+        localStorage.removeItem(storageKey + '_count');
+        draftState = {};
+        selectedIds = [];
     }
 
     loadDraft();
