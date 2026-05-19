@@ -140,7 +140,7 @@ class PlanificationSoutenanceService
                 LEFT JOIN LATERAL (
                         SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement, i2.date_inscription
                         FROM inscriptions i2 
-                        WHERE i2.num_carte_etud = e.num_carte_etud 
+                        WHERE (i2.num_carte_etud = e.num_carte_etud OR i2.num_carte_etud = e.num_ident_etud)
                         ORDER BY i2.date_inscription DESC, i2.num_versement DESC LIMIT 1
                     ) ins ON TRUE
                 WHERE p.{$idColumn} = ?

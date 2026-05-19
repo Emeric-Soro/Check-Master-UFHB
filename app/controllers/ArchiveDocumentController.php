@@ -159,9 +159,9 @@ class ArchiveDocumentController
                         re.date_redaction_rapport as date_depot,
                         re.taille_fichier as taille,
                         CONCAT(e.nom_etu, ' ', e.prenom_etu) as etudiant,
-                        e.num_carte_etud
+                        COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud
                     FROM rapport_etudiants re
-                    JOIN etudiants e ON re.num_etu = e.num_carte_etud
+                    JOIN etudiants e ON (re.num_etu = e.num_carte_etud OR re.num_etu = e.num_ident_etud)
                     WHERE (
                         (re.chemin_fichier IS NOT NULL AND re.chemin_fichier <> '')
                         OR EXISTS (
@@ -200,9 +200,9 @@ class ArchiveDocumentController
                         cr.date_CR as date_depot,
                         NULL as taille,
                         CONCAT(e.nom_etu, ' ', e.prenom_etu) as etudiant,
-                        e.num_carte_etud
+                        COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud
                     FROM compte_rendu cr
-                    JOIN etudiants e ON cr.num_etu = e.num_carte_etud
+                    JOIN etudiants e ON (cr.num_etu = e.num_carte_etud OR cr.num_etu = e.num_ident_etud)
                     WHERE " . $this->buildCompteRenduAvailabilitySql('cr') . "
                       AND cr.nom_CR NOT LIKE 'BULLETIN_%'";
 
@@ -313,10 +313,10 @@ class ArchiveDocumentController
         }
 
         $ids = array_keys($matricules);
-        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
-        $sql = "SELECT num_carte_etud, nom_etu, prenom_etu FROM etudiants WHERE num_carte_etud IN ($placeholders)";
+        $placeholder = implode(', ', array_fill(0, count($ids), '?'));
+        $sql = "SELECT num_carte_etud, num_ident_etud, nom_etu, prenom_etu FROM etudiants WHERE num_carte_etud IN ($placeholder) OR num_ident_etud IN ($placeholder)";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute($ids);
+        $stmt->execute(array_merge($ids, $ids));
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $labels = [];

@@ -572,11 +572,11 @@ class RapportEtudiant
             $stmt = $this->pdo->prepare("
                 SELECT e.*, COUNT(r.id_rapport) as nb_rapports
                 FROM etudiants e
-                LEFT JOIN rapport_etudiants r ON e.num_carte_etud = r.num_etu
-                WHERE e.num_carte_etud = ?
+                LEFT JOIN rapport_etudiants r ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
+                WHERE (e.num_ident_etud = ? OR e.num_carte_etud = ?)
                 GROUP BY e.num_carte_etud
             ");
-            $stmt->execute([$num_etu]);
+            $stmt->execute([$num_etu, $num_etu]);
             return $stmt->fetch(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
             error_log("Erreur récupération info étudiant: " . $e->getMessage());

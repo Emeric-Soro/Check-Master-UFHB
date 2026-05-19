@@ -66,8 +66,8 @@ class EvaluationSoutenanceService
             $orderParts[] = 'id_annee_acad DESC';
             $orderBy = ' ORDER BY ' . implode(', ', array_unique($orderParts));
 
-            $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM inscriptions WHERE num_carte_etud = ?" . $orderBy . " LIMIT 1");
-            $stmt->execute([$numEtu]);
+            $stmt = $this->pdo->prepare("SELECT i.id_annee_acad FROM inscriptions i JOIN etudiants e ON (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud) WHERE (e.num_carte_etud = ? OR e.num_ident_etud = ?) " . $orderBy . " LIMIT 1");
+            $stmt->execute([$numEtu, $numEtu]);
             $value = $stmt->fetchColumn();
             if (is_numeric($value) && (int) $value > 0) {
                 return (int) $value;
@@ -81,7 +81,7 @@ class EvaluationSoutenanceService
                 $stmt = $this->pdo->prepare("
                     SELECT i.id_annee_acad
                     FROM inscriptions i
-                    INNER JOIN etudiants e ON e.num_carte_etud = i.num_carte_etud
+                    INNER JOIN etudiants e ON (e.num_carte_etud = i.num_carte_etud OR e.num_ident_etud = i.num_carte_etud)
                     WHERE e.num_ident_etud = ?
                     ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
                     LIMIT 1
@@ -1321,9 +1321,9 @@ class EvaluationSoutenanceService
                     SELECT n.moyenne_M1, n.moyenne_M2
                     FROM notes n
                     JOIN etudiants e ON n.num_etu = e.num_ident_etud
-                    WHERE e.num_carte_etud = ?
+                    WHERE (e.num_ident_etud = ? OR e.num_carte_etud = ?)
                 ";
-                $params = [$numEtu];
+                $params = [$numEtu, $numEtu];
                 if ($selectedYearId !== null && $selectedYearId > 0 && $this->columnExists('notes', 'id_annee_acad')) {
                     $sql .= " AND n.id_annee_acad = ?";
                     $params[] = $selectedYearId;

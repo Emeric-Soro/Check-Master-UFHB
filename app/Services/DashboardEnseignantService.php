@@ -170,7 +170,7 @@ class DashboardEnseignantService
         $etudiantsSuivantCours = [];
         foreach ($etudiants as $etudiant) {
             if (in_array($etudiant->id_niv_etude, $niveauIds)) {
-                $studentKey = (string) ($etudiant->num_carte_etud ?? $etudiant->num_etu ?? '');
+                $studentKey = (string) ($etudiant->num_ident_etud ?? $etudiant->num_carte_etud ?? $etudiant->num_etu ?? '');
                 if ($studentKey === '') {
                     continue;
                 }

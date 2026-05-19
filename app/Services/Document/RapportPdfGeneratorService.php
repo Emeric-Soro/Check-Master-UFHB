@@ -246,7 +246,7 @@ final class RapportPdfGeneratorService
         $nomEtu = (string) ($etudiant['nom_etu'] ?? '');
         $prenomEtu = (string) ($etudiant['prenom_etu'] ?? '');
         $nomComplet = trim(strtoupper($nomEtu) . ' ' . strtoupper($prenomEtu));
-        $matricule = (string) ($etudiant['num_carte_etud'] ?? $etudiant['matricule_etudiant'] ?? $rapport['matricule_etudiant'] ?? '');
+        $matricule = (string) ($etudiant['num_ident_etud'] ?? $etudiant['num_carte_etud'] ?? $etudiant['matricule_etudiant'] ?? $rapport['matricule_etudiant'] ?? '');
 
         $entreprise = $this->escapeHtml((string) ($infoStage['nom_entreprise'] ?? 'Entreprise d\'accueil'));
         $maitreStage = trim((string) ($infoStage['nom_maitre_stage'] ?? '') . ' ' . (string) ($infoStage['prenom_maitre_stage'] ?? ''));
@@ -455,7 +455,7 @@ HTML;
     {
         $year = date('Y');
         $timestamp = (new DateTimeImmutable())->format('Ymd_His');
-        $matricule = $etudiant['num_carte_etud'] ?? $etudiant['matricule_etudiant'] ?? $rapport['matricule_etudiant'] ?? 'inconnu';
+        $matricule = $etudiant['num_ident_etud'] ?? $etudiant['num_carte_etud'] ?? $etudiant['matricule_etudiant'] ?? $rapport['matricule_etudiant'] ?? 'inconnu';
 
         return "rapport_{$matricule}_{$year}_{$timestamp}";
     }

@@ -44,11 +44,12 @@ class NotesService
             $stmt = $this->db->prepare("
                 SELECT i.id_niv_etude
                 FROM inscriptions i
-                WHERE i.num_carte_etud = ?
+                JOIN etudiants e ON (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud)
+                WHERE (e.num_carte_etud = ? OR e.num_ident_etud = ?)
                 ORDER BY i.date_inscription DESC, i.num_versement DESC
                 LIMIT 1
             ");
-            $stmt->execute([$studentId]);
+            $stmt->execute([$studentId, $studentId]);
             $niveau = $stmt->fetchColumn();
             if ($niveau !== false && (int) $niveau > 0) {
                 return (int) $niveau;

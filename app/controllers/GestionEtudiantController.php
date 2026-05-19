@@ -86,7 +86,9 @@ class GestionEtudiantController
                     if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                         header('Content-Type: application/json');
                         echo json_encode([
-                            'num_etu' => $etudiant_a_modifier->num_carte_etud,
+                            'num_etu' => $etudiant_a_modifier->num_ident_etud ?? $etudiant_a_modifier->num_carte_etud,
+                            'num_carte_etud' => $etudiant_a_modifier->num_carte_etud,
+                            'num_ident_etud' => $etudiant_a_modifier->num_ident_etud ?? '',
                             'nom_etu' => $etudiant_a_modifier->nom_etu,
                             'prenom_etu' => $etudiant_a_modifier->prenom_etu,
                             'date_naiss_etu' => $etudiant_a_modifier->date_naiss_etu,

@@ -75,14 +75,14 @@ class GestionScolariteService
 
         $inscritsByStudent = [];
         foreach ($etudiantsInscrits as $row) {
-            $studentId = (string) ($row['num_carte_etud'] ?? '');
+            $studentId = (string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? '');
             if ($studentId !== '') {
                 $inscritsByStudent[$studentId] = true;
             }
         }
 
         $etudiantsNonInscrits = array_values(array_filter($listeAllEtudiant, static function (array $row) use ($inscritsByStudent): bool {
-            $studentId = (string) ($row['num_carte_etud'] ?? '');
+            $studentId = (string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? '');
             return $studentId !== '' && !isset($inscritsByStudent[$studentId]);
         }));
 

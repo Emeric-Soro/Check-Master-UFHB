@@ -168,7 +168,7 @@ class Archive
         $anneeExpr = $this->getAcademicYearExpression('e', 'aa');
         $sql = "
             SELECT DISTINCT
-                e.num_carte_etud as matricule,
+                COALESCE(e.num_ident_etud, e.num_carte_etud) as matricule,
                 e.nom_etu as nom,
                 e.prenom_etu as prenoms,
                 r.theme_rapport as theme,
@@ -179,8 +179,8 @@ class Archive
                 " . $anneeExpr . " as annee_academique,
                 r.id_rapport
             FROM etudiants e
-            LEFT JOIN rapport_etudiants r ON e.num_carte_etud = r.num_etu
-            LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
+            LEFT JOIN rapport_etudiants r ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
+            LEFT JOIN informations_stage ist ON (e.num_carte_etud = ist.num_etu OR e.num_ident_etud = ist.num_etu)
             LEFT JOIN entreprises ent ON ist.id_entreprise = ent.id_entreprise
             LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
             LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
@@ -200,7 +200,7 @@ class Archive
         }
 
         if ($search) {
-            $sql .= " AND (e.nom_etu LIKE :search OR e.prenom_etu LIKE :search OR e.num_carte_etud LIKE :search)";
+            $sql .= " AND (e.nom_etu LIKE :search OR e.prenom_etu LIKE :search OR e.num_carte_etud LIKE :search OR e.num_ident_etud LIKE :search)";
             $params['search'] = '%' . $search . '%';
         }
 
@@ -232,7 +232,7 @@ class Archive
         $sql = "
             SELECT COUNT(DISTINCT e.num_carte_etud) as total
             FROM etudiants e
-            LEFT JOIN rapport_etudiants r ON e.num_carte_etud = r.num_etu
+            LEFT JOIN rapport_etudiants r ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
             LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
             LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
             WHERE 1=1
@@ -251,7 +251,7 @@ class Archive
         }
 
         if ($search) {
-            $sql .= " AND (e.nom_etu LIKE :search OR e.prenom_etu LIKE :search OR e.num_carte_etud LIKE :search)";
+            $sql .= " AND (e.nom_etu LIKE :search OR e.prenom_etu LIKE :search OR e.num_carte_etud LIKE :search OR e.num_ident_etud LIKE :search)";
             $params['search'] = '%' . $search . '%';
         }
 
@@ -338,12 +338,12 @@ class Archive
             FROM etudiants e
             LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
             LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
-            WHERE e.num_carte_etud = :num_etu
+            WHERE (e.num_ident_etud = :num_etu OR e.num_carte_etud = :num_etu2)
             ORDER BY i.date_inscription DESC
             LIMIT 1
         ";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(['num_etu' => $numEtu]);
+        $stmt->execute(['num_etu' => $numEtu, 'num_etu2' => $numEtu]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -602,8 +602,8 @@ class Archive
             FROM inscriptions i
             LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
             LEFT JOIN etudiants e ON e.num_carte_etud = i.num_carte_etud
-            LEFT JOIN rapport_etudiants re ON re.num_etu = e.num_carte_etud
-            LEFT JOIN evaluer ev ON ev.num_etudiant = e.num_carte_etud
+            LEFT JOIN rapport_etudiants re ON (re.num_etu = e.num_carte_etud OR re.num_etu = e.num_ident_etud)
+            LEFT JOIN evaluer ev ON (ev.num_etudiant = e.num_carte_etud OR ev.num_etudiant = e.num_ident_etud)
             GROUP BY aa.date_deb, aa.date_fin
             HAVING annee IS NOT NULL
             ORDER BY aa.date_deb DESC
@@ -706,7 +706,7 @@ class Archive
             $sql = "SELECT 
                         COUNT(CASE WHEN r.statut_rapport = 'valider' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) as taux
                     FROM rapport_etudiants r
-                    JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
@@ -735,7 +735,7 @@ class Archive
         try {
             $sql = "SELECT AVG(ev.note)
                     FROM evaluer ev
-                    JOIN etudiants e ON ev.num_etudiant = e.num_carte_etud
+                    JOIN etudiants e ON (ev.num_etudiant = e.num_carte_etud OR ev.num_etudiant = e.num_ident_etud)
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
@@ -799,7 +799,7 @@ class Archive
             if ($this->tableExists('candidature_soutenance')) {
                 $sql = "SELECT MIN(cs.date_candidature) as date, 'Ouverture candidatures' as event
                         FROM candidature_soutenance cs
-                        JOIN etudiants e ON cs.num_etu = e.num_carte_etud
+                        JOIN etudiants e ON (cs.num_etu = e.num_carte_etud OR cs.num_etu = e.num_ident_etud)
                         LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                         LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                         WHERE 1=1";
@@ -932,7 +932,7 @@ class Archive
             // Update student basic info
             if (isset($data['nom_etu']) || isset($data['prenom_etu']) || isset($data['email_etu'])) {
                 $updateFields = [];
-                $params = ['num_etu' => $numEtu];
+                $params = ['num_etu' => $numEtu, 'num_etu2' => $numEtu];
 
                 if (isset($data['nom_etu'])) {
                     $updateFields[] = "nom_etu = :nom_etu";
@@ -948,7 +948,7 @@ class Archive
                 }
 
                 if (!empty($updateFields)) {
-                    $sql = "UPDATE etudiants SET " . implode(', ', $updateFields) . " WHERE num_carte_etud = :num_etu";
+                    $sql = "UPDATE etudiants SET " . implode(', ', $updateFields) . " WHERE (num_ident_etud = :num_etu OR num_carte_etud = :num_etu2)";
                     $stmt = $this->db->prepare($sql);
                     $stmt->execute($params);
                 }
@@ -1101,7 +1101,7 @@ class Archive
                 re.date_modification,
                 re.version
             FROM rapport_etudiants re
-            INNER JOIN etudiants e ON re.num_etu = e.num_carte_etud
+            INNER JOIN etudiants e ON (re.num_etu = e.num_carte_etud OR re.num_etu = e.num_ident_etud)
             INNER JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
             WHERE i.id_annee_acad = :annee_acad
             ORDER BY COALESCE(re.date_modification, re.date_redaction_rapport) DESC
@@ -1136,7 +1136,7 @@ class Archive
                 cs.date_traitement,
                 cs.commentaire_admin
             FROM candidature_soutenance cs
-            INNER JOIN etudiants e ON cs.num_etu = e.num_carte_etud
+            INNER JOIN etudiants e ON (cs.num_etu = e.num_carte_etud OR cs.num_etu = e.num_ident_etud)
             INNER JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
             WHERE i.id_annee_acad = :annee_acad
             ORDER BY cs.date_candidature DESC
@@ -1173,7 +1173,7 @@ class Archive
                 r.date_creation,
                 r.date_mise_a_jour
             FROM reclamations r
-            INNER JOIN etudiants e ON r.num_carte_etud = e.num_carte_etud
+            INNER JOIN etudiants e ON (r.num_carte_etud = e.num_carte_etud OR r.num_carte_etud = e.num_ident_etud)
             INNER JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
             LEFT JOIN statut_reclamation sr ON r.statut_reclamation = sr.id_statut_reclamation
             WHERE i.id_annee_acad = :annee_acad

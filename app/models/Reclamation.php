@@ -139,7 +139,7 @@ class Reclamation
             $sql = "SELECT r.*, 
                            CONCAT(e.nom_etu, ' ', e.prenom_etu) as nom_etu
                     FROM reclamations r
-                    LEFT JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    LEFT JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
                     WHERE 1=1";
 
             $params = [];
@@ -191,7 +191,7 @@ class Reclamation
                            CONCAT(e.nom_etu, ' ', e.prenom_etu) as nom_etu,
                            e.email_etu
                     FROM reclamations r
-                    LEFT JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    LEFT JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
                     WHERE r.id_reclamation = :id";
 
             $stmt = $this->db->prepare($sql);
@@ -288,7 +288,7 @@ class Reclamation
         } else {
             $sql = "SELECT r.*, e.nom_etu, e.prenom_etu
                     FROM reclamations r
-                    JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
                     ORDER BY r.date_creation DESC";
         }
 

@@ -848,4 +848,195 @@ class ProcessusValidationService
             ];
         }
     }
+
+    /**
+     * Progression du workflow de validation pour un rapport (P2.4)
+     *
+     * 5 etapes : Depot -> Evaluation -> Validation -> Soutenance -> PV
+     *
+     * @param int $idRapport
+     * @return array{etapes: array, progression: int, id_rapport: int}
+     */
+    public function getWorkflowProgress(int $idRapport): array
+    {
+        $etapes = [
+            [
+                'code' => 'depot',
+                'label' => 'Depot du rapport',
+                'icone' => 'fa-upload',
+                'statut' => 'en_attente',
+                'date' => null,
+                'acteur' => null,
+                'detail' => null,
+            ],
+            [
+                'code' => 'evaluation',
+                'label' => 'Evaluation commission',
+                'icone' => 'fa-check-double',
+                'statut' => 'en_attente',
+                'date' => null,
+                'acteur' => null,
+                'detail' => null,
+            ],
+            [
+                'code' => 'validation',
+                'label' => 'Validation',
+                'icone' => 'fa-gavel',
+                'statut' => 'en_attente',
+                'date' => null,
+                'acteur' => null,
+                'detail' => null,
+            ],
+            [
+                'code' => 'soutenance',
+                'label' => 'Soutenance',
+                'icone' => 'fa-chalkboard-user',
+                'statut' => 'en_attente',
+                'date' => null,
+                'acteur' => null,
+                'detail' => null,
+            ],
+            [
+                'code' => 'pv',
+                'label' => 'PV final',
+                'icone' => 'fa-file-pen',
+                'statut' => 'en_attente',
+                'date' => null,
+                'acteur' => null,
+                'detail' => null,
+            ],
+        ];
+
+        $progression = 0;
+
+        try {
+            // Etape 1: Depot
+            $stmt = $this->pdo->prepare("
+                SELECT d.date_depot, e.nom_etu, e.prenom_etu
+                FROM deposer d
+                JOIN etudiants e ON (d.num_etu = e.num_carte_etud OR d.num_etu = e.num_ident_etud)
+                WHERE d.id_rapport = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$idRapport]);
+            $depot = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($depot) {
+                $etapes[0]['statut'] = 'termine';
+                $etapes[0]['date'] = $depot['date_depot'];
+                $etapes[0]['acteur'] = trim(($depot['nom_etu'] ?? '') . ' ' . ($depot['prenom_etu'] ?? ''));
+                $etapes[0]['detail'] = 'Rapport depose par l etudiant';
+                $progression = 1;
+            } else {
+                // Fallback: verifier si le rapport existe au moins
+                $stmt = $this->pdo->prepare("SELECT date_redaction_rapport, num_etu FROM rapport_etudiants WHERE id_rapport = ? LIMIT 1");
+                $stmt->execute([$idRapport]);
+                $rapport = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($rapport) {
+                    $etapes[0]['statut'] = 'termine';
+                    $etapes[0]['date'] = $rapport['date_redaction_rapport'];
+                    $progression = 1;
+                }
+            }
+
+            // Etape 2: Evaluation
+            $stmt = $this->pdo->prepare("
+                SELECT COUNT(*) AS nb_evaluations,
+                       MAX(date_evaluation) AS derniere_date
+                FROM evaluations_rapports
+                WHERE id_rapport = ?
+            ");
+            $stmt->execute([$idRapport]);
+            $eval = $stmt->fetch(PDO::FETCH_ASSOC);
+            $nbEval = (int) ($eval['nb_evaluations'] ?? 0);
+            if ($nbEval > 0) {
+                $etapes[1]['statut'] = $nbEval >= 4 ? 'termine' : 'en_cours';
+                $etapes[1]['date'] = $eval['derniere_date'];
+                $etapes[1]['detail'] = $nbEval . '/4 votes exprimes';
+                if ($progression === 1) $progression = 2;
+            }
+
+            // Etape 3: Validation (decision finale dans table valider)
+            $stmt = $this->pdo->prepare("
+                SELECT v.date_validation, v.decision_validation, v.commentaire_validation,
+                       e.nom_enseignant, e.prenom_enseignant
+                FROM valider v
+                LEFT JOIN enseignants e ON v.id_enseignant = e.id_enseignant
+                WHERE v.id_rapport = ?
+                ORDER BY v.date_validation DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$idRapport]);
+            $validation = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($validation) {
+                $etapes[2]['statut'] = 'termine';
+                $etapes[2]['date'] = $validation['date_validation'];
+                $etapes[2]['acteur'] = trim(($validation['nom_enseignant'] ?? '') . ' ' . ($validation['prenom_enseignant'] ?? ''));
+                $decLabel = $validation['decision_validation'] === 'valider' ? 'Valide' : 'Rejete';
+                $etapes[2]['detail'] = 'Decision: ' . $decLabel;
+                if ($progression === 2) $progression = 3;
+            }
+
+            // Etape 4: Soutenance (programmation)
+            $stmt = $this->pdo->prepare("
+                SELECT ps.date_soutenance, ps.heure_soutenance, ps.theme_soutenance,
+                       s.lib_salle
+                FROM programmer_soutenance ps
+                LEFT JOIN salles s ON ps.id_salle = s.id_salle
+                WHERE ps.num_soutenance IN (
+                    SELECT num_soutenance FROM enseignant_jury ej
+                    WHERE ej.num_soutenance = ps.num_soutenance
+                )
+                LIMIT 1
+            ");
+            // Fallback: chercher par rapport
+            $stmt2 = $this->pdo->prepare("
+                SELECT ps.date_soutenance, ps.heure_soutenance, ps.theme_soutenance,
+                       s.lib_salle
+                FROM programmer_soutenance ps
+                JOIN etudiants e ON (ps.num_etud = e.num_carte_etud OR ps.num_etud = e.num_ident_etud)
+                JOIN rapport_etudiants r ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
+                LEFT JOIN salles s ON ps.id_salle = s.id_salle
+                WHERE r.id_rapport = ?
+                LIMIT 1
+            ");
+            $stmt2->execute([$idRapport]);
+            $soutenance = $stmt2->fetch(PDO::FETCH_ASSOC);
+            if ($soutenance && !empty($soutenance['date_soutenance'])) {
+                $etapes[3]['statut'] = strtotime((string) $soutenance['date_soutenance']) < time() ? 'termine' : 'en_cours';
+                $etapes[3]['date'] = $soutenance['date_soutenance'] . ($soutenance['heure_soutenance'] ? ' ' . substr((string) $soutenance['heure_soutenance'], 0, 5) : '');
+                $etapes[3]['detail'] = 'Salle: ' . ($soutenance['lib_salle'] ?? 'Non definie');
+                if ($progression === 3) $progression = 4;
+            }
+
+            // Etape 5: PV final (compte rendu)
+            $stmt = $this->pdo->prepare("
+                SELECT cr.id_CR, cr.date_CR, cr.nom_CR
+                FROM compte_rendu_rapport crr
+                JOIN compte_rendu cr ON crr.id_CR = cr.id_CR
+                WHERE crr.id_rapport = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$idRapport]);
+            $cr = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($cr) {
+                $etapes[4]['statut'] = 'termine';
+                $etapes[4]['date'] = $cr['date_CR'];
+                $etapes[4]['detail'] = $cr['nom_CR'];
+                $progression = 5;
+            } elseif ($soutenance && !empty($soutenance['date_soutenance'])) {
+                // Soutenance passee mais pas encore de PV
+                $etapes[4]['statut'] = 'en_attente';
+            }
+
+        } catch (Exception $e) {
+            error_log('ProcessusValidationService::getWorkflowProgress - ' . $e->getMessage());
+        }
+
+        return [
+            'id_rapport' => $idRapport,
+            'progression' => $progression,
+            'total_etapes' => 5,
+            'etapes' => $etapes,
+        ];
+    }
 }

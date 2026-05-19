@@ -228,13 +228,61 @@ class ArchiveController
     }
 
     /**
-     * Export history data (future enhancement)
+     * Export history data en CSV
      */
     public function exportHistory()
     {
-        // TODO: Implement export functionality
-        $_SESSION['archive_error'] = "Fonctionnalité d'export non encore implémentée.";
-        header('Location: ?page=admin_historique');
-        exit;
+        try {
+            if (!canCreate('admin_historique')) {
+                $_SESSION['archive_error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                header('Location: ?page=admin_historique');
+                exit;
+            }
+
+            // Recuperer les filtres
+            $tab = $_GET['tab'] ?? 'students';
+            $anneeAcad = $_GET['annee'] ?? null;
+            $statut = $_GET['statut'] ?? null;
+            $search = $_GET['search'] ?? null;
+
+            // Definir les en-tetes CSV
+            $filename = 'historique_' . $tab . '_' . date('Y-m-d_H-i-s') . '.csv';
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Cache-Control: no-cache, no-store, must-revalidate');
+
+            $output = fopen('php://output', 'w');
+            // BOM UTF-8 pour Excel
+            fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            // Ligne d'en-tete
+            $headers = [];
+            switch ($tab) {
+                case 'students':
+                    $headers = ['Matricule', 'Nom', 'Prenom', 'Email', 'Promotion', 'Statut', 'Thème'];
+                    break;
+                case 'jury':
+                    $headers = ['Enseignant', 'Rôle', 'Soutenance', 'Date'];
+                    break;
+                case 'vue_ensemble':
+                case 'stats':
+                default:
+                    $headers = ['Matricule', 'Nom', 'Prenom', 'Promotion', 'Statut', 'Moyenne'];
+                    break;
+            }
+            fputcsv($output, $headers);
+
+            // Recuperer les donnees via le service
+            $this->service->exportHistoryToStream($output, $tab, $anneeAcad, $statut, $search);
+
+            fclose($output);
+            exit;
+
+        } catch (Exception $e) {
+            error_log("Error in ArchiveController::exportHistory: " . $e->getMessage());
+            $_SESSION['archive_error'] = "Erreur lors de l'export: " . $e->getMessage();
+            header('Location: ?page=admin_historique');
+            exit;
+        }
     }
 }

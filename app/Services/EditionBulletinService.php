@@ -435,9 +435,9 @@ class EditionBulletinService
                     SELECT n.moyenne_M1, n.moyenne_M2, n.id_annee_acad, n.date_creation, n.date_modification
                     FROM notes n
                     JOIN etudiants e ON n.num_etu = e.num_ident_etud
-                    WHERE e.num_carte_etud = ?
+                    WHERE (e.num_ident_etud = ? OR e.num_carte_etud = ?)
                 ";
-                $params = [$numEtu];
+                $params = [$numEtu, $numEtu];
                 if ($yearId !== null && $yearId > 0 && $this->columnExists('notes', 'id_annee_acad')) {
                     $sql .= " AND n.id_annee_acad = ?";
                     $params[] = $yearId;

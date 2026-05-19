@@ -64,6 +64,9 @@ class AuditController {
                 case 'export':
                     $this->exportAuditLog();
                     break;
+                case 'export_pdf':
+                    $this->exportAuditLogPdf();
+                    break;
                 case 'cleanup':
                     $this->cleanupAuditLog();
                     break;
@@ -95,6 +98,60 @@ class AuditController {
         $output = fopen('php://output', 'w');
         $this->service->exportToStream($output, $filters);
         fclose($output);
+        exit;
+    }
+
+    /**
+     * Export des logs d audit au format PDF
+     */
+    public function exportAuditLogPdf() {
+        if (!canView('piste_audit')) {
+            http_response_code(403);
+            exit;
+        }
+
+        $filters = $this->service->extractFilters($_GET);
+        $logs = $this->service->getFilteredAuditLog($filters, 0, 500);
+
+        require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
+
+        $pdfGen = new \App\Services\Document\PdfGeneratorService(
+            __DIR__ . '/../../storage/documents',
+            __DIR__ . '/../../public/assets/img/logo.png'
+        );
+
+        $pdf = $pdfGen->createDocument('P', 'A4', 'Piste audit - ' . date('Y-m-d'));
+
+        $html = '<h1 style="text-align:center; font-size:16pt;">Piste d\'audit</h1>';
+        $html .= '<p style="text-align:center; font-size:10pt; color:#666;">Genere le ' . date('d/m/Y H:i') . '</p>';
+        $html .= '<hr>';
+        $html .= '<table border="1" cellpadding="4" cellspacing="0" style="width:100%; font-size:8pt; border-collapse:collapse;">';
+        $html .= '<thead><tr style="background-color:#1a5276; color:white;">';
+        $html .= '<th>Date</th><th>Action</th><th>Contexte</th><th>Utilisateur</th><th>Statut</th>';
+        $html .= '</tr></thead><tbody>';
+
+        if (empty($logs)) {
+            $html .= '<tr><td colspan="5" style="text-align:center;">Aucun log trouve.</td></tr>';
+        } else {
+            foreach ($logs as $log) {
+                $date = (string) ($log['date_creation'] ?? '');
+                $html .= '<tr>';
+                $html .= '<td>' . ($date !== '' ? date('d/m/Y H:i', strtotime($date)) : '-') . '</td>';
+                $html .= '<td>' . htmlspecialchars((string) ($log['action'] ?? '-')) . '</td>';
+                $html .= '<td>' . htmlspecialchars((string) ($log['nom_table'] ?? '-')) . '</td>';
+                $util = trim((string) ($log['nom_utilisateur'] ?? ''));
+                $html .= '<td>' . ($util !== '' ? htmlspecialchars($util) : '-') . '</td>';
+                $html .= '<td>' . htmlspecialchars((string) ($log['statut_action'] ?? '-')) . '</td>';
+                $html .= '</tr>';
+            }
+        }
+        $html .= '</tbody></table>';
+
+        $pdfGen->addPage($pdf, false);
+        $pdfGen->addHeader($pdf, 'Piste d\'audit');
+        $pdfGen->writeHtml($pdf, $html);
+
+        $pdf->Output('piste_audit_' . date('Y-m-d') . '.pdf', 'D');
         exit;
     }
 

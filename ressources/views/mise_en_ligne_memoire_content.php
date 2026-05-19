@@ -31,13 +31,23 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['action']))
     }
 }
 
-// Récupérer les étudiants ayant soutenu (à adapter selon votre base de données)
-// $etudiants = $controller->getEtudiantsAvecSoutenance();
+// Récupérer les étudiants ayant soutenu
 $etudiants = [];
-
-// Récupérer les mémoires déjà mis en ligne
-// $memoires = $controller->getMemoiresEnLigne();
 $memoires = [];
+try {
+    $controller = null;
+    if (class_exists('CandidatureSoutenanceController')) {
+        $controller = new CandidatureSoutenanceController();
+    }
+    if ($controller && method_exists($controller, 'getEtudiantsAvecSoutenance')) {
+        $etudiants = $controller->getEtudiantsAvecSoutenance();
+    }
+    if ($controller && method_exists($controller, 'getMemoiresEnLigne')) {
+        $memoires = $controller->getMemoiresEnLigne();
+    }
+} catch (Exception $e) {
+    error_log('Memoire load error: ' . $e->getMessage());
+}
 
 $allowedLimits = [5, 10, 25, 50];
 $perPage = max(5, (int) ($_GET['limit_memoire'] ?? 10));
@@ -208,9 +218,10 @@ foreach ($etudiants as $etudiant) {
                                     ? date('d/m/Y H:i', strtotime((string) $memoire['date_depot']))
                                     : '-';
                                 ?>
-                                <tr class="cm-data-table__row"
+                                <tr class="cm-data-table__row cm-clickable-row"
                                     data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>"
-                                    data-num-etu="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>">
+                                    data-num-etu="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-href="?page=mise_en_ligne_memoire&action=telecharger&num_etu=<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>">
                                     <td class="cm-data-table__td cm-data-table__td--check">
                                         <input type="checkbox" class="cm-table-check-row cm-memoire-check-row"
                                             value="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>"
@@ -519,17 +530,6 @@ foreach ($etudiants as $etudiant) {
                 });
 
                 if (!confirmed) return;
-                } else {
-                    const confirmed = await window.CM.confirm({
-                        title: 'Suppression',
-                        message: 'Supprimer ce mémoire ?',
-                        type: 'danger',
-                        confirmText: 'Supprimer',
-                    });
-                    if (!confirmed) {
-                        return;
-                    }
-                }
 
                 deleteMemoire(numEtu)
                     .then(function (payload) {
@@ -570,17 +570,6 @@ foreach ($etudiants as $etudiant) {
                 });
 
                 if (!confirmed) return;
-                } else {
-                    const confirmed = await window.CM.confirm({
-                        title: 'Suppression multiple',
-                        message: 'Supprimer ' + nums.length + ' mémoire(s) ?',
-                        type: 'danger',
-                        confirmText: 'Supprimer',
-                    });
-                    if (!confirmed) {
-                        return;
-                    }
-                }
 
                 Promise.all(nums.map(deleteMemoire))
                     .then(function (results) {

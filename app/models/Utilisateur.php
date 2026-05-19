@@ -641,7 +641,9 @@ class Utilisateur
     // Récupérer un étudiant par son ID
     public function getEtudiantById($id)
     {
-        $sql = "SELECT * FROM etudiants WHERE num_carte_etud = :id";
+        $sql = "SELECT * FROM etudiants WHERE num_carte_etud = :id OR num_ident_etud = :id2";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['id' => $id, 'id2' => $id]);
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['id' => $id]);
         return $stmt->fetch(PDO::FETCH_OBJ);

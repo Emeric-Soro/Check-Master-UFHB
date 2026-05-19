@@ -222,6 +222,12 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
                     'label' => 'Exporter CSV',
                     'class' => 'cm-btn is-info is-sm',
                 ],
+                [
+                    'tag' => 'a',
+                    'href' => str_replace('action=export', 'action=export_pdf', $exportUrl),
+                    'label' => 'Exporter PDF',
+                    'class' => 'cm-btn is-danger is-sm',
+                ],
                 (function_exists('canDelete') ? canDelete() : true) ? [
                     'tag' => 'button',
                     'type' => 'button',

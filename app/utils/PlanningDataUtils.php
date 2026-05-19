@@ -156,7 +156,7 @@ class PlanningDataUtils
                 LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                 LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
                 LEFT JOIN session s ON s.id_session = ps.id_session
-                LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(NULLIF(e.num_carte_etud, ''), ps.num_etud)
+                LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(NULLIF(e.num_ident_etud, ''), NULLIF(e.num_carte_etud, ''), ps.num_etud)
                   LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 LEFT JOIN entreprises ent ON ent.id_entreprise = ist.id_entreprise
                 WHERE ps.num_soutenance IN ({$placeholders})
@@ -307,7 +307,7 @@ class PlanningDataUtils
                     v.commentaire_validation AS remarque_specifique
              FROM compte_rendu_rapport crr
              INNER JOIN rapport_etudiants r ON r.id_rapport = crr.id_rapport
-             INNER JOIN etudiants e ON e.num_carte_etud = r.num_etu
+             INNER JOIN etudiants e ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
              LEFT JOIN affecter dir_aff ON dir_aff.id_rapport = r.id_rapport AND dir_aff.role = "directeur"
              LEFT JOIN enseignants dir_ens ON dir_ens.id_enseignant = dir_aff.id_enseignant
              LEFT JOIN affecter enc_aff ON enc_aff.id_rapport = r.id_rapport AND enc_aff.role = "encadrant"
@@ -387,7 +387,7 @@ class PlanningDataUtils
              FROM programmer_soutenance ps
              LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
              LEFT JOIN ' . $latestInscriptionSql . ' i
-                    ON i.num_carte_etud = COALESCE(NULLIF(e.num_carte_etud, \'\'), NULLIF(e.num_ident_etud, \'\'), ps.num_etud)
+                    ON i.num_carte_etud = COALESCE(NULLIF(e.num_ident_etud, \'\'), NULLIF(e.num_carte_etud, \'\'), ps.num_etud)
              LEFT JOIN session s ON s.id_session = ps.id_session
              LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
              LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niv_etude
@@ -719,9 +719,9 @@ class PlanningDataUtils
                     CONCAT(YEAR(aa.date_deb), "-", YEAR(aa.date_fin)) AS libelle_annee,
                     niv.lib_niv_etude AS libelle_niveau
              FROM rapport_etudiants r
-             INNER JOIN etudiants e ON e.num_carte_etud = r.num_etu
+             INNER JOIN etudiants e ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
              LEFT JOIN ' . $latestInscriptionSql . ' i
-                    ON i.num_carte_etud = e.num_carte_etud
+                    ON (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud)
              LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
              LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niv_etude
              WHERE r.id_rapport = :id_rapport'
@@ -751,9 +751,9 @@ class PlanningDataUtils
                     niv.lib_niv_etude AS libelle_niveau
              FROM etudiants e
              LEFT JOIN ' . $latestInscriptionSql . ' i
-                    ON i.num_carte_etud = e.num_carte_etud
+                    ON (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud)
              LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niv_etude
-             WHERE e.num_carte_etud = :num_carte'
+             WHERE (e.num_carte_etud = :num_carte OR e.num_ident_etud = :num_carte)'
         );
         $stmt->execute(['num_carte' => $numCarte]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);

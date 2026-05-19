@@ -410,7 +410,7 @@ class ArchiveHubController
         try {
             $sql = "SELECT COUNT(*)
                     FROM rapport_etudiants re
-                    JOIN etudiants e ON re.num_etu = e.num_carte_etud
+                    JOIN etudiants e ON (re.num_etu = e.num_carte_etud OR re.num_etu = e.num_ident_etud)
                     JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
@@ -427,7 +427,7 @@ class ArchiveHubController
         try {
             $sql = "SELECT COUNT(*)
                     FROM candidature_soutenance cs
-                    JOIN etudiants e ON cs.num_etu = e.num_carte_etud
+                    JOIN etudiants e ON (cs.num_etu = e.num_carte_etud OR cs.num_etu = e.num_ident_etud)
                     JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
@@ -444,7 +444,7 @@ class ArchiveHubController
         try {
             $sql = "SELECT COUNT(*)
                     FROM reclamations r
-                    JOIN etudiants e ON r.num_carte_etud = e.num_carte_etud
+                    JOIN etudiants e ON (r.num_carte_etud = e.num_carte_etud OR r.num_carte_etud = e.num_ident_etud)
                     JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
@@ -463,7 +463,7 @@ class ArchiveHubController
                         COUNT(CASE WHEN v.decision_validation = 'valider' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0)
                     FROM valider v
                     JOIN rapport_etudiants re ON v.id_rapport = re.id_rapport
-                    JOIN etudiants e ON re.num_etu = e.num_carte_etud
+                    JOIN etudiants e ON (re.num_etu = e.num_carte_etud OR re.num_etu = e.num_ident_etud)
                     JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);
@@ -559,7 +559,7 @@ class ArchiveHubController
             // Premier dépôt de rapport
             $sql = "SELECT MIN(d.date_depot) as date, 'Premier dépôt de rapport' as event
                     FROM deposer d
-                    JOIN etudiants e ON d.num_etu = e.num_carte_etud
+                    JOIN etudiants e ON (d.num_etu = e.num_carte_etud OR d.num_etu = e.num_ident_etud)
                     JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     WHERE i.id_annee_acad = ?";
             $stmt = $this->db->prepare($sql);

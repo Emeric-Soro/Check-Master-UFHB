@@ -229,7 +229,7 @@ class Note
             $query = "SELECT n.*, e.nom_etu, e.prenom_etu, e.num_carte_etud,
                             a.date_deb, a.date_fin
                      FROM notes n
-                     INNER JOIN etudiants e ON n.num_etu = e.num_carte_etud
+                     INNER JOIN etudiants e ON (n.num_etu = e.num_carte_etud OR n.num_etu = e.num_ident_etud)
                      LEFT JOIN annee_academique a ON n.id_annee_acad = a.id_annee_acad
                      LEFT JOIN (
                         SELECT i1.num_carte_etud, i1.id_niv_etude
@@ -272,7 +272,7 @@ class Note
             $query = "SELECT n.*, e.nom_etu, e.prenom_etu, e.num_carte_etud,
                             a.date_deb, a.date_fin
                      FROM notes n
-                     INNER JOIN etudiants e ON n.num_etu = e.num_carte_etud
+                     INNER JOIN etudiants e ON (n.num_etu = e.num_carte_etud OR n.num_etu = e.num_ident_etud)
                      LEFT JOIN annee_academique a ON n.id_annee_acad = a.id_annee_acad";
 
             $params = [];

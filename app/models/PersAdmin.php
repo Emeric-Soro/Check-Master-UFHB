@@ -134,5 +134,73 @@ class PersAdmin{
         }
     }
 
-    
+    /**
+     * Fiche complete: identite + poste + compte utilisateur + candidatures traitees + historique
+     */
+    public function getFicheComplete($id): array
+    {
+        $identite = $this->getPersAdminById($id);
+        if (!$identite) {
+            return [];
+        }
+
+        // Compte utilisateur
+        $compte = null;
+        try {
+            $stmt = $this->db->prepare("
+                SELECT u.id_utilisateur, u.login_utilisateur, u.statut_utilisateur,
+                       u.id_GU, gu.lib_GU
+                FROM utilisateur u
+                JOIN groupe_utilisateur gu ON u.id_GU = gu.id_GU
+                WHERE u.login_utilisateur = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$identite->email_pers_admin]);
+            $compte = $stmt->fetch(PDO::FETCH_OBJ) ?: null;
+        } catch (PDOException $e) {
+            error_log('PersAdmin::getFicheComplete - compte: ' . $e->getMessage());
+        }
+
+        // Candidatures traitees
+        $candidatures = [];
+        try {
+            $stmt = $this->db->prepare("
+                SELECT cs.*, e.nom_etu, e.prenom_etu, e.promotion_etu
+                FROM candidature_soutenance cs
+                JOIN etudiants e ON (cs.num_etu = e.num_carte_etud OR cs.num_etu = e.num_ident_etud)
+                WHERE cs.id_pers_admin = ?
+                ORDER BY cs.date_traitement DESC
+                LIMIT 20
+            ");
+            $stmt->execute([$id]);
+            $candidatures = $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (PDOException $e) {
+            error_log('PersAdmin::getFicheComplete - candidatures: ' . $e->getMessage());
+        }
+
+        // Historique pister
+        $historique = [];
+        if ($compte && !empty($compte->id_utilisateur)) {
+            try {
+                $stmt = $this->db->prepare("
+                    SELECT p.id_piste, p.action, p.statut_action, p.nom_table, p.date_creation
+                    FROM pister p
+                    WHERE p.id_utilisateur = ?
+                    ORDER BY p.date_creation DESC
+                    LIMIT 30
+                ");
+                $stmt->execute([$compte->id_utilisateur]);
+                $historique = $stmt->fetchAll(PDO::FETCH_OBJ);
+            } catch (PDOException $e) {
+                error_log('PersAdmin::getFicheComplete - historique: ' . $e->getMessage());
+            }
+        }
+
+        return [
+            'identite' => $identite,
+            'compte' => $compte,
+            'candidatures' => $candidatures,
+            'historique' => $historique,
+        ];
+    }
 }

@@ -691,7 +691,8 @@ class GestionRapportController
                 $search = strtolower($search);
                 return str_contains(strtolower($e->nom_etu ?? ''), $search)
                     || str_contains(strtolower($e->prenom_etu ?? ''), $search)
-                    || str_contains(strtolower($e->num_carte_etud ?? ''), $search);
+                    || str_contains(strtolower($e->num_carte_etud ?? ''), $search)
+                    || str_contains(strtolower($e->num_ident_etud ?? ''), $search);
             });
         }
 
@@ -700,7 +701,7 @@ class GestionRapportController
         foreach ($etudiants as $e) {
             $resultats[] = [
                 'id' => $e->num_carte_etud ?? $e->num_ident_etud,
-                'text' => ($e->nom_etu ?? '') . ' ' . ($e->prenom_etu ?? '') . ' (' . ($e->num_carte_etud ?? '') . ')'
+                'text' => ($e->nom_etu ?? '') . ' ' . ($e->prenom_etu ?? '') . ' (' . ($e->num_ident_etud ?? $e->num_carte_etud ?? '') . ')'
             ];
         }
 

@@ -203,6 +203,20 @@ include __DIR__ . '/../ressources/routes/archiveRoutes.php';
 include __DIR__ . '/../ressources/routes/editionBulletinRoutes.php';
 include __DIR__ . '/../ressources/routes/docviewerRoutes.php';
 include __DIR__ . '/../ressources/routes/documentsRoutes.php';
+include __DIR__ . '/../ressources/routes/ficheEtudiantRoutes.php';
+include __DIR__ . '/../ressources/routes/ficheCommissionRoutes.php';
+include __DIR__ . '/../ressources/routes/fichePersAdminRoutes.php';
+include __DIR__ . '/../ressources/routes/historiqueInscriptionsRoutes.php';
+include __DIR__ . '/../ressources/routes/workflowValidationRoutes.php';
+include __DIR__ . '/../ressources/routes/ficheEnseignantRoutes.php';
+include __DIR__ . '/../ressources/routes/ficheFinanciereRoutes.php';
+include __DIR__ . '/../ressources/routes/dashboardDirectionRoutes.php';
+include __DIR__ . '/../ressources/routes/rechercheGlobaleRoutes.php';
+include __DIR__ . '/../ressources/routes/echeancierEtudiantRoutes.php';
+include __DIR__ . '/../ressources/routes/exportMasseDocumentsRoutes.php';
+include __DIR__ . '/../ressources/routes/historiqueModificationsRoutes.php';
+include __DIR__ . '/../ressources/routes/timelineParcoursRoutes.php';
+include __DIR__ . '/../ressources/routes/annuaireEnseignantsRoutes.php';
 
 $menuController = new MenuController();
 
@@ -821,6 +835,10 @@ switch ($currentMenuSlug) {
     case 'archives_reclamations':
         $contentFile = $partialsBasePath . 'v2/archives/archives_reclamations.php';
         break;
+    case 'fiche_etudiant_complete':
+        $contentFile = $partialsBasePath . 'v2/archives/fiche_etudiant_complete.php';
+        $currentPageLabel = 'Fiche Etudiante Complete';
+        break;
     case 'admin_historique':
         $action = $_GET['action'] ?? 'index';
         $currentPageLabel = 'Historique et Archivage';
@@ -870,6 +888,97 @@ switch ($currentMenuSlug) {
         $contentFile = $partialsBasePath . 'gestion_rh_content.php';
         $currentPageLabel = 'Mise à jour personnel administratif';
         break;
+    case 'fiche_enseignante':
+        $contentFile = $partialsBasePath . 'fiche_enseignante_content.php';
+        $currentPageLabel = 'Fiche enseignante';
+        break;
+    case 'fiche_financiere_annee':
+        $contentFile = $partialsBasePath . 'fiche_financiere_content.php';
+        $currentPageLabel = 'Fiche financière année';
+        break;
+    case 'dashboard_direction':
+        $contentFile = $partialsBasePath . 'dashboard_direction_content.php';
+        $currentPageLabel = 'Dashboard Direction';
+        break;
+    case 'fiche_commission':
+        $contentFile = $partialsBasePath . 'fiche_commission_content.php';
+        $currentPageLabel = 'Fiche commission';
+        break;
+    case 'fiche_personnel_admin':
+        $contentFile = $partialsBasePath . 'fiche_pers_admin_content.php';
+        $currentPageLabel = 'Fiche personnel administratif';
+        break;
+    case 'historique_inscriptions':
+        $contentFile = $partialsBasePath . 'historique_inscriptions_content.php';
+        $currentPageLabel = 'Historique des inscriptions';
+        break;
+    case 'workflow_validation':
+        $contentFile = $partialsBasePath . 'workflow_validation_content.php';
+        $currentPageLabel = 'Workflow de validation';
+        break;
+    case 'visualisation_fiche_inscription':
+        $contentFile = $partialsBasePath . 'visualisation_fiche_inscription_content.php';
+        $currentPageLabel = 'Visualisation fiche inscription';
+        break;
+    case 'etudiants_sans_rapport':
+        $contentFile = $partialsBasePath . 'etudiants_sans_rapport_content.php';
+        $currentPageLabel = 'Étudiants sans rapport';
+        break;
+    case 'etudiants_non_inscrits':
+        $contentFile = $partialsBasePath . 'etudiants_non_inscrits_content.php';
+        $currentPageLabel = 'Étudiants non inscrits';
+        break;
+    case 'etudiants_sans_compte':
+        require_once __DIR__ . '/../ressources/routes/etudiantsSansCompteRoutes.php';
+        $contentFile = $partialsBasePath . 'etudiants_sans_compte_content.php';
+        $currentPageLabel = 'Étudiants sans compte';
+        break;
+    case 'planning_jurys_enseignant':
+        $contentFile = $partialsBasePath . 'planning_jurys_enseignant_content.php';
+        $currentPageLabel = 'Planning jurys';
+        break;
+    case 'stats_encadrement_enseignant':
+        $contentFile = $partialsBasePath . 'stats_encadrement_enseignant_content.php';
+        $currentPageLabel = 'Stats encadrement';
+        break;
+    case 'portfolio_enseignant':
+        $contentFile = $partialsBasePath . 'portfolio_enseignant_content.php';
+        $currentPageLabel = 'Portfolio enseignant';
+        break;
+    case 'recherche_globale':
+        $contentFile = $partialsBasePath . 'recherche_globale_content.php';
+        $currentPageLabel = 'Recherche globale';
+        break;
+    case 'echeancier_etudiant':
+        $contentFile = $partialsBasePath . 'echeancier_etudiant_content.php';
+        $currentPageLabel = 'Échéancier étudiant';
+        break;
+    case 'historique_modifications':
+        $contentFile = $partialsBasePath . 'historique_modifications_content.php';
+        $currentPageLabel = 'Historique modifications';
+        break;
+    case 'export_masse_documents':
+        $contentFile = $partialsBasePath . 'export_masse_documents_content.php';
+        $currentPageLabel = 'Export masse documents';
+        break;
+    case 'dashboard_securite':
+        $contentFile = $partialsBasePath . 'dashboard_securite_content.php';
+        $currentPageLabel = 'Dashboard securite';
+        break;
+    case 'comparaison_versions_document':
+        $contentFile = $partialsBasePath . 'comparaison_versions_document_content.php';
+        $currentPageLabel = 'Comparaison versions document';
+        break;
+    case 'annuaire_enseignants':
+        require_once __DIR__ . '/../ressources/routes/annuaireEnseignantsRoutes.php';
+        $contentFile = $partialsBasePath . 'annuaire_enseignants_content.php';
+        $currentPageLabel = 'Annuaire enseignants';
+        break;
+    case 'timeline_parcours_etudiant':
+        require_once __DIR__ . '/../ressources/routes/timelineParcoursRoutes.php';
+        $contentFile = $partialsBasePath . 'v2/archives/timeline_interactive.php';
+        $currentPageLabel = 'Timeline parcours etudiant';
+        break;
     default:
         $groupeUtilisateur = $_SESSION['lib_GU'];
         if ($groupeUtilisateur) {
@@ -917,6 +1026,7 @@ $canonicalPageLabels = [
     'repertoire_enseignant' => 'Répertoire des documents',
     'sauvegarde_restauration' => 'Sauvegardes et restauration',
     'tableau_bord_enseignant' => 'Mon tableau de bord — Enseignant',
+    'fiche_etudiant_complete' => 'Fiche Étudiante Complete',
 ];
 $labelKey = $currentMenuSlug . ($currentAction !== null ? ':' . $currentAction : '');
 if (isset($canonicalActionLabels[$labelKey])) {
@@ -1259,6 +1369,24 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         .cm-content-area .cm-form-group.cm-field--email,
         .cm-content-area .cm-form-group.cm-field--password {
             max-width: 30rem;
+        }
+
+        /* ── Clickable rows ── */
+        .cm-clickable-row {
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+        .cm-clickable-row:hover {
+            background-color: rgba(59, 130, 246, 0.08) !important;
+        }
+        .cm-clickable-row:active {
+            background-color: rgba(59, 130, 246, 0.15) !important;
+        }
+        .cm-clickable-row td:last-child {
+            padding-right: 1.5rem;
+        }
+        .cm-clickable-row td:first-child {
+            padding-left: 1.5rem;
         }
 
         .cm-content-area .cm-form-group.cm-field--textarea,
@@ -2160,6 +2288,27 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
                 panel.classList.add('cm-legacy-panel');
                 panel.classList.remove('cm-modal-overlay');
                 panel.setAttribute('data-cm-legacy-modal', '1');
+            });
+        });
+    </script>
+    <script>
+        // ── Clickable rows handler (global) ──
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.cm-clickable-row[data-href]').forEach(function(row) {
+                row.addEventListener('click', function(e) {
+                    var tag = e.target.tagName.toLowerCase();
+                    if (tag === 'a' || tag === 'button' || tag === 'input' || tag === 'select' || tag === 'textarea') {
+                        return;
+                    }
+                    var href = row.getAttribute('data-href');
+                    var type = row.getAttribute('data-link-type') || 'href';
+                    if (type === 'dialog') {
+                        var evt = new CustomEvent('cm:row-click', { detail: { row: row, href: href } });
+                        document.dispatchEvent(evt);
+                    } else {
+                        window.location.href = href;
+                    }
+                });
             });
         });
     </script>

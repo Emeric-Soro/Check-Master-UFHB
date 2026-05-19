@@ -42,9 +42,9 @@ class Rapport
                     re.date_redaction_rapport AS date_depot,
                     re.taille_fichier AS taille,
                     CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant,
-                    e.num_carte_etud
+                    COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud
                 FROM rapport_etudiants re
-                INNER JOIN etudiants e ON e.num_carte_etud = re.num_etu
+                INNER JOIN etudiants e ON (e.num_carte_etud = re.num_etu OR e.num_ident_etud = re.num_etu)
                 INNER JOIN inscriptions i1 ON i1.num_carte_etud = e.num_carte_etud
                 WHERE i1.id_annee_acad = :id_annee_rapport
                   AND (
@@ -69,9 +69,9 @@ class Rapport
                     cr.date_CR AS date_depot,
                     NULL AS taille,
                     CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant,
-                    e.num_carte_etud
+                    COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud
                 FROM compte_rendu cr
-                INNER JOIN etudiants e ON e.num_carte_etud = cr.num_etu
+                INNER JOIN etudiants e ON (e.num_carte_etud = cr.num_etu OR e.num_ident_etud = cr.num_etu)
                 INNER JOIN inscriptions i2 ON i2.num_carte_etud = e.num_carte_etud
                 WHERE i2.id_annee_acad = :id_annee_cr
                   AND (
@@ -92,11 +92,11 @@ class Rapport
                     'fiche_inscription' AS type_doc,
                     CONCAT(i3.num_carte_etud, '-', i3.id_annee_acad, '-', i3.num_versement) AS id_doc,
                     i3.fiche_inscription AS chemin,
-                    CONCAT('Fiche inscription ', e.num_carte_etud) AS titre,
+                    CONCAT('Fiche inscription ', COALESCE(e.num_ident_etud, e.num_carte_etud)) AS titre,
                     i3.date_inscription AS date_depot,
                     NULL AS taille,
                     CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant,
-                    e.num_carte_etud
+                    COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud
                 FROM inscriptions i3
                 INNER JOIN etudiants e ON e.num_carte_etud = i3.num_carte_etud
                 WHERE i3.id_annee_acad = :id_annee_fiche
@@ -173,9 +173,9 @@ class Rapport
                         COALESCE(re.theme_rapport, CONCAT('Rapport #', re.id_rapport)) AS titre,
                         re.date_redaction_rapport AS date_depot,
                         CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant,
-                        e.num_carte_etud
+                        COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud
                     FROM rapport_etudiants re
-                    INNER JOIN etudiants e ON e.num_carte_etud = re.num_etu
+                    INNER JOIN etudiants e ON (e.num_carte_etud = re.num_etu OR e.num_ident_etud = re.num_etu)
                     WHERE re.id_rapport = :id
                     LIMIT 1
                 ");
@@ -193,9 +193,9 @@ class Rapport
                         COALESCE(cr.nom_CR, CONCAT('Compte rendu #', cr.id_CR)) AS titre,
                         cr.date_CR AS date_depot,
                         CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant,
-                        e.num_carte_etud
+                        COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud
                     FROM compte_rendu cr
-                    INNER JOIN etudiants e ON e.num_carte_etud = cr.num_etu
+                    INNER JOIN etudiants e ON (e.num_carte_etud = cr.num_etu OR e.num_ident_etud = cr.num_etu)
                     WHERE cr.id_CR = :id
                     LIMIT 1
                 ");

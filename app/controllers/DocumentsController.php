@@ -201,7 +201,7 @@ class DocumentsController
                         CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant
                     FROM affecter a
                     INNER JOIN rapport_etudiants re ON re.id_rapport = a.id_rapport
-                    INNER JOIN etudiants e ON e.num_carte_etud = re.num_etu
+                    INNER JOIN etudiants e ON (e.num_carte_etud = re.num_etu OR e.num_ident_etud = re.num_etu)
                     WHERE a.id_enseignant = :id_ens";
             $params = [':id_ens' => $enseignantId];
             if ($anneeFilter !== null) {
@@ -228,7 +228,7 @@ class DocumentsController
                     LEFT JOIN rapport_etudiants re ON re.id_rapport = crr.id_rapport
                     LEFT JOIN affecter a ON a.id_rapport = re.id_rapport
                     LEFT JOIN rendre rd ON rd.id_CR = cr.id_CR
-                    LEFT JOIN etudiants e ON e.num_carte_etud = COALESCE(re.num_etu, cr.num_etu)
+                    LEFT JOIN etudiants e ON (e.num_carte_etud = COALESCE(re.num_etu, cr.num_etu) OR e.num_ident_etud = COALESCE(re.num_etu, cr.num_etu))
                     WHERE (a.id_enseignant = :id_ens OR rd.id_enseignant = :id_ens)
                       AND " . $this->buildCompteRenduAvailabilitySql('cr', 'compte_rendu', ['pv_commission']) . "
                       AND cr.nom_CR NOT LIKE 'BULLETIN_%'";
@@ -311,7 +311,7 @@ class DocumentsController
                         re.statut_rapport AS statut,
                         CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant
                     FROM rapport_etudiants re
-                    INNER JOIN etudiants e ON e.num_carte_etud = re.num_etu
+                    INNER JOIN etudiants e ON (e.num_carte_etud = re.num_etu OR e.num_ident_etud = re.num_etu)
                     WHERE 1 = 1";
             $params = [];
             if ($anneeFilter !== null) {
@@ -336,7 +336,7 @@ class DocumentsController
                         'Finalise' AS statut,
                         CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant
                     FROM compte_rendu cr
-                    INNER JOIN etudiants e ON e.num_carte_etud = cr.num_etu
+                    INNER JOIN etudiants e ON (e.num_carte_etud = cr.num_etu OR e.num_ident_etud = cr.num_etu)
                     WHERE " . $this->buildCompteRenduAvailabilitySql('cr', 'compte_rendu') . "
                       AND cr.nom_CR NOT LIKE 'BULLETIN_%'";
             $params = [];
@@ -362,7 +362,7 @@ class DocumentsController
                         'Publie' AS statut,
                         CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant
                     FROM compte_rendu cr
-                    INNER JOIN etudiants e ON e.num_carte_etud = cr.num_etu
+                    INNER JOIN etudiants e ON (e.num_carte_etud = cr.num_etu OR e.num_ident_etud = cr.num_etu)
                     WHERE " . $this->buildCompteRenduAvailabilitySql('cr', 'bulletin') . "
                       AND cr.nom_CR LIKE 'BULLETIN_%'";
             $params = [];

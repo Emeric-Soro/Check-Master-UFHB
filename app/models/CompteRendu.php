@@ -26,7 +26,7 @@ class CompteRendu
 
         $sql = "SELECT cr.*, e.nom_etu, e.prenom_etu, e.email_etu 
                 FROM compte_rendu cr 
-                JOIN etudiants e ON cr.num_etu = e.num_carte_etud 
+                JOIN etudiants e ON (cr.num_etu = e.num_carte_etud OR cr.num_etu = e.num_ident_etud) 
                 WHERE 1=1";
         $params = [];
 
@@ -63,7 +63,7 @@ class CompteRendu
         $stmt = $pdo->prepare("
             SELECT cr.*, e.nom_etu, e.prenom_etu, e.email_etu 
             FROM compte_rendu cr 
-            JOIN etudiants e ON cr.num_etu = e.num_carte_etud 
+            JOIN etudiants e ON (cr.num_etu = e.num_carte_etud OR cr.num_etu = e.num_ident_etud) 
             WHERE cr.id_CR = ?
         ");
         $stmt->execute([$id_CR]);
@@ -75,7 +75,7 @@ class CompteRendu
                 SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu 
                 FROM compte_rendu_rapport crr 
                 JOIN rapport_etudiants r ON crr.id_rapport = r.id_rapport 
-                JOIN etudiants e ON r.num_etu = e.num_carte_etud 
+                JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud) 
                 WHERE crr.id_CR = ?
             ");
             $stmt2->execute([$id_CR]);

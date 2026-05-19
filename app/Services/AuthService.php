@@ -96,7 +96,7 @@ class AuthService
                     $etudiant = $this->etudiantModel->getEtudiantByEmail($infoUtilisateur['login_utilisateur']);
                 }
                 if ($etudiant) {
-                    $_SESSION['num_etu'] = $etudiant->num_carte_etud;
+                    $_SESSION['num_etu'] = $etudiant->num_ident_etud ?? $etudiant->num_carte_etud;
                     $_SESSION['nom_etu'] = $etudiant->nom_etu;
                     $_SESSION['prenom_etu'] = $etudiant->prenom_etu;
                 }

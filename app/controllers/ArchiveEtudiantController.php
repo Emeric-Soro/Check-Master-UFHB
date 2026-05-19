@@ -127,7 +127,7 @@ class ArchiveEtudiantController
 
         foreach ($etudiants as $e) {
             fputcsv($output, [
-                $e->num_carte_etud,
+                $e->num_ident_etud ?? $e->num_carte_etud,
                 $e->nom_etu,
                 $e->prenom_etu,
                 $e->email_etu,
@@ -148,7 +148,8 @@ class ArchiveEtudiantController
     private function getEtudiantsArchives($anneeId, $filters)
     {
         $sql = "SELECT DISTINCT 
-                    e.num_carte_etud,
+                    COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud,
+                    e.num_ident_etud,
                     e.nom_etu,
                     e.prenom_etu,
                     e.email_etu,
@@ -167,10 +168,10 @@ class ArchiveEtudiantController
                 LEFT JOIN genre g ON e.id_genre = g.id_genre
                 JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                 LEFT JOIN niveau_etude ne ON i.id_niv_etude = ne.id_niv_etude
-                LEFT JOIN informations_stage inf ON e.num_carte_etud = inf.num_etu
+                LEFT JOIN informations_stage inf ON (e.num_carte_etud = inf.num_etu OR e.num_ident_etud = inf.num_etu)
                 LEFT JOIN entreprises en ON inf.id_entreprise = en.id_entreprise
-                LEFT JOIN rapport_etudiants re ON e.num_carte_etud = re.num_etu
-                LEFT JOIN notes n ON e.num_carte_etud = n.num_etu AND n.id_annee_acad = i.id_annee_acad
+                LEFT JOIN rapport_etudiants re ON (e.num_carte_etud = re.num_etu OR e.num_ident_etud = re.num_etu)
+                LEFT JOIN notes n ON (e.num_carte_etud = n.num_etu OR e.num_ident_etud = n.num_etu) AND n.id_annee_acad = i.id_annee_acad
                 LEFT JOIN valider v ON re.id_rapport = v.id_rapport
                 WHERE i.id_annee_acad = ?";
 
@@ -201,9 +202,9 @@ class ArchiveEtudiantController
                 FROM etudiants e
                 LEFT JOIN genre g ON e.id_genre = g.id_genre
                 LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud AND i.id_annee_acad = ?
-                WHERE e.num_carte_etud = ?";
+                WHERE (e.num_ident_etud = ? OR e.num_carte_etud = ?)";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$anneeId, $matricule]);
+        $stmt->execute([$anneeId, $matricule, $matricule]);
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
@@ -291,7 +292,7 @@ class ArchiveEtudiantController
         // Inscriptions
         $sql = "SELECT i.date_inscription as date, 'inscription' as type,
                        CONCAT('Inscription ', ne.lib_niv_etude) as titre,
-                       i.statut_inscription as description
+                       CONCAT('Versement #', COALESCE(i.num_versement, 1), ' - Solde: ', COALESCE(i.solde, 0), ' FCFA') as description
                 FROM inscriptions i
                 JOIN niveau_etude ne ON i.id_niv_etude = ne.id_niv_etude
                 WHERE i.num_carte_etud = ?";

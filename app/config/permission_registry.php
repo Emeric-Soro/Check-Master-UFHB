@@ -1079,6 +1079,230 @@ $paramCrud('schema_tables', 'schema_tables', 'Couverture tables/colonnes', 'PARA
     ],
 ]);
 
+// ── Nouveaux écrans P1-P3 ──
+
+$addFeature([
+    'slug' => 'dashboard_direction',
+    'code' => 'DIR_DASHBOARD',
+    'label' => 'Dashboard direction',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=dashboard_direction',
+    'routes' => [
+        ['pattern' => 'page=dashboard_direction', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['responsable_filiere'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'recherche_globale',
+    'code' => 'RECH_GLOBALE',
+    'label' => 'Recherche globale',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=recherche_globale',
+    'routes' => [
+        ['pattern' => 'page=recherche_globale', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=recherche_globale&ajax=1', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['secretaire'] => $view,
+        $groups['responsable_scolarite'] => $view,
+        $groups['commission'] => $view,
+        $groups['enseignant'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'dashboard_securite',
+    'code' => 'SECURITE_DASH',
+    'label' => 'Dashboard sécurité',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=dashboard_securite',
+    'routes' => [
+        ['pattern' => 'page=dashboard_securite', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'fiche_enseignante',
+    'code' => 'FICHE_ENS',
+    'label' => 'Fiche enseignante complète',
+    'category_code' => 'ENV_ENSEIGNANT',
+    'menu_url' => '?page=fiche_enseignante',
+    'routes' => [
+        ['pattern' => 'page=fiche_enseignante', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['responsable_filiere'] => $view,
+        $groups['commission'] => $view,
+        $groups['enseignant'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'fiche_commission',
+    'code' => 'FICHE_COM',
+    'label' => 'Fiche commission',
+    'category_code' => 'COMMISSION',
+    'menu_url' => '?page=fiche_commission',
+    'routes' => [
+        ['pattern' => 'page=fiche_commission', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['commission'] => $view,
+    ],
+]);
+
+// ── Nouveaux écrans P2.5-P2.16 ──
+
+$addFeature([
+    'slug' => 'etudiants_sans_rapport',
+    'code' => 'ETU_SANS_RAPPORT',
+    'label' => 'Étudiants sans rapport',
+    'category_code' => 'SCOLARITE',
+    'menu_url' => '?page=etudiants_sans_rapport',
+    'routes' => [
+        ['pattern' => 'page=etudiants_sans_rapport', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['secretaire'] => $view,
+        $groups['responsable_scolarite'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'etudiants_non_inscrits',
+    'code' => 'ETU_NON_INSCRITS',
+    'label' => 'Étudiants non inscrits',
+    'category_code' => 'SCOLARITE',
+    'menu_url' => '?page=etudiants_non_inscrits',
+    'routes' => [
+        ['pattern' => 'page=etudiants_non_inscrits', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['secretaire'] => $view,
+        $groups['responsable_scolarite'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'etudiants_sans_compte',
+    'code' => 'ETU_SANS_COMPTE',
+    'label' => 'Étudiants sans compte',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=etudiants_sans_compte',
+    'routes' => [
+        ['pattern' => 'page=etudiants_sans_compte', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=etudiants_sans_compte&action=creer_comptes_masse', 'method' => 'POST', 'crud' => 'creer'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'planning_jurys_enseignant',
+    'code' => 'PLANNING_JURYS',
+    'label' => 'Planning jurys enseignant',
+    'category_code' => 'ENV_ENSEIGNANT',
+    'menu_url' => '?page=planning_jurys_enseignant',
+    'routes' => [
+        ['pattern' => 'page=planning_jurys_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['enseignant'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'stats_encadrement_enseignant',
+    'code' => 'STATS_ENCADREMENT',
+    'label' => 'Stats encadrement enseignant',
+    'category_code' => 'ENV_ENSEIGNANT',
+    'menu_url' => '?page=stats_encadrement_enseignant',
+    'routes' => [
+        ['pattern' => 'page=stats_encadrement_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['enseignant'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'portfolio_enseignant',
+    'code' => 'PORTFOLIO_ENS',
+    'label' => 'Portfolio enseignant',
+    'category_code' => 'ENV_ENSEIGNANT',
+    'menu_url' => '?page=portfolio_enseignant',
+    'routes' => [
+        ['pattern' => 'page=portfolio_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['enseignant'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'echeancier_etudiant',
+    'code' => 'ECHEANCIER',
+    'label' => 'Échéancier étudiant',
+    'category_code' => 'SCOLARITE',
+    'menu_url' => '?page=echeancier_etudiant',
+    'routes' => [
+        ['pattern' => 'page=echeancier_etudiant', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['secretaire'] => $view,
+        $groups['responsable_scolarite'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'historique_modifications',
+    'code' => 'HISTORIQUE_MODIFS',
+    'label' => 'Historique modifications',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=historique_modifications',
+    'routes' => [
+        ['pattern' => 'page=historique_modifications', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=historique_modifications&export=csv', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'export_masse_documents',
+    'code' => 'EXPORT_MASSE_DOCS',
+    'label' => 'Export masse documents',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=export_masse_documents',
+    'routes' => [
+        ['pattern' => 'page=export_masse_documents', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=export_masse_documents&action=generate_zip', 'method' => 'POST', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['secretaire'] => $view,
+        $groups['responsable_scolarite'] => $view,
+    ],
+]);
+
 return [
     'version' => '2026-03-12',
     'groups' => $groups,
@@ -1103,6 +1327,13 @@ return [
         'gestion_notes' => 'gestion_notes_evaluations',
         'reclamation_etudiant' => 'gestion_reclamations_scolarite',
         'repertoire_documents' => 'repertoire_enseignant',
+        'annuaire_enseignants' => 'repertoire_enseignant',
+        'fiche_financiere_annee' => 'gestion_scolarite',
+        'fiche_personnel_admin' => 'gestion_rh',
+        'fiche_pers_admin' => 'fiche_personnel_admin',
+        'fiche_etudiant_complete' => 'archives_etudiants',
+        'fiche_etudiant' => 'fiche_etudiant_complete',
+        'timeline_parcours_etudiant' => 'archives_etudiants',
     ],
     'category_defaults' => $categoryDefaults,
     'features' => $features,

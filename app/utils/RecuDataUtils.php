@@ -162,6 +162,8 @@ class RecuDataUtils
         $stmt = $this->db->pdo()->prepare(
             'SELECT
                 e.num_carte_etud,
+                e.num_ident_etud,
+                COALESCE(e.num_ident_etud, e.num_carte_etud) AS display_id,
                 e.nom_etu AS nom_etudiant,
                 e.prenom_etu AS prenom_etudiant,
                 e.email_etu AS email_etudiant

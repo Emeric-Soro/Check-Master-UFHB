@@ -326,7 +326,7 @@ class Etudiant
         $sql = "SELECT cs.*, e.nom_etu, e.prenom_etu, e.promotion_etu, 
                        i.id_annee_acad, a.date_deb, a.date_fin
                 FROM candidature_soutenance cs 
-                INNER JOIN etudiants e ON e.num_carte_etud = cs.num_etu 
+                INNER JOIN etudiants e ON (e.num_carte_etud = cs.num_etu OR e.num_ident_etud = cs.num_etu) 
                 LEFT JOIN (
                     SELECT i2.num_carte_etud, i2.id_annee_acad, i2.date_inscription,
                            ROW_NUMBER() OVER (PARTITION BY i2.num_carte_etud 
@@ -390,6 +390,10 @@ class Etudiant
     public function getNotesEtudiant($numEtu)
     {
         try {
+            // Résoudre l'étudiant par l'un ou l'autre identifiant
+            $etudiant = $this->getEtudiantById($numEtu);
+            $resolvedNumEtu = $etudiant ? $etudiant->num_carte_etud : $numEtu;
+
             // D'abord, récupérer le niveau d'étude de l'étudiant
             $sql_niveau = "SELECT i.id_niv_etude 
                           FROM inscriptions i 
@@ -398,7 +402,7 @@ class Etudiant
                           LIMIT 1";
 
             $stmt_niveau = $this->db->prepare($sql_niveau);
-            $stmt_niveau->execute([':num_etu' => $numEtu]);
+            $stmt_niveau->execute([':num_etu' => $resolvedNumEtu]);
             $niveau_etudiant = $stmt_niveau->fetch(PDO::FETCH_ASSOC);
 
             if (!$niveau_etudiant) {
@@ -431,10 +435,8 @@ class Etudiant
                                  AND n.num_etu = :num_etu ";
 
             $stmt_ue_avec_notes = $this->db->prepare($sql_ue_avec_notes);
-            $stmt_ue_avec_notes->execute([':id_niveau' => $id_niveau, ':num_etu' => $numEtu]);
+            $stmt_ue_avec_notes->execute([':id_niveau' => $id_niveau, ':num_etu' => $resolvedNumEtu]);
             $ue_avec_notes = $stmt_ue_avec_notes->fetch(PDO::FETCH_ASSOC)['ue_avec_notes'];
-
-
 
             // Debug: Vérifier les notes de l'étudiant
             $sql_debug_notes = "SELECT n.moyenne, u.lib_ue, u.id_niveau_etude, u.id_annee_academique
@@ -442,7 +444,7 @@ class Etudiant
                                JOIN ue u ON n.id_ue = u.id_ue
                                WHERE n.num_etu = :num_etu";
             $stmt_debug = $this->db->prepare($sql_debug_notes);
-            $stmt_debug->execute([':num_etu' => $numEtu]);
+            $stmt_debug->execute([':num_etu' => $resolvedNumEtu]);
             $debug_notes = $stmt_debug->fetchAll(PDO::FETCH_ASSOC);
 
             error_log("DEBUG - Étudiant $numEtu - Niveau: $id_niveau - Notes trouvées: " . count($debug_notes));
@@ -457,7 +459,7 @@ class Etudiant
                            WHERE n.num_etu = :num_etu";
 
             $stmt_moyenne = $this->db->prepare($sql_moyenne);
-            $stmt_moyenne->execute([':num_etu' => $numEtu]);
+            $stmt_moyenne->execute([':num_etu' => $resolvedNumEtu]);
             $result = $stmt_moyenne->fetch(PDO::FETCH_ASSOC);
 
             error_log("DEBUG - Moyenne calculée: " . ($result['moyenne'] ?? 'NULL'));
@@ -487,7 +489,7 @@ class Etudiant
                                   AND n.moyenne >= 10";
 
                 $stmt_credits_ue = $this->db->prepare($sql_credits_ue);
-                $stmt_credits_ue->execute([':num_etu' => $numEtu, ':id_niveau' => $id_niveau]);
+                $stmt_credits_ue->execute([':num_etu' => $resolvedNumEtu, ':id_niveau' => $id_niveau]);
                 $credits_valides = $stmt_credits_ue->fetch(PDO::FETCH_ASSOC)['credits_valides'] ?? 0;
             }
 
@@ -514,12 +516,16 @@ class Etudiant
     public function getInfoStage($numEtu)
     {
         try {
+            // Chercher par l'un ou l'autre identifiant (la table stage peut contenir l'un ou l'autre)
             $sql = "SELECT infos_stage.*, e.lib_long_entreprise as nom_entreprise, e.lib_court_en
                    FROM informations_stage infos_stage
                    JOIN entreprises e ON infos_stage.id_entreprise = e.id_entreprise
-                   WHERE infos_stage.num_etu = :num_etu";
+                   WHERE (infos_stage.num_etu = :num_etu OR EXISTS (SELECT 1 FROM etudiants e2 WHERE e2.num_carte_etud = infos_stage.num_etu AND e2.num_ident_etud = :num_etu2))
+                   LIMIT 1";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([':num_etu' => $numEtu]);
+            $stmt->bindValue(':num_etu', $numEtu);
+            $stmt->bindValue(':num_etu2', $numEtu);
+            $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($result) {
@@ -540,15 +546,21 @@ class Etudiant
 
     public function getEtudiantByNumEtu($numEtu)
     {
-        $sql = "SELECT *, num_ident_etud as identifiant_mesrs FROM etudiants WHERE num_carte_etud = :num_etu";
+        $sql = "SELECT *, num_ident_etud as identifiant_mesrs FROM etudiants WHERE (num_ident_etud = :num_etu OR num_carte_etud = :num_etu2) LIMIT 1";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([':num_etu' => $numEtu]);
+        $stmt->bindValue(':num_etu', $numEtu);
+        $stmt->bindValue(':num_etu2', $numEtu);
+        $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function getSemestreActuel($numEtu)
     {
         try {
+            // Résoudre l'étudiant par l'un ou l'autre identifiant
+            $etudiant = $this->getEtudiantById($numEtu);
+            $resolvedNumEtu = $etudiant ? $etudiant->num_carte_etud : $numEtu;
+
             // Récupérer tous les semestres du niveau d'étude de l'étudiant
             $sql = "SELECT s.id_semestre, s.lib_semestre, n.lib_niv_etude
                    FROM inscriptions i
@@ -558,7 +570,7 @@ class Etudiant
                    ORDER BY s.lib_semestre ASC";
 
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([':num_etu' => $numEtu]);
+            $stmt->execute([':num_etu' => $resolvedNumEtu]);
             $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if ($result) {
@@ -686,9 +698,11 @@ class Etudiant
 
     public function getNiveauByEtudiant($num_etu)
     {
-        $query = "SELECT n.* FROM inscriptions i JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude WHERE i.num_carte_etud = ? ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC LIMIT 1";
+        $query = "SELECT n.* FROM inscriptions i JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude 
+                  WHERE (i.num_carte_etud = ? OR EXISTS (SELECT 1 FROM etudiants e2 WHERE e2.num_carte_etud = i.num_carte_etud AND e2.num_ident_etud = ?))
+                  ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC LIMIT 1";
         $stmt = $this->db->prepare($query);
-        $stmt->execute([$num_etu]);
+        $stmt->execute([$num_etu, $num_etu]);
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
@@ -761,13 +775,17 @@ class Etudiant
      */
     public function getParcours($matricule)
     {
+        // Résoudre l'identifiant : d'abord chercher l'étudiant
+        $student = $this->getEtudiantById($matricule);
+        $resolved = $student ? $student->num_carte_etud : $matricule;
+
         $sql = "
             SELECT * FROM (
                 SELECT
                     'inscription' AS type,
                     i.date_inscription AS date_event,
                     CONCAT('Inscription ', COALESCE(ne.lib_niv_etude, '')) AS titre,
-                    CONCAT('Statut: ', COALESCE(i.statut_inscription, 'N/A')) AS description
+                    CONCAT('Versement #', COALESCE(i.num_versement, 1), ' - Solde: ', COALESCE(i.solde, 0), ' FCFA') AS description
                 FROM inscriptions i
                 LEFT JOIN niveau_etude ne ON ne.id_niv_etude = i.id_niv_etude
                 WHERE i.num_carte_etud = :m1
@@ -831,12 +849,12 @@ class Etudiant
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
-                ':m1' => $matricule,
-                ':m2' => $matricule,
-                ':m3' => $matricule,
-                ':m4' => $matricule,
-                ':m5' => $matricule,
-                ':m6' => $matricule,
+                ':m1' => $resolved,
+                ':m2' => $resolved,
+                ':m3' => $resolved,
+                ':m4' => $resolved,
+                ':m5' => $resolved,
+                ':m6' => $resolved,
             ]);
 
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
@@ -855,8 +873,12 @@ class Etudiant
      */
     public function getDocuments($matricule, $id_annee_acad = null)
     {
+        // Résoudre l'identifiant étudiant
+        $student = $this->getEtudiantById($matricule);
+        $resolved = $student ? $student->num_carte_etud : $matricule;
+
         $yearFilter = '';
-        $params = [':matricule' => $matricule];
+        $params = [':matricule' => $resolved];
 
         if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
             $yearFilter = " AND i.id_annee_acad = :id_annee";
@@ -974,9 +996,23 @@ class Etudiant
                     CONCAT(i.num_carte_etud, '-', i.id_annee_acad, '-', i.num_versement) AS id_inscription,
                     i.id_annee_acad,
                     i.date_inscription,
-                    i.statut_inscription,
-                    i.montant_paye,
-                    i.reste_a_payer,
+                    CASE
+                        WHEN COALESCE(i.solde, 0) <= 0 THEN 'Soldé'
+                        WHEN COALESCE((
+                            SELECT SUM(i3.montant_verser)
+                            FROM inscriptions i3
+                            WHERE i3.num_carte_etud = i.num_carte_etud
+                              AND i3.id_annee_acad = i.id_annee_acad
+                        ), 0) > 0 THEN 'Partiel'
+                        ELSE 'Impayé'
+                    END AS statut_inscription,
+                    COALESCE((
+                        SELECT SUM(i3.montant_verser)
+                        FROM inscriptions i3
+                        WHERE i3.num_carte_etud = i.num_carte_etud
+                          AND i3.id_annee_acad = i.id_annee_acad
+                    ), 0) AS montant_paye,
+                    COALESCE(i.solde, 0) AS reste_a_payer,
                     i.solde,
                     i.fiche_inscription,
                     ne.lib_niv_etude,
@@ -994,17 +1030,20 @@ class Etudiant
                 )
                 LEFT JOIN niveau_etude ne ON ne.id_niv_etude = i.id_niv_etude
                 LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
-                WHERE e.num_carte_etud = :matricule
+                WHERE (e.num_ident_etud = :matricule OR e.num_carte_etud = :matricule2)
                 LIMIT 1
             ");
+            $params[':matricule2'] = $matricule;
             $stmtBase->execute($params);
             $base = $stmtBase->fetch(PDO::FETCH_ASSOC);
             if (!$base) {
                 return null;
             }
 
+            // Résoudre le num_carte_etud pour les sous-requêtes FK
+            $resolvedMatricule = $base['num_carte_etud'] ?? $matricule;
             $idAnneeFromBase = isset($base['id_annee_acad']) ? (int) $base['id_annee_acad'] : null;
-            $yearParams = [':matricule' => $matricule];
+            $yearParams = [':matricule' => $resolvedMatricule];
             if ($idAnneeFromBase !== null && $idAnneeFromBase > 0) {
                 $yearParams[':id_annee'] = $idAnneeFromBase;
             }
@@ -1210,6 +1249,8 @@ class Etudiant
             : "
                 DISTINCT
                 e.num_carte_etud,
+                e.num_ident_etud,
+                COALESCE(e.num_ident_etud, e.num_carte_etud) AS display_id,
                 e.nom_etu,
                 e.prenom_etu,
                 e.email_etu,
@@ -1263,7 +1304,7 @@ class Etudiant
                 FROM valider v
                 GROUP BY v.id_rapport
             ) v ON v.id_rapport = re.id_rapport
-            LEFT JOIN notes n ON n.num_etu = e.num_carte_etud AND n.id_annee_acad = :id_annee
+            LEFT JOIN notes n ON (n.num_etu = e.num_carte_etud OR n.num_etu = e.num_ident_etud) AND n.id_annee_acad = :id_annee
             LEFT JOIN (
                 SELECT
                     a.id_rapport,

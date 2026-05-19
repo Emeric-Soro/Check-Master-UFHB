@@ -80,4 +80,20 @@ class ProcessusValidationController
     {
         return $this->service->finaliserRapport($id_rapport, $id_enseignant, $commentaire);
     }
+
+    /**
+     * Workflow visuel pour un rapport (P2.4)
+     */
+    public function workflowVisuel(): array
+    {
+        $idRapport = (int) ($_GET['id_rapport'] ?? $_GET['id'] ?? 0);
+        if ($idRapport <= 0) {
+            return $this->service->getDonneesPage();
+        }
+        $workflow = $this->service->getWorkflowProgress($idRapport);
+        return [
+            'workflow' => $workflow,
+            'statistiques' => $this->service->getStatistiques(),
+        ];
+    }
 }

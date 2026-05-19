@@ -183,7 +183,7 @@ class ArchivesDossiersSoutenanceService
                         {$tempsTraitementExpr} as temps_traitement
                       FROM valider v
                       LEFT JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                      LEFT JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                      LEFT JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
                       $whereClause
                       ORDER BY v.date_validation DESC";
 
@@ -279,7 +279,7 @@ class ArchivesDossiersSoutenanceService
                         e.email_etu
                       FROM valider v
                       LEFT JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                      LEFT JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                      LEFT JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
                       WHERE v.id_rapport = :id";
 
             $stmt = $this->db->prepare($query);
