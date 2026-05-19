@@ -824,6 +824,10 @@ switch ($currentMenuSlug) {
         $contentFile = $partialsBasePath . 'v2/archives/archives_jurys.php';
         break;
     case 'archives_documents':
+        if (!class_exists('ArchiveDocumentController')) {
+            require_once __DIR__ . '/../app/controllers/ArchiveDocumentController.php';
+        }
+        $data = (new ArchiveDocumentController())->index();
         $contentFile = $partialsBasePath . 'v2/archives/archives_documents.php';
         break;
     case 'documents':
@@ -1035,15 +1039,38 @@ switch ($currentMenuSlug) {
 
     case 'commissions_archives':
         $hubTab = (string) ($_GET['tab'] ?? 'archives_documents');
-        if ($hubTab === 'fiche_commission') {
-            require_once __DIR__ . '/../app/controllers/FicheCommissionController.php';
-            $fcData = (new FicheCommissionController())->index();
-            $membres = $fcData['membres'] ?? [];
-            $rapportsEvalues = $fcData['rapports_evalues'] ?? [];
-            $rapportsAttente = $fcData['rapports_attente'] ?? [];
-            $statsVote = $fcData['stats_vote'] ?? [];
-            $decisions = $fcData['decisions'] ?? [];
-            $planning = $fcData['planning'] ?? [];
+        switch ($hubTab) {
+            case 'archives_documents':
+                if (!class_exists('ArchiveDocumentController')) {
+                    require_once __DIR__ . '/../app/controllers/ArchiveDocumentController.php';
+                }
+                $data = (new ArchiveDocumentController())->index();
+                break;
+            case 'archives_etudiants':
+                if (!class_exists('ArchiveEtudiantController')) {
+                    require_once __DIR__ . '/../app/controllers/ArchiveEtudiantController.php';
+                }
+                $data = (new ArchiveEtudiantController())->index();
+                break;
+            case 'fiche_commission':
+                require_once __DIR__ . '/../app/controllers/FicheCommissionController.php';
+                $fcData = (new FicheCommissionController())->index();
+                $membres = $fcData['membres'] ?? [];
+                $rapportsEvalues = $fcData['rapports_evalues'] ?? [];
+                $rapportsAttente = $fcData['rapports_attente'] ?? [];
+                $statsVote = $fcData['stats_vote'] ?? [];
+                $decisions = $fcData['decisions'] ?? [];
+                $planning = $fcData['planning'] ?? [];
+                break;
+            case 'workflow_validation':
+                require_once __DIR__ . '/../app/controllers/ProcessusValidationController.php';
+                $workflowData = (new ProcessusValidationController())->workflowVisuel();
+                $workflow = $workflowData['workflow'] ?? null;
+                $statistiques = $workflowData['statistiques'] ?? [];
+                if (!$workflow) {
+                    $rapports = $workflowData['rapports'] ?? [];
+                }
+                break;
         }
         $contentFile = $partialsBasePath . 'commissions_archives_content.php';
         $currentPageLabel = 'Commissions & Archives';

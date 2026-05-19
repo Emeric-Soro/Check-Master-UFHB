@@ -9,6 +9,33 @@ class Etudiant
         $this->db = $db;
     }
 
+    /**
+     * Résout les identifiants connus d'un étudiant à partir d'un matricule
+     * carte ou d'un identifiant MESRS.
+     *
+     * @return array<int, string>
+     */
+    private function resolveStudentIdentifiers($numEtu)
+    {
+        $identifiers = [];
+        $value = trim((string) $numEtu);
+        if ($value !== '') {
+            $identifiers[] = $value;
+        }
+
+        $student = $this->getEtudiantById($numEtu);
+        if ($student) {
+            foreach (['num_carte_etud', 'num_ident_etud'] as $field) {
+                $candidate = trim((string) ($student->$field ?? ''));
+                if ($candidate !== '' && !in_array($candidate, $identifiers, true)) {
+                    $identifiers[] = $candidate;
+                }
+            }
+        }
+
+        return $identifiers;
+    }
+
     private function getAcademicYearLabelById($id_annee_acad)
     {
         if ($id_annee_acad === null || (int) $id_annee_acad <= 0) {
@@ -164,9 +191,13 @@ class Etudiant
     public function getEtudiantById($num_etu)
     {
         try {
-            $query = "SELECT *, num_ident_etud as identifiant_mesrs FROM etudiants WHERE num_carte_etud = :num_etu";
+            $query = "SELECT *, num_ident_etud as identifiant_mesrs
+                      FROM etudiants
+                      WHERE num_carte_etud = :num_etu OR num_ident_etud = :num_etu_alt
+                      LIMIT 1";
             $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':num_etu', $num_etu);
+            $stmt->bindValue(':num_etu', $num_etu);
+            $stmt->bindValue(':num_etu_alt', $num_etu);
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -315,9 +346,19 @@ class Etudiant
 
     public function getCandidature($num_etu)
     {
-        $sql = "SELECT * FROM candidature_soutenance WHERE num_etu = ?";
+        $identifiers = $this->resolveStudentIdentifiers($num_etu);
+        if (empty($identifiers)) {
+            return false;
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($identifiers), '?'));
+        $sql = "SELECT *
+                FROM candidature_soutenance
+                WHERE num_etu IN ($placeholders)
+                ORDER BY date_candidature DESC
+                LIMIT 1";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$num_etu]);
+        $stmt->execute($identifiers);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -631,17 +672,36 @@ class Etudiant
      */
     public function getCandidatures($num_etu)
     {
-        $sql = "SELECT * FROM candidature_soutenance WHERE num_etu = ? ORDER BY date_candidature DESC";
+        $identifiers = $this->resolveStudentIdentifiers($num_etu);
+        if (empty($identifiers)) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($identifiers), '?'));
+        $sql = "SELECT *
+                FROM candidature_soutenance
+                WHERE num_etu IN ($placeholders)
+                ORDER BY date_candidature DESC";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$num_etu]);
+        $stmt->execute($identifiers);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getLastCandidatureByNumEtu($num_etu)
     {
-        $sql = "SELECT * FROM candidature_soutenance WHERE num_etu = ? ORDER BY date_candidature DESC LIMIT 1";
+        $identifiers = $this->resolveStudentIdentifiers($num_etu);
+        if (empty($identifiers)) {
+            return false;
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($identifiers), '?'));
+        $sql = "SELECT *
+                FROM candidature_soutenance
+                WHERE num_etu IN ($placeholders)
+                ORDER BY date_candidature DESC
+                LIMIT 1";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$num_etu]);
+        $stmt->execute($identifiers);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 

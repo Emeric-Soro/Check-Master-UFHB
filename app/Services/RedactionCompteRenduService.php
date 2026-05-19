@@ -68,6 +68,7 @@ class RedactionCompteRenduService
                     COALESCE(e.nom_etu, '') AS nom_etu,
                     COALESCE(e.promotion_etu, '') AS promotion_etu,
                     v2.decision_validation,
+                    v2.date_validation,
                     ins.id_annee_acad,
                     COALESCE(cr_link.existing_cr_id, 0) AS existing_cr_id,
                     COALESCE(cr_link.existing_cr_count, 0) AS existing_cr_count,
@@ -115,11 +116,80 @@ class RedactionCompteRenduService
             $sql .= " ORDER BY v2.decision_validation DESC, r.theme_rapport";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+            return $this->deduplicateValidatedReports($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: []);
         } catch (\PDOException $e) {
             error_log("Erreur lors de la récupération des rapports validés : " . $e->getMessage());
             return [];
         }
+    }
+
+    /**
+     * Réduit les doublons de dossiers issus des multiples versions d'un rapport
+     * ou des doublons de jointure sur la dernière validation.
+     *
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function deduplicateValidatedReports(array $rows): array
+    {
+        $byReportId = [];
+        foreach ($rows as $row) {
+            $reportId = (int) ($row['id_rapport'] ?? 0);
+            if ($reportId <= 0) {
+                continue;
+            }
+
+            if (!isset($byReportId[$reportId])) {
+                $byReportId[$reportId] = $row;
+                continue;
+            }
+
+            $currentDate = strtotime((string) ($row['date_validation'] ?? '')) ?: 0;
+            $savedDate = strtotime((string) ($byReportId[$reportId]['date_validation'] ?? '')) ?: 0;
+            if ($currentDate >= $savedDate) {
+                $byReportId[$reportId] = $row;
+            }
+        }
+
+        $byLogicalKey = [];
+        foreach ($byReportId as $row) {
+            $studentKey = mb_strtolower(trim((string) ($row['num_etu'] ?? '')));
+            $themeKey = mb_strtolower(trim(preg_replace('/\s+/', ' ', (string) ($row['theme_rapport'] ?? ''))));
+            $yearKey = (string) ((int) ($row['id_annee_acad'] ?? 0));
+            $logicalKey = $studentKey . '|' . $themeKey . '|' . $yearKey;
+
+            if ($studentKey === '' || $themeKey === '') {
+                $logicalKey = 'report|' . (int) ($row['id_rapport'] ?? 0);
+            }
+
+            if (!isset($byLogicalKey[$logicalKey])) {
+                $byLogicalKey[$logicalKey] = $row;
+                continue;
+            }
+
+            $savedId = (int) ($byLogicalKey[$logicalKey]['id_rapport'] ?? 0);
+            $currentId = (int) ($row['id_rapport'] ?? 0);
+            if ($currentId >= $savedId) {
+                $byLogicalKey[$logicalKey] = $row;
+            }
+        }
+
+        $deduped = array_values($byLogicalKey);
+        usort($deduped, static function (array $a, array $b): int {
+            $decisionCompare = strcmp((string) ($b['decision_validation'] ?? ''), (string) ($a['decision_validation'] ?? ''));
+            if ($decisionCompare !== 0) {
+                return $decisionCompare;
+            }
+
+            $themeCompare = strcmp((string) ($a['theme_rapport'] ?? ''), (string) ($b['theme_rapport'] ?? ''));
+            if ($themeCompare !== 0) {
+                return $themeCompare;
+            }
+
+            return ((int) ($b['id_rapport'] ?? 0)) <=> ((int) ($a['id_rapport'] ?? 0));
+        });
+
+        return $deduped;
     }
 
     /**

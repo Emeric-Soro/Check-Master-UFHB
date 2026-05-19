@@ -4,18 +4,21 @@
  */
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/CompteRendu.php';
+require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../Services/Document/DocumentRegistry.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 
 class ArchiveDocumentController
 {
     private $db;
+    private $anneeModel;
     private DocumentRegistry $registry;
     private const ALLOWED_TYPES = ['rapport', 'compte_rendu', 'pv_final'];
 
     public function __construct($db = null)
     {
         $this->db = $db ?: Database::getConnection();
+        $this->anneeModel = new AnneeAcademique($this->db);
         $this->registry = new DocumentRegistry($this->db);
     }
 
@@ -31,16 +34,34 @@ class ArchiveDocumentController
         }
 
         $anneeId = $_SESSION['archive_annee_acad'] ?? null;
+        $anneeLabel = trim((string) ($_SESSION['archive_annee_libelle'] ?? ''));
+        if (!is_numeric($anneeId)) {
+            $globalYearId = $_SESSION['global_annee_id'] ?? null;
+            if (is_numeric($globalYearId)) {
+                $annee = $this->anneeModel->getAnneeAcademiqueById((int) $globalYearId);
+            } else {
+                $annee = $this->anneeModel->getAnneeAcademiqueActive();
+            }
+
+            if ($annee) {
+                $anneeId = (int) $annee->id_annee_acad;
+                $anneeLabel = date('Y', strtotime((string) $annee->date_deb)) . '-' . date('Y', strtotime((string) $annee->date_fin));
+                $_SESSION['archive_annee_acad'] = $anneeId;
+                $_SESSION['archive_annee_libelle'] = $anneeLabel;
+            }
+        }
+
         $type = $_GET['type'] ?? null;
         if (!is_string($type) || !in_array($type, self::ALLOWED_TYPES, true)) {
             $type = null;
         }
 
-        $documents = $this->getDocumentsArchives($anneeId, $type);
+        $documents = $this->getDocumentsArchives($anneeId, null);
 
         return [
             'documents' => $documents,
             'type_filter' => $type,
+            'annee_label' => $anneeLabel,
         ];
     }
 
@@ -176,13 +197,25 @@ class ArchiveDocumentController
 
             $params = [];
             if (is_numeric($anneeId)) {
-                $sql .= " AND EXISTS (
-                    SELECT 1
-                    FROM inscriptions i
-                    WHERE i.num_carte_etud = re.num_etu
-                      AND i.id_annee_acad = :annee_id
+                $sql .= " AND (
+                    EXISTS (
+                        SELECT 1
+                        FROM inscriptions i
+                        WHERE i.num_carte_etud = re.num_etu
+                          AND i.id_annee_acad = :annee_id
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM inscriptions i
+                        WHERE i.id_annee_acad = :annee_id_alt
+                          AND (
+                            i.num_carte_etud = e.num_carte_etud
+                            OR i.num_carte_etud = e.num_ident_etud
+                          )
+                    )
                 )";
                 $params['annee_id'] = (int) $anneeId;
+                $params['annee_id_alt'] = (int) $anneeId;
             }
 
             $stmt = $this->db->prepare($sql);
@@ -208,13 +241,25 @@ class ArchiveDocumentController
 
             $params = [];
             if (is_numeric($anneeId)) {
-                $sql .= " AND EXISTS (
-                    SELECT 1
-                    FROM inscriptions i
-                    WHERE i.num_carte_etud = cr.num_etu
-                      AND i.id_annee_acad = :annee_id
+                $sql .= " AND (
+                    EXISTS (
+                        SELECT 1
+                        FROM inscriptions i
+                        WHERE i.num_carte_etud = cr.num_etu
+                          AND i.id_annee_acad = :annee_id
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM inscriptions i
+                        WHERE i.id_annee_acad = :annee_id_alt
+                          AND (
+                            i.num_carte_etud = e.num_carte_etud
+                            OR i.num_carte_etud = e.num_ident_etud
+                          )
+                    )
                 )";
                 $params['annee_id'] = (int) $anneeId;
+                $params['annee_id_alt'] = (int) $anneeId;
             }
 
             $stmt = $this->db->prepare($sql);
@@ -321,12 +366,13 @@ class ArchiveDocumentController
 
         $labels = [];
         foreach ($rows as $row) {
-            $key = (string) ($row['num_carte_etud'] ?? '');
-            if ($key === '') {
-                continue;
+            $fullName = trim((string) ($row['nom_etu'] ?? '') . ' ' . (string) ($row['prenom_etu'] ?? ''));
+            foreach (['num_carte_etud', 'num_ident_etud'] as $field) {
+                $key = trim((string) ($row[$field] ?? ''));
+                if ($key !== '') {
+                    $labels[$key] = $fullName;
+                }
             }
-
-            $labels[$key] = trim((string) ($row['nom_etu'] ?? '') . ' ' . (string) ($row['prenom_etu'] ?? ''));
         }
 
         foreach ($documents as &$doc) {

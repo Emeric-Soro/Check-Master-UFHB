@@ -200,6 +200,64 @@ $buildStateClass = static function (string $status): string {
         flex-wrap: wrap;
     }
 
+    .cm-cand-modal-overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(15, 23, 42, 0.48);
+        z-index: var(--cm-z-modal-overlay, 300);
+    }
+
+    .cm-cand-modal-overlay.is-open {
+        display: flex;
+    }
+
+    .cm-cand-modal {
+        width: min(100%, 440px);
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+        overflow: hidden;
+    }
+
+    .cm-cand-modal__header {
+        padding: 20px 24px 8px;
+    }
+
+    .cm-cand-modal__title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.125rem;
+        font-weight: 700;
+    }
+
+    .cm-cand-modal__body {
+        padding: 0 24px 16px;
+        color: #334155;
+        line-height: 1.6;
+    }
+
+    .cm-cand-modal__footer {
+        display: flex;
+        justify-content: flex-end;
+        padding: 0 24px 24px;
+    }
+
+    .cm-cand-sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
     .cm-cand-timeline {
         position: relative;
         display: grid;
@@ -333,13 +391,6 @@ $buildStateClass = static function (string $status): string {
 </style>
 
 <div class="cm-cand-page">
-    <?php if ($successMessage !== ''): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => $successMessage]); ?>
-    <?php endif; ?>
-    <?php if ($errorMessage !== ''): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $errorMessage]); ?>
-    <?php endif; ?>
-
     <section class="cm-cand-box">
         <div class="cm-cand-head">
             <h2 class="cm-cand-head__title">Ma candidature à la soutenance</h2>
@@ -424,7 +475,7 @@ $buildStateClass = static function (string $status): string {
                     </div>
                 </div>
 
-                <p id="stageDateError" class="cm-cand-help" style="color:#b91c1c; font-weight:600; min-height:20px; margin: 12px 0 0;"></p>
+                <p id="stageDateError" class="cm-cand-sr-only" aria-live="polite"></p>
 
                 <div class="cm-cand-buttons">
                     <button type="button" class="cm-btn is-light" onclick="window.history.back();">Annuler</button>
@@ -440,6 +491,19 @@ $buildStateClass = static function (string $status): string {
                 </div>
             </form>
         </section>
+        <div id="stageAlertModal" class="cm-cand-modal-overlay" hidden>
+            <div class="cm-cand-modal" role="dialog" aria-modal="true" aria-labelledby="stageAlertTitle" aria-describedby="stageAlertMessage">
+                <div class="cm-cand-modal__header">
+                    <h3 id="stageAlertTitle" class="cm-cand-modal__title">Alerte</h3>
+                </div>
+                <div class="cm-cand-modal__body">
+                    <p id="stageAlertMessage">La période de stage doit être de 3 à 6 mois.</p>
+                </div>
+                <div class="cm-cand-modal__footer">
+                    <button type="button" id="stageAlertClose" class="cm-btn is-primary">Compris</button>
+                </div>
+            </div>
+        </div>
     <?php else: ?>
         <section class="cm-cand-box">
             <div class="cm-cand-timeline">
@@ -538,14 +602,22 @@ $buildStateClass = static function (string $status): string {
         const dateFin = document.getElementById('date_fin');
         const dateError = document.getElementById('stageDateError');
         const form = document.getElementById('stageInfoForm');
+        const stageAlertModal = document.getElementById('stageAlertModal');
+        const stageAlertTitle = document.getElementById('stageAlertTitle');
+        const stageAlertMessage = document.getElementById('stageAlertMessage');
+        const stageAlertClose = document.getElementById('stageAlertClose');
+        const sujetInput = document.getElementById('sujet');
+        const successMessage = <?= json_encode($successMessage, JSON_UNESCAPED_UNICODE) ?>;
+        const errorMessage = <?= json_encode($errorMessage, JSON_UNESCAPED_UNICODE) ?>;
 
-        if (!inputEntreprise || !suggestions || !inputEncadrant || !suggestionsEncadrant || !dateDebut || !dateFin || !dateError || !form) {
+        if (!inputEntreprise || !suggestions || !inputEncadrant || !suggestionsEncadrant || !dateDebut || !dateFin || !dateError || !form || !stageAlertModal || !stageAlertTitle || !stageAlertMessage || !stageAlertClose || !sujetInput) {
             return;
         }
 
         let selectedEntrepriseId = null;
         let currentIndex = -1;
         let currentIndexEncadrant = -1;
+        let lastValidationMessage = '';
 
         if (inputEntreprise.value.trim() !== '') {
             const currentEntreprise = entreprisesData.find(function (item) {
@@ -678,10 +750,67 @@ $buildStateClass = static function (string $status): string {
             });
         }
 
-        function validateDates() {
-            dateError.textContent = '';
+        function openStageAlert(title, message) {
+            stageAlertTitle.textContent = title;
+            stageAlertMessage.textContent = message;
+            stageAlertModal.hidden = false;
+            stageAlertModal.classList.add('is-open');
+            document.body.classList.add('modal-open');
+            stageAlertClose.focus();
+        }
+
+        function closeStageAlert() {
+            stageAlertModal.classList.remove('is-open');
+            stageAlertModal.hidden = true;
+            document.body.classList.remove('modal-open');
+        }
+
+        function setDateValidationMessage(message, showModal) {
+            dateError.textContent = message || '';
+            if (showModal && message && message !== lastValidationMessage) {
+                openStageAlert('Période de stage invalide', message);
+            }
+            lastValidationMessage = message || '';
+            return !message;
+        }
+
+        function validateFields(showModal) {
+            const checks = [
+                { field: inputEntreprise, message: "Veuillez renseigner l'entreprise." },
+                { field: inputEncadrant, message: 'Veuillez renseigner le maître de stage.' },
+                { field: inputEmailEncadrant, message: "Veuillez renseigner l'e-mail du maître de stage." },
+                { field: inputTelephoneEncadrant, message: 'Veuillez renseigner le téléphone du maître de stage.' },
+                { field: dateDebut, message: 'Veuillez renseigner la date de début.' },
+                { field: dateFin, message: 'Veuillez renseigner la date de fin.' },
+                { field: sujetInput, message: 'Veuillez renseigner le thème de stage.' }
+            ];
+
+            for (let index = 0; index < checks.length; index += 1) {
+                const check = checks[index];
+                const value = String(check.field.value || '').trim();
+                if (value === '') {
+                    if (showModal) {
+                        openStageAlert('Champ requis', check.message);
+                    }
+                    check.field.focus();
+                    return false;
+                }
+            }
+
+            if (inputEmailEncadrant.validity.typeMismatch) {
+                if (showModal) {
+                    openStageAlert('E-mail invalide', "Veuillez saisir une adresse e-mail valide.");
+                }
+                inputEmailEncadrant.focus();
+                return false;
+            }
+
+            return true;
+        }
+
+        function validateDates(showModal) {
             if (!dateDebut.value || !dateFin.value) {
-                return true;
+                return setDateValidationMessage('', false);
             }
 
             const debut = new Date(dateDebut.value + 'T00:00:00');
@@ -690,25 +819,21 @@ $buildStateClass = static function (string $status): string {
             today.setHours(0, 0, 0, 0);
 
             if (debut > today) {
-                dateError.textContent = 'La date de début ne peut pas être dans le futur.';
-                return false;
+                return setDateValidationMessage('La date de début ne peut pas être dans le futur.', showModal);
             }
             if (fin > today) {
-                dateError.textContent = 'La date de fin ne peut pas être dans le futur.';
-                return false;
+                return setDateValidationMessage('La date de fin ne peut pas être dans le futur.', showModal);
             }
             if (fin <= debut) {
-                dateError.textContent = 'La date de fin doit être après la date de début.';
-                return false;
+                return setDateValidationMessage('La date de fin doit être après la date de début.', showModal);
             }
 
-            const months = Math.ceil((fin - debut) / (1000 * 60 * 60 * 24)) / 30.44;
-            if (months < 6) {
-                dateError.textContent = 'La période de stage doit être d’au minimum 6 mois.';
-                return false;
+            const months = ((fin - debut) / (1000 * 60 * 60 * 24)) / 30.44;
+            if (months < 3 || months > 6) {
+                return setDateValidationMessage('La période de stage doit être de 3 à 6 mois.', showModal);
             }
 
-            return true;
+            return setDateValidationMessage('', false);
         }
 
         inputEntreprise.addEventListener('input', function () {
@@ -757,13 +882,30 @@ $buildStateClass = static function (string $status): string {
             }
         });
 
-        dateDebut.addEventListener('change', validateDates);
-        dateFin.addEventListener('change', validateDates);
+        dateDebut.addEventListener('change', function () {
+            validateDates(true);
+        });
+        dateFin.addEventListener('change', function () {
+            validateDates(true);
+        });
 
         form.addEventListener('submit', function (event) {
-            if (!validateDates()) {
+            if (!validateFields(true) || !validateDates(true)) {
                 event.preventDefault();
-                dateError.scrollIntoView({behavior: 'smooth', block: 'center'});
+                dateFin.scrollIntoView({behavior: 'smooth', block: 'center'});
+            }
+        });
+
+        stageAlertClose.addEventListener('click', closeStageAlert);
+        stageAlertModal.addEventListener('click', function (event) {
+            if (event.target === stageAlertModal) {
+                closeStageAlert();
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && stageAlertModal.classList.contains('is-open')) {
+                closeStageAlert();
             }
         });
 
@@ -775,5 +917,11 @@ $buildStateClass = static function (string $status): string {
                 hideSuggestionsEncadrant();
             }
         });
+
+        if (errorMessage) {
+            openStageAlert('Erreur', errorMessage);
+        } else if (successMessage) {
+            openStageAlert('Succès', successMessage);
+        }
     })();
 </script>

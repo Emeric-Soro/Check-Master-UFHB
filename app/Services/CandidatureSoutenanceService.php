@@ -36,6 +36,16 @@ class CandidatureSoutenanceService
         $this->auditLog = new AuditLog($this->db);
     }
 
+    private function resolveStudentStorageId(string $studentId): string
+    {
+        $student = $this->etudiant->getEtudiantById($studentId);
+        if ($student && !empty($student->num_carte_etud)) {
+            return (string) $student->num_carte_etud;
+        }
+
+        return $studentId;
+    }
+
     public function getStageInfo($num_etu)
     {
         return $this->stage->getStageInfo($num_etu);
@@ -101,6 +111,7 @@ class CandidatureSoutenanceService
 
     public function soumettreCandidature($etudiant_id, $id_utilisateur)
     {
+        $storageStudentId = $this->resolveStudentStorageId((string) $etudiant_id);
         $studentYearId = $this->getStudentAcademicYearId((string) $etudiant_id);
         $selectedYearId = \AcademicYear::getSelectedIdFromSession();
         if ($selectedYearId !== null && $studentYearId !== null && $selectedYearId !== $studentYearId) {
@@ -124,7 +135,7 @@ class CandidatureSoutenanceService
         }
 
         // Créer la candidature
-        $result = $this->etudiant->createCandidature($etudiant_id);
+        $result = $this->etudiant->createCandidature($storageStudentId);
 
         if ($result) {
             $this->auditLog->logCreation($id_utilisateur, "candidature_soutenance", "Succès");
@@ -137,6 +148,7 @@ class CandidatureSoutenanceService
 
     public function enregistrerInfoStage($etudiant_id, $id_utilisateur, $data)
     {
+        $storageStudentId = $this->resolveStudentStorageId((string) $etudiant_id);
         $studentYearId = $this->getStudentAcademicYearId((string) $etudiant_id);
         $selectedYearId = \AcademicYear::getSelectedIdFromSession();
         if ($selectedYearId !== null && $studentYearId !== null && $selectedYearId !== $studentYearId) {
@@ -177,7 +189,7 @@ class CandidatureSoutenanceService
             return ['success' => false, 'message' => "Une erreur est survenue lors de l'enregistrement du maître de stage."];
         }
 
-        $existing_info = $this->stage->getStageInfo($etudiant_id);
+        $existing_info = $this->stage->getStageInfo($storageStudentId);
 
         $stage_data = [
             'nom_entreprise' => $id_entreprise,
@@ -213,17 +225,15 @@ class CandidatureSoutenanceService
         $interval = $date_debut->diff($date_fin);
         $total_months = ($interval->y * 12) + $interval->m + ($interval->d / 30.44);
 
-        if ($total_months < 6) {
-            $months = floor($total_months);
-            $weeks = floor(($total_months - $months) * 4.33);
-            $this->auditLog->logCreation($id_utilisateur, "candidature_soutenance", "Erreur - durée insuffisante");
-            return ['success' => false, 'message' => "La période de stage doit être d'au minimum 6 mois. Durée actuelle: {$months} mois et {$weeks} semaines."];
+        if ($total_months < 3 || $total_months > 6) {
+            $this->auditLog->logCreation($id_utilisateur, "candidature_soutenance", "Erreur - durée invalide");
+            return ['success' => false, 'message' => "La période de stage doit être de 3 à 6 mois."];
         }
 
         if ($existing_info) {
-            $result = $this->stage->updateStageInfo($etudiant_id, $stage_data);
+            $result = $this->stage->updateStageInfo($storageStudentId, $stage_data);
         } else {
-            $result = $this->stage->createStageInfo($etudiant_id, $stage_data);
+            $result = $this->stage->createStageInfo($storageStudentId, $stage_data);
         }
 
         if ($result) {
