@@ -122,15 +122,14 @@ $pagination = function_exists('cm_paginate')
 
 foreach ($attributions as $row) {
     $studentId = trim((string) ($row['id_etudiant'] ?? ''));
-    if ($studentId === '' || isset($studentMap[$studentId])) {
+    if ($studentId === '') {
         continue;
     }
 
     $studentName = trim((string) ($row['nom_etudiant'] ?? 'Étudiant'));
     $studentMatricule = trim((string) ($row['matricule_etudiant'] ?? $studentId));
     $promotion = FormattingUtils::formatPromotion(trim((string) ($row['promotion_etu'] ?? '')));
-
-    $studentMap[$studentId] = [
+    $rowStudentData = [
         'id_etudiant' => $studentId,
         'nom_complet' => $studentName,
         'matricule_etudiant' => $studentMatricule,
@@ -144,8 +143,20 @@ foreach ($attributions as $row) {
         'maitre_stage_id' => (string) ($row['maitre_stage_ref'] ?? $row['maitre_stage_id'] ?? ''),
     ];
 
-    $studentOptions[$studentId] = $studentName . ' (' . $studentMatricule . ')'
-        . (\AcademicYear::isAllSelectedFromSession() && $promotion !== '' ? ' - ' . $promotion : '');
+    if (!isset($studentMap[$studentId])) {
+        $studentMap[$studentId] = $rowStudentData;
+    } else {
+        foreach ($rowStudentData as $key => $value) {
+            if (trim((string) ($studentMap[$studentId][$key] ?? '')) === '' && trim((string) $value) !== '') {
+                $studentMap[$studentId][$key] = $value;
+            }
+        }
+    }
+
+    if (!isset($studentOptions[$studentId])) {
+        $studentOptions[$studentId] = $studentName . ' (' . $studentMatricule . ')'
+            . (\AcademicYear::isAllSelectedFromSession() && $promotion !== '' ? ' - ' . $promotion : '');
+    }
 }
 
 $rowsToShow = array_slice($attributions, (int) ($pagination['offset'] ?? 0), $perPage);
@@ -716,6 +727,10 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
             option.textContent = label || normalizedValue;
             select.appendChild(option);
         }
+        function displayText(value) {
+            const normalized = String(value || '').trim();
+            return normalized !== '' ? normalized : 'Non renseigné';
+        }
         function updateStudentDerivedFields() {
             const student = getStudentById(etudiantSelect ? etudiantSelect.value : '');
             if (!student) {
@@ -731,9 +746,9 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
             if (themeInput && !editIdInput.value) {
                 themeInput.value = student.theme_rapport || '';
             }
-            if (directeurInput) directeurInput.value = student.directeur_nom || '';
-            if (encadreurInput) encadreurInput.value = student.encadreur_nom || '';
-            if (maitreInput) maitreInput.value = student.maitre_stage_nom || '';
+            if (directeurInput) directeurInput.value = displayText(student.directeur_nom);
+            if (encadreurInput) encadreurInput.value = displayText(student.encadreur_nom);
+            if (maitreInput) maitreInput.value = displayText(student.maitre_stage_nom);
             if (directeurIdInput) directeurIdInput.value = student.directeur_id || '';
             if (encadreurIdInput) encadreurIdInput.value = student.encadreur_id || '';
             if (maitreIdInput) maitreIdInput.value = student.maitre_stage_id || '';
