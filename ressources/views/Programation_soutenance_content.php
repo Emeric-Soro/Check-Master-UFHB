@@ -579,6 +579,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
         const maitreIdInput = document.getElementById('cmProgMaitreId');
         const limitSelect = document.getElementById('cmProgSout_limit');
         const searchInput = document.getElementById('cmProgSout_search');
+        const checkAll = document.getElementById('cmProgCheckAll');
         const selectAllBtn = document.getElementById('cmProgSout_selectAll');
         const deselectAllBtn = document.getElementById('cmProgSout_deselectAll');
         const deleteBtn = document.getElementById('cmProgSout_deleteBtn');
@@ -1258,9 +1259,6 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 openPlanningSummaryPanel();
             });
         }
-        if (exportBtn) {
-            exportBtn.addEventListener('click', exportVisibleRows);
-        }
         if (printBtn) {
             printBtn.addEventListener('click', function () {
                 window.print();
@@ -1293,8 +1291,8 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 updateBulkState();
             });
         }
-        if (deselectBtn) {
-            deselectBtn.addEventListener('click', function () {
+        if (deselectAllBtn) {
+            deselectAllBtn.addEventListener('click', function () {
                 getRows().forEach(function (row) {
                     const cb = row.querySelector('.cm-prog-check-row');
                     if (cb) {

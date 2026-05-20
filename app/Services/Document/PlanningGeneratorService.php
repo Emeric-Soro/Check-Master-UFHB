@@ -263,14 +263,19 @@ final class PlanningGeneratorService
 
             // Fallback: si le maitre de stage n'est pas dans le jury compose,
             // utiliser la fiche stage de l'etudiant.
-            if (empty($juryDetails['maitre_stage'])) {
-                $maitreStageNom = trim((string) ($soutenance['maitre_stage_jury_nom'] ?? ''));
+            $currentMaitreStage = $this->normalizeMaitreStageForDisplay($juryDetails['maitre_stage'] ?? '');
+            if ($currentMaitreStage === '') {
+                $maitreStageNom = $this->normalizeMaitreStageForDisplay($soutenance['maitre_stage_jury_nom'] ?? '');
                 if ($maitreStageNom === '') {
-                    $maitreStageNom = trim((string) ($soutenance['maitre_stage_nom'] ?? ''));
+                    $maitreStageNom = $this->normalizeMaitreStageForDisplay($soutenance['maitre_stage_nom'] ?? '');
                 }
                 if ($maitreStageNom !== '') {
                     $juryDetails['maitre_stage'] = $maitreStageNom;
+                } else {
+                    unset($juryDetails['maitre_stage']);
                 }
+            } else {
+                $juryDetails['maitre_stage'] = $currentMaitreStage;
             }
 
             $soutenance['jury_details'] = $juryDetails;

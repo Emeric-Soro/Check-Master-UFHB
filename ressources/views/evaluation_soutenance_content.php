@@ -179,7 +179,7 @@ foreach ($soutenances as $soutenance) {
                 <?php
                 $criteriaForGrid = array_map(static function (array $c): array {
                     return [
-                        'id' => (int) ($c['id_critere'] ?? 0),
+                        'id' => (string) ($c['id_critere'] ?? ''),
                         'label' => (string) ($c['lib_critere'] ?? ''),
                         'abbrev' => (string) ($c['code_critere'] ?? ''),
                         'bareme' => (float) ($c['bareme_max'] ?? 20),
@@ -382,6 +382,7 @@ foreach ($soutenances as $soutenance) {
 <script>
     (function () {
         const soutenances = <?php echo json_encode($soutenances, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const form = document.getElementById('cmEvalSoutForm');
         const anneeSelect = document.getElementById('cmEvalAnnee');
         const soutenanceSelect = document.getElementById('cmEvalSoutenanceSelect');
         const numEtuInput = document.getElementById('cmEvalNumEtu');
@@ -708,6 +709,14 @@ foreach ($soutenances as $soutenance) {
                     numEtuInput.value = numEtu;
                 }
                 fillSoutenanceInfo(numEtu);
+            });
+        }
+
+        if (form) {
+            form.addEventListener('submit', function () {
+                if (numEtuInput && soutenanceSelect) {
+                    numEtuInput.value = soutenanceSelect.value || numEtuInput.value || '';
+                }
             });
         }
 

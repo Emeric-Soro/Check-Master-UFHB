@@ -263,7 +263,13 @@ final class AuthorizationService
 
         $permission = self::$permissionCache[$cacheKey];
         if ($permission === null) {
-            return false;
+            $feature = $this->findFeatureById($featureId);
+            $slug = '';
+            if ($feature !== null && isset($feature->slug_permission) && is_string($feature->slug_permission)) {
+                $slug = $feature->slug_permission;
+            }
+
+            return $slug !== '' && $this->checkStaticPermission($groupId, $slug, $action);
         }
 
         return $this->permissionAllows($permission, $action);

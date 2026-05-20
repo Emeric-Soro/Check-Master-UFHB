@@ -542,9 +542,9 @@ class EvaluationSoutenanceService
                     SELECT p.{$juryCol} AS jury_ref
                     FROM {$progTable} p
                     JOIN etudiants e ON " . $this->studentJoinCondition('e', 'p') . "
-                    WHERE e.num_ident_etud = ?
+                    WHERE (e.num_ident_etud = ? OR e.num_carte_etud = ? OR p.num_etud = ?)
                 ";
-                $params = [(string) $numEtu];
+                $params = [(string) $numEtu, (string) $numEtu, (string) $numEtu];
                 if ($selectedYearId !== null && $hasYearColumn) {
                     $sql .= " AND p.id_annee_acad = ?";
                     $params[] = $selectedYearId;
@@ -725,6 +725,17 @@ class EvaluationSoutenanceService
             $selectedYearId = $this->getSelectedAcademicYearId();
             $studentJoin = $this->studentJoinCondition('e', 'p');
             $hasYearColumn = $this->columnExists($progTable, 'id_annee_acad');
+            $studentRefExpr = "COALESCE(NULLIF(e.num_carte_etud, ''), NULLIF(e.num_ident_etud, ''), p.num_etud)";
+            $evaluationStudentMatch = "(ev.num_etudiant = {$studentRefExpr} OR ev.num_etudiant = p.num_etud";
+            if ($this->columnExists('etudiants', 'num_ident_etud')) {
+                $evaluationStudentMatch .= " OR ev.num_etudiant = e.num_ident_etud";
+            }
+            $evaluationStudentMatch .= ")";
+            $metaStudentMatch = "(esm.num_etudiant = {$studentRefExpr} OR esm.num_etudiant = p.num_etud";
+            if ($this->columnExists('etudiants', 'num_ident_etud')) {
+                $metaStudentMatch .= " OR esm.num_etudiant = e.num_ident_etud";
+            }
+            $metaStudentMatch .= ")";
 
             $sql = "
                 SELECT
@@ -734,9 +745,9 @@ class EvaluationSoutenanceService
                     p.theme_soutenance,
                     p.date_soutenance,
                     p.heure_soutenance,
-                    COALESCE(e.num_carte_etud, p.num_etud) AS num_etu,
+                    {$studentRefExpr} AS num_etu,
                     CONCAT(COALESCE(e.prenom_etu, ''), ' ', COALESCE(e.nom_etu, '')) AS nom_etudiant,
-                    COALESCE(e.num_carte_etud, p.num_etud) AS matricule_etudiant,
+                    {$studentRefExpr} AS matricule_etudiant,
                     COALESCE(e.promotion_etu, '') AS promotion_etu,
                     {$promotionLabel} AS promotion_label,
                     s.lib_salle AS nom_salle,
@@ -747,25 +758,25 @@ class EvaluationSoutenanceService
                     (SELECT CONCAT(ms2.prenom, ' ', ms2.Nom)
                      FROM informations_stage ist2
                      JOIN maitre_de_stage ms2 ON ms2.id_maitre_stage = ist2.id_maitre_stage
-                     WHERE ist2.num_etu = p.num_etud
+                         WHERE ist2.num_etu IN (p.num_etud, {$studentRefExpr})
                      LIMIT 1) AS maitre_stage_nom,
                     (
                         SELECT COUNT(*)
                         FROM evaluer ev
-                        WHERE ev.num_etudiant = COALESCE(e.num_carte_etud, p.num_etud)
+                        WHERE {$evaluationStudentMatch}
                           AND ev.num_jury = p.{$juryCol}
                     ) AS est_evalue,
                     (
                         SELECT SUM(ev.note)
                         FROM evaluer ev
-                        WHERE ev.num_etudiant = COALESCE(e.num_carte_etud, p.num_etud)
+                        WHERE {$evaluationStudentMatch}
                           AND ev.num_jury = p.{$juryCol}
                     ) AS note_finale_calculee,
                     " . ($hasMetaTable ? "esm.note_finale AS note_finale_meta, esm.decision AS decision, esm.commentaire_general AS commentaire_general" : "NULL AS note_finale_meta, NULL AS decision, NULL AS commentaire_general") . "
                 FROM {$progTable} p
                 LEFT JOIN etudiants e ON {$studentJoin}
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
-                " . ($hasMetaTable ? "LEFT JOIN " . self::EVALUATION_META_TABLE . " esm ON esm.num_etudiant = COALESCE(e.num_carte_etud, p.num_etud) AND esm.jury_ref = CAST(p.{$juryCol} AS CHAR(50))" : "") . "
+                " . ($hasMetaTable ? "LEFT JOIN " . self::EVALUATION_META_TABLE . " esm ON {$metaStudentMatch} AND esm.jury_ref = CAST(p.{$juryCol} AS CHAR(50))" : "") . "
                 WHERE p.id_salle IS NOT NULL
                   AND p.date_soutenance IS NOT NULL
                   AND p.heure_soutenance IS NOT NULL

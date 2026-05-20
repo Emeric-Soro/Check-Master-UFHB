@@ -76,22 +76,31 @@ class PlanningDataUtils
                    LEFT JOIN enseignants ens_p ON ens_p.id_enseignant = ej_p.id_enseignant
                    WHERE ej_p.num_soutenance = ps.num_soutenance AND ej_p.id_qualite_jury = "PJ"
                    LIMIT 1) AS president_jury_nom,
-                  (SELECT CONCAT(ens_m.prenom_enseignant, CHAR(32), ens_m.nom_enseignant)
+                  (SELECT COALESCE(
+                              NULLIF(TRIM(CONCAT(COALESCE(ens_m.prenom_enseignant, \'\'), CHAR(32), COALESCE(ens_m.nom_enseignant, \'\'))), \'\'),
+                              NULLIF(TRIM(CONCAT(COALESCE(ms_j.prenom, \'\'), CHAR(32), COALESCE(ms_j.Nom, \'\'))), \'\')
+                          )
                    FROM enseignant_jury ej_m
                    LEFT JOIN enseignants ens_m ON ens_m.id_enseignant = ej_m.id_enseignant
+                   LEFT JOIN maitre_de_stage ms_j ON CAST(ms_j.id_maitre_stage AS CHAR) = CAST(ej_m.id_enseignant AS CHAR)
                    WHERE ej_m.num_soutenance = ps.num_soutenance AND ej_m.id_qualite_jury = "MS"
                    LIMIT 1) AS maitre_stage_jury_nom,
                        sa.lib_salle,
                        s.lib_session,
-                       CONCAT(ms.prenom, CHAR(32), ms.Nom) AS maitre_stage_nom,
-                       COALESCE(ent.lib_long_entreprise, "N/A") AS entreprise_accueil
+                       NULLIF(TRIM(CONCAT(COALESCE(ms.prenom, \'\'), CHAR(32), COALESCE(ms.Nom, \'\'))), \'\') AS maitre_stage_nom,
+                       COALESCE(ent.lib_long_entreprise, ent_ms.lib_long_entreprise, "N/A") AS entreprise_accueil
                 FROM programmer_soutenance ps
                 LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                 LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
                 LEFT JOIN session s ON s.id_session = ps.id_session
-                LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(NULLIF(e.num_carte_etud, \'\'), ps.num_etud)
+                LEFT JOIN informations_stage ist ON ist.num_etu IN (
+                    ps.num_etud,
+                    COALESCE(NULLIF(e.num_carte_etud, \'\'), ps.num_etud),
+                    COALESCE(NULLIF(e.num_ident_etud, \'\'), ps.num_etud)
+                )
                   LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 LEFT JOIN entreprises ent ON ent.id_entreprise = ist.id_entreprise
+                LEFT JOIN entreprises ent_ms ON ent_ms.id_entreprise = ms.id_entreprise
                 WHERE 1=1';
 
         $params = [];
@@ -143,22 +152,31 @@ class PlanningDataUtils
                    LEFT JOIN enseignants ens_p ON ens_p.id_enseignant = ej_p.id_enseignant
                    WHERE ej_p.num_soutenance = ps.num_soutenance AND ej_p.id_qualite_jury = 'PJ'
                    LIMIT 1) AS president_jury_nom,
-                  (SELECT CONCAT(ens_m.prenom_enseignant, CHAR(32), ens_m.nom_enseignant)
+                  (SELECT COALESCE(
+                              NULLIF(TRIM(CONCAT(COALESCE(ens_m.prenom_enseignant, ''), CHAR(32), COALESCE(ens_m.nom_enseignant, ''))), ''),
+                              NULLIF(TRIM(CONCAT(COALESCE(ms_j.prenom, ''), CHAR(32), COALESCE(ms_j.Nom, ''))), '')
+                          )
                    FROM enseignant_jury ej_m
                    LEFT JOIN enseignants ens_m ON ens_m.id_enseignant = ej_m.id_enseignant
+                   LEFT JOIN maitre_de_stage ms_j ON CAST(ms_j.id_maitre_stage AS CHAR) = CAST(ej_m.id_enseignant AS CHAR)
                    WHERE ej_m.num_soutenance = ps.num_soutenance AND ej_m.id_qualite_jury = 'MS'
                    LIMIT 1) AS maitre_stage_jury_nom,
                        sa.lib_salle,
                        s.lib_session,
-                       CONCAT(ms.prenom, CHAR(32), ms.Nom) AS maitre_stage_nom,
-                       COALESCE(ent.lib_long_entreprise, 'N/A') AS entreprise_accueil
+                       NULLIF(TRIM(CONCAT(COALESCE(ms.prenom, ''), CHAR(32), COALESCE(ms.Nom, ''))), '') AS maitre_stage_nom,
+                       COALESCE(ent.lib_long_entreprise, ent_ms.lib_long_entreprise, 'N/A') AS entreprise_accueil
                 FROM programmer_soutenance ps
                 LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                 LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
                 LEFT JOIN session s ON s.id_session = ps.id_session
-                LEFT JOIN informations_stage ist ON ist.num_etu = COALESCE(NULLIF(e.num_ident_etud, ''), NULLIF(e.num_carte_etud, ''), ps.num_etud)
+                LEFT JOIN informations_stage ist ON ist.num_etu IN (
+                    ps.num_etud,
+                    COALESCE(NULLIF(e.num_carte_etud, ''), ps.num_etud),
+                    COALESCE(NULLIF(e.num_ident_etud, ''), ps.num_etud)
+                )
                   LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 LEFT JOIN entreprises ent ON ent.id_entreprise = ist.id_entreprise
+                LEFT JOIN entreprises ent_ms ON ent_ms.id_entreprise = ms.id_entreprise
                 WHERE ps.num_soutenance IN ({$placeholders})
                 ORDER BY ps.date_soutenance ASC, ps.heure_soutenance ASC";
 
@@ -645,6 +663,16 @@ class PlanningDataUtils
      */
     public function getNotesSoutenance(string $numEtudiant, ?int $idAnneeAcad = null): array
     {
+        return $this->getNotesSoutenanceForJury($numEtudiant, null, $idAnneeAcad);
+    }
+
+    /**
+     * Récupère les notes d'évaluation de soutenance pour un étudiant et, si fourni, pour un jury précis.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getNotesSoutenanceForJury(string $numEtudiant, ?string $juryRef = null, ?int $idAnneeAcad = null): array
+    {
         $codeCritereSelect = $this->columnExists('critere_evaluation', 'code_critere')
             ? 'ce.code_critere'
             : 'ce.id_critere AS code_critere';
@@ -652,7 +680,17 @@ class PlanningDataUtils
         $sql = 'SELECT ev.id_critere, ev.num_etudiant,
                        ' . $codeCritereSelect . ', ce.lib_critere AS libelle_critere,
                        ev.note,
-                       COALESCE(bc.bareme, 20) AS bareme
+                       COALESCE(
+                           bc.bareme,
+                           (
+                               SELECT b2.bareme
+                               FROM bareme_critere b2
+                               WHERE b2.id_critere = ev.id_critere
+                               ORDER BY b2.id_annee_acad DESC
+                               LIMIT 1
+                           ),
+                           20
+                       ) AS bareme
                 FROM evaluer ev
                 INNER JOIN critere_evaluation ce ON ce.id_critere = ev.id_critere
                 LEFT JOIN bareme_critere bc ON bc.id_critere = ev.id_critere';
@@ -664,7 +702,12 @@ class PlanningDataUtils
             $params['id_annee_acad'] = $idAnneeAcad;
         }
 
-        $sql .= ' WHERE ev.num_etudiant = :num_etu ORDER BY ce.id_critere ASC';
+        $sql .= ' WHERE ev.num_etudiant = :num_etu';
+        if ($juryRef !== null && $juryRef !== '') {
+            $sql .= ' AND ev.num_jury = :jury_ref';
+            $params['jury_ref'] = $juryRef;
+        }
+        $sql .= ' ORDER BY ce.id_critere ASC';
 
         $stmt = $this->db->pdo()->prepare($sql);
         $stmt->execute($params);
