@@ -17,6 +17,12 @@ class RedactionCompteRenduController {
         $data = $this->service->getIndexData();
         $GLOBALS['rapports_valides'] = $data['rapports_valides'];
         $GLOBALS['enseignants']      = $data['enseignants'];
+        $GLOBALS['editing_compte_rendu'] = null;
+
+        $idCR = isset($_GET['id_CR']) ? (int) $_GET['id_CR'] : 0;
+        if ($idCR > 0) {
+            $GLOBALS['editing_compte_rendu'] = $this->service->getEditableCompteRenduData($idCR);
+        }
         // Ne pas inclure la vue ici, le layout s'en charge
     }
 
@@ -77,17 +83,20 @@ class RedactionCompteRenduController {
                 $_SESSION['error'] = (string) ($result['message'] ?? '');
             }
 
+            $redirectId = (int) ($result['id_CR'] ?? ($_POST['id_CR_edit'] ?? 0));
+            $redirect = '?page=redaction_compte_rendu' . ($redirectId > 0 ? '&id_CR=' . $redirectId : '');
+
             if ($isAjax) {
                 header('Content-Type: application/json; charset=UTF-8');
                 echo json_encode([
                     'success' => (bool) ($result['success'] ?? false),
                     'message' => (string) ($result['message'] ?? ''),
-                    'redirect' => '?page=redaction_compte_rendu',
+                    'redirect' => $redirect,
                 ]);
                 exit;
             }
 
-            header('Location: layout.php?page=redaction_compte_rendu');
+            header('Location: layout.php?page=redaction_compte_rendu' . ($redirectId > 0 ? '&id_CR=' . $redirectId : ''));
             exit;
         }
     }

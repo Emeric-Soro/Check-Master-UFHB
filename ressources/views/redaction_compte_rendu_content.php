@@ -10,6 +10,13 @@ $academicYearLabels = [];
 foreach (\AcademicYear::fetchAll(Database::getConnection()) as $academicYear) {
     $academicYearLabels[(int) ($academicYear['id'] ?? 0)] = (string) ($academicYear['label'] ?? '');
 }
+$editingState = is_array($GLOBALS['editing_compte_rendu'] ?? null) ? $GLOBALS['editing_compte_rendu'] : null;
+$editingCompteRendu = is_array($editingState['compte_rendu'] ?? null) ? $editingState['compte_rendu'] : null;
+$editingReportIds = is_array($editingState['report_ids'] ?? null) ? array_values(array_map('intval', $editingState['report_ids'])) : [];
+$editingAssignments = is_array($editingState['report_assignments'] ?? null) ? $editingState['report_assignments'] : [];
+$editingLinkedReports = is_array($editingState['linked_reports'] ?? null) ? $editingState['linked_reports'] : [];
+$editingId = (int) ($editingCompteRendu['id_CR'] ?? 0);
+$isEditingExistingCr = $editingId > 0;
 
 $enseignantOptions = [];
 foreach ($enseignantsRaw as $enseignant) {
@@ -73,7 +80,42 @@ foreach ($rapportsValides as $rapport) {
     $reportSelectOptions[$idRapport] = $reportOptionLabel;
 }
 
-$generatedCrName = 'CR_' . date('Y-m-d');
+foreach ($editingLinkedReports as $linkedReport) {
+    $idRapport = (int) ($linkedReport['id_rapport'] ?? 0);
+    if ($idRapport <= 0 || isset($reportsById[$idRapport])) {
+        continue;
+    }
+
+    $numEtu = (string) ($linkedReport['num_etu'] ?? '');
+    $prenom = (string) ($linkedReport['prenom_etu'] ?? '');
+    $nom = (string) ($linkedReport['nom_etu'] ?? '');
+    $theme = (string) ($linkedReport['theme_rapport'] ?? 'Rapport');
+    $studentName = trim($prenom . ' ' . $nom);
+    if ($studentName === '') {
+        $studentName = $numEtu !== '' ? $numEtu : 'Etudiant introuvable';
+    }
+
+    $reportsById[$idRapport] = [
+        'id_rapport' => $idRapport,
+        'num_etu' => $numEtu,
+        'theme_rapport' => $theme,
+        'student' => $studentName,
+        'logical_key' => mb_strtolower(trim($numEtu)) . '|' . mb_strtolower(trim(preg_replace('/\s+/', ' ', $theme))),
+        'decision' => 'valider',
+        'promotion' => \FormattingUtils::formatPromotion(trim((string) ($linkedReport['promotion_etu'] ?? ''))),
+        'deja_lie_cr' => true,
+        'existing_cr_id' => $editingId,
+        'existing_cr_count' => 1,
+        'current_encadrant_id' => (string) ($linkedReport['current_encadrant_id'] ?? ''),
+        'current_directeur_id' => (string) ($linkedReport['current_directeur_id'] ?? ''),
+    ];
+
+    $reportSelectOptions[$idRapport] = '#' . $idRapport . ' - ' . $theme . ' (' . $studentName . ') - CR #' . $editingId;
+}
+
+$generatedCrName = $isEditingExistingCr
+    ? (string) ($editingCompteRendu['nom_CR'] ?? ('CR_' . date('Y-m-d')))
+    : 'CR_' . date('Y-m-d');
 
 if (!function_exists('cm_cr_build_logo_data_uri')) {
     /**
@@ -179,6 +221,9 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     '%LOGO_LEFT%' => $logoLeftHtml,
     '%LOGO_RIGHT%' => $logoRightHtml,
 ]);
+$initialEditorHtml = $isEditingExistingCr
+    ? (string) ($editingCompteRendu['contenu_CR'] ?? $legacyTemplateHtml)
+    : $legacyTemplateHtml;
 ?>
 
 <div class="cm-prd3-screen cm-prd3-crud-screen">
@@ -199,6 +244,16 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         <div class="cm-pole-inferieur cm-cr-workspace">
             <div class="cm-grid-2 cm-cr-workspace-grid">
                 <div class="cm-card cm-p-md cm-cr-workspace-panel">
+                    <?php if ($isEditingExistingCr): ?>
+                        <div class="cm-alert is-info cm-mb-sm">
+                            <div class="cm-alert__content">
+                                <span class="cm-alert__message">
+                                    Modification du compte rendu #<?= htmlspecialchars((string) $editingId, ENT_QUOTES, 'UTF-8') ?>.
+                                    Les rapports liés sont préchargés et l'enregistrement mettra ce CR à jour.
+                                </span>
+                            </div>
+                        </div>
+                    <?php endif; ?>
 
 
                     <div class="cm-form-group">
@@ -316,6 +371,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
 </style>
 <form id="cmCompteRenduForm" method="POST" action="?page=redaction_compte_rendu" data-cm-ajax-form="true">
                         <?php cm_component('form/csrf-token'); ?>
+                        <input type="hidden" name="id_CR_edit" id="cmCrEditId" value="<?= htmlspecialchars((string) $editingId, ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="num_etu" id="cmCrNumEtu" value="">
                         <input type="hidden" name="cm_reports_payload" id="cmCrReportsPayload" value="">
                         <input type="hidden" name="submit_action" id="cmCrSubmitAction" value="save">
@@ -337,7 +393,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                             'label' => '',
                             'height' => 'xl',
                             'placeholder' => 'Redigez le compte rendu...',
-                            'value' => $legacyTemplateHtml,
+                            'value' => $initialEditorHtml,
                         ]);
                         ?>
 
@@ -417,8 +473,18 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     const reports = <?php echo json_encode($reportsById, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const enseignantOptions = <?php echo json_encode($enseignantOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const legacyTemplate = <?php echo json_encode($legacyTemplateHtml, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-    const storageKey = 'cm_cr_draft_v2';
-    const legacyStorageKeys = ['cm_cr_draft_v1'];
+    const editingState = <?php echo json_encode([
+        'id_CR' => $editingId,
+        'report_ids' => $editingReportIds,
+        'report_assignments' => $editingAssignments,
+        'nom_CR' => $generatedCrName,
+        'contenu_CR' => $initialEditorHtml,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const isEditingExistingCr = !!(editingState && parseInt(editingState.id_CR || 0, 10) > 0);
+    const storageKey = isEditingExistingCr
+        ? 'cm_cr_draft_v3_edit_' + String(editingState.id_CR)
+        : 'cm_cr_draft_v3_new';
+    const legacyStorageKeys = ['cm_cr_draft_v1', 'cm_cr_draft_v2'];
     const flashSuccess = <?php echo json_encode($successMessage, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const flashError = <?php echo json_encode($errorMessage, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
@@ -634,10 +700,11 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
 
             const block = document.createElement('div');
             block.className = 'cm-card cm-p-sm';
+            const assignmentState = (draftState.assignments && draftState.assignments[id]) || {};
             block.innerHTML = '<div class=\"cm-text-sm cm-text-semibold cm-mb-sm\">Rapport #' + id + '</div>' +
                 '<div class=\"cm-grid-2\">' +
-                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrEnc_' + id + '\">Encadrant pédagogique</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrEnc_' + id + '\" name=\"encadrant_pedagogique[' + id + ']\">' + formatOptionHtml(draftState['enc_' + id] || report.current_encadrant_id || '') + '</select></div>' +
-                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrDir_' + id + '\">Directeur mémoire</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrDir_' + id + '\" name=\"directeur_memoire[' + id + ']\">' + formatOptionHtml(draftState['dir_' + id] || report.current_directeur_id || '') + '</select></div>' +
+                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrEnc_' + id + '\">Encadrant pédagogique</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrEnc_' + id + '\" name=\"encadrant_pedagogique[' + id + ']\">' + formatOptionHtml(assignmentState.encadrant || report.current_encadrant_id || '') + '</select></div>' +
+                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrDir_' + id + '\">Directeur mémoire</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrDir_' + id + '\" name=\"directeur_memoire[' + id + ']\">' + formatOptionHtml(assignmentState.directeur || report.current_directeur_id || '') + '</select></div>' +
                 '</div>';
             assignmentsContainer.appendChild(block);
         });
@@ -669,14 +736,17 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
             nom: nomInput ? nomInput.value : '',
             contenu: editorInput ? sanitizeEditorHtml(editorInput.value) : '',
             selectedIds: selectedIds,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            assignments: {}
         };
 
         selectedIds.forEach(function (id) {
             const enc = document.getElementById('cmCrEnc_' + id);
             const dir = document.getElementById('cmCrDir_' + id);
-            payload['enc_' + id] = enc ? enc.value : '';
-            payload['dir_' + id] = dir ? dir.value : '';
+            payload.assignments[id] = {
+                encadrant: enc ? enc.value : '',
+                directeur: dir ? dir.value : ''
+            };
         });
 
         localStorage.setItem(storageKey, JSON.stringify(payload));
@@ -721,6 +791,33 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
             }
         } catch (e) {
             draftState = {};
+        }
+    }
+
+    function applyEditingState() {
+        if (!isEditingExistingCr) {
+            return;
+        }
+
+        draftState = { assignments: {} };
+        if (nomInput && editingState.nom_CR) {
+            nomInput.value = editingState.nom_CR;
+        }
+        if (editorInput && editingState.contenu_CR) {
+            const sanitizedEditingContent = sanitizeEditorHtml(editingState.contenu_CR);
+            editorInput.value = sanitizedEditingContent;
+            const editorDiv = document.getElementById('cmCrContenu_editor');
+            if (editorDiv) {
+                editorDiv.innerHTML = sanitizedEditingContent;
+            }
+        }
+
+        if (Array.isArray(editingState.report_ids)) {
+            selectedIds = normalizeSelectedIds(editingState.report_ids);
+        }
+
+        if (editingState.report_assignments && typeof editingState.report_assignments === 'object') {
+            draftState.assignments = editingState.report_assignments;
         }
     }
 
@@ -888,7 +985,11 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         selectedIds = [];
     }
 
-    loadDraft();
+    if (isEditingExistingCr) {
+        applyEditingState();
+    } else {
+        loadDraft();
+    }
     if ((editorInput.value || '').trim() === '') {
         loadTemplate();
     } else {

@@ -210,6 +210,51 @@ class RedactionCompteRenduService
     }
 
     /**
+     * Prépare les données d'édition d'un compte rendu existant.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getEditableCompteRenduData(int $idCR): ?array
+    {
+        $compteRendu = $this->getCompteRenduById($idCR);
+        if ($compteRendu === null) {
+            return null;
+        }
+
+        $linkedReports = $this->getLinkedReportsForCompteRendu($idCR);
+        if ($linkedReports === []) {
+            return [
+                'compte_rendu' => $compteRendu,
+                'report_ids' => [],
+                'report_assignments' => [],
+                'linked_reports' => [],
+            ];
+        }
+
+        $reportIds = [];
+        $assignments = [];
+        foreach ($linkedReports as $report) {
+            $reportId = (int) ($report['id_rapport'] ?? 0);
+            if ($reportId <= 0) {
+                continue;
+            }
+
+            $reportIds[] = $reportId;
+            $assignments[$reportId] = [
+                'encadrant' => (string) ($report['current_encadrant_id'] ?? ''),
+                'directeur' => (string) ($report['current_directeur_id'] ?? ''),
+            ];
+        }
+
+        return [
+            'compte_rendu' => $compteRendu,
+            'report_ids' => array_values(array_unique($reportIds)),
+            'report_assignments' => $assignments,
+            'linked_reports' => $linkedReports,
+        ];
+    }
+
+    /**
      * Enregistrer un compte rendu complet : PDF, BD, affectations, emails.
      *
      * @param array $data Clés attendues : num_etu, nom_CR, contenu_CR, rapports,
@@ -456,6 +501,50 @@ class RedactionCompteRenduService
         $stmt->execute([$num_etu, $nom_CR, $contenu_CR, $chemin_pdf, $date_CR]);
 
         return (int) $this->pdo->lastInsertId();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getLinkedReportsForCompteRendu(int $idCR): array
+    {
+        if ($idCR <= 0) {
+            return [];
+        }
+
+        $hasNumIdentEtud = $this->columnExists('etudiants', 'num_ident_etud');
+        $studentJoinCondition = 'r.num_etu = e.num_carte_etud';
+        if ($hasNumIdentEtud) {
+            $studentJoinCondition .= ' OR r.num_etu = e.num_ident_etud';
+        }
+
+        $stmt = $this->pdo->prepare(
+            "SELECT
+                r.id_rapport,
+                r.num_etu,
+                r.theme_rapport,
+                COALESCE(e.prenom_etu, '') AS prenom_etu,
+                COALESCE(e.nom_etu, '') AS nom_etu,
+                COALESCE(e.promotion_etu, '') AS promotion_etu,
+                COALESCE(aff.current_encadrant_id, '') AS current_encadrant_id,
+                COALESCE(aff.current_directeur_id, '') AS current_directeur_id
+            FROM compte_rendu_rapport crr
+            INNER JOIN rapport_etudiants r ON r.id_rapport = crr.id_rapport
+            LEFT JOIN etudiants e ON ({$studentJoinCondition})
+            LEFT JOIN (
+                SELECT
+                    id_rapport,
+                    MAX(CASE WHEN role = 'encadrant' THEN id_enseignant END) AS current_encadrant_id,
+                    MAX(CASE WHEN role = 'directeur' THEN id_enseignant END) AS current_directeur_id
+                FROM affecter
+                GROUP BY id_rapport
+            ) aff ON aff.id_rapport = r.id_rapport
+            WHERE crr.id_CR = :id_cr
+            ORDER BY r.id_rapport ASC"
+        );
+        $stmt->execute([':id_cr' => $idCR]);
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
     }
 
     private function updateCompteRendu(int $id_CR, string $num_etu, string $nom_CR, string $contenu_CR, string $chemin_pdf, string $date_CR): void

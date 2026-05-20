@@ -18,9 +18,71 @@ $allowedIds = array_column($hubTabs, 'id');
 $currentTab = in_array($requestedTab, $allowedIds, true) ? $requestedTab : 'archives_documents';
 $baseUrl = '?page=commissions_archives';
 $partialsPath = __DIR__ . DIRECTORY_SEPARATOR;
+$hubMeta = [
+    'archives_documents' => [
+        'title' => 'Centre d’archives de commission',
+        'description' => 'Parcours unifié pour retrouver les pièces en base, filtrer les familles de documents et ouvrir directement les écrans métiers.',
+    ],
+    'archives_etudiants' => [
+        'title' => 'Archives étudiantes',
+        'description' => 'Lecture consolidée des dossiers archivés par étudiant, sans quitter le hub.',
+    ],
+    'archive_comptes_rendus' => [
+        'title' => 'Comptes rendus archivés',
+        'description' => 'Chaque ligne peut rouvrir la rédaction du compte rendu correspondant pour reprise ou correction.',
+    ],
+    'fiche_commission' => [
+        'title' => 'Fiche commission',
+        'description' => 'Synthèse de commission centralisée dans le même espace de travail.',
+    ],
+    'workflow_validation' => [
+        'title' => 'Workflow de validation',
+        'description' => 'Visualisation du cycle de validation et de ses jalons, sans navigation latérale parasite.',
+    ],
+];
+$currentMeta = $hubMeta[$currentTab] ?? $hubMeta['archives_documents'];
 ?>
 <section class="cm-prd3-screen">
-    <!-- Barre d'onglets (navigation par URL) -->
+    <style>
+        .cm-hub-shell {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .cm-hub-shell__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .cm-hub-shell__title {
+            margin: 0;
+            color: #12395c;
+            font-size: 1.45rem;
+            font-weight: 800;
+        }
+
+        .cm-hub-shell__text {
+            max-width: 60rem;
+            color: #5f7890;
+            font-size: 0.96rem;
+            line-height: 1.5;
+        }
+
+        .cm-hub-shell__hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.7rem 0.95rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.42);
+            color: #1f5d90;
+            font-weight: 700;
+        }
+    </style>
+    <div class="cm-hub-shell">
     <nav class="cm-tab-nav" role="tablist" style="flex-wrap:wrap;">
         <?php foreach ($hubTabs as $tab): ?>
             <?php $isActive = $tab['id'] === $currentTab; ?>
@@ -55,4 +117,5 @@ $partialsPath = __DIR__ . DIRECTORY_SEPARATOR;
             break;
     }
     ?>
+    </div>
 </section>

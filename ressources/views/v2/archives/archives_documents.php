@@ -282,6 +282,18 @@ $buildFilterUrl = static function (string $type = '') use ($baseUrl): string {
     flex-wrap: wrap;
 }
 
+.cm-archives-documents__row {
+    cursor: pointer;
+}
+
+.cm-archives-documents__row:hover .cm-archives-documents__title-main {
+    color: #1f74bf;
+}
+
+.cm-archives-documents__row.is-editable {
+    background: rgba(31, 116, 191, 0.04);
+}
+
 .cm-archives-documents__empty {
     padding: 3rem 0;
     background: transparent;
@@ -325,30 +337,6 @@ $buildFilterUrl = static function (string $type = '') use ($baseUrl): string {
 
 <div class="cm-archives-documents">
     <div class="cm-archives-documents__topline">
-        <h2 class="cm-archives-documents__heading">Archives documents</h2>
-        <div>
-            <div class="cm-archives-documents__year-label">Année affichée</div>
-            <div class="cm-archives-documents__year-value"><?= htmlspecialchars($anneeLabel !== '' ? $anneeLabel : 'Non définie', ENT_QUOTES, 'UTF-8') ?></div>
-        </div>
-    </div>
-
-    <div class="cm-archives-documents__stats cm-mb-4">
-        <article class="cm-archives-documents__stat">
-            <div class="cm-archives-documents__stat-label">Total documents</div>
-            <div class="cm-archives-documents__stat-value"><?= number_format($counts['all']) ?></div>
-        </article>
-        <article class="cm-archives-documents__stat">
-            <div class="cm-archives-documents__stat-label">Rapports</div>
-            <div class="cm-archives-documents__stat-value"><?= number_format($counts['rapport']) ?></div>
-        </article>
-        <article class="cm-archives-documents__stat">
-            <div class="cm-archives-documents__stat-label">Comptes rendus</div>
-            <div class="cm-archives-documents__stat-value"><?= number_format($counts['compte_rendu']) ?></div>
-        </article>
-        <article class="cm-archives-documents__stat">
-            <div class="cm-archives-documents__stat-label">PV finaux</div>
-            <div class="cm-archives-documents__stat-value"><?= number_format($counts['pv_final']) ?></div>
-        </article>
     </div>
 
     <div class="cm-archives-documents__toolbar cm-mb-4">
@@ -402,7 +390,7 @@ $buildFilterUrl = static function (string $type = '') use ($baseUrl): string {
                 <div>
                     <h3 class="cm-archives-documents__table-title">Liste des documents archivés</h3>
                     <div class="cm-archives-documents__table-meta">
-                        Aperçu direct, téléchargement et rattachement étudiant conservés.
+                        Clique sur une ligne pour ouvrir le document. Les comptes rendus renvoient vers la rédaction modifiable.
                     </div>
                 </div>
                 <div class="cm-archives-documents__table-meta">
@@ -433,6 +421,8 @@ $buildFilterUrl = static function (string $type = '') use ($baseUrl): string {
                             $typeLabel = 'Compte rendu';
                             $typeClass = 'cm-archives-documents__badge--cr';
                             $typeIcon = 'fa-file-lines';
+                            $rowHref = '?page=visionneuse_document&type=' . urlencode($docType) . '&id=' . urlencode($docId);
+                            $rowHint = 'Ouvrir le document';
 
                             if ($docType === 'rapport') {
                                 $typeLabel = 'Rapport';
@@ -442,9 +432,15 @@ $buildFilterUrl = static function (string $type = '') use ($baseUrl): string {
                                 $typeLabel = 'PV final';
                                 $typeClass = 'cm-archives-documents__badge--pv';
                                 $typeIcon = 'fa-gavel';
+                            } elseif ($docType === 'compte_rendu') {
+                                $rowHref = '?page=redaction_compte_rendu&id_CR=' . urlencode($docId);
+                                $rowHint = 'Ouvrir ce compte rendu dans la rédaction';
                             }
                             ?>
-                            <tr>
+                            <tr class="cm-archives-documents__row <?= $docType === 'compte_rendu' ? 'is-editable' : '' ?>"
+                                data-href="<?= htmlspecialchars($rowHref, ENT_QUOTES, 'UTF-8') ?>"
+                                data-row-hint="<?= htmlspecialchars($rowHint, ENT_QUOTES, 'UTF-8') ?>"
+                                tabindex="0">
                                 <td>
                                     <span class="cm-archives-documents__badge <?= $typeClass ?>">
                                         <i class="fas <?= $typeIcon ?>"></i>
@@ -460,6 +456,7 @@ $buildFilterUrl = static function (string $type = '') use ($baseUrl): string {
                                 <td>
                                     <?php if ($studentCode !== ''): ?>
                                         <a class="cm-archives-documents__student-link"
+                                           data-row-ignore="true"
                                            href="?page=fiche_etudiant_archive&id=<?= urlencode($studentCode) ?>">
                                             <?= htmlspecialchars($studentName !== '' ? $studentName : $studentCode, ENT_QUOTES, 'UTF-8') ?>
                                         </a>
@@ -472,15 +469,28 @@ $buildFilterUrl = static function (string $type = '') use ($baseUrl): string {
                                 <td><?= htmlspecialchars($formatSize($doc['taille'] ?? null), ENT_QUOTES, 'UTF-8') ?></td>
                                 <td>
                                     <div class="cm-archives-documents__actions">
-                                        <button
-                                            type="button"
-                                            class="cm-btn cm-btn-primary cm-btn-sm"
-                                            title="Visualiser"
-                                            onclick="CM.openDocViewer('<?= htmlspecialchars($docType, ENT_QUOTES, 'UTF-8') ?>', '<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>', {title: '<?= htmlspecialchars($docTitle, ENT_QUOTES, 'UTF-8') ?>'})">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <a href="?page=docviewer&type=<?= urlencode($docType) ?>&id=<?= urlencode($docId) ?>&action=download"
+                                        <?php if ($docType === 'compte_rendu'): ?>
+                                            <button
+                                                type="button"
+                                                class="cm-btn cm-btn-primary cm-btn-sm"
+                                                data-row-ignore="true"
+                                                title="Modifier ce compte rendu"
+                                                onclick="window.location.href='?page=redaction_compte_rendu&id_CR=<?= urlencode($docId) ?>'">
+                                                <i class="fas fa-pen-to-square"></i>
+                                            </button>
+                                        <?php else: ?>
+                                            <button
+                                                type="button"
+                                                class="cm-btn cm-btn-primary cm-btn-sm"
+                                                data-row-ignore="true"
+                                                title="Visualiser"
+                                                onclick="window.open('?page=visionneuse_document&type=<?= urlencode($docType) ?>&id=<?= urlencode($docId) ?>', '_blank', 'noopener')">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                        <a href="?page=telecharger_document&type=<?= urlencode($docType) ?>&id=<?= urlencode($docId) ?>"
                                            class="cm-btn cm-btn-outline cm-btn-sm"
+                                           data-row-ignore="true"
                                            title="Télécharger">
                                             <i class="fas fa-download"></i>
                                         </a>
@@ -494,3 +504,34 @@ $buildFilterUrl = static function (string $type = '') use ($baseUrl): string {
         </div>
     <?php endif; ?>
 </div>
+
+<script>
+(function () {
+    function shouldIgnore(target) {
+        return !!(target && target.closest('[data-row-ignore="true"]'));
+    }
+
+    document.querySelectorAll('.cm-archives-documents__row[data-href]').forEach(function (row) {
+        row.addEventListener('click', function (event) {
+            if (shouldIgnore(event.target)) {
+                return;
+            }
+            const href = row.getAttribute('data-href');
+            if (href) {
+                window.location.href = href;
+            }
+        });
+
+        row.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            event.preventDefault();
+            const href = row.getAttribute('data-href');
+            if (href) {
+                window.location.href = href;
+            }
+        });
+    });
+})();
+</script>

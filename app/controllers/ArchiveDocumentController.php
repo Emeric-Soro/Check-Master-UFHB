@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/CompteRendu.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../Services/Document/DocumentRegistry.php';
+require_once __DIR__ . '/../Services/Document/DocumentStorageService.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 
 class ArchiveDocumentController
@@ -13,6 +14,7 @@ class ArchiveDocumentController
     private $db;
     private $anneeModel;
     private DocumentRegistry $registry;
+    private \App\Services\Document\DocumentStorageService $documentStorage;
     private const ALLOWED_TYPES = ['rapport', 'compte_rendu', 'pv_final'];
 
     public function __construct($db = null)
@@ -20,6 +22,7 @@ class ArchiveDocumentController
         $this->db = $db ?: Database::getConnection();
         $this->anneeModel = new AnneeAcademique($this->db);
         $this->registry = new DocumentRegistry($this->db);
+        $this->documentStorage = new \App\Services\Document\DocumentStorageService($this->db, dirname(__DIR__, 2));
     }
 
     /**
@@ -79,7 +82,7 @@ class ArchiveDocumentController
         $type = $_GET['type'] ?? '';
         $id = $_GET['id'] ?? '';
 
-        $chemin = $this->getCheminDocument($type, $id);
+        $chemin = $this->getDatabaseBackedDocumentPath($type, $id);
 
         if (!$chemin || !file_exists($chemin)) {
             http_response_code(404);
@@ -107,7 +110,7 @@ class ArchiveDocumentController
         $type = $_GET['type'] ?? '';
         $id = $_GET['id'] ?? '';
 
-        $chemin = $this->getCheminDocument($type, $id);
+        $chemin = $this->getDatabaseBackedDocumentPath($type, $id);
 
         if (!$chemin || !file_exists($chemin)) {
             http_response_code(404);
@@ -148,7 +151,7 @@ class ArchiveDocumentController
         }
 
         foreach ($ids as $doc) {
-            $chemin = $this->getCheminDocument($doc['type'], $doc['id']);
+            $chemin = $this->getDatabaseBackedDocumentPath((string) ($doc['type'] ?? ''), (string) ($doc['id'] ?? ''));
             if ($chemin && file_exists($chemin)) {
                 $zip->addFile($chemin, basename($chemin));
             }
@@ -267,10 +270,16 @@ class ArchiveDocumentController
             $documents = array_merge($documents, $stmt->fetchAll(PDO::FETCH_ASSOC));
         }
 
-        // PV finaux (fichiers générés dans storage/documents/pv_finaux)
+        // PV finaux (uniquement référencés en base)
         if (!$type || $type === 'pv_final') {
             $documents = array_merge($documents, $this->getPvFinalDocuments($anneeId));
         }
+
+        $documents = array_values(array_filter($documents, function (array $document): bool {
+            $typeDoc = (string) ($document['type_doc'] ?? '');
+            $idDoc = (string) ($document['id_doc'] ?? '');
+            return $typeDoc !== '' && $idDoc !== '' && $this->getDatabaseBackedDocumentPath($typeDoc, $idDoc) !== null;
+        }));
 
         // Trier par date
         usort($documents, function($a, $b) {
@@ -282,62 +291,54 @@ class ArchiveDocumentController
         return $documents;
     }
 
-    private function getCheminDocument($type, $id)
-    {
-        return $this->registry->resolve((string) $type, (string) $id);
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
     private function getPvFinalDocuments($anneeId): array
     {
-        $baseDir = realpath(__DIR__ . '/../../storage/documents/pv_finaux');
-        if ($baseDir === false || !is_dir($baseDir)) {
+        $sql = "SELECT
+                    'pv_final' AS type_doc,
+                    COALESCE(d.reference, dg.reference, ps.num_soutenance) AS id_doc,
+                    COALESCE(d.chemin_original, dg.chemin_fichier) AS chemin,
+                    CONCAT('PV Final - ', COALESCE(CONCAT(e.nom_etu, ' ', e.prenom_etu), ps.num_etud, ps.num_soutenance)) AS titre,
+                    COALESCE(d.date_creation, dg.date_generation, ps.date_soutenance) AS date_depot,
+                    COALESCE(d.taille_fichier, dg.taille_fichier, 0) AS taille,
+                    COALESCE(CONCAT(e.nom_etu, ' ', e.prenom_etu), ps.num_etud, 'N/A') AS etudiant,
+                    COALESCE(e.num_ident_etud, e.num_carte_etud, ps.num_etud) AS num_carte_etud
+                FROM programmer_soutenance ps
+                LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
+                LEFT JOIN documents d
+                    ON d.entite_type = 'programmer_soutenance'
+                   AND d.entite_id = ps.num_soutenance
+                   AND d.type_document = 'pv_final'
+                   AND d.statut = 'actif'
+                LEFT JOIN document_genere dg
+                    ON dg.id_source = ps.num_soutenance
+                   AND dg.type_document IN ('PVF', 'PV_FINAL')
+                WHERE (d.id_document IS NOT NULL OR dg.id_document IS NOT NULL)";
+
+        $params = [];
+        if (is_numeric($anneeId)) {
+            $sql .= " AND EXISTS (
+                SELECT 1
+                FROM inscriptions i
+                WHERE i.id_annee_acad = :annee_id
+                  AND (
+                    i.num_carte_etud = ps.num_etud
+                    OR i.num_carte_etud = e.num_carte_etud
+                    OR i.num_carte_etud = e.num_ident_etud
+                  )
+            )";
+            $params['annee_id'] = (int) $anneeId;
+        }
+
+        $sql .= " ORDER BY COALESCE(d.date_creation, dg.date_generation, ps.date_soutenance) DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (!is_array($rows)) {
             return [];
         }
 
-        $candidateYears = $this->resolveCandidateYears($anneeId, $baseDir);
-        if ($candidateYears === []) {
-            return [];
-        }
-
-        $documents = [];
-        foreach ($candidateYears as $year) {
-            $yearDir = $baseDir . DIRECTORY_SEPARATOR . $year;
-            if (!is_dir($yearDir)) {
-                continue;
-            }
-
-            $files = glob($yearDir . DIRECTORY_SEPARATOR . '*.pdf');
-            if (!is_array($files)) {
-                continue;
-            }
-
-            foreach ($files as $filePath) {
-                if (!is_file($filePath)) {
-                    continue;
-                }
-
-                $filename = basename($filePath);
-                $matricule = $this->extractMatriculeFromPvFinalFilename($filename);
-
-                $documents[] = [
-                    'type_doc' => 'pv_final',
-                    'id_doc' => pathinfo($filename, PATHINFO_FILENAME),
-                    'chemin' => $filePath,
-                    'titre' => 'PV Final - ' . ($matricule !== '' ? $matricule : $filename),
-                    'date_depot' => date('Y-m-d H:i:s', filemtime($filePath) ?: time()),
-                    'taille' => filesize($filePath) ?: 0,
-                    'etudiant' => $matricule !== '' ? $matricule : 'N/A',
-                    'num_carte_etud' => $matricule,
-                ];
-            }
-        }
-
-        $this->hydrateStudentLabels($documents);
-
-        return $documents;
+        return array_values($rows);
     }
 
     /**
@@ -425,14 +426,124 @@ class ArchiveDocumentController
         return $years;
     }
 
-    private function extractMatriculeFromPvFinalFilename($filename)
+    private function getDatabaseBackedDocumentPath(string $type, string $id): ?string
     {
-        $name = (string) $filename;
-        if (preg_match('/^PV_Final_([^_]+)_\d{8}_\d{6}\.pdf$/i', $name, $matches) === 1) {
-            return (string) $matches[1];
+        $type = trim($type);
+        $id = trim($id);
+        if ($type === '' || $id === '') {
+            return null;
         }
 
-        return '';
+        $storedDocument = $this->documentStorage->findForViewer($type, $id);
+        if (is_array($storedDocument)) {
+            $cachedPath = $this->documentStorage->materializeToCache($storedDocument);
+            if (is_string($cachedPath) && $cachedPath !== '' && is_file($cachedPath)) {
+                return $cachedPath;
+            }
+        }
+
+        return match ($type) {
+            'rapport' => $this->getRapportDatabasePath($id),
+            'compte_rendu' => $this->getCompteRenduDatabasePath($id),
+            'pv_final' => $this->getPvFinalDatabasePath($id),
+            default => null,
+        };
+    }
+
+    private function getRapportDatabasePath(string $id): ?string
+    {
+        if (ctype_digit($id)) {
+            $stmt = $this->db->prepare('SELECT chemin_fichier FROM rapport_etudiants WHERE id_rapport = :id LIMIT 1');
+            $stmt->execute(['id' => (int) $id]);
+            $path = $this->resolveStoredPdfPath((string) ($stmt->fetchColumn() ?: ''));
+            if ($path !== null) {
+                return $path;
+            }
+        }
+
+        if ($this->tableExists('document_genere')) {
+            $stmt = $this->db->prepare("SELECT chemin_fichier FROM document_genere WHERE (reference = :id OR id_source = :id) AND type_document = 'RAP' ORDER BY date_generation DESC, id_document DESC LIMIT 1");
+            $stmt->execute(['id' => $id]);
+            return $this->resolveStoredPdfPath((string) ($stmt->fetchColumn() ?: ''));
+        }
+
+        return null;
+    }
+
+    private function getCompteRenduDatabasePath(string $id): ?string
+    {
+        if (!ctype_digit($id)) {
+            return null;
+        }
+
+        $stmt = $this->db->prepare('SELECT chemin_fichier_pdf FROM compte_rendu WHERE id_CR = :id LIMIT 1');
+        $stmt->execute(['id' => (int) $id]);
+        return $this->resolveStoredPdfPath((string) ($stmt->fetchColumn() ?: ''));
+    }
+
+    private function getPvFinalDatabasePath(string $id): ?string
+    {
+        if ($this->tableExists('document_genere')) {
+            $stmt = $this->db->prepare("SELECT chemin_fichier FROM document_genere WHERE (reference = :id OR id_source = :id) AND type_document IN ('PVF', 'PV_FINAL') ORDER BY date_generation DESC, id_document DESC LIMIT 1");
+            $stmt->execute(['id' => $id]);
+            $path = $this->resolveStoredPdfPath((string) ($stmt->fetchColumn() ?: ''));
+            if ($path !== null) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveStoredPdfPath(string $storedPath): ?string
+    {
+        $storedPath = trim($storedPath);
+        if ($storedPath === '' || strcasecmp((string) pathinfo($storedPath, PATHINFO_EXTENSION), 'pdf') !== 0) {
+            return null;
+        }
+
+        $normalized = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $storedPath);
+        $candidates = [];
+        if ($this->isAbsolutePath($normalized)) {
+            $candidates[] = $normalized;
+        } else {
+            $relative = ltrim($normalized, DIRECTORY_SEPARATOR);
+            $projectRoot = dirname(__DIR__, 2);
+            $candidates[] = $projectRoot . DIRECTORY_SEPARATOR . $relative;
+            $candidates[] = $projectRoot . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . $relative;
+            $candidates[] = $projectRoot . DIRECTORY_SEPARATOR . 'ressources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . $relative;
+        }
+
+        foreach ($candidates as $candidate) {
+            $realPath = realpath($candidate);
+            if ($realPath !== false && is_file($realPath) && strcasecmp((string) pathinfo($realPath, PATHINFO_EXTENSION), 'pdf') === 0) {
+                return $realPath;
+            }
+        }
+
+        return null;
+    }
+
+    private function tableExists(string $tableName): bool
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :table_name'
+            );
+            $stmt->execute(['table_name' => $tableName]);
+            return (int) $stmt->fetchColumn() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        return $path !== '' && (
+            $path[0] === '/'
+            || $path[0] === '\\'
+            || (strlen($path) >= 2 && $path[1] === ':')
+        );
     }
 
     private function buildCompteRenduAvailabilitySql(string $alias): string
