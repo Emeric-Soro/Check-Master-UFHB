@@ -1045,6 +1045,27 @@ CREATE TABLE IF NOT EXISTS `session` (
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `programmation_sessions_soutenance`
+--
+
+DROP TABLE IF EXISTS `programmation_sessions_soutenance`;
+CREATE TABLE IF NOT EXISTS `programmation_sessions_soutenance` (
+  `id_programmation` int NOT NULL AUTO_INCREMENT,
+  `id_annee_acad` int NOT NULL,
+  `num_session` tinyint NOT NULL,
+  `date_debut` date DEFAULT NULL,
+  `date_fin` date DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_programmation`),
+  UNIQUE KEY `uniq_annee_session` (`id_annee_acad`,`num_session`),
+  KEY `idx_programmation_sessions_annee` (`id_annee_acad`),
+  CONSTRAINT `programmation_sessions_soutenance_ibfk_1` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `specialite`
 --
 

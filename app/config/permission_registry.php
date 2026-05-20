@@ -1079,6 +1079,9 @@ $paramCrud('schema_tables', 'schema_tables', 'Couverture tables/colonnes', 'PARA
         $groups['administrateur'] => $view,
     ],
 ]);
+$paramCrud('programmation_sessions_soutenance', 'programmation_sessions_soutenance', 'Programmation sessions soutenance', 'PARAM_SESSIONS_SOUTENANCE', [
+    'page_aliases' => ['parametres_generaux', 'parametres_specifiques'],
+]);
 
 // ── Nouveaux écrans P1-P3 ──
 
