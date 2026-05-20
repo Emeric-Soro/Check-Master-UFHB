@@ -381,7 +381,20 @@ foreach ($soutenances as $soutenance) {
 
 <script>
     (function () {
-        const soutenances = <?php echo json_encode($soutenances, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        var _soutenanceMap = <?php echo json_encode(array_combine(
+    array_map(static fn(array $r) => (string) ($r['num_etu'] ?? ''), $soutenances),
+    array_map(static function (array $r): array {
+        return [
+            'promotion_label' => $r['promotion_label'] ?? $r['promotion_etu'] ?? '',
+            'theme_soutenance' => $r['theme_soutenance'] ?? '',
+            'president_nom' => $r['president_nom'] ?? '',
+            'examinateur_nom' => $r['examinateur_nom'] ?? '',
+            'directeur_nom' => $r['directeur_nom'] ?? '',
+            'encadreur_nom' => $r['encadreur_nom'] ?? '',
+            'maitre_stage_nom' => $r['maitre_stage_nom'] ?? '',
+        ];
+    }, $soutenances)
+), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
         const form = document.getElementById('cmEvalSoutForm');
         const anneeSelect = document.getElementById('cmEvalAnnee');
         const soutenanceSelect = document.getElementById('cmEvalSoutenanceSelect');
@@ -575,9 +588,7 @@ foreach ($soutenances as $soutenance) {
         }
 
         function getSoutenanceByNumEtu(numEtu) {
-            return (soutenances || []).find(function (item) {
-                return String(item.num_etu || '') === String(numEtu || '');
-            }) || null;
+            return _soutenanceMap[String(numEtu || '')] || null;
         }
 
         function fillSoutenanceInfo(numEtu) {
@@ -589,7 +600,7 @@ foreach ($soutenances as $soutenance) {
 
             clearEvaluationGrid();
 
-            if (promotionInput) promotionInput.value = info.promotion_label || info.promotion_etu || '';
+            if (promotionInput) promotionInput.value = info.promotion_label || '';
             if (themeInput) themeInput.value = info.theme_soutenance || '';
             if (presidentInput) presidentInput.value = info.president_nom || '';
             if (examinateurInput) examinateurInput.value = info.examinateur_nom || '';
@@ -720,33 +731,26 @@ foreach ($soutenances as $soutenance) {
             });
         }
 
-        document.querySelectorAll('.cm-eval-open').forEach(function (button) {
-            button.addEventListener('click', function () {
-                const numEtu = button.getAttribute('data-num-etu') || '';
-                if (!numEtu || !soutenanceSelect) {
+        if (tableBody) {
+            tableBody.addEventListener('click', function (event) {
+                var btn = event.target.closest('.cm-eval-open, .cm-eval-print-pv');
+                if (!btn) {
                     return;
                 }
-                soutenanceSelect.value = numEtu;
-                if (numEtuInput) {
-                    numEtuInput.value = numEtu;
-                }
-                fillSoutenanceInfo(numEtu);
-                if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
-                    // noop
-                }
-            });
-        });
-
-        document.querySelectorAll('.cm-eval-print-pv').forEach(function (button) {
-            button.addEventListener('click', function () {
-                const numEtu = button.getAttribute('data-num-etu') || '';
+                var numEtu = btn.getAttribute('data-num-etu') || '';
                 if (!numEtu) {
                     return;
                 }
-                const url = '?page=evaluation_soutenance&action=imprimer_pv&num_etu=' + encodeURIComponent(numEtu);
-                window.open(url, '_blank');
+                if (btn.classList.contains('cm-eval-print-pv')) {
+                    var url = '?page=evaluation_soutenance&action=imprimer_pv&num_etu=' + encodeURIComponent(numEtu);
+                    window.open(url, '_blank');
+                    return;
+                }
+                if (soutenanceSelect) soutenanceSelect.value = numEtu;
+                if (numEtuInput) numEtuInput.value = numEtu;
+                fillSoutenanceInfo(numEtu);
             });
-        });
+        }
 
         if (resetBtn) {
             resetBtn.addEventListener('click', function () {
@@ -816,13 +820,17 @@ foreach ($soutenances as $soutenance) {
             });
         }
 
-        document.querySelectorAll('.cm-eval-sout-delete-one').forEach(function (button) {
-            button.addEventListener('click', async function () {
-                const numEtu = button.getAttribute('data-num-etu') || '';
+        if (tableBody) {
+            tableBody.addEventListener('click', async function (event) {
+                var btn = event.target.closest('.cm-eval-sout-delete-one');
+                if (!btn) {
+                    return;
+                }
+                var numEtu = btn.getAttribute('data-num-etu') || '';
                 if (!numEtu) {
                     return;
                 }
-                const confirmed = await window.CM.confirm({
+                var confirmed = await window.CM.confirm({
                     title: 'Suppression',
                     message: 'Supprimer cette evaluation ?',
                     type: 'danger',
@@ -831,7 +839,6 @@ foreach ($soutenances as $soutenance) {
                 if (!confirmed) {
                     return;
                 }
-
                 deleteEvaluation(numEtu)
                     .then(function (payload) {
                         if (!payload || !payload.success) {
@@ -849,7 +856,7 @@ foreach ($soutenances as $soutenance) {
                         setAlert('error', 'Erreur réseau.');
                     });
             });
-        });
+        }
 
         if (deleteBtn) {
             deleteBtn.addEventListener('click', async function () {

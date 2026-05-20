@@ -47,18 +47,11 @@ foreach ($rapportsValides as $rapport) {
     }
 
     $reportsById[$idRapport] = [
-        'id_rapport' => $idRapport,
         'num_etu' => $numEtu,
         'theme_rapport' => $theme,
         'student' => $studentName,
-        'logical_key' => mb_strtolower(trim($numEtu)) . '|' . mb_strtolower(trim(preg_replace('/\s+/', ' ', $theme))),
         'decision' => $decision,
-        'promotion' => \FormattingUtils::formatPromotion(trim((string) ($rapport['promotion_etu'] ?? ''))),
-        'deja_lie_cr' => (int) ($rapport['existing_cr_id'] ?? 0) > 0,
         'existing_cr_id' => (int) ($rapport['existing_cr_id'] ?? 0),
-        'existing_cr_count' => (int) ($rapport['existing_cr_count'] ?? 0),
-        'current_encadrant_id' => (string) ($rapport['current_encadrant_id'] ?? ''),
-        'current_directeur_id' => (string) ($rapport['current_directeur_id'] ?? ''),
     ];
 
     $reportOptionLabel = '#' . $idRapport . ' - ' . $theme . ' (' . $studentName . ')';

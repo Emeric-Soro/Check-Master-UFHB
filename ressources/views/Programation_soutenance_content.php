@@ -59,10 +59,6 @@ foreach ($etudiants as $etu) {
     $matricule = trim((string) ($etu['matricule_etudiant'] ?? $id));
     $themeRapport = trim((string) ($etu['theme_rapport'] ?? ''));
     $studentMap[$id] = [
-        'id_etudiant' => $id,
-        'nom_complet' => $label,
-        'matricule_etudiant' => $matricule,
-        'promotion_etu' => FormattingUtils::formatPromotion((string) ($etu['promotion_etu'] ?? '')),
         'theme_rapport' => $themeRapport,
         'directeur_nom' => trim((string) ($etu['directeur_nom'] ?? '')),
         'directeur_id' => (string) ($etu['directeur_id'] ?? ''),
@@ -130,10 +126,6 @@ foreach ($attributions as $row) {
     $studentMatricule = trim((string) ($row['matricule_etudiant'] ?? $studentId));
     $promotion = FormattingUtils::formatPromotion(trim((string) ($row['promotion_etu'] ?? '')));
     $rowStudentData = [
-        'id_etudiant' => $studentId,
-        'nom_complet' => $studentName,
-        'matricule_etudiant' => $studentMatricule,
-        'promotion_etu' => $promotion,
         'theme_rapport' => trim((string) ($row['theme_soutenance'] ?? '')),
         'directeur_nom' => trim((string) ($row['directeur_nom'] ?? '')),
         'directeur_id' => (string) ($row['directeur_id'] ?? ''),
@@ -1165,66 +1157,31 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 submitForm();
             });
         }
-        document.querySelectorAll('.cm-prog-edit').forEach(function (button) {
-            button.addEventListener('click', function () {
-                const row = button.closest('.cm-data-table__row');
-                if (!row) {
-                    return;
-                }
-                if (row.getAttribute('data-is-writable') !== '1') {
-                    setAlert('error', 'Modification impossible: seule l\'année active ' + (row.getAttribute('data-writable-year-label') || '') + ' accepte des écritures.');
-                    return;
-                }
-                const etudiantId = row.getAttribute('data-id-etudiant') || '';
-                const etudiantName = row.getAttribute('data-etudiant-name') || '';
-                const etudiantMatricule = row.getAttribute('data-etudiant-matricule') || etudiantId;
-                const promotion = row.getAttribute('data-promotion') || '';
-                const optionLabel = etudiantName !== ''
-                    ? etudiantName + ' (' + etudiantMatricule + ')' + (promotion !== '' ? ' - ' + promotion : '')
-                    : etudiantId;
-                ensureSelectOption(etudiantSelect, etudiantId, optionLabel);
-
-                if (editIdInput) editIdInput.value = row.getAttribute('data-id') || '';
-                if (etudiantSelect) etudiantSelect.value = etudiantId;
-                if (themeInput) themeInput.value = row.getAttribute('data-theme') || '';
-                if (dateInput) dateInput.value = normalizeDateValue(row.getAttribute('data-date') || '');
-                if (heureInput) heureInput.value = (row.getAttribute('data-heure') || '').slice(0, 5);
-                if (salleSelect) salleSelect.value = row.getAttribute('data-salle-id') || '';
-                if (presidentSelect) presidentSelect.value = row.getAttribute('data-president-id') || '';
-                if (examinateurSelect) examinateurSelect.value = row.getAttribute('data-examinateur-id') || '';
-                if (directeurInput) directeurInput.value = row.getAttribute('data-directeur-id') || '';
-                if (encadreurInput) encadreurInput.value = row.getAttribute('data-encadreur-id') || '';
-                if (maitreInput) maitreInput.value = row.getAttribute('data-maitre-id') || '';
-                if (directeurInput) directeurInput.value = row.getAttribute('data-directeur-name') || '';
-                if (encadreurInput) encadreurInput.value = row.getAttribute('data-encadreur-name') || '';
-                if (maitreInput) maitreInput.value = row.getAttribute('data-maitre-name') || '';
-                if (directeurIdInput) directeurIdInput.value = row.getAttribute('data-directeur-id') || '';
-                if (encadreurIdInput) encadreurIdInput.value = row.getAttribute('data-encadreur-id') || '';
-                if (maitreIdInput) maitreIdInput.value = row.getAttribute('data-maitre-id') || '';
-                if (submitBtn) {
-                    submitBtn.innerHTML = '<i class="fas fa-pen" aria-hidden="true"></i> Modifier';
-                }
-                updateJuryConstraints();
-                setAlert('success', 'Mode modification active.');
-            });
-        });
-        document.querySelectorAll('.cm-prog-delete').forEach(function (button) {
-            button.addEventListener('click', async function () {
-                const row = button.closest('.cm-data-table__row');
-                if (row && row.getAttribute('data-is-writable') !== '1') {
-                    setAlert('error', 'Suppression impossible: seule l\'année active ' + (row.getAttribute('data-writable-year-label') || '') + ' accepte des écritures.');
-                    return;
-                }
-                const id = button.getAttribute('data-id') || '';
+        document.getElementById('cmProgTableBody').addEventListener('click', function (event) {
+            var button = event.target.closest('.cm-prog-edit, .cm-prog-delete');
+            if (!button) {
+                return;
+            }
+            var row = button.closest('.cm-data-table__row');
+            if (!row) {
+                return;
+            }
+            if (row.getAttribute('data-is-writable') !== '1') {
+                setAlert('error', 'Modification impossible: seule l\'année active ' + (row.getAttribute('data-writable-year-label') || '') + ' accepte des écritures.');
+                return;
+            }
+            if (button.classList.contains('cm-prog-delete')) {
+                var id = button.getAttribute('data-id') || '';
                 if (!id) {
                     return;
                 }
-                const confirmed = await askConfirmation('Suppression', 'Supprimer cette programmation ?');
-                if (!confirmed) {
-                    return;
-                }
-                deleteAttribution(id)
-                    .then(function (result) {
+                (async function () {
+                    var confirmed = await askConfirmation('Suppression', 'Supprimer cette programmation ?');
+                    if (!confirmed) {
+                        return;
+                    }
+                    deleteAttribution(id)
+                        .then(function (result) {
                         if (!result || !result.success) {
                             setAlert('error', result && result.message ? result.message : 'Suppression impossible.');
                             return;
@@ -1235,7 +1192,40 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                     .catch(function (error) {
                         setAlert('error', error && error.message ? error.message : 'Erreur réseau.');
                     });
-            });
+                })();
+                return;
+            }
+            var etudiantId = row.getAttribute('data-id-etudiant') || '';
+            var etudiantName = row.getAttribute('data-etudiant-name') || '';
+            var etudiantMatricule = row.getAttribute('data-etudiant-matricule') || etudiantId;
+            var promotion = row.getAttribute('data-promotion') || '';
+            var optionLabel = etudiantName !== ''
+                ? etudiantName + ' (' + etudiantMatricule + ')' + (promotion !== '' ? ' - ' + promotion : '')
+                : etudiantId;
+            ensureSelectOption(etudiantSelect, etudiantId, optionLabel);
+
+            if (editIdInput) editIdInput.value = row.getAttribute('data-id') || '';
+            if (etudiantSelect) etudiantSelect.value = etudiantId;
+            if (themeInput) themeInput.value = row.getAttribute('data-theme') || '';
+            if (dateInput) dateInput.value = normalizeDateValue(row.getAttribute('data-date') || '');
+            if (heureInput) heureInput.value = (row.getAttribute('data-heure') || '').slice(0, 5);
+            if (salleSelect) salleSelect.value = row.getAttribute('data-salle-id') || '';
+            if (presidentSelect) presidentSelect.value = row.getAttribute('data-president-id') || '';
+            if (examinateurSelect) examinateurSelect.value = row.getAttribute('data-examinateur-id') || '';
+            if (directeurInput) directeurInput.value = row.getAttribute('data-directeur-id') || '';
+            if (encadreurInput) encadreurInput.value = row.getAttribute('data-encadreur-id') || '';
+            if (maitreInput) maitreInput.value = row.getAttribute('data-maitre-id') || '';
+            if (directeurInput) directeurInput.value = row.getAttribute('data-directeur-name') || '';
+            if (encadreurInput) encadreurInput.value = row.getAttribute('data-encadreur-name') || '';
+            if (maitreInput) maitreInput.value = row.getAttribute('data-maitre-name') || '';
+            if (directeurIdInput) directeurIdInput.value = row.getAttribute('data-directeur-id') || '';
+            if (encadreurIdInput) encadreurIdInput.value = row.getAttribute('data-encadreur-id') || '';
+            if (maitreIdInput) maitreIdInput.value = row.getAttribute('data-maitre-id') || '';
+            if (submitBtn) {
+                submitBtn.innerHTML = '<i class="fas fa-pen" aria-hidden="true"></i> Modifier';
+            }
+            updateJuryConstraints();
+            setAlert('success', 'Mode modification active.');
         });
         if (searchInput) {
             searchInput.addEventListener('input', applySearch);

@@ -171,59 +171,59 @@ final class RouteActionResolver
      */
     private static function resolveActionToken(array $get, array $post, string $method): ?string
     {
+        if (strtoupper($method) === 'POST') {
+            if (isset($post['action']) && is_string($post['action']) && trim((string) $post['action']) !== '') {
+                return 'action=' . trim((string) $post['action']);
+            }
+
+            if (isset($post['modalAction']) && is_string($post['modalAction']) && trim((string) $post['modalAction']) !== '') {
+                return 'modalAction=' . trim((string) $post['modalAction']);
+            }
+
+            $markers = [
+                'btn_add_utilisateur' => 'action=btn_add_utilisateur',
+                'btn_add_multiple' => 'action=btn_add_multiple',
+                'btn_modifier_utilisateur' => 'action=btn_modifier_utilisateur',
+                'submit_enable_multiple' => 'action=submit_enable_multiple',
+                'submit_disable_multiple' => 'action=submit_disable_multiple',
+                'submit_send_access' => 'action=submit_send_access',
+                'submit_add_etudiant' => 'action=submit_add_etudiant',
+                'submit_modifier_etudiant' => 'action=submit_modifier_etudiant',
+                'btn_add_enseignant' => 'action=btn_add_enseignant',
+                'btn_modifier_enseignant' => 'action=btn_modifier_enseignant',
+                'btn_add_pers_admin' => 'action=btn_add_pers_admin',
+                'btn_modifier_pers_admin' => 'action=btn_modifier_pers_admin',
+                'submit_delete_multiple' => 'action=submit_delete_multiple',
+                'submit_import_upload' => 'action=submit_import_upload',
+                'submit_import_commit' => 'action=submit_import_commit',
+                'btn_enregistrer_notes' => 'action=btn_enregistrer_notes',
+                'valider' => 'action=valider',
+                'rejeter' => 'action=rejeter',
+                'update_email' => 'action=update_email',
+                'update_password' => 'action=update_password',
+            ];
+
+            foreach ($markers as $key => $token) {
+                if (array_key_exists($key, $post)) {
+                    return $token;
+                }
+            }
+
+            if (isset($post['selected_ids'])) {
+                return 'action=selected_ids';
+            }
+
+            if (isset($post['nouveau_statut'])) {
+                return 'action=repondre_reclamation';
+            }
+        }
+
         if (isset($get['action']) && is_string($get['action']) && trim((string) $get['action']) !== '') {
             return 'action=' . trim((string) $get['action']);
         }
 
-        if (isset($post['action']) && is_string($post['action']) && trim((string) $post['action']) !== '') {
-            return 'action=' . trim((string) $post['action']);
-        }
-
         if (isset($get['modalAction']) && is_string($get['modalAction']) && trim((string) $get['modalAction']) !== '') {
             return 'modalAction=' . trim((string) $get['modalAction']);
-        }
-
-        if (isset($post['modalAction']) && is_string($post['modalAction']) && trim((string) $post['modalAction']) !== '') {
-            return 'modalAction=' . trim((string) $post['modalAction']);
-        }
-
-        if (strtoupper($method) !== 'POST') {
-            return null;
-        }
-
-        $markers = [
-            'btn_add_utilisateur' => 'action=btn_add_utilisateur',
-            'btn_add_multiple' => 'action=btn_add_multiple',
-            'btn_modifier_utilisateur' => 'action=btn_modifier_utilisateur',
-            'submit_enable_multiple' => 'action=submit_enable_multiple',
-            'submit_disable_multiple' => 'action=submit_disable_multiple',
-            'submit_send_access' => 'action=submit_send_access',
-            'submit_add_etudiant' => 'action=submit_add_etudiant',
-            'submit_modifier_etudiant' => 'action=submit_modifier_etudiant',
-            'btn_add_enseignant' => 'action=btn_add_enseignant',
-            'btn_modifier_enseignant' => 'action=btn_modifier_enseignant',
-            'btn_add_pers_admin' => 'action=btn_add_pers_admin',
-            'btn_modifier_pers_admin' => 'action=btn_modifier_pers_admin',
-            'submit_delete_multiple' => 'action=submit_delete_multiple',
-            'btn_enregistrer_notes' => 'action=btn_enregistrer_notes',
-            'valider' => 'action=valider',
-            'rejeter' => 'action=rejeter',
-            'update_email' => 'action=update_email',
-            'update_password' => 'action=update_password',
-        ];
-
-        foreach ($markers as $key => $token) {
-            if (array_key_exists($key, $post)) {
-                return $token;
-            }
-        }
-
-        if (isset($post['selected_ids'])) {
-            return 'action=selected_ids';
-        }
-
-        if (isset($post['nouveau_statut'])) {
-            return 'action=repondre_reclamation';
         }
 
         return null;

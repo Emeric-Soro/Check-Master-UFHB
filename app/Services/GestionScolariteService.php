@@ -48,31 +48,24 @@ class GestionScolariteService
     }
 
     /**
-     * Récupère toutes les listes de référence nécessaires aux vues
+     * Récupère toutes les listes de référence nécessaires aux vues.
+     * Les filtres sont appliqués en SQL (pas de array_filter PHP).
      *
      * @return array Tableau associatif des listes
      */
     public function getReferenceLists(): array
     {
         $selectedYearId = \AcademicYear::getSelectedIdFromSession();
-        $etudiantsInscrits = $this->scolariteModel->getEtudiantsInscrits();
-        $listeAllEtudiant = $this->scolariteModel->getAllEtudiants();
-        $listeVersement = $this->scolariteModel->getAllVersements();
+        $writableYearId = \AcademicYear::getWritableIdFromSession();
 
-        if ($selectedYearId !== null && $selectedYearId > 0) {
-            $etudiantsInscrits = array_values(array_filter($etudiantsInscrits, static function (array $row) use ($selectedYearId): bool {
-                return (int) ($row['id_annee_acad'] ?? 0) === $selectedYearId;
-            }));
+        // Ces deux requêtes filtrent déjà par année en SQL
+        $etudiantsInscrits = $this->scolariteModel->getEtudiantsInscrits($selectedYearId);
+        $listeVersement = $this->scolariteModel->getAllVersements($selectedYearId, 500);
 
-            $listeVersement = array_values(array_filter($listeVersement, static function (array $row) use ($selectedYearId): bool {
-                $label = trim((string) ($row['date_deb'] ?? '')) !== '' && trim((string) ($row['date_fin'] ?? '')) !== ''
-                    ? date('Y', strtotime((string) $row['date_deb'])) . '-' . date('Y', strtotime((string) $row['date_fin']))
-                    : '';
+        // Pour le sélecteur : on charge seulement les champs nécessaires, limité à 500
+        $listeAllEtudiant = $this->scolariteModel->getAllEtudiants(null, 500);
 
-                return $label !== '' && $label === \AcademicYear::getSelectedLabelFromSession();
-            }));
-        }
-
+        // Déduire les non-inscrits par différence PHP (opération légère car listes filtrées)
         $inscritsByStudent = [];
         foreach ($etudiantsInscrits as $row) {
             $studentId = (string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? '');
@@ -85,9 +78,6 @@ class GestionScolariteService
             $studentId = (string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? '');
             return $studentId !== '' && !isset($inscritsByStudent[$studentId]);
         }));
-
-        // Récupérer l'année d'écriture pour avoir les montants de frais_inscription
-        $writableYearId = \AcademicYear::getWritableIdFromSession();
 
         return [
             'etudiantsNonInscrits' => $etudiantsNonInscrits,

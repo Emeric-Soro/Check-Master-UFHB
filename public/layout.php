@@ -648,10 +648,11 @@ switch ($currentMenuSlug) {
             // Fallback : erreur silencieuse, on continue vers la page normale
             error_log('Erreur génération reçu inscription #' . $id_inscription . ': versement non trouvé ou échec PDF');
         }
-        $allowedActions = ['ajouter_des_etudiants', 'inscrire_des_etudiants'];
+        $allowedActions = ['ajouter_des_etudiants', 'inscrire_des_etudiants', 'importer_etudiants'];
         $actionLabels = [
             'ajouter_des_etudiants' => 'Mise à jour étudiant',
-            'inscrire_des_etudiants' => 'Inscrire des étudiants'
+            'inscrire_des_etudiants' => 'Inscrire des étudiants',
+            'importer_etudiants' => 'Import d\'étudiants',
         ];
         if (isset($_GET['action']) && in_array($_GET['action'], $allowedActions)) {
             $currentAction = $_GET['action'];
@@ -883,8 +884,13 @@ switch ($currentMenuSlug) {
         }
         $gestionRhController = new GestionRhController();
         $gestionRhController->index();
-        $contentFile = $partialsBasePath . 'gestion_rh_content.php';
-        $currentPageLabel = 'Mise à jour enseignant';
+        if ((string) ($_GET['action'] ?? '') === 'importer') {
+            $contentFile = $partialsBasePath . 'gestion_rh_import.php';
+            $currentPageLabel = 'Import d\'enseignants';
+        } else {
+            $contentFile = $partialsBasePath . 'gestion_rh_content.php';
+            $currentPageLabel = 'Mise à jour enseignant';
+        }
         break;
     case 'maj_personnel_admin':
         $_GET['tab'] = 'pers_admin';
@@ -893,8 +899,13 @@ switch ($currentMenuSlug) {
         }
         $gestionRhController = new GestionRhController();
         $gestionRhController->index();
-        $contentFile = $partialsBasePath . 'gestion_rh_content.php';
-        $currentPageLabel = 'Mise à jour personnel administratif';
+        if ((string) ($_GET['action'] ?? '') === 'importer') {
+            $contentFile = $partialsBasePath . 'gestion_rh_import.php';
+            $currentPageLabel = 'Import du personnel administratif';
+        } else {
+            $contentFile = $partialsBasePath . 'gestion_rh_content.php';
+            $currentPageLabel = 'Mise à jour personnel administratif';
+        }
         break;
     case 'fiche_enseignante':
         $contentFile = $partialsBasePath . 'fiche_enseignante_content.php';
@@ -1606,7 +1617,8 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         href="<?php echo htmlspecialchars($publicPrefix . 'image/logo_cm_sbg.png', ENT_QUOTES, 'UTF-8'); ?>"
         type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css"></noscript>
     <style>
         .cm-content-area .cm-form-group {
             min-width: 0;
@@ -2249,18 +2261,23 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         .cm-content-area .cm-barre-intermediaire .cm-toolbar {
             display: flex !important;
             flex-direction: row !important;
-            flex-wrap: wrap !important;
+            flex-wrap: nowrap !important;
             align-items: center !important;
-            justify-content: flex-start !important;
-            gap: 0.35rem !important;
+            justify-content: space-between !important;
+            gap: 0.65rem !important; /* Premium breathing space */
             width: 100% !important;
             max-width: 100% !important;
             margin-left: auto !important;
             margin-right: auto !important;
             box-sizing: border-box !important;
-            overflow-x: visible !important;
-            overflow-y: visible !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            scrollbar-width: none !important; /* Premium touch swipe action bar on tablets and mobile screens */
             -webkit-overflow-scrolling: touch;
+        }
+
+        .cm-content-area .cm-barre-intermediaire .cm-toolbar::-webkit-scrollbar {
+            display: none !important;
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar-left,
@@ -2268,34 +2285,47 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         .cm-content-area .cm-barre-intermediaire .cm-toolbar-right {
             display: flex !important;
             align-items: center !important;
-            flex-wrap: wrap !important;
+            flex-wrap: nowrap !important;
             width: auto !important;
             min-width: 0 !important;
-            gap: 0.35rem !important;
+            gap: 0.5rem !important;
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar-left {
-            flex: 1 1 18rem !important;
+            flex: 0 0 auto !important;
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar-center {
-            flex: 1 1 auto !important;
+            flex: 0 0 auto !important; /* Never squeeze search box */
+            width: clamp(11.5rem, 22vw, 16rem) !important;
+            min-width: 11.5rem !important;
+            max-width: 16rem !important;
             justify-content: flex-start !important;
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar-right {
-            flex: 0 0 auto !important;
+            flex: 1 1 auto !important;
             justify-content: flex-end !important;
             margin-left: auto !important;
         }
 
+        .cm-content-area .cm-barre-intermediaire .cm-toolbar__actions-group {
+            display: inline-flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            gap: 0.35rem !important;
+            flex: 0 0 auto !important;
+        }
+
         .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-btn {
             white-space: nowrap !important;
+            flex-shrink: 0 !important;
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-toolbar__search-wrap,
         .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-toolbar-field-lg {
-            width: clamp(11.5rem, 22vw, 16rem) !important;
+            width: 100% !important; /* Takes full width of the parent center container which is already constrained */
             min-width: 11.5rem !important;
             max-width: 16rem !important;
         }
@@ -2337,10 +2367,10 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             display: block !important;
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/fr.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/fr.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.12.0/cdn.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js" defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 
 </head>

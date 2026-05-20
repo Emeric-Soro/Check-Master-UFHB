@@ -576,6 +576,7 @@ if (!function_exists('cm_render_param_crud_view')) {
                     'can_delete' => function_exists('canDelete') ? canDelete() : true,
                     'can_view' => function_exists('canView') ? canView() : true,
                     'can_excel' => true,
+                    'custom_actions' => is_array($config['toolbar_custom_actions'] ?? null) ? $config['toolbar_custom_actions'] : [],
                 ]);
                 ?>
 

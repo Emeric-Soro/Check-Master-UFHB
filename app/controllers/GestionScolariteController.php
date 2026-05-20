@@ -58,8 +58,6 @@ class GestionScolariteController
             }
         }
 
-        // Récupérer la liste des versements (rafraîchir après un éventuel POST)
-        $GLOBALS['listeVersement'] = $this->service->getReferenceLists()['listeVersement'];
     }
 
     public function enregistrerVersement()

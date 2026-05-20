@@ -707,8 +707,10 @@ class GestionUtilisateurService
                 <tr>
                     <td style="padding-bottom: 12px;" class="info-label">Mot de passe :</td>
                     <td style="padding-bottom: 12px;">
-                        <code class="code-block">' . htmlspecialchars($motDePasse) . '</code>
-                        <span class="copy-hint">(Double-cliquez pour copier)</span>
+                        <div class="copyable-container">
+                            <code class="copy-value">' . htmlspecialchars($motDePasse) . '</code>
+                            <span class="copy-btn" data-copy="' . htmlspecialchars($motDePasse) . '">Copier</span>
+                        </div>
                     </td>
                 </tr>';
             }

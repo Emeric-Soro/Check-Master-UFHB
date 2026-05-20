@@ -155,6 +155,13 @@ foreach ($normalized_options as $option) {
     const placeholder = <?= json_encode((string) $placeholder) ?>;
     const selectedLabel = <?= json_encode((string) $selected_label) ?>;
     const keepSelectedInInput = <?= json_encode($show_search && !$show_selected_label) ?>;
+    const normalizeSearchText = function (value) {
+        const text = String(value || '').toLowerCase().trim();
+        if (typeof text.normalize !== 'function') {
+            return text;
+        }
+        return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    };
 
     const resetFilteredOptions = function () {
         options.forEach(function (button) {
@@ -206,15 +213,17 @@ foreach ($normalized_options as $option) {
         }
     };
 
-    options.forEach(function (button) {
-        button.addEventListener('click', function (event) {
-            event.stopPropagation();
-            if (button.hasAttribute('disabled')) {
-                return;
-            }
-            setSelected(button);
-            closeList();
-        });
+    list.addEventListener('click', function (event) {
+        var button = event.target.closest('.cm-select-search__option');
+        if (!button) {
+            return;
+        }
+        event.stopPropagation();
+        if (button.hasAttribute('disabled')) {
+            return;
+        }
+        setSelected(button);
+        closeList();
     });
 
     wrapper.addEventListener('click', function (event) {
@@ -240,13 +249,13 @@ foreach ($normalized_options as $option) {
         });
 
         searchInput.addEventListener('input', function () {
-            const term = searchInput.value.trim().toLowerCase();
+            const term = normalizeSearchText(searchInput.value);
             let visible = 0;
 
             openList();
 
             options.forEach(function (button) {
-                const labelText = (button.dataset.label || '').toLowerCase();
+                const labelText = normalizeSearchText(button.dataset.label || '');
                 const match = labelText.includes(term);
                 button.classList.toggle('cm-hidden', !match);
                 button.hidden = !match;
