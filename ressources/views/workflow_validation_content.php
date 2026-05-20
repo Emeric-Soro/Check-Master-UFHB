@@ -1,4 +1,4 @@
-<div class="cm-prd3-screen">
+<div class="cm-prd3-screen cm-workflow-flat">
     <!-- Selection du rapport -->
     <div class="cm-card">
         <div class="cm-card__header cm-flex-between">
@@ -187,15 +187,51 @@
 </div>
 
 <style>
+/* Page flat overrides */
+.cm-workflow-flat {
+    background: transparent;
+}
+.cm-workflow-flat .cm-card,
+.cm-workflow-flat .cm-card__header,
+.cm-workflow-flat .cm-card__body {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+.cm-workflow-flat .cm-card {
+    padding: 0;
+}
+.cm-workflow-flat .cm-card__header,
+.cm-workflow-flat .cm-card__body {
+    padding-left: 0;
+    padding-right: 0;
+}
+.cm-workflow-flat .cm-card__header {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+.cm-workflow-flat .cm-card__body {
+    padding-bottom: 0;
+}
+.cm-workflow-flat .cm-card + .cm-card {
+    margin-top: 1rem;
+}
+.cm-workflow-flat .cm-form-inline {
+    gap: 0.65rem;
+}
+.cm-workflow-flat .cm-form-group.cm-field--number {
+    margin-bottom: 0;
+}
+
 /* Workflow progress bar */
 .cm-workflow-progress-bar {
     padding: 0.5rem 0;
 }
 .cm-workflow-progress-track {
     height: 10px;
-    background: #e5e7eb;
-    border-radius: 999px;
-    overflow: hidden;
+    background: transparent;
+    border-radius: 0;
+    overflow: visible;
     margin-bottom: 0.25rem;
 }
 .cm-workflow-progress-fill {
@@ -255,41 +291,37 @@
     align-items: center;
     justify-content: center;
     font-size: 0.85rem;
-    background: #fff;
-    border: 3px solid #d1d5db;
-    color: #9ca3af;
+    background: rgba(148, 163, 184, 0.16);
+    border: 0;
+    color: #5b7286;
     z-index: 1;
     transition: all 0.3s ease;
 }
 .cm-workflow-step__circle.is-done {
     background: #10b981;
-    border-color: #10b981;
     color: #fff;
 }
 .cm-workflow-step__circle.is-active {
     background: #3b82f6;
-    border-color: #3b82f6;
     color: #fff;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
     animation: cm-pulse 2s infinite;
 }
 @keyframes cm-pulse {
-    0%, 100% { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2); }
-    50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.1); }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
 }
 .cm-workflow-step__content {
-    padding: 0.25rem 0.75rem;
-    background: #f9fafb;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    border: 0;
     transition: all 0.3s ease;
 }
 .cm-workflow-step.is-active .cm-workflow-step__content {
-    border-color: #93c5fd;
-    background: #eff6ff;
+    background: transparent;
 }
 .cm-workflow-step.is-done .cm-workflow-step__content {
-    border-color: #a7f3d0;
+    background: transparent;
 }
 .cm-workflow-step__title {
     font-size: 0.9rem;

@@ -131,64 +131,36 @@ $buildFilterUrl = static function (string $type = '') use ($baseUrl): string {
 
 .cm-archives-documents__toolbar {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
-    padding: 0.9rem 0;
-    border-top: 1px solid rgba(24, 82, 128, 0.08);
-    border-bottom: 1px solid rgba(24, 82, 128, 0.08);
+    padding: 0.45rem;
+    border: 1px solid rgba(24, 82, 128, 0.08);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(233, 244, 253, 0.96), rgba(223, 238, 250, 0.92));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .cm-archives-documents__filters {
-    display: flex;
-    gap: 0.75rem;
+    display: inline-flex;
+    align-items: stretch;
     flex-wrap: wrap;
+    max-width: 100%;
 }
 
 .cm-archives-documents__filter {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.55rem;
-    padding: 0.7rem 0.9rem;
-    border: 0;
-    border-radius: 14px;
-    color: #1a5d91;
-    background: rgba(255, 255, 255, 0.45);
-    font-weight: 700;
-    text-decoration: none;
-    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    min-height: 100%;
+    font-weight: 600;
 }
 
-.cm-archives-documents__filter:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 24px rgba(24, 82, 128, 0.10);
-}
-
-.cm-archives-documents__filter.is-active {
-    color: #fff;
-    border-color: transparent;
-    background: linear-gradient(135deg, #2b97eb, #1f74bf);
-    box-shadow: 0 12px 28px rgba(31, 116, 191, 0.24);
-}
-
-.cm-archives-documents__filter-count {
-    display: inline-flex;
-    min-width: 2.1rem;
-    justify-content: center;
-    padding: 0.1rem 0.45rem;
-    border-radius: 999px;
-    background: rgba(21, 57, 92, 0.09);
-    font-size: 0.82rem;
-}
-
-.cm-archives-documents__filter.is-active .cm-archives-documents__filter-count {
-    background: rgba(255, 255, 255, 0.22);
+.cm-archives-documents__filter:focus-visible {
+    outline: 2px solid rgba(31, 116, 191, 0.35);
+    outline-offset: -2px;
 }
 
 .cm-archives-documents__toolbar-note {
-    color: #5d7488;
-    font-weight: 600;
+    display: none;
 }
 
 .cm-archives-documents__table-card {
@@ -340,36 +312,36 @@ $buildFilterUrl = static function (string $type = '') use ($baseUrl): string {
     </div>
 
     <div class="cm-archives-documents__toolbar cm-mb-4">
-        <div class="cm-archives-documents__filters">
+        <nav class="cm-tab-nav cm-archives-documents__filters" role="tablist" aria-label="Filtres des archives documents">
             <a href="<?= htmlspecialchars($buildFilterUrl(), ENT_QUOTES, 'UTF-8') ?>"
-               class="cm-archives-documents__filter <?= $typeFilter === '' ? 'is-active' : '' ?>">
-                <i class="fas fa-layer-group"></i>
+               class="cm-tab-nav__item cm-archives-documents__filter <?= $typeFilter === '' ? 'is-active' : '' ?>"
+               role="tab"
+               aria-selected="<?= $typeFilter === '' ? 'true' : 'false' ?>"
+               aria-label="Tous, <?= number_format($counts['all']) ?> document<?= $counts['all'] > 1 ? 's' : '' ?>">
                 Tous
-                <span class="cm-archives-documents__filter-count"><?= number_format($counts['all']) ?></span>
             </a>
             <a href="<?= htmlspecialchars($buildFilterUrl('rapport'), ENT_QUOTES, 'UTF-8') ?>"
-               class="cm-archives-documents__filter <?= $typeFilter === 'rapport' ? 'is-active' : '' ?>">
-                <i class="fas fa-file-pdf"></i>
+               class="cm-tab-nav__item cm-archives-documents__filter <?= $typeFilter === 'rapport' ? 'is-active' : '' ?>"
+               role="tab"
+               aria-selected="<?= $typeFilter === 'rapport' ? 'true' : 'false' ?>"
+               aria-label="Rapports, <?= number_format($counts['rapport']) ?> document<?= $counts['rapport'] > 1 ? 's' : '' ?>">
                 Rapports
-                <span class="cm-archives-documents__filter-count"><?= number_format($counts['rapport']) ?></span>
             </a>
             <a href="<?= htmlspecialchars($buildFilterUrl('compte_rendu'), ENT_QUOTES, 'UTF-8') ?>"
-               class="cm-archives-documents__filter <?= $typeFilter === 'compte_rendu' ? 'is-active' : '' ?>">
-                <i class="fas fa-file-lines"></i>
+               class="cm-tab-nav__item cm-archives-documents__filter <?= $typeFilter === 'compte_rendu' ? 'is-active' : '' ?>"
+               role="tab"
+               aria-selected="<?= $typeFilter === 'compte_rendu' ? 'true' : 'false' ?>"
+               aria-label="Comptes rendus, <?= number_format($counts['compte_rendu']) ?> document<?= $counts['compte_rendu'] > 1 ? 's' : '' ?>">
                 Comptes rendus
-                <span class="cm-archives-documents__filter-count"><?= number_format($counts['compte_rendu']) ?></span>
             </a>
             <a href="<?= htmlspecialchars($buildFilterUrl('pv_final'), ENT_QUOTES, 'UTF-8') ?>"
-               class="cm-archives-documents__filter <?= $typeFilter === 'pv_final' ? 'is-active' : '' ?>">
-                <i class="fas fa-gavel"></i>
+               class="cm-tab-nav__item cm-archives-documents__filter <?= $typeFilter === 'pv_final' ? 'is-active' : '' ?>"
+               role="tab"
+               aria-selected="<?= $typeFilter === 'pv_final' ? 'true' : 'false' ?>"
+               aria-label="PV finaux, <?= number_format($counts['pv_final']) ?> document<?= $counts['pv_final'] > 1 ? 's' : '' ?>">
                 PV finaux
-                <span class="cm-archives-documents__filter-count"><?= number_format($counts['pv_final']) ?></span>
             </a>
-        </div>
-
-        <div class="cm-archives-documents__toolbar-note">
-            <?= number_format(count($displayed)) ?> document<?= count($displayed) > 1 ? 's' : '' ?> affiché<?= count($displayed) > 1 ? 's' : '' ?>
-        </div>
+        </nav>
     </div>
 
     <?php if ($displayed === []): ?>

@@ -65,6 +65,7 @@ class RedactionCompteRenduController {
             }
 
             $result = $this->service->enregistrer([
+                'id_CR_edit'            => $_POST['id_CR_edit'] ?? null,
                 'num_etu'               => $numEtu,
                 'nom_CR'                => $_POST['nom_CR'] ?? '',
                 'contenu_CR'            => $_POST['contenu_CR'] ?? '',

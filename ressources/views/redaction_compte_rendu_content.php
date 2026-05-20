@@ -562,11 +562,6 @@ $initialEditorHtml = $isEditingExistingCr
             return source;
         }
 
-        const validationBlock = '$1<div id=\"casDynamique\"></div>$2';
-        if (getValidationSectionRegex().test(source)) {
-            return source.replace(getValidationSectionRegex(), validationBlock);
-        }
-
         return source.replace(/<div id=(['"])casDynamique\1>[\s\S]*?<\/div>/i, '<div id=\"casDynamique\"></div>');
     }
 
@@ -675,7 +670,8 @@ $initialEditorHtml = $isEditingExistingCr
             existingCr;
     }
 
-    function renderSelected() {
+    function renderSelected(options) {
+        const shouldRefreshCases = !options || options.refreshCases !== false;
         selectedIds = normalizeSelectedIds(selectedIds);
         selectedContainer.innerHTML = '';
         assignmentsContainer.innerHTML = '';
@@ -727,14 +723,16 @@ $initialEditorHtml = $isEditingExistingCr
 
         renderInfoCard();
         syncHiddenData();
-        refreshTemplateCases();
+        if (shouldRefreshCases) {
+            refreshTemplateCases();
+        }
     }
 
     function saveDraft(notify) {
         syncEditorValue();
         const payload = {
             nom: nomInput ? nomInput.value : '',
-            contenu: editorInput ? sanitizeEditorHtml(editorInput.value) : '',
+            contenu: editorInput ? editorInput.value : '',
             selectedIds: selectedIds,
             timestamp: Date.now(),
             assignments: {}
@@ -777,11 +775,11 @@ $initialEditorHtml = $isEditingExistingCr
                 nomInput.value = draftState.nom;
             }
             if (editorInput && draftState.contenu) {
-                const sanitizedDraftContent = sanitizeEditorHtml(draftState.contenu);
-                editorInput.value = sanitizedDraftContent;
+                const draftContent = String(draftState.contenu || '');
+                editorInput.value = draftContent;
                 const editorDiv = document.getElementById('cmCrContenu_editor');
                 if (editorDiv) {
-                    editorDiv.innerHTML = sanitizedDraftContent;
+                    editorDiv.innerHTML = draftContent;
                 }
             }
             renderSelected();
@@ -804,11 +802,11 @@ $initialEditorHtml = $isEditingExistingCr
             nomInput.value = editingState.nom_CR;
         }
         if (editorInput && editingState.contenu_CR) {
-            const sanitizedEditingContent = sanitizeEditorHtml(editingState.contenu_CR);
-            editorInput.value = sanitizedEditingContent;
+            const editingContent = String(editingState.contenu_CR || '');
+            editorInput.value = editingContent;
             const editorDiv = document.getElementById('cmCrContenu_editor');
             if (editorDiv) {
-                editorDiv.innerHTML = sanitizedEditingContent;
+                editorDiv.innerHTML = editingContent;
             }
         }
 
@@ -987,14 +985,18 @@ $initialEditorHtml = $isEditingExistingCr
 
     if (isEditingExistingCr) {
         applyEditingState();
+        if ((editorInput.value || '').trim() === '') {
+            loadTemplate();
+        }
+        renderSelected({ refreshCases: false });
     } else {
         loadDraft();
+        if ((editorInput.value || '').trim() === '') {
+            loadTemplate();
+        } else {
+            refreshTemplateCases();
+        }
+        renderSelected();
     }
-    if ((editorInput.value || '').trim() === '') {
-        loadTemplate();
-    } else {
-        refreshTemplateCases();
-    }
-    renderSelected();
 })();
 </script>

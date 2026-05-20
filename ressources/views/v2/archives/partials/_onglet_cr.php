@@ -8,6 +8,7 @@ if (!$cr) {
 }
 
 $content = trim((string) ($cr['contenu_CR'] ?? ''));
+$contentHtml = cm_student_record_sanitize_html($content);
 $contentLength = $content !== '' ? mb_strlen($content) : 0;
 $crId = $cr['id_CR'] ?? '';
 ?>
@@ -52,8 +53,8 @@ $crId = $cr['id_CR'] ?? '';
                 </h3>
             </div>
             <div class="cm-student-record__panel-body">
-                <?php if ($content !== ''): ?>
-                    <div class="cm-student-record__rich-text"><?= nl2br(htmlspecialchars($content, ENT_QUOTES, 'UTF-8')) ?></div>
+                <?php if ($contentHtml !== ''): ?>
+                    <div class="cm-student-record__rich-text"><?= $contentHtml ?></div>
                 <?php else: ?>
                     <?php cm_student_record_empty('Contenu vide', '', 'fa-file-lines'); ?>
                 <?php endif; ?>

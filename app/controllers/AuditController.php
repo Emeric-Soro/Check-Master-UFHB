@@ -117,7 +117,7 @@ class AuditController {
 
         $pdfGen = new \App\Services\Document\PdfGeneratorService(
             __DIR__ . '/../../storage/documents',
-            __DIR__ . '/../../public/assets/img/logo.png'
+            __DIR__ . '/../../public/image/logo_ufhb.png'
         );
 
         $pdf = $pdfGen->createDocument('P', 'A4', 'Piste audit - ' . date('Y-m-d'));

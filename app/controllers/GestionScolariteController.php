@@ -108,7 +108,7 @@ class GestionScolariteController
             $GLOBALS['messageErreur'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
             return;
         }
-        $result = $this->service->enregistrerPaiement($_POST, $_SESSION['id_utilisateur']);
+        $result = $this->service->enregistrerPaiement($_POST, $_FILES, $_SESSION['id_utilisateur']);
 
         if ($result['success']) {
             $GLOBALS['messageSuccess'] = $result['message'];

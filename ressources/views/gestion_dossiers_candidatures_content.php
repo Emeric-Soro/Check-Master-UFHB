@@ -165,7 +165,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" id="cmSelectedRapportId" value="">
                 <input type="hidden" id="cmSelectedRapportUrl" value="">
-                <div class="cm-grid-4">
+                <div class="cm-grid-3">
                     <?php
                     cm_component('form/input-text', [
                         'name' => 'traitement_etudiant',
@@ -188,12 +188,6 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                             'Validée' => 'Validée',
                             'Rejetée' => 'Rejetée',
                         ],
-                    ]);
-                    cm_component('form/input-text', [
-                        'name' => 'traitement_info',
-                        'id' => 'cmTraitementInfo',
-                        'label' => 'Info dossier',
-                        'readonly' => true,
                     ]);
                     ?>
                 </div>
@@ -356,8 +350,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                                                 data-date="<?php echo htmlspecialchars($dateCandIso, ENT_QUOTES, 'UTF-8'); ?>"
                                                 data-status="<?php echo htmlspecialchars((string) $row['cand_status'], ENT_QUOTES, 'UTF-8'); ?>"
                                                 data-commentaire="<?php echo htmlspecialchars((string) $row['commentaire'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                data-url="<?php echo htmlspecialchars('?page=gestion_dossiers_candidatures&action=consulter_rapport&id_rapport=' . urlencode((string) $row['id_rapport']), ENT_QUOTES, 'UTF-8'); ?>"
-                                                data-info="<?php echo htmlspecialchars('Promotion: ' . $row['promotion'] . ' | Niveau: ' . $row['niveau'] . ' | Verse: ' . number_format((float) $row['montant_verse'], 0, ',', ' ') . ' FCFA | Reste: ' . number_format((float) $row['reste_a_payer'], 0, ',', ' ') . ' FCFA', ENT_QUOTES, 'UTF-8'); ?>">
+                                                data-url="<?php echo htmlspecialchars('?page=gestion_dossiers_candidatures&action=consulter_rapport&id_rapport=' . urlencode((string) $row['id_rapport']), ENT_QUOTES, 'UTF-8'); ?>">
                                                 <i class="fas fa-pen" aria-hidden="true"></i>
                                                 Traiter
                                             </button>
@@ -405,7 +398,6 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
         const fieldEtudiant = document.getElementById('cmTraitementEtudiant');
         const fieldDate = document.getElementById('cmTraitementDate');
         const fieldStatut = document.getElementById('cmTraitementStatut');
-        const fieldInfo = document.getElementById('cmTraitementInfo');
         const fieldCommentaire = document.getElementById('cmTraitementCommentaire');
         const openLink = document.getElementById('cmOpenRapportFromForm');
         const pickButtons = document.querySelectorAll('.cm-pick-traitement');
@@ -417,7 +409,6 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                 fieldEtudiant.value = btn.getAttribute('data-etudiant') || '';
                 fieldDate.value = btn.getAttribute('data-date') || '';
                 fieldStatut.value = btn.getAttribute('data-status') || '';
-                fieldInfo.value = btn.getAttribute('data-info') || '';
                 fieldCommentaire.value = btn.getAttribute('data-commentaire') || '';
                 if (openLink && selectedUrl.value !== '') {
                     openLink.href = selectedUrl.value;

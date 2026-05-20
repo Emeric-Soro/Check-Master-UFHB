@@ -555,6 +555,170 @@ class ProcessusValidationService
         }
     }
 
+    private function getUtilisateursCommissionPourVote(): array
+    {
+        try {
+            if (!$this->tableExists('utilisateur')) {
+                return [];
+            }
+
+            $stmt = $this->pdo->prepare("
+                SELECT DISTINCT
+                    u.id_utilisateur,
+                    u.nom_utilisateur,
+                    u.login_utilisateur,
+                    u.id_GU
+                FROM utilisateur u
+                WHERE u.id_GU = 11
+                  AND u.statut_utilisateur = 'Actif'
+                ORDER BY u.nom_utilisateur
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Erreur récupération utilisateurs commission pour vote: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function appliquerVoteAdminAuxMembres($id_rapport, $id_utilisateur, array $session = []): array
+    {
+        $idRapport = (int) $id_rapport;
+        $idUtilisateur = (int) $id_utilisateur;
+
+        if ($idRapport <= 0) {
+            return [
+                'success' => false,
+                'message' => 'Rapport non spécifié.'
+            ];
+        }
+
+        if ($idUtilisateur <= 0) {
+            return [
+                'success' => false,
+                'message' => 'Utilisateur connecté introuvable.'
+            ];
+        }
+
+        if ((int) ($session['id_GU'] ?? 0) !== 5) {
+            return [
+                'success' => false,
+                'message' => "Action réservée à l'administrateur."
+            ];
+        }
+
+        try {
+            $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $this->getRapportYearId($idRapport), 'un vote groupé de rapport');
+            if (!$writeGuard['success']) {
+                return [
+                    'success' => false,
+                    'message' => $writeGuard['message']
+                ];
+            }
+
+            $stmt = $this->pdo->prepare("
+                SELECT id_evaluation, decision_evaluation, commentaire
+                FROM evaluations_rapports
+                WHERE id_rapport = ?
+                  AND id_evaluateur = ?
+                  AND decision_evaluation IN ('valider', 'rejeter')
+                ORDER BY COALESCE(date_modification, date_evaluation) DESC, id_evaluation DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$idRapport, $idUtilisateur]);
+            $adminVote = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$adminVote) {
+                return [
+                    'success' => false,
+                    'message' => "Vous devez d'abord voter sur ce rapport avant d'appliquer votre vote aux autres membres."
+                ];
+            }
+
+            $status = $this->getStatutVoteRapport($idRapport);
+            if (!empty($status['finalise'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Ce rapport est déjà finalisé.'
+                ];
+            }
+
+            $membres = $this->getUtilisateursCommissionPourVote();
+            if (empty($membres)) {
+                return [
+                    'success' => false,
+                    'message' => 'Aucun membre de commission actif trouvé.'
+                ];
+            }
+
+            $stmt = $this->pdo->prepare("
+                SELECT DISTINCT id_evaluateur
+                FROM evaluations_rapports
+                WHERE id_rapport = ?
+            ");
+            $stmt->execute([$idRapport]);
+            $votants = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+            $votantsMap = array_fill_keys($votants, true);
+            $missingSlots = max(0, 4 - count($votants));
+            if ($missingSlots === 0) {
+                return [
+                    'success' => false,
+                    'message' => 'Le rapport possède déjà les 4 votes attendus.'
+                ];
+            }
+
+            $targets = [];
+            foreach ($membres as $membre) {
+                $idMembre = (int) ($membre['id_utilisateur'] ?? 0);
+                if ($idMembre <= 0 || $idMembre === $idUtilisateur || isset($votantsMap[$idMembre])) {
+                    continue;
+                }
+                $targets[] = $idMembre;
+            }
+            $targets = array_slice($targets, 0, $missingSlots);
+
+            if (empty($targets)) {
+                return [
+                    'success' => false,
+                    'message' => 'Tous les membres concernés ont déjà voté pour ce rapport.'
+                ];
+            }
+
+            $this->pdo->beginTransaction();
+            try {
+                $insert = $this->pdo->prepare("
+                    INSERT INTO evaluations_rapports
+                        (id_rapport, id_evaluateur, decision_evaluation, commentaire, date_evaluation)
+                    VALUES
+                        (?, ?, ?, ?, NOW())
+                ");
+                foreach ($targets as $idMembre) {
+                    $insert->execute([
+                        $idRapport,
+                        $idMembre,
+                        (string) $adminVote['decision_evaluation'],
+                        $adminVote['commentaire']
+                    ]);
+                }
+                $this->pdo->commit();
+            } catch (Exception $e) {
+                $this->pdo->rollBack();
+                throw $e;
+            }
+
+            $decisionLabel = (string) $adminVote['decision_evaluation'] === 'valider' ? 'validation' : 'rejet';
+            return [
+                'success' => true,
+                'message' => count($targets) . ' vote(s) ajouté(s) avec la même décision de ' . $decisionLabel . '.'
+            ];
+        } catch (Exception $e) {
+            error_log("Erreur vote groupé admin: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Erreur lors du vote groupé : ' . $e->getMessage()
+            ];
+        }
+    }
+
     /**
      * Récupère les données complètes pour la page
      *
@@ -816,7 +980,7 @@ class ProcessusValidationService
 
                         $pdfGenerator = new \App\Services\Document\PdfGeneratorService(
                             __DIR__ . '/../../storage/documents',
-                            __DIR__ . '/../../public/assets/img/logo.png'
+                            __DIR__ . '/../../public/image/logo_ufhb.png'
                         );
                         $dbWrapper = new \App\Support\Database();
                         $dataUtils = new \App\Utils\PlanningDataUtils($dbWrapper);

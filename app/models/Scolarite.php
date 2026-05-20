@@ -311,6 +311,7 @@ class Scolarite
             i.montant_verser,
             i.methode_paiement,
             i.num_piece_mp,
+            i.fiche_inscription,
             i.id_annee_acad,
             i.id_niv_etude,
             i.solde,

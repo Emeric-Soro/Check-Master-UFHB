@@ -12,6 +12,8 @@ use Throwable;
 
 class EvaluationSoutenanceService
 {
+    private const EVALUATION_META_TABLE = 'evaluation_soutenance_meta';
+
     private $pdo;
     private $critereModel;
     private $tableExistsCache = [];
@@ -141,6 +143,128 @@ class EvaluationSoutenanceService
             $this->tableExistsCache[$tableName] = false;
             return false;
         }
+    }
+
+    private function ensureEvaluationMetaTable(): bool
+    {
+        if ($this->tableExists(self::EVALUATION_META_TABLE)) {
+            return true;
+        }
+
+        try {
+            $this->pdo->exec("
+                CREATE TABLE IF NOT EXISTS " . self::EVALUATION_META_TABLE . " (
+                    num_etudiant VARCHAR(25) NOT NULL,
+                    jury_ref VARCHAR(50) NOT NULL,
+                    id_annee_acad INT NULL,
+                    decision VARCHAR(50) DEFAULT NULL,
+                    commentaire_general TEXT DEFAULT NULL,
+                    note_finale DOUBLE DEFAULT NULL,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    PRIMARY KEY (num_etudiant, jury_ref),
+                    KEY idx_eval_sout_meta_annee (id_annee_acad)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+            $this->tableExistsCache[self::EVALUATION_META_TABLE] = true;
+            return true;
+        } catch (Throwable $e) {
+            error_log('Erreur ensureEvaluationMetaTable: ' . $e->getMessage());
+            $this->tableExistsCache[self::EVALUATION_META_TABLE] = false;
+            return false;
+        }
+    }
+
+    /**
+     * @return array{decision:string, commentaire_general:string, note_finale:float|null}|null
+     */
+    private function getEvaluationMeta(string $numEtu, string $juryRef): ?array
+    {
+        if ($numEtu === '' || $juryRef === '' || !$this->ensureEvaluationMetaTable()) {
+            return null;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT decision, commentaire_general, note_finale
+                FROM " . self::EVALUATION_META_TABLE . "
+                WHERE num_etudiant = ? AND jury_ref = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$numEtu, $juryRef]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row) {
+                return null;
+            }
+
+            return [
+                'decision' => trim((string) ($row['decision'] ?? '')),
+                'commentaire_general' => trim((string) ($row['commentaire_general'] ?? '')),
+                'note_finale' => isset($row['note_finale']) ? (float) $row['note_finale'] : null,
+            ];
+        } catch (Throwable $e) {
+            error_log('Erreur getEvaluationMeta: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function saveEvaluationMeta(
+        string $numEtu,
+        string $juryRef,
+        ?int $idAnneeAcad,
+        string $decision,
+        string $commentaireGeneral,
+        float $noteFinale
+    ): void {
+        if ($numEtu === '' || $juryRef === '' || !$this->ensureEvaluationMetaTable()) {
+            return;
+        }
+
+        $stmt = $this->pdo->prepare("
+            INSERT INTO " . self::EVALUATION_META_TABLE . " (
+                num_etudiant, jury_ref, id_annee_acad, decision, commentaire_general, note_finale
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                id_annee_acad = VALUES(id_annee_acad),
+                decision = VALUES(decision),
+                commentaire_general = VALUES(commentaire_general),
+                note_finale = VALUES(note_finale)
+        ");
+        $stmt->execute([
+            $numEtu,
+            $juryRef,
+            $idAnneeAcad,
+            $decision !== '' ? $decision : null,
+            $commentaireGeneral !== '' ? $commentaireGeneral : null,
+            $noteFinale,
+        ]);
+    }
+
+    private function deleteEvaluationMeta(string $numEtu, string $juryRef): void
+    {
+        if ($numEtu === '' || $juryRef === '' || !$this->tableExists(self::EVALUATION_META_TABLE)) {
+            return;
+        }
+
+        $stmt = $this->pdo->prepare("
+            DELETE FROM " . self::EVALUATION_META_TABLE . "
+            WHERE num_etudiant = ? AND jury_ref = ?
+        ");
+        $stmt->execute([$numEtu, $juryRef]);
+    }
+
+    private function normalizeDecision(string $decision, ?float $noteFinale = null): string
+    {
+        $normalized = strtolower(trim($decision));
+        if (in_array($normalized, ['admis', 'ajourne', 'ajourné'], true)) {
+            return $normalized === 'ajourné' ? 'ajourne' : $normalized;
+        }
+
+        if ($noteFinale !== null) {
+            return $noteFinale >= 10 ? 'admis' : 'ajourne';
+        }
+
+        return 'ajourne';
     }
 
     private function critereCodeSelect(string $alias = 'c'): string
@@ -588,6 +712,8 @@ class EvaluationSoutenanceService
                 return [];
             }
 
+            $hasMetaTable = $this->ensureEvaluationMetaTable();
+
             $idCol = $this->getProgrammationIdColumn($progTable);
             $juryCol = $this->getProgrammationJuryColumn($progTable);
 
@@ -634,20 +760,12 @@ class EvaluationSoutenanceService
                         FROM evaluer ev
                         WHERE ev.num_etudiant = COALESCE(e.num_carte_etud, p.num_etud)
                           AND ev.num_jury = p.{$juryCol}
-                    ) AS note_finale,
-                    (
-                        SELECT GROUP_CONCAT(
-                            CONCAT(COALESCE(ce.lib_critere, CONCAT('Critere ', ev2.id_critere)), ': ', ev2.note)
-                            SEPARATOR '; '
-                        )
-                        FROM evaluer ev2
-                        LEFT JOIN critere_evaluation ce ON ce.id_critere = ev2.id_critere
-                        WHERE ev2.num_etudiant = COALESCE(e.num_carte_etud, p.num_etud)
-                          AND ev2.num_jury = p.{$juryCol}
-                    ) AS commentaire_general
+                    ) AS note_finale_calculee,
+                    " . ($hasMetaTable ? "esm.note_finale AS note_finale_meta, esm.decision AS decision, esm.commentaire_general AS commentaire_general" : "NULL AS note_finale_meta, NULL AS decision, NULL AS commentaire_general") . "
                 FROM {$progTable} p
                 LEFT JOIN etudiants e ON {$studentJoin}
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
+                " . ($hasMetaTable ? "LEFT JOIN " . self::EVALUATION_META_TABLE . " esm ON esm.num_etudiant = COALESCE(e.num_carte_etud, p.num_etud) AND esm.jury_ref = CAST(p.{$juryCol} AS CHAR(50))" : "") . "
                 WHERE p.id_salle IS NOT NULL
                   AND p.date_soutenance IS NOT NULL
                   AND p.heure_soutenance IS NOT NULL
@@ -677,7 +795,21 @@ class EvaluationSoutenanceService
                 $stmt->bindValue(':id_annee_acad', $selectedYearId, PDO::PARAM_INT);
             }
             $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($rows as &$row) {
+                $computed = isset($row['note_finale_calculee']) ? (float) $row['note_finale_calculee'] : null;
+                $meta = isset($row['note_finale_meta']) && $row['note_finale_meta'] !== null
+                    ? (float) $row['note_finale_meta']
+                    : null;
+                $row['note_finale'] = $meta ?? $computed ?? 0.0;
+                $row['decision'] = $this->normalizeDecision((string) ($row['decision'] ?? ''), $row['note_finale']);
+                $row['commentaire_general'] = trim((string) ($row['commentaire_general'] ?? ''));
+                unset($row['note_finale_calculee'], $row['note_finale_meta']);
+            }
+            unset($row);
+
+            return $rows;
         } catch (Throwable $e) {
             error_log('Erreur getSoutenancesProgrammeesForView: ' . $e->getMessage());
             return [];
@@ -758,7 +890,7 @@ class EvaluationSoutenanceService
         try {
             $numEtu = (string) $numEtu;
             if ($numEtu === '') {
-                return [];
+                return ['rows' => []];
             }
 
             $juryRef = $this->resolveJuryRefForEtudiant($numEtu);
@@ -782,14 +914,26 @@ class EvaluationSoutenanceService
                 $stmt->execute([$numEtu]);
             }
 
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $meta = $juryRef !== null ? $this->getEvaluationMeta($numEtu, $juryRef) : null;
+            $noteFinale = 0.0;
+            foreach ($rows as $row) {
+                $noteFinale += (float) ($row['note'] ?? 0);
+            }
+
+            return [
+                'rows' => $rows,
+                'decision' => $this->normalizeDecision((string) ($meta['decision'] ?? ''), $noteFinale),
+                'commentaire_general' => (string) ($meta['commentaire_general'] ?? ''),
+                'note_finale' => $meta['note_finale'] ?? $noteFinale,
+            ];
         } catch (Throwable $e) {
             error_log('Erreur getEvaluationExistante: ' . $e->getMessage());
-            return [];
+            return ['rows' => []];
         }
     }
 
-    public function enregistrerEvaluation(string $numEtu, array $criteres, string $commentaireGeneral = '', ?string $idAnneeAcad = null): array
+    public function enregistrerEvaluation(string $numEtu, array $criteres, string $commentaireGeneral = '', string $decision = '', ?string $idAnneeAcad = null): array
     {
         try {
             if ($numEtu === '') {
@@ -835,6 +979,8 @@ class EvaluationSoutenanceService
             }
 
             $noteFinale = $this->calculerSommeNotes($notesValides, (string) $idAnneeAcad);
+            $decision = $this->normalizeDecision($decision, $noteFinale);
+            $commentaireGeneral = trim($commentaireGeneral);
 
             $this->pdo->beginTransaction();
 
@@ -851,12 +997,15 @@ class EvaluationSoutenanceService
                 $insertStmt->execute([$numEtu, $juryRef, $idCritere, $dateEval, $note]);
             }
 
+            $this->saveEvaluationMeta($numEtu, $juryRef, (int) $idAnneeAcad, $decision, $commentaireGeneral, $noteFinale);
+
             $this->pdo->commit();
 
             return [
                 'success' => true,
                 'message' => 'Évaluation enregistrée avec succès',
                 'note_finale' => $noteFinale,
+                'decision' => $decision,
             ];
         } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) {
@@ -918,6 +1067,7 @@ class EvaluationSoutenanceService
 
             $stmt = $this->pdo->prepare("DELETE FROM evaluer WHERE num_etudiant = ? AND num_jury = ?");
             $stmt->execute([$numEtu, $juryRef]);
+            $this->deleteEvaluationMeta($numEtu, $juryRef);
 
             return [
                 'success' => true,
@@ -1120,6 +1270,7 @@ class EvaluationSoutenanceService
             $sommeNotes += (float) ($eval['note'] ?? 0);
             $sommeBaremes += (float) ($eval['bareme'] ?? 0);
         }
+        $meta = $this->getEvaluationMeta((string) ($soutenance['num_etu'] ?? $numEtu), $juryRef);
 
         $promotion = (string) ($soutenance['promotion_etu'] ?? '');
         $niveau = $promotion;
@@ -1140,6 +1291,8 @@ class EvaluationSoutenanceService
             'directeur' => (string) ($soutenance['directeur'] ?? ''),
             'encadreur' => (string) ($soutenance['encadreur'] ?? ''),
             'maitre_stage' => (string) ($soutenance['maitre_stage'] ?? ''),
+            'decision' => $this->normalizeDecision((string) ($meta['decision'] ?? ''), $sommeNotes),
+            'commentaire_general' => (string) ($meta['commentaire_general'] ?? ''),
         ];
 
         $dataAnnexe1 = $baseData;

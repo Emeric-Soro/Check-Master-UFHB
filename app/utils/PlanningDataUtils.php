@@ -645,8 +645,12 @@ class PlanningDataUtils
      */
     public function getNotesSoutenance(string $numEtudiant, ?int $idAnneeAcad = null): array
     {
+        $codeCritereSelect = $this->columnExists('critere_evaluation', 'code_critere')
+            ? 'ce.code_critere'
+            : 'ce.id_critere AS code_critere';
+
         $sql = 'SELECT ev.id_critere, ev.num_etudiant,
-                       ce.code_critere, ce.lib_critere AS libelle_critere,
+                       ' . $codeCritereSelect . ', ce.lib_critere AS libelle_critere,
                        ev.note,
                        COALESCE(bc.bareme, 20) AS bareme
                 FROM evaluer ev

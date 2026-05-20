@@ -7,11 +7,21 @@ require_once __DIR__ . '/../models/Scolarite.php';
 require_once __DIR__ . '/../models/Inscription.php';
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/CompteRendu.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../Services/Document/DocumentStorageService.php';
+require_once __DIR__ . '/../Services/Document/SilentTcpdf.php';
+require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
+require_once __DIR__ . '/../Services/Document/PvFinalGeneratorService.php';
+require_once __DIR__ . '/../Support/Database.php';
+require_once __DIR__ . '/../utils/PlanningDataUtils.php';
 require_once __DIR__ . '/../models/Note.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 require_once __DIR__ . '/../utils/EmailService.php';
 
+use App\Services\Document\PdfGeneratorService;
+use App\Services\Document\PvFinalGeneratorService;
+use App\Support\Database as AppDatabase;
+use App\Utils\PlanningDataUtils;
 use Etudiant;
 use Scolarite;
 use Inscription;
@@ -44,7 +54,7 @@ class EditionBulletinService
         $this->rapportModel = new RapportEtudiant($this->pdo);
         $this->compteRenduModel = new CompteRendu($this->pdo);
         $this->notesModel = new Note($this->pdo);
-        $this->emailService = new \EmailService();
+        $this->emailService = null;
     }
 
     private function getSelectedAcademicYearId(): ?int
@@ -278,8 +288,16 @@ class EditionBulletinService
 
             $params = [];
             if ($yearId !== null && $yearId > 0 && $hasYearColumn) {
-                $sql .= " AND p.id_annee_acad = ?";
-                $params[] = $yearId;
+                $yearBounds = $this->getAcademicYearDateBounds($yearId);
+                if ($yearBounds !== null) {
+                    $sql .= " AND (p.id_annee_acad = ? OR (p.date_soutenance >= ? AND p.date_soutenance <= ?))";
+                    $params[] = $yearId;
+                    $params[] = $yearBounds['start'];
+                    $params[] = $yearBounds['end'];
+                } else {
+                    $sql .= " AND p.id_annee_acad = ?";
+                    $params[] = $yearId;
+                }
             } elseif ($yearId !== null && $yearId > 0) {
                 $sql .= " AND EXISTS (
                     SELECT 1
@@ -530,6 +548,63 @@ class EditionBulletinService
         }
     }
 
+    private function getLatestPvFinalForSoutenance(string $soutenanceId): ?array
+    {
+        $soutenanceId = trim($soutenanceId);
+        if ($soutenanceId === '') {
+            return null;
+        }
+
+        try {
+            if ($this->tableExists('documents')) {
+                $stmt = $this->pdo->prepare(
+                    "SELECT id_document, nom_fichier, date_creation
+                     FROM documents
+                     WHERE type_document = 'pv_final'
+                       AND entite_type = 'programmer_soutenance'
+                       AND entite_id = ?
+                       AND type_mime = 'application/pdf'
+                     ORDER BY date_creation DESC, id_document DESC
+                     LIMIT 1"
+                );
+                $stmt->execute([$soutenanceId]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row) {
+                    return [
+                        'id_CR' => $soutenanceId,
+                        'nom_CR' => (string) ($row['nom_fichier'] ?? 'PV final'),
+                        'date_CR' => (string) ($row['date_creation'] ?? ''),
+                    ];
+                }
+            }
+
+            if ($this->tableExists('document_genere')) {
+                $stmt = $this->pdo->prepare(
+                    "SELECT id_document, nom_fichier, chemin_fichier, date_generation
+                     FROM document_genere
+                     WHERE id_source = ?
+                       AND type_document IN ('PVF', 'pv_final')
+                     ORDER BY date_generation DESC, id_document DESC
+                     LIMIT 1"
+                );
+                $stmt->execute([$soutenanceId]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row) {
+                    return [
+                        'id_CR' => $soutenanceId,
+                        'nom_CR' => (string) ($row['nom_fichier'] ?? 'PV final'),
+                        'chemin_fichier_pdf' => (string) ($row['chemin_fichier'] ?? ''),
+                        'date_CR' => (string) ($row['date_generation'] ?? ''),
+                    ];
+                }
+            }
+        } catch (Throwable $e) {
+            error_log('Erreur getLatestPvFinalForSoutenance: ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
     public function getIndexData(): array
     {
         return [
@@ -575,8 +650,9 @@ class EditionBulletinService
                     : $selectedYearId;
 
                 $evaluation = $this->getSoutenanceEvaluationSummary($numEtu, $juryRef, $yearId);
-                $eligible = $this->estEligiblePourBulletin($numEtu);
-                $latestBulletin = $this->getLatestBulletinForStudent($numEtu, $yearId);
+                $soutenanceId = (string) ($soutenance['id_programmation'] ?? '');
+                $eligible = $soutenanceId !== '';
+                $latestBulletin = $soutenanceId !== '' ? $this->getLatestPvFinalForSoutenance($soutenanceId) : null;
                 $hasBulletin = $latestBulletin !== null;
                 $status = $hasBulletin ? 'genere' : ($eligible ? 'eligible' : 'non_eligible');
                 $moyenne = $evaluation['count'] > 0 ? $this->calculateBulletinAverage($numEtu, $juryRef, $yearId) : 0.0;
@@ -589,12 +665,13 @@ class EditionBulletinService
                     $niveau = 'M1';
                 }
 
+                $anneeLabelPromotion = $this->getAcademicYearLabelById($yearId);
                 $result[] = [
                     'num_etu' => $numEtu,
                     'matricule' => (string) ($soutenance['matricule_etudiant'] ?? $numEtu),
                     'nom' => (string) ($soutenance['nom_etu'] ?? ''),
                     'prenom' => (string) ($soutenance['prenom_etu'] ?? ''),
-                    'promotion' => $promotion,
+                    'promotion' => $anneeLabelPromotion ?: $promotion,
                     'niveau' => $niveau,
                     'semestre' => 'S1',
                     'moyenne' => $moyenne,
@@ -602,7 +679,8 @@ class EditionBulletinService
                     'eligible' => $eligible,
                     'has_bulletin' => $hasBulletin,
                     'status' => $status,
-                    'bulletin_id' => $latestBulletin['id_CR'] ?? null,
+                    'bulletin_id' => $latestBulletin['id_CR'] ?? ($hasBulletin ? $soutenanceId : null),
+                    'soutenance_id' => $soutenanceId,
                     'annee_id' => $yearId,
                     'annee_label' => $this->getAcademicYearLabelById($yearId),
                     'theme' => (string) ($soutenance['theme_soutenance'] ?? ''),
@@ -619,43 +697,7 @@ class EditionBulletinService
 
     public function estEligiblePourBulletin(string $numEtu): bool
     {
-        try {
-            $selectedYearId = $this->getSelectedAcademicYearId();
-            $soutenance = $this->resolveSoutenanceRow($numEtu, $selectedYearId);
-            if (!$soutenance) {
-                return false;
-            }
-
-            $targetNumEtu = (string) ($soutenance['num_etu'] ?? $numEtu);
-            $juryRef = (string) ($soutenance['jury_ref'] ?? '');
-            $yearId = isset($soutenance['id_annee_acad']) && is_numeric($soutenance['id_annee_acad'])
-                ? (int) $soutenance['id_annee_acad']
-                : $selectedYearId;
-
-            $scolarite = $this->scolariteModel->getScolariteEtudiant($targetNumEtu);
-            if (!$scolarite || (float) ($scolarite['reste_a_payer'] ?? 0) > 0) {
-                return false;
-            }
-
-            $noteRow = $this->getNoteRecordForStudent($targetNumEtu, $yearId);
-            if (!$noteRow || (float) ($noteRow['moyenne_M2'] ?? 0) < 10) {
-                return false;
-            }
-
-            if (!$this->rapportModel->estRapportValideCommunication($targetNumEtu)) {
-                return false;
-            }
-
-            if ($this->rapportModel->getDerniereDecisionCommission($targetNumEtu) !== 'favorable') {
-                return false;
-            }
-
-            $evaluation = $this->getSoutenanceEvaluationSummary($targetNumEtu, $juryRef, $yearId);
-            return (bool) ($evaluation['complete'] ?? false);
-        } catch (Exception $e) {
-            error_log('Erreur estEligiblePourBulletin: ' . $e->getMessage());
-            return false;
-        }
+        return $this->resolveSoutenanceRow($numEtu, $this->getSelectedAcademicYearId()) !== null;
     }
 
     public function existeBulletinPourEtudiant(string $numEtu): bool
@@ -665,43 +707,35 @@ class EditionBulletinService
 
     public function genererBulletin(string $numEtu): array
     {
-        if (!$this->estEligiblePourBulletin($numEtu)) {
-            return ['success' => false, 'message' => "L'étudiant n'est pas éligible pour le bulletin."];
+        $soutenance = $this->resolveSoutenanceRow($numEtu, $this->getSelectedAcademicYearId());
+        if (!$soutenance) {
+            return ['success' => false, 'message' => "Soutenance introuvable pour cet étudiant."];
         }
 
-        $contenu = $this->genererContenuBulletin($numEtu);
-        if ($contenu === '') {
-            return ['success' => false, 'message' => 'Impossible de générer le contenu du bulletin.'];
+        $soutenanceId = (string) ($soutenance['id_programmation'] ?? '');
+        if ($soutenanceId === '') {
+            return ['success' => false, 'message' => "Identifiant de soutenance introuvable."];
         }
 
-        $nomCR = 'BULLETIN_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $numEtu) . '_' . date('Y-m-d_His');
-        $pdfResult = $this->exporterPdf($contenu, $nomCR);
-        if (!$pdfResult['success']) {
-            return ['success' => false, 'message' => 'Erreur lors de la génération du PDF : ' . ($pdfResult['message'] ?? '')];
-        }
-
-        $idCR = $this->compteRenduModel->creer(
-            $numEtu,
-            $nomCR,
-            $contenu,
-            (string) ($pdfResult['path'] ?? ''),
-            date('Y-m-d H:i:s'),
-            []
+        $pdfGenerator = new PdfGeneratorService(
+            __DIR__ . '/../../storage/documents',
+            __DIR__ . '/../../public/image/logo_ufhb.png'
         );
+        $pvGenerator = new PvFinalGeneratorService($pdfGenerator, new PlanningDataUtils(new AppDatabase()));
+        $result = $pvGenerator->generate($soutenanceId, (int) ($_SESSION['id_utilisateur'] ?? 0));
 
-        if (!$idCR) {
-            return ['success' => false, 'message' => "Erreur lors de l'enregistrement du bulletin."];
+        if (!($result['success'] ?? false)) {
+            return [
+                'success' => false,
+                'message' => 'Erreur lors de la génération du PV final : ' . (string) ($result['error'] ?? 'Erreur inconnue'),
+            ];
         }
-
-        $this->persistBulletinDocument((int) $idCR, $nomCR, (string) ($pdfResult['path'] ?? ''));
-
-        // Notification
-        $this->notifierBulletinDisponible($numEtu, 'Semestre Final', 0.0, 'Validation');
 
         return [
             'success' => true,
-            'message' => 'Bulletin généré avec succès.',
-            'bulletinId' => $idCR,
+            'message' => 'PV final généré avec succès.',
+            'bulletinId' => $soutenanceId,
+            'pvId' => $soutenanceId,
         ];
     }
 
@@ -733,8 +767,8 @@ class EditionBulletinService
 
         $nom = trim((string) ($soutenance['nom_etu'] ?? ''));
         $prenom = trim((string) ($soutenance['prenom_etu'] ?? ''));
-        $promotion = trim((string) ($soutenance['promotion_etu'] ?? ''));
         $anneeLabel = $this->getAcademicYearLabelById($yearId);
+        $promotion = $anneeLabel ?: trim((string) ($soutenance['promotion_etu'] ?? ''));
         $dateSoutenance = !empty($soutenance['date_soutenance'])
             ? date('d/m/Y', strtotime((string) $soutenance['date_soutenance']))
             : date('d/m/Y');
@@ -823,7 +857,7 @@ HTML;
 
             $pdfGen = new \App\Services\Document\PdfGeneratorService(
                 __DIR__ . '/../../storage',
-                __DIR__ . '/../../public/assets/img/logo.png'
+                __DIR__ . '/../../public/image/logo_ufhb.png'
             );
             $pdf = $pdfGen->createDocument('P', 'A4', $nomCR);
             $pdf->AddPage();
@@ -943,6 +977,33 @@ HTML;
         }
     }
 
+    public function getPvFinalBySoutenanceId(string $soutenanceId): ?array
+    {
+        $soutenanceId = trim($soutenanceId);
+        if ($soutenanceId === '') {
+            return null;
+        }
+
+        if ($this->getLatestPvFinalForSoutenance($soutenanceId) !== null) {
+            return ['id_CR' => $soutenanceId, 'nom_CR' => 'PV final'];
+        }
+
+        return $this->soutenanceExists($soutenanceId)
+            ? ['id_CR' => $soutenanceId, 'nom_CR' => 'PV final']
+            : null;
+    }
+
+    private function soutenanceExists(string $soutenanceId): bool
+    {
+        try {
+            $stmt = $this->pdo->prepare('SELECT 1 FROM programmer_soutenance WHERE num_soutenance = ? LIMIT 1');
+            $stmt->execute([$soutenanceId]);
+            return (bool) $stmt->fetchColumn();
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
     public function notifierBulletinDisponible(string $numEtu, string $semestre, float $moyenne, string $credits): void
     {
         try {
@@ -953,6 +1014,9 @@ HTML;
                 return;
             }
             $nom = trim(($etu['prenom_etu'] ?? '') . ' ' . ($etu['nom_etu'] ?? ''));
+            if (!$this->emailService instanceof \EmailService) {
+                $this->emailService = new \EmailService();
+            }
             $this->emailService->sendTemplate('BULLETIN_NOTES', $etu['email_etu'], [
                 'nom' => htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'),
                 'semestre' => htmlspecialchars($semestre, ENT_QUOTES, 'UTF-8'),

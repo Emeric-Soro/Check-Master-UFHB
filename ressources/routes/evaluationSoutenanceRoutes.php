@@ -25,7 +25,7 @@ switch ($action) {
         if ($numEtu) {
             $evaluation = $controller->getEvaluationExistante($numEtu);
             header('Content-Type: application/json');
-            echo json_encode($evaluation ?: []);
+            echo json_encode($evaluation ?: ['rows' => []]);
             exit;
         }
         break;

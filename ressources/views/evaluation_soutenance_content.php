@@ -607,6 +607,9 @@ foreach ($soutenances as $soutenance) {
             if (commentaireEl) {
                 commentaireEl.value = info.commentaire_general || '';
             }
+            if (decisionSelect) {
+                decisionSelect.value = info.decision || 'ajourne';
+            }
 
             if (info.est_evalue > 0) {
                 fetch('?page=evaluation_soutenance&action=getEvaluationExistante&num_etu=' + encodeURIComponent(numEtu), {
@@ -614,7 +617,8 @@ foreach ($soutenances as $soutenance) {
                     credentials: 'same-origin'
                 })
                     .then(function (response) { return response.json(); })
-                    .then(function (rows) {
+                    .then(function (payload) {
+                        const rows = Array.isArray(payload) ? payload : (Array.isArray(payload && payload.rows) ? payload.rows : []);
                         if (!Array.isArray(rows)) {
                             return;
                         }
@@ -625,6 +629,12 @@ foreach ($soutenances as $soutenance) {
                             }
                         });
                         recalcMoyenne();
+                        if (commentaireEl && payload && typeof payload.commentaire_general === 'string') {
+                            commentaireEl.value = payload.commentaire_general;
+                        }
+                        if (decisionSelect && payload && payload.decision) {
+                            decisionSelect.value = payload.decision;
+                        }
                     });
             } else {
                 clearEvaluationGrid();
@@ -737,7 +747,7 @@ foreach ($soutenances as $soutenance) {
                 if (numEtuInput) {
                     numEtuInput.value = '';
                 }
-                if (decisionSelect) decisionSelect.value = 'admis';
+                if (decisionSelect) decisionSelect.value = 'ajourne';
                 resetSoutenanceInfo();
             });
         }

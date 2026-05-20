@@ -306,6 +306,72 @@ if (!function_exists('cm_student_record_capture')) {
     }
 }
 
+if (!function_exists('cm_student_record_sanitize_html')) {
+    function cm_student_record_sanitize_html(string $html): string
+    {
+        $html = trim($html);
+        if ($html === '') {
+            return '';
+        }
+
+        if (!class_exists(\DOMDocument::class)) {
+            $html = preg_replace('~<script\b[^>]*>.*?</script>~is', '', $html) ?? '';
+            $html = preg_replace('~<(iframe|object|embed)\b[^>]*>.*?</\1>~is', '', $html) ?? '';
+            $html = preg_replace('~\son[a-z]+\s*=\s*([\"\']).*?\1~is', '', $html) ?? '';
+            $html = preg_replace('~\s(href|src)\s*=\s*([\"\'])\s*javascript:.*?\2~is', '', $html) ?? '';
+            return $html;
+        }
+
+        $dom = new \DOMDocument('1.0', 'UTF-8');
+        libxml_use_internal_errors(true);
+        $wrappedHtml = '<div id="cm-cr-root">' . $html . '</div>';
+        $dom->loadHTML('<?xml encoding="utf-8" ?>' . $wrappedHtml, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+
+        $xpath = new \DOMXPath($dom);
+        foreach ($xpath->query('//script|//iframe|//object|//embed') ?: [] as $node) {
+            if ($node->parentNode) {
+                $node->parentNode->removeChild($node);
+            }
+        }
+
+        foreach ($xpath->query('//*') ?: [] as $element) {
+            if (!$element instanceof \DOMElement || !$element->hasAttributes()) {
+                continue;
+            }
+
+            $attrsToRemove = [];
+            foreach ($element->attributes as $attribute) {
+                $attrName = strtolower((string) $attribute->name);
+                $attrValue = trim((string) $attribute->value);
+                if (str_starts_with($attrName, 'on')) {
+                    $attrsToRemove[] = $attribute->name;
+                    continue;
+                }
+                if (in_array($attrName, ['href', 'src'], true) && preg_match('~^\s*javascript:~i', $attrValue)) {
+                    $attrsToRemove[] = $attribute->name;
+                }
+            }
+
+            foreach ($attrsToRemove as $attrName) {
+                $element->removeAttribute($attrName);
+            }
+        }
+
+        $root = $dom->getElementById('cm-cr-root');
+        if (!$root instanceof \DOMElement) {
+            return $html;
+        }
+
+        $output = '';
+        foreach ($root->childNodes as $childNode) {
+            $output .= $dom->saveHTML($childNode);
+        }
+
+        return $output;
+    }
+}
+
 if (!function_exists('cm_student_record_badge')) {
     function cm_student_record_badge(string $text, ?string $type = null): void
     {

@@ -734,7 +734,8 @@ switch ($currentMenuSlug) {
             $recuService = new \App\Services\Document\RecuGeneratorService($pdfGen, $recuDataUtils, $dbWrapper);
             $result = $recuService->generate($id_versement, (int) ($_SESSION['id_utilisateur'] ?? 0));
             if ($result['success'] && !empty($result['path']) && file_exists($result['path'])) {
-                header('Location: ?page=docviewer&type=recu&id=' . urlencode((string) $id_versement) . '&action=preview');
+                $docReference = !empty($result['reference']) ? (string) $result['reference'] : (string) $id_versement;
+                header('Location: ?page=docviewer&type=recu&id=' . urlencode($docReference) . '&action=preview');
                 exit;
             }
             // Fallback : erreur silencieuse, on continue vers la page normale
@@ -795,7 +796,7 @@ switch ($currentMenuSlug) {
         break;
     case 'edition_bulletin':
         $contentFile = $partialsBasePath . 'edition_bulletin_content.php';
-        $currentPageLabel = 'Edition des bulletins';
+        $currentPageLabel = 'Édition des PV finaux';
         break;
     case 'archive_comptes_rendus':
         $contentFile = $partialsBasePath . 'redaction_compte_rendu/archives_compte_rendu_content.php';
@@ -1206,7 +1207,7 @@ $canonicalPageLabels = [
     'dashboard_commission' => 'Tableau de bord — Commission',
     'dashboard_enseignant' => 'Espace enseignant — Participations jurys',
     'dashboard_scolarite' => 'Tableau de bord scolarité',
-    'edition_bulletin' => 'Édition des bulletins',
+    'edition_bulletin' => 'Édition des PV finaux',
     'evaluation_dossiers' => 'Évaluation des dossiers',
     'gestion_dossiers_candidatures' => 'Gestion des dossiers de candidatures',
     'gestion_notes_evaluations' => 'Gestion des notes et évaluations',
@@ -2521,14 +2522,10 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
     </script>
     <script defer
         src="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('js/app.js') : 'assets/js/app.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
-    <script
-        src="<?php echo htmlspecialchars($publicPrefix . 'js/suivi_reclamation.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
-    <script
-        src="<?php echo htmlspecialchars($publicPrefix . 'js/historique_reclamation.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script defer
         src="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('js/inline-confirm.js') : 'assets/js/inline-confirm.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script defer
-        src="<?php echo htmlspecialchars($publicPrefix . 'js/docviewer.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+        src="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('js/docviewer.js') : 'assets/js/docviewer.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body>
 
 </html>
