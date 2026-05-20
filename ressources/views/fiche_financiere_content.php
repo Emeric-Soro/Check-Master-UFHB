@@ -25,7 +25,10 @@ foreach ($listeAnnees as $aa) {
     }
 }
 
-$baseUrl = '?page=fiche_financiere_annee';
+$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$baseUrl = $isHubContext
+    ? '?page=suivi_scolarite&tab=fiche_financiere_annee'
+    : '?page=fiche_financiere_annee';
 $messageSuccess = $_SESSION['success_message'] ?? '';
 $messageErreur = $_SESSION['error_message'] ?? '';
 unset($_SESSION['success_message'], $_SESSION['error_message']);
@@ -54,6 +57,10 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             </div>
             <div>
                 <form method="GET" action="<?= htmlspecialchars($baseUrl) ?>" class="cm-inline-form" style="display:inline-flex;align-items:center;gap:0.5rem;">
+                    <?php if ($isHubContext): ?>
+                        <input type="hidden" name="page" value="suivi_scolarite">
+                        <input type="hidden" name="tab" value="fiche_financiere_annee">
+                    <?php endif; ?>
                     <label for="ficheAnneeSelect" class="cm-text-sm cm-font-medium">Année :</label>
                     <select name="id_annee_acad" id="ficheAnneeSelect"
                             class="cm-field is-md"
@@ -373,7 +380,9 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 detailBody.innerHTML = '<div class="cm-text-center cm-p-4 cm-text-gray-500"><i class="fas fa-spinner fa-spin cm-mr-2"></i>Chargement...</div>';
             }
 
-            fetch('layout.php?page=fiche_financiere_annee&action=detail_etudiant&num_etu=' + encodeURIComponent(numEtu) + '&id_annee_acad=' + idAnnee, {
+            fetch('layout.php?page=' + encodeURIComponent(<?= json_encode($isHubContext ? 'suivi_scolarite' : 'fiche_financiere_annee') ?>) +
+                <?= $isHubContext ? " '&tab=fiche_financiere_annee'" : " ''" ?> +
+                '&action=detail_etudiant&num_etu=' + encodeURIComponent(numEtu) + '&id_annee_acad=' + idAnnee, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(function(r) { return r.json(); })

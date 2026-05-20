@@ -1,4 +1,10 @@
 <div class="cm-prd3-screen cm-workflow-flat">
+    <?php
+    $isHubContext = (string) ($_GET['page'] ?? '') === 'commissions_archives';
+    $workflowBaseUrl = $isHubContext
+        ? '?page=commissions_archives&tab=workflow_validation'
+        : '?page=workflow_validation';
+    ?>
     <!-- Selection du rapport -->
     <div class="cm-card">
         <div class="cm-card__header cm-flex-between">
@@ -7,7 +13,10 @@
             </h3>
             <div class="cm-flex cm-flex-gap-sm">
                 <form method="GET" class="cm-form-inline">
-                    <input type="hidden" name="page" value="workflow_validation">
+                    <input type="hidden" name="page" value="<?= $isHubContext ? 'commissions_archives' : 'workflow_validation' ?>">
+                    <?php if ($isHubContext): ?>
+                        <input type="hidden" name="tab" value="workflow_validation">
+                    <?php endif; ?>
                     <div class="cm-form-group cm-field--number">
                         <input type="number" name="id_rapport" class="cm-form-control is-sm"
                             placeholder="N° rapport..."
@@ -149,7 +158,7 @@
                             elseif ($statut === 'rejete') { $badgeType = 'danger'; $statutLabel = 'Rejete'; }
                             ?>
                             <tr class="cm-data-table__row cm-clickable-row"
-                                data-href="?page=workflow_validation&id_rapport=<?= $idRap ?>">
+                                data-href="<?= htmlspecialchars($workflowBaseUrl . '&id_rapport=' . $idRap, ENT_QUOTES, 'UTF-8') ?>">
                                 <td class="cm-data-table__td">#<?= $idRap ?></td>
                                 <td class="cm-data-table__td"><?= htmlspecialchars(trim(($r['nom_etu'] ?? '') . ' ' . ($r['prenom_etu'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
                                 <td class="cm-data-table__td"><?= htmlspecialchars(mb_substr((string) ($r['theme_rapport'] ?? ''), 0, 50), ENT_QUOTES, 'UTF-8') ?></td>
@@ -163,7 +172,7 @@
                                     ?>
                                 </td>
                                 <td class="cm-data-table__td is-center">
-                                    <a href="?page=workflow_validation&id_rapport=<?= $idRap ?>"
+                                    <a href="<?= htmlspecialchars($workflowBaseUrl . '&id_rapport=' . $idRap, ENT_QUOTES, 'UTF-8') ?>"
                                        class="cm-btn-action is-view"
                                        title="Voir workflow">
                                         <i class="fas fa-diagram-project"></i>

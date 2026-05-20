@@ -842,6 +842,8 @@ switch ($currentMenuSlug) {
         $contentFile = $partialsBasePath . 'v2/archives/archives_reclamations.php';
         break;
     case 'fiche_etudiant_complete':
+        require_once __DIR__ . '/../app/controllers/FicheEtudiantController.php';
+        $data = (new FicheEtudiantController())->index();
         $contentFile = $partialsBasePath . 'v2/archives/fiche_etudiant_complete.php';
         $currentPageLabel = 'Fiche Etudiante Complete';
         break;
@@ -963,6 +965,12 @@ switch ($currentMenuSlug) {
         $contentFile = $partialsBasePath . 'historique_modifications_content.php';
         $currentPageLabel = 'Historique modifications';
         break;
+    case 'mise_en_ligne_memoire':
+        require_once __DIR__ . '/../app/controllers/MiseEnLigneMemoireController.php';
+        $data = (new MiseEnLigneMemoireController())->handleRequest();
+        $contentFile = $partialsBasePath . 'mise_en_ligne_memoire_content.php';
+        $currentPageLabel = 'Mise en ligne des mémoires';
+        break;
     case 'export_masse_documents':
         $contentFile = $partialsBasePath . 'export_masse_documents_content.php';
         $currentPageLabel = 'Export masse documents';
@@ -1001,7 +1009,11 @@ switch ($currentMenuSlug) {
         switch ($hubTab) {
             case 'fiche_financiere_annee':
                 require_once __DIR__ . '/../app/controllers/FicheFinanciereController.php';
-                (new FicheFinanciereController())->index();
+                $ficheFinanciereController = new FicheFinanciereController();
+                if ((string) ($_GET['action'] ?? '') === 'detail_etudiant') {
+                    $ficheFinanciereController->detailEtudiant();
+                }
+                $ficheFinanciereController->index();
                 break;
             case 'historique_inscriptions':
                 require_once __DIR__ . '/../app/controllers/HistoriqueInscriptionsController.php';
@@ -1029,6 +1041,8 @@ switch ($currentMenuSlug) {
                 }
                 break;
             case 'fiche_etudiant_complete':
+                require_once __DIR__ . '/../app/controllers/FicheEtudiantController.php';
+                $data = (new FicheEtudiantController())->index();
                 break;
             case 'etudiants_sans_compte':
                 require_once __DIR__ . '/../app/models/Utilisateur.php';
@@ -1053,7 +1067,15 @@ switch ($currentMenuSlug) {
                 if (!class_exists('ArchiveEtudiantController')) {
                     require_once __DIR__ . '/../app/controllers/ArchiveEtudiantController.php';
                 }
-                $data = (new ArchiveEtudiantController())->index();
+                $archiveEtudiantController = new ArchiveEtudiantController();
+                if ((string) ($_GET['action'] ?? '') === 'exportCsv') {
+                    $archiveEtudiantController->exportCsv();
+                }
+                $data = $archiveEtudiantController->index();
+                break;
+            case 'archive_comptes_rendus':
+                require_once __DIR__ . '/../app/controllers/ArchivesCompteRenduController.php';
+                (new ArchivesCompteRenduController())->index();
                 break;
             case 'fiche_commission':
                 require_once __DIR__ . '/../app/controllers/FicheCommissionController.php';

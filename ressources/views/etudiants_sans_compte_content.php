@@ -11,6 +11,10 @@ require_once __DIR__ . '/../../app/models/Utilisateur.php';
 
 $utilisateurModel = new Utilisateur(Database::getConnection());
 $etudiants = $utilisateurModel->getEtudiantsNonUtilisateurs();
+$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$accountsActionUrl = $isHubContext
+    ? '?page=suivi_scolarite&tab=etudiants_sans_compte&action=creer_comptes_masse'
+    : '?page=etudiants_sans_compte&action=creer_comptes_masse';
 
 // Traitement AJAX pour la création en masse
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_GET['action']) && $_GET['action'] === 'creer_comptes_masse') {
@@ -138,7 +142,7 @@ foreach ($etudiants as $e) {
             <?php unset($_SESSION['success']); ?>
         <?php endif; ?>
 
-        <form id="cmCreerComptesForm" method="POST" action="?page=etudiants_sans_compte&action=creer_comptes_masse" data-cm-ajax-form="true">
+        <form id="cmCreerComptesForm" method="POST" action="<?= htmlspecialchars($accountsActionUrl, ENT_QUOTES, 'UTF-8') ?>" data-cm-ajax-form="true">
             <?php cm_component('form/csrf-token'); ?>
 
             <div class="cm-grid-3 cm-mb-md">

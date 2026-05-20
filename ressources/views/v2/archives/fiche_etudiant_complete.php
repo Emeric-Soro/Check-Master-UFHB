@@ -12,12 +12,22 @@ require_once __DIR__ . '/partials/_student_record_helpers.php';
 $profile = $data['profile'] ?? [];
 $matricule = $data['matricule'] ?? ($_GET['id'] ?? '');
 $ongletActif = $data['onglet_actif'] ?? ($_GET['onglet'] ?? 'identite');
+$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$ficheBaseUrl = $isHubContext
+    ? '?page=suivi_scolarite&tab=fiche_etudiant_complete'
+    : '?page=fiche_etudiant_complete';
+$timelineUrl = $isHubContext
+    ? '?page=suivi_scolarite&tab=timeline_parcours_etudiant&num_etu=' . urlencode((string) $matricule)
+    : '?page=parcours_etudiant&id=' . urlencode((string) $matricule);
+$returnUrl = $isHubContext
+    ? '?page=suivi_scolarite&tab=historique_inscriptions&num_etu=' . urlencode((string) $matricule)
+    : '?page=archives_etudiants';
 
 if (empty($profile)): ?>
     <div class="cm-alert cm-alert-danger">
         <i class="fas fa-exclamation-triangle cm-mr-2" aria-hidden="true"></i>
         Profil étudiant introuvable pour <strong><?= htmlspecialchars($matricule, ENT_QUOTES, 'UTF-8') ?></strong>.
-        <a href="?page=archives_etudiants" class="cm-btn is-light is-sm">Retour</a>
+        <a href="<?= htmlspecialchars($returnUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn is-light is-sm">Retour</a>
     </div>
 <?php return;
 endif;
@@ -115,11 +125,11 @@ $tabs = [
             </div>
 
             <div class="cm-student-record__hero-actions">
-                <a href="?page=parcours_etudiant&id=<?= urlencode((string) $matricule) ?>" class="cm-btn is-primary is-sm" title="Voir le parcours chronologique">
+                <a href="<?= htmlspecialchars($timelineUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn is-primary is-sm" title="Voir le parcours chronologique">
                     <i class="fas fa-route" aria-hidden="true"></i>
                     <span>Parcours complet</span>
                 </a>
-                <a href="?page=archives_etudiants" class="cm-btn is-light is-sm">
+                <a href="<?= htmlspecialchars($returnUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn is-light is-sm">
                     <i class="fas fa-arrow-left" aria-hidden="true"></i>
                     <span>Retour</span>
                 </a>
@@ -138,7 +148,7 @@ $tabs = [
     <nav class="cm-student-record__tabs" role="tablist" aria-label="Navigation fiche étudiante">
         <?php foreach ($tabs as $key => $tab): ?>
             <?php $isActive = $ongletActif === $key; ?>
-            <a href="?page=fiche_etudiant_complete&id=<?= urlencode((string) $matricule) ?>&onglet=<?= urlencode($key) ?>"
+            <a href="<?= htmlspecialchars($ficheBaseUrl . '&id=' . urlencode((string) $matricule) . '&onglet=' . urlencode($key), ENT_QUOTES, 'UTF-8') ?>"
                class="cm-student-record__tab<?= $isActive ? ' is-active' : '' ?>"
                role="tab"
                aria-selected="<?= $isActive ? 'true' : 'false' ?>"

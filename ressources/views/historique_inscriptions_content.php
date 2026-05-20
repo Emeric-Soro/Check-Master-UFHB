@@ -1,3 +1,12 @@
+<?php
+$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$historyBaseUrl = $isHubContext
+    ? '?page=suivi_scolarite&tab=historique_inscriptions'
+    : '?page=historique_inscriptions';
+$ficheBaseUrl = $isHubContext
+    ? '?page=suivi_scolarite&tab=fiche_etudiant_complete'
+    : '?page=fiche_etudiant_complete';
+?>
 <div class="cm-prd3-screen">
     <?php if (!$etudiant): ?>
         <!-- Formulaire recherche etudiant -->
@@ -7,7 +16,10 @@
             </div>
             <div class="cm-card__body">
                 <form method="GET" class="cm-form-inline cm-flex cm-flex-gap-sm">
-                    <input type="hidden" name="page" value="historique_inscriptions">
+                    <input type="hidden" name="page" value="<?= $isHubContext ? 'suivi_scolarite' : 'historique_inscriptions' ?>">
+                    <?php if ($isHubContext): ?>
+                        <input type="hidden" name="tab" value="historique_inscriptions">
+                    <?php endif; ?>
                     <div class="cm-form-group cm-field--text" style="flex:1;">
                         <input type="text" name="num_etu" class="cm-form-control"
                             placeholder="Numero carte etudiant ou identifiant MESRS"
@@ -30,7 +42,10 @@
                 </h3>
                 <div class="cm-flex cm-flex-gap-sm">
                     <form method="GET" class="cm-form-inline">
-                        <input type="hidden" name="page" value="historique_inscriptions">
+                        <input type="hidden" name="page" value="<?= $isHubContext ? 'suivi_scolarite' : 'historique_inscriptions' ?>">
+                        <?php if ($isHubContext): ?>
+                            <input type="hidden" name="tab" value="historique_inscriptions">
+                        <?php endif; ?>
                         <div class="cm-form-group">
                             <input type="text" name="num_etu" class="cm-form-control is-sm"
                                 placeholder="Autre numero..." style="width:180px;">
@@ -39,7 +54,7 @@
                             <i class="fas fa-search"></i>
                         </button>
                     </form>
-                    <a href="?page=historique_inscriptions" class="cm-btn is-sm is-secondary">
+                    <a href="<?= htmlspecialchars($historyBaseUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn is-sm is-secondary">
                         <i class="fas fa-times"></i>
                     </a>
                 </div>
@@ -136,8 +151,7 @@
                                                         </thead>
                                                         <tbody>
                                                             <?php foreach ($annee['versements'] as $v): ?>
-                                                            <tr class="cm-data-table__row cm-clickable-row"
-                                                                data-href="?page=gestion_scolarite&detail=<?= urlencode((string) $etudiant['num_carte_etud'] ?? '') ?>&annee=<?= urlencode((string) $annee['id_annee']) ?>">
+                                                            <tr class="cm-data-table__row">
                                                                 <td class="cm-data-table__td">#<?= (int) ($v['num_versement'] ?? 0) ?></td>
                                                                 <td class="cm-data-table__td">
                                                                     <?= !empty($v['date_versement']) ? htmlspecialchars(date('d/m/Y', strtotime((string) $v['date_versement'])), ENT_QUOTES, 'UTF-8') : '-' ?>
@@ -197,7 +211,7 @@
 
         <!-- Lien fiche etudiante -->
         <div class="cm-mt-md cm-text-right">
-            <a href="?page=fiche_etudiant_complete&id=<?= urlencode((string) ($etudiant['num_carte_etud'] ?? $etudiant->num_carte_etud ?? '')) ?>"
+            <a href="<?= htmlspecialchars($ficheBaseUrl . '&id=' . urlencode((string) ($etudiant['num_carte_etud'] ?? $etudiant->num_carte_etud ?? '')), ENT_QUOTES, 'UTF-8') ?>"
                class="cm-btn is-primary-accent">
                 <i class="fas fa-external-link-alt cm-mr-sm"></i>Fiche etudiante complete
             </a>
