@@ -513,6 +513,7 @@ switch ($currentMenuSlug) {
                 'entreprises' => 'gestionEntreprise',
                 'actions' => 'gestionReferentielSimple',
                 'messages' => 'gestionReferentielSimple',
+                'programmation_sessions_soutenance' => 'gestionProgrammationSessionsSoutenance',
                 'schema_tables' => 'gestionSchemaTables',
                 'gestion_attribution' => 'gestionAttribution',
                 'gestion_menus' => 'gestionMenus'
@@ -1001,7 +1002,8 @@ switch ($currentMenuSlug) {
                 require_once __DIR__ . '/../app/controllers/HistoriqueInscriptionsController.php';
                 $histData = (new HistoriqueInscriptionsController())->index();
                 $etudiant = $histData['etudiant'] ?? null;
-                if ($etudiant !== null && is_object($etudiant)) $etudiant = (array) $etudiant;
+                if ($etudiant !== null && is_object($etudiant))
+                    $etudiant = (array) $etudiant;
                 $parcours = $histData['parcours'] ?? [];
                 $notes = $histData['notes'] ?? [];
                 break;
@@ -1076,11 +1078,26 @@ switch ($currentMenuSlug) {
                     $perPage = 20;
                     $offset = ($page - 1) * $perPage;
 
-                    $where = []; $params = [];
-                    if ($filtreGrade !== null && $filtreGrade > 0) { $where[] = 'a.id_grade = :grade'; $params[':grade'] = $filtreGrade; }
-                    if ($filtreSpecialite !== null && $filtreSpecialite > 0) { $where[] = 'ens.id_specialite = :specialite'; $params[':specialite'] = $filtreSpecialite; }
-                    if ($filtreType !== null && $filtreType > 0) { $where[] = 'ens.type_enseignant = :type_ens'; $params[':type_ens'] = $filtreType; }
-                    if ($searchAnn !== '') { $where[] = '(ens.nom_enseignant LIKE :search OR ens.prenom_enseignant LIKE :search2 OR ens.mail_enseignant LIKE :search3)'; $params[':search'] = '%'.$searchAnn.'%'; $params[':search2'] = '%'.$searchAnn.'%'; $params[':search3'] = '%'.$searchAnn.'%'; }
+                    $where = [];
+                    $params = [];
+                    if ($filtreGrade !== null && $filtreGrade > 0) {
+                        $where[] = 'a.id_grade = :grade';
+                        $params[':grade'] = $filtreGrade;
+                    }
+                    if ($filtreSpecialite !== null && $filtreSpecialite > 0) {
+                        $where[] = 'ens.id_specialite = :specialite';
+                        $params[':specialite'] = $filtreSpecialite;
+                    }
+                    if ($filtreType !== null && $filtreType > 0) {
+                        $where[] = 'ens.type_enseignant = :type_ens';
+                        $params[':type_ens'] = $filtreType;
+                    }
+                    if ($searchAnn !== '') {
+                        $where[] = '(ens.nom_enseignant LIKE :search OR ens.prenom_enseignant LIKE :search2 OR ens.mail_enseignant LIKE :search3)';
+                        $params[':search'] = '%' . $searchAnn . '%';
+                        $params[':search2'] = '%' . $searchAnn . '%';
+                        $params[':search3'] = '%' . $searchAnn . '%';
+                    }
                     $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
                     $countStmt = $dbAnn->prepare("SELECT COUNT(*) FROM enseignants ens LEFT JOIN avoir a ON ens.id_enseignant = a.id_enseignant {$whereClause}");
@@ -1088,9 +1105,12 @@ switch ($currentMenuSlug) {
                     $total = (int) ($countStmt->fetchColumn() ?: 0);
 
                     $sql = "SELECT ens.*, g.lib_grade, s.lib_specialite, te.libelle AS lib_type_enseignant FROM enseignants ens LEFT JOIN avoir a ON ens.id_enseignant = a.id_enseignant LEFT JOIN grade g ON a.id_grade = g.id_grade LEFT JOIN specialite s ON ens.id_specialite = s.id_specialite LEFT JOIN type_enseignant te ON ens.type_enseignant = te.id_type_enseignant {$whereClause} ORDER BY ens.nom_enseignant ASC LIMIT :limit OFFSET :offset";
-                    $params[':limit'] = $perPage; $params[':offset'] = $offset;
+                    $params[':limit'] = $perPage;
+                    $params[':offset'] = $offset;
                     $stmt = $dbAnn->prepare($sql);
-                    foreach ($params as $key => $value) { $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR); }
+                    foreach ($params as $key => $value) {
+                        $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+                    }
                     $stmt->execute();
                     $enseignantsAnn = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -1102,10 +1122,13 @@ switch ($currentMenuSlug) {
                         header('Content-Type: text/csv; charset=utf-8');
                         header('Content-Disposition: attachment; filename="annuaire_enseignants_' . date('Y-m-d') . '.csv"');
                         $output = fopen('php://output', 'w');
-                        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-                        fputcsv($output, ['N','Nom','Prenom','Grade','Specialite','Type','Email','Telephone']);
-                        foreach ($enseignantsAnn as $i => $ens) { fputcsv($output, [$i+1,$ens['nom_enseignant']??'',$ens['prenom_enseignant']??'',$ens['lib_grade']??'',$ens['lib_specialite']??'',$ens['lib_type_enseignant']??'',$ens['mail_enseignant']??'',$ens['tel_enseignant']??'']); }
-                        fclose($output); exit;
+                        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+                        fputcsv($output, ['N', 'Nom', 'Prenom', 'Grade', 'Specialite', 'Type', 'Email', 'Telephone']);
+                        foreach ($enseignantsAnn as $i => $ens) {
+                            fputcsv($output, [$i + 1, $ens['nom_enseignant'] ?? '', $ens['prenom_enseignant'] ?? '', $ens['lib_grade'] ?? '', $ens['lib_specialite'] ?? '', $ens['lib_type_enseignant'] ?? '', $ens['mail_enseignant'] ?? '', $ens['tel_enseignant'] ?? '']);
+                        }
+                        fclose($output);
+                        exit;
                     }
 
                     $totalPages = max(1, (int) ceil($total / $perPage));
@@ -1113,7 +1136,7 @@ switch ($currentMenuSlug) {
                     $GLOBALS['annuaire_grades'] = $annuaireGrades;
                     $GLOBALS['annuaire_specialites'] = $annuaireSpecialites;
                     $GLOBALS['annuaire_types'] = $annuaireTypes;
-                    $GLOBALS['annuaire_pagination'] = ['total'=>$total,'current'=>$page,'last'=>$totalPages,'per_page'=>$perPage,'offset'=>$offset,'has_prev'=>$page>1,'has_next'=>$page<$totalPages,'pages'=>range(1,$totalPages)];
+                    $GLOBALS['annuaire_pagination'] = ['total' => $total, 'current' => $page, 'last' => $totalPages, 'per_page' => $perPage, 'offset' => $offset, 'has_prev' => $page > 1, 'has_next' => $page < $totalPages, 'pages' => range(1, $totalPages)];
                     $GLOBALS['annuaire_filtre_grade'] = $filtreGrade;
                     $GLOBALS['annuaire_filtre_specialite'] = $filtreSpecialite;
                     $GLOBALS['annuaire_filtre_type'] = $filtreType;
@@ -1121,8 +1144,10 @@ switch ($currentMenuSlug) {
                 } catch (Exception $e) {
                     error_log('Erreur annuaire hub: ' . $e->getMessage());
                     $GLOBALS['annuaire_enseignants'] = [];
-                    $GLOBALS['annuaire_grades'] = []; $GLOBALS['annuaire_specialites'] = []; $GLOBALS['annuaire_types'] = [];
-                    $GLOBALS['annuaire_pagination'] = ['total'=>0,'current'=>1,'last'=>1,'per_page'=>20,'offset'=>0,'has_prev'=>false,'has_next'=>false,'pages'=>[1]];
+                    $GLOBALS['annuaire_grades'] = [];
+                    $GLOBALS['annuaire_specialites'] = [];
+                    $GLOBALS['annuaire_types'] = [];
+                    $GLOBALS['annuaire_pagination'] = ['total' => 0, 'current' => 1, 'last' => 1, 'per_page' => 20, 'offset' => 0, 'has_prev' => false, 'has_next' => false, 'pages' => [1]];
                 }
                 break;
         }
@@ -1243,8 +1268,8 @@ $isSoutenanceContext = strpos((string) $currentMenuSlug, 'soutenance') !== false
     || in_array((string) $currentMenuSlug, ['programmation_ens'], true);
 $hideAcademicYearOnNavbar = in_array((string) $currentMenuSlug, ['parametres_generaux', 'parametres_specifiques'], true)
     && empty($_GET['action']);
-$lockAcademicYearOnNavbar = !$hideAcademicYearOnNavbar 
-    && ($isEtudiantEnvironment || ($isSoutenanceContext && !in_array((string)$currentMenuSlug, ['programmation_soutenance', 'programation_soutenance'], true)));
+$lockAcademicYearOnNavbar = !$hideAcademicYearOnNavbar
+    && ($isEtudiantEnvironment || ($isSoutenanceContext && !in_array((string) $currentMenuSlug, ['programmation_soutenance', 'programation_soutenance'], true)));
 $navbarAcademicYearLabel = $currentGlobalYearIsAll
     ? AcademicYear::getAllLabel()
     : ($currentGlobalYear !== '' ? $currentGlobalYear : ($writableGlobalYear !== '' ? $writableGlobalYear : $activeGlobalYear));
@@ -1397,6 +1422,12 @@ $cardPSpecifiques = [
         'description' => 'Lieux de soutenance.',
         'link' => '?page=parametres_specifiques&action=salles',
         'icon' => 'fa-door-open'
+    ],
+    [
+        'title' => 'Programmation sessions',
+        'description' => 'Calendrier approximatif des sessions de soutenance.',
+        'link' => '?page=parametres_specifiques&action=programmation_sessions_soutenance',
+        'icon' => 'fa-calendar-days'
     ],
     [
         'title' => 'Entreprises',
@@ -1556,15 +1587,19 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             cursor: pointer;
             transition: background-color 0.15s ease;
         }
+
         .cm-clickable-row:hover {
             background-color: rgba(59, 130, 246, 0.08) !important;
         }
+
         .cm-clickable-row:active {
             background-color: rgba(59, 130, 246, 0.15) !important;
         }
+
         .cm-clickable-row td:last-child {
             padding-right: 1.5rem;
         }
+
         .cm-clickable-row td:first-child {
             padding-left: 1.5rem;
         }
@@ -2238,6 +2273,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
                 max-width: 100%;
             }
         }
+
         /* Correction pour cm-screen-scrollable : autorise la liste à descendre naturellement */
         .cm-screen-scrollable,
         .cm-screen-scrollable .cm-crud-wrapper,
@@ -2250,7 +2286,6 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             overflow-x: auto !important;
             display: block !important;
         }
-
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/fr.js"></script>
@@ -2289,20 +2324,24 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
     <div class="cm-main-wrapper" id="mainWrapper">
         <header class="cm-navbar" id="cmNavbar">
             <div class="cm-navbar__left">
-                <button type="button" class="cm-navbar__toggle" id="backButton" aria-label="Retour" title="Retour" style="padding:0.5rem; margin-right:0.5rem; color:var(--cm-primary-dark); font-weight:700;" onclick="history.back()">
+                <button type="button" class="cm-navbar__toggle" id="backButton" aria-label="Retour" title="Retour"
+                    style="padding:0.5rem; margin-right:0.5rem; color:var(--cm-primary-dark); font-weight:700;"
+                    onclick="history.back()">
                     <i class="fas fa-arrow-left" aria-hidden="true"></i>
                 </button>
                 <button class="cm-navbar__toggle" id="sidebarToggle" aria-label="Ouvrir/fermer le menu">
                     <i class="fas fa-bars" aria-hidden="true"></i>
                 </button>
-                <span class="cm-navbar__page-title"><?= htmlspecialchars((string) ($currentPageLabel ?? 'CheckMaster'), ENT_QUOTES, 'UTF-8') ?></span>
+                <span
+                    class="cm-navbar__page-title"><?= htmlspecialchars((string) ($currentPageLabel ?? 'CheckMaster'), ENT_QUOTES, 'UTF-8') ?></span>
             </div>
             <div class="cm-navbar__right<?= $hideAcademicYearOnNavbar ? ' is-empty' : '' ?>">
                 <?php if (!$hideAcademicYearOnNavbar): ?>
                     <div class="cm-navbar__year-selector<?= $lockAcademicYearOnNavbar ? ' is-readonly' : '' ?>">
                         <label for="globalAnneeAcademique">Année académique</label>
                         <?php if ($lockAcademicYearOnNavbar): ?>
-                            <div id="globalAnneeAcademique" class="cm-navbar__year-display" aria-readonly="true" title="<?= htmlspecialchars((string) $navbarAcademicYearLabel, ENT_QUOTES, 'UTF-8') ?>">
+                            <div id="globalAnneeAcademique" class="cm-navbar__year-display" aria-readonly="true"
+                                title="<?= htmlspecialchars((string) $navbarAcademicYearLabel, ENT_QUOTES, 'UTF-8') ?>">
                                 <?= htmlspecialchars((string) $navbarAcademicYearLabel, ENT_QUOTES, 'UTF-8') ?>
                             </div>
                         <?php else: ?>
@@ -2344,7 +2383,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             data-page="<?php echo htmlspecialchars((string) $currentMenuSlug, ENT_QUOTES, 'UTF-8'); ?>"
             data-action="<?php echo htmlspecialchars((string) ($currentAction ?? ($_GET['action'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
 
-    <?php // Les variables $globalAcademicYears, $currentGlobalYear, $currentGlobalYearId
+            <?php // Les variables $globalAcademicYears, $currentGlobalYear, $currentGlobalYearId
             // sont calculées en haut du fichier (après database.php) et $_SESSION['global_annee_id'] est déjà défini. ?>
 
 
@@ -2473,9 +2512,9 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
     </script>
     <script>
         // ── Clickable rows handler (global) ──
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.cm-clickable-row[data-href]').forEach(function(row) {
-                row.addEventListener('click', function(e) {
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.cm-clickable-row[data-href]').forEach(function (row) {
+                row.addEventListener('click', function (e) {
                     var tag = e.target.tagName.toLowerCase();
                     if (tag === 'a' || tag === 'button' || tag === 'input' || tag === 'select' || tag === 'textarea') {
                         return;
