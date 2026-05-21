@@ -69,6 +69,7 @@ class EvaluationSoutenanceController
         // Récupérer les données POST
         $numEtu = $_POST['num_etu'] ?? null;
         $commentaireGeneral = $_POST['commentaire_general'] ?? '';
+        $decision = $_POST['cm_eval_decision'] ?? '';
         $criteres = $_POST['criteres'] ?? [];
         $idAnneeAcad = $_POST['id_annee_acad'] ?? null;
 
@@ -76,6 +77,7 @@ class EvaluationSoutenanceController
             $numEtu ?? '',
             $criteres,
             $commentaireGeneral,
+            $decision,
             $idAnneeAcad
         );
     }
@@ -143,7 +145,7 @@ class EvaluationSoutenanceController
             $dataUtils = new PlanningDataUtils($db);
             $pdfGenerator = new \App\Services\Document\PdfGeneratorService(
                 __DIR__ . '/../../storage/documents',
-                __DIR__ . '/../../public/assets/img/logo.png'
+                __DIR__ . '/../../public/image/logo_ufhb.png'
             );
             $pvService = new PvFinalGeneratorService($pdfGenerator, $dataUtils);
             

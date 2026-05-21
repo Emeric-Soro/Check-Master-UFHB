@@ -33,9 +33,8 @@ class EditionBulletinController
                 return;
             }
 
-            // Check if eligible
             if (!$this->service->estEligiblePourBulletin($numEtu)) {
-                $this->outputJson(['success' => false, 'message' => 'L\'étudiant n\'est pas éligible pour le bulletin']);
+                $this->outputJson(['success' => false, 'message' => 'Soutenance introuvable pour cet étudiant']);
                 return;
             }
 
@@ -121,18 +120,17 @@ class EditionBulletinController
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $id = $_GET['id'] ?? null;
             if (!$id) {
-                $this->outputJson(['success' => false, 'message' => 'ID du bulletin requis']);
+                $this->outputJson(['success' => false, 'message' => 'ID de soutenance requis']);
                 return;
             }
 
-            // Get bulletin details
-            $bulletin = $this->service->getBulletinById($id);
+            $bulletin = $this->service->getPvFinalBySoutenanceId((string) $id);
             if (!$bulletin) {
-                $this->outputJson(['success' => false, 'message' => 'Bulletin non trouvé']);
+                $this->outputJson(['success' => false, 'message' => 'PV final non trouvé']);
                 return;
             }
 
-            header('Location: ?page=docviewer&type=bulletin&id=' . urlencode((string) $id) . '&action=download');
+            header('Location: ?page=docviewer&type=pv_final&id=' . urlencode((string) $id) . '&action=download');
             exit;
         } else {
             $this->outputJson(['success' => false, 'message' => 'Méthode non autorisée']);

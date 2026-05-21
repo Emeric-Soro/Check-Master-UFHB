@@ -40,6 +40,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $requestedAction === 'fi
     header('Location: layout.php?page=processus_validation');
     exit;
 }
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $requestedAction === 'vote_groupe_admin') {
+    $idRapport = (int) ($_POST['id_rapport'] ?? 0);
+    $idUtilisateur = (int) ($_SESSION['id_utilisateur'] ?? 0);
+    $result = $controller->appliquerVoteAdminAuxMembres($idRapport, $idUtilisateur, $_SESSION);
+    if ($isAjax) {
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode($result);
+        exit;
+    }
+    $_SESSION[$result['success'] ? 'success' : 'error'] = (string) ($result['message'] ?? '');
+    header('Location: layout.php?page=processus_validation');
+    exit;
+}
 $donnees = $controller->getDonneesPage();
 $statistiques = is_array($donnees['statistiques'] ?? null) ? $donnees['statistiques'] : [];
 $rapports = is_array($donnees['rapports'] ?? null) ? $donnees['rapports'] : [];
@@ -228,6 +241,19 @@ foreach ($membresCommission as $membre) {
                                 $dateApprob = !empty($rapport['date_approv']) ? date('d/m/Y H:i', strtotime((string) $rapport['date_approv'])) : '-';
                                 $votesText = (int) ($vote['votes_valider'] ?? 0) . ' val. / ' . (int) ($vote['votes_rejeter'] ?? 0) . ' rej. (' . (int) ($vote['total_votes'] ?? 0) . '/4)';
                                 $canFinalize = !empty($vote['total_votes']) && (int) $vote['total_votes'] >= 4 && empty($vote['finalise']);
+                                $adminUserId = (int) ($_SESSION['id_utilisateur'] ?? 0);
+                                $hasAdminVote = false;
+                                foreach ((array) ($rapport['evaluations'] ?? []) as $evaluation) {
+                                    if ((int) ($evaluation['id_evaluateur'] ?? 0) === $adminUserId) {
+                                        $hasAdminVote = true;
+                                        break;
+                                    }
+                                }
+                                $canAdminGroupVote = (int) ($_SESSION['id_GU'] ?? 0) === 5
+                                    && $hasAdminVote
+                                    && empty($vote['finalise'])
+                                    && (int) ($vote['total_votes'] ?? 0) > 0
+                                    && (int) ($vote['total_votes'] ?? 0) < 4;
                                 ?>
                                 <tr class="cm-data-table__row"
                                     data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
@@ -259,6 +285,19 @@ foreach ($membresCommission as $membre) {
                                                 onclick="CM.openDocViewer('rapport', '<?php echo htmlspecialchars((string) $idRapport, ENT_QUOTES, 'UTF-8'); ?>', {title: 'Rapport #<?php echo htmlspecialchars((string) $idRapport, ENT_QUOTES, 'UTF-8'); ?>'})">
                                                 <i class="fas fa-file-pdf" aria-hidden="true"></i>
                                             </button>
+                                            <?php if ($canAdminGroupVote && (function_exists('canEdit') ? canEdit() : true)): ?>
+                                                <form method="POST" action="?page=processus_validation&amp;action=vote_groupe_admin" data-cm-ajax-form="true"
+                                                    class="cm-inline-admin-group-vote-form"
+                                                    style="display:inline-flex;">
+                                                    <?php cm_component('form/csrf-token'); ?>
+                                                    <input type="hidden" name="id_rapport" value="<?php echo $idRapport; ?>">
+                                                    <button type="submit" class="cm-btn-action is-edit"
+                                                        title="Appliquer mon vote aux membres manquants"
+                                                        onclick="return confirm('Appliquer votre vote aux membres sans vote ?');">
+                                                        <i class="fas fa-users" aria-hidden="true"></i>
+                                                    </button>
+                                                </form>
+                                            <?php endif; ?>
                                             <?php if ($canFinalize && (function_exists('canEdit') ? canEdit() : true)): ?>
                                                 <style>
                                                     /* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */

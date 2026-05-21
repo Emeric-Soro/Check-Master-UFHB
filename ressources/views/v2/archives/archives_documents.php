@@ -3,150 +3,507 @@
  * Vue : Archives Documents
  * $data['documents']     - liste des documents archivés
  * $data['type_filter']   - filtre type actif ('rapport'|'compte_rendu'|'pv_final'|null)
- *   Champs: type_doc, id_doc, chemin, titre, date_depot, taille, etudiant, num_carte_etud
+ * $data['annee_label']   - libellé année active
  */
-$documents   = $data['documents'] ?? [];
-$type_filter = $data['type_filter'] ?? '';
-$rapports = array_filter($documents, fn($d) => ($d['type_doc'] ?? '') === 'rapport');
-$crs = array_filter($documents, fn($d) => ($d['type_doc'] ?? '') === 'compte_rendu');
-$pvFinaux = array_filter($documents, fn($d) => ($d['type_doc'] ?? '') === 'pv_final');
+$documents = is_array($data['documents'] ?? null) ? $data['documents'] : [];
+$typeFilter = (string) ($data['type_filter'] ?? '');
+$anneeLabel = trim((string) ($data['annee_label'] ?? ($_SESSION['archive_annee_libelle'] ?? '')));
+$isHubContext = (string) ($_GET['page'] ?? '') === 'commissions_archives';
+$baseUrl = $isHubContext
+    ? '?page=commissions_archives&tab=archives_documents'
+    : '?page=archives_documents';
+
+$counts = [
+    'all' => count($documents),
+    'rapport' => 0,
+    'compte_rendu' => 0,
+    'pv_final' => 0,
+];
+
+foreach ($documents as $document) {
+    $type = (string) ($document['type_doc'] ?? '');
+    if (array_key_exists($type, $counts)) {
+        $counts[$type]++;
+    }
+}
+
+$displayed = $documents;
+if ($typeFilter !== '') {
+    $displayed = array_values(array_filter(
+        $documents,
+        static fn(array $document): bool => (string) ($document['type_doc'] ?? '') === $typeFilter
+    ));
+}
+
+$formatDate = static function (?string $value): string {
+    if (!is_string($value) || trim($value) === '') {
+        return '—';
+    }
+
+    $timestamp = strtotime($value);
+    if ($timestamp === false) {
+        return '—';
+    }
+
+    return date('d/m/Y', $timestamp);
+};
+
+$formatSize = static function ($size): string {
+    if (!is_numeric($size) || (float) $size <= 0) {
+        return '—';
+    }
+
+    return number_format(((float) $size) / 1024, 0, ',', ' ') . ' Ko';
+};
+
+$buildFilterUrl = static function (string $type = '') use ($baseUrl): string {
+    if ($type === '') {
+        return $baseUrl;
+    }
+
+    return $baseUrl . '&type=' . urlencode($type);
+};
 ?>
 
-<div class="cm-archives-documents">
+<style>
+.cm-archives-documents {
+    padding: 0;
+}
 
-    <!-- En-tête -->
-    <div class="cm-page-header cm-mb-5">
-        <div>
-            <p class="cm-page-subtitle">
-                Rapports, comptes rendus et PV finaux de l'année archivée
-            </p>
-        </div>
-        <a href="?page=admin_historique" class="cm-btn cm-btn-outline cm-btn-sm">
-            <i class="fas fa-arrow-left cm-mr-1"></i> Retour à Historique
-        </a>
-    </div>
+.cm-archives-documents__topline {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
 
-    <!-- Filtres par type -->
-    <div class="cm-card cm-mb-4">
-        <div class="cm-card-body">
-            <div class="cm-flex cm-gap-3 cm-flex-wrap cm-items-center">
-                <span class="cm-text-muted cm-font-semibold">Type :</span>
-                <a href="?page=archives_documents"
-                   class="cm-btn cm-btn-sm <?= empty($type_filter) ? 'cm-btn-primary' : 'cm-btn-outline' ?>">
-                    Tous (<?= count($documents) ?>)
-                </a>
-                <a href="?page=archives_documents&type=rapport"
-                   class="cm-btn cm-btn-sm <?= $type_filter === 'rapport' ? 'cm-btn-primary' : 'cm-btn-outline' ?>">
-                    <i class="fas fa-file-pdf cm-mr-1"></i>
-                    Rapports
-                    (<?= count($rapports) ?>)
-                </a>
-                <a href="?page=archives_documents&type=compte_rendu"
-                   class="cm-btn cm-btn-sm <?= $type_filter === 'compte_rendu' ? 'cm-btn-primary' : 'cm-btn-outline' ?>">
-                    <i class="fas fa-file-alt cm-mr-1"></i>
-                    Comptes rendus
-                    (<?= count($crs) ?>)
-                </a>
-                <a href="?page=archives_documents&type=pv_final"
-                   class="cm-btn cm-btn-sm <?= $type_filter === 'pv_final' ? 'cm-btn-primary' : 'cm-btn-outline' ?>">
-                    <i class="fas fa-gavel cm-mr-1"></i>
-                    PV finaux
-                    (<?= count($pvFinaux) ?>)
-                </a>
-            </div>
-        </div>
-    </div>
+.cm-archives-documents__heading {
+    margin: 0;
+    color: #12395c;
+    font-size: 1.2rem;
+    font-weight: 800;
+}
 
-    <!-- Liste documents -->
-    <?php
-    $displayed = $documents;
-    if (!empty($type_filter)) {
-        $displayed = array_filter($documents, fn($d) => $d['type_doc'] === $type_filter);
+.cm-archives-documents__year-label {
+    color: #6b7f92;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.cm-archives-documents__year-value {
+    color: #163e63;
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.cm-archives-documents__stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.cm-archives-documents__stat {
+    padding: 0.9rem 0.95rem;
+    border: 0;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.35);
+    box-shadow: none;
+}
+
+.cm-archives-documents__stat-label {
+    color: #688095;
+    font-size: 0.84rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.cm-archives-documents__stat-value {
+    margin-top: 0.35rem;
+    color: #163e63;
+    font-size: 1.7rem;
+    font-weight: 800;
+}
+
+.cm-archives-documents__toolbar {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.45rem;
+    border: 1px solid rgba(24, 82, 128, 0.08);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(233, 244, 253, 0.96), rgba(223, 238, 250, 0.92));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.cm-archives-documents__filters {
+    display: inline-flex;
+    align-items: stretch;
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+
+.cm-archives-documents__filter {
+    min-height: 100%;
+    font-weight: 600;
+}
+
+.cm-archives-documents__filter:focus-visible {
+    outline: 2px solid rgba(31, 116, 191, 0.35);
+    outline-offset: -2px;
+}
+
+.cm-archives-documents__toolbar-note {
+    display: none;
+}
+
+.cm-archives-documents__table-card {
+    overflow: hidden;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.cm-archives-documents__table-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(24, 82, 128, 0.08);
+    background: transparent;
+}
+
+.cm-archives-documents__table-title {
+    margin: 0;
+    color: #15395c;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.cm-archives-documents__table-meta {
+    color: #6d8296;
+    font-size: 0.92rem;
+}
+
+.cm-archives-documents__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.cm-archives-documents__badge--rapport {
+    background: rgba(36, 138, 236, 0.14);
+    color: #135486;
+}
+
+.cm-archives-documents__badge--cr {
+    background: rgba(22, 163, 74, 0.13);
+    color: #166534;
+}
+
+.cm-archives-documents__badge--pv {
+    background: rgba(217, 119, 6, 0.14);
+    color: #9a3412;
+}
+
+.cm-archives-documents__title-cell {
+    min-width: 260px;
+}
+
+.cm-archives-documents__title-main {
+    color: #143a5d;
+    font-weight: 700;
+}
+
+.cm-archives-documents__title-sub {
+    margin-top: 0.25rem;
+    color: #73889c;
+    font-size: 0.88rem;
+}
+
+.cm-archives-documents__student-link {
+    color: #16588b;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.cm-archives-documents__student-link:hover {
+    text-decoration: underline;
+}
+
+.cm-archives-documents__student-code {
+    margin-top: 0.25rem;
+    color: #7a8d9f;
+    font-size: 0.84rem;
+}
+
+.cm-archives-documents__actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.cm-archives-documents__row {
+    cursor: pointer;
+}
+
+.cm-archives-documents__row:hover .cm-archives-documents__title-main {
+    color: #1f74bf;
+}
+
+.cm-archives-documents__row.is-editable {
+    background: rgba(31, 116, 191, 0.04);
+}
+
+.cm-archives-documents__empty {
+    padding: 3rem 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.cm-archives-documents__empty-icon {
+    width: 68px;
+    height: 68px;
+    margin: 0 auto 1rem;
+    border-radius: 20px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, rgba(43, 151, 235, 0.12), rgba(31, 116, 191, 0.18));
+    color: #1f74bf;
+}
+
+@media (max-width: 992px) {
+    .cm-archives-documents__stats {
+        grid-template-columns: 1fr 1fr;
     }
-    ?>
+}
 
-    <?php if (empty($displayed)): ?>
-        <div class="cm-card">
-            <div class="cm-card-body cm-text-center cm-py-5">
-                <div class="cm-icon-box cm-icon-box-lg cm-icon-box-secondary cm-mx-auto cm-mb-3">
+@media (max-width: 720px) {
+    .cm-archives-documents__topline,
+    .cm-archives-documents__stats {
+        grid-template-columns: 1fr;
+    }
+
+    .cm-archives-documents__topline {
+        align-items: flex-start;
+    }
+
+    .cm-archives-documents__table-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+</style>
+
+<div class="cm-archives-documents">
+    <div class="cm-archives-documents__topline">
+    </div>
+
+    <div class="cm-archives-documents__toolbar cm-mb-4">
+        <nav class="cm-tab-nav cm-archives-documents__filters" role="tablist" aria-label="Filtres des archives documents">
+            <a href="<?= htmlspecialchars($buildFilterUrl(), ENT_QUOTES, 'UTF-8') ?>"
+               class="cm-tab-nav__item cm-archives-documents__filter <?= $typeFilter === '' ? 'is-active' : '' ?>"
+               role="tab"
+               aria-selected="<?= $typeFilter === '' ? 'true' : 'false' ?>"
+               aria-label="Tous, <?= number_format($counts['all']) ?> document<?= $counts['all'] > 1 ? 's' : '' ?>">
+                Tous
+            </a>
+            <a href="<?= htmlspecialchars($buildFilterUrl('rapport'), ENT_QUOTES, 'UTF-8') ?>"
+               class="cm-tab-nav__item cm-archives-documents__filter <?= $typeFilter === 'rapport' ? 'is-active' : '' ?>"
+               role="tab"
+               aria-selected="<?= $typeFilter === 'rapport' ? 'true' : 'false' ?>"
+               aria-label="Rapports, <?= number_format($counts['rapport']) ?> document<?= $counts['rapport'] > 1 ? 's' : '' ?>">
+                Rapports
+            </a>
+            <a href="<?= htmlspecialchars($buildFilterUrl('compte_rendu'), ENT_QUOTES, 'UTF-8') ?>"
+               class="cm-tab-nav__item cm-archives-documents__filter <?= $typeFilter === 'compte_rendu' ? 'is-active' : '' ?>"
+               role="tab"
+               aria-selected="<?= $typeFilter === 'compte_rendu' ? 'true' : 'false' ?>"
+               aria-label="Comptes rendus, <?= number_format($counts['compte_rendu']) ?> document<?= $counts['compte_rendu'] > 1 ? 's' : '' ?>">
+                Comptes rendus
+            </a>
+            <a href="<?= htmlspecialchars($buildFilterUrl('pv_final'), ENT_QUOTES, 'UTF-8') ?>"
+               class="cm-tab-nav__item cm-archives-documents__filter <?= $typeFilter === 'pv_final' ? 'is-active' : '' ?>"
+               role="tab"
+               aria-selected="<?= $typeFilter === 'pv_final' ? 'true' : 'false' ?>"
+               aria-label="PV finaux, <?= number_format($counts['pv_final']) ?> document<?= $counts['pv_final'] > 1 ? 's' : '' ?>">
+                PV finaux
+            </a>
+        </nav>
+    </div>
+
+    <?php if ($displayed === []): ?>
+        <div class="cm-archives-documents__empty">
+            <div class="cm-text-center">
+                <div class="cm-archives-documents__empty-icon">
                     <i class="fas fa-inbox fa-2x"></i>
                 </div>
-                <p class="cm-text-muted">Aucun document trouvé pour cette sélection.</p>
+                <h3 class="cm-archives-documents__table-title">Aucun document pour ce filtre</h3>
+                <p class="cm-text-muted">
+                    Change le type affiché ou reviens à <a href="<?= htmlspecialchars($buildFilterUrl(), ENT_QUOTES, 'UTF-8') ?>">tous les documents</a>.
+                </p>
             </div>
         </div>
     <?php else: ?>
-        <div class="cm-card">
-            <div class="cm-card-body cm-p-0">
-                <div class="cm-table-responsive">
-                    <table class="cm-table cm-table-striped cm-table-hover">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Titre</th>
-                                <th>Étudiant</th>
-                                <th>Date de dépôt</th>
-                                <th>Taille</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($displayed as $doc): ?>
-                                <tr>
-                                    <td>
-                                        <?php if ($doc['type_doc'] === 'rapport'): ?>
-                                            <span class="cm-badge cm-badge-primary">
-                                                <i class="fas fa-file-pdf cm-mr-1"></i> Rapport
-                                            </span>
-                                        <?php elseif ($doc['type_doc'] === 'pv_final'): ?>
-                                            <span class="cm-badge cm-badge-success">
-                                                <i class="fas fa-gavel cm-mr-1"></i> PV final
-                                            </span>
+        <div class="cm-archives-documents__table-card">
+            <div class="cm-archives-documents__table-head">
+                <div>
+                    <h3 class="cm-archives-documents__table-title">Liste des documents archivés</h3>
+                    <div class="cm-archives-documents__table-meta">
+                        Clique sur une ligne pour ouvrir le document. Les comptes rendus renvoient vers la rédaction modifiable.
+                    </div>
+                </div>
+                <div class="cm-archives-documents__table-meta">
+                    Tri par date de dépôt décroissante
+                </div>
+            </div>
+
+            <div class="cm-table-responsive">
+                <table class="cm-table cm-table-striped cm-table-hover">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Document</th>
+                            <th>Étudiant</th>
+                            <th>Date</th>
+                            <th>Taille</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($displayed as $doc): ?>
+                            <?php
+                            $docType = (string) ($doc['type_doc'] ?? '');
+                            $docId = (string) ($doc['id_doc'] ?? '');
+                            $docTitle = (string) ($doc['titre'] ?? 'Sans titre');
+                            $studentCode = trim((string) ($doc['num_carte_etud'] ?? ''));
+                            $studentName = trim((string) ($doc['etudiant'] ?? '—'));
+                            $typeLabel = 'Compte rendu';
+                            $typeClass = 'cm-archives-documents__badge--cr';
+                            $typeIcon = 'fa-file-lines';
+                            $rowHref = '?page=visionneuse_document&type=' . urlencode($docType) . '&id=' . urlencode($docId);
+                            $rowHint = 'Ouvrir le document';
+
+                            if ($docType === 'rapport') {
+                                $typeLabel = 'Rapport';
+                                $typeClass = 'cm-archives-documents__badge--rapport';
+                                $typeIcon = 'fa-file-pdf';
+                            } elseif ($docType === 'pv_final') {
+                                $typeLabel = 'PV final';
+                                $typeClass = 'cm-archives-documents__badge--pv';
+                                $typeIcon = 'fa-gavel';
+                            } elseif ($docType === 'compte_rendu') {
+                                $rowHref = '?page=redaction_compte_rendu&id_CR=' . urlencode($docId);
+                                $rowHint = 'Ouvrir ce compte rendu dans la rédaction';
+                            }
+                            ?>
+                            <tr class="cm-archives-documents__row <?= $docType === 'compte_rendu' ? 'is-editable' : '' ?>"
+                                data-href="<?= htmlspecialchars($rowHref, ENT_QUOTES, 'UTF-8') ?>"
+                                data-row-hint="<?= htmlspecialchars($rowHint, ENT_QUOTES, 'UTF-8') ?>"
+                                tabindex="0">
+                                <td>
+                                    <span class="cm-archives-documents__badge <?= $typeClass ?>">
+                                        <i class="fas <?= $typeIcon ?>"></i>
+                                        <?= htmlspecialchars($typeLabel, ENT_QUOTES, 'UTF-8') ?>
+                                    </span>
+                                </td>
+                                <td class="cm-archives-documents__title-cell">
+                                    <div class="cm-archives-documents__title-main"><?= htmlspecialchars($docTitle, ENT_QUOTES, 'UTF-8') ?></div>
+                                    <div class="cm-archives-documents__title-sub">
+                                        Référence #<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>
+                                    </div>
+                                </td>
+                                <td>
+                                    <?php if ($studentCode !== ''): ?>
+                                        <a class="cm-archives-documents__student-link"
+                                           data-row-ignore="true"
+                                           href="?page=fiche_etudiant_archive&id=<?= urlencode($studentCode) ?>">
+                                            <?= htmlspecialchars($studentName !== '' ? $studentName : $studentCode, ENT_QUOTES, 'UTF-8') ?>
+                                        </a>
+                                        <div class="cm-archives-documents__student-code"><?= htmlspecialchars($studentCode, ENT_QUOTES, 'UTF-8') ?></div>
+                                    <?php else: ?>
+                                        <span class="cm-text-muted"><?= htmlspecialchars($studentName !== '' ? $studentName : '—', ENT_QUOTES, 'UTF-8') ?></span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?= htmlspecialchars($formatDate($doc['date_depot'] ?? null), ENT_QUOTES, 'UTF-8') ?></td>
+                                <td><?= htmlspecialchars($formatSize($doc['taille'] ?? null), ENT_QUOTES, 'UTF-8') ?></td>
+                                <td>
+                                    <div class="cm-archives-documents__actions">
+                                        <?php if ($docType === 'compte_rendu'): ?>
+                                            <button
+                                                type="button"
+                                                class="cm-btn cm-btn-primary cm-btn-sm"
+                                                data-row-ignore="true"
+                                                title="Modifier ce compte rendu"
+                                                onclick="window.location.href='?page=redaction_compte_rendu&id_CR=<?= urlencode($docId) ?>'">
+                                                <i class="fas fa-pen-to-square"></i>
+                                            </button>
                                         <?php else: ?>
-                                            <span class="cm-badge cm-badge-info">
-                                                <i class="fas fa-file-alt cm-mr-1"></i> Compte rendu
-                                            </span>
+                                            <button
+                                                type="button"
+                                                class="cm-btn cm-btn-primary cm-btn-sm"
+                                                data-row-ignore="true"
+                                                title="Visualiser"
+                                                onclick="window.open('?page=visionneuse_document&type=<?= urlencode($docType) ?>&id=<?= urlencode($docId) ?>', '_blank', 'noopener')">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
                                         <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <strong><?= htmlspecialchars($doc['titre'] ?? 'Sans titre') ?></strong>
-                                    </td>
-                                    <td>
-                                        <?php if (!empty($doc['num_carte_etud'])): ?>
-                                            <a href="?page=fiche_etudiant_archive&id=<?= urlencode($doc['num_carte_etud']) ?>">
-                                                <?= htmlspecialchars($doc['etudiant']) ?>
-                                            </a>
-                                            <br><small class="cm-text-muted"><?= htmlspecialchars($doc['num_carte_etud']) ?></small>
-                                        <?php else: ?>
-                                            <span class="cm-text-muted"><?= htmlspecialchars($doc['etudiant'] ?? '—') ?></span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?= htmlspecialchars(!empty($doc['date_depot']) ? date('d/m/Y', strtotime($doc['date_depot'])) : '—') ?>
-                                    </td>
-                                    <td>
-                                        <?php if (!empty($doc['taille'])): ?>
-                                            <?= htmlspecialchars(number_format($doc['taille'] / 1024, 0)) ?> Ko
-                                        <?php else: ?>
-                                            <span class="cm-text-muted">—</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <button type="button"
-                                           class="cm-btn cm-btn-primary cm-btn-sm" title="Visualiser"
-                                           onclick="CM.openDocViewer('<?= htmlspecialchars($doc['type_doc'], ENT_QUOTES, 'UTF-8') ?>', '<?= htmlspecialchars((string) ($doc['id_doc'] ?? ''), ENT_QUOTES, 'UTF-8') ?>', {title: '<?= htmlspecialchars($doc['titre'] ?? 'Document', ENT_QUOTES, 'UTF-8') ?>'})">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <a href="?page=docviewer&type=<?= urlencode((string) ($doc['type_doc'] ?? '')) ?>&id=<?= urlencode((string) ($doc['id_doc'] ?? '')) ?>&action=download"
-                                           class="cm-btn cm-btn-outline cm-btn-sm" title="Télécharger">
+                                        <a href="?page=telecharger_document&type=<?= urlencode($docType) ?>&id=<?= urlencode($docId) ?>"
+                                           class="cm-btn cm-btn-outline cm-btn-sm"
+                                           data-row-ignore="true"
+                                           title="Télécharger">
                                             <i class="fas fa-download"></i>
                                         </a>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     <?php endif; ?>
 </div>
+
+<script>
+(function () {
+    function shouldIgnore(target) {
+        return !!(target && target.closest('[data-row-ignore="true"]'));
+    }
+
+    document.querySelectorAll('.cm-archives-documents__row[data-href]').forEach(function (row) {
+        row.addEventListener('click', function (event) {
+            if (shouldIgnore(event.target)) {
+                return;
+            }
+            const href = row.getAttribute('data-href');
+            if (href) {
+                window.location.href = href;
+            }
+        });
+
+        row.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            event.preventDefault();
+            const href = row.getAttribute('data-href');
+            if (href) {
+                window.location.href = href;
+            }
+        });
+    });
+})();
+</script>

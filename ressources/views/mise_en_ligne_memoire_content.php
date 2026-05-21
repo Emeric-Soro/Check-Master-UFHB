@@ -1,53 +1,11 @@
 <?php
-// require_once __DIR__ . '/../../app/controllers/MemoireController.php';
+$messageSuccess = (string) ($_SESSION['success'] ?? '');
+$messageError = (string) ($_SESSION['error'] ?? '');
+unset($_SESSION['success'], $_SESSION['error']);
 
-// Pour l'instant, on simule les données - à remplacer par un vrai contrôleur
-// $controller = new MemoireController();
-$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-
-$message = '';
-$messageType = 'success';
-
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] === 'upload_memoire') {
-        // Traiter l'upload du mémoire
-        // $result = $controller->uploadMemoire();
-        // $message = (string) ($result['message'] ?? '');
-        // $messageType = !empty($result['success']) ? 'success' : 'error';
-    } elseif ($_POST['action'] === 'supprimer_memoire') {
-        // Supprimer un mémoire
-        // $result = $controller->supprimerMemoire();
-        // $message = (string) ($result['message'] ?? '');
-        // $messageType = !empty($result['success']) ? 'success' : 'error';
-    }
-
-    if ($isAjax) {
-        header('Content-Type: application/json; charset=UTF-8');
-        echo json_encode([
-            'success' => $messageType === 'success',
-            'message' => $message,
-        ]);
-        exit;
-    }
-}
-
-// Récupérer les étudiants ayant soutenu
-$etudiants = [];
-$memoires = [];
-try {
-    $controller = null;
-    if (class_exists('CandidatureSoutenanceController')) {
-        $controller = new CandidatureSoutenanceController();
-    }
-    if ($controller && method_exists($controller, 'getEtudiantsAvecSoutenance')) {
-        $etudiants = $controller->getEtudiantsAvecSoutenance();
-    }
-    if ($controller && method_exists($controller, 'getMemoiresEnLigne')) {
-        $memoires = $controller->getMemoiresEnLigne();
-    }
-} catch (Exception $e) {
-    error_log('Memoire load error: ' . $e->getMessage());
-}
+$pageData = is_array($data ?? null) ? $data : [];
+$etudiants = is_array($pageData['etudiants'] ?? null) ? $pageData['etudiants'] : [];
+$memoires = is_array($pageData['memoires'] ?? null) ? $pageData['memoires'] : [];
 
 $allowedLimits = [5, 10, 25, 50];
 $perPage = max(5, (int) ($_GET['limit_memoire'] ?? 10));
@@ -81,10 +39,16 @@ foreach ($etudiants as $etudiant) {
 ?>
 
 <div class="cm-prd3-screen cm-prd3-crud-screen">
-    <?php if ($message !== ''): ?>
+    <?php if ($messageSuccess !== ''): ?>
         <?php cm_component('ui/alert-box', [
-            'type' => $messageType === 'success' ? 'success' : 'danger',
-            'message' => $message,
+            'type' => 'success',
+            'message' => $messageSuccess,
+        ]); ?>
+    <?php endif; ?>
+    <?php if ($messageError !== ''): ?>
+        <?php cm_component('ui/alert-box', [
+            'type' => 'danger',
+            'message' => $messageError,
         ]); ?>
     <?php endif; ?>
 
@@ -511,6 +475,29 @@ foreach ($etudiants as $etudiant) {
                 }
                 const url = '?page=mise_en_ligne_memoire&action=telecharger&num_etu=' + encodeURIComponent(numEtu);
                 window.open(url, '_blank');
+            });
+        });
+
+        document.querySelectorAll('.cm-memoire-edit').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const numEtu = button.getAttribute('data-num-etu') || '';
+                if (!numEtu) {
+                    return;
+                }
+                if (etudiantSelect) {
+                    etudiantSelect.value = numEtu;
+                }
+                if (numEtuInput) {
+                    numEtuInput.value = numEtu;
+                }
+                fillEtudiantInfo(numEtu);
+                if (pdfBtn) {
+                    pdfBtn.click();
+                }
+                const form = document.getElementById('cmMemoireForm');
+                if (form && typeof form.scrollIntoView === 'function') {
+                    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             });
         });
 

@@ -155,6 +155,47 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                     min-width: 10ch !important;
                     max-width: 10ch !important;
                 }
+
+                /* Compact adjustments for Data Table */
+                .cm-prd3-crud-screen .cm-table-wrapper {
+                    margin-top: 0 !important;
+                }
+
+                .cm-prd3-crud-screen .cm-data-table th,
+                .cm-prd3-crud-screen .cm-data-table td {
+                    padding: 0.3rem 0.45rem !important;
+                    font-size: 0.8rem !important;
+                    line-height: 1.2 !important;
+                }
+
+                .cm-prd3-crud-screen .cm-data-table__th.is-checkbox,
+                .cm-prd3-crud-screen .cm-data-table__td.is-checkbox {
+                    width: 2rem !important;
+                    padding: 0.3rem 0.2rem !important;
+                }
+
+                .cm-prd3-crud-screen .cm-checkbox {
+                    width: 13px !important;
+                    height: 13px !important;
+                }
+
+                /* Row Action Buttons inside Table */
+                .cm-prd3-crud-screen .cm-row-actions {
+                    gap: 0.25rem !important;
+                    justify-content: center !important;
+                }
+
+                .cm-prd3-crud-screen .cm-row-actions .cm-btn-action {
+                    width: 1.55rem !important;
+                    height: 1.55rem !important;
+                    font-size: 0.72rem !important;
+                    border-radius: 4px !important;
+                    padding: 0 !important;
+                    min-height: 0 !important;
+                    display: inline-flex !important;
+                    align-items: center;
+                    justify-content: center;
+                }
             </style>
             <form id="studentForm" class="cm-ajout-etudiant-form" method="POST"
                 action="?page=gestion_etudiants&action=ajouter_des_etudiants<?php echo $preservedListParams; ?>">
@@ -291,6 +332,15 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
             'search_placeholder' => 'Rechercher (nom, prénom, numéro, email)...',
             'can_delete' => canDelete() || canEdit(),
             'can_view' => canView(),
+            'custom_actions' => [
+                [
+                    'tag' => 'a',
+                    'href' => '?page=gestion_etudiants&action=importer_etudiants',
+                    'label' => 'Importer',
+                    'icon' => 'fa-file-import',
+                    'class' => 'cm-btn is-secondary is-sm',
+                ],
+            ],
         ]); ?>
         <div class="cm-pole-inferieur">
             <form id="studentsBulkForm" method="POST" action="?page=gestion_etudiants&action=ajouter_des_etudiants"

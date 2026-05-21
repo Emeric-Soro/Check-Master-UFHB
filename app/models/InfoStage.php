@@ -16,9 +16,16 @@ class InfoStage
                  FROM informations_stage i 
                  INNER JOIN entreprises e ON e.id_entreprise = i.id_entreprise
                  LEFT JOIN maitre_de_stage m ON m.id_maitre_stage = i.id_maitre_stage
-                 WHERE i.num_etu = :num_etu";
+                 WHERE i.num_etu = :num_etu
+                    OR EXISTS (
+                        SELECT 1
+                        FROM etudiants et
+                        WHERE et.num_carte_etud = i.num_etu
+                          AND et.num_ident_etud = :num_etu_alt
+                    )";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':num_etu', $num_etu, PDO::PARAM_STR);
+        $stmt->bindParam(':num_etu_alt', $num_etu, PDO::PARAM_STR);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -46,7 +53,13 @@ class InfoStage
                 date_fin_stage = ?, 
                 sujet_stage = ?,
                 id_maitre_stage = ? 
-                WHERE num_etu = ?";
+                WHERE num_etu = ?
+                   OR EXISTS (
+                        SELECT 1
+                        FROM etudiants et
+                        WHERE et.num_carte_etud = informations_stage.num_etu
+                          AND et.num_ident_etud = ?
+                   )";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([
             $stage_data['nom_entreprise'],
@@ -54,6 +67,7 @@ class InfoStage
             $stage_data['date_fin_stage'],
             $stage_data['sujet_stage'],
             $stage_data['id_maitre_stage'],
+            $etudiant_id,
             $etudiant_id
         ]);
     }

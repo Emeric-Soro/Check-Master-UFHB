@@ -55,7 +55,7 @@ $canGenerate = (function_exists('canCreate') && canCreate()) || (function_exists
         <?php if ($selectedYearLabel !== ''): ?>
             <?php cm_component('ui/alert-box', [
                 'type' => 'info',
-                'message' => 'Édition des bulletins - année académique : ' . $selectedYearLabel,
+                'message' => 'Édition des PV finaux - année académique : ' . $selectedYearLabel,
             ]); ?>
         <?php endif; ?>
 
@@ -75,14 +75,14 @@ $canGenerate = (function_exists('canCreate') && canCreate()) || (function_exists
                 'limit_name' => 'limit_bulletin',
                 'can_delete' => false,
                 'can_view' => canView(),
-                'print_title' => 'Édition des bulletins',
+                'print_title' => 'Édition des PV finaux',
                 'custom_actions' => $canGenerate ? [[
                     'tag' => 'button',
                     'id' => 'cmBulletinGenerateSelected',
-                    'label' => 'Générer sélection',
+                    'label' => 'Générer PV sélection',
                     'icon' => 'fa-file-circle-check',
                     'class' => 'cm-btn is-success is-sm',
-                    'attrs' => ['title' => 'Générer les bulletins des lignes sélectionnées (ou visibles)'],
+                    'attrs' => ['title' => 'Générer les PV finaux des lignes sélectionnées (ou visibles)'],
                 ]] : [],
             ]); ?>
 
@@ -121,7 +121,10 @@ $canGenerate = (function_exists('canCreate') && canCreate()) || (function_exists
                                 $status = (string) ($row['status'] ?? 'non_eligible');
                                 $isEligible = !empty($row['eligible']);
                                 $hasBulletin = !empty($row['has_bulletin']);
-                                $bulletinId = isset($row['bulletin_id']) && is_numeric($row['bulletin_id']) ? (int) $row['bulletin_id'] : null;
+                                $bulletinId = trim((string) ($row['bulletin_id'] ?? ''));
+                                if ($bulletinId === '' && !empty($row['soutenance_id'])) {
+                                    $bulletinId = trim((string) $row['soutenance_id']);
+                                }
                                 $statusLabel = 'Non éligible';
                                 $statusType = 'danger';
                                 if ($status === 'genere') {
@@ -146,7 +149,7 @@ $canGenerate = (function_exists('canCreate') && canCreate()) || (function_exists
                                 <tr class="cm-data-table__row"
                                     data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>"
                                     data-num-etu="<?php echo htmlspecialchars((string) ($row['num_etu'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
-                                    data-bulletin-id="<?php echo htmlspecialchars((string) ($bulletinId ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                                    data-bulletin-id="<?php echo htmlspecialchars($bulletinId, ENT_QUOTES, 'UTF-8'); ?>">
                                     <td class="cm-data-table__td cm-data-table__td--check">
                                         <input type="checkbox"
                                                class="cm-table-check-row cm-bulletin-check-row"
@@ -169,15 +172,15 @@ $canGenerate = (function_exists('canCreate') && canCreate()) || (function_exists
                                                 <button type="button"
                                                         class="cm-btn-action is-edit cm-bulletin-generate"
                                                         data-num-etu="<?php echo htmlspecialchars((string) ($row['num_etu'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
-                                                        title="<?php echo $hasBulletin ? 'Regénérer le bulletin' : 'Générer le bulletin'; ?>">
+                                                        title="<?php echo $hasBulletin ? 'Regénérer le PV final' : 'Générer le PV final'; ?>">
                                                     <i class="fas fa-file-circle-check" aria-hidden="true"></i>
                                                 </button>
                                             <?php endif; ?>
-                                            <?php if ($hasBulletin && $bulletinId !== null): ?>
+                                            <?php if ($hasBulletin && $bulletinId !== ''): ?>
                                                 <button type="button"
                                                         class="cm-btn-action is-view cm-bulletin-download"
-                                                        data-bulletin-id="<?php echo (int) $bulletinId; ?>"
-                                                        title="Télécharger le bulletin PDF">
+                                                        data-bulletin-id="<?php echo htmlspecialchars($bulletinId, ENT_QUOTES, 'UTF-8'); ?>"
+                                                        title="Télécharger le PV final PDF">
                                                     <i class="fas fa-download" aria-hidden="true"></i>
                                                 </button>
                                             <?php endif; ?>
@@ -337,7 +340,7 @@ $canGenerate = (function_exists('canCreate') && canCreate()) || (function_exists
                             window.alert((result && result.message) ? result.message : 'La génération a échoué.');
                             return;
                         }
-                        window.alert(result.message || 'Bulletin généré avec succès.');
+                        window.alert(result.message || 'PV final généré avec succès.');
                         window.location.reload();
                     } catch (error) {
                         window.alert(error instanceof Error ? error.message : 'Erreur lors de la génération.');
@@ -392,7 +395,7 @@ $canGenerate = (function_exists('canCreate') && canCreate()) || (function_exists
                         });
 
                         if (successCount > 0) {
-                            let message = successCount + ' bulletin(s) généré(s).';
+                            let message = successCount + ' PV final(aux) généré(s).';
                             if (failCount > 0) {
                                 message += ' ' + failCount + ' échec(s).';
                             }
@@ -401,7 +404,7 @@ $canGenerate = (function_exists('canCreate') && canCreate()) || (function_exists
                             return;
                         }
 
-                        window.alert('Aucun bulletin n\'a pu être généré.');
+                        window.alert('Aucun PV final n\'a pu être généré.');
                     } catch (error) {
                         window.alert(error instanceof Error ? error.message : 'Erreur lors de la génération en lot.');
                     } finally {

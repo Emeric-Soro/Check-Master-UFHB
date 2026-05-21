@@ -648,10 +648,11 @@ switch ($currentMenuSlug) {
             // Fallback : erreur silencieuse, on continue vers la page normale
             error_log('Erreur génération reçu inscription #' . $id_inscription . ': versement non trouvé ou échec PDF');
         }
-        $allowedActions = ['ajouter_des_etudiants', 'inscrire_des_etudiants'];
+        $allowedActions = ['ajouter_des_etudiants', 'inscrire_des_etudiants', 'importer_etudiants'];
         $actionLabels = [
             'ajouter_des_etudiants' => 'Mise à jour étudiant',
-            'inscrire_des_etudiants' => 'Inscrire des étudiants'
+            'inscrire_des_etudiants' => 'Inscrire des étudiants',
+            'importer_etudiants' => 'Import d\'étudiants',
         ];
         if (isset($_GET['action']) && in_array($_GET['action'], $allowedActions)) {
             $currentAction = $_GET['action'];
@@ -735,7 +736,8 @@ switch ($currentMenuSlug) {
             $recuService = new \App\Services\Document\RecuGeneratorService($pdfGen, $recuDataUtils, $dbWrapper);
             $result = $recuService->generate($id_versement, (int) ($_SESSION['id_utilisateur'] ?? 0));
             if ($result['success'] && !empty($result['path']) && file_exists($result['path'])) {
-                header('Location: ?page=docviewer&type=recu&id=' . urlencode((string) $id_versement) . '&action=preview');
+                $docReference = !empty($result['reference']) ? (string) $result['reference'] : (string) $id_versement;
+                header('Location: ?page=docviewer&type=recu&id=' . urlencode($docReference) . '&action=preview');
                 exit;
             }
             // Fallback : erreur silencieuse, on continue vers la page normale
@@ -796,7 +798,7 @@ switch ($currentMenuSlug) {
         break;
     case 'edition_bulletin':
         $contentFile = $partialsBasePath . 'edition_bulletin_content.php';
-        $currentPageLabel = 'Edition des bulletins';
+        $currentPageLabel = 'Édition des PV finaux';
         break;
     case 'archive_comptes_rendus':
         $contentFile = $partialsBasePath . 'redaction_compte_rendu/archives_compte_rendu_content.php';
@@ -825,6 +827,10 @@ switch ($currentMenuSlug) {
         $contentFile = $partialsBasePath . 'v2/archives/archives_jurys.php';
         break;
     case 'archives_documents':
+        if (!class_exists('ArchiveDocumentController')) {
+            require_once __DIR__ . '/../app/controllers/ArchiveDocumentController.php';
+        }
+        $data = (new ArchiveDocumentController())->index();
         $contentFile = $partialsBasePath . 'v2/archives/archives_documents.php';
         break;
     case 'documents':
@@ -837,6 +843,8 @@ switch ($currentMenuSlug) {
         $contentFile = $partialsBasePath . 'v2/archives/archives_reclamations.php';
         break;
     case 'fiche_etudiant_complete':
+        require_once __DIR__ . '/../app/controllers/FicheEtudiantController.php';
+        $data = (new FicheEtudiantController())->index();
         $contentFile = $partialsBasePath . 'v2/archives/fiche_etudiant_complete.php';
         $currentPageLabel = 'Fiche Etudiante Complete';
         break;
@@ -876,8 +884,13 @@ switch ($currentMenuSlug) {
         }
         $gestionRhController = new GestionRhController();
         $gestionRhController->index();
-        $contentFile = $partialsBasePath . 'gestion_rh_content.php';
-        $currentPageLabel = 'Mise à jour enseignant';
+        if ((string) ($_GET['action'] ?? '') === 'importer') {
+            $contentFile = $partialsBasePath . 'gestion_rh_import.php';
+            $currentPageLabel = 'Import d\'enseignants';
+        } else {
+            $contentFile = $partialsBasePath . 'gestion_rh_content.php';
+            $currentPageLabel = 'Mise à jour enseignant';
+        }
         break;
     case 'maj_personnel_admin':
         $_GET['tab'] = 'pers_admin';
@@ -886,8 +899,13 @@ switch ($currentMenuSlug) {
         }
         $gestionRhController = new GestionRhController();
         $gestionRhController->index();
-        $contentFile = $partialsBasePath . 'gestion_rh_content.php';
-        $currentPageLabel = 'Mise à jour personnel administratif';
+        if ((string) ($_GET['action'] ?? '') === 'importer') {
+            $contentFile = $partialsBasePath . 'gestion_rh_import.php';
+            $currentPageLabel = 'Import du personnel administratif';
+        } else {
+            $contentFile = $partialsBasePath . 'gestion_rh_content.php';
+            $currentPageLabel = 'Mise à jour personnel administratif';
+        }
         break;
     case 'fiche_enseignante':
         $contentFile = $partialsBasePath . 'fiche_enseignante_content.php';
@@ -958,6 +976,12 @@ switch ($currentMenuSlug) {
         $contentFile = $partialsBasePath . 'historique_modifications_content.php';
         $currentPageLabel = 'Historique modifications';
         break;
+    case 'mise_en_ligne_memoire':
+        require_once __DIR__ . '/../app/controllers/MiseEnLigneMemoireController.php';
+        $data = (new MiseEnLigneMemoireController())->handleRequest();
+        $contentFile = $partialsBasePath . 'mise_en_ligne_memoire_content.php';
+        $currentPageLabel = 'Mise en ligne des mémoires';
+        break;
     case 'export_masse_documents':
         $contentFile = $partialsBasePath . 'export_masse_documents_content.php';
         $currentPageLabel = 'Export masse documents';
@@ -996,7 +1020,11 @@ switch ($currentMenuSlug) {
         switch ($hubTab) {
             case 'fiche_financiere_annee':
                 require_once __DIR__ . '/../app/controllers/FicheFinanciereController.php';
-                (new FicheFinanciereController())->index();
+                $ficheFinanciereController = new FicheFinanciereController();
+                if ((string) ($_GET['action'] ?? '') === 'detail_etudiant') {
+                    $ficheFinanciereController->detailEtudiant();
+                }
+                $ficheFinanciereController->index();
                 break;
             case 'historique_inscriptions':
                 require_once __DIR__ . '/../app/controllers/HistoriqueInscriptionsController.php';
@@ -1024,6 +1052,8 @@ switch ($currentMenuSlug) {
                 }
                 break;
             case 'fiche_etudiant_complete':
+                require_once __DIR__ . '/../app/controllers/FicheEtudiantController.php';
+                $data = (new FicheEtudiantController())->index();
                 break;
             case 'etudiants_sans_compte':
                 require_once __DIR__ . '/../app/models/Utilisateur.php';
@@ -1037,15 +1067,46 @@ switch ($currentMenuSlug) {
 
     case 'commissions_archives':
         $hubTab = (string) ($_GET['tab'] ?? 'archives_documents');
-        if ($hubTab === 'fiche_commission') {
-            require_once __DIR__ . '/../app/controllers/FicheCommissionController.php';
-            $fcData = (new FicheCommissionController())->index();
-            $membres = $fcData['membres'] ?? [];
-            $rapportsEvalues = $fcData['rapports_evalues'] ?? [];
-            $rapportsAttente = $fcData['rapports_attente'] ?? [];
-            $statsVote = $fcData['stats_vote'] ?? [];
-            $decisions = $fcData['decisions'] ?? [];
-            $planning = $fcData['planning'] ?? [];
+        switch ($hubTab) {
+            case 'archives_documents':
+                if (!class_exists('ArchiveDocumentController')) {
+                    require_once __DIR__ . '/../app/controllers/ArchiveDocumentController.php';
+                }
+                $data = (new ArchiveDocumentController())->index();
+                break;
+            case 'archives_etudiants':
+                if (!class_exists('ArchiveEtudiantController')) {
+                    require_once __DIR__ . '/../app/controllers/ArchiveEtudiantController.php';
+                }
+                $archiveEtudiantController = new ArchiveEtudiantController();
+                if ((string) ($_GET['action'] ?? '') === 'exportCsv') {
+                    $archiveEtudiantController->exportCsv();
+                }
+                $data = $archiveEtudiantController->index();
+                break;
+            case 'archive_comptes_rendus':
+                require_once __DIR__ . '/../app/controllers/ArchivesCompteRenduController.php';
+                (new ArchivesCompteRenduController())->index();
+                break;
+            case 'fiche_commission':
+                require_once __DIR__ . '/../app/controllers/FicheCommissionController.php';
+                $fcData = (new FicheCommissionController())->index();
+                $membres = $fcData['membres'] ?? [];
+                $rapportsEvalues = $fcData['rapports_evalues'] ?? [];
+                $rapportsAttente = $fcData['rapports_attente'] ?? [];
+                $statsVote = $fcData['stats_vote'] ?? [];
+                $decisions = $fcData['decisions'] ?? [];
+                $planning = $fcData['planning'] ?? [];
+                break;
+            case 'workflow_validation':
+                require_once __DIR__ . '/../app/controllers/ProcessusValidationController.php';
+                $workflowData = (new ProcessusValidationController())->workflowVisuel();
+                $workflow = $workflowData['workflow'] ?? null;
+                $statistiques = $workflowData['statistiques'] ?? [];
+                if (!$workflow) {
+                    $rapports = $workflowData['rapports'] ?? [];
+                }
+                break;
         }
         $contentFile = $partialsBasePath . 'commissions_archives_content.php';
         $currentPageLabel = 'Commissions & Archives';
@@ -1204,7 +1265,7 @@ $canonicalPageLabels = [
     'dashboard_commission' => 'Tableau de bord — Commission',
     'dashboard_enseignant' => 'Espace enseignant — Participations jurys',
     'dashboard_scolarite' => 'Tableau de bord scolarité',
-    'edition_bulletin' => 'Édition des bulletins',
+    'edition_bulletin' => 'Édition des PV finaux',
     'evaluation_dossiers' => 'Évaluation des dossiers',
     'gestion_dossiers_candidatures' => 'Gestion des dossiers de candidatures',
     'gestion_notes_evaluations' => 'Gestion des notes et évaluations',
@@ -1556,7 +1617,8 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         href="<?php echo htmlspecialchars($publicPrefix . 'image/logo_cm_sbg.png', ENT_QUOTES, 'UTF-8'); ?>"
         type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css"></noscript>
     <style>
         .cm-content-area .cm-form-group {
             min-width: 0;
@@ -2199,18 +2261,23 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         .cm-content-area .cm-barre-intermediaire .cm-toolbar {
             display: flex !important;
             flex-direction: row !important;
-            flex-wrap: wrap !important;
+            flex-wrap: nowrap !important;
             align-items: center !important;
-            justify-content: flex-start !important;
-            gap: 0.35rem !important;
+            justify-content: space-between !important;
+            gap: 0.65rem !important; /* Premium breathing space */
             width: 100% !important;
             max-width: 100% !important;
             margin-left: auto !important;
             margin-right: auto !important;
             box-sizing: border-box !important;
-            overflow-x: visible !important;
-            overflow-y: visible !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            scrollbar-width: none !important; /* Premium touch swipe action bar on tablets and mobile screens */
             -webkit-overflow-scrolling: touch;
+        }
+
+        .cm-content-area .cm-barre-intermediaire .cm-toolbar::-webkit-scrollbar {
+            display: none !important;
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar-left,
@@ -2218,34 +2285,47 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         .cm-content-area .cm-barre-intermediaire .cm-toolbar-right {
             display: flex !important;
             align-items: center !important;
-            flex-wrap: wrap !important;
+            flex-wrap: nowrap !important;
             width: auto !important;
             min-width: 0 !important;
-            gap: 0.35rem !important;
+            gap: 0.5rem !important;
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar-left {
-            flex: 1 1 18rem !important;
+            flex: 0 0 auto !important;
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar-center {
-            flex: 1 1 auto !important;
+            flex: 0 0 auto !important; /* Never squeeze search box */
+            width: clamp(11.5rem, 22vw, 16rem) !important;
+            min-width: 11.5rem !important;
+            max-width: 16rem !important;
             justify-content: flex-start !important;
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar-right {
-            flex: 0 0 auto !important;
+            flex: 1 1 auto !important;
             justify-content: flex-end !important;
             margin-left: auto !important;
         }
 
+        .cm-content-area .cm-barre-intermediaire .cm-toolbar__actions-group {
+            display: inline-flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            gap: 0.35rem !important;
+            flex: 0 0 auto !important;
+        }
+
         .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-btn {
             white-space: nowrap !important;
+            flex-shrink: 0 !important;
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-toolbar__search-wrap,
         .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-toolbar-field-lg {
-            width: clamp(11.5rem, 22vw, 16rem) !important;
+            width: 100% !important; /* Takes full width of the parent center container which is already constrained */
             min-width: 11.5rem !important;
             max-width: 16rem !important;
         }
@@ -2287,10 +2367,10 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             display: block !important;
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/fr.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/fr.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.12.0/cdn.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js" defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 
 </head>
@@ -2533,14 +2613,10 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
     </script>
     <script defer
         src="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('js/app.js') : 'assets/js/app.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
-    <script
-        src="<?php echo htmlspecialchars($publicPrefix . 'js/suivi_reclamation.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
-    <script
-        src="<?php echo htmlspecialchars($publicPrefix . 'js/historique_reclamation.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script defer
         src="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('js/inline-confirm.js') : 'assets/js/inline-confirm.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script defer
-        src="<?php echo htmlspecialchars($publicPrefix . 'js/docviewer.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+        src="<?php echo htmlspecialchars(function_exists('cm_asset') ? cm_asset('js/docviewer.js') : 'assets/js/docviewer.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body>
 
 </html>

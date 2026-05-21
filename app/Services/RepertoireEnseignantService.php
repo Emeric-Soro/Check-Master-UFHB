@@ -379,7 +379,7 @@ class RepertoireEnseignantService
                                     SELECT entite_id, MAX(id_document) AS latest_document_id
                                     FROM documents
                                     WHERE entite_type = 'programmer_soutenance'
-                                      AND type_document = 'pv_final'
+                                      AND type_document IN ('memoire', 'pv_final')
                                       AND statut = 'actif'
                                     GROUP BY entite_id
                                   ) doc_ref ON doc_ref.entite_id = CAST(ps.num_soutenance AS CHAR)

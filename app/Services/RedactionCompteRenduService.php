@@ -58,6 +58,9 @@ class RedactionCompteRenduService
             $inscriptionMatchSql = $hasNumIdentEtud
                 ? "(i2.num_carte_etud = r.num_etu OR i2.num_carte_etud = e.num_carte_etud OR i2.num_carte_etud = e.num_ident_etud)"
                 : "(i2.num_carte_etud = r.num_etu OR i2.num_carte_etud = e.num_carte_etud)";
+            $crStudentIdentCondition = $hasNumIdentEtud
+                ? "OR cr_student.num_etu = e.num_ident_etud"
+                : "";
 
             $sql = "
                 SELECT
@@ -68,6 +71,7 @@ class RedactionCompteRenduService
                     COALESCE(e.nom_etu, '') AS nom_etu,
                     COALESCE(e.promotion_etu, '') AS promotion_etu,
                     v2.decision_validation,
+                    v2.date_validation,
                     ins.id_annee_acad,
                     COALESCE(cr_link.existing_cr_id, 0) AS existing_cr_id,
                     COALESCE(cr_link.existing_cr_count, 0) AS existing_cr_count,
@@ -97,6 +101,18 @@ class RedactionCompteRenduService
                 ) cr_link ON cr_link.id_rapport = r.id_rapport
                 LEFT JOIN (
                     SELECT
+                        num_etu,
+                        MAX(id_CR) AS existing_student_cr_id,
+                        COUNT(DISTINCT id_CR) AS existing_student_cr_count
+                    FROM compte_rendu
+                    GROUP BY num_etu
+                ) cr_student ON (
+                    cr_student.num_etu = r.num_etu
+                    OR cr_student.num_etu = e.num_carte_etud
+                    {$crStudentIdentCondition}
+                )
+                LEFT JOIN (
+                    SELECT
                         id_rapport,
                         MAX(CASE WHEN role = 'encadrant' THEN id_enseignant END) AS current_encadrant_id,
                         MAX(CASE WHEN role = 'directeur' THEN id_enseignant END) AS current_directeur_id
@@ -104,6 +120,8 @@ class RedactionCompteRenduService
                     GROUP BY id_rapport
                 ) aff ON aff.id_rapport = r.id_rapport
                 WHERE v2.decision_validation IN ('valider', 'rejeter')
+                  AND COALESCE(cr_link.existing_cr_count, 0) = 0
+                  AND COALESCE(cr_student.existing_student_cr_count, 0) = 0
             ";
 
             $params = [];
@@ -115,11 +133,80 @@ class RedactionCompteRenduService
             $sql .= " ORDER BY v2.decision_validation DESC, r.theme_rapport";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+            return $this->deduplicateValidatedReports($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: []);
         } catch (\PDOException $e) {
             error_log("Erreur lors de la récupération des rapports validés : " . $e->getMessage());
             return [];
         }
+    }
+
+    /**
+     * Réduit les doublons de dossiers issus des multiples versions d'un rapport
+     * ou des doublons de jointure sur la dernière validation.
+     *
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function deduplicateValidatedReports(array $rows): array
+    {
+        $byReportId = [];
+        foreach ($rows as $row) {
+            $reportId = (int) ($row['id_rapport'] ?? 0);
+            if ($reportId <= 0) {
+                continue;
+            }
+
+            if (!isset($byReportId[$reportId])) {
+                $byReportId[$reportId] = $row;
+                continue;
+            }
+
+            $currentDate = strtotime((string) ($row['date_validation'] ?? '')) ?: 0;
+            $savedDate = strtotime((string) ($byReportId[$reportId]['date_validation'] ?? '')) ?: 0;
+            if ($currentDate >= $savedDate) {
+                $byReportId[$reportId] = $row;
+            }
+        }
+
+        $byLogicalKey = [];
+        foreach ($byReportId as $row) {
+            $studentKey = mb_strtolower(trim((string) ($row['num_etu'] ?? '')));
+            $themeKey = mb_strtolower(trim(preg_replace('/\s+/', ' ', (string) ($row['theme_rapport'] ?? ''))));
+            $yearKey = (string) ((int) ($row['id_annee_acad'] ?? 0));
+            $logicalKey = $studentKey . '|' . $themeKey . '|' . $yearKey;
+
+            if ($studentKey === '' || $themeKey === '') {
+                $logicalKey = 'report|' . (int) ($row['id_rapport'] ?? 0);
+            }
+
+            if (!isset($byLogicalKey[$logicalKey])) {
+                $byLogicalKey[$logicalKey] = $row;
+                continue;
+            }
+
+            $savedId = (int) ($byLogicalKey[$logicalKey]['id_rapport'] ?? 0);
+            $currentId = (int) ($row['id_rapport'] ?? 0);
+            if ($currentId >= $savedId) {
+                $byLogicalKey[$logicalKey] = $row;
+            }
+        }
+
+        $deduped = array_values($byLogicalKey);
+        usort($deduped, static function (array $a, array $b): int {
+            $decisionCompare = strcmp((string) ($b['decision_validation'] ?? ''), (string) ($a['decision_validation'] ?? ''));
+            if ($decisionCompare !== 0) {
+                return $decisionCompare;
+            }
+
+            $themeCompare = strcmp((string) ($a['theme_rapport'] ?? ''), (string) ($b['theme_rapport'] ?? ''));
+            if ($themeCompare !== 0) {
+                return $themeCompare;
+            }
+
+            return ((int) ($b['id_rapport'] ?? 0)) <=> ((int) ($a['id_rapport'] ?? 0));
+        });
+
+        return $deduped;
     }
 
     /**
@@ -140,6 +227,55 @@ class RedactionCompteRenduService
     }
 
     /**
+     * Prépare les données d'édition d'un compte rendu existant.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getEditableCompteRenduData(int $idCR): ?array
+    {
+        $compteRendu = $this->getCompteRenduById($idCR);
+        if ($compteRendu === null) {
+            return null;
+        }
+
+        $linkedReports = $this->getLinkedReportsForCompteRendu($idCR);
+        if ($linkedReports === []) {
+            $linkedReports = $this->getFallbackReportsForCompteRendu($compteRendu);
+        }
+        $linkedReports = $this->applyCompteRenduAssignmentFallbacks($linkedReports, $compteRendu);
+        if ($linkedReports === []) {
+            return [
+                'compte_rendu' => $compteRendu,
+                'report_ids' => [],
+                'report_assignments' => [],
+                'linked_reports' => [],
+            ];
+        }
+
+        $reportIds = [];
+        $assignments = [];
+        foreach ($linkedReports as $report) {
+            $reportId = (int) ($report['id_rapport'] ?? 0);
+            if ($reportId <= 0) {
+                continue;
+            }
+
+            $reportIds[] = $reportId;
+            $assignments[$reportId] = [
+                'encadrant' => (string) ($report['current_encadrant_id'] ?? ''),
+                'directeur' => (string) ($report['current_directeur_id'] ?? ''),
+            ];
+        }
+
+        return [
+            'compte_rendu' => $compteRendu,
+            'report_ids' => array_values(array_unique($reportIds)),
+            'report_assignments' => $assignments,
+            'linked_reports' => $linkedReports,
+        ];
+    }
+
+    /**
      * Enregistrer un compte rendu complet : PDF, BD, affectations, emails.
      *
      * @param array $data Clés attendues : num_etu, nom_CR, contenu_CR, rapports,
@@ -152,6 +288,7 @@ class RedactionCompteRenduService
         $nom_CR = trim((string) ($data['nom_CR'] ?? ''));
         $contenu_CR = trim((string) ($data['contenu_CR'] ?? ''));
         $rapports = $this->normalizeRapportIds($data['rapports'] ?? []);
+        $editingIdCR = (int) ($data['id_CR_edit'] ?? 0);
         $date_CR = date('Y-m-d H:i:s');
         $encadrants = $data['encadrant_pedagogique'] ?? [];
         $directeurs = $data['directeur_memoire'] ?? [];
@@ -180,7 +317,7 @@ class RedactionCompteRenduService
         $html = '<html><head><meta charset="UTF-8"></head><body>' . $contenu_CR . '</body></html>';
         $pdfGen = new \App\Services\Document\PdfGeneratorService(
             __DIR__ . '/../../storage',
-            __DIR__ . '/../../public/assets/img/logo.png'
+            __DIR__ . '/../../public/image/logo_ufhb.png'
         );
         $pdf = $pdfGen->createDocument('P', 'A4', 'Compte Rendu');
         $pdf->AddPage();
@@ -205,7 +342,9 @@ class RedactionCompteRenduService
         try {
             $this->pdo->beginTransaction();
             $context = $this->findCompteRenduContextForRapports($rapports);
-            $id_CR = (int) ($context['primary_id'] ?? 0);
+            $id_CR = $editingIdCR > 0 && $this->getCompteRenduById($editingIdCR) !== null
+                ? $editingIdCR
+                : (int) ($context['primary_id'] ?? 0);
 
             if ($id_CR > 0) {
                 $existing = $this->getCompteRenduById($id_CR);
@@ -286,7 +425,7 @@ class RedactionCompteRenduService
         // Générer le PDF avec PdfGeneratorService (TCPDF)
         $pdfGen = new \App\Services\Document\PdfGeneratorService(
             __DIR__ . '/../../storage',
-            __DIR__ . '/../../public/assets/img/logo.png'
+            __DIR__ . '/../../public/image/logo_ufhb.png'
         );
         $pdf = $pdfGen->createDocument('P', 'A4', $nom_CR);
         $pdf->AddPage();
@@ -386,6 +525,215 @@ class RedactionCompteRenduService
         $stmt->execute([$num_etu, $nom_CR, $contenu_CR, $chemin_pdf, $date_CR]);
 
         return (int) $this->pdo->lastInsertId();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getLinkedReportsForCompteRendu(int $idCR): array
+    {
+        if ($idCR <= 0) {
+            return [];
+        }
+
+        $hasNumIdentEtud = $this->columnExists('etudiants', 'num_ident_etud');
+        $studentJoinCondition = 'r.num_etu = e.num_carte_etud';
+        if ($hasNumIdentEtud) {
+            $studentJoinCondition .= ' OR r.num_etu = e.num_ident_etud';
+        }
+
+        $stmt = $this->pdo->prepare(
+            "SELECT
+                r.id_rapport,
+                r.num_etu,
+                r.theme_rapport,
+                COALESCE(e.prenom_etu, '') AS prenom_etu,
+                COALESCE(e.nom_etu, '') AS nom_etu,
+                COALESCE(e.promotion_etu, '') AS promotion_etu,
+                COALESCE(aff.current_encadrant_id, '') AS current_encadrant_id,
+                COALESCE(aff.current_directeur_id, '') AS current_directeur_id
+            FROM compte_rendu_rapport crr
+            INNER JOIN rapport_etudiants r ON r.id_rapport = crr.id_rapport
+            LEFT JOIN etudiants e ON ({$studentJoinCondition})
+            LEFT JOIN (
+                SELECT
+                    id_rapport,
+                    MAX(CASE WHEN role = 'encadrant' THEN id_enseignant END) AS current_encadrant_id,
+                    MAX(CASE WHEN role = 'directeur' THEN id_enseignant END) AS current_directeur_id
+                FROM affecter
+                GROUP BY id_rapport
+            ) aff ON aff.id_rapport = r.id_rapport
+            WHERE crr.id_CR = :id_cr
+            ORDER BY r.id_rapport ASC"
+        );
+        $stmt->execute([':id_cr' => $idCR]);
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Certains anciens CR n'ont pas de ligne dans compte_rendu_rapport.
+     * On restaure alors la sélection depuis l'étudiant principal du CR.
+     *
+     * @param array<string, mixed> $compteRendu
+     * @return array<int, array<string, mixed>>
+     */
+    private function getFallbackReportsForCompteRendu(array $compteRendu): array
+    {
+        $numEtu = trim((string) ($compteRendu['num_etu'] ?? ''));
+        if ($numEtu === '') {
+            return [];
+        }
+
+        $hasNumIdentEtud = $this->columnExists('etudiants', 'num_ident_etud');
+        $studentJoinCondition = 'r.num_etu = e.num_carte_etud';
+        $reportMatchCondition = 'r.num_etu = ? OR e.num_carte_etud = ?';
+        $params = [$numEtu, $numEtu];
+        if ($hasNumIdentEtud) {
+            $studentJoinCondition .= ' OR r.num_etu = e.num_ident_etud';
+            $reportMatchCondition .= ' OR e.num_ident_etud = ?';
+            $params[] = $numEtu;
+        }
+
+        $stmt = $this->pdo->prepare(
+            "SELECT
+                r.id_rapport,
+                r.num_etu,
+                r.theme_rapport,
+                COALESCE(e.prenom_etu, '') AS prenom_etu,
+                COALESCE(e.nom_etu, '') AS nom_etu,
+                COALESCE(e.promotion_etu, '') AS promotion_etu,
+                COALESCE(aff.current_encadrant_id, '') AS current_encadrant_id,
+                COALESCE(aff.current_directeur_id, '') AS current_directeur_id
+            FROM rapport_etudiants r
+            LEFT JOIN etudiants e ON ({$studentJoinCondition})
+            LEFT JOIN (
+                SELECT
+                    id_rapport,
+                    MAX(CASE WHEN role = 'encadrant' THEN id_enseignant END) AS current_encadrant_id,
+                    MAX(CASE WHEN role = 'directeur' THEN id_enseignant END) AS current_directeur_id
+                FROM affecter
+                GROUP BY id_rapport
+            ) aff ON aff.id_rapport = r.id_rapport
+            WHERE {$reportMatchCondition}
+            ORDER BY r.date_modification DESC, r.date_redaction_rapport DESC, r.id_rapport DESC"
+        );
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $reports
+     * @param array<string, mixed> $compteRendu
+     * @return array<int, array<string, mixed>>
+     */
+    private function applyCompteRenduAssignmentFallbacks(array $reports, array $compteRendu): array
+    {
+        if ($reports === []) {
+            return $reports;
+        }
+
+        $fallbacks = $this->extractAssignmentIdsFromCompteRenduContent((string) ($compteRendu['contenu_CR'] ?? ''));
+        if ($fallbacks === []) {
+            return $reports;
+        }
+
+        foreach ($reports as &$report) {
+            if (empty($report['current_encadrant_id']) && !empty($fallbacks['encadrant'])) {
+                $report['current_encadrant_id'] = $fallbacks['encadrant'];
+            }
+            if (empty($report['current_directeur_id']) && !empty($fallbacks['directeur'])) {
+                $report['current_directeur_id'] = $fallbacks['directeur'];
+            }
+        }
+        unset($report);
+
+        return $reports;
+    }
+
+    /**
+     * @return array{encadrant?: string, directeur?: string}
+     */
+    private function extractAssignmentIdsFromCompteRenduContent(string $html): array
+    {
+        if (trim($html) === '') {
+            return [];
+        }
+
+        $text = html_entity_decode(
+            trim((string) preg_replace('/\s+/', ' ', strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>', '</div>', '</li>'], "\n", $html)))),
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        );
+
+        $assignments = [];
+        if (preg_match('/Directeur\s+de\s+m[ée]moire\s*:\s*(.+?)(?:Encadr(?:eur|ant)\s+p[ée]dagogique\s*:|$)/iu', $text, $match)) {
+            $id = $this->resolveTeacherIdByName((string) ($match[1] ?? ''));
+            if ($id !== '') {
+                $assignments['directeur'] = $id;
+            }
+        }
+        if (preg_match('/Encadr(?:eur|ant)\s+p[ée]dagogique\s*:\s*(.+?)(?:Directeur\s+de\s+m[ée]moire\s*:|$)/iu', $text, $match)) {
+            $id = $this->resolveTeacherIdByName((string) ($match[1] ?? ''));
+            if ($id !== '') {
+                $assignments['encadrant'] = $id;
+            }
+        }
+
+        return $assignments;
+    }
+
+    private function resolveTeacherIdByName(string $rawName): string
+    {
+        $needle = $this->normalizeTeacherName($rawName);
+        if ($needle === '') {
+            return '';
+        }
+
+        $stmt = $this->pdo->query("SELECT id_enseignant, nom_enseignant, prenom_enseignant FROM enseignants");
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $teacher) {
+            $id = trim((string) ($teacher['id_enseignant'] ?? ''));
+            if ($id === '') {
+                continue;
+            }
+
+            $firstLast = $this->normalizeTeacherName(
+                trim((string) ($teacher['prenom_enseignant'] ?? '') . ' ' . (string) ($teacher['nom_enseignant'] ?? ''))
+            );
+            $lastFirst = $this->normalizeTeacherName(
+                trim((string) ($teacher['nom_enseignant'] ?? '') . ' ' . (string) ($teacher['prenom_enseignant'] ?? ''))
+            );
+
+            if ($needle === $firstLast || $needle === $lastFirst) {
+                return $id;
+            }
+            if (($firstLast !== '' && str_starts_with($needle, $firstLast . ' '))
+                || ($lastFirst !== '' && str_starts_with($needle, $lastFirst . ' '))
+            ) {
+                return $id;
+            }
+        }
+
+        return '';
+    }
+
+    private function normalizeTeacherName(string $name): string
+    {
+        $name = html_entity_decode($name, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $name = trim((string) preg_replace('/\s+/', ' ', $name));
+        if ($name === '') {
+            return '';
+        }
+
+        $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name);
+        if (is_string($ascii) && $ascii !== '') {
+            $name = $ascii;
+        }
+
+        $name = strtoupper($name);
+        $name = (string) preg_replace('/[^A-Z0-9]+/', ' ', $name);
+        return trim((string) preg_replace('/\s+/', ' ', $name));
     }
 
     private function updateCompteRendu(int $id_CR, string $num_etu, string $nom_CR, string $contenu_CR, string $chemin_pdf, string $date_CR): void

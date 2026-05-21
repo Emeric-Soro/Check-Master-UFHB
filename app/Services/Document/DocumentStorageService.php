@@ -268,7 +268,7 @@ final class DocumentStorageService
                     ?? $this->findLatestByEntity('rapport_etudiants', $id, ['rapport'], null, 'application/pdf'))
                 : null,
             'fiche_inscription' => $this->findLatestByEntity('inscriptions', $id, ['fiche_inscription']),
-            'recu' => $this->findLatestByEntity('inscriptions', $id, ['recu'], null, 'application/pdf'),
+            'recu' => $this->findLatestByEntity('inscriptions', $id, ['recu']),
             'pv_commission' => ctype_digit($id)
                 ? $this->findLatestByEntity('compte_rendu', $id, ['pv_commission'], null, 'application/pdf')
                 : null,

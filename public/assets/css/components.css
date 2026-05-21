@@ -7334,9 +7334,10 @@ form .cm-grid-auto {
 }
 
 .cm-student-record__tabs {
-  display: flex;
+  display: inline-flex;
+  align-items: stretch;
   flex-wrap: wrap;
-  gap: 0.55rem;
+  max-width: 100%;
 }
 
 .cm-student-record__tab {
@@ -7344,14 +7345,16 @@ form .cm-grid-auto {
   align-items: center;
   gap: 0.55rem;
   min-height: 44px;
-  padding: 0.72rem 0.96rem;
+  padding: 0.72rem 0.98rem;
   border: 0;
-  border-radius: 14px;
-  background: rgba(228, 240, 252, 0.72);
+  border-right: 1px solid var(--cm-border-color);
+  border-radius: 0;
+  background: transparent;
   color: var(--cm-primary-dark);
   font-size: var(--cm-font-size-sm);
   font-weight: var(--cm-font-weight-semibold);
   text-decoration: none;
+  white-space: nowrap;
   transition:
     transform var(--cm-transition-fast),
     background-color var(--cm-transition-fast),
@@ -7359,16 +7362,20 @@ form .cm-grid-auto {
     box-shadow var(--cm-transition-fast);
 }
 
+.cm-student-record__tab i,
+.cm-student-record__tab-count {
+  display: none;
+}
+
 .cm-student-record__tab:hover,
 .cm-student-record__tab:focus-visible {
-  transform: translateY(-1px);
-  background: rgba(235, 245, 255, 0.92);
+  background: rgba(236, 244, 252, 0.95);
   box-shadow: none;
   outline: none;
 }
 
 .cm-student-record__tab.is-active {
-  background: linear-gradient(135deg, var(--cm-primary-dark), var(--cm-primary));
+  background: var(--cm-primary-dark);
   color: #ffffff;
   box-shadow: none;
 }
@@ -7381,7 +7388,7 @@ form .cm-grid-auto {
   height: 1.65rem;
   padding: 0 0.35rem;
   border-radius: var(--cm-border-radius-full);
-  background: rgba(26, 82, 118, 0.07);
+  background: rgba(26, 82, 118, 0.08);
   color: var(--cm-primary-dark);
   font-size: 0.74rem;
   font-weight: var(--cm-font-weight-bold);
@@ -7778,11 +7785,6 @@ form .cm-grid-auto {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .cm-student-record__tab {
-    flex: 1 1 calc(50% - 0.55rem);
-    justify-content: center;
-  }
-
   .cm-student-record__row,
   .cm-student-record__timeline-item {
     grid-template-columns: 1fr;
@@ -7813,9 +7815,5 @@ form .cm-grid-auto {
 @media (max-width: 480px) {
   .cm-student-record__metrics {
     grid-template-columns: 1fr;
-  }
-
-  .cm-student-record__tab {
-    flex-basis: 100%;
   }
 }

@@ -16,6 +16,13 @@ $service = new EcheancierEtudiantService(Database::getConnection());
 $id_annee = !empty($_SESSION['selected_academic_year_id']) ? (int) $_SESSION['selected_academic_year_id'] : null;
 $search = trim((string) ($_GET['search'] ?? ''));
 $statut = trim((string) ($_GET['statut'] ?? ''));
+$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$echeancierBaseUrl = $isHubContext
+    ? '?page=suivi_scolarite&tab=echeancier_etudiant'
+    : '?page=echeancier_etudiant';
+$ficheBaseUrl = $isHubContext
+    ? '?page=suivi_scolarite&tab=fiche_etudiant_complete'
+    : '?page=fiche_etudiant_complete';
 
 // Données
 $timeline = $service->getTimelineData($id_annee, $search, $statut);
@@ -86,7 +93,10 @@ foreach ($allEcheances as $e) {
 
         <!-- Filtres -->
         <form method="GET" class="cm-grid-3 cm-mb-md">
-            <input type="hidden" name="page" value="echeancier_etudiant">
+            <input type="hidden" name="page" value="<?= $isHubContext ? 'suivi_scolarite' : 'echeancier_etudiant' ?>">
+            <?php if ($isHubContext): ?>
+                <input type="hidden" name="tab" value="echeancier_etudiant">
+            <?php endif; ?>
             <?php cm_component('form/input-text', [
                 'name' => 'search',
                 'label' => 'Rechercher un étudiant',
@@ -109,7 +119,7 @@ foreach ($allEcheances as $e) {
             ]); ?>
             <div class="cm-flex cm-flex-end cm-items-end cm-mt-sm">
                 <button type="submit" class="cm-btn is-primary"><i class="fas fa-filter"></i> Filtrer</button>
-                <a href="?page=echeancier_etudiant" class="cm-btn is-light cm-ml-sm"><i class="fas fa-rotate-left"></i> Réinitialiser</a>
+                <a href="<?= htmlspecialchars($echeancierBaseUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn is-light cm-ml-sm"><i class="fas fa-rotate-left"></i> Réinitialiser</a>
             </div>
         </form>
 
@@ -133,7 +143,7 @@ foreach ($allEcheances as $e) {
                         </h4>
                         <div class="cm-timeline">
                             <?php foreach ($monthGroup['items'] as $item): ?>
-                            <div class="cm-timeline__item cm-clickable-row" data-href="?page=fiche_etudiant_complete&id=<?= urlencode((string) $item['num_etu']) ?>">
+                            <div class="cm-timeline__item cm-clickable-row" data-href="<?= htmlspecialchars($ficheBaseUrl . '&id=' . urlencode((string) $item['num_etu']), ENT_QUOTES, 'UTF-8') ?>">
                                 <div class="cm-timeline__dot is-<?= $item['badge_type'] ?>"></div>
                                 <div class="cm-timeline__content">
                                     <div class="cm-flex cm-justify-between">
@@ -162,7 +172,7 @@ foreach ($allEcheances as $e) {
             cm_component('crud/data-table', [
                 'id'        => 'cmEcheancierTable',
                 'clickable' => true,
-                'row_link'  => '?page=fiche_etudiant_complete&id={num_etu}',
+                'row_link'  => $ficheBaseUrl . '&id={num_etu}',
                 'columns'   => [
                     cm_column('date_echeance', 'Date',     ['align' => 'center']),
                     cm_column('etudiant',       'Étudiant'),

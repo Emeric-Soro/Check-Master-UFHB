@@ -243,13 +243,32 @@ class Scolarite
     }
 
     /**
-     * Récupérer tous les étudiants
+     * Récupérer les étudiants avec filtrage et champs limités pour le sélecteur
+     *
+     * @param string|null $search Terme de recherche (optionnel)
+     * @param int|null    $limit  LIMIT (optionnel)
+     * @return array
      */
-    public function getAllEtudiants()
+    public function getAllEtudiants($search = null, $limit = null)
     {
-        $query = "SELECT * FROM etudiants ORDER BY nom_etu, prenom_etu";
+        $query = "SELECT num_carte_etud, num_ident_etud, nom_etu, prenom_etu
+                  FROM etudiants";
+
+        $params = [];
+        if ($search !== null && trim($search) !== '') {
+            $query .= " WHERE nom_etu LIKE ? OR prenom_etu LIKE ? OR num_carte_etud LIKE ? OR num_ident_etud LIKE ?";
+            $like = '%' . trim($search) . '%';
+            $params = [$like, $like, $like, $like];
+        }
+
+        $query .= " ORDER BY nom_etu, prenom_etu";
+
+        if ($limit !== null && (int) $limit > 0) {
+            $query .= " LIMIT " . (int) $limit;
+        }
+
         $stmt = $this->db->prepare($query);
-        $stmt->execute();
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -296,9 +315,14 @@ class Scolarite
     }
 
     /**
-     * Récupérer tous les versements (toutes les lignes d'inscriptions)
+     * Récupérer les versements (lignes d'inscriptions), filtrés par année
+     *
+     * @param int|null $id_annee_acad  Année académique (optionnelle, pour filtrer en SQL)
+     * @param int|null $limit          LIMIT (optionnel, pour paginer)
+     * @param int|null $offset         OFFSET (optionnel, pour paginer)
+     * @return array
      */
-    public function getAllVersements()
+    public function getAllVersements($id_annee_acad = null, $limit = null, $offset = null)
     {
         $query = "SELECT 
             CONCAT(i.num_carte_etud, '-', i.id_annee_acad, '-', i.num_versement) as id_inscription,
@@ -311,6 +335,7 @@ class Scolarite
             i.montant_verser,
             i.methode_paiement,
             i.num_piece_mp,
+            i.fiche_inscription,
             i.id_annee_acad,
             i.id_niv_etude,
             i.solde,
@@ -323,11 +348,25 @@ class Scolarite
         LEFT JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
         LEFT JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
         LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad 
-                                      AND f.id_niv_etude = i.id_niv_etude
-        ORDER BY i.date_versement DESC, COALESCE(e.nom_etu, i.num_carte_etud)";
+                                      AND f.id_niv_etude = i.id_niv_etude";
+
+        $params = [];
+        if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
+            $query .= " WHERE i.id_annee_acad = ?";
+            $params[] = (int) $id_annee_acad;
+        }
+
+        $query .= " ORDER BY i.date_versement DESC, COALESCE(e.nom_etu, i.num_carte_etud)";
+
+        if ($limit !== null && (int) $limit > 0) {
+            $query .= " LIMIT " . (int) $limit;
+            if ($offset !== null && (int) $offset >= 0) {
+                $query .= " OFFSET " . (int) $offset;
+            }
+        }
 
         $stmt = $this->db->prepare($query);
-        $stmt->execute();
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -418,6 +457,7 @@ class Scolarite
 
             // Note: pas de lastInsertId() car PK composite
             $this->refreshStudentYearBalances($num_carte_etud, $id_annee_acad, $id_niv_etude);
+            $this->synchronizeStudentAcademicContext($num_carte_etud, $id_niv_etude, $id_annee_acad);
 
             if ($manageTransaction) {
                 $this->db->commit();

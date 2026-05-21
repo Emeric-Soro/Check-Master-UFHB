@@ -8,6 +8,10 @@ require_once __DIR__ . '/../../app/models/Scolarite.php';
 
 $scolarite = new Scolarite(Database::getConnection());
 $id_annee = !empty($_SESSION['selected_academic_year_id']) ? (int) $_SESSION['selected_academic_year_id'] : null;
+$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$ficheBaseUrl = $isHubContext
+    ? '?page=suivi_scolarite&tab=fiche_etudiant_complete'
+    : '?page=fiche_etudiant_complete';
 
 $etudiants = $scolarite->getEtudiantsNonInscrits($id_annee);
 
@@ -34,7 +38,7 @@ foreach ($etudiants as $e) {
             cm_component('crud/data-table', [
                 'id'        => 'cmEtudiantsNonInscritsTable',
                 'clickable' => true,
-                'row_link'  => '?page=fiche_etudiant_complete&id={num_etu}',
+                'row_link'  => $ficheBaseUrl . '&id={num_etu}',
                 'columns'   => [
                     cm_column('num_etu',    'Matricule',    ['align' => 'center']),
                     cm_column('nom_etu',    'Nom'),

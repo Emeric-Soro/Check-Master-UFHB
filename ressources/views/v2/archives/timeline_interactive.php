@@ -21,6 +21,13 @@ $data = $GLOBALS['timeline_data'] ?? ['matricule' => '', 'evenements' => []];
 $error = $GLOBALS['timeline_error'] ?? '';
 $matricule = (string) ($data['matricule'] ?? '');
 $evenements = $data['evenements'] ?? [];
+$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$timelineBaseUrl = $isHubContext
+    ? '?page=suivi_scolarite&tab=timeline_parcours_etudiant'
+    : '?page=timeline_parcours_etudiant';
+$returnUrl = $isHubContext
+    ? '?page=suivi_scolarite&tab=historique_inscriptions' . ($matricule !== '' ? '&num_etu=' . urlencode($matricule) : '')
+    : '?page=archives_etudiants';
 
 // Definir les etapes du parcours avec leurs icones et couleurs
 $etapesParcours = [
@@ -114,7 +121,10 @@ if (!$hasDone && !empty($etapeStatus)) {
         <div class="cm-crud-wrapper">
             <div class="cm-pole-superieur">
                 <form method="GET" class="cm-form cm-grid-3">
-                    <input type="hidden" name="page" value="timeline_parcours_etudiant">
+                    <input type="hidden" name="page" value="<?= $isHubContext ? 'suivi_scolarite' : 'timeline_parcours_etudiant' ?>">
+                    <?php if ($isHubContext): ?>
+                        <input type="hidden" name="tab" value="timeline_parcours_etudiant">
+                    <?php endif; ?>
                     <?php
                     cm_component('form/input-text', [
                         'name' => 'num_etu',
@@ -143,7 +153,7 @@ if (!$hasDone && !empty($etapeStatus)) {
                     <h2 class="cm-text-lg cm-text-semibold">Etudiant: <?php echo htmlspecialchars($matricule, ENT_QUOTES, 'UTF-8'); ?></h2>
                     <p class="cm-text-muted"><?php echo count($evenements); ?> evenement(s) enregistre(s)</p>
                 </div>
-                <a href="?page=archives_etudiants" class="cm-btn is-light is-sm cm-ml-auto">
+                <a href="<?= htmlspecialchars($returnUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn is-light is-sm cm-ml-auto">
                     <i class="fas fa-arrow-left"></i> Archives
                 </a>
             </div>

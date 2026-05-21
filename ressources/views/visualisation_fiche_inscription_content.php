@@ -5,6 +5,10 @@
  */
 $matricule = trim((string) ($_GET['num_etu'] ?? $_GET['matricule'] ?? ''));
 $anneeId = (int) ($_GET['id_annee'] ?? 0);
+$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$visualisationBaseUrl = $isHubContext
+    ? '?page=suivi_scolarite&tab=visualisation_fiche_inscription'
+    : '?page=visualisation_fiche_inscription';
 
 $fichePath = '';
 $etudiant = [];
@@ -60,9 +64,12 @@ if ($matricule !== '') {
 
     <!-- Formulaire de recherche -->
     <div class="cm-crud-wrapper">
-        <div class="cm-pole-superieur">
-            <form method="GET" class="cm-form cm-grid-3">
-                <input type="hidden" name="page" value="visualisation_fiche_inscription">
+            <div class="cm-pole-superieur">
+                <form method="GET" class="cm-form cm-grid-3">
+                <input type="hidden" name="page" value="<?= $isHubContext ? 'suivi_scolarite' : 'visualisation_fiche_inscription' ?>">
+                <?php if ($isHubContext): ?>
+                    <input type="hidden" name="tab" value="visualisation_fiche_inscription">
+                <?php endif; ?>
                 <?php
                 cm_component('form/input-text', [
                     'name' => 'num_etu',
@@ -132,7 +139,7 @@ if ($matricule !== '') {
                                 ?>
                                     <tr class="cm-data-table__row<?php echo $hasFiche ? ' cm-clickable-row' : ''; ?>"
                                         <?php if ($hasFiche): ?>
-                                        data-href="?page=visualisation_fiche_inscription&num_etu=<?php echo urlencode((string) $matricule); ?>&id_annee=<?php echo (int) ($ins['id_annee_acad'] ?? 0); ?>&view=fiche"
+                                        data-href="<?= htmlspecialchars($visualisationBaseUrl . '&num_etu=' . urlencode((string) $matricule) . '&id_annee=' . (int) ($ins['id_annee_acad'] ?? 0) . '&view=fiche', ENT_QUOTES, 'UTF-8') ?>"
                                         <?php endif; ?>>
                                         <td class="cm-data-table__td">
                                             <?php echo htmlspecialchars((string) ($ins['annee_label'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?>

@@ -82,6 +82,14 @@ class ProcessusValidationController
     }
 
     /**
+     * Applique le vote de l'administrateur connecté aux membres de commission manquants.
+     */
+    public function appliquerVoteAdminAuxMembres($id_rapport, $id_utilisateur, array $session = [])
+    {
+        return $this->service->appliquerVoteAdminAuxMembres($id_rapport, $id_utilisateur, $session);
+    }
+
+    /**
      * Workflow visuel pour un rapport (P2.4)
      */
     public function workflowVisuel(): array

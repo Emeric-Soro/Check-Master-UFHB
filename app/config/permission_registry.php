@@ -428,9 +428,12 @@ $addFeature([
     'existing_codes' => ['MAJ_ENSEIGNANT'],
     'routes' => [
         ['pattern' => 'page=maj_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=maj_enseignant&action=importer', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=maj_enseignant&action=btn_add_enseignant', 'method' => 'POST', 'crud' => 'creer'],
         ['pattern' => 'page=maj_enseignant&action=btn_modifier_enseignant', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=maj_enseignant&action=submit_delete_multiple', 'method' => 'POST', 'crud' => 'supprimer'],
+        ['pattern' => 'page=maj_enseignant&action=submit_import_upload', 'method' => 'POST', 'crud' => 'creer'],
+        ['pattern' => 'page=maj_enseignant&action=submit_import_commit', 'method' => 'POST', 'crud' => 'creer'],
     ],
     'permissions' => [
         $groups['administrateur'] => $full,
@@ -447,9 +450,12 @@ $addFeature([
     'existing_codes' => ['MAJ_PERSONNEL_ADMIN'],
     'routes' => [
         ['pattern' => 'page=maj_personnel_admin', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=maj_personnel_admin&action=importer', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=maj_personnel_admin&action=btn_add_pers_admin', 'method' => 'POST', 'crud' => 'creer'],
         ['pattern' => 'page=maj_personnel_admin&action=btn_modifier_pers_admin', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=maj_personnel_admin&action=submit_delete_multiple', 'method' => 'POST', 'crud' => 'supprimer'],
+        ['pattern' => 'page=maj_personnel_admin&action=submit_import_upload', 'method' => 'POST', 'crud' => 'creer'],
+        ['pattern' => 'page=maj_personnel_admin&action=submit_import_commit', 'method' => 'POST', 'crud' => 'creer'],
     ],
     'permissions' => [
         $groups['administrateur'] => $full,
@@ -468,11 +474,14 @@ $addFeature([
         ['pattern' => 'page=gestion_etudiants', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_etudiants&action=ajouter_des_etudiants', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_etudiants&action=inscrire_des_etudiants', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_etudiants&action=importer_etudiants', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_etudiants&modalAction=edit', 'method' => 'GET', 'crud' => 'modifier'],
         ['pattern' => 'page=gestion_etudiants&modalAction=imprimer_recu', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_etudiants&action=submit_add_etudiant', 'method' => 'POST', 'crud' => 'creer'],
         ['pattern' => 'page=gestion_etudiants&action=submit_modifier_etudiant', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=gestion_etudiants&action=selected_ids', 'method' => 'POST', 'crud' => 'supprimer'],
+        ['pattern' => 'page=gestion_etudiants&action=submit_import_upload', 'method' => 'POST', 'crud' => 'creer'],
+        ['pattern' => 'page=gestion_etudiants&action=submit_import_commit', 'method' => 'POST', 'crud' => 'creer'],
     ],
 ]);
 

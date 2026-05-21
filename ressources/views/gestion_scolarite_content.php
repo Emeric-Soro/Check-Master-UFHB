@@ -46,9 +46,27 @@ foreach ($listeAnnees as $annee) {
     $fin = !empty($annee->date_fin) ? date('Y', strtotime((string) $annee->date_fin)) : '';
     $anneesOptions[$id] = trim($debut . '-' . $fin, '-');
 }
+
+$resolveStudentKey = static function (array $etu): string {
+    $candidates = [
+        (string) ($etu['num_ident_etud'] ?? ''),
+        (string) ($etu['num_carte_etud'] ?? ''),
+        (string) ($etu['num_etu'] ?? ''),
+    ];
+
+    foreach ($candidates as $candidate) {
+        $candidate = trim($candidate);
+        if ($candidate !== '') {
+            return $candidate;
+        }
+    }
+
+    return '';
+};
+
 $catalog = [];
 foreach ($listeAllEtudiant as $etu) {
-    $numIdent = (string) ($etu['num_ident_etud'] ?? '');
+    $numIdent = $resolveStudentKey($etu);
     $numCarte = (string) ($etu['num_carte_etud'] ?? '');
     if ($numIdent === '') {
         continue;
@@ -70,7 +88,7 @@ foreach ($listeAllEtudiant as $etu) {
     ];
 }
 foreach ($etudiantsNonInscrits as $etu) {
-    $numIdent = (string) ($etu['num_ident_etud'] ?? $etu['num_etu'] ?? '');
+    $numIdent = $resolveStudentKey($etu);
     $numCarte = (string) ($etu['num_carte_etud'] ?? '');
     if ($numIdent === '') {
         continue;
@@ -94,7 +112,7 @@ foreach ($etudiantsNonInscrits as $etu) {
     }
 }
 foreach ($etudiantsInscrits as $etu) {
-    $numIdent = (string) ($etu['num_ident_etud'] ?? '');
+    $numIdent = $resolveStudentKey($etu);
     $numCarte = (string) ($etu['num_carte_etud'] ?? '');
     if ($numIdent === '') {
         continue;
@@ -221,7 +239,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
     max-width: 10ch !important;
 }
 </style>
-<form id="cmPaiementForm" method="POST" action="?page=gestion_scolarite&action=enregistrer_paiement">
+            <form id="cmPaiementForm" method="POST" action="?page=gestion_scolarite&action=enregistrer_paiement" enctype="multipart/form-data">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" id="cmIsNewInscription" name="is_new_inscription" value="">
                 <!-- Ligne 1: Niveau, Année A., Frais Scolarité -->
@@ -253,7 +271,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                 <!-- Ligne 2: Nom Prénom, Identifiant, N° Carte -->
                 <div class="cm-grid-3">
                     <?php
-                    cm_component('form/select-search', [
+                    cm_component('form/select', [
                         'name' => 'etudiant',
                         'id' => 'cmEtudiantSelect',
                         'label' => 'Nom Prénom',
@@ -262,7 +280,6 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                         'placeholder' => '-- Sélectionner --',
                         'dense' => true,
                         'size' => 'sm',
-                        'show_selected_label' => false,
                         'control_class' => 'cm-field-lg',
                     ]);
                     cm_component('form/input-text', [
@@ -352,6 +369,22 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                         'control_class' => 'cm-field-md',
                     ]);
                     ?>
+                    <div class="cm-form-group">
+                        <label class="cm-form-label">Documents</label>
+                        <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
+                            <button type="button" class="cm-btn is-secondary is-sm" id="cmPickFicheInscription" title="Importer la fiche d'inscription">
+                                <i class="fas fa-file-upload" aria-hidden="true"></i>
+                                Fiche
+                            </button>
+                            <button type="button" class="cm-btn is-secondary is-sm" id="cmPickRecuInscription" title="Importer le reçu d'inscription">
+                                <i class="fas fa-receipt" aria-hidden="true"></i>
+                                Reçu
+                            </button>
+                        </div>
+                        <input type="file" name="fiche_inscription_file" id="cmFicheInscriptionFile" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/*" hidden>
+                        <input type="file" name="recu_inscription_file" id="cmRecuInscriptionFile" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/*" hidden>
+                        <div class="cm-text-muted cm-text-sm" id="cmDocsSelectionStatus">Aucun document sélectionné.</div>
+                    </div>
                 </div>
                 <!-- Hidden field -->
                 <input type="hidden" id="cmInfoEtudiant" name="cmInfoEtudiant" value="">
@@ -436,6 +469,8 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                                 $soldeVersement = (float) ($versement['solde'] ?? $resteVersement);
                                 $mode = (string) ($versement['methode_paiement'] ?? '');
                                 $numPiece = (string) ($versement['num_piece_mp'] ?? '');
+                                $ficheInscription = (string) ($versement['fiche_inscription'] ?? '');
+                                $hasFicheInscription = $ficheInscription !== '';
                                 $niveauLib = strtolower((string) ($versement['lib_niv_etude'] ?? ''));
                                 $niveauId = (string) ($versement['id_niv_etude'] ?? '');
                                 // Créer un ID composite pour le reçu
@@ -492,9 +527,21 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                                                 title="Pre-remplir le formulaire">
                                                 <i class="fas fa-pen" aria-hidden="true"></i>
                                             </button>
-                                            <a class="cm-btn-action is-edit"
-                                                href="?page=gestion_scolarite&action=imprimer_recu&id=<?php echo urlencode($idInscriptionComposite); ?>"
-                                                target="_blank" title="Imprimer recu">
+                                            <a class="cm-btn-action is-primary"
+                                                href="?page=gestion_scolarite&action=imprimer_recu&id=<?php echo urlencode((string) $numVersement); ?>"
+                                                target="_blank" title="Générer le reçu d'inscription">
+                                                <i class="fas fa-file-arrow-down" aria-hidden="true"></i>
+                                            </a>
+                                            <?php if ($hasFicheInscription): ?>
+                                                <a class="cm-btn-action is-view"
+                                                    href="?page=docviewer&type=fiche_inscription&id=<?php echo urlencode($idInscriptionComposite); ?>&action=preview"
+                                                    target="_blank" title="Voir la fiche d'inscription">
+                                                    <i class="fas fa-file-signature" aria-hidden="true"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <a class="cm-btn-action is-view"
+                                                href="?page=docviewer&type=recu&id=<?php echo urlencode($idInscriptionComposite); ?>&action=preview"
+                                                target="_blank" title="Voir le reçu d'inscription enregistré">
                                                 <i class="fas fa-receipt" aria-hidden="true"></i>
                                             </a>
                                         </div>
@@ -524,9 +571,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             }
             window.location.href = url;
         };
-        const etudiantHidden = document.getElementById('cmEtudiantSelect_hidden');
-        const etudiantSearchInput = document.getElementById('cmEtudiantSelect_search');
-        const etudiantSelectedLabel = document.getElementById('cmEtudiantSelect_selected_label');
+        const etudiantSelect = document.getElementById('cmEtudiantSelect');
         const niveauField = document.getElementById('cmNiveau');
         const fraisField = document.getElementById('cmFraisScolarite');
         const identifiantField = document.getElementById('cmIdentifiantDisplay');
@@ -539,6 +584,11 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
         const anneeField = document.getElementById('cmAnneeAcademique');
         const infoField = document.getElementById('cmInfoEtudiant');
         const isNewField = document.getElementById('cmIsNewInscription');
+        const ficheInput = document.getElementById('cmFicheInscriptionFile');
+        const recuInput = document.getElementById('cmRecuInscriptionFile');
+        const pickFicheBtn = document.getElementById('cmPickFicheInscription');
+        const pickRecuBtn = document.getElementById('cmPickRecuInscription');
+        const docsSelectionStatus = document.getElementById('cmDocsSelectionStatus');
         const form = document.getElementById('cmPaiementForm');
         const formatNumber = function (value) {
             const parsed = Number(value || 0);
@@ -548,10 +598,10 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             return Number(String(value || '0').replace(/\s/g, '').replace(',', '.')) || 0;
         };
         const syncByStudent = function () {
-            if (!etudiantHidden) {
+            if (!etudiantSelect) {
                 return;
             }
-            const studentId = etudiantHidden.value;
+            const studentId = etudiantSelect.value;
             const data = catalog[studentId];
             if (!data) {
                 identifiantField.value = '';
@@ -598,22 +648,9 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                 updateReste();
             }
         };
-        const setSelectSearchValue = function (studentId) {
-            const options = document.querySelectorAll('#cmEtudiantSelect_wrapper .cm-select-search__option');
-            let selectedLabel = '';
-            options.forEach(function (option) {
-                const isSelected = option.getAttribute('data-value') === studentId;
-                option.classList.toggle('is-selected', isSelected);
-                option.setAttribute('aria-selected', isSelected ? 'true' : 'false');
-                if (isSelected) {
-                    selectedLabel = option.getAttribute('data-label') || '';
-                }
-            });
-            if (etudiantSearchInput) {
-                etudiantSearchInput.value = selectedLabel;
-            }
-            if (etudiantSelectedLabel) {
-                etudiantSelectedLabel.textContent = selectedLabel || '-- Sélectionner un étudiant --';
+        var setSelectSearchValue = function (studentId) {
+            if (etudiantSelect) {
+                etudiantSelect.value = studentId || '';
             }
         };
         const updateFraisFromNiveau = function () {
@@ -626,7 +663,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             updateReste();
         };
         const updateReste = function () {
-            const studentId = etudiantHidden ? etudiantHidden.value : '';
+            const studentId = etudiantSelect ? etudiantSelect.value : '';
             const data = catalog[studentId];
             const montantScolarite = parseNumber(fraisField.value);
             const montantVerse = parseNumber(montantVerseField.value);
@@ -645,33 +682,66 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                 }
             }
         };
-        if (etudiantHidden) {
-            etudiantHidden.addEventListener('change', syncByStudent);
-            document.querySelectorAll('#cmEtudiantSelect_wrapper .cm-select-search__option').forEach(function (option) {
-                option.addEventListener('click', function () {
-                    setTimeout(syncByStudent, 0);
-                });
-            });
+        const updateDocsSelectionStatus = function () {
+            if (!docsSelectionStatus) {
+                return;
+            }
+            const ficheName = ficheInput && ficheInput.files && ficheInput.files[0] ? ficheInput.files[0].name : '';
+            const recuName = recuInput && recuInput.files && recuInput.files[0] ? recuInput.files[0].name : '';
+            if (ficheName === '' && recuName === '') {
+                docsSelectionStatus.textContent = 'Aucun document sélectionné.';
+                return;
+            }
+            const parts = [];
+            if (ficheName !== '') {
+                parts.push('Fiche: ' + ficheName);
+            }
+            if (recuName !== '') {
+                parts.push('Reçu: ' + recuName);
+            }
+            docsSelectionStatus.textContent = parts.join(' | ');
+        };
+        if (etudiantSelect) {
+            etudiantSelect.addEventListener('change', syncByStudent);
         }
-        document.querySelectorAll('.cmPrefillPaiement').forEach(function (button) {
-            button.addEventListener('click', function () {
-                if (!etudiantHidden) {
-                    return;
+        if (etudiantSelect) {
+            (function () {
+                var prefills = document.querySelectorAll('.cmPrefillPaiement');
+                for (var i = 0; i < prefills.length; i++) {
+                    (function (btn) {
+                        btn.addEventListener('click', function () {
+                            var studentId = btn.getAttribute('data-student') || '';
+                            if (!studentId) {
+                                return;
+                            }
+                            etudiantSelect.value = studentId;
+                            syncByStudent();
+                        });
+                    })(prefills[i]);
                 }
-                const studentId = button.getAttribute('data-student') || '';
-                if (!studentId) {
-                    return;
-                }
-                etudiantHidden.value = studentId;
-                setSelectSearchValue(studentId);
-                syncByStudent();
-            });
-        });
+            })();
+        }
         if (niveauField) {
             niveauField.addEventListener('change', updateFraisFromNiveau);
         }
         if (montantVerseField) {
             montantVerseField.addEventListener('input', updateReste);
+        }
+        if (pickFicheBtn && ficheInput) {
+            pickFicheBtn.addEventListener('click', function () {
+                ficheInput.click();
+            });
+        }
+        if (pickRecuBtn && recuInput) {
+            pickRecuBtn.addEventListener('click', function () {
+                recuInput.click();
+            });
+        }
+        if (ficheInput) {
+            ficheInput.addEventListener('change', updateDocsSelectionStatus);
+        }
+        if (recuInput) {
+            recuInput.addEventListener('change', updateDocsSelectionStatus);
         }
         const resetPaiementBtn = document.getElementById('cmResetPaiement');
         if (resetPaiementBtn) {
@@ -695,17 +765,24 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     if (numVersementField) {
                         numVersementField.value = '';
                     }
+                    if (ficheInput) {
+                        ficheInput.value = '';
+                    }
+                    if (recuInput) {
+                        recuInput.value = '';
+                    }
+                    updateDocsSelectionStatus();
                 }, 0);
             });
         }
         if (form) {
             form.addEventListener('submit', function (event) {
-                if (!etudiantHidden || !etudiantHidden.value) {
+                if (!etudiantSelect || !etudiantSelect.value) {
                     event.preventDefault();
                     window.alert('Veuillez sélectionner un étudiant.');
                     return;
                 }
-                const currentData = catalog[etudiantHidden.value];
+                const currentData = catalog[etudiantSelect.value];
                 const montantVerse = parseNumber(montantVerseField.value);
                 if (montantVerse <= 0) {
                     event.preventDefault();
@@ -790,4 +867,3 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
         updateFraisFromNiveau();
     })();
 </script>
-

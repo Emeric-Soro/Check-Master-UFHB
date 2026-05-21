@@ -19,29 +19,34 @@ final class PvFinalGeneratorService
     /** @var array<int, int> */
     private const COULEUR_ANNEXE3 = [139, 0, 0];
 
-    /** @var array<int, array{label: string, bareme: float, keywords: array<int, string>}> */
+    /** @var array<int, array{code: string, label: string, bareme: float, keywords: array<int, string>}> */
     private const CRITERES_ANNEXE1 = [
         [
+            'code' => 'EX',
             'label' => '1. Exposé',
             'bareme' => 4.0,
             'keywords' => ['expose'],
         ],
         [
+            'code' => 'RQ',
             'label' => '2. Réponses aux questions posées',
             'bareme' => 5.0,
             'keywords' => ['question', 'reponse'],
         ],
         [
+            'code' => 'PM',
             'label' => '3. Présentation du mémoire',
             'bareme' => 2.0,
             'keywords' => ['presentation'],
         ],
         [
+            'code' => 'CM',
             'label' => '4. Contenu du mémoire',
             'bareme' => 4.0,
             'keywords' => ['contenu'],
         ],
         [
+            'code' => 'RP',
             'label' => '5. Résolution du problème',
             'bareme' => 5.0,
             'keywords' => ['resolution', 'probleme'],
@@ -75,7 +80,7 @@ final class PvFinalGeneratorService
         }
 
         $matricule = (string) ($soutenance['matricule_etudiant'] ?? '');
-        $annexe1Rows = $this->buildAnnexe1Rows($matricule);
+        $annexe1Rows = $this->buildAnnexe1Rows($soutenance);
         $annexe1Total = 0.0;
         foreach ($annexe1Rows as $row) {
             $annexe1Total += (float) $row['note'];
@@ -86,11 +91,11 @@ final class PvFinalGeneratorService
         $moyennes = $this->dataUtils->getMoyennesAcademiques($matricule);
         $moyenneM1 = $this->resolveScore(
             $this->toNullableFloat($pv['moyenne_m1'] ?? null),
-            $moyennes['moyenne_M1'] ?? null
+            $this->toNullableFloat($moyennes['moyenne_M1'] ?? null)
         );
         $moyenneS1M2 = $this->resolveScore(
             $this->toNullableFloat($pv['moyenne_s1_m2'] ?? null),
-            $moyennes['moyenne_M2'] ?? null
+            $this->toNullableFloat($moyennes['moyenne_M2'] ?? null)
         );
 
         $noteFinaleSource = $this->toNullableFloat($pv['note_finale'] ?? null);
@@ -170,6 +175,8 @@ final class PvFinalGeneratorService
             $noteFinale = round($annexe3Total / 6, 2);
         }
 
+        $mention = $this->calculerMention($noteFinale);
+
         $members = $this->extractJuryMembers($this->dataUtils->getJuryMembersForSoutenance($soutenanceId));
         $reference = $this->generateReference();
         $numeroPv = trim((string) ($pv['numero_pv'] ?? ''));
@@ -195,7 +202,7 @@ final class PvFinalGeneratorService
             'annexe3_total' => $annexe3Total,
             'note_finale' => $noteFinale,
             'decision' => $decision,
-            'mention' => (string) ($pv['libelle_mention'] ?? '-'),
+            'mention' => $mention,
             'jury_members' => $members,
         ];
 
@@ -451,6 +458,27 @@ final class PvFinalGeneratorService
         return round($note * $coeff, 2);
     }
 
+    private function calculerMention(float $note): string
+    {
+        if ($note >= 18.0) {
+            return 'Honorable';
+        }
+        if ($note >= 16.0) {
+            return 'Très Bien';
+        }
+        if ($note >= 14.0) {
+            return 'Bien';
+        }
+        if ($note >= 12.0) {
+            return 'Assez Bien';
+        }
+        if ($note >= 10.0) {
+            return 'Passable';
+        }
+
+        return 'Insuffisant';
+    }
+
     public function formaterDecision(string $decision): string
     {
         $normalized = strtolower(trim($decision));
@@ -466,14 +494,22 @@ final class PvFinalGeneratorService
     /**
      * @return array<int, array{label: string, note: float, bareme: float}>
      */
-    private function buildAnnexe1Rows(string $numEtudiant): array
+    private function buildAnnexe1Rows(array $soutenance): array
     {
-        $notes = $this->dataUtils->getNotesSoutenance($numEtudiant);
+        $numEtudiant = trim((string) ($soutenance['matricule_etudiant'] ?? $soutenance['num_etud'] ?? ''));
+        $juryRef = trim((string) ($soutenance['num_soutenance'] ?? ''));
+        $idAnneeAcad = isset($soutenance['inscription_annee_acad']) && is_numeric($soutenance['inscription_annee_acad'])
+            ? (int) $soutenance['inscription_annee_acad']
+            : null;
+
+        $notes = $juryRef !== ''
+            ? $this->dataUtils->getNotesSoutenanceForJury($numEtudiant, $juryRef, $idAnneeAcad)
+            : $this->dataUtils->getNotesSoutenance($numEtudiant, $idAnneeAcad);
         $usedIndexes = [];
         $nextFallback = 0;
         $rows = [];
         foreach (self::CRITERES_ANNEXE1 as $critere) {
-            $matchIndex = $this->findMatchingNoteIndex($notes, $critere['keywords'], $usedIndexes);
+            $matchIndex = $this->findMatchingNoteIndex($notes, (string) $critere['code'], $critere['keywords'], $usedIndexes);
             if ($matchIndex === null) {
                 while (isset($notes[$nextFallback]) && in_array($nextFallback, $usedIndexes, true)) {
                     $nextFallback++;
@@ -519,8 +555,19 @@ final class PvFinalGeneratorService
      * @param array<int, string> $keywords
      * @param array<int, int> $usedIndexes
      */
-    private function findMatchingNoteIndex(array $notes, array $keywords, array $usedIndexes): ?int
+    private function findMatchingNoteIndex(array $notes, string $expectedCode, array $keywords, array $usedIndexes): ?int
     {
+        foreach ($notes as $index => $note) {
+            if (in_array($index, $usedIndexes, true)) {
+                continue;
+            }
+
+            $code = strtoupper(trim((string) ($note['code_critere'] ?? $note['id_critere'] ?? '')));
+            if ($code !== '' && $code === strtoupper($expectedCode)) {
+                return $index;
+            }
+        }
+
         foreach ($notes as $index => $note) {
             if (in_array($index, $usedIndexes, true)) {
                 continue;

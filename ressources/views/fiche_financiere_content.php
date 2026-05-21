@@ -25,7 +25,10 @@ foreach ($listeAnnees as $aa) {
     }
 }
 
-$baseUrl = '?page=fiche_financiere_annee';
+$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$baseUrl = $isHubContext
+    ? '?page=suivi_scolarite&tab=fiche_financiere_annee'
+    : '?page=fiche_financiere_annee';
 $messageSuccess = $_SESSION['success_message'] ?? '';
 $messageErreur = $_SESSION['error_message'] ?? '';
 unset($_SESSION['success_message'], $_SESSION['error_message']);
@@ -54,6 +57,10 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             </div>
             <div>
                 <form method="GET" action="<?= htmlspecialchars($baseUrl) ?>" class="cm-inline-form" style="display:inline-flex;align-items:center;gap:0.5rem;">
+                    <?php if ($isHubContext): ?>
+                        <input type="hidden" name="page" value="suivi_scolarite">
+                        <input type="hidden" name="tab" value="fiche_financiere_annee">
+                    <?php endif; ?>
                     <label for="ficheAnneeSelect" class="cm-text-sm cm-font-medium">Année :</label>
                     <select name="id_annee_acad" id="ficheAnneeSelect"
                             class="cm-field is-md"
@@ -316,10 +323,33 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
         </div>
     </div>
 
-    <!-- Script: modal de détail étudiant -->
+    <div class="cm-card cm-mt-4" id="cmFicheFinanciereDetailCard">
+        <div class="cm-card-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+            <h3 class="cm-card-title">
+                <i class="fas fa-id-card cm-mr-2"></i>Détail étudiant
+            </h3>
+            <div class="cm-text-sm cm-text-gray-500" id="cmFicheFinanciereDetailHint">
+                Cliquez sur une ligne pour afficher le détail ici.
+            </div>
+        </div>
+        <div class="cm-card-body" id="cmFicheFinanciereDetailBody">
+            <div class="cm-empty-state">
+                <i class="fas fa-hand-pointer"></i>
+                <div class="cm-empty-state__content">
+                    <h4>Sélectionner un étudiant</h4>
+                    <p>Le détail des versements et des échéances s'affichera ici sans ouvrir de fenêtre modale.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script: détail étudiant inline -->
     <script>
     (function() {
         const idAnnee = <?= json_encode($idAnnee) ?>;
+        const detailCard = document.getElementById('cmFicheFinanciereDetailCard');
+        const detailBody = document.getElementById('cmFicheFinanciereDetailBody');
+        const detailHint = document.getElementById('cmFicheFinanciereDetailHint');
 
         document.addEventListener('cm:row-click', function(e) {
             var href = e.detail ? e.detail.href : '';
@@ -340,19 +370,31 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
         }
 
         function loadDetailEtudiant(numEtu) {
-            fetch('layout.php?page=fiche_financiere_annee&action=detail_etudiant&num_etu=' + encodeURIComponent(numEtu) + '&id_annee_acad=' + idAnnee, {
+            syncDetailUrl(numEtu);
+
+            if (detailHint) {
+                detailHint.textContent = 'Chargement du détail...';
+            }
+
+            if (detailBody) {
+                detailBody.innerHTML = '<div class="cm-text-center cm-p-4 cm-text-gray-500"><i class="fas fa-spinner fa-spin cm-mr-2"></i>Chargement...</div>';
+            }
+
+            fetch('layout.php?page=' + encodeURIComponent(<?= json_encode($isHubContext ? 'suivi_scolarite' : 'fiche_financiere_annee') ?>) +
+                <?= $isHubContext ? " '&tab=fiche_financiere_annee'" : " ''" ?> +
+                '&action=detail_etudiant&num_etu=' + encodeURIComponent(numEtu) + '&id_annee_acad=' + idAnnee, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (!data.success || !data.data) {
-                    alert('Étudiant non trouvé.');
+                    afficherDetailErreur('Étudiant non trouvé.');
                     return;
                 }
                 afficherDetailEtudiant(data.data);
             })
             .catch(function() {
-                alert('Erreur lors du chargement des données.');
+                afficherDetailErreur('Erreur lors du chargement des données.');
             });
         }
 
@@ -366,11 +408,11 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 var mt = Number(v.montant_verser || 0).toLocaleString('fr-FR');
                 var sd = Number(v.solde || 0).toLocaleString('fr-FR');
                 return '<tr>' +
-                    '<td class="cm-data-table__td is-center">' + (i + 1) + '</td>' +
-                    '<td class="cm-data-table__td is-center">' + dateV + '</td>' +
-                    '<td class="cm-data-table__td is-right">' + mt + ' FCFA</td>' +
-                    '<td class="cm-data-table__td is-left">' + (v.methode_paiement || '-') + '</td>' +
-                    '<td class="cm-data-table__td is-right">' + sd + ' FCFA</td>' +
+                    '<td class="cm-data-table__td is-center">' + htmlEscape(String(i + 1)) + '</td>' +
+                    '<td class="cm-data-table__td is-center">' + htmlEscape(dateV) + '</td>' +
+                    '<td class="cm-data-table__td is-right">' + htmlEscape(mt + ' FCFA') + '</td>' +
+                    '<td class="cm-data-table__td is-left">' + htmlEscape(v.methode_paiement || '-') + '</td>' +
+                    '<td class="cm-data-table__td is-right">' + htmlEscape(sd + ' FCFA') + '</td>' +
                     '</tr>';
             }).join('');
 
@@ -380,46 +422,67 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 var st = e.statut_echeance || 'En attente';
                 var stClass = st === 'Payée' ? 'is-success' : (st === 'En retard' ? 'is-danger' : 'is-warning');
                 return '<tr>' +
-                    '<td class="cm-data-table__td is-center">' + dateE + '</td>' +
-                    '<td class="cm-data-table__td is-right">' + mt + ' FCFA</td>' +
-                    '<td class="cm-data-table__td is-center"><span class="cm-badge ' + stClass + '">' + st + '</span></td>' +
+                    '<td class="cm-data-table__td is-center">' + htmlEscape(dateE) + '</td>' +
+                    '<td class="cm-data-table__td is-right">' + htmlEscape(mt + ' FCFA') + '</td>' +
+                    '<td class="cm-data-table__td is-center"><span class="cm-badge ' + stClass + '">' + htmlEscape(st) + '</span></td>' +
                     '</tr>';
             }).join('');
 
-            var modalHtml =
-                '<div class="cm-modal-overlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:2rem;overflow-y:auto;" onclick="if(event.target===this)this.remove()">' +
-                '<div class="cm-modal" style="background:#fff;border-radius:12px;max-width:900px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">' +
-                '<div class="cm-modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:1.25rem 1.5rem;border-bottom:1px solid #e5e7eb;">' +
-                '<h3 class="cm-text-lg cm-font-bold">' + htmlEscape(etu.nom_etu || '') + ' ' + htmlEscape(etu.prenom_etu || '') + ' (' + htmlEscape(etu.num_carte_etud || '') + ')</h3>' +
-                '<button class="cm-btn is-light is-sm" onclick="this.closest(\'.cm-modal-overlay\').remove()"><i class="fas fa-times"></i></button>' +
-                '</div>' +
-                '<div class="cm-modal-body" style="padding:1.5rem;">' +
-                '<div class="cm-grid-3 cm-gap-4 cm-mb-4">' +
-                '<div class="cm-stat-card is-info"><div class="cm-stat-card__content"><div class="cm-stat-card__value">' + Number(data.montant_scolarite || 0).toLocaleString('fr-FR') + ' FCFA</div><div class="cm-stat-card__label">Scolarité</div></div></div>' +
-                '<div class="cm-stat-card is-success"><div class="cm-stat-card__content"><div class="cm-stat-card__value">' + Number(data.montant_paye || 0).toLocaleString('fr-FR') + ' FCFA</div><div class="cm-stat-card__label">Versé</div></div></div>' +
-                '<div class="cm-stat-card ' + (Number(data.solde || 0) <= 0 ? 'is-success' : 'is-danger') + '"><div class="cm-stat-card__content"><div class="cm-stat-card__value">' + Number(data.solde || 0).toLocaleString('fr-FR') + ' FCFA</div><div class="cm-stat-card__label">Solde</div></div></div>' +
-                '</div>' +
-                '<h4 class="cm-font-bold cm-mb-2"><i class="fas fa-receipt cm-mr-1"></i> Versements</h4>' +
-                '<div class="cm-table-wrapper cm-mb-4" style="max-height:250px;overflow-y:auto;">' +
-                '<table class="cm-data-table cm-data-table--compact">' +
-                '<thead><tr><th class="cm-data-table__th is-center">#</th><th class="cm-data-table__th is-center">Date</th><th class="cm-data-table__th is-right">Montant</th><th class="cm-data-table__th is-left">Mode</th><th class="cm-data-table__th is-right">Solde</th></tr></thead>' +
-                '<tbody>' + (rows || '<tr><td colspan="5" class="cm-data-table__td is-center">Aucun versement</td></tr>') + '</tbody>' +
-                '</table></div>' +
-                '<h4 class="cm-font-bold cm-mb-2"><i class="fas fa-calendar cm-mr-1"></i> Échéances</h4>' +
-                '<div class="cm-table-wrapper" style="max-height:200px;overflow-y:auto;">' +
-                '<table class="cm-data-table cm-data-table--compact">' +
-                '<thead><tr><th class="cm-data-table__th is-center">Date</th><th class="cm-data-table__th is-right">Montant</th><th class="cm-data-table__th is-center">Statut</th></tr></thead>' +
-                '<tbody>' + (echeanceRows || '<tr><td colspan="3" class="cm-data-table__td is-center">Aucune échéance</td></tr>') + '</tbody>' +
-                '</table></div>' +
-                '</div>' +
-                '<div class="cm-modal-footer" style="padding:1rem 1.5rem;border-top:1px solid #e5e7eb;text-align:right;">' +
-                '<button class="cm-btn is-light" onclick="this.closest(\'.cm-modal-overlay\').remove()">Fermer</button>' +
-                '</div>' +
-                '</div></div>';
+            if (detailHint) {
+                detailHint.textContent = 'Détail chargé pour ' + String(etu.nom_etu || '') + ' ' + String(etu.prenom_etu || '') + ' (' + String(etu.num_carte_etud || '') + ')';
+            }
 
-            var div = document.createElement('div');
-            div.innerHTML = modalHtml;
-            document.body.appendChild(div.firstElementChild);
+            if (detailBody) {
+                detailBody.innerHTML =
+                    '<div class="cm-grid-3 cm-gap-4 cm-mb-4">' +
+                    '<div class="cm-stat-card is-info"><div class="cm-stat-card__content"><div class="cm-stat-card__value">' + Number(data.montant_scolarite || 0).toLocaleString('fr-FR') + ' FCFA</div><div class="cm-stat-card__label">Scolarité</div></div></div>' +
+                    '<div class="cm-stat-card is-success"><div class="cm-stat-card__content"><div class="cm-stat-card__value">' + Number(data.montant_paye || 0).toLocaleString('fr-FR') + ' FCFA</div><div class="cm-stat-card__label">Versé</div></div></div>' +
+                    '<div class="cm-stat-card ' + (Number(data.solde || 0) <= 0 ? 'is-success' : 'is-danger') + '"><div class="cm-stat-card__content"><div class="cm-stat-card__value">' + Number(data.solde || 0).toLocaleString('fr-FR') + ' FCFA</div><div class="cm-stat-card__label">Solde</div></div></div>' +
+                    '</div>' +
+                    '<div class="cm-grid-2 cm-gap-4">' +
+                    '<div>' +
+                    '<h4 class="cm-font-bold cm-mb-2"><i class="fas fa-receipt cm-mr-1"></i> Versements</h4>' +
+                    '<div class="cm-table-wrapper" style="max-height:250px;overflow-y:auto;">' +
+                    '<table class="cm-data-table cm-data-table--compact">' +
+                    '<thead><tr><th class="cm-data-table__th is-center">#</th><th class="cm-data-table__th is-center">Date</th><th class="cm-data-table__th is-right">Montant</th><th class="cm-data-table__th is-left">Mode</th><th class="cm-data-table__th is-right">Solde</th></tr></thead>' +
+                    '<tbody>' + (rows || '<tr><td colspan="5" class="cm-data-table__td is-center">Aucun versement</td></tr>') + '</tbody>' +
+                    '</table></div>' +
+                    '</div>' +
+                    '<div>' +
+                    '<h4 class="cm-font-bold cm-mb-2"><i class="fas fa-calendar cm-mr-1"></i> Échéances</h4>' +
+                    '<div class="cm-table-wrapper" style="max-height:250px;overflow-y:auto;">' +
+                    '<table class="cm-data-table cm-data-table--compact">' +
+                    '<thead><tr><th class="cm-data-table__th is-center">Date</th><th class="cm-data-table__th is-right">Montant</th><th class="cm-data-table__th is-center">Statut</th></tr></thead>' +
+                    '<tbody>' + (echeanceRows || '<tr><td colspan="3" class="cm-data-table__td is-center">Aucune échéance</td></tr>') + '</tbody>' +
+                    '</table></div>' +
+                    '</div>' +
+                    '</div>';
+            }
+            if (detailCard) {
+                detailCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function syncDetailUrl(numEtu) {
+            if (!numEtu || !window.history || typeof window.history.replaceState !== 'function') {
+                return;
+            }
+
+            var url = new URL(window.location.href);
+            url.searchParams.set('num_etu', numEtu);
+            if (idAnnee) {
+                url.searchParams.set('id_annee_acad', String(idAnnee));
+            }
+            window.history.replaceState({}, '', url.toString());
+        }
+
+        function afficherDetailErreur(message) {
+            if (detailHint) {
+                detailHint.textContent = message;
+            }
+            if (detailBody) {
+                detailBody.innerHTML = '<div class="cm-alert cm-alert-danger">' + htmlEscape(message) + '</div>';
+            }
         }
 
         function htmlEscape(str) {

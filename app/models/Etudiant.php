@@ -9,6 +9,33 @@ class Etudiant
         $this->db = $db;
     }
 
+    /**
+     * Résout les identifiants connus d'un étudiant à partir d'un matricule
+     * carte ou d'un identifiant MESRS.
+     *
+     * @return array<int, string>
+     */
+    private function resolveStudentIdentifiers($numEtu)
+    {
+        $identifiers = [];
+        $value = trim((string) $numEtu);
+        if ($value !== '') {
+            $identifiers[] = $value;
+        }
+
+        $student = $this->getEtudiantById($numEtu);
+        if ($student) {
+            foreach (['num_carte_etud', 'num_ident_etud'] as $field) {
+                $candidate = trim((string) ($student->$field ?? ''));
+                if ($candidate !== '' && !in_array($candidate, $identifiers, true)) {
+                    $identifiers[] = $candidate;
+                }
+            }
+        }
+
+        return $identifiers;
+    }
+
     private function getAcademicYearLabelById($id_annee_acad)
     {
         if ($id_annee_acad === null || (int) $id_annee_acad <= 0) {
@@ -28,6 +55,15 @@ class Etudiant
             error_log("Erreur lors de la récupération du libellé d'année académique : " . $e->getMessage());
             return '';
         }
+    }
+
+    private function studentInscriptionMatchCondition(string $studentAlias = 'e', string $inscriptionAlias = 'i'): string
+    {
+        return sprintf(
+            '(%2$s.num_carte_etud = %1$s.num_carte_etud OR %2$s.num_carte_etud = %1$s.num_ident_etud)',
+            $studentAlias,
+            $inscriptionAlias
+        );
     }
 
     /**
@@ -62,7 +98,7 @@ class Etudiant
                      LEFT JOIN inscriptions i ON (i.num_carte_etud, i.id_annee_acad, i.num_versement) = (
                          SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement
                          FROM inscriptions i2 
-                         WHERE i2.num_carte_etud = e.num_carte_etud 
+                         WHERE " . $this->studentInscriptionMatchCondition('e', 'i2') . "
                          ORDER BY i2.id_annee_acad DESC, i2.date_inscription DESC, i2.num_versement DESC
                          LIMIT 1
                      )
@@ -77,7 +113,7 @@ class Etudiant
                             OR EXISTS (
                                 SELECT 1
                                 FROM inscriptions i3
-                                WHERE i3.num_carte_etud = e.num_carte_etud
+                                WHERE " . $this->studentInscriptionMatchCondition('e', 'i3') . "
                                   AND i3.id_annee_acad = ?
                             )";
                 $params[] = (int) $id_annee_acad;
@@ -115,7 +151,7 @@ class Etudiant
                       LEFT JOIN inscriptions i ON (i.num_carte_etud, i.id_annee_acad, i.num_versement) = (
                           SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement
                           FROM inscriptions i2
-                          WHERE i2.num_carte_etud = e.num_carte_etud
+                          WHERE " . $this->studentInscriptionMatchCondition('e', 'i2') . "
                           " . (($id_annee_acad !== null && (int) $id_annee_acad > 0) ? "AND i2.id_annee_acad = :annee_lookup " : "") . "
                           ORDER BY i2.id_annee_acad DESC, i2.date_inscription DESC, i2.num_versement DESC
                           LIMIT 1
@@ -133,7 +169,7 @@ class Etudiant
                                 OR EXISTS (
                                     SELECT 1
                                     FROM inscriptions i3
-                                    WHERE i3.num_carte_etud = e.num_carte_etud
+                                    WHERE " . $this->studentInscriptionMatchCondition('e', 'i3') . "
                                       AND i3.id_annee_acad = :annee_exists
                                 )";
                 foreach ($promotionValues as $index => $promotionValue) {
@@ -164,9 +200,13 @@ class Etudiant
     public function getEtudiantById($num_etu)
     {
         try {
-            $query = "SELECT *, num_ident_etud as identifiant_mesrs FROM etudiants WHERE num_carte_etud = :num_etu";
+            $query = "SELECT *, num_ident_etud as identifiant_mesrs
+                      FROM etudiants
+                      WHERE num_carte_etud = :num_etu OR num_ident_etud = :num_etu_alt
+                      LIMIT 1";
             $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':num_etu', $num_etu);
+            $stmt->bindValue(':num_etu', $num_etu);
+            $stmt->bindValue(':num_etu_alt', $num_etu);
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -291,7 +331,7 @@ class Etudiant
     {
         $query = "SELECT e.*, n.lib_niv_etude as niveau_nom, g.libelle_genre 
                  FROM etudiants e 
-                 INNER JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
+                 INNER JOIN inscriptions i ON " . $this->studentInscriptionMatchCondition('e', 'i') . "
                  INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                  LEFT JOIN genre g ON e.id_genre = g.id_genre 
                  WHERE i.id_niv_etude = :niveau_id";
@@ -315,9 +355,19 @@ class Etudiant
 
     public function getCandidature($num_etu)
     {
-        $sql = "SELECT * FROM candidature_soutenance WHERE num_etu = ?";
+        $identifiers = $this->resolveStudentIdentifiers($num_etu);
+        if (empty($identifiers)) {
+            return false;
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($identifiers), '?'));
+        $sql = "SELECT *
+                FROM candidature_soutenance
+                WHERE num_etu IN ($placeholders)
+                ORDER BY date_candidature DESC
+                LIMIT 1";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$num_etu]);
+        $stmt->execute($identifiers);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -332,7 +382,7 @@ class Etudiant
                            ROW_NUMBER() OVER (PARTITION BY i2.num_carte_etud 
                                              ORDER BY i2.id_annee_acad DESC, i2.date_inscription DESC) as rn
                     FROM inscriptions i2
-                ) i ON i.num_carte_etud = e.num_carte_etud AND i.rn = 1
+                ) i ON (" . $this->studentInscriptionMatchCondition('e', 'i') . ") AND i.rn = 1
                 LEFT JOIN annee_academique a ON a.id_annee_acad = i.id_annee_acad
                 ORDER BY cs.date_candidature DESC";
         $stmt = $this->db->prepare($sql);
@@ -631,17 +681,36 @@ class Etudiant
      */
     public function getCandidatures($num_etu)
     {
-        $sql = "SELECT * FROM candidature_soutenance WHERE num_etu = ? ORDER BY date_candidature DESC";
+        $identifiers = $this->resolveStudentIdentifiers($num_etu);
+        if (empty($identifiers)) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($identifiers), '?'));
+        $sql = "SELECT *
+                FROM candidature_soutenance
+                WHERE num_etu IN ($placeholders)
+                ORDER BY date_candidature DESC";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$num_etu]);
+        $stmt->execute($identifiers);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getLastCandidatureByNumEtu($num_etu)
     {
-        $sql = "SELECT * FROM candidature_soutenance WHERE num_etu = ? ORDER BY date_candidature DESC LIMIT 1";
+        $identifiers = $this->resolveStudentIdentifiers($num_etu);
+        if (empty($identifiers)) {
+            return false;
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($identifiers), '?'));
+        $sql = "SELECT *
+                FROM candidature_soutenance
+                WHERE num_etu IN ($placeholders)
+                ORDER BY date_candidature DESC
+                LIMIT 1";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$num_etu]);
+        $stmt->execute($identifiers);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 

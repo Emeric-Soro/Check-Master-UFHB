@@ -59,7 +59,6 @@ $notesEmptyMessage = $effectiveAnneeId
     ? 'Aucune note enregistrée pour cette année académique.'
     : 'Aucune note enregistrée pour les années académiques affichées.';
 $studentOptions = [];
-$studentCatalog = [];
 foreach ($etudiants as $etu) {
     $num = (string) ($etu->num_carte_etud ?? '');
     if ($num === '') {
@@ -70,11 +69,6 @@ foreach ($etudiants as $etu) {
         $label .= ' - ' . \FormattingUtils::formatPromotion($etu->promotion_etu);
     }
     $studentOptions[$num] = $label;
-    $studentCatalog[$num] = [
-        'num' => $num,
-        'nom' => (string) ($etu->nom_etu ?? ''),
-        'prenom' => (string) ($etu->prenom_etu ?? ''),
-    ];
 }
 $selectedStudentId = $selectedStudent ? (string) ($selectedStudent->num_carte_etud ?? '') : '';
 $m1Value = $studentNote ? (string) ($studentNote->moyenne_M1 ?? $studentNote->moyenne_m1 ?? '') : '';
@@ -350,7 +344,6 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
 </div>
 <script>
 (function () {
-    const studentCatalog = <?php echo json_encode($studentCatalog, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const anneeFilter = document.getElementById('cmAnneeFilter');
     const notesLimit = document.getElementById('cmNotesLimit');
     const studentHidden = document.getElementById('cmStudentPicker_hidden');

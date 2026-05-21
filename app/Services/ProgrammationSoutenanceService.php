@@ -44,11 +44,17 @@ class ProgrammationSoutenanceService
                 FROM rapport_etudiants r
                 JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
                 LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
-                " . $this->latestCandidatureJoin('r', 'e', 'cs') . "
                 LEFT JOIN valider v ON v.id_rapport = r.id_rapport
                 WHERE (e.num_carte_etud = ? OR e.num_ident_etud = ?)
                   AND v.decision_validation = 'valider'
-                  " . $this->validatedCandidatureWhere('cs') . "
+                  AND EXISTS (
+                      SELECT 1
+                      FROM compte_rendu cr
+                      LEFT JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
+                      WHERE crr.id_rapport = r.id_rapport
+                         OR cr.num_etu = e.num_carte_etud
+                         OR cr.num_etu = e.num_ident_etud
+                  )
                 ORDER BY COALESCE(d.date_depot, " . $this->rapportDateExpr('r') . ") DESC, r.id_rapport DESC
                 LIMIT 1
             ");
@@ -84,11 +90,17 @@ class ProgrammationSoutenanceService
                 FROM rapport_etudiants r
                 JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
                 LEFT JOIN valider v ON v.id_rapport = r.id_rapport
-                " . $this->latestCandidatureJoin('r', 'e', 'cs') . "
                 LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
                 WHERE (e.num_carte_etud = ? OR e.num_ident_etud = ?)
                   AND v.decision_validation = 'valider'
-                  " . $this->validatedCandidatureWhere('cs') . "
+                  AND EXISTS (
+                      SELECT 1
+                      FROM compte_rendu cr
+                      LEFT JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
+                      WHERE crr.id_rapport = r.id_rapport
+                         OR cr.num_etu = e.num_carte_etud
+                         OR cr.num_etu = e.num_ident_etud
+                  )
             ");
             $stmt->execute([$studentId, $studentId]);
             return (int) $stmt->fetchColumn() > 0;
@@ -551,12 +563,18 @@ class ProgrammationSoutenanceService
                 INNER JOIN rapport_etudiants r ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
                 LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
                 LEFT JOIN valider v ON r.id_rapport = v.id_rapport
-                " . $this->latestCandidatureJoin('r', 'e', 'cs') . "
                 LEFT JOIN informations_stage ist ON (e.num_carte_etud = ist.num_etu OR e.num_ident_etud = ist.num_etu)
                 LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 LEFT JOIN {$progTable} p ON (e.num_carte_etud = p.num_etud OR e.num_ident_etud = p.num_etud)
                 WHERE v.decision_validation = 'valider'
-                " . $this->validatedCandidatureWhere('cs') . "
+                AND EXISTS (
+                    SELECT 1
+                    FROM compte_rendu cr
+                    LEFT JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
+                    WHERE crr.id_rapport = r.id_rapport
+                       OR cr.num_etu = e.num_carte_etud
+                       OR cr.num_etu = e.num_ident_etud
+                )
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
@@ -813,7 +831,7 @@ class ProgrammationSoutenanceService
             }
 
             if (!$this->isStudentProgrammable((string) $data['id_etudiant'])) {
-                throw new Exception('Cet étudiant ne peut pas être programmé tant que sa candidature n\'est pas validée.');
+                throw new Exception('Cet étudiant ne peut pas être programmé tant que son rapport validé n\'a pas de compte rendu.');
             }
 
             $this->ensureWritableStudent((string) $data['id_etudiant'], 'une programmation de soutenance');

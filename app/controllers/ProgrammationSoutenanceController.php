@@ -593,7 +593,7 @@ class ProgrammationSoutenanceController
         $db = new AppDatabase();
         $pdfGenerator = new PdfGeneratorService(
             __DIR__ . '/../../storage/documents',
-            __DIR__ . '/../../public/assets/img/logo.png'
+            __DIR__ . '/../../public/image/logo_ufhb.png'
         );
 
         $this->planningDataUtils = new PlanningDataUtils($db);

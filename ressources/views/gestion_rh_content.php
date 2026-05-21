@@ -117,6 +117,15 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
                 ['key' => 'lib_fonction', 'label' => 'Fonction'],
                 ['key' => 'mail_enseignant', 'label' => 'E-mail'],
             ],
+            'toolbar_custom_actions' => [
+                [
+                    'tag' => 'a',
+                    'href' => '?page=maj_enseignant&tab=enseignant&action=importer',
+                    'label' => 'Importer',
+                    'icon' => 'fa-file-import',
+                    'class' => 'cm-btn is-secondary is-sm',
+                ],
+            ],
         ]);
     } else {
         cm_render_param_crud_view([
@@ -165,6 +174,15 @@ $tabEnsUrl = '?page=' . rawurlencode($pageSlug) . '&tab=enseignant';
                 ['key' => 'tel_pers_admin', 'label' => 'Téléphone'],
                 ['key' => 'poste', 'label' => 'Poste'],
                 ['key' => 'date_embauche', 'label' => "Date d'embauche"],
+            ],
+            'toolbar_custom_actions' => [
+                [
+                    'tag' => 'a',
+                    'href' => '?page=maj_personnel_admin&tab=pers_admin&action=importer',
+                    'label' => 'Importer',
+                    'icon' => 'fa-file-import',
+                    'class' => 'cm-btn is-secondary is-sm',
+                ],
             ],
         ]);
     }
