@@ -249,7 +249,7 @@ foreach ($membresCommission as $membre) {
                                         break;
                                     }
                                 }
-                                $canAdminGroupVote = (int) ($_SESSION['id_GU'] ?? 0) === 5
+                                $canAdminGroupVote = isAdmin()
                                     && $hasAdminVote
                                     && empty($vote['finalise'])
                                     && (int) ($vote['total_votes'] ?? 0) > 0
@@ -280,14 +280,13 @@ foreach ($membresCommission as $membre) {
                                                 title="Voir détails">
                                                 <i class="fas fa-eye" aria-hidden="true"></i>
                                             </a>
-                                            <button type="button" class="cm-btn-action is-view"
-                                                title="Voir rapport"
+                                            <button type="button" class="cm-btn-action is-view" title="Voir rapport"
                                                 onclick="CM.openDocViewer('rapport', '<?php echo htmlspecialchars((string) $idRapport, ENT_QUOTES, 'UTF-8'); ?>', {title: 'Rapport #<?php echo htmlspecialchars((string) $idRapport, ENT_QUOTES, 'UTF-8'); ?>'})">
                                                 <i class="fas fa-file-pdf" aria-hidden="true"></i>
                                             </button>
                                             <?php if ($canAdminGroupVote && (function_exists('canEdit') ? canEdit() : true)): ?>
-                                                <form method="POST" action="?page=processus_validation&amp;action=vote_groupe_admin" data-cm-ajax-form="true"
-                                                    class="cm-inline-admin-group-vote-form"
+                                                <form method="POST" action="?page=processus_validation&amp;action=vote_groupe_admin"
+                                                    data-cm-ajax-form="true" class="cm-inline-admin-group-vote-form"
                                                     style="display:inline-flex;">
                                                     <?php cm_component('form/csrf-token'); ?>
                                                     <input type="hidden" name="id_rapport" value="<?php echo $idRapport; ?>">
@@ -307,8 +306,8 @@ foreach ($membresCommission as $membre) {
                                                         max-width: 10ch !important;
                                                     }
                                                 </style>
-                                                <form method="POST" action="?page=processus_validation&amp;action=finaliser" data-cm-ajax-form="true"
-                                                    class="cm-inline-finalize-form"
+                                                <form method="POST" action="?page=processus_validation&amp;action=finaliser"
+                                                    data-cm-ajax-form="true" class="cm-inline-finalize-form"
                                                     style="display:inline-flex; align-items:center; gap:6px;">
                                                     <?php cm_component('form/csrf-token'); ?>
                                                     <input type="hidden" name="id_rapport" value="<?php echo $idRapport; ?>">

@@ -269,6 +269,7 @@ final class DocumentStorageService
                 : null,
             'fiche_inscription' => $this->findLatestByEntity('inscriptions', $id, ['fiche_inscription']),
             'recu' => $this->findLatestByEntity('inscriptions', $id, ['recu']),
+            'memoire' => $this->findLatestByEntity('programmer_soutenance', $id, ['memoire'], null, 'application/pdf'),
             'pv_commission' => ctype_digit($id)
                 ? $this->findLatestByEntity('compte_rendu', $id, ['pv_commission'], null, 'application/pdf')
                 : null,
@@ -459,6 +460,7 @@ final class DocumentStorageService
             'rapport' => $typeDocument === 'rapport',
             'fiche_inscription' => $typeDocument === 'fiche_inscription',
             'recu' => $typeDocument === 'recu',
+            'memoire' => $typeDocument === 'memoire',
             'pv_commission' => $typeDocument === 'pv_commission',
             'pv_final' => $typeDocument === 'pv_final',
             'planning' => $typeDocument === 'planning',

@@ -3,8 +3,11 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/Document/DocumentStorageService.php';
 require_once __DIR__ . '/../utils/FormattingUtils.php';
+require_once __DIR__ . '/../utils/NotificationService.php';
+require_once __DIR__ . '/../Security/PermissionRegistry.php';
 
 use App\Services\Document\DocumentStorageService;
+use CheckMaster\Security\PermissionRegistry;
 
 final class MiseEnLigneMemoireService
 {
@@ -12,6 +15,12 @@ final class MiseEnLigneMemoireService
 
     private PDO $db;
     private DocumentStorageService $storage;
+
+    /** @var array<string,bool> */
+    private array $tableExistsCache = [];
+
+    /** @var array<string,bool> */
+    private array $columnExistsCache = [];
 
     public function __construct(PDO $db)
     {
@@ -30,22 +39,26 @@ final class MiseEnLigneMemoireService
     public function uploadMemoire(array $post, array $files, ?int $userId = null): array
     {
         if (!$this->storage->isAvailable()) {
-            return ['success' => false, 'message' => 'Le registre documentaire n’est pas disponible.'];
+            return ['success' => false, 'message' => 'Le registre documentaire n\'est pas disponible.'];
         }
 
         $numEtu = trim((string) ($post['num_etu'] ?? ''));
         if ($numEtu === '') {
-            return ['success' => false, 'message' => 'Veuillez sélectionner un étudiant.'];
+            return ['success' => false, 'message' => 'Veuillez selectionner un etudiant.'];
+        }
+
+        if (!$this->isMemoireUploadAllowed($numEtu)) {
+            return ['success' => false, 'message' => 'Le rapport de cet etudiant n\'a pas encore ete valide par la commission.'];
         }
 
         $soutenance = $this->findLatestSoutenanceByStudent($numEtu);
         if ($soutenance === null) {
-            return ['success' => false, 'message' => 'Aucune soutenance trouvée pour cet étudiant.'];
+            return ['success' => false, 'message' => 'Aucune soutenance trouvee pour cet etudiant.'];
         }
 
         $file = $files['memoire_pdf'] ?? null;
         if (!is_array($file) || (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            return ['success' => false, 'message' => 'Veuillez sélectionner un fichier PDF valide.'];
+            return ['success' => false, 'message' => 'Veuillez selectionner un fichier PDF valide.'];
         }
 
         $tmpName = (string) ($file['tmp_name'] ?? '');
@@ -53,20 +66,20 @@ final class MiseEnLigneMemoireService
         $size = (int) ($file['size'] ?? 0);
 
         if ($tmpName === '' || !is_uploaded_file($tmpName)) {
-            return ['success' => false, 'message' => 'Le fichier uploadé est introuvable.'];
+            return ['success' => false, 'message' => 'Le fichier uploade est introuvable.'];
         }
 
         if ($size <= 0) {
-            return ['success' => false, 'message' => 'Le fichier sélectionné est vide.'];
+            return ['success' => false, 'message' => 'Le fichier selectionne est vide.'];
         }
 
         if ($size > self::MAX_FILE_SIZE) {
-            return ['success' => false, 'message' => 'Le fichier dépasse la taille maximale autorisée de 20 MB.'];
+            return ['success' => false, 'message' => 'Le fichier depasse la taille maximale autorisee de 20 MB.'];
         }
 
         $extension = strtolower((string) pathinfo($originalName, PATHINFO_EXTENSION));
         if ($extension !== 'pdf') {
-            return ['success' => false, 'message' => 'Seuls les fichiers PDF sont autorisés.'];
+            return ['success' => false, 'message' => 'Seuls les fichiers PDF sont autorises.'];
         }
 
         $mimeType = 'application/pdf';
@@ -82,7 +95,7 @@ final class MiseEnLigneMemoireService
         }
 
         if (stripos($mimeType, 'pdf') === false) {
-            return ['success' => false, 'message' => 'Le fichier transmis n’est pas reconnu comme un PDF.'];
+            return ['success' => false, 'message' => 'Le fichier transmis n\'est pas reconnu comme un PDF.'];
         }
 
         $content = file_get_contents($tmpName);
@@ -109,21 +122,23 @@ final class MiseEnLigneMemoireService
         );
 
         if (!is_array($document)) {
-            return ['success' => false, 'message' => 'L’enregistrement du mémoire a échoué.'];
+            return ['success' => false, 'message' => 'L\'enregistrement du memoire a echoue.'];
         }
 
-        return ['success' => true, 'message' => 'Mémoire mis en ligne avec succès.'];
+        $this->notifyMemoireValidators($soutenance, $document);
+
+        return ['success' => true, 'message' => 'Memoire mis en ligne avec succes.'];
     }
 
     public function supprimerMemoire(string $numEtu): array
     {
         if (!$this->storage->isAvailable()) {
-            return ['success' => false, 'message' => 'Le registre documentaire n’est pas disponible.'];
+            return ['success' => false, 'message' => 'Le registre documentaire n\'est pas disponible.'];
         }
 
         $document = $this->findActiveMemoireByStudent($numEtu);
         if ($document === null) {
-            return ['success' => false, 'message' => 'Aucun mémoire actif à supprimer.'];
+            return ['success' => false, 'message' => 'Aucun memoire actif a supprimer.'];
         }
 
         $stmt = $this->db->prepare(
@@ -138,7 +153,7 @@ final class MiseEnLigneMemoireService
             return ['success' => false, 'message' => 'Suppression impossible.'];
         }
 
-        return ['success' => true, 'message' => 'Mémoire supprimé avec succès.'];
+        return ['success' => true, 'message' => 'Memoire supprime avec succes.'];
     }
 
     public function getMemoireDocumentByStudent(string $numEtu): ?array
@@ -189,7 +204,7 @@ final class MiseEnLigneMemoireService
         $items = [];
         foreach ($rows as $row) {
             $numEtu = trim((string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? $row['num_etud'] ?? ''));
-            if ($numEtu === '' || isset($seen[$numEtu])) {
+            if ($numEtu === '' || isset($seen[$numEtu]) || !$this->isMemoireUploadAllowed($numEtu)) {
                 continue;
             }
             $seen[$numEtu] = true;
@@ -199,7 +214,9 @@ final class MiseEnLigneMemoireService
                 'num_soutenance' => (string) ($row['num_soutenance'] ?? ''),
                 'nom_complet' => trim((string) ($row['nom_etu'] ?? '') . ' ' . (string) ($row['prenom_etu'] ?? '')),
                 'promotion' => $this->formatPromotion($row),
+                'promotion_etu' => (string) ($row['promotion_etu'] ?? ''),
                 'theme' => (string) ($row['theme_soutenance'] ?? ''),
+                'theme_soutenance' => (string) ($row['theme_soutenance'] ?? ''),
                 'date_soutenance' => (string) ($row['date_soutenance'] ?? ''),
             ];
         }
@@ -264,19 +281,29 @@ final class MiseEnLigneMemoireService
                 'id_document' => (int) ($row['id_document'] ?? 0),
                 'num_etu' => $numEtu,
                 'num_soutenance' => (string) ($row['num_soutenance'] ?? ''),
+                'nom_etu' => (string) ($row['nom_etu'] ?? ''),
+                'prenom_etu' => (string) ($row['prenom_etu'] ?? ''),
                 'nom_etudiant' => trim((string) ($row['nom_etu'] ?? '') . ' ' . (string) ($row['prenom_etu'] ?? '')),
                 'matricule' => $numEtu,
                 'promotion' => $this->formatPromotion($row),
+                'promotion_etu' => (string) ($row['promotion_etu'] ?? ''),
                 'theme' => (string) ($row['theme_soutenance'] ?? ''),
+                'theme_soutenance' => (string) ($row['theme_soutenance'] ?? ''),
                 'fichier' => (string) ($row['nom_fichier'] ?? ''),
+                'nom_fichier' => (string) ($row['nom_fichier'] ?? ''),
                 'date_depot' => (string) ($row['date_creation'] ?? ''),
+                'date_creation' => (string) ($row['date_creation'] ?? ''),
                 'taille' => $this->formatFileSize((int) ($row['taille_fichier'] ?? 0)),
+                'taille_fichier' => (int) ($row['taille_fichier'] ?? 0),
             ];
         }
 
         return $items;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     private function findLatestSoutenanceByStudent(string $numEtu): ?array
     {
         $sql = 'SELECT
@@ -285,10 +312,16 @@ final class MiseEnLigneMemoireService
                     ps.theme_soutenance,
                     ps.date_soutenance,
                     e.num_carte_etud,
-                    e.num_ident_etud
+                    e.num_ident_etud,
+                    e.nom_etu,
+                    e.prenom_etu,
+                    e.promotion_etu,
+                    aa.date_deb,
+                    aa.date_fin
                 FROM programmer_soutenance ps
                 INNER JOIN etudiants e
                     ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
+                LEFT JOIN annee_academique aa ON aa.id_annee_acad = ps.id_annee_acad
                 WHERE (ps.num_etud = :num_etu
                     OR e.num_carte_etud = :num_etu
                     OR e.num_ident_etud = :num_etu)';
@@ -318,6 +351,8 @@ final class MiseEnLigneMemoireService
             'num_etu' => trim((string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? $row['num_etud'] ?? $numEtu)),
             'theme' => (string) ($row['theme_soutenance'] ?? ''),
             'date_soutenance' => (string) ($row['date_soutenance'] ?? ''),
+            'nom_etudiant' => trim((string) ($row['nom_etu'] ?? '') . ' ' . (string) ($row['prenom_etu'] ?? '')),
+            'promotion' => $this->formatPromotion($row),
         ];
     }
 
@@ -379,5 +414,282 @@ final class MiseEnLigneMemoireService
         }
 
         return number_format($bytes / 1048576, 2, ',', ' ');
+    }
+
+    private function tableExists(string $tableName): bool
+    {
+        if (array_key_exists($tableName, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$tableName];
+        }
+
+        try {
+            $stmt = $this->db->prepare('SHOW TABLES LIKE ?');
+            $stmt->execute([$tableName]);
+            $exists = (bool) $stmt->fetchColumn();
+            $this->tableExistsCache[$tableName] = $exists;
+            return $exists;
+        } catch (\Throwable) {
+            $this->tableExistsCache[$tableName] = false;
+            return false;
+        }
+    }
+
+    private function columnExists(string $tableName, string $columnName): bool
+    {
+        $cacheKey = strtolower($tableName . '.' . $columnName);
+        if (array_key_exists($cacheKey, $this->columnExistsCache)) {
+            return $this->columnExistsCache[$cacheKey];
+        }
+
+        if (!$this->tableExists($tableName)) {
+            $this->columnExistsCache[$cacheKey] = false;
+            return false;
+        }
+
+        try {
+            $stmt = $this->db->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
+            $stmt->execute([$columnName]);
+            $exists = (bool) $stmt->fetchColumn();
+            $this->columnExistsCache[$cacheKey] = $exists;
+            return $exists;
+        } catch (\Throwable) {
+            $this->columnExistsCache[$cacheKey] = false;
+            return false;
+        }
+    }
+
+    private function resolveRapportOrderColumn(): ?string
+    {
+        if ($this->columnExists('rapport_etudiants', 'date_rapport')) {
+            return 'date_rapport';
+        }
+        if ($this->columnExists('rapport_etudiants', 'date_redaction_rapport')) {
+            return 'date_redaction_rapport';
+        }
+        return null;
+    }
+
+    /**
+     * @return array<string,mixed>|null
+     */
+    private function findLatestRapportByStudent(string $numEtu): ?array
+    {
+        if ($numEtu === '' || !$this->tableExists('rapport_etudiants')) {
+            return null;
+        }
+
+        $orderColumn = $this->resolveRapportOrderColumn();
+        $orderBy = $orderColumn !== null
+            ? "ORDER BY r.{$orderColumn} DESC, r.id_rapport DESC"
+            : 'ORDER BY r.id_rapport DESC';
+
+        $etapeSelect = $this->columnExists('rapport_etudiants', 'etape_validation')
+            ? 'COALESCE(r.etape_validation, "") AS etape_validation,'
+            : '"" AS etape_validation,';
+
+        try {
+            $stmt = $this->db->prepare("
+                SELECT
+                    r.id_rapport,
+                    {$etapeSelect}
+                    COALESCE(r.statut_rapport, '') AS statut_rapport
+                FROM rapport_etudiants r
+                LEFT JOIN etudiants e
+                    ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
+                WHERE r.num_etu = :num_etu
+                   OR e.num_carte_etud = :num_etu
+                   OR e.num_ident_etud = :num_etu
+                {$orderBy}
+                LIMIT 1
+            ");
+            $stmt->execute([':num_etu' => $numEtu]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return is_array($row) ? $row : null;
+        } catch (\Throwable $e) {
+            error_log('[MiseEnLigneMemoireService] latest rapport lookup failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function isMemoireUploadAllowed(string $numEtu): bool
+    {
+        $rapport = $this->findLatestRapportByStudent($numEtu);
+        if (!is_array($rapport)) {
+            return false;
+        }
+
+        $etape = strtolower(trim((string) ($rapport['etape_validation'] ?? '')));
+        if ($etape !== '' && in_array($etape, ['valide', 'approuve_commission'], true)) {
+            return true;
+        }
+
+        if ($etape === '' && in_array(strtolower(trim((string) ($rapport['statut_rapport'] ?? ''))), ['valider', 'valide'], true)) {
+            return true;
+        }
+
+        if (!$this->tableExists('valider')) {
+            return false;
+        }
+
+        try {
+            $stmt = $this->db->prepare("
+                SELECT decision_validation
+                FROM valider
+                WHERE id_rapport = ?
+                ORDER BY date_validation DESC
+                LIMIT 1
+            ");
+            $stmt->execute([(int) ($rapport['id_rapport'] ?? 0)]);
+            $decision = strtolower(trim((string) ($stmt->fetchColumn() ?: '')));
+            return $decision === 'valider';
+        } catch (\Throwable $e) {
+            error_log('[MiseEnLigneMemoireService] rapport validation lookup failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * @return array<string,array<string,string>>
+     */
+    private function resolveEncadrementForMemoire(?int $rapportId, string $numSoutenance): array
+    {
+        $roles = [];
+
+        if ($rapportId !== null && $rapportId > 0 && $this->tableExists('affecter')) {
+            $stmt = $this->db->prepare("
+                SELECT a.role, a.id_enseignant,
+                       CONCAT(COALESCE(e.prenom_enseignant, ''), ' ', COALESCE(e.nom_enseignant, '')) AS nom,
+                       e.mail_enseignant AS email
+                FROM affecter a
+                JOIN enseignants e ON e.id_enseignant = a.id_enseignant
+                WHERE a.id_rapport = ?
+            ");
+            $stmt->execute([$rapportId]);
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $role = strtolower(trim((string) ($row['role'] ?? '')));
+                if (!in_array($role, ['directeur', 'encadrant'], true) || isset($roles[$role])) {
+                    continue;
+                }
+
+                $roles[$role] = [
+                    'id_enseignant' => (string) ($row['id_enseignant'] ?? ''),
+                    'nom' => trim((string) ($row['nom'] ?? '')),
+                    'email' => trim((string) ($row['email'] ?? '')),
+                ];
+            }
+        }
+
+        if (
+            (!isset($roles['directeur']) || !isset($roles['encadrant']))
+            && $numSoutenance !== ''
+            && $this->tableExists('enseignant_jury')
+            && $this->tableExists('qualite_jury')
+        ) {
+            $stmt = $this->db->prepare("
+                SELECT ej.id_enseignant, qj.lib_role,
+                       CONCAT(COALESCE(e.prenom_enseignant, ''), ' ', COALESCE(e.nom_enseignant, '')) AS nom,
+                       e.mail_enseignant AS email
+                FROM enseignant_jury ej
+                JOIN qualite_jury qj ON ej.id_qualite_jury = qj.id_role_jury
+                JOIN enseignants e ON e.id_enseignant = ej.id_enseignant
+                WHERE ej.num_soutenance = ?
+            ");
+            $stmt->execute([$numSoutenance]);
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $roleRaw = strtoupper(trim((string) ($row['lib_role'] ?? '')));
+                $resolvedRole = null;
+                if (str_contains($roleRaw, 'DIRECT')) {
+                    $resolvedRole = 'directeur';
+                } elseif (str_contains($roleRaw, 'ENCADR')) {
+                    $resolvedRole = 'encadrant';
+                }
+
+                if ($resolvedRole === null || isset($roles[$resolvedRole])) {
+                    continue;
+                }
+
+                $roles[$resolvedRole] = [
+                    'id_enseignant' => (string) ($row['id_enseignant'] ?? ''),
+                    'nom' => trim((string) ($row['nom'] ?? '')),
+                    'email' => trim((string) ($row['email'] ?? '')),
+                ];
+            }
+        }
+
+        return $roles;
+    }
+
+    /**
+     * @return array<int,int>
+     */
+    private function getResponsableFiliereGroupIds(): array
+    {
+        $groups = PermissionRegistry::groups();
+        $ids = [];
+
+        if (isset($groups['responsable_filiere'])) {
+            $ids[] = (int) $groups['responsable_filiere'];
+        }
+        if (isset($groups['admin_responsable_filiere'])) {
+            $ids[] = (int) $groups['admin_responsable_filiere'];
+        }
+
+        return array_values(array_unique(array_filter($ids, static fn($id) => $id > 0)));
+    }
+
+    /**
+     * @param array<string,mixed> $soutenance
+     * @param array<string,mixed> $document
+     */
+    private function notifyMemoireValidators(array $soutenance, array $document): void
+    {
+        try {
+            $numEtu = trim((string) ($soutenance['num_etu'] ?? ''));
+            $numSoutenance = trim((string) ($soutenance['num_soutenance'] ?? ''));
+            $rapport = $this->findLatestRapportByStudent($numEtu);
+            $rapportId = is_array($rapport) ? (int) ($rapport['id_rapport'] ?? 0) : 0;
+            $encadrement = $this->resolveEncadrementForMemoire($rapportId > 0 ? $rapportId : null, $numSoutenance);
+
+            $notificationService = new NotificationService($this->db);
+            $emailService = $notificationService->getEmailService();
+            $baseData = [
+                'nom_etudiant' => htmlspecialchars((string) ($soutenance['nom_etudiant'] ?? 'Etudiant'), ENT_QUOTES, 'UTF-8'),
+                'theme' => htmlspecialchars((string) ($soutenance['theme'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'promotion' => htmlspecialchars((string) ($soutenance['promotion'] ?? '-'), ENT_QUOTES, 'UTF-8'),
+                'nom_fichier' => htmlspecialchars((string) ($document['nom_fichier'] ?? 'memoire.pdf'), ENT_QUOTES, 'UTF-8'),
+                'num_soutenance' => htmlspecialchars($numSoutenance, ENT_QUOTES, 'UTF-8'),
+            ];
+
+            $roleLabels = [
+                'directeur' => 'Directeur de memoire',
+                'encadrant' => 'Encadrant',
+            ];
+
+            $alreadySent = [];
+            foreach ($encadrement as $role => $recipient) {
+                $email = strtolower(trim((string) ($recipient['email'] ?? '')));
+                if ($email === '' || isset($alreadySent[$email])) {
+                    continue;
+                }
+
+                $sent = $emailService->sendTemplate('MEMOIRE_A_VALIDER', $email, $baseData + [
+                    'nom' => htmlspecialchars((string) ($recipient['nom'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                    'role_validateur' => $roleLabels[$role] ?? ucfirst($role),
+                ]);
+
+                if ($sent) {
+                    $alreadySent[$email] = true;
+                }
+            }
+
+            $responsableGroupIds = $this->getResponsableFiliereGroupIds();
+            if ($responsableGroupIds !== []) {
+                $notificationService->sendToUserGroups($responsableGroupIds, 'MEMOIRE_A_VALIDER', $baseData + [
+                    'role_validateur' => 'Responsable de filiere',
+                ]);
+            }
+        } catch (\Throwable $e) {
+            error_log('[MiseEnLigneMemoireService] notification memoire failed: ' . $e->getMessage());
+        }
     }
 }

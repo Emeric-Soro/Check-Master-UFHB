@@ -37,7 +37,7 @@ class DocViewerController
     private ?RecuDataUtils $recuDataUtils = null;
 
     private const ALLOWED_TYPES = [
-        'rapport', 'recu', 'pv_commission', 'pv_final',
+        'rapport', 'recu', 'memoire', 'pv_commission', 'pv_final',
         'planning', 'bulletin', 'compte_rendu', 'fiche_inscription',
     ];
 

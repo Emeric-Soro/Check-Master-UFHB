@@ -25,7 +25,7 @@
         <?php endif; ?>
 
         <div class="bg-gray-50 rounded-lg p-6 mb-6">
-            
+
             <ul class="space-y-3">
                 <li class="flex items-start">
                     <i class="fas fa-arrow-right text-blue-500 mt-1 mr-3"></i>
@@ -96,7 +96,7 @@
         ?>
     </div>
 
-    <?php if (isset($_SESSION['id_GU']) && $_SESSION['id_GU'] == 5): ?>
+    <?php if (isAdmin()): ?>
         <!-- Section de debug pour l'administrateur -->
         <div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
 

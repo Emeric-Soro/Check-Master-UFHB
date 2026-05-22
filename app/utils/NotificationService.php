@@ -51,13 +51,13 @@ class NotificationService
 
         $alreadySent = [];
         foreach ($recipients as $r) {
-            $email = strtolower(trim((string)($r['email'] ?? '')));
+            $email = strtolower(trim((string) ($r['email'] ?? '')));
             if ($email === '' || isset($alreadySent[$email])) {
                 continue;
             }
             $d = $data;
             if (!isset($d['nom'])) {
-                $d['nom'] = trim((string)($r['nom'] ?? ''));
+                $d['nom'] = trim((string) ($r['nom'] ?? ''));
             }
             if ($this->emailService->sendTemplate($templateKey, $email, $d)) {
                 $alreadySent[$email] = true;
@@ -90,7 +90,7 @@ class NotificationService
         $recipients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($recipients as $r) {
-            $email = strtolower(trim((string)($r['email'] ?? '')));
+            $email = strtolower(trim((string) ($r['email'] ?? '')));
             if ($email === '' || isset($alreadyNotified[$email])) {
                 continue;
             }
@@ -126,7 +126,7 @@ class NotificationService
         }
         $stmt = $this->pdo->prepare("SELECT CONCAT(prenom_enseignant, ' ', nom_enseignant) FROM enseignants WHERE id_enseignant = ?");
         $stmt->execute([$enseignantId]);
-        return (string)$stmt->fetchColumn();
+        return (string) $stmt->fetchColumn();
     }
 
     /**
@@ -173,6 +173,6 @@ class NotificationService
      */
     public function getAdminGroupIds(): array
     {
-        return [5, 6, 7, 8];
+        return [5, 6, 7, 8, 14];
     }
 }

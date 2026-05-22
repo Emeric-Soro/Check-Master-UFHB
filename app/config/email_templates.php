@@ -607,6 +607,40 @@ return [
             '
         ],
 
+        'MEMOIRE_A_VALIDER' => [
+            'subject' => 'Memoire disponible pour validation',
+            'body' => '
+                <p class="greeting">Bonjour <strong>{{nom}}</strong>,</p>
+                <p>Un memoire a ete depose sur la plateforme et requiert votre validation en qualite de <strong>{{role_validateur}}</strong>.</p>
+
+                <div class="cm-alert cm-alert-info">
+                    <h4 class="cm-alert-title text-info">Informations du memoire</h4>
+                    <table class="info-table">
+                        <tr>
+                            <td class="info-label">Etudiant :</td>
+                            <td class="info-value"><strong>{{nom_etudiant}}</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="info-label">Promotion :</td>
+                            <td class="info-value">{{promotion}}</td>
+                        </tr>
+                        <tr>
+                            <td class="info-label">Theme :</td>
+                            <td class="info-value">{{theme}}</td>
+                        </tr>
+                        <tr>
+                            <td class="info-label">Fichier :</td>
+                            <td class="info-value">{{nom_fichier}}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <p>Le document est accessible depuis l\'espace de validation des memoires sur la plateforme Check Master.</p>
+
+                <p style="margin-top: 24px;">Cordialement,<br>Check Master</p>
+            '
+        ],
+
         'AJOUT_JURY' => [
             'subject' => 'Assignation au jury de soutenance',
             'body' => '

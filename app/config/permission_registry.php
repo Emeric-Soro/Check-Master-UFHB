@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 $groups = [
     'administrateur' => 5,
+    'admin_responsable_filiere' => 14,
     'secretaire' => 6,
     'charge_communication' => 7,
     'responsable_scolarite' => 8,
@@ -37,25 +38,31 @@ foreach ($groups as $groupId) {
 $categoryDefaults = [
     'ADMIN_PLATEFORME' => [
         $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
     ],
     'SCOLARITE' => [
         $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
         $groups['responsable_scolarite'] => $full,
     ],
     'ETUDIANT_ENV' => [
         $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
         $groups['etudiant'] => $view,
     ],
     'COMMISSION' => [
         $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
         $groups['commission'] => $full,
     ],
     'SOUTENANCE' => [
         $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
         $groups['commission'] => $full,
     ],
     'ENV_ENSEIGNANT' => [
         $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
         $groups['responsable_filiere'] => $view,
         $groups['responsable_niveau'] => $view,
         $groups['commission'] => $view,
@@ -182,6 +189,24 @@ $addFeature([
     'existing_codes' => ['DASH_ENSEIGNANT'],
     'routes' => [
         ['pattern' => 'page=dashboard_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+]);
+
+$addFeature([
+    'slug' => 'validation_memoires',
+    'code' => 'MEMOIRE_VALIDATION',
+    'label' => 'Validation des memoires',
+    'category_code' => 'ENV_ENSEIGNANT',
+    'menu_url' => '?page=validation_memoires',
+    'routes' => [
+        ['pattern' => 'page=validation_memoires', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=validation_memoires&action=enregistrer_decision', 'method' => 'POST', 'crud' => 'modifier'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
+        $groups['responsable_filiere'] => $viewEdit,
+        $groups['enseignant'] => $viewEdit,
     ],
 ]);
 
