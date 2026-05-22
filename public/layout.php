@@ -982,6 +982,10 @@ switch ($currentMenuSlug) {
         $contentFile = $partialsBasePath . 'mise_en_ligne_memoire_content.php';
         $currentPageLabel = 'Mise en ligne des mémoires';
         break;
+    case 'validation_memoires':
+        $contentFile = $partialsBasePath . 'validation_memoires_content.php';
+        $currentPageLabel = 'Validation des memoires';
+        break;
     case 'export_masse_documents':
         $contentFile = $partialsBasePath . 'export_masse_documents_content.php';
         $currentPageLabel = 'Export masse documents';
@@ -1276,6 +1280,7 @@ $canonicalPageLabels = [
     'maj_enseignant' => 'Mise à jour enseignant',
     'maj_personnel_admin' => 'Mise à jour personnel administratif',
     'mise_en_ligne_memoire' => 'Mise en ligne des mémoires',
+    'validation_memoires' => 'Validation des memoires',
     'parametres_generaux' => 'Paramètres généraux',
     'parametres_specifiques' => 'Paramètres spécifiques',
     'piste_audit' => "Piste d'audit",

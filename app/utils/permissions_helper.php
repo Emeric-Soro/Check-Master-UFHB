@@ -206,7 +206,15 @@ if (!function_exists('getPermissionCaps')) {
 if (!function_exists('isAdmin')) {
     function isAdmin()
     {
-        $adminGroupId = PermissionRegistry::groups()['administrateur'] ?? null;
-        return isset($_SESSION['id_GU']) && $adminGroupId !== null && (int) $_SESSION['id_GU'] === (int) $adminGroupId;
+        $groups = PermissionRegistry::groups();
+        $adminGroupId = $groups['administrateur'] ?? null;
+        $adminResponsableId = $groups['admin_responsable_filiere'] ?? null;
+        if (!isset($_SESSION['id_GU'])) {
+            return false;
+        }
+
+        $currentGroupId = (int) $_SESSION['id_GU'];
+        return ($adminGroupId !== null && $currentGroupId === (int) $adminGroupId)
+            || ($adminResponsableId !== null && $currentGroupId === (int) $adminResponsableId);
     }
 }

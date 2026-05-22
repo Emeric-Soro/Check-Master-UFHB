@@ -280,8 +280,7 @@ foreach ($membresCommission as $membre) {
                                                 title="Voir détails">
                                                 <i class="fas fa-eye" aria-hidden="true"></i>
                                             </a>
-                                            <button type="button" class="cm-btn-action is-view"
-                                                title="Voir rapport"
+                                            <button type="button" class="cm-btn-action is-view" title="Voir rapport"
                                                 onclick="CM.openDocViewer('rapport', '<?php echo htmlspecialchars((string) $idRapport, ENT_QUOTES, 'UTF-8'); ?>', {title: 'Rapport #<?php echo htmlspecialchars((string) $idRapport, ENT_QUOTES, 'UTF-8'); ?>'})">
                                                 <i class="fas fa-file-pdf" aria-hidden="true"></i>
                                             </button>

@@ -4,9 +4,11 @@ namespace CheckMaster\Services;
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/EvaluationRapport.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
+require_once __DIR__ . '/../Security/PermissionRegistry.php';
 
 use PDO;
 use Exception;
+use CheckMaster\Security\PermissionRegistry;
 
 /**
  * Service métier pour le processus de validation des rapports
@@ -217,6 +219,20 @@ class ProcessusValidationService
 
     private function enseignantResolutionSubquery(string $userAlias = 'u'): string
     {
+
+            private function getAdminLikeGroupIds(): array
+            {
+                $groups = PermissionRegistry::groups();
+                $ids = [];
+                if (isset($groups['administrateur'])) {
+                    $ids[] = (int) $groups['administrateur'];
+                }
+                if (isset($groups['admin_responsable_filiere'])) {
+                    $ids[] = (int) $groups['admin_responsable_filiere'];
+                }
+
+                return array_values(array_unique(array_filter($ids, static fn ($id) => $id > 0)));
+            }
         $userLoginExpr = "LOWER(COALESCE({$userAlias}.login_utilisateur, ''))";
         $userNameExpr = $this->normalizeSqlExpr($userAlias . '.nom_utilisateur');
         $teacherForwardExpr = $this->normalizeSqlExpr("CONCAT(COALESCE(e2.nom_enseignant, ''), COALESCE(e2.prenom_enseignant, ''))");

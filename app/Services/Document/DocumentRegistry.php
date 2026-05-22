@@ -28,6 +28,10 @@ final class DocumentRegistry
             'codes' => ['REC'],
             'subdir' => 'recus',
         ],
+        'memoire' => [
+            'codes' => ['MEM', 'MEMOIRE'],
+            'subdir' => 'memoires',
+        ],
         'pv_commission' => [
             'codes' => ['PVC'],
             'subdir' => 'pv_commission',
@@ -89,6 +93,7 @@ final class DocumentRegistry
             'rapport' => $this->resolveRapport($id),
             'fiche_inscription' => $this->resolveFicheInscriptionDocument($id),
             'recu' => $this->resolveGeneratedDocument($type, $id),
+            'memoire' => $this->resolveMemoire($id),
             'pv_commission' => $this->resolveCompteRenduDocument($id, false, true),
             'pv_final' => $this->resolvePvFinal($id),
             'planning' => $this->resolveGeneratedDocument($type, $id),
@@ -128,7 +133,7 @@ final class DocumentRegistry
         }
 
         if ($userGroup === 12) {
-            return in_array($type, ['rapport', 'fiche_inscription', 'pv_commission', 'pv_final', 'planning', 'compte_rendu', 'bulletin'], true);
+            return in_array($type, ['rapport', 'fiche_inscription', 'memoire', 'pv_commission', 'pv_final', 'planning', 'compte_rendu', 'bulletin'], true);
         }
 
         if ($userGroup === 13) {
@@ -249,6 +254,34 @@ final class DocumentRegistry
         }
 
         return $this->resolveGeneratedDocument($bulletinOnly ? 'bulletin' : ($preferGenerated ? 'pv_commission' : 'compte_rendu'), $id);
+    }
+
+    private function resolveMemoire(string $id): ?string
+    {
+        $generated = $this->resolveGeneratedDocument('memoire', $id);
+        if ($generated !== null) {
+            return $generated;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT COALESCE(NULLIF(e.num_carte_etud, \'\'), NULLIF(e.num_ident_etud, \'\'), ps.num_etud) AS matricule
+             FROM programmer_soutenance ps
+             LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
+             WHERE ps.num_soutenance = :id
+             LIMIT 1'
+        );
+        $stmt->execute([':id' => $id]);
+        $matricule = trim((string) ($stmt->fetchColumn() ?: ''));
+
+        if ($matricule !== '') {
+            return $this->findLatestFileByFragments('memoires', [
+                'memoire_' . $this->sanitizeFilenameFragment($matricule),
+                'memoire_' . $matricule,
+                $id,
+            ]);
+        }
+
+        return $this->findLatestFileByFragments('memoires', [$id]);
     }
 
     private function resolvePvFinal(string $id): ?string
@@ -574,6 +607,16 @@ final class DocumentRegistry
                 $studentNum
             ),
             'pv_final' => $this->existsForStudent(
+                'SELECT 1
+                 FROM programmer_soutenance ps
+                 LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
+                 WHERE ps.num_soutenance = :id
+                   AND (ps.num_etud = :etu OR e.num_carte_etud = :etu OR e.num_ident_etud = :etu)
+                 LIMIT 1',
+                $id,
+                $studentNum
+            ),
+            'memoire' => $this->existsForStudent(
                 'SELECT 1
                  FROM programmer_soutenance ps
                  LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)

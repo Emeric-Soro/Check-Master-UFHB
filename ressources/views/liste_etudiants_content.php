@@ -13,7 +13,7 @@ $niveauEtudeModel = new NiveauEtude($pdo);
 $etudiantModel = new Etudiant($pdo);
 $enseignantModel = new Enseignant($pdo);
 // Vérification si l'utilisateur est administrateur
-$estAdministrateur = isset($_SESSION['id_GU']) && $_SESSION['id_GU'] == 5;
+$estAdministrateur = isAdmin();
 // Récupération de l'enseignant connecté (sauf pour administrateur)
 $enseignant = null;
 $enseignantId = null;
@@ -64,7 +64,8 @@ $perPage = 10;
 $totalEtudiants = count($filteredEtudiants);
 $totalPages = ($totalEtudiants > 0) ? ceil($totalEtudiants / $perPage) : 1;
 $p = isset($_GET['p']) && is_numeric($_GET['p']) && $_GET['p'] > 0 ? (int) $_GET['p'] : 1;
-if ($p > $totalPages) $p = $totalPages;
+if ($p > $totalPages)
+    $p = $totalPages;
 $startIndex = ($p - 1) * $perPage;
 $etudiantsPage = array_slice($filteredEtudiants, $startIndex, $perPage);
 // Construction des options pour les selects
@@ -136,29 +137,29 @@ $pagination = [
                                     break;
                                 }
                             }
-                        ?>
+                            ?>
                             <tr>
                                 <td><?= htmlspecialchars($etudiant->num_ident_etud ?? '') ?></td>
                                 <td><?= htmlspecialchars($etudiant->num_carte_etud ?? '') ?></td>
-                                <td><?= htmlspecialchars(strtoupper($etudiant->nom_etu ?? '') . ' ' . ($etudiant->prenom_etu ?? '')) ?></td>
+                                <td><?= htmlspecialchars(strtoupper($etudiant->nom_etu ?? '') . ' ' . ($etudiant->prenom_etu ?? '')) ?>
+                                </td>
                                 <td><?= htmlspecialchars($etudiant->date_nais_etu ?? '') ?></td>
                                 <td><?= htmlspecialchars($etudiant->libelle_genre ?? '') ?></td>
                                 <td><?= htmlspecialchars($etudiant->email_etu ?? '') ?></td>
                                 <td><?= htmlspecialchars($promoLib) ?></td>
                                 <td>
                                     <?php if (canEdit()): ?>
-                                    <a href="?page=maj_etudiant&num_etu=<?= urlencode($etudiant->num_carte_etud ?? '') ?>"
-                                       class="cm-btn-action is-edit" title="Modifier">
-                                        <i class="fas fa-pen"></i>
-                                    </a>
+                                        <a href="?page=maj_etudiant&num_etu=<?= urlencode($etudiant->num_carte_etud ?? '') ?>"
+                                            class="cm-btn-action is-edit" title="Modifier">
+                                            <i class="fas fa-pen"></i>
+                                        </a>
                                     <?php endif; ?>
                                     <?php if (canDelete()): ?>
-                                    <button type="button"
-                                            class="cm-btn-action is-delete"
+                                        <button type="button" class="cm-btn-action is-delete"
                                             data-delete-url="?page=maj_etudiant&action=supprimer&num_etu=<?= urlencode($etudiant->num_carte_etud ?? '') ?>"
                                             title="Supprimer">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     <?php endif; ?>
                                 </td>
                             </tr>
