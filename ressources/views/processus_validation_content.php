@@ -249,7 +249,7 @@ foreach ($membresCommission as $membre) {
                                         break;
                                     }
                                 }
-                                $canAdminGroupVote = isAdmin()
+                                $canAdminGroupVote = (int) ($_SESSION['id_GU'] ?? 0) === 5
                                     && $hasAdminVote
                                     && empty($vote['finalise'])
                                     && (int) ($vote['total_votes'] ?? 0) > 0
@@ -285,8 +285,8 @@ foreach ($membresCommission as $membre) {
                                                 <i class="fas fa-file-pdf" aria-hidden="true"></i>
                                             </button>
                                             <?php if ($canAdminGroupVote && (function_exists('canEdit') ? canEdit() : true)): ?>
-                                                <form method="POST" action="?page=processus_validation&amp;action=vote_groupe_admin"
-                                                    data-cm-ajax-form="true" class="cm-inline-admin-group-vote-form"
+                                                <form method="POST" action="?page=processus_validation&amp;action=vote_groupe_admin" data-cm-ajax-form="true"
+                                                    class="cm-inline-admin-group-vote-form"
                                                     style="display:inline-flex;">
                                                     <?php cm_component('form/csrf-token'); ?>
                                                     <input type="hidden" name="id_rapport" value="<?php echo $idRapport; ?>">
@@ -306,8 +306,8 @@ foreach ($membresCommission as $membre) {
                                                         max-width: 10ch !important;
                                                     }
                                                 </style>
-                                                <form method="POST" action="?page=processus_validation&amp;action=finaliser"
-                                                    data-cm-ajax-form="true" class="cm-inline-finalize-form"
+                                                <form method="POST" action="?page=processus_validation&amp;action=finaliser" data-cm-ajax-form="true"
+                                                    class="cm-inline-finalize-form"
                                                     style="display:inline-flex; align-items:center; gap:6px;">
                                                     <?php cm_component('form/csrf-token'); ?>
                                                     <input type="hidden" name="id_rapport" value="<?php echo $idRapport; ?>">

@@ -53,12 +53,12 @@ final class MiseEnLigneMemoireService
 
         $soutenance = $this->findLatestSoutenanceByStudent($numEtu);
         if ($soutenance === null) {
-            return ['success' => false, 'message' => 'Aucune soutenance trouvee pour cet etudiant.'];
+            return ['success' => false, 'message' => 'Aucune soutenance trouvée pour cet étudiant.'];
         }
 
         $file = $files['memoire_pdf'] ?? null;
         if (!is_array($file) || (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            return ['success' => false, 'message' => 'Veuillez selectionner un fichier PDF valide.'];
+            return ['success' => false, 'message' => 'Veuillez sélectionner un fichier PDF valide.'];
         }
 
         $tmpName = (string) ($file['tmp_name'] ?? '');
@@ -66,20 +66,20 @@ final class MiseEnLigneMemoireService
         $size = (int) ($file['size'] ?? 0);
 
         if ($tmpName === '' || !is_uploaded_file($tmpName)) {
-            return ['success' => false, 'message' => 'Le fichier uploade est introuvable.'];
+            return ['success' => false, 'message' => 'Le fichier uploadé est introuvable.'];
         }
 
         if ($size <= 0) {
-            return ['success' => false, 'message' => 'Le fichier selectionne est vide.'];
+            return ['success' => false, 'message' => 'Le fichier sélectionné est vide.'];
         }
 
         if ($size > self::MAX_FILE_SIZE) {
-            return ['success' => false, 'message' => 'Le fichier depasse la taille maximale autorisee de 20 MB.'];
+            return ['success' => false, 'message' => 'Le fichier dépasse la taille maximale autorisée de 20 MB.'];
         }
 
         $extension = strtolower((string) pathinfo($originalName, PATHINFO_EXTENSION));
         if ($extension !== 'pdf') {
-            return ['success' => false, 'message' => 'Seuls les fichiers PDF sont autorises.'];
+            return ['success' => false, 'message' => 'Seuls les fichiers PDF sont autorisés.'];
         }
 
         $mimeType = 'application/pdf';
@@ -122,23 +122,25 @@ final class MiseEnLigneMemoireService
         );
 
         if (!is_array($document)) {
-            return ['success' => false, 'message' => 'L\'enregistrement du memoire a echoue.'];
+            return ['success' => false, 'message' => 'L’enregistrement du mémoire a échoué.'];
         }
+
 
         $this->notifyMemoireValidators($soutenance, $document);
 
-        return ['success' => true, 'message' => 'Memoire mis en ligne avec succes.'];
+        return ['success' => true, 'message' => 'Mémoire mis en ligne avec succès.'];
     }
 
     public function supprimerMemoire(string $numEtu): array
     {
         if (!$this->storage->isAvailable()) {
+
             return ['success' => false, 'message' => 'Le registre documentaire n\'est pas disponible.'];
         }
 
         $document = $this->findActiveMemoireByStudent($numEtu);
         if ($document === null) {
-            return ['success' => false, 'message' => 'Aucun memoire actif a supprimer.'];
+            return ['success' => false, 'message' => 'Aucun mémoire actif à supprimer.'];
         }
 
         $stmt = $this->db->prepare(
@@ -153,7 +155,7 @@ final class MiseEnLigneMemoireService
             return ['success' => false, 'message' => 'Suppression impossible.'];
         }
 
-        return ['success' => true, 'message' => 'Memoire supprime avec succes.'];
+        return ['success' => true, 'message' => 'Mémoire supprimé avec succès.'];
     }
 
     public function getMemoireDocumentByStudent(string $numEtu): ?array

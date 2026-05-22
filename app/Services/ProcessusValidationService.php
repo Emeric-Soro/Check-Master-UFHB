@@ -609,21 +609,14 @@ class ProcessusValidationService
             ];
         }
 
-                    $groupIds = array_merge([11], $this->getAdminLikeGroupIds());
-                    $groupIds = array_values(array_unique(array_filter($groupIds, static fn ($id) => $id > 0)));
-                    if (empty($groupIds)) {
-                        return [];
-                    }
-                    $placeholders = implode(', ', array_fill(0, count($groupIds), '?'));
         if ($idUtilisateur <= 0) {
-                    $stmt->execute($groupIds);
+            return [
                 'success' => false,
                 'message' => 'Utilisateur connecté introuvable.'
             ];
         }
 
-        $adminGroupIds = $this->getAdminLikeGroupIds();
-        if (!in_array((int) ($session['id_GU'] ?? 0), $adminGroupIds, true)) {
+        if ((int) ($session['id_GU'] ?? 0) !== 5) {
             return [
                 'success' => false,
                 'message' => "Action réservée à l'administrateur."
