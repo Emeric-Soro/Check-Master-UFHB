@@ -56,13 +56,6 @@ if (!function_exists('canView')) {
 
         $identifier = $codeFonctionnalite !== null ? (string) $codeFonctionnalite : cm_current_permission_identifier();
         $allowed = cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'voir');
-        if ($identifier === 'gestion_etudiants' || (string) ($_GET['page'] ?? '') === 'gestion_etudiants') {
-            $logPath = __DIR__ . '/../../logs/gestion_etudiants.log';
-            $fallbackLogPath = rtrim(sys_get_temp_dir(), '\\/') . DIRECTORY_SEPARATOR . 'gestion_etudiants.log';
-            $line = date('c') . ' [gestion_etudiants:perm] canView=' . ($allowed ? '1' : '0');
-            @file_put_contents($logPath, $line . PHP_EOL, FILE_APPEND);
-            @file_put_contents($fallbackLogPath, $line . PHP_EOL, FILE_APPEND);
-        }
         return $allowed;
     }
 }
@@ -76,13 +69,6 @@ if (!function_exists('canCreate')) {
 
         $identifier = $codeFonctionnalite !== null ? (string) $codeFonctionnalite : cm_current_permission_identifier();
         $allowed = cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'creer');
-        if ($identifier === 'gestion_etudiants' || (string) ($_GET['page'] ?? '') === 'gestion_etudiants') {
-            $logPath = __DIR__ . '/../../logs/gestion_etudiants.log';
-            $fallbackLogPath = rtrim(sys_get_temp_dir(), '\\/') . DIRECTORY_SEPARATOR . 'gestion_etudiants.log';
-            $line = date('c') . ' [gestion_etudiants:perm] canCreate=' . ($allowed ? '1' : '0');
-            @file_put_contents($logPath, $line . PHP_EOL, FILE_APPEND);
-            @file_put_contents($fallbackLogPath, $line . PHP_EOL, FILE_APPEND);
-        }
         return $allowed;
     }
 }
@@ -96,13 +82,6 @@ if (!function_exists('canEdit')) {
 
         $identifier = $codeFonctionnalite !== null ? (string) $codeFonctionnalite : cm_current_permission_identifier();
         $allowed = cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'modifier');
-        if ($identifier === 'gestion_etudiants' || (string) ($_GET['page'] ?? '') === 'gestion_etudiants') {
-            $logPath = __DIR__ . '/../../logs/gestion_etudiants.log';
-            $fallbackLogPath = rtrim(sys_get_temp_dir(), '\\/') . DIRECTORY_SEPARATOR . 'gestion_etudiants.log';
-            $line = date('c') . ' [gestion_etudiants:perm] canEdit=' . ($allowed ? '1' : '0');
-            @file_put_contents($logPath, $line . PHP_EOL, FILE_APPEND);
-            @file_put_contents($fallbackLogPath, $line . PHP_EOL, FILE_APPEND);
-        }
         return $allowed;
     }
 }
@@ -116,13 +95,6 @@ if (!function_exists('canDelete')) {
 
         $identifier = $codeFonctionnalite !== null ? (string) $codeFonctionnalite : cm_current_permission_identifier();
         $allowed = cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'supprimer');
-        if ($identifier === 'gestion_etudiants' || (string) ($_GET['page'] ?? '') === 'gestion_etudiants') {
-            $logPath = __DIR__ . '/../../logs/gestion_etudiants.log';
-            $fallbackLogPath = rtrim(sys_get_temp_dir(), '\\/') . DIRECTORY_SEPARATOR . 'gestion_etudiants.log';
-            $line = date('c') . ' [gestion_etudiants:perm] canDelete=' . ($allowed ? '1' : '0');
-            @file_put_contents($logPath, $line . PHP_EOL, FILE_APPEND);
-            @file_put_contents($fallbackLogPath, $line . PHP_EOL, FILE_APPEND);
-        }
         return $allowed;
     }
 }

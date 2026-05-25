@@ -226,8 +226,16 @@ class Note
     public function getNotesByNiveauAndYear($niveauId, $anneeAcadId)
     {
         try {
-            $query = "SELECT n.*, e.nom_etu, e.prenom_etu, e.num_carte_etud,
-                            a.date_deb, a.date_fin
+            $query = "SELECT e.num_carte_etud,
+                            MAX(n.num_etu) AS num_etu,
+                            MAX(n.id_annee_acad) AS id_annee_acad,
+                            MAX(n.moyenne_M1) AS moyenne_M1,
+                            MAX(n.moyenne_M2) AS moyenne_M2,
+                            MAX(n.date_creation) AS date_creation,
+                            MAX(n.date_modification) AS date_modification,
+                            e.nom_etu, e.prenom_etu,
+                            MAX(a.date_deb) AS date_deb,
+                            MAX(a.date_fin) AS date_fin
                      FROM notes n
                      INNER JOIN etudiants e ON (n.num_etu = e.num_carte_etud OR n.num_etu = e.num_ident_etud)
                      LEFT JOIN annee_academique a ON n.id_annee_acad = a.id_annee_acad
@@ -242,6 +250,7 @@ class Note
                                AND latest.max_v = i1.num_versement
                         ) ins ON ins.num_carte_etud = e.num_carte_etud
                      WHERE ins.id_niv_etude = ?
+                     GROUP BY e.num_carte_etud, e.nom_etu, e.prenom_etu
                      ORDER BY e.nom_etu, e.prenom_etu";
 
             $params = [$niveauId];
@@ -269,8 +278,16 @@ class Note
     public function getNotesByYear($anneeAcadId = null)
     {
         try {
-            $query = "SELECT n.*, e.nom_etu, e.prenom_etu, e.num_carte_etud,
-                            a.date_deb, a.date_fin
+            $query = "SELECT e.num_carte_etud,
+                            MAX(n.num_etu) AS num_etu,
+                            MAX(n.id_annee_acad) AS id_annee_acad,
+                            MAX(n.moyenne_M1) AS moyenne_M1,
+                            MAX(n.moyenne_M2) AS moyenne_M2,
+                            MAX(n.date_creation) AS date_creation,
+                            MAX(n.date_modification) AS date_modification,
+                            e.nom_etu, e.prenom_etu,
+                            MAX(a.date_deb) AS date_deb,
+                            MAX(a.date_fin) AS date_fin
                      FROM notes n
                      INNER JOIN etudiants e ON (n.num_etu = e.num_carte_etud OR n.num_etu = e.num_ident_etud)
                      LEFT JOIN annee_academique a ON n.id_annee_acad = a.id_annee_acad";
@@ -281,7 +298,7 @@ class Note
                 $params[] = (int) $anneeAcadId;
             }
 
-            $query .= " ORDER BY e.nom_etu, e.prenom_etu";
+            $query .= " GROUP BY e.num_carte_etud, e.nom_etu, e.prenom_etu ORDER BY e.nom_etu, e.prenom_etu";
 
             $stmt = $this->db->prepare($query);
             $stmt->execute($params);

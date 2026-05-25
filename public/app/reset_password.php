@@ -166,7 +166,7 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
     <link rel="stylesheet" href="../assets/css/components.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <link rel="shortcut icon" href="../image/logo_cm_sbg.png" type="image/x-icon">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/vendor/font-awesome/css/all.min.css">
 </head>
 
 <body class="cm-login-page">

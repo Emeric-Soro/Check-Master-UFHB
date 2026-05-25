@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="public/assets/css/components.css">
     <link rel="stylesheet" href="public/assets/css/responsive.css">
     <link rel="shortcut icon" href="public/image/logo_cm_sbg.png" type="image/x-icon">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="public/assets/vendor/font-awesome/css/all.min.css">
 </head>
 
 <body class="cm-login-page" style="min-height: 100vh; display: flex; flex-direction: column;">

@@ -1938,34 +1938,51 @@ table .cm-clickable-row:focus-visible td {
    SIDEBAR – Clean, polished, functional navigation
    ============================================================ */
 
-/* --- Logo area --- */
+/* --- Sidebar header (logo + user identity) --- */
+.cm-sidebar__header {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--cm-sidebar-divider);
+  padding: 0.9rem var(--cm-spacing-md) 0.8rem;
+}
+
 .cm-sidebar__logo {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  padding: 1.25rem var(--cm-spacing-md) 1rem;
-  border-bottom: 1px solid var(--cm-sidebar-divider);
-  flex-shrink: 0;
+  gap: 0.65rem;
 }
 
 .cm-sidebar__logo-img {
-  width: 70px;
-  height: 70px;
+  width: 50px;
+  height: 50px;
   border-radius: var(--cm-border-radius);
   object-fit: contain;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
+  flex-shrink: 0;
+}
+
+.cm-sidebar__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
 }
 
 .cm-sidebar__logo-text {
   color: var(--cm-text-on-primary);
   font-weight: var(--cm-font-weight-bold);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   letter-spacing: 0.1em;
-  text-align: center;
   white-space: nowrap;
   opacity: 0.92;
+}
+
+.cm-sidebar__user-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 /* --- Navigation container --- */
@@ -2042,13 +2059,21 @@ table .cm-clickable-row:focus-visible td {
 
 .cm-sidebar__user-name {
   color: var(--cm-text-on-primary);
-  font-size: var(--cm-font-size-sm);
+  font-size: 0.8rem;
   font-weight: var(--cm-font-weight-semibold);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cm-sidebar__user-role {
   color: var(--cm-sidebar-link-color);
-  font-size: var(--cm-font-size-xs);
+  font-size: 0.7rem;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ============================================================

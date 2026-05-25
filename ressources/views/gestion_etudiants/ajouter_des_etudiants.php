@@ -476,6 +476,15 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
 </div>
 <script>
     (function () {
+        const controller = typeof AbortController === 'function' ? new AbortController() : null;
+        const listenerOptions = controller ? { signal: controller.signal } : undefined;
+
+        if (window.CM && window.CM.pageLifecycle && controller) {
+            window.CM.pageLifecycle.registerCleanup(function () {
+                controller.abort();
+            });
+        }
+
         const identifiantInput = document.getElementById('identifiant_mesrs');
         const hiddenNumIdent = document.getElementById('num_ident_etud');
         const bulkForm = document.getElementById('studentsBulkForm');
@@ -582,7 +591,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
             if (event.target.classList.contains('cm-row-checkbox')) {
                 updateSelectionState();
             }
-        });
+        }, listenerOptions);
         if (deleteBtn && bulkForm) {
             deleteBtn.addEventListener('click', async function () {
                 const selected = rowCheckboxes().filter(function (cb) { return cb.checked; });

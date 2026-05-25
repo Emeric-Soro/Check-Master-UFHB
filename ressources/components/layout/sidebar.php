@@ -13,9 +13,17 @@ if (empty($items)) {
 }
 ?>
 <aside class="cm-sidebar" id="cmSidebar">
-    <div class="cm-sidebar__logo">
-        <img src="<?= htmlspecialchars($logo_src, ENT_QUOTES, 'UTF-8') ?>" alt="Logo" class="cm-sidebar__logo-img">
-        <span class="cm-sidebar__logo-text"><?= htmlspecialchars($logo_label, ENT_QUOTES, 'UTF-8') ?></span>
+    <div class="cm-sidebar__header">
+        <div class="cm-sidebar__logo">
+            <img src="<?= htmlspecialchars($logo_src, ENT_QUOTES, 'UTF-8') ?>" alt="Logo" class="cm-sidebar__logo-img">
+            <div class="cm-sidebar__brand">
+                <span class="cm-sidebar__logo-text"><?= htmlspecialchars($logo_label, ENT_QUOTES, 'UTF-8') ?></span>
+                <div class="cm-sidebar__user-summary">
+                    <span class="cm-sidebar__user-name"><?= htmlspecialchars((string) ($user['username'] ?? 'Utilisateur'), ENT_QUOTES, 'UTF-8') ?></span>
+                    <span class="cm-sidebar__user-role"><?= htmlspecialchars((string) ($user['role'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <nav class="cm-sidebar__nav">
@@ -40,9 +48,5 @@ if (empty($items)) {
     </nav>
 
     <div class="cm-sidebar__footer">
-        <div class="cm-sidebar__user-info">
-            <span class="cm-sidebar__user-name"><?= htmlspecialchars((string) ($user['username'] ?? 'Utilisateur'), ENT_QUOTES, 'UTF-8') ?></span>
-            <span class="cm-sidebar__user-role"><?= htmlspecialchars((string) ($user['role'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
-        </div>
     </div>
 </aside>
