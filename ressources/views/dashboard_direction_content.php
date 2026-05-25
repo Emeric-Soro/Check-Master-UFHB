@@ -26,9 +26,9 @@ $tauxRecouvrement = $recettesAttendues > 0
     ? round(($recettesEncaissees / $recettesAttendues) * 100, 1)
     : 0;
 
-$messageSuccess = $_SESSION['success_message'] ?? '';
-$messageErreur = $_SESSION['error_message'] ?? '';
-unset($_SESSION['success_message'], $_SESSION['error_message']);
+$messageSuccess = $_SESSION['success'] ?? '';
+$messageErreur = $_SESSION['error'] ?? '';
+unset($_SESSION['success'], $_SESSION['error']);
 ?>
 <section class="cm-prd3-screen">
     <?php if ($messageSuccess !== ''): ?>

@@ -22,7 +22,7 @@ class DocumentsController
     public function index(): array
     {
         if (!canView('documents')) {
-            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'acceder a cette page.";
+            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'acceder a cette page.";
             header('Location: layout.php?page=access_denied');
             exit;
         }

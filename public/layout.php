@@ -104,7 +104,7 @@ if (!isset($_SESSION['id_utilisateur'])) {
                 exit;
             }
 
-            $_SESSION['error_message'] = 'Session expirée. Veuillez réessayer.';
+            $_SESSION['error'] = 'Session expirée. Veuillez réessayer.';
             $_SESSION['error_type'] = 'csrf';
             $fallback = 'layout.php?page=' . urlencode($_GET['page'] ?? 'dashboard');
             $redirect = $_SERVER['HTTP_REFERER'] ?? $fallback;
@@ -138,7 +138,7 @@ if (!isset($_SESSION['id_utilisateur'])) {
             exit;
         }
 
-        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+        $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
         $_SESSION['error_type'] = 'permission_denied';
 
         $redirect = 'layout.php?page=access_denied';
@@ -355,7 +355,7 @@ switch ($currentMenuSlug) {
             $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
             if ($emailUpdated) {
-                $_SESSION['email_success'] = (string) ($GLOBALS['messageSuccess'] ?? 'Email de contact mis à jour avec succès.');
+                $_SESSION['success'] = (string) ($GLOBALS['messageSuccess'] ?? 'Email de contact mis à jour avec succès.');
                 if ($auditService instanceof \CheckMaster\Services\AuditService) {
                     $auditService->logRequestActivity((int) ($_SESSION['id_utilisateur'] ?? 0), $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'POST');
                 }
@@ -373,7 +373,7 @@ switch ($currentMenuSlug) {
                 exit;
             }
 
-            $_SESSION['email_error'] = (string) ($GLOBALS['messageErreur'] ?? 'Erreur lors de la mise à jour de l\'email de contact.');
+            $_SESSION['error'] = (string) ($GLOBALS['messageErreur'] ?? 'Erreur lors de la mise à jour de l\'email de contact.');
             if ($auditService instanceof \CheckMaster\Services\AuditService) {
                 $auditService->logRequestActivity((int) ($_SESSION['id_utilisateur'] ?? 0), $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'POST');
             }
@@ -383,7 +383,7 @@ switch ($currentMenuSlug) {
                 header('Content-Type: application/json; charset=UTF-8');
                 echo json_encode([
                     'success' => false,
-                    'message' => $_SESSION['email_error'],
+                    'message' => $_SESSION['error'],
                 ]);
                 exit;
             }
@@ -405,7 +405,7 @@ switch ($currentMenuSlug) {
             $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
             if ($passwordUpdated) {
-                $_SESSION['password_success'] = (string) ($GLOBALS['messageSuccess'] ?? 'Mot de passe mis à jour avec succès.');
+                $_SESSION['success'] = (string) ($GLOBALS['messageSuccess'] ?? 'Mot de passe mis à jour avec succès.');
                 if ($auditService instanceof \CheckMaster\Services\AuditService) {
                     $auditService->logRequestActivity((int) ($_SESSION['id_utilisateur'] ?? 0), $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'POST');
                 }
@@ -423,7 +423,7 @@ switch ($currentMenuSlug) {
                 exit;
             }
 
-            $_SESSION['password_error'] = (string) ($GLOBALS['messageErreur'] ?? 'Erreur lors de la mise à jour du mot de passe.');
+            $_SESSION['error'] = (string) ($GLOBALS['messageErreur'] ?? 'Erreur lors de la mise à jour du mot de passe.');
             if ($auditService instanceof \CheckMaster\Services\AuditService) {
                 $auditService->logRequestActivity((int) ($_SESSION['id_utilisateur'] ?? 0), $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'POST');
             }
@@ -433,7 +433,7 @@ switch ($currentMenuSlug) {
                 header('Content-Type: application/json; charset=UTF-8');
                 echo json_encode([
                     'success' => false,
-                    'message' => $_SESSION['password_error'],
+                    'message' => $_SESSION['error'],
                 ]);
                 exit;
             }

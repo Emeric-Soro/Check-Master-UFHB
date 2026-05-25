@@ -29,9 +29,9 @@ $isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
 $baseUrl = $isHubContext
     ? '?page=suivi_scolarite&tab=fiche_financiere_annee'
     : '?page=fiche_financiere_annee';
-$messageSuccess = $_SESSION['success_message'] ?? '';
-$messageErreur = $_SESSION['error_message'] ?? '';
-unset($_SESSION['success_message'], $_SESSION['error_message']);
+$messageSuccess = $_SESSION['success'] ?? '';
+$messageErreur = $_SESSION['error'] ?? '';
+unset($_SESSION['success'], $_SESSION['error']);
 ?>
 <section class="cm-prd3-crud-screen cm-prd6-admin-screen">
     <?php if ($messageSuccess !== ''): ?>
@@ -481,7 +481,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 detailHint.textContent = message;
             }
             if (detailBody) {
-                detailBody.innerHTML = '<div class="cm-alert cm-alert-danger">' + htmlEscape(message) + '</div>';
+                CM.alert.show(detailBody, 'danger', htmlEscape(message));
             }
         }
 

@@ -356,23 +356,6 @@ if ($contenuRapportJson === false) {
     flex-shrink: 0;
 }
 
-/* Error/success feedback */
-.fm-feedback {
-    padding: 0.55rem 1.25rem;
-    font-size: 0.82rem;
-    border-bottom: 1px solid rgba(26,82,118,0.1);
-    flex-shrink: 0;
-}
-.fm-feedback.is-success {
-    background: #f2fbf6;
-    border-left: 3px solid #27ae60;
-    color: #166534;
-}
-.fm-feedback.is-error {
-    background: #fff5f5;
-    border-left: 3px solid #e74c3c;
-    color: #991b1b;
-}
 
 /* Editor zone */
 .fm-editor-zone {
@@ -609,16 +592,14 @@ if ($contenuRapportJson === false) {
         <?php endif; ?>
 
         <?php if (isset($_SESSION['success'])): ?>
-            <div class="fm-feedback is-success"><?= cm_etu_escape($_SESSION['success']) ?></div>
+            <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => $_SESSION['success']]); ?>
             <?php unset($_SESSION['success']); ?>
         <?php endif; ?>
 
         <?php if (!empty($erreurs)): ?>
-            <div class="fm-feedback is-error">
-                <?php foreach ($erreurs as $e): ?>
-                    <div><?= cm_etu_escape($e) ?></div>
-                <?php endforeach; ?>
-            </div>
+            <?php foreach ($erreurs as $e): ?>
+                <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $e]); ?>
+            <?php endforeach; ?>
         <?php endif; ?>
 
         <!-- Info panel compact -->

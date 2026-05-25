@@ -35,9 +35,9 @@ $topEntreprises = $data['top_entreprises'] ?? [];
 
 $tabBase = '?page=admin_historique';
 
-$messageSuccess = $_SESSION['success_message'] ?? '';
-$messageErreur = $_SESSION['error_message'] ?? '';
-unset($_SESSION['success_message'], $_SESSION['error_message']);
+$messageSuccess = $_SESSION['success'] ?? '';
+$messageErreur = $_SESSION['error'] ?? '';
+unset($_SESSION['success'], $_SESSION['error']);
 ?>
 <section class="cm-prd3-crud-screen cm-prd6-admin-screen">
     <?php if ($messageSuccess !== ''): ?>

@@ -294,13 +294,9 @@ endif; ?>
                         </div>
 
                         <?php if (isset($_GET['email_envoye']) && $_GET['email_envoye'] == '1'): ?>
-                            <div class="cm-cand-email-notice is-success">
-                                <p><i class="fas fa-check-circle"></i> <strong>Email envoyé avec succès !</strong></p>
-                            </div>
+                            <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => 'Email envoyé avec succès !']); ?>
                         <?php else: ?>
-                            <div class="cm-cand-email-notice is-info">
-                                <p><i class="fas fa-envelope"></i> Cliquez sur "Envoyer les résultats" pour notifier l'étudiant.</p>
-                            </div>
+                            <?php cm_component('ui/alert-box', ['type' => 'info', 'message' => 'Cliquez sur "Envoyer les résultats" pour notifier l\'étudiant.']); ?>
                         <?php endif; ?>
                     </div>
                 <?php else: ?>
@@ -320,7 +316,7 @@ endif; ?>
                         <div class="cm-cand-info-item"><strong>Moyenne générale:</strong> <span><?php echo htmlspecialchars($etapeData['moyenne']); ?></span></div>
                         <div class="cm-cand-info-item"><strong>Unités validées:</strong> <span><?php echo htmlspecialchars($etapeData['unites']); ?></span></div>
                         <?php if (empty($etapeData['moyenne']) || $etapeData['moyenne'] == '0'): ?>
-                            <div class="cm-cand-alert-warning"><i class="fas fa-exclamation-triangle"></i> <strong>Note :</strong> Aucune note trouvée pour cet étudiant.</div>
+                            <?php cm_component('ui/alert-box', ['type' => 'warning', 'message' => 'Aucune note trouvée pour cet étudiant.']); ?>
                         <?php endif; ?>
                     <?php endif; ?>
                 <?php endif; ?>

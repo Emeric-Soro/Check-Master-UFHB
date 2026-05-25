@@ -24,7 +24,7 @@ final class MiseEnLigneMemoireController
     public function handleRequest(): array
     {
         if (!canView('mise_en_ligne_memoire')) {
-            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'accéder à cette page.";
+            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'accéder à cette page.";
             header('Location: layout.php?page=access_denied');
             exit;
         }

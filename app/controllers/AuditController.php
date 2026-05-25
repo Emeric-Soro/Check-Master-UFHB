@@ -164,13 +164,13 @@ class AuditController {
         try {
             cm_csrf_verify($_POST['csrf_token'] ?? '');
         } catch (Exception $e) {
-            $_SESSION['error_message'] = $e->getMessage();
+            $_SESSION['error'] = $e->getMessage();
             header('Location: ?page=piste_audit&error=csrf_failed');
             exit;
         }
 
         if (!canDelete('piste_audit')) {
-            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
             header('Location: ?page=piste_audit&error=permission_denied');
             exit;
         }
@@ -204,13 +204,13 @@ class AuditController {
         try {
             cm_csrf_verify($_POST['csrf_token'] ?? '');
         } catch (Exception $e) {
-            $_SESSION['error_message'] = $e->getMessage();
+            $_SESSION['error'] = $e->getMessage();
             header('Location: ?page=piste_audit&error=csrf_failed');
             exit;
         }
 
         if (!canDelete('piste_audit')) {
-            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
             header('Location: ?page=piste_audit&error=permission_denied');
             exit;
         }

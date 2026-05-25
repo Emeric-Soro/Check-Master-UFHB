@@ -144,7 +144,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
 
     function showNotice(type, message) {
         const cls = type === 'success' ? 'success' : 'danger';
-        noticeBox.innerHTML = '<div class="cm-alert is-' + cls + '">' + esc(message) + '</div>';
+        CM.alert.show(noticeBox, cls, esc(message));
         setTimeout(function () {
             noticeBox.innerHTML = '';
         }, 4500);

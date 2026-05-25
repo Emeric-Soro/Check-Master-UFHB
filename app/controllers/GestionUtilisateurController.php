@@ -106,7 +106,7 @@ class GestionUtilisateurController
                                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                                 exit;
                             }
-                            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                             $_SESSION['error_type'] = 'permission_denied';
                             header('Location: layout.php?page=access_denied');
                             exit;
@@ -128,7 +128,7 @@ class GestionUtilisateurController
                                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                                 exit;
                             }
-                            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                             $_SESSION['error_type'] = 'permission_denied';
                             header('Location: layout.php?page=access_denied');
                             exit;
@@ -160,7 +160,7 @@ class GestionUtilisateurController
                                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                                 exit;
                             }
-                            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                             $_SESSION['error_type'] = 'permission_denied';
                             header('Location: layout.php?page=access_denied');
                             exit;
@@ -183,7 +183,7 @@ class GestionUtilisateurController
                                     echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                                     exit;
                                 }
-                                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                                 $_SESSION['error_type'] = 'permission_denied';
                                 header('Location: layout.php?page=access_denied');
                                 exit;
@@ -202,7 +202,7 @@ class GestionUtilisateurController
                                     echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                                     exit;
                                 }
-                                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                                 $_SESSION['error_type'] = 'permission_denied';
                                 header('Location: layout.php?page=access_denied');
                                 exit;
@@ -221,7 +221,7 @@ class GestionUtilisateurController
                                     echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                                     exit;
                                 }
-                                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                                 $_SESSION['error_type'] = 'permission_denied';
                                 header('Location: layout.php?page=access_denied');
                                 exit;

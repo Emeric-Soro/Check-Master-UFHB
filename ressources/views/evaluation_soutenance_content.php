@@ -100,24 +100,30 @@ foreach ($soutenances as $soutenance) {
                 <input type="hidden" name="action" value="evaluerSoutenance">
                 <input type="hidden" name="num_etu" id="cmEvalNumEtu" value="">
 
-                <div class="cm-grid-2">
-                    <?php
-                    cm_component('form/select', [
-                        'name' => 'cm_eval_soutenance',
-                        'id' => 'cmEvalSoutenanceSelect',
-                        'label' => 'Étudiant',
-                        'required' => true,
-                        'options' => $soutenanceOptions,
-                        'control_class' => 'cm-field-lg cm-size-personne',
-                    ]);
-                    cm_component('form/input-text', [
-                        'name' => 'cm_eval_promotion',
-                        'id' => 'cmEvalPromotion',
-                        'label' => 'Promotion',
-                        'readonly' => true,
-                        'control_class' => 'cm-field-sm cm-size-salle',
-                    ]);
-                    ?>
+                <div class="cm-grid-4">
+                    <div style="grid-column: span 3;">
+                        <?php
+                        cm_component('form/select', [
+                            'name' => 'cm_eval_soutenance',
+                            'id' => 'cmEvalSoutenanceSelect',
+                            'label' => 'Étudiant',
+                            'required' => true,
+                            'options' => $soutenanceOptions,
+                            'control_class' => 'cm-field-lg cm-size-personne',
+                        ]);
+                        ?>
+                    </div>
+                    <div>
+                        <?php
+                        cm_component('form/input-text', [
+                            'name' => 'cm_eval_promotion',
+                            'id' => 'cmEvalPromotion',
+                            'label' => 'Promotion',
+                            'readonly' => true,
+                            'control_class' => 'cm-field-sm cm-size-salle',
+                        ]);
+                        ?>
+                    </div>
                 </div>
                 <?php
                 cm_component('form/textarea', [
@@ -125,7 +131,7 @@ foreach ($soutenances as $soutenance) {
                     'id' => 'cmEvalTheme',
                     'label' => 'Thème',
                     'readonly' => true,
-                    'rows' => 2,
+                    'rows' => 1,
                     'control_class' => 'cm-field-full cm-size-theme',
                 ]);
                 ?>
@@ -197,7 +203,7 @@ foreach ($soutenances as $soutenance) {
                 ]);
                 ?>
 
-                <div class="cm-grid-2">
+                <div class="cm-grid-4">
                     <div class="cm-form-group">
                         <?php cm_component('form/select', [
                             'name' => 'cm_eval_decision',
@@ -208,7 +214,7 @@ foreach ($soutenances as $soutenance) {
                         ]); ?>
                     </div>
 
-                    <div class="cm-form-group">
+                    <div class="cm-form-group" style="grid-column: span 3;">
                         <label class="cm-form-label" for="cmEvalComment">Commentaire général</label>
                         <textarea id="cmEvalComment" name="commentaire_general" class="cm-form-control cm-field-full cm-size-commentaire"
                             rows="2"></textarea>
@@ -425,9 +431,7 @@ foreach ($soutenances as $soutenance) {
                 return;
             }
             const cssType = type === 'success' ? 'success' : 'danger';
-            alertBox.innerHTML = '<div class="cm-alert is-' + cssType + '"><div class="cm-alert__content"><span class="cm-alert__message">' +
-                String(message || '').replace(/[<>&]/g, '') +
-                '</span></div></div>';
+            CM.alert.show(alertBox, cssType, String(message || '').replace(/[<>&]/g, ''));
         }
 
         function getRows() {

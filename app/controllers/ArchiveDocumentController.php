@@ -31,7 +31,7 @@ class ArchiveDocumentController
     public function index()
     {
         if (!canView('archives_documents')) {
-            $_SESSION['error_message'] = "Accès refusé aux archives documents.";
+            $_SESSION['error'] = "Accès refusé aux archives documents.";
             header('Location: layout.php?page=access_denied');
             exit;
         }

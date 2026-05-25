@@ -24,7 +24,7 @@ class GestionReclamationsScolariteController {
     public function changerStatut() {
         if (isset($_GET['id']) && isset($_POST['nouveau_statut'])) {
             if (!canEdit('gestion_reclamations_scolarite')) {
-                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                 header('Location: ?page=gestion_reclamations_scolarite');
                 exit;
             }

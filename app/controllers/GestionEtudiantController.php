@@ -100,7 +100,7 @@ class GestionEtudiantController
                             echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                             exit;
                         }
-                        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                         $_SESSION['error_type'] = 'permission_denied';
                         header('Location: layout.php?page=access_denied');
                         exit;
@@ -129,7 +129,7 @@ class GestionEtudiantController
                             echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                             exit;
                         }
-                        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                         $_SESSION['error_type'] = 'permission_denied';
                         header('Location: layout.php?page=access_denied');
                         exit;
@@ -158,7 +158,7 @@ class GestionEtudiantController
                             echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                             exit;
                         }
-                        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                         $_SESSION['error_type'] = 'permission_denied';
                         header('Location: layout.php?page=access_denied');
                         exit;
@@ -215,7 +215,7 @@ class GestionEtudiantController
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!canCreate('gestion_etudiants')) {
-                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                 $_SESSION['error_type'] = 'permission_denied';
                 header('Location: layout.php?page=access_denied');
                 exit;

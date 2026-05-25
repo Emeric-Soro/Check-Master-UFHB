@@ -44,13 +44,13 @@ class ArchiveController
             }
 
             // Messages
-            $GLOBALS['messageSuccess'] = $_SESSION['archive_success'] ?? '';
-            $GLOBALS['messageErreur'] = $_SESSION['archive_error'] ?? '';
-            unset($_SESSION['archive_success'], $_SESSION['archive_error']);
+            $GLOBALS['messageSuccess'] = $_SESSION['success'] ?? '';
+            $GLOBALS['messageErreur'] = $_SESSION['error'] ?? '';
+            unset($_SESSION['success'], $_SESSION['error']);
 
         } catch (Exception $e) {
             error_log("Error in ArchiveController::index: " . $e->getMessage());
-            $_SESSION['archive_error'] = "Une erreur est survenue lors du chargement de l'historique.";
+            $_SESSION['error'] = "Une erreur est survenue lors du chargement de l'historique.";
             header('Location: ?page=dashboard');
             exit;
         }
@@ -65,7 +65,7 @@ class ArchiveController
             $numEtu = $_GET['num_etu'] ?? null;
 
             if (!$numEtu) {
-                $_SESSION['archive_error'] = "Matricule étudiant manquant.";
+                $_SESSION['error'] = "Matricule étudiant manquant.";
                 header('Location: ?page=admin_historique');
                 exit;
             }
@@ -73,21 +73,21 @@ class ArchiveController
             $studentFile = $this->service->getStudentFile($numEtu);
 
             if (!$studentFile) {
-                $_SESSION['archive_error'] = "Étudiant non trouvé.";
+                $_SESSION['error'] = "Étudiant non trouvé.";
                 header('Location: ?page=admin_historique');
                 exit;
             }
 
             $GLOBALS['studentFile'] = $studentFile;
-            $GLOBALS['messageSuccess'] = $_SESSION['archive_success'] ?? '';
-            $GLOBALS['messageErreur'] = $_SESSION['archive_error'] ?? '';
-            unset($_SESSION['archive_success'], $_SESSION['archive_error']);
+            $GLOBALS['messageSuccess'] = $_SESSION['success'] ?? '';
+            $GLOBALS['messageErreur'] = $_SESSION['error'] ?? '';
+            unset($_SESSION['success'], $_SESSION['error']);
 
             // Load detail view
 
         } catch (Exception $e) {
             error_log("Error in ArchiveController::viewStudentFile: " . $e->getMessage());
-            $_SESSION['archive_error'] = "Une erreur est survenue lors du chargement du dossier étudiant.";
+            $_SESSION['error'] = "Une erreur est survenue lors du chargement du dossier étudiant.";
             header('Location: ?page=admin_historique');
             exit;
         }
@@ -100,7 +100,7 @@ class ArchiveController
     {
         try {
             if (!canEdit('admin_historique')) {
-                $_SESSION['archive_error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                 header('Location: ?page=admin_historique');
                 exit;
             }
@@ -113,7 +113,7 @@ class ArchiveController
             $numEtu = $_POST['num_etu'] ?? null;
 
             if (!$numEtu) {
-                $_SESSION['archive_error'] = "Matricule étudiant manquant.";
+                $_SESSION['error'] = "Matricule étudiant manquant.";
                 header('Location: ?page=admin_historique');
                 exit;
             }
@@ -131,9 +131,9 @@ class ArchiveController
                     );
                 }
 
-                $_SESSION['archive_success'] = "Dossier étudiant mis à jour avec succès.";
+                $_SESSION['success'] = "Dossier étudiant mis à jour avec succès.";
             } else {
-                $_SESSION['archive_error'] = "Erreur lors de la mise à jour du dossier.";
+                $_SESSION['error'] = "Erreur lors de la mise à jour du dossier.";
             }
 
             header("Location: ?page=admin_historique&action=view_student&num_etu=$numEtu");
@@ -141,7 +141,7 @@ class ArchiveController
 
         } catch (Exception $e) {
             error_log("Error in ArchiveController::updateStudentFile: " . $e->getMessage());
-            $_SESSION['archive_error'] = "Une erreur est survenue lors de la mise à jour.";
+            $_SESSION['error'] = "Une erreur est survenue lors de la mise à jour.";
             header('Location: ?page=admin_historique');
             exit;
         }
@@ -154,7 +154,7 @@ class ArchiveController
     {
         try {
             if (!canCreate('admin_historique')) {
-                $_SESSION['archive_error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                 header('Location: ?page=admin_historique');
                 exit;
             }
@@ -168,7 +168,7 @@ class ArchiveController
             $result = $this->service->importArchiveFile($_FILES['archive_file'] ?? []);
 
             if (!$result['success']) {
-                $_SESSION['archive_error'] = $result['error'];
+                $_SESSION['error'] = $result['error'];
                 header('Location: ?page=admin_historique');
                 exit;
             }
@@ -189,9 +189,9 @@ class ArchiveController
             $_SESSION['import_summary'] = $summary;
 
             if ($summary['total_errors'] > 0) {
-                $_SESSION['archive_error'] = "Import terminé avec {$summary['total_errors']} erreur(s). Consultez les détails ci-dessous.";
+                $_SESSION['error'] = "Import terminé avec {$summary['total_errors']} erreur(s). Consultez les détails ci-dessous.";
             } else {
-                $_SESSION['archive_success'] = "Import réussi! {$summary['total_success']} enregistrement(s) importé(s).";
+                $_SESSION['success'] = "Import réussi! {$summary['total_success']} enregistrement(s) importé(s).";
             }
 
             header('Location: ?page=admin_historique&action=import_result');
@@ -199,7 +199,7 @@ class ArchiveController
 
         } catch (Exception $e) {
             error_log("Error in ArchiveController::importArchive: " . $e->getMessage());
-            $_SESSION['archive_error'] = "Une erreur est survenue lors de l'import: " . $e->getMessage();
+            $_SESSION['error'] = "Une erreur est survenue lors de l'import: " . $e->getMessage();
             header('Location: ?page=admin_historique');
             exit;
         }
@@ -218,11 +218,11 @@ class ArchiveController
         }
 
         $GLOBALS['importSummary'] = $summary;
-        $GLOBALS['messageSuccess'] = $_SESSION['archive_success'] ?? '';
-        $GLOBALS['messageErreur'] = $_SESSION['archive_error'] ?? '';
+        $GLOBALS['messageSuccess'] = $_SESSION['success'] ?? '';
+        $GLOBALS['messageErreur'] = $_SESSION['error'] ?? '';
 
         // Clear the session data after displaying
-        unset($_SESSION['import_summary'], $_SESSION['archive_success'], $_SESSION['archive_error']);
+        unset($_SESSION['import_summary'], $_SESSION['success'], $_SESSION['error']);
 
         // Load result view
     }
@@ -234,7 +234,7 @@ class ArchiveController
     {
         try {
             if (!canCreate('admin_historique')) {
-                $_SESSION['archive_error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                 header('Location: ?page=admin_historique');
                 exit;
             }
@@ -280,7 +280,7 @@ class ArchiveController
 
         } catch (Exception $e) {
             error_log("Error in ArchiveController::exportHistory: " . $e->getMessage());
-            $_SESSION['archive_error'] = "Erreur lors de l'export: " . $e->getMessage();
+            $_SESSION['error'] = "Erreur lors de l'export: " . $e->getMessage();
             header('Location: ?page=admin_historique');
             exit;
         }

@@ -37,14 +37,14 @@ class FicheEtudiantController
     {
         // Permission
         if (!canView('archives_etudiants')) {
-            $_SESSION['error_message'] = "Acces refuse aux fiches etudiantes.";
+            $_SESSION['error'] = "Acces refuse aux fiches etudiantes.";
             header('Location: layout.php?page=access_denied');
             exit;
         }
 
         $matricule = $_GET['id'] ?? '';
         if ($matricule === '') {
-            $_SESSION['error_message'] = "Matricule etudiant manquant.";
+            $_SESSION['error'] = "Matricule etudiant manquant.";
             header('Location: layout.php?page=archives_etudiants');
             exit;
         }
@@ -56,7 +56,7 @@ class FicheEtudiantController
         // Verification que l'etudiant existe
         $etudiant = $this->etudiantModel->getEtudiantById($matricule);
         if (!$etudiant) {
-            $_SESSION['error_message'] = "Etudiant non trouve (matricule: $matricule).";
+            $_SESSION['error'] = "Etudiant non trouve (matricule: $matricule).";
             header('Location: layout.php?page=archives_etudiants');
             exit;
         }

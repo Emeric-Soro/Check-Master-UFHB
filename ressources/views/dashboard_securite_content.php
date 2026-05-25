@@ -9,7 +9,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../app/utils/permissions_helper.php';
 
 if (!canView('dashboard_securite')) {
-    $_SESSION['error_message'] = "Acces refuse au dashboard securite.";
+    $_SESSION['error'] = "Acces refuse au dashboard securite.";
     header('Location: ?page=dashboard');
     exit;
 }

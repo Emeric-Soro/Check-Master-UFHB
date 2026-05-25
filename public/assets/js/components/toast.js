@@ -35,6 +35,17 @@
   window.CM.toast = module;
 })(window, document);
 
+// ============================================================
+// CM.alert - Inline alert creation utility
+// ============================================================
+CM.alert = CM.alert || {};
+CM.alert.show = function(container, type, message) {
+    if (!container || !message) return;
+    var allowed = {success: 'fa-circle-check', info: 'fa-circle-info', warning: 'fa-triangle-exclamation', danger: 'fa-circle-exclamation'};
+    var icon = allowed[type] || allowed.info;
+    container.innerHTML = '<div class="cm-alert is-' + type + '"><span class="cm-alert__icon"><i class="fas ' + icon + '" aria-hidden="true"></i></span><div class="cm-alert__content"><span class="cm-alert__message">' + message + '</span></div></div>';
+};
+
 document.addEventListener('DOMContentLoaded', function () {
   if (window.CM && window.CM.toast) window.CM.toast.init();
 });

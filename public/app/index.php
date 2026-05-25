@@ -242,7 +242,7 @@ $router->get('/admin/users', function (): Response {
 });
 
 $router->get('/access-denied', function (): Response {
-    return renderAccessDenied($_SESSION['error_message'] ?? '');
+    return renderAccessDenied($_SESSION['error'] ?? '');
 });
 
 // Accueil "application"

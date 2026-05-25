@@ -12,7 +12,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../../../app/utils/permissions_helper.php';
 
 if (!canView('archives_etudiants')) {
-    $_SESSION['error_message'] = "Acces refuse.";
+    $_SESSION['error'] = "Acces refuse.";
     header('Location: ?page=dashboard');
     exit;
 }
