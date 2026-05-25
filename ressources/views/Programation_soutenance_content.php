@@ -294,7 +294,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 'id' => 'cmProgTheme',
                 'label' => 'Thème',
                 'required' => true,
-                'rows' => 2,
+                'rows' => 1,
                 'placeholder' => 'Thème de soutenance',
                 'readonly' => true,
                 'control_class' => 'cm-field-full cm-size-theme',
@@ -584,9 +584,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
                 return;
             }
             const cssType = type === 'success' ? 'success' : 'danger';
-            alertBox.innerHTML = '<div class="cm-alert is-' + cssType + '"><div class="cm-alert__content"><span class="cm-alert__message">' +
-                String(message || '').replace(/[<>&]/g, '') +
-                '</span></div></div>';
+            CM.alert.show(alertBox, cssType, String(message || '').replace(/[<>&]/g, ''));
         }
         function escHtml(value) {
             return String(value || '')
@@ -1337,4 +1335,5 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
         applySortMode();
         applySearch();
     })();
+</script>
 </script>

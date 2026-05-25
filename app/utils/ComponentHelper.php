@@ -1644,6 +1644,15 @@ if (!function_exists('cm_toolbar')) {
 
         <script>
             (function () {
+                const controller = typeof AbortController === 'function' ? new AbortController() : null;
+                const listenerOptions = controller ? { signal: controller.signal } : undefined;
+
+                if (window.CM && window.CM.pageLifecycle && controller) {
+                    window.CM.pageLifecycle.registerCleanup(function () {
+                        controller.abort();
+                    });
+                }
+
                 const toolbarId = <?= json_encode($toolbarId) ?>;
                 const searchInputId = <?= json_encode($searchId) ?>;
                 const limitSelectId = <?= json_encode($limitId) ?>;
@@ -2447,22 +2456,14 @@ if (!function_exists('cm_toolbar')) {
                         if (e.target && e.target.matches('table tbody input[type="checkbox"]')) {
                             updateDeleteState();
                         }
-                    });
+                    }, listenerOptions);
 
                     updateDeleteState();
                     updateFilterCount();
                     applyClientSideFiltering();
                 }
 
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', initToolbar, { once: true });
-                } else {
-                    initToolbar();
-                }
-
-                document.addEventListener('cm:ajax:navigation:done', function () {
-                    initToolbar();
-                });
+                initToolbar();
             })();
         </script>
         <?php
@@ -2580,6 +2581,15 @@ if (!function_exists('cm_data_table_selectable')) {
         <?php if ($toolbarId !== ''): ?>
             <script>
                 (function () {
+                    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+                    const listenerOptions = controller ? { signal: controller.signal } : undefined;
+
+                    if (window.CM && window.CM.pageLifecycle && controller) {
+                        window.CM.pageLifecycle.registerCleanup(function () {
+                            controller.abort();
+                        });
+                    }
+
                     const tableId = <?= json_encode($id) ?>;
                     const toolbarId = <?= json_encode($toolbarId) ?>;
 
@@ -2648,13 +2658,13 @@ if (!function_exists('cm_data_table_selectable')) {
                             if (!isSameToolbarEvent(evt) || !isStillMounted()) return;
                             checkRows.forEach(function (cb) { cb.checked = true; });
                             updateSelection();
-                        });
+                        }, listenerOptions);
 
                         document.addEventListener('cm:toolbar:select:none', function (evt) {
                             if (!isSameToolbarEvent(evt) || !isStillMounted()) return;
                             checkRows.forEach(function (cb) { cb.checked = false; });
                             updateSelection();
-                        });
+                        }, listenerOptions);
 
                         document.addEventListener('cm:toolbar:delete', function (evt) {
                             if (!isSameToolbarEvent(evt) || !isStillMounted()) return;
@@ -2665,7 +2675,7 @@ if (!function_exists('cm_data_table_selectable')) {
                             document.dispatchEvent(new CustomEvent('cm:table:delete:selected', {
                                 detail: { table: table, ids: ids }
                             }));
-                        });
+                        }, listenerOptions);
 
                         // Row action buttons
                         table.addEventListener('click', function (e) {
@@ -2675,32 +2685,32 @@ if (!function_exists('cm_data_table_selectable')) {
                             const rowId = btn.getAttribute('data-row-id');
                             const action = btn.getAttribute('data-action');
                             const confirmMsg = btn.getAttribute('data-confirm');
+                            const dispatchRowAction = function () {
+                                document.dispatchEvent(new CustomEvent('cm:table:row:action', {
+                                    detail: { table: table, rowId: rowId, action: action, button: btn }
+                                }));
+                            };
 
                             if (confirmMsg) {
-                                window.CM.confirm(confirmMsg).then(c => {
-                                    if (c) window.location.href = url;
+                                const confirmPromise = window.CM && typeof window.CM.confirm === 'function'
+                                    ? window.CM.confirm(confirmMsg)
+                                    : Promise.resolve(window.confirm(confirmMsg));
+                                confirmPromise.then(c => {
+                                    if (c) {
+                                        dispatchRowAction();
+                                    }
                                 });
                                 return;
                             }
 
-                            document.dispatchEvent(new CustomEvent('cm:table:row:action', {
-                                detail: { table: table, rowId: rowId, action: action, button: btn }
-                            }));
+                            dispatchRowAction();
                         });
 
                         // Initial state
                         updateSelection();
                     }
 
-                    if (document.readyState === 'loading') {
-                        document.addEventListener('DOMContentLoaded', initSelectableTable, { once: true });
-                    } else {
-                        initSelectableTable();
-                    }
-
-                    document.addEventListener('cm:ajax:navigation:done', function () {
-                        initSelectableTable();
-                    });
+                    initSelectableTable();
                 })();
             </script>
         <?php endif; ?>

@@ -64,7 +64,7 @@ class PermissionMiddleware
             'supprimer' => 'Vous n\'avez pas l\'autorisation de supprimer des éléments sur cette page.',
         ];
 
-        $_SESSION['error_message'] = $messages[$action] ?? $messages['voir'];
+        $_SESSION['error'] = $messages[$action] ?? $messages['voir'];
         $_SESSION['error_type'] = 'permission_denied';
         header('Location: layout.php?page=access_denied');
         exit;

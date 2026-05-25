@@ -141,6 +141,15 @@ foreach ($normalized_options as $option) {
 
 <script>
 (function () {
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const listenerOptions = controller ? { signal: controller.signal } : undefined;
+
+    if (window.CM && window.CM.pageLifecycle && controller) {
+        window.CM.pageLifecycle.registerCleanup(function () {
+            controller.abort();
+        });
+    }
+
     const wrapper = document.getElementById(<?= json_encode((string) $id . '_wrapper') ?>);
     const searchInput = document.getElementById(<?= json_encode($search_id) ?>);
     const list = document.getElementById(<?= json_encode($list_id) ?>);
@@ -282,13 +291,13 @@ foreach ($normalized_options as $option) {
         if (!wrapper.contains(event.target)) {
             closeList();
         }
-    });
+    }, listenerOptions);
 
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
             closeList();
         }
-    });
+    }, listenerOptions);
 
     closeList();
 })();

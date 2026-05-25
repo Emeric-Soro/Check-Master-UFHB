@@ -1938,34 +1938,51 @@ table .cm-clickable-row:focus-visible td {
    SIDEBAR – Clean, polished, functional navigation
    ============================================================ */
 
-/* --- Logo area --- */
+/* --- Sidebar header (logo + user identity) --- */
+.cm-sidebar__header {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--cm-sidebar-divider);
+  padding: 0.9rem var(--cm-spacing-md) 0.8rem;
+}
+
 .cm-sidebar__logo {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  padding: 1.25rem var(--cm-spacing-md) 1rem;
-  border-bottom: 1px solid var(--cm-sidebar-divider);
-  flex-shrink: 0;
+  gap: 0.65rem;
 }
 
 .cm-sidebar__logo-img {
-  width: 70px;
-  height: 70px;
+  width: 50px;
+  height: 50px;
   border-radius: var(--cm-border-radius);
   object-fit: contain;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
+  flex-shrink: 0;
+}
+
+.cm-sidebar__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
 }
 
 .cm-sidebar__logo-text {
   color: var(--cm-text-on-primary);
   font-weight: var(--cm-font-weight-bold);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   letter-spacing: 0.1em;
-  text-align: center;
   white-space: nowrap;
   opacity: 0.92;
+}
+
+.cm-sidebar__user-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 /* --- Navigation container --- */
@@ -2042,13 +2059,21 @@ table .cm-clickable-row:focus-visible td {
 
 .cm-sidebar__user-name {
   color: var(--cm-text-on-primary);
-  font-size: var(--cm-font-size-sm);
+  font-size: 0.8rem;
   font-weight: var(--cm-font-weight-semibold);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cm-sidebar__user-role {
   color: var(--cm-sidebar-link-color);
-  font-size: var(--cm-font-size-xs);
+  font-size: 0.7rem;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ============================================================
@@ -4392,38 +4417,6 @@ table .cm-clickable-row:focus-visible td {
   color: white;
 }
 
-/* --- Email Notification --- */
-.cm-cand-email-notice {
-  margin-top: 20px;
-  padding: 15px;
-  border-radius: var(--cm-border-radius);
-}
-
-.cm-cand-email-notice.is-info {
-  background-color: #eff6ff;
-  border: 1px solid #3b82f6;
-  color: #1e40af;
-}
-
-.cm-cand-email-notice.is-success {
-  background-color: #d1fae5;
-  border: 1px solid var(--cm-success);
-  color: #065f46;
-}
-
-.cm-cand-email-notice p {
-  margin: 0;
-  font-size: var(--cm-font-size-sm);
-}
-
-.cm-cand-email-notice i {
-  margin-right: 8px;
-  color: #3b82f6;
-}
-
-.cm-cand-email-notice.is-success i {
-  color: var(--cm-success);
-}
 
 /* --- Modal: Resume Step Override --- */
 .cm-modal.is-resume-step {
@@ -4510,15 +4503,6 @@ table .cm-clickable-row:focus-visible td {
   background-color: #dff2ff;
 }
 
-/* --- Alert Warning (inline) --- */
-.cm-cand-alert-warning {
-  background-color: #fef3c7;
-  border: 1px solid #f59e0b;
-  color: #92400e;
-  padding: 12px;
-  border-radius: var(--cm-border-radius);
-  margin-top: 12px;
-}
 
 /* --- Print Styles --- */
 @media print {
@@ -5905,9 +5889,8 @@ form .cm-grid-auto {
 }
 
 .cm-eval-grid__fields-wrap {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
 }
 
@@ -5919,19 +5902,19 @@ form .cm-grid-auto {
   gap: 0.75rem;
   padding: 0.5rem;
   flex: 0 0 auto;
-  min-width: 240px;
-  max-width: 300px;
+  min-width: 0;
+  max-width: none;
+  border-radius: 6px;
 }
 
 .cm-eval-grid__label {
   font-weight: 500;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #334155;
   margin: 0;
   flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  line-height: 1.3;
 }
 
 .cm-eval-grid__abbrev {
@@ -5986,6 +5969,7 @@ form .cm-grid-auto {
 }
 
 .cm-eval-grid__total-row {
+  grid-column: 1 / -1;
   margin-top: 0.75rem;
   margin-left: auto;
   padding: 0.5rem 0.75rem;

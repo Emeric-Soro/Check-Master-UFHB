@@ -344,6 +344,15 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
 </div>
 <script>
 (function () {
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const listenerOptions = controller ? { signal: controller.signal } : undefined;
+
+    if (window.CM && window.CM.pageLifecycle && controller) {
+        window.CM.pageLifecycle.registerCleanup(function () {
+            controller.abort();
+        });
+    }
+
     const anneeFilter = document.getElementById('cmAnneeFilter');
     const notesLimit = document.getElementById('cmNotesLimit');
     const studentHidden = document.getElementById('cmStudentPicker_hidden');
@@ -489,7 +498,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
         if (event.target.classList.contains('cm-row-checkbox')) {
             updateSelectionState();
         }
-    });
+    }, listenerOptions);
 
     var searchInput = document.getElementById('cmNotes_search');
     if (searchInput) {
@@ -501,7 +510,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
         if (!event.detail || !event.detail.toolbar) return;
         if (event.detail.toolbar.id !== 'cmNotes_toolbar') return;
         window.alert('Suppression multiple indisponible sur cet écran.');
-    });
+    }, listenerOptions);
 
     document.addEventListener('cm:toolbar:limit:change', function (event) {
         if (!event.detail || !event.detail.toolbar) return;
@@ -513,7 +522,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
         params.set('limit_notes', limit);
         params.set('page_notes', '1');
         navigateWithParams(params);
-    });
+    }, listenerOptions);
     updateSelectionState();
 })();
 </script>

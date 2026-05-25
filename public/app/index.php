@@ -39,7 +39,7 @@ function renderAccessDenied(string $message = ''): Response
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Accès refusé</title>
         <link rel="stylesheet" href="../css/output.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" href="../assets/vendor/font-awesome/css/all.min.css">
     </head>
     <body style="background-color:#DFF2FF;" class="font-poppins">
         <div class="min-h-screen flex items-center justify-center p-6">
@@ -242,7 +242,7 @@ $router->get('/admin/users', function (): Response {
 });
 
 $router->get('/access-denied', function (): Response {
-    return renderAccessDenied($_SESSION['error_message'] ?? '');
+    return renderAccessDenied($_SESSION['error'] ?? '');
 });
 
 // Accueil "application"

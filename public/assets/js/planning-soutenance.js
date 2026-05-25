@@ -260,8 +260,7 @@ const PlanningSoutenance = {
 
     showError(container, msg) {
         if (container) {
-            container.innerHTML = '<div class="cm-alert is-danger"><div class="cm-alert__content"><span class="cm-alert__message"><i class="fas fa-times-circle"></i> '
-                + this.escHtml(msg ?? 'Erreur') + '</span></div></div>';
+            CM.alert.show(container, 'danger', this.escHtml(msg ?? 'Erreur'));
         }
     },
 

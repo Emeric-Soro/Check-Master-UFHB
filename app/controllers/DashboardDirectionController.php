@@ -21,7 +21,7 @@ class DashboardDirectionController
     {
         // Permission (slug 'dashboard_direction' ou fallback 'dashboard')
         if (!canView('dashboard') && !canView('dashboard_direction')) {
-            $_SESSION['error_message'] = "Accès non autorisé.";
+            $_SESSION['error'] = "Accès non autorisé.";
             header('Location: layout.php?page=dashboard');
             exit;
         }

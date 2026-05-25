@@ -206,9 +206,26 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                 <?php endif; ?>
                 <input type="hidden" id="num_ident_etud" name="num_ident_etud"
                     value="<?php echo htmlspecialchars((string) $formValues['identifiant_mesrs'], ENT_QUOTES, 'UTF-8'); ?>">
-                <!-- Ligne 1: Promotion seule (grid-1) -->
-                <div class="cm-grid-1">
+                <!-- Champs du formulaire organisés en grille de 4 colonnes -->
+                <div class="cm-grid-4">
                     <?php
+                    cm_component('form/input-text', [
+                        'name' => 'num_etu',
+                        'id' => 'num_etu',
+                        'label' => 'N° Carte Etudiant',
+                        'maxlength' => 15,
+                        'required' => true,
+                        'value' => (string) $formValues['num_etu'],
+                        'control_class' => 'cm-field-sm',
+                    ]);
+                    cm_component('form/input-text', [
+                        'name' => 'identifiant_mesrs',
+                        'id' => 'identifiant_mesrs',
+                        'label' => 'Identifiant (MESRS)',
+                        'maxlength' => 15,
+                        'value' => (string) $formValues['identifiant_mesrs'],
+                        'control_class' => 'cm-field-sm',
+                    ]);
                     cm_component('form/select', [
                         'name' => 'promotion_etu',
                         'id' => 'promotion_etu',
@@ -219,26 +236,12 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                         'control_class' => 'cm-field-sm',
                     ]);
                     echo '<input type="hidden" id="id_annee_acad" name="id_annee_acad" value="' . htmlspecialchars((string) $formValues['id_annee_acad'], ENT_QUOTES, 'UTF-8') . '">';
-                    ?>
-                </div>
-                <!-- Ligne 2: Identifiant MESRS, N° Carte, Nom, Prénom (grid-4) -->
-                <div class="cm-grid-4">
-                    <?php
-                    cm_component('form/input-text', [
-                        'name' => 'identifiant_mesrs',
-                        'id' => 'identifiant_mesrs',
-                        'label' => 'Identifiant (MESRS)',
-                        'maxlength' => 15,
-                        'value' => (string) $formValues['identifiant_mesrs'],
-                        'control_class' => 'cm-field-sm',
-                    ]);
-                    cm_component('form/input-text', [
-                        'name' => 'num_etu',
-                        'id' => 'num_etu',
-                        'label' => 'N° Carte Etudiant',
-                        'maxlength' => 15,
+                    cm_component('form/input-date', [
+                        'name' => 'date_naiss_etu',
+                        'id' => 'date_naiss_etu',
+                        'label' => 'Date Naissance',
                         'required' => true,
-                        'value' => (string) $formValues['num_etu'],
+                        'value' => (string) $formValues['date_naiss_etu'],
                         'control_class' => 'cm-field-sm',
                     ]);
                     cm_component('form/input-text', [
@@ -258,19 +261,6 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                         'required' => true,
                         'value' => (string) $formValues['prenom_etu'],
                         'control_class' => 'cm-field-md',
-                    ]);
-                    ?>
-                </div>
-                <!-- Ligne 3: Date Naissance, Genre, E-mail, (vide) (grid-4) -->
-                <div class="cm-grid-4">
-                    <?php
-                    cm_component('form/input-date', [
-                        'name' => 'date_naiss_etu',
-                        'id' => 'date_naiss_etu',
-                        'label' => 'Date Naissance',
-                        'required' => true,
-                        'value' => (string) $formValues['date_naiss_etu'],
-                        'control_class' => 'cm-field-sm',
                     ]);
                     cm_component('form/select', [
                         'name' => 'genre_etu',
@@ -296,7 +286,6 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
                         'control_class' => 'cm-field-md',
                     ]);
                     ?>
-                    <!-- Espace blanc pour alignement avec ligne 2 (4 colonnes) -->
                 </div>
                 <?php
                 if (is_object($etudiantAModifier)) {
@@ -476,6 +465,15 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
 </div>
 <script>
     (function () {
+        const controller = typeof AbortController === 'function' ? new AbortController() : null;
+        const listenerOptions = controller ? { signal: controller.signal } : undefined;
+
+        if (window.CM && window.CM.pageLifecycle && controller) {
+            window.CM.pageLifecycle.registerCleanup(function () {
+                controller.abort();
+            });
+        }
+
         const identifiantInput = document.getElementById('identifiant_mesrs');
         const hiddenNumIdent = document.getElementById('num_ident_etud');
         const bulkForm = document.getElementById('studentsBulkForm');
@@ -582,7 +580,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
             if (event.target.classList.contains('cm-row-checkbox')) {
                 updateSelectionState();
             }
-        });
+        }, listenerOptions);
         if (deleteBtn && bulkForm) {
             deleteBtn.addEventListener('click', async function () {
                 const selected = rowCheckboxes().filter(function (cb) { return cb.checked; });

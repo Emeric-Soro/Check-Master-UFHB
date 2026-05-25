@@ -41,16 +41,9 @@ class GestionEtudiantService
 
     private function debugLog(string $message, array $context = []): void
     {
-        $line = date('c') . ' ' . $message;
-        if (!empty($context)) {
-            $line .= ' ' . json_encode($context);
-        }
-
-        error_log($line);
-        $primary = __DIR__ . '/../../logs/gestion_etudiants.log';
-        $fallback = rtrim(sys_get_temp_dir(), '\\/') . DIRECTORY_SEPARATOR . 'gestion_etudiants.log';
-        @file_put_contents($primary, $line . PHP_EOL, FILE_APPEND);
-        @file_put_contents($fallback, $line . PHP_EOL, FILE_APPEND);
+        // Debug logging disabled for performance.
+        // Re-enable only during active debugging by uncommenting the line below.
+        // error_log(date('c') . ' ' . $message . (!empty($context) ? ' ' . json_encode($context) : ''));
     }
 
     private function niveauExists(int $idNiveau): bool

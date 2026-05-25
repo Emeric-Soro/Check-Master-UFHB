@@ -118,11 +118,6 @@ if (!function_exists('cm_error')) {
         if (isset($_SESSION['validation_errors']) && is_array($_SESSION['validation_errors']) && isset($_SESSION['validation_errors'][$field])) {
             return (string) $_SESSION['validation_errors'][$field];
         }
-
-        if (isset($_SESSION['errors']) && is_array($_SESSION['errors']) && isset($_SESSION['errors'][$field])) {
-            return (string) $_SESSION['errors'][$field];
-        }
-
         return '';
     }
 }

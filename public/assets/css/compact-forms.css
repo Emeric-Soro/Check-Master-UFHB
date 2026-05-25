@@ -331,20 +331,19 @@
   min-height: 0 !important;
 }
 
-.cm-content-area .cm-toolbar {
+.cm-content-area .cm-toolbar,
+.cm-content-area .cm-prd3-crud-screen .cm-toolbar {
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: nowrap !important;
+  flex-wrap: wrap !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 0.35rem !important;
-  padding: 0.15rem 0 !important;
+  gap: 0.5rem 0.75rem !important;
+  padding: 0.3rem 0 !important;
   width: 100% !important;
   box-sizing: border-box !important;
-  overflow-x: auto !important;
-  scrollbar-width: none !important; /* Hide scrollbar for premium look */
 }
 
 .cm-content-area .cm-toolbar::-webkit-scrollbar {
@@ -354,9 +353,9 @@
 .cm-content-area .cm-toolbar-left {
   flex: 0 0 auto !important;
   display: inline-flex !important;
-  flex-wrap: nowrap !important;
+  flex-wrap: wrap !important;
   align-items: center !important;
-  gap: 0.25rem !important;
+  gap: 0.35rem 0.5rem !important;
 }
 
 .cm-content-area .cm-toolbar-left label {
@@ -370,6 +369,8 @@
 .cm-content-area select.cm-toolbar-field-xs {
   height: 28px !important;
   min-height: 28px !important;
+  width: 72px !important; /* Constrain width to prevent overlapping */
+  max-width: 72px !important; /* Constrain width to prevent overlapping */
   padding: 0.15rem 1.65rem 0.15rem 0.4rem !important;
   font-size: 0.8rem !important;
   border-radius: 5px !important;
@@ -377,17 +378,40 @@
   background-size: 0.75rem 0.75rem !important;
 }
 
-.cm-content-area .cm-toolbar-center {
-  flex: 0 1 200px !important;
-  min-width: 120px !important;
+/* Explicit widths to override the global width: 100% !important */
+.cm-content-area select.cm-toolbar-field-sm,
+.cm-content-area input.cm-toolbar-field-sm {
+  width: 130px !important;
+  max-width: 130px !important;
+}
+
+.cm-content-area select.cm-toolbar-field-md,
+.cm-content-area input.cm-toolbar-field-md {
+  width: 145px !important;
+  max-width: 145px !important;
+}
+
+.cm-content-area select.cm-toolbar-field-lg,
+.cm-content-area input.cm-toolbar-field-lg {
+  width: 165px !important;
+  max-width: 165px !important;
+}
+
+.cm-content-area .cm-toolbar-center,
+.cm-content-area .cm-prd3-crud-screen .cm-toolbar-center {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
   display: inline-flex !important;
   align-items: center !important;
 }
 
-.cm-content-area .cm-toolbar__search-wrap {
+.cm-content-area .cm-toolbar .cm-toolbar__search-wrap,
+.cm-content-area .cm-toolbar.cm-toolbar--unified .cm-toolbar__search-wrap {
   height: 28px !important;
   min-height: 28px !important;
-  width: 100% !important;
+  width: 180px !important;
+  max-width: 180px !important;
   position: relative !important;
 }
 
@@ -405,13 +429,14 @@
   left: 0.65rem !important;
 }
 
-.cm-content-area .cm-toolbar-right {
+.cm-content-area .cm-toolbar-right,
+.cm-content-area .cm-prd3-crud-screen .cm-toolbar-right {
   flex: 1 1 auto !important;
   display: inline-flex !important;
-  flex-wrap: nowrap !important;
+  flex-wrap: wrap !important;
   align-items: center !important;
   justify-content: flex-end !important;
-  gap: 0.25rem !important;
+  gap: 0.35rem 0.5rem !important;
 }
 
 .cm-content-area .cm-toolbar .cm-btn {

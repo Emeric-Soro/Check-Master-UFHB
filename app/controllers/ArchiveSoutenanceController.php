@@ -26,7 +26,7 @@ class ArchiveSoutenanceController
     public function index()
     {
         if (!canView('archives_soutenances')) {
-            $_SESSION['error_message'] = "Accès refusé aux archives soutenances.";
+            $_SESSION['error'] = "Accès refusé aux archives soutenances.";
             header('Location: layout.php?page=access_denied');
             exit;
         }
@@ -50,14 +50,14 @@ class ArchiveSoutenanceController
     public function fiche($numSoutenance)
     {
         if (!canView('archives_soutenances')) {
-            $_SESSION['error_message'] = "Accès refusé.";
+            $_SESSION['error'] = "Accès refusé.";
             header('Location: layout.php?page=access_denied');
             exit;
         }
 
         $soutenance = $this->getSoutenanceComplete($numSoutenance);
         if (!$soutenance) {
-            $_SESSION['error_message'] = "Soutenance non trouvée.";
+            $_SESSION['error'] = "Soutenance non trouvée.";
             header('Location: layout.php?page=archives_soutenances');
             exit;
         }
@@ -78,7 +78,7 @@ class ArchiveSoutenanceController
     public function jurys()
     {
         if (!canView('archives_soutenances')) {
-            $_SESSION['error_message'] = "Accès refusé.";
+            $_SESSION['error'] = "Accès refusé.";
             header('Location: layout.php?page=access_denied');
             exit;
         }

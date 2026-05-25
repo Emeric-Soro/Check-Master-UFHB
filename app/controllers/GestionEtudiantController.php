@@ -30,28 +30,6 @@ class GestionEtudiantController
     public function index()
     {
         try {
-            $debugLogPath = __DIR__ . '/../../logs/gestion_etudiants.log';
-            $fallbackLogPath = rtrim(sys_get_temp_dir(), '\\/') . DIRECTORY_SEPARATOR . 'gestion_etudiants.log';
-            $entryLog = date('c') . ' [gestion_etudiants] index entry ' . json_encode([
-                'method' => $_SERVER['REQUEST_METHOD'] ?? 'GET',
-                'page' => $_GET['page'] ?? null,
-                'action' => $_GET['action'] ?? null,
-                'modalAction' => $_GET['modalAction'] ?? null,
-                'id_utilisateur' => $_SESSION['id_utilisateur'] ?? null,
-                'id_GU' => $_SESSION['id_GU'] ?? null,
-                'get_keys' => array_keys($_GET),
-                'post_keys' => array_keys($_POST),
-            ]);
-            @file_put_contents($debugLogPath, $entryLog . PHP_EOL, FILE_APPEND);
-            @file_put_contents($fallbackLogPath, $entryLog . PHP_EOL, FILE_APPEND);
-            $permLog = date('c') . ' [gestion_etudiants] permissions ' . json_encode([
-                'can_view' => function_exists('canView') ? canView('gestion_etudiants') : null,
-                'can_create' => function_exists('canCreate') ? canCreate('gestion_etudiants') : null,
-                'can_edit' => function_exists('canEdit') ? canEdit('gestion_etudiants') : null,
-                'can_delete' => function_exists('canDelete') ? canDelete('gestion_etudiants') : null,
-            ]);
-            @file_put_contents($debugLogPath, $permLog . PHP_EOL, FILE_APPEND);
-            @file_put_contents($fallbackLogPath, $permLog . PHP_EOL, FILE_APPEND);
             $currentPage = isset($_GET['p']) ? (int) $_GET['p'] : 1;
             $itemsPerPage = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
             if (!in_array($itemsPerPage, [5, 10, 25, 50, 100], true)) {
@@ -114,45 +92,15 @@ class GestionEtudiantController
 
             // Gestion des actions POST
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                $postLog = date('c') . ' [gestion_etudiants] POST detected ' . json_encode([
-                    'keys' => array_keys($_POST),
-                    'has_submit_add' => isset($_POST['submit_add_etudiant']),
-                    'has_submit_edit' => isset($_POST['submit_modifier_etudiant']),
-                    'has_selected_ids' => isset($_POST['selected_ids']),
-                ]);
-                @file_put_contents($debugLogPath, $postLog . PHP_EOL, FILE_APPEND);
-                @file_put_contents($fallbackLogPath, $postLog . PHP_EOL, FILE_APPEND);
                 // Ajout d'un nouvel étudiant
                 if (isset($_POST['submit_add_etudiant'])) {
-                    $debugPayload = json_encode([
-                        'num_etu' => $_POST['num_etu'] ?? null,
-                        'nom_etu' => $_POST['nom_etu'] ?? null,
-                        'prenom_etu' => $_POST['prenom_etu'] ?? null,
-                        'date_naiss_etu' => $_POST['date_naiss_etu'] ?? null,
-                        'genre_etu' => $_POST['genre_etu'] ?? null,
-                        'id_genre' => $_POST['id_genre'] ?? null,
-                        'email_etu' => $_POST['email_etu'] ?? null,
-                        'promotion_etu' => $_POST['promotion_etu'] ?? null,
-                        'id_annee_acad' => $_POST['id_annee_acad'] ?? null,
-                        'id_niveau' => $_POST['id_niveau'] ?? null,
-                        'identifiant_mesrs' => $_POST['identifiant_mesrs'] ?? null,
-                        'num_ident_etud' => $_POST['num_ident_etud'] ?? null,
-                    ]);
-                    error_log('[gestion_etudiants:add] POST received: ' . $debugPayload);
-                    $debugLogPath = __DIR__ . '/../../logs/gestion_etudiants.log';
-                    $fallbackLogPath = rtrim(sys_get_temp_dir(), '\\/') . DIRECTORY_SEPARATOR . 'gestion_etudiants.log';
-                    @file_put_contents($debugLogPath, date('c') . ' [gestion_etudiants:add] POST received: ' . $debugPayload . PHP_EOL, FILE_APPEND);
-                    @file_put_contents($fallbackLogPath, date('c') . ' [gestion_etudiants:add] POST received: ' . $debugPayload . PHP_EOL, FILE_APPEND);
                     if (!canCreate('gestion_etudiants')) {
-                        $denyLog = date('c') . ' [gestion_etudiants:add] denied by canCreate';
-                        @file_put_contents($debugLogPath, $denyLog . PHP_EOL, FILE_APPEND);
-                        @file_put_contents($fallbackLogPath, $denyLog . PHP_EOL, FILE_APPEND);
                         if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                             http_response_code(403);
                             echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                             exit;
                         }
-                        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                         $_SESSION['error_type'] = 'permission_denied';
                         header('Location: layout.php?page=access_denied');
                         exit;
@@ -181,7 +129,7 @@ class GestionEtudiantController
                             echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                             exit;
                         }
-                        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                         $_SESSION['error_type'] = 'permission_denied';
                         header('Location: layout.php?page=access_denied');
                         exit;
@@ -210,7 +158,7 @@ class GestionEtudiantController
                             echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                             exit;
                         }
-                        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                         $_SESSION['error_type'] = 'permission_denied';
                         header('Location: layout.php?page=access_denied');
                         exit;
@@ -267,7 +215,7 @@ class GestionEtudiantController
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!canCreate('gestion_etudiants')) {
-                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                 $_SESSION['error_type'] = 'permission_denied';
                 header('Location: layout.php?page=access_denied');
                 exit;

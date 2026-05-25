@@ -46,7 +46,7 @@ class GestionRhController
                         echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                         exit;
                     }
-                    $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                    $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                     $_SESSION['error_type'] = 'permission_denied';
                     header('Location: layout.php?page=access_denied');
                     exit;
@@ -67,7 +67,7 @@ class GestionRhController
                         echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                         exit;
                     }
-                    $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                    $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                     $_SESSION['error_type'] = 'permission_denied';
                     header('Location: layout.php?page=access_denied');
                     exit;
@@ -96,7 +96,7 @@ class GestionRhController
                         echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                         exit;
                     }
-                    $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                    $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                     $_SESSION['error_type'] = 'permission_denied';
                     header('Location: layout.php?page=access_denied');
                     exit;
@@ -117,7 +117,7 @@ class GestionRhController
                         echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                         exit;
                     }
-                    $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                    $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                     $_SESSION['error_type'] = 'permission_denied';
                     header('Location: layout.php?page=access_denied');
                     exit;
@@ -169,7 +169,7 @@ class GestionRhController
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!canCreate($permissionSlug)) {
-                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                 $_SESSION['error_type'] = 'permission_denied';
                 header('Location: layout.php?page=access_denied');
                 exit;

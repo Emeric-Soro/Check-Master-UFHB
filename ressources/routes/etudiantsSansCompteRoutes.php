@@ -18,15 +18,15 @@ if (isset($_GET['page']) && $_GET['page'] === 'etudiants_sans_compte') {
     // Traitement POST pour création en masse
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['creer_comptes'])) {
         if (!canEdit('gestion_utilisateurs')) {
-            $_SESSION['error_message'] = "Accès refusé.";
+            $_SESSION['error'] = "Accès refusé.";
         } else {
             $selectedIds = $_POST['selected_ids'] ?? [];
             if (!empty($selectedIds)) {
                 $result = $utilisateurModel->ajouterUtilisateursEnMasse($selectedIds);
                 if ($result) {
-                    $_SESSION['success_message'] = count($selectedIds) . " comptes créés avec succès.";
+                    $_SESSION['success'] = count($selectedIds) . " comptes créés avec succès.";
                 } else {
-                    $_SESSION['error_message'] = "Erreur lors de la création des comptes.";
+                    $_SESSION['error'] = "Erreur lors de la création des comptes.";
                 }
             }
             header('Location: layout.php?page=etudiants_sans_compte');

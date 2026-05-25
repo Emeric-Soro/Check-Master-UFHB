@@ -8,7 +8,7 @@
             <p class="text-gray-600">Vous n'avez pas les permissions nécessaires pour accéder à cette page.</p>
         </div>
 
-        <?php if (isset($_SESSION['error_message'])): ?>
+        <?php if (isset($_SESSION['error'])): ?>
             <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
                 <div class="flex items-start">
                     <div class="flex-shrink-0">
@@ -17,7 +17,7 @@
                     <div class="ml-3">
 
                         <p class="mt-1 text-sm text-red-700">
-                            <?= htmlspecialchars($_SESSION['error_message']) ?>
+                            <?= htmlspecialchars($_SESSION['error']) ?>
                         </p>
                     </div>
                 </div>
@@ -91,8 +91,7 @@
 
         <?php
         // Nettoyer les messages d'erreur après affichage
-        unset($_SESSION['error_message']);
-        unset($_SESSION['error_type']);
+        unset($_SESSION['error']);
         ?>
     </div>
 

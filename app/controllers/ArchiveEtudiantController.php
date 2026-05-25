@@ -29,7 +29,7 @@ class ArchiveEtudiantController
     public function index()
     {
         if (!canView('archives_etudiants')) {
-            $_SESSION['error_message'] = "Accès refusé aux archives étudiants.";
+            $_SESSION['error'] = "Accès refusé aux archives étudiants.";
             header('Location: layout.php?page=access_denied');
             exit;
         }
@@ -55,7 +55,7 @@ class ArchiveEtudiantController
     public function fiche($matricule)
     {
         if (!canView('archives_etudiants')) {
-            $_SESSION['error_message'] = "Accès refusé.";
+            $_SESSION['error'] = "Accès refusé.";
             header('Location: layout.php?page=access_denied');
             exit;
         }
@@ -64,7 +64,7 @@ class ArchiveEtudiantController
 
         $etudiant = $this->getEtudiantComplet($matricule, $anneeId);
         if (!$etudiant) {
-            $_SESSION['error_message'] = "Étudiant non trouvé.";
+            $_SESSION['error'] = "Étudiant non trouvé.";
             header('Location: layout.php?page=archives_etudiants');
             exit;
         }
@@ -92,7 +92,7 @@ class ArchiveEtudiantController
     public function parcours($matricule)
     {
         if (!canView('archives_etudiants')) {
-            $_SESSION['error_message'] = "Accès refusé.";
+            $_SESSION['error'] = "Accès refusé.";
             header('Location: layout.php?page=access_denied');
             exit;
         }

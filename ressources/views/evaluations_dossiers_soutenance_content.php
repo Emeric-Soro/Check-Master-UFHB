@@ -364,9 +364,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
             return;
         }
         const cssType = type === 'success' ? 'success' : 'danger';
-        alertBox.innerHTML = '<div class="cm-alert is-' + cssType + '"><div class="cm-alert__content"><span class="cm-alert__message">' +
-            String(message || '').replace(/[<>&]/g, '') +
-            '</span></div></div>';
+        CM.alert.show(alertBox, cssType, String(message || '').replace(/[<>&]/g, ''));
     }
     function syncSelectedRapport() {
         if (!rapportSelect) {

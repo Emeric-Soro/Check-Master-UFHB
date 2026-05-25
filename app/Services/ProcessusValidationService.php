@@ -217,6 +217,20 @@ class ProcessusValidationService
         return "LOWER(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(COALESCE($expr, '')), ' ', ''), '-', ''), '''', ''), '.', ''))";
     }
 
+    private function getAdminLikeGroupIds(): array
+    {
+        $groups = PermissionRegistry::groups();
+        $ids = [];
+        if (isset($groups['administrateur'])) {
+            $ids[] = (int) $groups['administrateur'];
+        }
+        if (isset($groups['admin_responsable_filiere'])) {
+            $ids[] = (int) $groups['admin_responsable_filiere'];
+        }
+
+        return array_values(array_unique(array_filter($ids, static fn ($id) => $id > 0)));
+    }
+
     private function enseignantResolutionSubquery(string $userAlias = 'u'): string
     {
 

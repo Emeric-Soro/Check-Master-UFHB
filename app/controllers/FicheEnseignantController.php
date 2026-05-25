@@ -35,7 +35,7 @@ class FicheEnseignantController
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                 exit;
             }
-            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
             $_SESSION['error_type'] = 'permission_denied';
             header('Location: layout.php?page=access_denied');
             exit;
@@ -100,14 +100,14 @@ class FicheEnseignantController
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                 exit;
             }
-            $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
             $_SESSION['error_type'] = 'permission_denied';
             header('Location: layout.php?page=access_denied');
             exit;
         }
 
         if ($id === '') {
-            $_SESSION['error_message'] = "Identifiant enseignant manquant.";
+            $_SESSION['error'] = "Identifiant enseignant manquant.";
             header('Location: layout.php?page=fiche_enseignante');
             exit;
         }
@@ -115,7 +115,7 @@ class FicheEnseignantController
         $data = $this->service->getFicheComplete($id);
 
         if (empty($data)) {
-            $_SESSION['error_message'] = "Enseignant introuvable.";
+            $_SESSION['error'] = "Enseignant introuvable.";
             header('Location: layout.php?page=fiche_enseignante');
             exit;
         }

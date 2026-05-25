@@ -21,11 +21,11 @@ $requestedTab = (string) ($_GET['tab'] ?? 'profile');
 $allowedTabs = ['profile', 'password', 'history'];
 $currentTab = in_array($requestedTab, $allowedTabs, true) ? $requestedTab : 'profile';
 
-$emailError = (string) ($_SESSION['email_error'] ?? '');
-$emailSuccess = (string) ($_SESSION['email_success'] ?? '');
-$passwordError = (string) ($_SESSION['password_error'] ?? '');
-$passwordSuccess = (string) ($_SESSION['password_success'] ?? '');
-unset($_SESSION['email_error'], $_SESSION['email_success'], $_SESSION['password_error'], $_SESSION['password_success']);
+$emailError = (string) ($_SESSION['error'] ?? '');
+$emailSuccess = (string) ($_SESSION['success'] ?? '');
+$passwordError = (string) ($_SESSION['error'] ?? '');
+$passwordSuccess = (string) ($_SESSION['success'] ?? '');
+unset($_SESSION['error'], $_SESSION['success']);
 
 $historyLogs = is_array($GLOBALS['profileAuditHistory'] ?? null) ? $GLOBALS['profileAuditHistory'] : [];
 $historyFilters = is_array($GLOBALS['profileAuditHistoryFilters'] ?? null) ? $GLOBALS['profileAuditHistoryFilters'] : [

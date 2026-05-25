@@ -147,25 +147,6 @@ if ($hasPrefill) {
 ?>
 
 <style>
-    .cm-rapport-admin-alert {
-        margin-bottom: 0.75rem;
-        padding: 0.85rem 1rem;
-        border-radius: 0.75rem;
-        border: 1px solid transparent;
-        font-weight: 600;
-    }
-
-    .cm-rapport-admin-alert.is-success {
-        background: #eaf8ef;
-        border-color: #bfe7ca;
-        color: #1f6a3d;
-    }
-
-    .cm-rapport-admin-alert.is-danger {
-        background: #fdeeee;
-        border-color: #f5c6c6;
-        color: #a03232;
-    }
 
     .cm-rapport-admin-form-note {
         margin: 0;
@@ -396,11 +377,11 @@ if ($hasPrefill) {
     data-cm-rapport-admin-prefilled="<?= $hasPrefill ? '1' : '0' ?>"
     data-cm-rapport-admin-focus="<?= $prefill['focus_upload'] === '1' ? '1' : '0' ?>">
     <?php if ($messageSuccess): ?>
-        <div class="cm-rapport-admin-alert is-success"><?= htmlspecialchars((string) $messageSuccess, ENT_QUOTES, 'UTF-8') ?></div>
+        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => $messageSuccess]); ?>
     <?php endif; ?>
 
     <?php if ($messageError): ?>
-        <div class="cm-rapport-admin-alert is-danger"><?= htmlspecialchars((string) $messageError, ENT_QUOTES, 'UTF-8') ?></div>
+        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $messageError]); ?>
     <?php endif; ?>
 
     <div class="cm-crud-wrapper">

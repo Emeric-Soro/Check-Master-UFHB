@@ -1,0 +1,39 @@
+# Activer la compression et le cache pour les assets statiques
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # CSS, JS, fonts: cache 1 an (fichiers versionnés par ?v=timestamp)
+    ExpiresByType text/css                 "access plus 1 year"
+    ExpiresByType application/javascript   "access plus 1 year"
+    ExpiresByType text/javascript          "access plus 1 year"
+    
+    # Police d'icônes
+    ExpiresByType font/woff2               "access plus 1 year"
+    ExpiresByType font/woff                "access plus 1 year"
+    ExpiresByType font/ttf                 "access plus 1 year"
+    ExpiresByType font/opentype            "access plus 1 year"
+    ExpiresByType application/vnd.ms-fontobject "access plus 1 year"
+    ExpiresByType image/svg+xml            "access plus 1 year"
+    
+    # Images
+    ExpiresByType image/png                "access plus 1 year"
+    ExpiresByType image/jpeg               "access plus 1 year"
+    ExpiresByType image/gif                "access plus 1 year"
+    ExpiresByType image/webp               "access plus 1 year"
+    ExpiresByType image/x-icon             "access plus 1 year"
+</IfModule>
+
+<IfModule mod_headers.c>
+    # Cache-Control pour les assets avec cache-busting par query string
+    <FilesMatch "\.(css|js|woff2?|ttf|eot|svg|png|jpe?g|gif|webp|ico)$">
+        Header set Cache-Control "public, immutable, max-age=31536000"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_deflate.c>
+    # Compression des assets textuels
+    AddOutputFilterByType DEFLATE text/css text/javascript application/javascript text/html text/plain text/xml application/json font/woff2 font/woff image/svg+xml
+</IfModule>
+
+# Désactiver l'indexation des répertoires
+Options -Indexes

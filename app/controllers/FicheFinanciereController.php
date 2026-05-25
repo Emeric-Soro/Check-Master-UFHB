@@ -21,7 +21,7 @@ class FicheFinanciereController
     {
         // Permission
         if (!canView('gestion_scolarite')) {
-            $_SESSION['error_message'] = "Accès non autorisé.";
+            $_SESSION['error'] = "Accès non autorisé.";
             header('Location: layout.php?page=dashboard');
             exit;
         }

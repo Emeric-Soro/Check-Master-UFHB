@@ -11,34 +11,7 @@ Session::start();
 // Bufferiser la sortie pour injecter CSRF sur les formulaires legacy (migration progressive).
 ob_start();
 
-// [INJECTED_LOGGER]
-register_shutdown_function(function () {
-    $files = get_included_files();
-    $logFile = __DIR__ . '/../../views_used.log';
-    if (!file_exists($logFile)) {
-        touch($logFile);
-        chmod($logFile, 0777);
-    }
-    $usedViews = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    if ($usedViews === false)
-        $usedViews = [];
 
-    $updated = false;
-    foreach ($files as $f) {
-        $f = str_replace(DIRECTORY_SEPARATOR, '/', $f);
-        if (strpos($f, 'ressources/views') !== false) {
-            if (!in_array($f, $usedViews)) {
-                $usedViews[] = $f;
-                $updated = true;
-            }
-        }
-    }
-
-    if ($updated) {
-        file_put_contents($logFile, implode("\n", $usedViews) . "\n");
-    }
-});
-// [/INJECTED_LOGGER]
 
 
 
@@ -131,7 +104,7 @@ if (!isset($_SESSION['id_utilisateur'])) {
                 exit;
             }
 
-            $_SESSION['error_message'] = 'Session expirée. Veuillez réessayer.';
+            $_SESSION['error'] = 'Session expirée. Veuillez réessayer.';
             $_SESSION['error_type'] = 'csrf';
             $fallback = 'layout.php?page=' . urlencode($_GET['page'] ?? 'dashboard');
             $redirect = $_SERVER['HTTP_REFERER'] ?? $fallback;
@@ -165,7 +138,7 @@ if (!isset($_SESSION['id_utilisateur'])) {
             exit;
         }
 
-        $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+        $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
         $_SESSION['error_type'] = 'permission_denied';
 
         $redirect = 'layout.php?page=access_denied';
@@ -220,67 +193,120 @@ include __DIR__ . '/../ressources/routes/annuaireEnseignantsRoutes.php';
 
 $menuController = new MenuController();
 
-// NOUVEAU : Menu hiérarchique avec catégories
-$menuHierarchique = $menuController->genererMenuHierarchique($_SESSION['id_GU']);
-
-// Déterminer la page actuelle et le label
 $currentMenuSlug = isset($_GET['page']) ? $_GET['page'] : '';
 $currentPageLabel = '';
-$GLOBALS['caps'] = isset($_SESSION['id_GU'])
-    ? $permissionContextFactory->forCurrentRequest((int) $_SESSION['id_GU'], $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'GET')
-    : ['view' => false, 'create' => false, 'edit' => false, 'delete' => false, 'slug' => ''];
+$menuHierarchique = [];
+$menuHTML = '';
 
-// Canonicalisation désactivée pour les pages legacy migrées:
-// on garde l'URL courante pour éviter les doubles redirections et préserver la navigation AJAX.
+$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
-// Chercher le label dans le menu hiérarchique
-if (!empty($currentMenuSlug)) {
-    foreach ($menuHierarchique as $item) {
-        foreach ($item['fonctionnalites'] as $fonc) {
-            // Extraire le paramètre page de l'URL
-            $query = parse_url($fonc->url_fonctionnalite, PHP_URL_QUERY);
-            if ($query) {
-                parse_str($query, $params);
-                if (isset($params['page']) && $params['page'] === $currentMenuSlug) {
-                    $currentPageLabel = $fonc->label_fonctionnalite;
-                    break 2;
+// Déterminer le label de page AVANT de construire le menu (pour les pages connues)
+$canonicalPageLabels = [
+    'admin_historique' => 'Historique et archivage',
+    'consultation_cr_etud' => 'Mon compte rendu',
+    'candidature_soutenance' => 'Ma candidature à la soutenance',
+    'dashboard' => 'Tableau de bord — Administration',
+    'dashboard_commission' => 'Tableau de bord — Commission',
+    'dashboard_enseignant' => 'Espace enseignant — Participations jurys',
+    'dashboard_scolarite' => 'Tableau de bord scolarité',
+    'dashboard_securite' => 'Tableau de bord sécurité',
+    'edition_bulletin' => 'Édition des PV finaux',
+    'evaluation_dossiers' => 'Évaluation des dossiers',
+    'gestion_dossiers_candidatures' => 'Gestion des dossiers de candidatures',
+    'gestion_notes_evaluations' => 'Gestion des notes et évaluations',
+    'gestion_reclamations' => 'Mes réclamations',
+    'gestion_reclamations_scolarite' => 'Gestion des réclamations',
+    'gestion_scolarite' => 'Inscriptions / Paiements',
+    'gestion_utilisateurs' => 'Gestion des utilisateurs',
+    'maj_enseignant' => 'Mise à jour enseignant',
+    'maj_personnel_admin' => 'Mise à jour personnel administratif',
+    'mise_en_ligne_memoire' => 'Mise en ligne des mémoires',
+    'validation_memoires' => 'Validation des memoires',
+    'parametres_generaux' => 'Paramètres généraux',
+    'parametres_specifiques' => 'Paramètres spécifiques',
+    'piste_audit' => "Piste d'audit",
+    'processus_validation' => 'Suivi de validation des rapports',
+    'profil' => 'Mon profil',
+    'programmation_ens' => 'Mes soutenances — Programme',
+    'programmation_soutenance' => 'Programmation des soutenances',
+    'redaction_compte_rendu' => 'Rédaction du compte rendu',
+    'reception_rapport_com' => 'Réception des rapports',
+    'repertoire_enseignant' => 'Répertoire des documents',
+    'sauvegarde_restauration' => 'Sauvegardes et restauration',
+    'tableau_bord_enseignant' => 'Mon tableau de bord — Enseignant',
+    'fiche_etudiant_complete' => 'Fiche Étudiante Complete',
+    'suivi_scolarite' => 'Suivi & Scolarité',
+    'commissions_archives' => 'Commissions & Archives',
+    'enseignant_gestion' => 'Gestion des Enseignants',
+    'outils_direction' => 'Outils & Direction',
+    'gestion_notes' => 'Gestion des Notes',
+    'archive_hub' => 'Archives — Hub',
+    'archive_etudiants' => 'Archives Étudiants',
+    'archive_documents' => 'Archives Documents',
+    'archive_soutenances' => 'Archives Soutenances',
+    'archive_admins' => 'Archives Administrateurs',
+];
+if (isset($canonicalPageLabels[$currentMenuSlug])) {
+    $currentPageLabel = $canonicalPageLabels[$currentMenuSlug];
+}
+
+// Skip menu building for AJAX requests (the menu is not rendered in AJAX responses)
+if (!$isAjax) {
+    // NOUVEAU : Menu hiérarchique avec catégories
+    $menuHierarchique = $menuController->genererMenuHierarchique($_SESSION['id_GU']);
+
+    // Chercher le label dans le menu hiérarchique si pas trouvé dans le mapping
+    if (empty($currentPageLabel) && !empty($currentMenuSlug)) {
+        foreach ($menuHierarchique as $item) {
+            foreach ($item['fonctionnalites'] as $fonc) {
+                $query = parse_url($fonc->url_fonctionnalite, PHP_URL_QUERY);
+                if ($query) {
+                    parse_str($query, $params);
+                    if (isset($params['page']) && $params['page'] === $currentMenuSlug) {
+                        $currentPageLabel = $fonc->label_fonctionnalite;
+                        break 2;
+                    }
                 }
             }
         }
     }
-}
 
-// Pages spéciales
-if (empty($currentPageLabel)) {
-    $specialPages = [
-        'archive_comptes_rendus' => 'Archives des comptes rendus',
-        'redaction_compte_rendu' => 'Rédaction de compte rendu',
-        'tableau_bord_enseignant' => 'Tableau de bord enseignant',
-    ];
-    if (isset($specialPages[$currentMenuSlug])) {
-        $currentPageLabel = $specialPages[$currentMenuSlug];
-    }
-}
-
-// Redirection si pas de page spécifiée
-if (empty($currentMenuSlug) && !empty($menuHierarchique)) {
-    $firstCategorie = $menuHierarchique[0];
-    if (!empty($firstCategorie['fonctionnalites'])) {
-        $firstFonc = $firstCategorie['fonctionnalites'][0];
-        $firstFoncUrl = (string) ($firstFonc->url_fonctionnalite ?? '');
-        $firstFoncQuery = (string) (parse_url($firstFoncUrl, PHP_URL_QUERY) ?? '');
-        parse_str($firstFoncQuery, $params);
-        if (isset($params['page'])) {
-            $currentMenuSlug = $params['page'];
-            $currentPageLabel = $firstFonc->label_fonctionnalite;
-            header('Location: layout.php?page=' . urlencode($currentMenuSlug));
-            exit;
+    // Pages spéciales
+    if (empty($currentPageLabel)) {
+        $specialPages = [
+            'archive_comptes_rendus' => 'Archives des comptes rendus',
+            'redaction_compte_rendu' => 'Rédaction de compte rendu',
+            'tableau_bord_enseignant' => 'Tableau de bord enseignant',
+        ];
+        if (isset($specialPages[$currentMenuSlug])) {
+            $currentPageLabel = $specialPages[$currentMenuSlug];
         }
     }
+
+    // Redirection si pas de page spécifiée
+    if (empty($currentMenuSlug) && !empty($menuHierarchique)) {
+        $firstCategorie = $menuHierarchique[0];
+        if (!empty($firstCategorie['fonctionnalites'])) {
+            $firstFonc = $firstCategorie['fonctionnalites'][0];
+            $firstFoncUrl = (string) ($firstFonc->url_fonctionnalite ?? '');
+            $firstFoncQuery = (string) (parse_url($firstFoncUrl, PHP_URL_QUERY) ?? '');
+            parse_str($firstFoncQuery, $params);
+            if (isset($params['page'])) {
+                $currentMenuSlug = $params['page'];
+                $currentPageLabel = $firstFonc->label_fonctionnalite;
+                header('Location: layout.php?page=' . urlencode($currentMenuSlug));
+                exit;
+            }
+        }
+    }
+
+    $menuView = new MenuView();
+    $menuHTML = $menuView->afficherMenuHierarchique($menuHierarchique, $currentMenuSlug);
 }
 
-$menuView = new MenuView();
-$menuHTML = $menuView->afficherMenuHierarchique($menuHierarchique, $currentMenuSlug);
+$GLOBALS['caps'] = isset($_SESSION['id_GU'])
+    ? $permissionContextFactory->forCurrentRequest((int) $_SESSION['id_GU'], $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'GET')
+    : ['view' => false, 'create' => false, 'edit' => false, 'delete' => false, 'slug' => ''];
 
 // ANCIEN : Menu plat (commenté pour migration progressive)
 // $menuHTML = $menuView->afficherMenu($traitements, $currentMenuSlug);
@@ -329,7 +355,7 @@ switch ($currentMenuSlug) {
             $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
             if ($emailUpdated) {
-                $_SESSION['email_success'] = (string) ($GLOBALS['messageSuccess'] ?? 'Email de contact mis à jour avec succès.');
+                $_SESSION['success'] = (string) ($GLOBALS['messageSuccess'] ?? 'Email de contact mis à jour avec succès.');
                 if ($auditService instanceof \CheckMaster\Services\AuditService) {
                     $auditService->logRequestActivity((int) ($_SESSION['id_utilisateur'] ?? 0), $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'POST');
                 }
@@ -347,7 +373,7 @@ switch ($currentMenuSlug) {
                 exit;
             }
 
-            $_SESSION['email_error'] = (string) ($GLOBALS['messageErreur'] ?? 'Erreur lors de la mise à jour de l\'email de contact.');
+            $_SESSION['error'] = (string) ($GLOBALS['messageErreur'] ?? 'Erreur lors de la mise à jour de l\'email de contact.');
             if ($auditService instanceof \CheckMaster\Services\AuditService) {
                 $auditService->logRequestActivity((int) ($_SESSION['id_utilisateur'] ?? 0), $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'POST');
             }
@@ -357,7 +383,7 @@ switch ($currentMenuSlug) {
                 header('Content-Type: application/json; charset=UTF-8');
                 echo json_encode([
                     'success' => false,
-                    'message' => $_SESSION['email_error'],
+                    'message' => $_SESSION['error'],
                 ]);
                 exit;
             }
@@ -379,7 +405,7 @@ switch ($currentMenuSlug) {
             $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
             if ($passwordUpdated) {
-                $_SESSION['password_success'] = (string) ($GLOBALS['messageSuccess'] ?? 'Mot de passe mis à jour avec succès.');
+                $_SESSION['success'] = (string) ($GLOBALS['messageSuccess'] ?? 'Mot de passe mis à jour avec succès.');
                 if ($auditService instanceof \CheckMaster\Services\AuditService) {
                     $auditService->logRequestActivity((int) ($_SESSION['id_utilisateur'] ?? 0), $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'POST');
                 }
@@ -397,7 +423,7 @@ switch ($currentMenuSlug) {
                 exit;
             }
 
-            $_SESSION['password_error'] = (string) ($GLOBALS['messageErreur'] ?? 'Erreur lors de la mise à jour du mot de passe.');
+            $_SESSION['error'] = (string) ($GLOBALS['messageErreur'] ?? 'Erreur lors de la mise à jour du mot de passe.');
             if ($auditService instanceof \CheckMaster\Services\AuditService) {
                 $auditService->logRequestActivity((int) ($_SESSION['id_utilisateur'] ?? 0), $_GET, $_POST, $_SERVER['REQUEST_METHOD'] ?? 'POST');
             }
@@ -407,7 +433,7 @@ switch ($currentMenuSlug) {
                 header('Content-Type: application/json; charset=UTF-8');
                 echo json_encode([
                     'success' => false,
-                    'message' => $_SESSION['password_error'],
+                    'message' => $_SESSION['error'],
                 ]);
                 exit;
             }
@@ -1621,9 +1647,9 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
     <link rel="shortcut icon"
         href="<?php echo htmlspecialchars($publicPrefix . 'image/logo_cm_sbg.png', ENT_QUOTES, 'UTF-8'); ?>"
         type="image/x-icon">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css"></noscript>
+    <link rel="stylesheet" href="<?php echo htmlspecialchars($publicPrefix . 'assets/vendor/font-awesome/css/all.min.css', ENT_QUOTES, 'UTF-8'); ?>">
+    <link href="<?php echo htmlspecialchars($publicPrefix . 'assets/vendor/flatpickr/flatpickr.min.css', ENT_QUOTES, 'UTF-8'); ?>" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="<?php echo htmlspecialchars($publicPrefix . 'assets/vendor/flatpickr/flatpickr.min.css', ENT_QUOTES, 'UTF-8'); ?>"></noscript>
     <style>
         .cm-content-area .cm-form-group {
             min-width: 0;
@@ -2133,24 +2159,22 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
 
         .cm-sidebar__user-summary {
             width: 100%;
-            margin-bottom: 0.55rem;
-            padding: 0.45rem 0.55rem;
             color: #fff;
             text-align: left;
         }
 
         .cm-sidebar__user-name {
             display: block;
-            font-weight: 700;
-            font-size: 0.9rem;
-            line-height: 1.2;
+            font-weight: 600;
+            font-size: 0.82rem;
+            line-height: 1.25;
         }
 
         .cm-sidebar__user-role {
             display: block;
             margin-top: 0.1rem;
-            opacity: 0.9;
-            font-size: 0.8rem;
+            opacity: 0.7;
+            font-size: 0.72rem;
             line-height: 1.2;
         }
 
@@ -2372,29 +2396,32 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             display: block !important;
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/fr.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.12.0/cdn.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js" defer></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <script src="<?php echo htmlspecialchars($publicPrefix . 'assets/vendor/chart.js/chart.umd.min.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars($publicPrefix . 'assets/vendor/flatpickr/flatpickr.min.js', ENT_QUOTES, 'UTF-8'); ?>" defer></script>
+    <script src="<?php echo htmlspecialchars($publicPrefix . 'assets/vendor/flatpickr/fr.js', ENT_QUOTES, 'UTF-8'); ?>" defer></script>
+    <link rel="stylesheet" href="<?php echo htmlspecialchars($publicPrefix . 'assets/vendor/animate.css/animate.min.css', ENT_QUOTES, 'UTF-8'); ?>">
 
 </head>
 
 <body class="cm-app-body">
     <aside class="cm-sidebar" id="cmSidebar">
-        <div class="cm-sidebar__logo">
-            <img src="<?php echo htmlspecialchars($publicPrefix . 'image/logo_cm_sbg.png', ENT_QUOTES, 'UTF-8'); ?>"
-                alt="Logo CheckMaster" class="cm-sidebar__logo-img">
-            <span class="cm-sidebar__logo-text">CHECK MASTER</span>
+        <div class="cm-sidebar__header">
+            <div class="cm-sidebar__logo">
+                <img src="<?php echo htmlspecialchars($publicPrefix . 'image/logo_cm_sbg.png', ENT_QUOTES, 'UTF-8'); ?>"
+                    alt="Logo CheckMaster" class="cm-sidebar__logo-img">
+                <div class="cm-sidebar__brand">
+                    <span class="cm-sidebar__logo-text">CHECK MASTER</span>
+                    <div class="cm-sidebar__user-summary">
+                        <span class="cm-sidebar__user-name"><?php echo htmlspecialchars($_SESSION['nom_utilisateur']) ?></span>
+                        <span class="cm-sidebar__user-role"><?php echo htmlspecialchars($_SESSION['lib_GU']) ?></span>
+                    </div>
+                </div>
+            </div>
         </div>
         <nav class="cm-sidebar__nav">
             <?php echo $menuHTML; ?>
         </nav>
         <div class="cm-sidebar__footer">
-            <div class="cm-sidebar__user-summary">
-                <span class="cm-sidebar__user-name"><?php echo htmlspecialchars($_SESSION['nom_utilisateur']) ?></span>
-                <span class="cm-sidebar__user-role"><?php echo htmlspecialchars($_SESSION['lib_GU']) ?></span>
-            </div>
             <form action="index.php?_path=/logout" method="POST" id="logoutForm" class="cm-w-full">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Csrf::token()); ?>">
                 <button type="submit" form="logoutForm"
@@ -2645,4 +2672,36 @@ function injectCsrfIntoPostForms(string $html): string
 }
 
 $__out = ob_get_clean();
+
+// For AJAX requests: extract ONLY the #cmLayoutMain content (skip layout, sidebar, navbar, scripts)
+// This dramatically reduces response size and eliminates unnecessary DOM parsing on the client.
+$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+if ($isAjax) {
+    // Extract the page title
+    $title = '';
+    if (preg_match('/<title>([^<]+)<\/title>/i', $__out, $m)) {
+        $title = htmlspecialchars(trim($m[1]), ENT_QUOTES, 'UTF-8');
+    }
+    $navbarTitle = '';
+    if (preg_match('/<span[^>]*class="cm-navbar__page-title"[^>]*>([\s\S]*?)<\/span>/i', $__out, $m)) {
+        $navbarTitle = $m[1];
+    }
+    // Extract the main content area (cmLayoutMain)
+    $mainOpenTag = '<main id="cmLayoutMain">';
+    $mainContent = '';
+    if (preg_match('/(<main[^>]*id="cmLayoutMain"[^>]*>)([\s\S]*?)<\/main>/i', $__out, $m)) {
+        $mainOpenTag = $m[1];
+        $mainContent = $m[2];
+    }
+    if ($mainContent !== '') {
+        // Return minimal HTML document that app.js can still parse
+        // Set content-type explicitly for clarity
+        header('Content-Type: text/html; charset=UTF-8');
+        echo '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>' . $title . '</title></head><body>'
+           . '<span class="cm-navbar__page-title">' . $navbarTitle . '</span>'
+           . $mainOpenTag . $mainContent . '</main></body></html>';
+        exit;
+    }
+}
+
 echo injectCsrfIntoPostForms($__out);
