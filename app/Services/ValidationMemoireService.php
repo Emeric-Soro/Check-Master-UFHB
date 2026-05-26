@@ -384,31 +384,17 @@ class ValidationMemoireService
 
     private function getMemoireById(int $documentId): ?array
     {
-        if ($documentId <= 0 || !$this->tableExists('documents')) {
+        if ($documentId <= 0) {
             return null;
         }
 
-        $sql = 'SELECT\n                    d.id_document, d.nom_fichier, d.taille_fichier, d.date_creation,\n                    ps.num_soutenance, ps.num_etud, ps.theme_soutenance, ps.date_soutenance,\n                    e.num_carte_etud, e.num_ident_etud, e.nom_etu, e.prenom_etu, e.promotion_etu\n                FROM documents d\n                INNER JOIN programmer_soutenance ps\n                    ON CAST(ps.num_soutenance AS CHAR) = d.entite_id\n                INNER JOIN etudiants e\n                    ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)\n                WHERE d.id_document = :id_document\n                  AND d.entite_type = "programmer_soutenance"\n                  AND d.type_document = "memoire"\n                  AND d.statut = "actif"';
-
-        $params = [':id_document' => $documentId];
-        $anneeId = $this->getSelectedYearId();
-        if ($anneeId !== null) {
-            $sql .= ' AND ps.id_annee_acad = :annee_id';
-            $params[':annee_id'] = $anneeId;
-        }
-
-        try {
-            $stmt = $this->pdo->prepare($sql);
-            foreach ($params as $key => $value) {
-                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        foreach ($this->memoireService->getMemoiresEnLigne() as $memoire) {
+            if ((int) ($memoire['id_document'] ?? 0) === $documentId) {
+                return $memoire;
             }
-            $stmt->execute();
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            return is_array($row) ? $row : null;
-        } catch (Exception $e) {
-            error_log('[ValidationMemoireService] memoire lookup failed: ' . $e->getMessage());
-            return null;
         }
+
+        return null;
     }
 
     public function getIndexData(array $session): array

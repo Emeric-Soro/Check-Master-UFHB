@@ -51,14 +51,14 @@ final class MiseEnLigneMemoireService
             return ['success' => false, 'message' => 'Le rapport de cet etudiant n\'a pas encore ete valide par la commission.'];
         }
 
-        $soutenance = $this->findLatestSoutenanceByStudent($numEtu);
-        if ($soutenance === null) {
-            return ['success' => false, 'message' => 'Aucune soutenance trouvée pour cet étudiant.'];
+        $rapport = $this->findLatestRapportAvecCompteRenduByStudent($numEtu);
+        if (!is_array($rapport) || (int) ($rapport['id_rapport'] ?? 0) <= 0) {
+            return ['success' => false, 'message' => 'Aucun compte rendu n\'a ete trouve pour cet etudiant.'];
         }
 
         $file = $files['memoire_pdf'] ?? null;
         if (!is_array($file) || (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            return ['success' => false, 'message' => 'Veuillez sélectionner un fichier PDF valide.'];
+            return ['success' => false, 'message' => 'Veuillez selectionner un fichier PDF valide.'];
         }
 
         $tmpName = (string) ($file['tmp_name'] ?? '');
@@ -66,20 +66,20 @@ final class MiseEnLigneMemoireService
         $size = (int) ($file['size'] ?? 0);
 
         if ($tmpName === '' || !is_uploaded_file($tmpName)) {
-            return ['success' => false, 'message' => 'Le fichier uploadé est introuvable.'];
+            return ['success' => false, 'message' => 'Le fichier uploade est introuvable.'];
         }
 
         if ($size <= 0) {
-            return ['success' => false, 'message' => 'Le fichier sélectionné est vide.'];
+            return ['success' => false, 'message' => 'Le fichier selectionne est vide.'];
         }
 
         if ($size > self::MAX_FILE_SIZE) {
-            return ['success' => false, 'message' => 'Le fichier dépasse la taille maximale autorisée de 20 MB.'];
+            return ['success' => false, 'message' => 'Le fichier depasse la taille maximale autorisee de 20 MB.'];
         }
 
         $extension = strtolower((string) pathinfo($originalName, PATHINFO_EXTENSION));
         if ($extension !== 'pdf') {
-            return ['success' => false, 'message' => 'Seuls les fichiers PDF sont autorisés.'];
+            return ['success' => false, 'message' => 'Seuls les fichiers PDF sont autorises.'];
         }
 
         $mimeType = 'application/pdf';
@@ -103,17 +103,16 @@ final class MiseEnLigneMemoireService
             return ['success' => false, 'message' => 'Impossible de lire le fichier transmis.'];
         }
 
-        $safeStudent = preg_replace('/[^A-Za-z0-9_-]/', '_', (string) ($soutenance['num_etu'] ?? $numEtu));
-        $safeDate = preg_replace('/[^0-9-]/', '', (string) ($soutenance['date_soutenance'] ?? date('Y-m-d')));
-        $storedName = 'memoire_' . $safeStudent . '_' . ($safeDate !== '' ? $safeDate : date('Y-m-d')) . '.pdf';
+        $safeStudent = preg_replace('/[^A-Za-z0-9_-]/', '_', (string) ($rapport['num_etu'] ?? $numEtu));
+        $storedName = 'memoire_' . $safeStudent . '_' . date('Y-m-d') . '.pdf';
 
         $document = $this->storage->storeDocument(
             'memoire',
             $storedName,
             $content,
             'application/pdf',
-            'programmer_soutenance',
-            (string) $soutenance['num_soutenance'],
+            'rapport_etudiants',
+            (string) ((int) ($rapport['id_rapport'] ?? 0)),
             $userId,
             null,
             null,
@@ -122,25 +121,23 @@ final class MiseEnLigneMemoireService
         );
 
         if (!is_array($document)) {
-            return ['success' => false, 'message' => 'L’enregistrement du mémoire a échoué.'];
+            return ['success' => false, 'message' => 'L\'enregistrement du memoire a echoue.'];
         }
 
+        $this->notifyMemoireValidators($rapport, $document);
 
-        $this->notifyMemoireValidators($soutenance, $document);
-
-        return ['success' => true, 'message' => 'Mémoire mis en ligne avec succès.'];
+        return ['success' => true, 'message' => 'Memoire mis en ligne avec succes.'];
     }
 
     public function supprimerMemoire(string $numEtu): array
     {
         if (!$this->storage->isAvailable()) {
-
             return ['success' => false, 'message' => 'Le registre documentaire n\'est pas disponible.'];
         }
 
         $document = $this->findActiveMemoireByStudent($numEtu);
         if ($document === null) {
-            return ['success' => false, 'message' => 'Aucun mémoire actif à supprimer.'];
+            return ['success' => false, 'message' => 'Aucun memoire actif a supprimer.'];
         }
 
         $stmt = $this->db->prepare(
@@ -155,7 +152,7 @@ final class MiseEnLigneMemoireService
             return ['success' => false, 'message' => 'Suppression impossible.'];
         }
 
-        return ['success' => true, 'message' => 'Mémoire supprimé avec succès.'];
+        return ['success' => true, 'message' => 'Memoire supprime avec succes.'];
     }
 
     public function getMemoireDocumentByStudent(string $numEtu): ?array
@@ -168,35 +165,39 @@ final class MiseEnLigneMemoireService
      */
     public function getEtudiantsAvecSoutenance(): array
     {
+        if (
+            !$this->tableExists('compte_rendu')
+            || !$this->tableExists('compte_rendu_rapport')
+            || !$this->tableExists('rapport_etudiants')
+            || !$this->tableExists('etudiants')
+        ) {
+            return [];
+        }
+
         $sql = 'SELECT
-                    ps.num_soutenance,
-                    ps.num_etud,
-                    ps.theme_soutenance,
-                    ps.date_soutenance,
+                    cr.id_CR,
+                    cr.date_CR,
+                    r.id_rapport,
+                    r.num_etu AS rapport_num_etu,
+                    COALESCE(r.theme_rapport, "") AS theme_rapport,
                     e.num_carte_etud,
                     e.num_ident_etud,
                     e.nom_etu,
                     e.prenom_etu,
-                    e.promotion_etu,
-                    aa.date_deb,
-                    aa.date_fin
-                FROM programmer_soutenance ps
+                    e.promotion_etu
+                FROM compte_rendu cr
+                INNER JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
+                INNER JOIN rapport_etudiants r ON r.id_rapport = crr.id_rapport
                 INNER JOIN etudiants e
-                    ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
-                LEFT JOIN annee_academique aa ON aa.id_annee_acad = ps.id_annee_acad
+                    ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
                 WHERE 1 = 1';
 
-        $params = [];
-        $anneeId = $this->getSelectedAcademicYearId();
-        if ($anneeId !== null) {
-            $sql .= ' AND ps.id_annee_acad = :annee_id';
-            $params[':annee_id'] = $anneeId;
-        }
-
-        $sql .= ' ORDER BY ps.date_soutenance DESC, ps.num_soutenance DESC';
+        $yearFilter = $this->buildStudentYearFilter('e');
+        $sql .= $yearFilter['sql'];
+        $sql .= ' ORDER BY r.id_rapport DESC';
 
         $stmt = $this->db->prepare($sql);
-        foreach ($params as $key => $value) {
+        foreach ($yearFilter['params'] as $key => $value) {
             $stmt->bindValue($key, $value, PDO::PARAM_INT);
         }
         $stmt->execute();
@@ -205,21 +206,35 @@ final class MiseEnLigneMemoireService
         $seen = [];
         $items = [];
         foreach ($rows as $row) {
-            $numEtu = trim((string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? $row['num_etud'] ?? ''));
-            if ($numEtu === '' || isset($seen[$numEtu]) || !$this->isMemoireUploadAllowed($numEtu)) {
+            $numEtu = trim((string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? $row['rapport_num_etu'] ?? ''));
+            if ($numEtu === '' || isset($seen[$numEtu])) {
                 continue;
             }
+
+            $latestRapport = $this->findLatestRapportAvecCompteRenduByStudent($numEtu);
+            if (
+                !is_array($latestRapport)
+                || (int) ($latestRapport['id_rapport'] ?? 0) !== (int) ($row['id_rapport'] ?? 0)
+                || !$this->isMemoireUploadAllowed($numEtu)
+                || $this->findActiveMemoireByStudent($numEtu) !== null
+            ) {
+                continue;
+            }
+
             $seen[$numEtu] = true;
+            $soutenance = $this->findLatestSoutenanceByStudent($numEtu);
 
             $items[] = [
                 'num_etu' => $numEtu,
-                'num_soutenance' => (string) ($row['num_soutenance'] ?? ''),
+                'id_rapport' => (int) ($row['id_rapport'] ?? 0),
+                'num_soutenance' => (string) ($soutenance['num_soutenance'] ?? ''),
                 'nom_complet' => trim((string) ($row['nom_etu'] ?? '') . ' ' . (string) ($row['prenom_etu'] ?? '')),
                 'promotion' => $this->formatPromotion($row),
                 'promotion_etu' => (string) ($row['promotion_etu'] ?? ''),
-                'theme' => (string) ($row['theme_soutenance'] ?? ''),
-                'theme_soutenance' => (string) ($row['theme_soutenance'] ?? ''),
-                'date_soutenance' => (string) ($row['date_soutenance'] ?? ''),
+                'theme' => (string) ($row['theme_rapport'] ?? ''),
+                'theme_rapport' => (string) ($row['theme_rapport'] ?? ''),
+                'theme_soutenance' => (string) ($soutenance['theme'] ?? ''),
+                'date_soutenance' => (string) ($soutenance['date_soutenance'] ?? ''),
             ];
         }
 
@@ -235,70 +250,25 @@ final class MiseEnLigneMemoireService
             return [];
         }
 
-        $sql = 'SELECT
-                    d.id_document,
-                    d.nom_fichier,
-                    d.taille_fichier,
-                    d.date_creation,
-                    ps.num_soutenance,
-                    ps.num_etud,
-                    ps.theme_soutenance,
-                    e.num_carte_etud,
-                    e.num_ident_etud,
-                    e.nom_etu,
-                    e.prenom_etu,
-                    e.promotion_etu,
-                    aa.date_deb,
-                    aa.date_fin
-                FROM documents d
-                INNER JOIN programmer_soutenance ps
-                    ON CAST(ps.num_soutenance AS CHAR) = d.entite_id
-                INNER JOIN etudiants e
-                    ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
-                LEFT JOIN annee_academique aa ON aa.id_annee_acad = ps.id_annee_acad
-                WHERE d.entite_type = "programmer_soutenance"
-                  AND d.type_document = "memoire"
-                  AND d.statut = "actif"';
+        $itemsByStudent = [];
 
-        $params = [];
-        $anneeId = $this->getSelectedAcademicYearId();
-        if ($anneeId !== null) {
-            $sql .= ' AND ps.id_annee_acad = :annee_id';
-            $params[':annee_id'] = $anneeId;
+        foreach ($this->getRapportBasedMemoires() as $row) {
+            $this->mergeMemoireItem($itemsByStudent, $this->mapMemoireRow($row, false));
         }
 
-        $sql .= ' ORDER BY d.date_creation DESC, d.id_document DESC';
-
-        $stmt = $this->db->prepare($sql);
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        foreach ($this->getLegacySoutenanceBasedMemoires() as $row) {
+            $this->mergeMemoireItem($itemsByStudent, $this->mapMemoireRow($row, true));
         }
-        $stmt->execute();
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $items = [];
-        foreach ($rows as $row) {
-            $numEtu = trim((string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? $row['num_etud'] ?? ''));
-            $items[] = [
-                'id_document' => (int) ($row['id_document'] ?? 0),
-                'num_etu' => $numEtu,
-                'num_soutenance' => (string) ($row['num_soutenance'] ?? ''),
-                'nom_etu' => (string) ($row['nom_etu'] ?? ''),
-                'prenom_etu' => (string) ($row['prenom_etu'] ?? ''),
-                'nom_etudiant' => trim((string) ($row['nom_etu'] ?? '') . ' ' . (string) ($row['prenom_etu'] ?? '')),
-                'matricule' => $numEtu,
-                'promotion' => $this->formatPromotion($row),
-                'promotion_etu' => (string) ($row['promotion_etu'] ?? ''),
-                'theme' => (string) ($row['theme_soutenance'] ?? ''),
-                'theme_soutenance' => (string) ($row['theme_soutenance'] ?? ''),
-                'fichier' => (string) ($row['nom_fichier'] ?? ''),
-                'nom_fichier' => (string) ($row['nom_fichier'] ?? ''),
-                'date_depot' => (string) ($row['date_creation'] ?? ''),
-                'date_creation' => (string) ($row['date_creation'] ?? ''),
-                'taille' => $this->formatFileSize((int) ($row['taille_fichier'] ?? 0)),
-                'taille_fichier' => (int) ($row['taille_fichier'] ?? 0),
-            ];
-        }
+        $items = array_values($itemsByStudent);
+        usort($items, static function (array $left, array $right): int {
+            $leftTime = strtotime((string) ($left['date_creation'] ?? '')) ?: 0;
+            $rightTime = strtotime((string) ($right['date_creation'] ?? '')) ?: 0;
+            if ($leftTime === $rightTime) {
+                return (int) ($right['id_document'] ?? 0) <=> (int) ($left['id_document'] ?? 0);
+            }
+            return $rightTime <=> $leftTime;
+        });
 
         return $items;
     }
@@ -308,6 +278,10 @@ final class MiseEnLigneMemoireService
      */
     private function findLatestSoutenanceByStudent(string $numEtu): ?array
     {
+        if (!$this->tableExists('programmer_soutenance')) {
+            return null;
+        }
+
         $sql = 'SELECT
                     ps.num_soutenance,
                     ps.num_etud,
@@ -360,6 +334,23 @@ final class MiseEnLigneMemoireService
 
     private function findActiveMemoireByStudent(string $numEtu): ?array
     {
+        $rapport = $this->findLatestRapportAvecCompteRenduByStudent($numEtu);
+        if (!is_array($rapport)) {
+            $rapport = $this->findLatestRapportByStudent($numEtu);
+        }
+        if (is_array($rapport) && (int) ($rapport['id_rapport'] ?? 0) > 0) {
+            $document = $this->storage->findLatestByEntity(
+                'rapport_etudiants',
+                (string) ((int) ($rapport['id_rapport'] ?? 0)),
+                ['memoire'],
+                null,
+                'application/pdf'
+            );
+            if (is_array($document)) {
+                return $document;
+            }
+        }
+
         $soutenance = $this->findLatestSoutenanceByStudent($numEtu);
         if ($soutenance === null || $soutenance['num_soutenance'] === '') {
             return null;
@@ -386,6 +377,30 @@ final class MiseEnLigneMemoireService
 
         $id = (int) $raw;
         return $id > 0 ? $id : null;
+    }
+
+    /**
+     * @return array{sql:string,params:array<string,int>}
+     */
+    private function buildStudentYearFilter(string $studentAlias = 'e'): array
+    {
+        $selectedYearId = $this->getSelectedAcademicYearId();
+        if ($selectedYearId === null || !$this->tableExists('inscriptions')) {
+            return ['sql' => '', 'params' => []];
+        }
+
+        return [
+            'sql' => " AND EXISTS (
+                SELECT 1
+                FROM inscriptions i
+                WHERE (
+                    i.num_carte_etud = {$studentAlias}.num_carte_etud
+                    OR i.num_carte_etud = {$studentAlias}.num_ident_etud
+                )
+                  AND i.id_annee_acad = :annee_id
+            )",
+            'params' => [':annee_id' => $selectedYearId],
+        ];
     }
 
     /**
@@ -493,8 +508,15 @@ final class MiseEnLigneMemoireService
             $stmt = $this->db->prepare("
                 SELECT
                     r.id_rapport,
+                    r.num_etu,
                     {$etapeSelect}
-                    COALESCE(r.statut_rapport, '') AS statut_rapport
+                    COALESCE(r.statut_rapport, '') AS statut_rapport,
+                    COALESCE(r.theme_rapport, '') AS theme_rapport,
+                    e.num_carte_etud,
+                    e.num_ident_etud,
+                    e.nom_etu,
+                    e.prenom_etu,
+                    e.promotion_etu
                 FROM rapport_etudiants r
                 LEFT JOIN etudiants e
                     ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
@@ -513,41 +535,228 @@ final class MiseEnLigneMemoireService
         }
     }
 
-    private function isMemoireUploadAllowed(string $numEtu): bool
+    /**
+     * @return array<string,mixed>|null
+     */
+    private function findLatestRapportAvecCompteRenduByStudent(string $numEtu): ?array
     {
-        $rapport = $this->findLatestRapportByStudent($numEtu);
-        if (!is_array($rapport)) {
-            return false;
+        if (
+            $numEtu === ''
+            || !$this->tableExists('compte_rendu')
+            || !$this->tableExists('compte_rendu_rapport')
+            || !$this->tableExists('rapport_etudiants')
+        ) {
+            return null;
         }
 
-        $etape = strtolower(trim((string) ($rapport['etape_validation'] ?? '')));
-        if ($etape !== '' && in_array($etape, ['valide', 'approuve_commission'], true)) {
-            return true;
-        }
-
-        if ($etape === '' && in_array(strtolower(trim((string) ($rapport['statut_rapport'] ?? ''))), ['valider', 'valide'], true)) {
-            return true;
-        }
-
-        if (!$this->tableExists('valider')) {
-            return false;
-        }
+        $orderColumn = $this->resolveRapportOrderColumn();
+        $orderBy = $orderColumn !== null
+            ? "ORDER BY cr.date_CR DESC, r.{$orderColumn} DESC, r.id_rapport DESC"
+            : 'ORDER BY cr.date_CR DESC, r.id_rapport DESC';
 
         try {
-            $stmt = $this->db->prepare("
-                SELECT decision_validation
-                FROM valider
-                WHERE id_rapport = ?
-                ORDER BY date_validation DESC
-                LIMIT 1
-            ");
-            $stmt->execute([(int) ($rapport['id_rapport'] ?? 0)]);
-            $decision = strtolower(trim((string) ($stmt->fetchColumn() ?: '')));
-            return $decision === 'valider';
+            $sql = "
+                SELECT
+                    r.id_rapport,
+                    r.num_etu,
+                    COALESCE(r.statut_rapport, '') AS statut_rapport,
+                    COALESCE(r.theme_rapport, '') AS theme_rapport,
+                    e.num_carte_etud,
+                    e.num_ident_etud,
+                    e.nom_etu,
+                    e.prenom_etu,
+                    e.promotion_etu,
+                    cr.id_CR,
+                    cr.date_CR
+                FROM compte_rendu cr
+                INNER JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
+                INNER JOIN rapport_etudiants r ON r.id_rapport = crr.id_rapport
+                LEFT JOIN etudiants e
+                    ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
+                WHERE r.num_etu = :num_etu
+                   OR cr.num_etu = :num_etu
+                   OR e.num_carte_etud = :num_etu
+                   OR e.num_ident_etud = :num_etu
+            ";
+
+            $yearFilter = $this->buildStudentYearFilter('e');
+            $sql .= $yearFilter['sql'] . " {$orderBy} LIMIT 1";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':num_etu', $numEtu, PDO::PARAM_STR);
+            foreach ($yearFilter['params'] as $key => $value) {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            }
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return is_array($row) ? $row : null;
         } catch (\Throwable $e) {
-            error_log('[MiseEnLigneMemoireService] rapport validation lookup failed: ' . $e->getMessage());
-            return false;
+            error_log('[MiseEnLigneMemoireService] latest compte rendu rapport lookup failed: ' . $e->getMessage());
+            return null;
         }
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function getRapportBasedMemoires(): array
+    {
+        if (!$this->tableExists('documents') || !$this->tableExists('rapport_etudiants')) {
+            return [];
+        }
+
+        $sql = 'SELECT
+                    d.id_document,
+                    d.nom_fichier,
+                    d.taille_fichier,
+                    d.date_creation,
+                    r.id_rapport,
+                    r.num_etu AS rapport_num_etu,
+                    COALESCE(r.theme_rapport, "") AS theme_rapport,
+                    e.num_carte_etud,
+                    e.num_ident_etud,
+                    e.nom_etu,
+                    e.prenom_etu,
+                    e.promotion_etu
+                FROM documents d
+                INNER JOIN rapport_etudiants r
+                    ON CAST(r.id_rapport AS CHAR) = d.entite_id
+                INNER JOIN etudiants e
+                    ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
+                WHERE d.entite_type = "rapport_etudiants"
+                  AND d.type_document = "memoire"
+                  AND d.statut = "actif"';
+
+        $yearFilter = $this->buildStudentYearFilter('e');
+        $sql .= $yearFilter['sql'];
+        $sql .= ' ORDER BY d.date_creation DESC, d.id_document DESC';
+
+        $stmt = $this->db->prepare($sql);
+        foreach ($yearFilter['params'] as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function getLegacySoutenanceBasedMemoires(): array
+    {
+        if (!$this->tableExists('documents') || !$this->tableExists('programmer_soutenance')) {
+            return [];
+        }
+
+        $sql = 'SELECT
+                    d.id_document,
+                    d.nom_fichier,
+                    d.taille_fichier,
+                    d.date_creation,
+                    ps.num_soutenance,
+                    ps.num_etud,
+                    ps.theme_soutenance,
+                    e.num_carte_etud,
+                    e.num_ident_etud,
+                    e.nom_etu,
+                    e.prenom_etu,
+                    e.promotion_etu,
+                    aa.date_deb,
+                    aa.date_fin
+                FROM documents d
+                INNER JOIN programmer_soutenance ps
+                    ON CAST(ps.num_soutenance AS CHAR) = d.entite_id
+                INNER JOIN etudiants e
+                    ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
+                LEFT JOIN annee_academique aa ON aa.id_annee_acad = ps.id_annee_acad
+                WHERE d.entite_type = "programmer_soutenance"
+                  AND d.type_document = "memoire"
+                  AND d.statut = "actif"';
+
+        $params = [];
+        $anneeId = $this->getSelectedAcademicYearId();
+        if ($anneeId !== null) {
+            $sql .= ' AND ps.id_annee_acad = :annee_id';
+            $params[':annee_id'] = $anneeId;
+        }
+
+        $sql .= ' ORDER BY d.date_creation DESC, d.id_document DESC';
+
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * @param array<string,mixed> $row
+     * @return array<string,mixed>
+     */
+    private function mapMemoireRow(array $row, bool $legacySoutenance): array
+    {
+        $numEtu = trim((string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? $row['num_etud'] ?? $row['rapport_num_etu'] ?? ''));
+        $soutenance = (!$legacySoutenance && $numEtu !== '') ? $this->findLatestSoutenanceByStudent($numEtu) : null;
+
+        return [
+            'id_document' => (int) ($row['id_document'] ?? 0),
+            'id_rapport' => (int) ($row['id_rapport'] ?? 0),
+            'num_etu' => $numEtu,
+            'num_soutenance' => $legacySoutenance ? (string) ($row['num_soutenance'] ?? '') : (string) ($soutenance['num_soutenance'] ?? ''),
+            'nom_etu' => (string) ($row['nom_etu'] ?? ''),
+            'prenom_etu' => (string) ($row['prenom_etu'] ?? ''),
+            'nom_etudiant' => trim((string) ($row['nom_etu'] ?? '') . ' ' . (string) ($row['prenom_etu'] ?? '')),
+            'matricule' => $numEtu,
+            'promotion' => $this->formatPromotion($row),
+            'promotion_etu' => (string) ($row['promotion_etu'] ?? ''),
+            'theme' => $legacySoutenance ? (string) ($row['theme_soutenance'] ?? '') : (string) ($row['theme_rapport'] ?? ''),
+            'theme_soutenance' => $legacySoutenance ? (string) ($row['theme_soutenance'] ?? '') : (string) ($soutenance['theme'] ?? ''),
+            'theme_rapport' => $legacySoutenance ? '' : (string) ($row['theme_rapport'] ?? ''),
+            'fichier' => (string) ($row['nom_fichier'] ?? ''),
+            'nom_fichier' => (string) ($row['nom_fichier'] ?? ''),
+            'date_depot' => (string) ($row['date_creation'] ?? ''),
+            'date_creation' => (string) ($row['date_creation'] ?? ''),
+            'taille' => $this->formatFileSize((int) ($row['taille_fichier'] ?? 0)),
+            'taille_fichier' => (int) ($row['taille_fichier'] ?? 0),
+        ];
+    }
+
+    /**
+     * @param array<string,array<string,mixed>> $itemsByStudent
+     * @param array<string,mixed> $item
+     */
+    private function mergeMemoireItem(array &$itemsByStudent, array $item): void
+    {
+        $key = trim((string) ($item['num_etu'] ?? ''));
+        if ($key === '') {
+            $key = 'document_' . (string) ((int) ($item['id_document'] ?? 0));
+        }
+
+        if (!isset($itemsByStudent[$key])) {
+            $itemsByStudent[$key] = $item;
+            return;
+        }
+
+        $currentTime = strtotime((string) ($itemsByStudent[$key]['date_creation'] ?? '')) ?: 0;
+        $incomingTime = strtotime((string) ($item['date_creation'] ?? '')) ?: 0;
+        if (
+            $incomingTime > $currentTime
+            || (
+                $incomingTime === $currentTime
+                && (int) ($item['id_document'] ?? 0) > (int) ($itemsByStudent[$key]['id_document'] ?? 0)
+            )
+        ) {
+            $itemsByStudent[$key] = $item;
+        }
+    }
+
+    private function isMemoireUploadAllowed(string $numEtu): bool
+    {
+        $rapport = $this->findLatestRapportAvecCompteRenduByStudent($numEtu);
+        return is_array($rapport) && (int) ($rapport['id_rapport'] ?? 0) > 0;
     }
 
     /**
@@ -640,24 +849,24 @@ final class MiseEnLigneMemoireService
     }
 
     /**
-     * @param array<string,mixed> $soutenance
+     * @param array<string,mixed> $memoireContext
      * @param array<string,mixed> $document
      */
-    private function notifyMemoireValidators(array $soutenance, array $document): void
+    private function notifyMemoireValidators(array $memoireContext, array $document): void
     {
         try {
-            $numEtu = trim((string) ($soutenance['num_etu'] ?? ''));
+            $numEtu = trim((string) ($memoireContext['num_etu'] ?? $memoireContext['num_ident_etud'] ?? $memoireContext['num_carte_etud'] ?? ''));
+            $soutenance = $this->findLatestSoutenanceByStudent($numEtu);
             $numSoutenance = trim((string) ($soutenance['num_soutenance'] ?? ''));
-            $rapport = $this->findLatestRapportByStudent($numEtu);
-            $rapportId = is_array($rapport) ? (int) ($rapport['id_rapport'] ?? 0) : 0;
+            $rapportId = (int) ($memoireContext['id_rapport'] ?? 0);
             $encadrement = $this->resolveEncadrementForMemoire($rapportId > 0 ? $rapportId : null, $numSoutenance);
 
             $notificationService = new NotificationService($this->db);
             $emailService = $notificationService->getEmailService();
             $baseData = [
-                'nom_etudiant' => htmlspecialchars((string) ($soutenance['nom_etudiant'] ?? 'Etudiant'), ENT_QUOTES, 'UTF-8'),
-                'theme' => htmlspecialchars((string) ($soutenance['theme'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                'promotion' => htmlspecialchars((string) ($soutenance['promotion'] ?? '-'), ENT_QUOTES, 'UTF-8'),
+                'nom_etudiant' => htmlspecialchars(trim((string) ($memoireContext['nom_etu'] ?? '') . ' ' . (string) ($memoireContext['prenom_etu'] ?? '')) ?: 'Etudiant', ENT_QUOTES, 'UTF-8'),
+                'theme' => htmlspecialchars((string) ($memoireContext['theme_rapport'] ?? $memoireContext['theme'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'promotion' => htmlspecialchars($this->formatPromotion($memoireContext), ENT_QUOTES, 'UTF-8'),
                 'nom_fichier' => htmlspecialchars((string) ($document['nom_fichier'] ?? 'memoire.pdf'), ENT_QUOTES, 'UTF-8'),
                 'num_soutenance' => htmlspecialchars($numSoutenance, ENT_QUOTES, 'UTF-8'),
             ];

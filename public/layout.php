@@ -8,6 +8,23 @@ use CheckMaster\Core\Bootstrap;
 Bootstrap::init();
 Session::start();
 
+if (!function_exists('cm_candidature_debug_log')) {
+    function cm_candidature_debug_log(string $message, array $context = []): void
+    {
+        $logPath = __DIR__ . '/../logs/candidature_soutenance_debug.log';
+        $fallbackLogPath = rtrim(sys_get_temp_dir(), '\\/') . DIRECTORY_SEPARATOR . 'candidature_soutenance_debug.log';
+        $line = date('c') . ' [layout:candidature_soutenance] ' . $message;
+        if ($context !== []) {
+            $json = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $line .= ' | context=' . ($json !== false ? $json : '[json_error]');
+        }
+
+        error_log($line);
+        @file_put_contents($logPath, $line . PHP_EOL, FILE_APPEND);
+        @file_put_contents($fallbackLogPath, $line . PHP_EOL, FILE_APPEND);
+    }
+}
+
 // Bufferiser la sortie pour injecter CSRF sur les formulaires legacy (migration progressive).
 ob_start();
 
@@ -82,20 +99,60 @@ if (!isset($_SESSION['id_utilisateur'])) {
     header('Location: page_connexion.php');
     exit;
 } else {
+    $isCandidatureStagePost = ((string) ($_GET['page'] ?? '') === 'candidature_soutenance')
+        && (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST');
+    if ($isCandidatureStagePost) {
+        cm_candidature_debug_log('request_entered_layout', [
+            'get' => $_GET,
+            'post' => $_POST,
+            'session' => [
+                'id_utilisateur' => $_SESSION['id_utilisateur'] ?? null,
+                'id_GU' => $_SESSION['id_GU'] ?? null,
+                'lib_GU' => $_SESSION['lib_GU'] ?? null,
+                'num_etu' => $_SESSION['num_etu'] ?? null,
+                'login_utilisateur' => $_SESSION['login_utilisateur'] ?? null,
+            ],
+            'headers' => [
+                'x_requested_with' => $_SERVER['HTTP_X_REQUESTED_WITH'] ?? null,
+                'content_type' => $_SERVER['CONTENT_TYPE'] ?? null,
+                'referer' => $_SERVER['HTTP_REFERER'] ?? null,
+            ],
+        ]);
+    }
+
     // Protection CSRF globale pour toutes les actions POST du legacy.
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $csrfToken = $_POST['csrf_token'] ?? null;
+        if ($isCandidatureStagePost) {
+            cm_candidature_debug_log('csrf_token_received', [
+                'has_token' => $csrfToken !== null && $csrfToken !== '',
+                'token_length' => is_string($csrfToken) ? strlen($csrfToken) : 0,
+            ]);
+        }
         if ($csrfToken === null && strpos((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'application/json') !== false) {
             $rawJsonInput = file_get_contents('php://input');
             $jsonInput = json_decode($rawJsonInput, true);
             if (is_array($jsonInput)) {
                 $csrfToken = $jsonInput['csrf_token'] ?? null;
+                if ($isCandidatureStagePost) {
+                    cm_candidature_debug_log('csrf_token_loaded_from_json', [
+                        'json_keys' => array_keys($jsonInput),
+                        'has_token' => isset($jsonInput['csrf_token']) && $jsonInput['csrf_token'] !== '',
+                    ]);
+                }
                 // On stocke le JSON décodé pour que le contrôleur puisse y accéder sans relire php://input
                 $GLOBALS['decoded_json_input'] = $jsonInput;
             }
         }
 
-        if (!Csrf::validate($csrfToken)) {
+        $csrfValid = Csrf::validate($csrfToken);
+        if ($isCandidatureStagePost) {
+            cm_candidature_debug_log($csrfValid ? 'csrf_validation_passed' : 'csrf_validation_failed', [
+                'has_token' => $csrfToken !== null && $csrfToken !== '',
+            ]);
+        }
+
+        if (!$csrfValid) {
             // AJAX
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
@@ -128,7 +185,21 @@ if (!isset($_SESSION['id_utilisateur'])) {
             || (string) ($_POST['action'] ?? '') === 'update_email'
         );
 
-    if ($currentMenuSlugForGate !== '' && !$isOwnProfileUpdate && !$routePermissionService->canAccessLegacy((int) $_SESSION['id_GU'], $_GET, $_POST, $method)) {
+    $legacyAccessAllowed = true;
+    if ($currentMenuSlugForGate !== '' && !$isOwnProfileUpdate) {
+        $legacyAccessAllowed = $routePermissionService->canAccessLegacy((int) $_SESSION['id_GU'], $_GET, $_POST, $method);
+        if ($isCandidatureStagePost) {
+            cm_candidature_debug_log('permission_check', [
+                'page' => $currentMenuSlugForGate,
+                'method' => $method,
+                'group_id' => $_SESSION['id_GU'] ?? null,
+                'allowed' => $legacyAccessAllowed,
+                'action' => $_GET['action'] ?? null,
+            ]);
+        }
+    }
+
+    if ($currentMenuSlugForGate !== '' && !$isOwnProfileUpdate && !$legacyAccessAllowed) {
         $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
         if ($isAjax) {

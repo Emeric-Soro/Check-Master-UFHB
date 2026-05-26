@@ -597,17 +597,29 @@ $initialEditorHtml = $isEditingExistingCr
         if (!editorDiv || !editorInput) {
             return;
         }
-        let currentHtml = sanitizeEditorHtml(editorDiv.innerHTML || '');
-        if (!/id=(["'])casDynamique\1/i.test(currentHtml)) {
-            editorDiv.innerHTML = currentHtml;
-            editorInput.value = currentHtml;
+        let currentHtml = String(editorDiv.innerHTML || '');
+        const casesHtml = buildCasesHtml();
+        let updated = currentHtml;
+        const sectionRegex = getValidationSectionRegex();
+
+        if (sectionRegex.test(currentHtml)) {
+            updated = currentHtml.replace(
+                sectionRegex,
+                '$1<div id="casDynamique">' + casesHtml + '</div>$2'
+            );
+        } else if (/id=(["'])casDynamique\1/i.test(currentHtml)) {
+            updated = sanitizeEditorHtml(currentHtml).replace(
+                /<div id=(["'])casDynamique\1><\/div>/i,
+                '<div id="casDynamique">' + casesHtml + '</div>'
+            );
+        } else {
+            const dynamicContainer = editorDiv.querySelector('#casDynamique');
+            if (dynamicContainer) {
+                dynamicContainer.innerHTML = casesHtml;
+                editorInput.value = editorDiv.innerHTML;
+            }
             return;
         }
-        const casesHtml = buildCasesHtml();
-        const updated = currentHtml.replace(
-            /<div id=(["'])casDynamique\1>[\s\S]*?<\/div>/i,
-            '<div id="casDynamique">' + casesHtml + '</div>'
-        );
         editorDiv.innerHTML = updated;
         editorInput.value = updated;
     }

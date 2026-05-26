@@ -202,6 +202,29 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
     min-width: 0 !important;
     max-width: none !important;
 }
+
+#cmPaiementForm .cm-form-group:has(#cmEtudiantPicker_hidden) {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+#cmPaiementForm .cm-form-group:has(#cmEtudiantPicker_hidden) .cm-select-search,
+#cmPaiementForm .cm-form-group:has(#cmEtudiantPicker_hidden) .cm-select-search__input {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+#cmPaiementForm #cmEtudiantPicker_wrapper {
+    position: relative;
+}
+
+#cmPaiementForm #cmEtudiantPicker_wrapper .cm-select-search__list {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% - var(--cm-spacing-xs));
+    z-index: 12;
+}
 </style>
 <div class="cm-prd3-screen cm-prd3-crud-screen">
     <?php
@@ -272,12 +295,16 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                 <div class="cm-grid-3">
                     <?php
                     cm_component('form/select-search', [
+                    cm_component('form/select-search', [
                         'name' => 'etudiant',
-                        'id' => 'cmEtudiantSelect',
+                        'id' => 'cmEtudiantPicker',
                         'label' => 'Nom Prénom',
                         'options' => $studentOptions,
                         'required' => true,
-                        'placeholder' => '-- Sélectionner --',
+                        'placeholder' => '-- Selectionner un etudiant --',
+                        'search_placeholder' => 'Rechercher un etudiant...',
+                        'show_selected_label' => false,
+                        'min_search' => 0,
                         'dense' => true,
                         'size' => 'sm',
                         'show_selected_label' => false,
@@ -572,9 +599,11 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             }
             window.location.href = url;
         };
-        const etudiantSelect = document.getElementById('cmEtudiantSelect_hidden');
-        const etudiantSearchInput = document.getElementById('cmEtudiantSelect_search');
-        const etudiantSelectedLabel = document.getElementById('cmEtudiantSelect_selected_label');
+        const studentHidden = document.getElementById('cmEtudiantPicker_hidden');
+        const studentWrapper = document.getElementById('cmEtudiantPicker_wrapper');
+        const studentSearchInput = document.getElementById('cmEtudiantPicker_search');
+        const studentSelectedLabel = document.getElementById('cmEtudiantPicker_selected_label');
+        const studentOptions = studentWrapper ? Array.from(studentWrapper.querySelectorAll('.cm-select-search__option')) : [];
         const niveauField = document.getElementById('cmNiveau');
         const fraisField = document.getElementById('cmFraisScolarite');
         const identifiantField = document.getElementById('cmIdentifiantDisplay');
@@ -600,11 +629,44 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
         const parseNumber = function (value) {
             return Number(String(value || '0').replace(/\s/g, '').replace(',', '.')) || 0;
         };
-        const syncByStudent = function () {
-            if (!etudiantSelect) {
+        const syncStudentPickerUi = function (studentId) {
+            if (!studentHidden) {
                 return;
             }
-            const studentId = etudiantSelect.value;
+            const nextValue = studentId || '';
+            let nextLabel = '';
+            studentOptions.forEach(function (option) {
+                const isSelected = option.dataset.value === nextValue;
+                option.classList.toggle('is-selected', isSelected);
+                option.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+                if (isSelected) {
+                    nextLabel = option.dataset.label || '';
+                }
+            });
+            studentHidden.value = nextValue;
+            if (studentSearchInput) {
+                studentSearchInput.value = nextLabel;
+            }
+            if (studentSelectedLabel) {
+                studentSelectedLabel.textContent = nextLabel !== '' ? nextLabel : '-- Selectionner un etudiant --';
+            }
+        };
+        const setStudentValue = function (studentId, triggerChange) {
+            if (!studentHidden) {
+                return;
+            }
+            const nextValue = studentId || '';
+            const previousValue = studentHidden.value;
+            syncStudentPickerUi(nextValue);
+            if (triggerChange && previousValue !== nextValue) {
+                studentHidden.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        };
+        const syncByStudent = function () {
+            if (!studentHidden) {
+                return;
+            }
+            const studentId = studentHidden.value;
             const data = catalog[studentId];
             if (!data) {
                 identifiantField.value = '';
@@ -625,8 +687,8 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             numCarteField.value = data.num_carte || '';
             numVersementField.value = String(data.num_versement || 1);
             if (isInscrit) {
-                if (data.id_niveau && niveauField) {
-                    niveauField.value = String(data.id_niveau);
+                if (data.id_niv_etude && niveauField) {
+                    niveauField.value = String(data.id_niv_etude);
                 }
                 if (data.id_annee && anneeField) {
                     anneeField.value = String(data.id_annee);
@@ -652,25 +714,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             }
         };
         var setSelectSearchValue = function (studentId) {
-            if (etudiantSelect) {
-                etudiantSelect.value = studentId || '';
-            }
-            const options = document.querySelectorAll('#cmEtudiantSelect_wrapper .cm-select-search__option');
-            let selectedLabel = '';
-            options.forEach(function (option) {
-                const isSelected = option.getAttribute('data-value') === studentId;
-                option.classList.toggle('is-selected', isSelected);
-                option.setAttribute('aria-selected', isSelected ? 'true' : 'false');
-                if (isSelected) {
-                    selectedLabel = option.getAttribute('data-label') || '';
-                }
-            });
-            if (etudiantSearchInput) {
-                etudiantSearchInput.value = selectedLabel;
-            }
-            if (etudiantSelectedLabel) {
-                etudiantSelectedLabel.textContent = selectedLabel || '-- Sélectionner un étudiant --';
-            }
+            setStudentValue(studentId, false);
         };
         const updateFraisFromNiveau = function () {
             if (!niveauField) {
@@ -682,7 +726,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             updateReste();
         };
         const updateReste = function () {
-            const studentId = etudiantSelect ? etudiantSelect.value : '';
+            const studentId = studentHidden ? studentHidden.value : '';
             const data = catalog[studentId];
             const montantScolarite = parseNumber(fraisField.value);
             const montantVerse = parseNumber(montantVerseField.value);
@@ -720,10 +764,10 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             }
             docsSelectionStatus.textContent = parts.join(' | ');
         };
-        if (etudiantSelect) {
-            etudiantSelect.addEventListener('change', syncByStudent);
+        if (studentHidden) {
+            studentHidden.addEventListener('change', syncByStudent);
         }
-        if (etudiantSelect) {
+        if (studentHidden) {
             (function () {
                 var prefills = document.querySelectorAll('.cmPrefillPaiement');
                 for (var i = 0; i < prefills.length; i++) {
@@ -733,8 +777,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                             if (!studentId) {
                                 return;
                             }
-                            etudiantSelect.value = studentId;
-                            setSelectSearchValue(studentId);
+                            setStudentValue(studentId, true);
                             syncByStudent();
                         });
                     })(prefills[i]);
@@ -767,6 +810,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
         if (resetPaiementBtn) {
             resetPaiementBtn.addEventListener('click', function () {
                 setTimeout(function () {
+                    setStudentValue(studentHidden ? studentHidden.value : '', false);
                     if (isNewField) {
                         isNewField.value = '';
                     }
@@ -793,17 +837,18 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                     }
                     setSelectSearchValue('');
                     updateDocsSelectionStatus();
+                    syncByStudent();
                 }, 0);
             });
         }
         if (form) {
             form.addEventListener('submit', function (event) {
-                if (!etudiantSelect || !etudiantSelect.value) {
+                if (!studentHidden || !studentHidden.value) {
                     event.preventDefault();
                     window.alert('Veuillez sélectionner un étudiant.');
                     return;
                 }
-                const currentData = catalog[etudiantSelect.value];
+                const currentData = catalog[studentHidden.value];
                 const montantVerse = parseNumber(montantVerseField.value);
                 if (montantVerse <= 0) {
                     event.preventDefault();
@@ -882,6 +927,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             url.searchParams.set('page_versements', '1');
             navigate(url.toString());
         });
+        syncStudentPickerUi(studentHidden ? studentHidden.value : '');
         syncByStudent();
         updateSelectionState();
         // Initialiser les frais pour le niveau par défaut (M2)

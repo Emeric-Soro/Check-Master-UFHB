@@ -510,9 +510,9 @@
 				return url.toString();
 			}
 
-			function submitWithAjax(event) {
-				var form = event.target;
-				var method, action, formData, submitter;
+    function submitWithAjax(event) {
+      var form = event.target;
+      var method, action, formData, submitter, isCandidatureStageForm;
 
 				if (!isAjaxForm(form)) {
 					return;
@@ -535,18 +535,27 @@
 					return;
 				}
 
-				method = (form.getAttribute("method") || "POST").toUpperCase();
-				action = form.getAttribute("action") || window.location.href;
+      method = (form.getAttribute('method') || 'POST').toUpperCase();
+      action = form.getAttribute('action') || window.location.href;
+      isCandidatureStageForm = action.indexOf('page=candidature_soutenance') !== -1;
 
-				if (method !== "POST") {
-					submitter = event.submitter || document.activeElement;
-					formData = new window.FormData(form);
-					if (submitter && submitter.name && !formData.has(submitter.name)) {
-						formData.append(submitter.name, submitter.value || "");
-					}
-					window.CM.ajax.load(buildGetUrl(action, formData));
-					return;
-				}
+      if (isCandidatureStageForm && window.console && typeof window.console.log === 'function') {
+        console.log('[cm-ajax][candidature_soutenance] submit:start', {
+          method: method,
+          action: action,
+          ajaxSubmitting: form.getAttribute('data-cm-ajax-submitting')
+        });
+      }
+
+      if (method !== 'POST') {
+        submitter = event.submitter || document.activeElement;
+        formData = new window.FormData(form);
+        if (submitter && submitter.name && !formData.has(submitter.name)) {
+          formData.append(submitter.name, submitter.value || '');
+        }
+        window.CM.ajax.load(buildGetUrl(action, formData));
+        return;
+      }
 
 				formData = new window.FormData(form);
 				submitter = event.submitter || document.activeElement;
@@ -557,42 +566,59 @@
 				form.setAttribute("data-cm-ajax-submitting", "1");
 				form.classList.add("cm-is-loading");
 
-				window
-					.fetch(action, {
-						method: "POST",
-						body: formData,
-						credentials: "same-origin",
-						headers: {
-							"X-Requested-With": "XMLHttpRequest",
-							Accept: "text/html, application/json;q=0.9, */*;q=0.8",
-						},
-					})
-					.then((response) => {
-						var contentType = (
-							response.headers.get("content-type") || ""
-						).toLowerCase();
-						if (contentType.indexOf("application/json") !== -1) {
-							return response.json().then((payload) => ({
-								kind: "json",
-								payload: payload,
-								url: response.url,
-								ok: response.ok,
-							}));
-						}
+      window.fetch(action, {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'text/html, application/json;q=0.9, */*;q=0.8'
+        }
+      })
+        .then(function (response) {
+          var contentType = (response.headers.get('content-type') || '').toLowerCase();
+          if (isCandidatureStageForm && window.console && typeof window.console.log === 'function') {
+            console.log('[cm-ajax][candidature_soutenance] submit:response', {
+              ok: response.ok,
+              status: response.status,
+              redirected: response.redirected,
+              url: response.url,
+              contentType: contentType
+            });
+          }
+          if (contentType.indexOf('application/json') !== -1) {
+            return response.json().then(function (payload) {
+              if (isCandidatureStageForm && window.console && typeof window.console.log === 'function') {
+                console.log('[cm-ajax][candidature_soutenance] submit:json', payload);
+              }
+              return {
+                kind: 'json',
+                payload: payload,
+                url: response.url,
+                ok: response.ok
+              };
+            });
+          }
 
-						return response.text().then(() => ({
-							kind: "html",
-							url: response.url,
-							ok: response.ok,
-						}));
-					})
-					.then((result) => {
-						if (result.kind === "json") {
-							if (result.payload && result.payload.redirect) {
-								return window.CM.ajax.load(result.payload.redirect, {
-									replaceHistory: false,
-								});
-							}
+          return response.text().then(function () {
+            if (isCandidatureStageForm && window.console && typeof window.console.log === 'function') {
+              console.log('[cm-ajax][candidature_soutenance] submit:html-response', {
+                url: response.url,
+                ok: response.ok
+              });
+            }
+            return {
+              kind: 'html',
+              url: response.url,
+              ok: response.ok
+            };
+          });
+        })
+        .then(function (result) {
+          if (result.kind === 'json') {
+            if (result.payload && result.payload.redirect) {
+              return window.CM.ajax.load(result.payload.redirect, { replaceHistory: false });
+            }
 
 							if (result.payload && result.payload.success === false) {
 								try {
@@ -613,18 +639,24 @@
 							});
 						}
 
-						return window.CM.ajax.load(result.url || window.location.href, {
-							replaceHistory: true,
-						});
-					})
-					.catch(() => {
-						window.location.href = action;
-					})
-					.finally(() => {
-						form.removeAttribute("data-cm-ajax-submitting");
-						form.classList.remove("cm-is-loading");
-					});
-			}
+          return window.CM.ajax.load(result.url || window.location.href, { replaceHistory: true });
+        })
+        .catch(function (error) {
+          if (isCandidatureStageForm && window.console && typeof window.console.log === 'function') {
+            console.log('[cm-ajax][candidature_soutenance] submit:fetch-error', {
+              message: error && error.message ? error.message : null
+            });
+          }
+          window.location.href = action;
+        })
+        .finally(function () {
+          if (isCandidatureStageForm && window.console && typeof window.console.log === 'function') {
+            console.log('[cm-ajax][candidature_soutenance] submit:finally');
+          }
+          form.removeAttribute('data-cm-ajax-submitting');
+          form.classList.remove('cm-is-loading');
+        });
+    }
 
 			function init() {
 				if (initialized) {

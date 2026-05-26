@@ -49,11 +49,18 @@ class Note
 
             if ($existing) {
                 // Mise à jour
-                return $this->updateNote($numEtu, $moyenneM1, $moyenneM2);
-            } else {
+                return $this->updateNote($numEtu, $moyenneM1, $moyenneM2, $anneeAcadId);
+            }
+
+            $existingForStudent = $this->getLatestNote($numEtu);
+            if ($existingForStudent) {
+                return $this->updateNote($numEtu, $moyenneM1, $moyenneM2, $anneeAcadId);
+            }
+
+            
                 // Création
                 return $this->createNote($numEtu, $moyenneM1, $moyenneM2, $anneeAcadId);
-            }
+            
         } catch (PDOException $e) {
             error_log("Erreur lors de l'enregistrement des notes: " . $e->getMessage());
             return false;
@@ -101,15 +108,24 @@ class Note
     /**
      * Mettre à jour une note existante
      */
-    private function updateNote($numEtu, $moyenneM1, $moyenneM2)
+    private function updateNote($numEtu, $moyenneM1, $moyenneM2, $anneeAcadId = null)
     {
         try {
             $query = "UPDATE notes 
-                     SET moyenne_M1 = ?, moyenne_M2 = ?
-                     WHERE num_etu = ?";
+                     SET moyenne_M1 = ?, moyenne_M2 = ?";
+
+            $params = [$moyenneM1, $moyenneM2];
+
+            if ($anneeAcadId !== null) {
+                $query .= ", id_annee_acad = ?";
+                $params[] = $anneeAcadId;
+            }
+
+            $query .= " WHERE num_etu = ?";
+            $params[] = $numEtu;
 
             $stmt = $this->db->prepare($query);
-            return $stmt->execute([$moyenneM1, $moyenneM2, $numEtu]);
+            return $stmt->execute($params);
         } catch (PDOException $e) {
             error_log("Erreur lors de la mise à jour de la note: " . $e->getMessage());
             return false;

@@ -424,7 +424,7 @@ $buildStateClass = static function (string $status): string {
 
     <?php if (!$trackingMode): ?>
         <section class="cm-cand-form">
-            <form id="stageInfoForm" method="POST" action="?page=candidature_soutenance&action=info_stage" novalidate>
+            <form id="stageInfoForm" method="POST" action="?page=candidature_soutenance&action=info_stage" data-cm-ajax-form="true" novalidate>
                 <div class="cm-cand-grid">
                     <div>
                         <label class="cm-cand-label" for="entreprise">Entreprise <span class="cm-cand-required">*</span></label>
@@ -607,12 +607,70 @@ $buildStateClass = static function (string $status): string {
         const stageAlertMessage = document.getElementById('stageAlertMessage');
         const stageAlertClose = document.getElementById('stageAlertClose');
         const sujetInput = document.getElementById('sujet');
+        const submitButton = form ? form.querySelector('button[type="submit"][name="btn_enregistrer"]') : null;
+        const defaultSubmitLabel = submitButton ? submitButton.innerHTML : '';
         const successMessage = <?= json_encode($successMessage, JSON_UNESCAPED_UNICODE) ?>;
         const errorMessage = <?= json_encode($errorMessage, JSON_UNESCAPED_UNICODE) ?>;
+        const debugBucket = window.__cmCandLogs = window.__cmCandLogs || [];
+
+        function debugLog(label, payload) {
+            const entry = {
+                time: new Date().toISOString(),
+                label: label,
+                payload: payload || null
+            };
+            debugBucket.push(entry);
+            if (window.console && typeof window.console.log === 'function') {
+                console.log('[candidature_soutenance]', label, payload || null);
+            }
+        }
+
+        window.addEventListener('error', function (event) {
+            debugLog('window_error', {
+                message: event.message || null,
+                source: event.filename || null,
+                line: event.lineno || null,
+                column: event.colno || null
+            });
+        });
+
+        window.addEventListener('unhandledrejection', function (event) {
+            debugLog('window_unhandled_rejection', {
+                reason: event && Object.prototype.hasOwnProperty.call(event, 'reason') ? event.reason : null
+            });
+        });
 
         if (!inputEntreprise || !suggestions || !inputEncadrant || !suggestionsEncadrant || !dateDebut || !dateFin || !dateError || !form || !stageAlertModal || !stageAlertTitle || !stageAlertMessage || !stageAlertClose || !sujetInput) {
+            debugLog('bootstrap_missing_nodes', {
+                hasInputEntreprise: !!inputEntreprise,
+                hasSuggestions: !!suggestions,
+                hasInputEncadrant: !!inputEncadrant,
+                hasSuggestionsEncadrant: !!suggestionsEncadrant,
+                hasDateDebut: !!dateDebut,
+                hasDateFin: !!dateFin,
+                hasDateError: !!dateError,
+                hasForm: !!form,
+                hasModal: !!stageAlertModal,
+                hasModalTitle: !!stageAlertTitle,
+                hasModalMessage: !!stageAlertMessage,
+                hasModalClose: !!stageAlertClose,
+                hasSujet: !!sujetInput
+            });
             return;
         }
+
+        debugLog('bootstrap_ready', {
+            formAction: form.getAttribute('action'),
+            formMethod: form.getAttribute('method'),
+            ajaxEnabled: form.getAttribute('data-cm-ajax-form'),
+            successMessage: successMessage,
+            errorMessage: errorMessage,
+            entrepriseValue: inputEntreprise.value,
+            encadrantValue: inputEncadrant.value,
+            dateDebutValue: dateDebut.value,
+            dateFinValue: dateFin.value,
+            sujetLength: String(sujetInput.value || '').length
+        });
 
         let selectedEntrepriseId = null;
         let currentIndex = -1;
@@ -625,16 +683,22 @@ $buildStateClass = static function (string $status): string {
             });
             if (currentEntreprise) {
                 selectedEntrepriseId = currentEntreprise.id;
+                debugLog('bootstrap_selected_entreprise', {
+                    id: selectedEntrepriseId,
+                    value: inputEntreprise.value.trim()
+                });
             }
         }
 
         function hideSuggestions() {
+            debugLog('hide_entreprise_suggestions');
             suggestions.classList.remove('is-open');
             suggestions.innerHTML = '';
             currentIndex = -1;
         }
 
         function hideSuggestionsEncadrant() {
+            debugLog('hide_encadrant_suggestions');
             suggestionsEncadrant.classList.remove('is-open');
             suggestionsEncadrant.innerHTML = '';
             currentIndexEncadrant = -1;
@@ -646,6 +710,10 @@ $buildStateClass = static function (string $status): string {
             item.className = 'cm-etu-autocomplete__item';
             item.textContent = label;
             item.addEventListener('click', function () {
+                debugLog('entreprise_selected', {
+                    label: label,
+                    entrepriseId: entrepriseData ? entrepriseData.id : null
+                });
                 inputEntreprise.value = label;
                 selectedEntrepriseId = entrepriseData ? entrepriseData.id : null;
                 inputEncadrant.value = '';
@@ -658,6 +726,10 @@ $buildStateClass = static function (string $status): string {
 
         function renderEntrepriseSuggestions(query) {
             const value = String(query || '').trim().toLowerCase();
+            debugLog('render_entreprise_suggestions', {
+                query: query,
+                normalized: value
+            });
             if (value === '') {
                 hideSuggestions();
                 return;
@@ -665,6 +737,9 @@ $buildStateClass = static function (string $status): string {
 
             const matches = entreprisesData.filter(function (item) {
                 return String(item.nom).toLowerCase().includes(value);
+            });
+            debugLog('render_entreprise_suggestions_matches', {
+                count: matches.length
             });
 
             suggestions.innerHTML = '';
@@ -681,6 +756,10 @@ $buildStateClass = static function (string $status): string {
 
         function updateEntrepriseSelection() {
             const items = suggestions.querySelectorAll('.cm-etu-autocomplete__item');
+            debugLog('update_entreprise_selection', {
+                currentIndex: currentIndex,
+                itemCount: items.length
+            });
             items.forEach(function (item, index) {
                 item.classList.toggle('is-active', index === currentIndex);
             });
@@ -694,6 +773,9 @@ $buildStateClass = static function (string $status): string {
             if (isCustom) {
                 item.textContent = maitre;
                 item.addEventListener('click', function () {
+                    debugLog('encadrant_selected_custom', {
+                        value: maitre
+                    });
                     inputEncadrant.value = maitre;
                     inputEmailEncadrant.value = '';
                     inputTelephoneEncadrant.value = '';
@@ -705,6 +787,12 @@ $buildStateClass = static function (string $status): string {
             item.innerHTML = '<strong>' + maitre.nom_complet + '</strong><br><small>' +
                 (maitre.email || '—') + ' • ' + (maitre.telephone || '—') + '</small>';
             item.addEventListener('click', function () {
+                debugLog('encadrant_selected_existing', {
+                    nom: maitre.nom_complet,
+                    email: maitre.email || '',
+                    telephone: maitre.telephone || '',
+                    entrepriseId: maitre.id_entreprise
+                });
                 inputEncadrant.value = maitre.nom_complet;
                 inputEmailEncadrant.value = maitre.email || '';
                 inputTelephoneEncadrant.value = maitre.telephone || '';
@@ -715,6 +803,11 @@ $buildStateClass = static function (string $status): string {
 
         function renderEncadrantSuggestions(query) {
             const value = String(query || '').trim().toLowerCase();
+            debugLog('render_encadrant_suggestions', {
+                query: query,
+                normalized: value,
+                selectedEntrepriseId: selectedEntrepriseId
+            });
             if (value === '') {
                 hideSuggestionsEncadrant();
                 return;
@@ -729,6 +822,10 @@ $buildStateClass = static function (string $status): string {
 
             const matches = source.filter(function (item) {
                 return String(item.nom_complet).toLowerCase().includes(value);
+            });
+            debugLog('render_encadrant_suggestions_matches', {
+                sourceCount: source.length,
+                count: matches.length
             });
 
             suggestionsEncadrant.innerHTML = '';
@@ -745,12 +842,20 @@ $buildStateClass = static function (string $status): string {
 
         function updateEncadrantSelection() {
             const items = suggestionsEncadrant.querySelectorAll('.cm-etu-autocomplete__item');
+            debugLog('update_encadrant_selection', {
+                currentIndexEncadrant: currentIndexEncadrant,
+                itemCount: items.length
+            });
             items.forEach(function (item, index) {
                 item.classList.toggle('is-active', index === currentIndexEncadrant);
             });
         }
 
         function openStageAlert(title, message) {
+            debugLog('open_stage_alert', {
+                title: title,
+                message: message
+            });
             stageAlertTitle.textContent = title;
             stageAlertMessage.textContent = message;
             stageAlertModal.hidden = false;
@@ -760,12 +865,29 @@ $buildStateClass = static function (string $status): string {
         }
 
         function closeStageAlert() {
+            debugLog('close_stage_alert');
             stageAlertModal.classList.remove('is-open');
             stageAlertModal.hidden = true;
             document.body.classList.remove('modal-open');
         }
 
+        function setSubmitState(isSubmitting) {
+            debugLog('set_submit_state', {
+                isSubmitting: !!isSubmitting
+            });
+            if (!submitButton) {
+                return;
+            }
+            submitButton.disabled = !!isSubmitting;
+            submitButton.classList.toggle('is-disabled', !!isSubmitting);
+            submitButton.innerHTML = isSubmitting ? 'Enregistrement...' : defaultSubmitLabel;
+        }
+
         function setDateValidationMessage(message, showModal) {
+            debugLog('set_date_validation_message', {
+                message: message || '',
+                showModal: !!showModal
+            });
             dateError.textContent = message || '';
             if (showModal && message && message !== lastValidationMessage) {
                 openStageAlert('Période de stage invalide', message);
@@ -775,6 +897,9 @@ $buildStateClass = static function (string $status): string {
         }
 
         function validateFields(showModal) {
+            debugLog('validate_fields:start', {
+                showModal: !!showModal
+            });
             const checks = [
                 { field: inputEntreprise, message: "Veuillez renseigner l'entreprise." },
                 { field: inputEncadrant, message: 'Veuillez renseigner le maître de stage.' },
@@ -789,6 +914,10 @@ $buildStateClass = static function (string $status): string {
                 const check = checks[index];
                 const value = String(check.field.value || '').trim();
                 if (value === '') {
+                    debugLog('validate_fields:missing_value', {
+                        field: check.field.name || check.field.id || null,
+                        message: check.message
+                    });
                     if (showModal) {
                         openStageAlert('Champ requis', check.message);
                     }
@@ -798,6 +927,9 @@ $buildStateClass = static function (string $status): string {
             }
 
             if (inputEmailEncadrant.validity.typeMismatch) {
+                debugLog('validate_fields:invalid_email', {
+                    value: inputEmailEncadrant.value
+                });
                 if (showModal) {
                     openStageAlert('E-mail invalide', "Veuillez saisir une adresse e-mail valide.");
                 }
@@ -805,10 +937,16 @@ $buildStateClass = static function (string $status): string {
                 return false;
             }
 
+            debugLog('validate_fields:success');
             return true;
         }
 
         function validateDates(showModal) {
+            debugLog('validate_dates:start', {
+                showModal: !!showModal,
+                dateDebut: dateDebut.value,
+                dateFin: dateFin.value
+            });
             if (!dateDebut.value || !dateFin.value) {
                 return setDateValidationMessage('', false);
             }
@@ -817,6 +955,27 @@ $buildStateClass = static function (string $status): string {
             const fin = new Date(dateFin.value + 'T00:00:00');
             const today = new Date();
             today.setHours(0, 0, 0, 0);
+            const finExclusive = new Date(fin.getTime());
+            finExclusive.setDate(finExclusive.getDate() + 1);
+            finExclusive.setHours(0, 0, 0, 0);
+
+            function addCalendarMonths(baseDate, monthsToAdd) {
+                const result = new Date(baseDate.getTime());
+                const originalDay = result.getDate();
+                result.setMonth(result.getMonth() + monthsToAdd);
+                if (result.getDate() < originalDay) {
+                    result.setDate(0);
+                }
+                result.setHours(0, 0, 0, 0);
+                return result;
+            }
+
+            function formatDateFr(dateValue) {
+                const day = String(dateValue.getDate()).padStart(2, '0');
+                const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+                const year = dateValue.getFullYear();
+                return day + '/' + month + '/' + year;
+            }
 
             if (debut > today) {
                 return setDateValidationMessage('La date de début ne peut pas être dans le futur.', showModal);
@@ -828,15 +987,33 @@ $buildStateClass = static function (string $status): string {
                 return setDateValidationMessage('La date de fin doit être après la date de début.', showModal);
             }
 
-            const months = ((fin - debut) / (1000 * 60 * 60 * 24)) / 30.44;
-            if (months < 3 || months > 6) {
-                return setDateValidationMessage('La période de stage doit être de 3 à 6 mois.', showModal);
+            const minFinExclusive = addCalendarMonths(debut, 3);
+            const months = ((finExclusive - debut) / (1000 * 60 * 60 * 24)) / 30.44;
+            debugLog('validate_dates:computed', {
+                months: months,
+                debut: debut.toISOString(),
+                fin: fin.toISOString(),
+                finExclusive: finExclusive.toISOString(),
+                minFinExclusive: minFinExclusive.toISOString()
+            });
+            if (finExclusive < minFinExclusive) {
+                const minAllowedDate = new Date(minFinExclusive.getTime());
+                minAllowedDate.setDate(minAllowedDate.getDate() - 1);
+                return setDateValidationMessage(
+                    'La periode de stage doit couvrir au moins 3 mois calendaires. Pour une date de debut au ' +
+                    formatDateFr(debut) + ', la date de fin doit etre a partir du ' +
+                    formatDateFr(minAllowedDate) + '.',
+                    showModal
+                );
             }
 
             return setDateValidationMessage('', false);
         }
 
         inputEntreprise.addEventListener('input', function () {
+            debugLog('entreprise_input', {
+                value: inputEntreprise.value
+            });
             renderEntrepriseSuggestions(inputEntreprise.value);
         });
 
@@ -860,6 +1037,9 @@ $buildStateClass = static function (string $status): string {
         });
 
         inputEncadrant.addEventListener('input', function () {
+            debugLog('encadrant_input', {
+                value: inputEncadrant.value
+            });
             renderEncadrantSuggestions(inputEncadrant.value);
         });
 
@@ -883,17 +1063,75 @@ $buildStateClass = static function (string $status): string {
         });
 
         dateDebut.addEventListener('change', function () {
+            debugLog('date_debut_change', {
+                value: dateDebut.value
+            });
             validateDates(true);
         });
         dateFin.addEventListener('change', function () {
+            debugLog('date_fin_change', {
+                value: dateFin.value
+            });
             validateDates(true);
         });
 
         form.addEventListener('submit', function (event) {
-            if (!validateFields(true) || !validateDates(true)) {
+            const formData = new FormData(form);
+            const snapshot = {};
+            formData.forEach(function (value, key) {
+                snapshot[key] = value;
+            });
+            debugLog('form_submit', {
+                action: form.getAttribute('action'),
+                method: form.getAttribute('method'),
+                submitter: event.submitter ? (event.submitter.name || event.submitter.textContent || null) : null,
+                data: snapshot
+            });
+
+            const fieldsValid = validateFields(true);
+            const datesValid = validateDates(true);
+            debugLog('form_submit:validation_results', {
+                fieldsValid: fieldsValid,
+                datesValid: datesValid
+            });
+
+            if (!fieldsValid || !datesValid) {
                 event.preventDefault();
                 dateFin.scrollIntoView({behavior: 'smooth', block: 'center'});
+                setSubmitState(false);
+                return;
             }
+
+            setSubmitState(true);
+        });
+
+        document.addEventListener('cm:ajax:form:error', function (event) {
+            const detail = event && event.detail ? event.detail : null;
+            if (!detail || detail.form !== form) {
+                return;
+            }
+
+            debugLog('ajax_form_error', {
+                payload: detail.payload || null
+            });
+            setSubmitState(false);
+
+            const payload = detail.payload || null;
+            if (payload && payload.message) {
+                openStageAlert('Erreur', payload.message);
+            }
+        });
+
+        document.addEventListener('cm:ajax:before-load', function (event) {
+            debugLog('ajax_before_load', {
+                detail: event && event.detail ? event.detail : null
+            });
+        });
+
+        document.addEventListener('cm:ajax:after-load', function (event) {
+            debugLog('ajax_after_load', {
+                detail: event && event.detail ? event.detail : null
+            });
         });
 
         stageAlertClose.addEventListener('click', closeStageAlert);
