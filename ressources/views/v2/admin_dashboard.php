@@ -67,7 +67,7 @@ try {
     $errors24h = (int) ($pdo->query($sqlErrors)->fetchColumn() ?: 0);
 
     if ($errors24h > 0) {
-        $sqlRecentErrors = "SELECT p.date_creation, p.action, p.nom_table,
+        $sqlRecentErrors = "SELECT p.date_creation, p.action, p.contexte,
                                                                 COALESCE(u.nom_utilisateur, CONCAT('Utilisateur #', p.id_utilisateur)) AS nom_utilisateur
                                                         FROM pister p
                                                         LEFT JOIN utilisateur u ON u.id_utilisateur = p.id_utilisateur
@@ -330,7 +330,7 @@ try {
                                     <td><?= !empty($err['date_creation']) ? htmlspecialchars(date('d/m/Y H:i', strtotime((string) $err['date_creation'])), ENT_QUOTES, 'UTF-8') : '-' ?>
                                     </td>
                                     <td><?= htmlspecialchars($err['action'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td><?= htmlspecialchars($err['nom_table'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($err['contexte'] ?? $err['nom_table'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars($err['nom_utilisateur'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                                 </tr>
                             <?php endforeach; ?>

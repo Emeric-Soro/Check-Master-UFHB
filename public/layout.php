@@ -1422,7 +1422,8 @@ if (
         (int) $_SESSION['id_utilisateur'],
         $_GET,
         $_POST,
-        $_SERVER['REQUEST_METHOD'] ?? 'GET'
+        $_SERVER['REQUEST_METHOD'] ?? 'GET',
+        !empty($GLOBALS['error'])
     );
 }
 

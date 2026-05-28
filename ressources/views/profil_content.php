@@ -288,7 +288,7 @@ foreach ($historyLogs as $log) {
             : (string) ($log['action'] ?? '-'),
         'contexte' => function_exists('cm_audit_humanize_context')
             ? cm_audit_humanize_context($log)
-            : (string) ($log['nom_table'] ?? '-'),
+            : (string) ($log['contexte'] ?? $log['nom_table'] ?? '-'),
         'statut_action' => ['label' => $statut === '' ? '-' : $statut, 'type' => $badgeType],
     ];
 }

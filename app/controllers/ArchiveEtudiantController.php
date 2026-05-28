@@ -346,7 +346,7 @@ class ArchiveEtudiantController
     private function logAction($action, $statut)
     {
         if (isset($_SESSION['user_id'])) {
-            $sql = "INSERT INTO pister (id_utilisateur, action, statut_action, nom_table, date_creation)
+            $sql = "INSERT INTO pister (id_utilisateur, action, statut_action, contexte, date_creation)
                     VALUES (?, ?, ?, 'archives', NOW())";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$_SESSION['user_id'], $action, $statut]);

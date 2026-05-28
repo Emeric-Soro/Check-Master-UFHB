@@ -27,7 +27,7 @@ foreach ($actions as $action) {
 $tableOptions = [];
 $statutOptions = [];
 foreach ($auditLog as $log) {
-    $table = trim((string) ($log['nom_table'] ?? ''));
+    $table = trim((string) ($log['contexte'] ?? $log['nom_table'] ?? ''));
     $statut = trim((string) ($log['statut_action'] ?? ''));
     if ($table !== '') {
         $tableOptions[$table] = $table;
@@ -42,7 +42,7 @@ ksort($statutOptions);
 $tableFilterOptions = ['' => '-- Toutes --'];
 foreach ($tableOptions as $tableValue) {
     $tableFilterOptions[$tableValue] = function_exists('cm_audit_humanize_context')
-        ? cm_audit_humanize_context(['nom_table' => $tableValue])
+        ? cm_audit_humanize_context(['contexte' => $tableValue])
         : $tableValue;
 }
 
@@ -76,7 +76,7 @@ foreach ($auditLog as $log) {
             : (string) ($log['action'] ?? '-'),
         'contexte' => function_exists('cm_audit_humanize_context')
             ? cm_audit_humanize_context($log)
-            : (string) ($log['nom_table'] ?? '-'),
+            : (string) ($log['contexte'] ?? $log['nom_table'] ?? '-'),
         'utilisateur' => $utilisateurLabel,
         'statut_action' => ['label' => $statut === '' ? '-' : $statut, 'type' => $badgeType],
     ];

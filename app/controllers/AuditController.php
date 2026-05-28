@@ -111,7 +111,8 @@ class AuditController {
         }
 
         $filters = $this->service->extractFilters($_GET);
-        $logs = $this->service->getFilteredAuditLog($filters, 0, 500);
+        $logs = $this->service->getFilteredAuditLog($filters, 0, 1000);
+        $truncated = count($logs) >= 1000;
 
         require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
 
@@ -124,6 +125,9 @@ class AuditController {
 
         $html = '<h1 style="text-align:center; font-size:16pt;">Piste d\'audit</h1>';
         $html .= '<p style="text-align:center; font-size:10pt; color:#666;">Genere le ' . date('d/m/Y H:i') . '</p>';
+        if ($truncated) {
+            $html .= '<p style="text-align:center; font-size:9pt; color:#c0392b; font-weight:bold;">&#9888; Ce rapport est limite aux 1 000 entrees les plus recentes. Utilisez l\'export CSV pour un export complet.</p>';
+        }
         $html .= '<hr>';
         $html .= '<table border="1" cellpadding="4" cellspacing="0" style="width:100%; font-size:8pt; border-collapse:collapse;">';
         $html .= '<thead><tr style="background-color:#1a5276; color:white;">';
@@ -138,7 +142,7 @@ class AuditController {
                 $html .= '<tr>';
                 $html .= '<td>' . ($date !== '' ? date('d/m/Y H:i', strtotime($date)) : '-') . '</td>';
                 $html .= '<td>' . htmlspecialchars((string) ($log['action'] ?? '-')) . '</td>';
-                $html .= '<td>' . htmlspecialchars((string) ($log['nom_table'] ?? '-')) . '</td>';
+                $html .= '<td>' . htmlspecialchars((string) ($log['contexte'] ?? '-')) . '</td>';
                 $util = trim((string) ($log['nom_utilisateur'] ?? ''));
                 $html .= '<td>' . ($util !== '' ? htmlspecialchars($util) : '-') . '</td>';
                 $html .= '<td>' . htmlspecialchars((string) ($log['statut_action'] ?? '-')) . '</td>';

@@ -50,9 +50,9 @@ class AuditService
      */
     public function getFilteredAuditLog(array $filters, $offset, $limit)
     {
-        $sql = "SELECT p.*, u.login_utilisateur, u.nom_utilisateur 
-                FROM pister p 
-                LEFT JOIN utilisateur u ON p.id_utilisateur = u.id_utilisateur 
+        $sql = "SELECT p.*, u.login_utilisateur, u.nom_utilisateur
+                FROM pister p
+                LEFT JOIN utilisateur u ON p.id_utilisateur = u.id_utilisateur
                 WHERE 1=1";
         $params = [];
 
@@ -70,9 +70,9 @@ class AuditService
      */
     public function getTotalFilteredLogs(array $filters)
     {
-        $sql = "SELECT COUNT(*) 
-                FROM pister p 
-                LEFT JOIN utilisateur u ON p.id_utilisateur = u.id_utilisateur 
+        $sql = "SELECT COUNT(*)
+                FROM pister p
+                LEFT JOIN utilisateur u ON p.id_utilisateur = u.id_utilisateur
                 WHERE 1=1";
         $params = [];
 
@@ -85,13 +85,25 @@ class AuditService
 
     /**
      * Générer les données CSV d'export et les écrire dans un flux.
+     * Utilise un curseur PDO pour éviter de charger toutes les lignes en mémoire.
      *
      * @param resource $output  Flux ouvert (ex: fopen('php://output', 'w'))
      * @param array    $filters Filtres à appliquer
      */
     public function exportToStream($output, array $filters)
     {
-        $logs = $this->getFilteredAuditLog($filters, 0, 10000);
+        $sql = "SELECT p.*, u.login_utilisateur, u.nom_utilisateur
+                FROM pister p
+                LEFT JOIN utilisateur u ON p.id_utilisateur = u.id_utilisateur
+                WHERE 1=1";
+        $params = [];
+        $this->applyFilters($sql, $params, $filters);
+        $sql .= " ORDER BY p.date_creation DESC";
+
+        // Mode non bufferisé pour streamer sans charger tout en mémoire
+        $this->db->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
 
         // BOM UTF-8 pour Excel
         fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
@@ -108,19 +120,21 @@ class AuditService
             'Nom Utilisateur'
         ], ';', '"', '');
 
-        // Données
-        foreach ($logs as $log) {
+        // Données ligne par ligne (pas de fetchAll)
+        while ($log = $stmt->fetch(PDO::FETCH_ASSOC)) {
             fputcsv($output, [
                 date('d/m/Y', strtotime($log['date_creation'])),
                 date('H:i:s', strtotime($log['date_creation'])),
                 $log['action'],
                 $log['statut_action'],
-                $log['nom_table'],
+                $log['contexte'],
                 $log['id_utilisateur'] ?? 'N/A',
                 $log['login_utilisateur'] ?? 'N/A',
                 $log['nom_utilisateur'] ?? 'N/A'
             ], ';', '"', '');
         }
+
+        $this->db->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
     }
 
     /**
@@ -177,11 +191,11 @@ class AuditService
     }
 
     /**
-     * Récupérer la liste distincte des tables dans les logs.
+     * Récupérer la liste distincte des contextes dans les logs.
      */
     public function getTablesList()
     {
-        $sql = "SELECT DISTINCT nom_table FROM pister ORDER BY nom_table";
+        $sql = "SELECT DISTINCT contexte FROM pister ORDER BY contexte";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -265,8 +279,10 @@ class AuditService
     /**
      * Journaliser l'action HTTP courante dans la piste d'audit.
      * Le format est compact pour respecter les tailles existantes.
+     *
+     * @param bool $hasError Passer true si une erreur applicative a été détectée avant l'appel.
      */
-    public function logRequestActivity($userId, array $get, array $post, $method)
+    public function logRequestActivity($userId, array $get, array $post, $method, bool $hasError = false)
     {
         $userId = (int) $userId;
         if ($userId <= 0) {
@@ -283,6 +299,8 @@ class AuditService
             $method = 'GET';
         }
 
+        $statut = $hasError ? 'Erreur' : 'Succès';
+
         $actionToken = $this->resolveRequestActionToken($get, $post, $method);
         $tabToken = trim((string) ($get['tab'] ?? ''));
         $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
@@ -290,9 +308,9 @@ class AuditService
 
         $standardPayload = $this->resolveStandardAuditPayload($page, $actionToken, $method, $get);
         if (is_array($standardPayload)) {
-            $actionLabel = $this->truncateForColumn((string) ($standardPayload['action'] ?? ''), 60);
-            $tableLabel = $this->truncateForColumn((string) ($standardPayload['nom_table'] ?? ''), 50);
-            return $this->auditLog->logAction($userId, $actionLabel, $tableLabel, 'Succès');
+            $actionLabel = $this->truncateForColumn((string) ($standardPayload['action'] ?? ''), 120);
+            $contextLabel = $this->truncateForColumn((string) ($standardPayload['contexte'] ?? ''), 100);
+            return $this->auditLog->logAction($userId, $actionLabel, $contextLabel, $statut);
         }
 
         // Fallback: journalisation compacte technique pour conserver la traçabilité fine.
@@ -303,7 +321,7 @@ class AuditService
         if ($tabToken !== '') {
             $actionParts[] = 'tab:' . $tabToken;
         }
-        $actionLabel = $this->truncateForColumn(implode(' | ', $actionParts), 60);
+        $actionLabel = $this->truncateForColumn(implode(' | ', $actionParts), 120);
 
         $contextParts = [$isAjax ? 'xhr' : 'ui', 'page=' . $page];
         if ($actionToken !== '') {
@@ -312,15 +330,15 @@ class AuditService
         if ($tabToken !== '') {
             $contextParts[] = 'tab=' . $tabToken;
         }
-        $contextLabel = $this->truncateForColumn(implode(' | ', $contextParts), 50);
+        $contextLabel = $this->truncateForColumn(implode(' | ', $contextParts), 100);
 
-        return $this->auditLog->logAction($userId, $actionLabel, $contextLabel, 'Succès');
+        return $this->auditLog->logAction($userId, $actionLabel, $contextLabel, $statut);
     }
 
     /**
      * Déterminer une action d'audit normalisée alignée sur le PRD.
      *
-     * @return array{action:string,nom_table:string}|null
+     * @return array{action:string,contexte:string}|null
      */
     private function resolveStandardAuditPayload($page, $actionToken, $method, array $get)
     {
@@ -346,54 +364,56 @@ class AuditService
             && (str_contains($actionToken, 'annee') || $page === 'parametres_generaux');
 
         if ($isCloseYear) {
-            return ['action' => 'Clôture année', 'nom_table' => 'annee_academique'];
+            return ['action' => 'Clôture année', 'contexte' => 'annee_academique'];
         }
 
         if ($isExport) {
-            return ['action' => 'Exportation', 'nom_table' => 'exports_conformite'];
+            return ['action' => 'Exportation', 'contexte' => 'exports_conformite'];
         }
 
         if ($isPrint) {
-            return ['action' => 'Impression', 'nom_table' => $targetTable];
+            return ['action' => 'Impression', 'contexte' => $targetTable];
         }
 
         if ($method === 'GET' && $isArchivePage) {
-            return ['action' => 'Consultation archive', 'nom_table' => 'archives_documents'];
+            return ['action' => 'Consultation archive', 'contexte' => 'archives_documents'];
         }
 
         if (($isArchivePage && $method === 'POST') || str_contains($actionToken, 'archive')) {
-            return ['action' => 'Archivage', 'nom_table' => 'archives_documents'];
+            return ['action' => 'Archivage', 'contexte' => 'archives_documents'];
         }
 
         if ($actionToken === 'valider') {
-            return ['action' => 'Validation', 'nom_table' => 'valider'];
+            return ['action' => 'Validation', 'contexte' => 'valider'];
         }
 
         if ($actionToken === 'rejeter') {
-            return ['action' => 'Rejet', 'nom_table' => 'valider'];
+            return ['action' => 'Rejet', 'contexte' => 'valider'];
         }
 
         if ($actionToken !== '' && str_contains($actionToken, 'eval')) {
-            return ['action' => 'Evaluation', 'nom_table' => 'evaluer'];
+            return ['action' => 'Evaluation', 'contexte' => 'evaluer'];
         }
 
         if ($actionToken !== '' && (str_contains($actionToken, 'depot') || str_contains($actionToken, 'deposer'))) {
-            return ['action' => 'Dépôt', 'nom_table' => 'deposer'];
+            return ['action' => 'Dépôt', 'contexte' => 'deposer'];
         }
 
         if ($actionToken !== '' && (str_contains($actionToken, 'add') || str_contains($actionToken, 'create'))) {
-            return ['action' => 'Création', 'nom_table' => $targetTable];
+            return ['action' => 'Création', 'contexte' => $targetTable];
         }
 
         if (
             $actionToken !== ''
             && (str_contains($actionToken, 'delete') || str_contains($actionToken, 'remove') || str_contains($actionToken, 'supp'))
         ) {
-            return ['action' => 'Suppression', 'nom_table' => $targetTable];
+            return ['action' => 'Suppression', 'contexte' => $targetTable];
         }
 
-        if ($actionToken !== '' || $method === 'POST') {
-            return ['action' => 'Modification', 'nom_table' => $targetTable];
+        // Un POST sans token reconnu est une modification certaine.
+        // Un token non vide non reconnu → fallback compact pour préserver la traçabilité fine.
+        if ($method === 'POST' && $actionToken === '') {
+            return ['action' => 'Modification', 'contexte' => $targetTable];
         }
 
         return null;
@@ -420,7 +440,7 @@ class AuditService
         }
 
         if (!empty($filters['table'])) {
-            $sql .= " AND p.nom_table = ?";
+            $sql .= " AND p.contexte = ?";
             $params[] = $filters['table'];
         }
 
@@ -436,7 +456,7 @@ class AuditService
         }
 
         if (!empty($filters['search'])) {
-            $sql .= " AND (p.action LIKE ? OR p.nom_table LIKE ? OR p.statut_action LIKE ? OR u.login_utilisateur LIKE ? OR u.nom_utilisateur LIKE ?)";
+            $sql .= " AND (p.action LIKE ? OR p.contexte LIKE ? OR p.statut_action LIKE ? OR u.login_utilisateur LIKE ? OR u.nom_utilisateur LIKE ?)";
             $searchTerm = '%' . $filters['search'] . '%';
             $params[] = $searchTerm;
             $params[] = $searchTerm;
@@ -467,7 +487,7 @@ class AuditService
         }
 
         if (!empty($filters['search'])) {
-            $sql .= " AND (p.action LIKE ? OR p.nom_table LIKE ?)";
+            $sql .= " AND (p.action LIKE ? OR p.contexte LIKE ?)";
             $searchTerm = '%' . $filters['search'] . '%';
             $params[] = $searchTerm;
             $params[] = $searchTerm;

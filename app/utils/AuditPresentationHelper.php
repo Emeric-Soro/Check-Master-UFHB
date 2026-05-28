@@ -181,7 +181,7 @@ if (!function_exists('cm_audit_humanize_action')) {
 if (!function_exists('cm_audit_humanize_context')) {
     function cm_audit_humanize_context(array $log): string
     {
-        $raw = trim((string) ($log['nom_table'] ?? ''));
+        $raw = trim((string) ($log['contexte'] ?? $log['nom_table'] ?? ''));
         if ($raw === '' || $raw === '-') {
             return '-';
         }

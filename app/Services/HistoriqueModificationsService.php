@@ -43,7 +43,7 @@ class HistoriqueModificationsService
             $params[':action'] = '%' . $filters['action'] . '%';
         }
         if (!empty($filters['entite'])) {
-            $sql .= " AND p.nom_table LIKE :entite";
+            $sql .= " AND p.contexte LIKE :entite";
             $params[':entite'] = '%' . $filters['entite'] . '%';
         }
         if (!empty($filters['utilisateur'])) {
@@ -87,7 +87,7 @@ class HistoriqueModificationsService
             $params[':action'] = '%' . $filters['action'] . '%';
         }
         if (!empty($filters['entite'])) {
-            $sql .= " AND p.nom_table LIKE :entite";
+            $sql .= " AND p.contexte LIKE :entite";
             $params[':entite'] = '%' . $filters['entite'] . '%';
         }
         if (!empty($filters['utilisateur'])) {
@@ -114,7 +114,7 @@ class HistoriqueModificationsService
 
         $grouped = [];
         foreach ($logs as $log) {
-            $entite = $log['nom_table'] ?? 'autre';
+            $entite = $log['contexte'] ?? 'autre';
             if (!isset($grouped[$entite])) {
                 $grouped[$entite] = [
                     'entite' => $entite,
@@ -145,7 +145,7 @@ class HistoriqueModificationsService
             $data[] = [
                 'date'        => $log['date_creation'] ?? '',
                 'action'      => $log['action'] ?? '',
-                'entite'      => $log['nom_table'] ?? '',
+                'entite'      => $log['contexte'] ?? '',
                 'id_entite'   => $log['id_entite'] ?? '',
                 'utilisateur' => $log['nom_utilisateur'] ?? $log['login_utilisateur'] ?? '',
                 'statut'      => $log['statut_action'] ?? '',
@@ -180,12 +180,12 @@ class HistoriqueModificationsService
     }
 
     /**
-     * Retourne la liste des entités (nom_table) distinctes.
+     * Retourne la liste des entités (contexte) distinctes.
      */
     public function getAllEntities(): array
     {
         try {
-            $stmt = $this->db->query("SELECT DISTINCT nom_table FROM pister WHERE nom_table IS NOT NULL AND nom_table <> '' ORDER BY nom_table");
+            $stmt = $this->db->query("SELECT DISTINCT contexte FROM pister WHERE contexte IS NOT NULL AND contexte <> '' ORDER BY contexte");
             return $stmt->fetchAll(PDO::FETCH_COLUMN);
         } catch (\PDOException $e) {
             return [];

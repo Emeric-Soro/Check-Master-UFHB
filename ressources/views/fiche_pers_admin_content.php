@@ -200,7 +200,7 @@
                                 <tr class="cm-data-table__row cm-clickable-row"
                                     data-href="?page=piste_audit">
                                     <td class="cm-data-table__td"><?= htmlspecialchars($h['action'] ?? '-', ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td class="cm-data-table__td"><?= htmlspecialchars($h['nom_table'] ?? '-', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="cm-data-table__td"><?= htmlspecialchars($h['contexte'] ?? $h['nom_table'] ?? '-', ENT_QUOTES, 'UTF-8') ?></td>
                                     <td class="cm-data-table__td">
                                         <?php
                                         $statutAction = $h['statut_action'] ?? 'Succès';

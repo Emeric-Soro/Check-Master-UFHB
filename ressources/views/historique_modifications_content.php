@@ -53,7 +53,7 @@ foreach ($logs as $log) {
     $rows[] = [
         'id'          => $log['id_piste'] ?? '',
         'date'        => $log['date_creation'] ? date('d/m/Y H:i', strtotime($log['date_creation'])) : '-',
-        'entite'      => $log['nom_table'] ?? '-',
+        'entite'      => $log['contexte'] ?? $log['nom_table'] ?? '-',
         'id_entite'   => $log['id_entite'] ?? '-',
         'action'      => $log['action'] ?? '-',
         'utilisateur' => $log['nom_utilisateur'] ?? $log['login_utilisateur'] ?? '-',

@@ -129,7 +129,7 @@ class FicheEtudiantController
     {
         if (isset($_SESSION['id_utilisateur'])) {
             try {
-                $sql = "INSERT INTO pister (id_utilisateur, action, statut_action, nom_table, date_creation)
+                $sql = "INSERT INTO pister (id_utilisateur, action, statut_action, contexte, date_creation)
                         VALUES (?, ?, ?, 'fiche_etudiant_complete', NOW())";
                 $stmt = $this->db->prepare($sql);
                 $stmt->execute([$_SESSION['id_utilisateur'], $action, $statut]);

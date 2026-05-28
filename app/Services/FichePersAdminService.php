@@ -135,7 +135,7 @@ class FichePersAdminService
                     p.id_piste,
                     p.action,
                     p.statut_action,
-                    p.nom_table,
+                    p.contexte,
                     p.date_creation
                 FROM pister p
                 WHERE p.id_utilisateur = :id_utilisateur

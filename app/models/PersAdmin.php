@@ -183,7 +183,7 @@ class PersAdmin{
         if ($compte && !empty($compte->id_utilisateur)) {
             try {
                 $stmt = $this->db->prepare("
-                    SELECT p.id_piste, p.action, p.statut_action, p.nom_table, p.date_creation
+                    SELECT p.id_piste, p.action, p.statut_action, p.contexte, p.date_creation
                     FROM pister p
                     WHERE p.id_utilisateur = ?
                     ORDER BY p.date_creation DESC

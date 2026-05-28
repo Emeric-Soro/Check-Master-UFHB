@@ -228,7 +228,7 @@ unset($_SESSION['success'], $_SESSION['error']);
                                 data-href="?page=piste_audit">
                                 <td class="cm-data-table__td is-left"><?= htmlspecialchars($act['action'] ?? '') ?></td>
                                 <td class="cm-data-table__td is-left">
-                                    <code class="cm-text-xs"><?= htmlspecialchars($act['nom_table'] ?? '') ?></code>
+                                    <code class="cm-text-xs"><?= htmlspecialchars($act['contexte'] ?? $act['nom_table'] ?? '') ?></code>
                                 </td>
                                 <td class="cm-data-table__td is-left"><?= htmlspecialchars($act['utilisateur'] ?? '') ?></td>
                                 <td class="cm-data-table__td is-center cm-text-xs"><?= $dateAct ?></td>

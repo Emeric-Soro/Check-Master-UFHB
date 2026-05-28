@@ -459,7 +459,7 @@ class DashboardDirectionService
                 SELECT
                     p.date_creation,
                     p.action,
-                    p.nom_table,
+                    p.contexte,
                     COALESCE(NULLIF(u.nom_utilisateur, ''), NULLIF(u.login_utilisateur, ''), 'Système') AS utilisateur,
                     p.statut_action
                 FROM pister p
