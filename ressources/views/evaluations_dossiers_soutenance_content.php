@@ -193,7 +193,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     'cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']],
                     'actions' => [
                         ['tag' => 'a', 'href' => '#', 'label' => 'Voir rapport', 'icon' => 'fa-eye', 'class' => 'cm-btn is-info is-sm', 'attrs' => ['id' => 'cmVoirRapportBtn', 'target' => '_blank', 'rel' => 'noopener']],
-                        ['tag' => 'button', 'type' => 'submit', 'label' => 'Soumettre décision', 'icon' => 'fa-check', 'class' => 'cm-btn is-primary is-sm'],
+                        ['tag' => 'button', 'type' => 'submit', 'label' => 'Soumettre décision', 'icon' => 'fa-check', 'class' => 'cm-btn is-primary is-sm', 'attrs' => ['id' => 'cmSubmitDecisionBtn']],
                     ],
                 ]);
                 ?>
@@ -475,6 +475,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
         });
     }
     if (decisionForm) {
+        const submitBtn = document.getElementById('cmSubmitDecisionBtn');
         decisionForm.addEventListener('submit', function (event) {
             event.preventDefault();
             const actionUrl = decisionForm.getAttribute('action') || window.location.href;
@@ -486,6 +487,10 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     commentaireInput.focus();
                 }
                 return;
+            }
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-pulse" aria-hidden="true"></i> Traitement...';
             }
             const formData = new FormData(decisionForm);
             fetch(actionUrl, {
@@ -509,9 +514,17 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                         return;
                     }
                     setAlert('error', (payload && payload.message) ? payload.message : 'Erreur lors de la soumission.');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Soumettre décision';
+                    }
                 })
                 .catch(function () {
                     setAlert('error', 'Erreur réseau lors de la soumission.');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Soumettre décision';
+                    }
                 });
         });
     }

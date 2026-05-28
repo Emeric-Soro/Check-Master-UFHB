@@ -7,9 +7,23 @@ if (isset($_GET['page']) && in_array($_GET['page'], ['evaluations_dossiers_soute
     
     // Si on demande un fichier de rapport
     if (isset($_GET['fichier'])) {
-        $id_rapport = $_GET['fichier'];
+        $id_rapport = (int) $_GET['fichier'];
+
+        // Vérifier si c'est un fichier uploadé (PDF/DOC/DOCX) → rediriger vers DocViewer
+        require_once __DIR__ . '/../../app/models/RapportEtudiant.php';
+        $rapportModel = new RapportEtudiant(Database::getConnection());
+        $rapportInfo = $rapportModel->getRapportById($id_rapport);
+        if ($rapportInfo && !empty($rapportInfo['chemin_fichier'])) {
+            $ext = strtolower(pathinfo((string) $rapportInfo['chemin_fichier'], PATHINFO_EXTENSION));
+            if ($ext !== 'html') {
+                header('Location: ?page=docviewer&type=rapport&id=' . $id_rapport . '&action=preview');
+                exit;
+            }
+        }
+
+        // Fichier HTML éditeur → affichage direct
         $cheminFichier = __DIR__ . "/../uploads/rapports/rapport_{$id_rapport}.html";
-        
+
         if (file_exists($cheminFichier)) {
             readfile($cheminFichier);
             exit;

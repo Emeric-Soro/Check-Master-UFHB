@@ -249,7 +249,7 @@ foreach ($membresCommission as $membre) {
                                         break;
                                     }
                                 }
-                                $canAdminGroupVote = (int) ($_SESSION['id_GU'] ?? 0) === 5
+                                $canAdminGroupVote = (function_exists('isAdmin') ? isAdmin() : false)
                                     && $hasAdminVote
                                     && empty($vote['finalise'])
                                     && (int) ($vote['total_votes'] ?? 0) > 0

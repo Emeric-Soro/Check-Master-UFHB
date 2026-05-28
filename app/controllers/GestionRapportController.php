@@ -11,6 +11,7 @@ require_once __DIR__ . '/../Services/Document/RapportPdfGeneratorService.php';
 require_once __DIR__ . '/../utils/PlanningDataUtils.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 
+use CheckMaster\Services\GestionRapportService;
 
 class GestionRapportController
 {
@@ -62,13 +63,15 @@ class GestionRapportController
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->traiterCreationRapport();
         } else {
-            global $rapport, $erreurs, $isEditMode, $contenuRapport, $stage_info;
+            global $rapport, $erreurs, $isEditMode, $contenuRapport, $stage_info, $rapportEstUpload, $rapportUploadChemin;
 
             $edit_id = $_GET['edit'] ?? null;
             $rapport = null;
             $isEditMode = false;
             $contenuRapport = '';
             $stage_info = null;
+            $rapportEstUpload = false;
+            $rapportUploadChemin = '';
 
             if ($edit_id !== null) {
                 try {
@@ -81,7 +84,19 @@ class GestionRapportController
 
                     $isEditMode = true;
 
-                    $contenuRapport = $this->service->chargerContenuRapport($edit_id);
+                    // Détecter si c'est un fichier uploadé (PDF/DOC/DOCX) vs éditeur HTML
+                    $cheminFichier = (string) ($rapport['chemin_fichier'] ?? '');
+                    if ($cheminFichier !== '') {
+                        $ext = strtolower(pathinfo($cheminFichier, PATHINFO_EXTENSION));
+                        if ($ext !== 'html') {
+                            $rapportEstUpload = true;
+                            $rapportUploadChemin = $cheminFichier;
+                        }
+                    }
+
+                    if (!$rapportEstUpload) {
+                        $contenuRapport = $this->service->chargerContenuRapport($edit_id);
+                    }
 
                 } catch (Exception $e) {
                     $this->afficherErreur("Erreur lors du chargement du rapport : " . $e->getMessage());
@@ -135,6 +150,24 @@ class GestionRapportController
                     header('Location: ' . $resultat['redirect']);
                 }
                 exit;
+            }
+
+            // Dépôt d'un fichier uploadé (PDF/DOC/DOCX) — pas besoin de valider le contenu éditeur
+            if ($action === 'deposer_rapport' && $edit_id !== null) {
+                $rapportCheck = $this->service->getRapportById($edit_id);
+                if ($rapportCheck && !empty($rapportCheck['chemin_fichier'])) {
+                    $extCheck = strtolower(pathinfo((string) $rapportCheck['chemin_fichier'], PATHINFO_EXTENSION));
+                    if ($extCheck !== 'html') {
+                        $resultat = $this->service->traiterDepotRapport($edit_id, $num_etu);
+                        if ($resultat['success']) {
+                            $_SESSION['success'] = "Rapport déposé avec succès. Vous recevrez la notification des résultats à la date prévue.";
+                        } else {
+                            $_SESSION['error'] = "Une erreur est survenue lors du dépôt du rapport.";
+                        }
+                        header('Location: ' . ($resultat['redirect'] ?? '?page=gestion_rapports'));
+                        exit;
+                    }
+                }
             }
 
             // Valider les données
@@ -231,7 +264,7 @@ class GestionRapportController
                 exit;
             }
 
-            // Sauvegarder le contenu du rapport
+            // Sauvegarder le contenu du rapport (éditeur HTML uniquement)
             $this->service->sauvegarderContenuRapport($rapport_id, $contenu_rapport);
 
             // Récupérer le rapport créé

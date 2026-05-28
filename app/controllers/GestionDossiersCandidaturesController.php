@@ -60,6 +60,17 @@ class GestionDossiersCandidaturesController
         }
         ob_start();
 
+        // Vérifier si c'est un fichier uploadé (PDF/DOC/DOCX) → rediriger vers DocViewer download
+        $rapportModel = new \RapportEtudiant(\Database::getConnection());
+        $rapportCheck = $rapportModel->getRapportById((int) $id_rapport);
+        if ($rapportCheck && !empty($rapportCheck['chemin_fichier'])) {
+            $ext = strtolower(pathinfo((string) $rapportCheck['chemin_fichier'], PATHINFO_EXTENSION));
+            if ($ext !== 'html') {
+                header('Location: ?page=docviewer&type=rapport&id=' . (int) $id_rapport . '&action=download');
+                exit;
+            }
+        }
+
         $donnees = $this->service->preparerDonneesPdf($id_rapport);
 
         if ($donnees === null) {
@@ -110,6 +121,17 @@ class GestionDossiersCandidaturesController
             ob_end_clean();
         }
         ob_start();
+
+        // Vérifier si c'est un fichier uploadé (PDF/DOC/DOCX) → rediriger vers DocViewer
+        $rapportModel = new \RapportEtudiant(\Database::getConnection());
+        $rapportCheck = $rapportModel->getRapportById((int) $id_rapport);
+        if ($rapportCheck && !empty($rapportCheck['chemin_fichier'])) {
+            $ext = strtolower(pathinfo((string) $rapportCheck['chemin_fichier'], PATHINFO_EXTENSION));
+            if ($ext !== 'html') {
+                header('Location: ?page=docviewer&type=rapport&id=' . (int) $id_rapport . '&action=preview');
+                exit;
+            }
+        }
 
         $donnees = $this->service->preparerDonneesConsultation($id_rapport);
 

@@ -8,7 +8,7 @@ if (isset($_GET['page']) && in_array($_GET['page'], ['gestion_rapports', 'telech
     require_once __DIR__ . '/../../app/Services/GestionRapportService.php';
 
     $controller = new GestionRapportController();
-    $service = new GestionRapportService(Database::getConnection());
+    $service = new \CheckMaster\Services\GestionRapportService(Database::getConnection());
 
     // ====== PRD 1: Téléchargement du rapport étudiant (upload de fichier) ======
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {

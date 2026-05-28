@@ -295,7 +295,6 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
                 <div class="cm-grid-3">
                     <?php
                     cm_component('form/select-search', [
-                    cm_component('form/select-search', [
                         'name' => 'etudiant',
                         'id' => 'cmEtudiantPicker',
                         'label' => 'Nom Prénom',

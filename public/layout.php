@@ -712,6 +712,16 @@ switch ($currentMenuSlug) {
             $currentPageLabel = 'Candidater pour la soutenance';
         }
         break;
+    case 'cycle_etudiant':
+        include __DIR__ . '/../ressources/routes/cycleEtudiantRoutes.php';
+        if (isset($_GET['action']) && $_GET['action'] === 'show' && !empty($_GET['id'])) {
+            $contentFile = $partialsBasePath . 'cycle_etudiant/cycle_etudiant_wizard.php';
+            $currentPageLabel = 'Parcours etudiant';
+        } else {
+            $contentFile = $partialsBasePath . 'cycle_etudiant/cycle_etudiant_content.php';
+            $currentPageLabel = 'Parcours etudiant complet';
+        }
+        break;
     case 'gestion_etudiants':
         include __DIR__ . '/../ressources/routes/gestionEtudiantRoutes.php';
         if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'imprimer_recu' && isset($_GET['id_inscription'])) {

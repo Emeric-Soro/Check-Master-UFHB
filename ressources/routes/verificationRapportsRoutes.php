@@ -109,19 +109,33 @@ if (isset($_GET['page']) && in_array($_GET['page'], ['verification_candidatures_
 
                         // Afficher le contenu du rapport s'il existe
                         $chemin = $rapport->chemin_fichier;
-                        if (empty($chemin)) {
-                            $chemin = 'rapport_' . $rapport->id_rapport . '.html';
+                        $estFichierUpload = false;
+                        if (!empty($chemin)) {
+                            $extRapport = strtolower(pathinfo($chemin, PATHINFO_EXTENSION));
+                            $estFichierUpload = ($extRapport !== 'html');
                         }
-                        $fichierContenu = __DIR__ . "/../uploads/rapports/" . $chemin;
-                        if (file_exists($fichierContenu)) {
+                        if ($estFichierUpload) {
+                            // Fichier uploadé (PDF/DOC/DOCX) → lien DocViewer
                             echo '<div class="mt-6">';
-                            echo '<h4 class="font-bold text-lg mb-3 text-gray-800">Contenu du rapport:</h4>';
-                            echo '<div class="border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto bg-gray-50">';
-                            echo file_get_contents($fichierContenu);
-                            echo '</div>';
+                            echo '<button type="button" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium" onclick="CM.openDocViewer(\'rapport\', \'' . (int) $rapport->id_rapport . '\', {title: \'Rapport #' . (int) $rapport->id_rapport . '\'})">';
+                            echo '<i class="fas fa-eye mr-2"></i> Voir le document';
+                            echo '</button>';
                             echo '</div>';
                         } else {
-                            echo '<div class="mt-6 text-gray-500 bg-gray-100 p-4 rounded-lg">Aucun contenu disponible pour ce rapport.</div>';
+                            if (empty($chemin)) {
+                                $chemin = 'rapport_' . $rapport->id_rapport . '.html';
+                            }
+                            $fichierContenu = __DIR__ . "/../uploads/rapports/" . $chemin;
+                            if (file_exists($fichierContenu)) {
+                                echo '<div class="mt-6">';
+                                echo '<h4 class="font-bold text-lg mb-3 text-gray-800">Contenu du rapport:</h4>';
+                                echo '<div class="border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto bg-gray-50">';
+                                echo file_get_contents($fichierContenu);
+                                echo '</div>';
+                                echo '</div>';
+                            } else {
+                                echo '<div class="mt-6 text-gray-500 bg-gray-100 p-4 rounded-lg">Aucun contenu disponible pour ce rapport.</div>';
+                            }
                         }
 
                         // Section de décision - d'abord vérifier s'il y a déjà une approbation formelle
@@ -212,8 +226,17 @@ if (isset($_GET['page']) && in_array($_GET['page'], ['verification_candidatures_
                 if ($id) {
                     $rapport = $controller->getRapportDetail($id);
                     if ($rapport) {
-                        // Récupérer le contenu du rapport
+                        // Vérifier si c'est un fichier uploadé (PDF/DOC/DOCX) → rediriger vers DocViewer
                         $chemin = $rapport->chemin_fichier;
+                        if (!empty($chemin)) {
+                            $extRapport = strtolower(pathinfo($chemin, PATHINFO_EXTENSION));
+                            if ($extRapport !== 'html') {
+                                header('Location: ?page=docviewer&type=rapport&id=' . (int) $rapport->id_rapport . '&action=download');
+                                exit;
+                            }
+                        }
+
+                        // Récupérer le contenu du rapport HTML
                         if (empty($chemin)) {
                             $chemin = 'rapport_' . $rapport->id_rapport . '.html';
                         }

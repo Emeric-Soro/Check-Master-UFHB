@@ -7,6 +7,8 @@ require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/models/RapportEtudiant.php';
 require_once __DIR__ . '/../../app/Services/GestionRapportService.php';
 
+use CheckMaster\Services\GestionRapportService;
+
 $service = new GestionRapportService(Database::getConnection());
 $id_annee = !empty($_SESSION['selected_academic_year_id']) ? (int) $_SESSION['selected_academic_year_id'] : null;
 $isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';

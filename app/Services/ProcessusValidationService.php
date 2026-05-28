@@ -616,7 +616,7 @@ class ProcessusValidationService
             ];
         }
 
-        if ((int) ($session['id_GU'] ?? 0) !== 5) {
+        if (!in_array((int) ($session['id_GU'] ?? 0), $this->getAdminLikeGroupIds(), true)) {
             return [
                 'success' => false,
                 'message' => "Action réservée à l'administrateur."

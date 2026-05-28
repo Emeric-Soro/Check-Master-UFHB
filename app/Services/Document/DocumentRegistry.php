@@ -128,7 +128,7 @@ final class DocumentRegistry
 
         $userGroup = (int) ($_SESSION['id_GU'] ?? 0);
 
-        if (in_array($userGroup, [5, 6, 7, 8, 9, 10, 11], true)) {
+        if (in_array($userGroup, [5, 6, 7, 8, 9, 10, 11, 14], true)) {
             return true;
         }
 

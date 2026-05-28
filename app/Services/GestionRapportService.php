@@ -1,5 +1,18 @@
 <?php
 
+namespace CheckMaster\Services;
+
+use Database;
+use RapportEtudiant;
+use Etudiant;
+use Valider;
+use AuditLog;
+use InfoStage;
+use Entreprise;
+use EmailService;
+use NotificationService;
+use CheckMaster\Services\Document\DocumentStorageService;
+
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/Etudiant.php';

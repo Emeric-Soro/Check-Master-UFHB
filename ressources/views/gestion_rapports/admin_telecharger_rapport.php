@@ -392,61 +392,33 @@ if ($hasPrefill) {
 
                 <div class="cm-rapport-admin-form-grid">
                     <div class="cm-form-group cm-rapport-admin-span-2">
-                        <label class="cm-form-label" for="num_etu_select">Etudiant <span class="cm-required-star">*</span></label>
-                        <select id="num_etu_select" name="num_etu" class="cm-form-control" required>
-                            <option value="" <?= $hasPrefill ? '' : 'selected' ?>>-- Selectionnez un etudiant --</option>
-                            <?php $prefillFoundInOptions = false; ?>
-                            <?php foreach ($etudiantsSansRapport as $e): ?>
-                                <?php
-                                $nomComplet = trim((string) (($e->nom_etu ?? '') . ' ' . ($e->prenom_etu ?? '')));
-                                $matricule = (string) ($e->num_carte_etud ?? $e->num_ident_etud ?? '');
-                                $identifiant = (string) ($e->num_ident_etud ?? '');
-                                $isSelected = $hasPrefill && $prefill['num_etu'] === $matricule;
-                                if ($isSelected) {
-                                    $prefillFoundInOptions = true;
-                                }
-                                ?>
-                                <option
-                                    value="<?= htmlspecialchars($matricule, ENT_QUOTES, 'UTF-8') ?>"
-                                    <?= $isSelected ? 'selected' : '' ?>
-                                    data-nom="<?= htmlspecialchars($nomComplet, ENT_QUOTES, 'UTF-8') ?>"
-                                    data-num-carte="<?= htmlspecialchars((string) ($e->num_carte_etud ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                    data-num-ident="<?= htmlspecialchars($identifiant, ENT_QUOTES, 'UTF-8') ?>"
-                                    data-email="<?= htmlspecialchars((string) ($e->email_etu ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                    data-promotion="<?= htmlspecialchars($formatPromotion($e->promotion_etu ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                    data-annee="<?= htmlspecialchars($formatAcademicYear($e->id_annee_acad ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                    data-candidature="<?= htmlspecialchars((string) ($e->statut_candidature ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                    data-entreprise="<?= htmlspecialchars((string) ($e->entreprise_stage ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                    data-sujet="<?= htmlspecialchars((string) ($e->sujet_stage ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                    data-maitre="<?= htmlspecialchars((string) ($e->maitre_stage_nom ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                    data-periode="<?= htmlspecialchars($formatStagePeriod($e->date_debut_stage ?? null, $e->date_fin_stage ?? null), ENT_QUOTES, 'UTF-8') ?>"
-                                    data-nb-rapports="<?= htmlspecialchars((string) ($e->nb_rapports ?? ''), ENT_QUOTES, 'UTF-8') ?>">
-                                    <?= htmlspecialchars($nomComplet . ' (' . $matricule . ')', ENT_QUOTES, 'UTF-8') ?>
-                                </option>
-                            <?php endforeach; ?>
-                            <?php if ($hasPrefill && !$prefillFoundInOptions): ?>
-                                <option
-                                    value="<?= htmlspecialchars($prefill['num_etu'], ENT_QUOTES, 'UTF-8') ?>"
-                                    selected
-                                    data-nom="<?= htmlspecialchars($prefill['nom'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-num-carte="<?= htmlspecialchars($prefill['num_carte'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-num-ident="<?= htmlspecialchars($prefill['num_ident'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-email="<?= htmlspecialchars($prefill['email'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-promotion="<?= htmlspecialchars($formatPromotion($prefill['promotion']), ENT_QUOTES, 'UTF-8') ?>"
-                                    data-annee="<?= htmlspecialchars($prefill['annee'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-candidature="<?= htmlspecialchars($prefill['candidature'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-entreprise="<?= htmlspecialchars($prefill['entreprise'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-sujet="<?= htmlspecialchars($prefill['sujet'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-maitre="<?= htmlspecialchars($prefill['maitre'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-periode="<?= htmlspecialchars($prefill['periode'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-nb-rapports="<?= htmlspecialchars($prefill['nb_rapports'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-existing-rapport="<?= htmlspecialchars($prefill['existing_rapport'], ENT_QUOTES, 'UTF-8') ?>">
-                                    <?= htmlspecialchars(($prefill['nom'] !== '' ? $prefill['nom'] : 'Etudiant') . ' (' . $prefill['num_carte'] . ')', ENT_QUOTES, 'UTF-8') ?>
-                                </option>
-                            <?php endif; ?>
-                        </select>
-                        <span class="cm-rapport-admin-help">Le rapport importe sera lie au dossier selectionne.</span>
-                    </div>
+                    <?php
+                    $etudiantSelectOptions = [];
+                    $prefillFoundInOptions = false;
+                    foreach ($etudiantsSansRapport as $e):
+                        $nomComplet = trim((string) (($e->nom_etu ?? '') . ' ' . ($e->prenom_etu ?? '')));
+                        $matricule = (string) ($e->num_carte_etud ?? $e->num_ident_etud ?? '');
+                        if ($matricule === '') { continue; }
+                        $etudiantSelectOptions[$matricule] = $nomComplet . ' (' . $matricule . ')';
+                        if ($hasPrefill && $prefill['num_etu'] === $matricule) { $prefillFoundInOptions = true; }
+                    endforeach;
+                    if ($hasPrefill && !$prefillFoundInOptions):
+                        $etudiantSelectOptions[$prefill['num_etu']] = ($prefill['nom'] !== '' ? $prefill['nom'] : 'Etudiant') . ' (' . $prefill['num_carte'] . ')';
+                    endif;
+                    cm_component('form/select-search', [
+                        'name' => 'num_etu',
+                        'id' => 'num_etu_select',
+                        'label' => 'Etudiant',
+                        'required' => true,
+                        'options' => $etudiantSelectOptions,
+                        'selected' => $hasPrefill ? $prefill['num_etu'] : '',
+                        'placeholder' => '-- Sélectionnez un étudiant --',
+                        'search_placeholder' => 'Rechercher un étudiant...',
+                        'show_selected_label' => false,
+                    ]);
+                    ?>
+                    <span class="cm-rapport-admin-help">Le rapport importe sera lie au dossier selectionne.</span>
+                </div>
 
                     <div class="cm-form-group">
                         <label class="cm-form-label" for="admin_theme_rapport">Theme du rapport</label>
@@ -667,7 +639,50 @@ if ($hasPrefill) {
     </div>
 </section>
 
+<?php
+$studentDataEntries = [];
+foreach ($etudiantsSansRapport as $e):
+    $matricule = (string) ($e->num_carte_etud ?? $e->num_ident_etud ?? '');
+    if ($matricule === '') { continue; }
+    $nomComplet = trim((string) (($e->nom_etu ?? '') . ' ' . ($e->prenom_etu ?? '')));
+    $studentDataEntries[] = [
+        'numEtu' => $matricule,
+        'nom' => $nomComplet,
+        'numCarte' => (string) ($e->num_carte_etud ?? ''),
+        'numIdent' => (string) ($e->num_ident_etud ?? ''),
+        'email' => (string) ($e->email_etu ?? ''),
+        'promotion' => $formatPromotion($e->promotion_etu ?? ''),
+        'annee' => $formatAcademicYear($e->id_annee_acad ?? ''),
+        'candidature' => (string) ($e->statut_candidature ?? ''),
+        'entreprise' => (string) ($e->entreprise_stage ?? ''),
+        'sujet' => (string) ($e->sujet_stage ?? ''),
+        'maitre' => (string) ($e->maitre_stage_nom ?? ''),
+        'periode' => $formatStagePeriod($e->date_debut_stage ?? null, $e->date_fin_stage ?? null),
+        'nbRapports' => (string) ($e->nb_rapports ?? ''),
+        'existingRapport' => false,
+    ];
+endforeach;
+if ($hasPrefill && !$prefillFoundInOptions):
+    $studentDataEntries[] = [
+        'numEtu' => $prefill['num_etu'],
+        'nom' => $prefill['nom'],
+        'numCarte' => $prefill['num_carte'],
+        'numIdent' => $prefill['num_ident'],
+        'email' => $prefill['email'],
+        'promotion' => $formatPromotion($prefill['promotion']),
+        'annee' => $prefill['annee'],
+        'candidature' => $prefill['candidature'],
+        'entreprise' => $prefill['entreprise'],
+        'sujet' => $prefill['sujet'],
+        'maitre' => $prefill['maitre'],
+        'periode' => $prefill['periode'],
+        'nbRapports' => $prefill['nb_rapports'],
+        'existingRapport' => (bool) $prefill['existing_rapport'],
+    ];
+endif;
+?>
 <script>
+window._etudiantData = <?= json_encode($studentDataEntries, JSON_UNESCAPED_UNICODE) ?>;
     (function () {
         function initRapportAdmin(root) {
             if (!root || root.getAttribute('data-cm-rapport-admin-init') === '1') {
@@ -676,7 +691,8 @@ if ($hasPrefill) {
 
             root.setAttribute('data-cm-rapport-admin-init', '1');
 
-            var select = root.querySelector('#num_etu_select');
+            var selectHidden = root.querySelector('#num_etu_select_hidden');
+            var selectSearchInput = root.querySelector('#num_etu_select_search');
             var infoBox = root.querySelector('#etudiant_info');
             var uploadForm = root.querySelector('#admin_upload_rapport_form');
             var importLabel = root.querySelector('#admin_import_label');
@@ -685,6 +701,15 @@ if ($hasPrefill) {
             var fileField = root.querySelector('#admin_rapport_fichier');
             var dateOperationField = root.querySelector('#date_operation');
             var infoHeader = root.querySelector('#info_nom_header');
+
+            var etudiantData = {};
+            if (window._etudiantData && Array.isArray(window._etudiantData)) {
+                window._etudiantData.forEach(function (item) {
+                    if (item && item.numEtu) {
+                        etudiantData[item.numEtu] = item;
+                    }
+                });
+            }
 
             function setText(id, value) {
                 var node = root.querySelector('#' + id);
@@ -695,13 +720,17 @@ if ($hasPrefill) {
                 node.textContent = value && String(value).trim() !== '' ? value : '-';
             }
 
+            function getStudentData(numEtu) {
+                return etudiantData[numEtu] || null;
+            }
+
             function updateStudentInfo() {
-                if (!select || !infoBox || !importLabel || !importHint) {
+                if (!selectHidden || !infoBox || !importLabel || !importHint) {
                     return;
                 }
 
-                var option = select.options[select.selectedIndex];
-                if (!option || !option.value) {
+                var selectedValue = selectHidden.value || '';
+                if (!selectedValue) {
                     infoBox.style.display = 'none';
                     importLabel.textContent = 'Importer le rapport';
                     importHint.textContent = 'Choisissez d abord un etudiant.';
@@ -711,30 +740,41 @@ if ($hasPrefill) {
                     return;
                 }
 
-                var nom = option.getAttribute('data-nom') || 'Etudiant selectionne';
+                var data = getStudentData(selectedValue);
+                if (!data) {
+                    infoBox.style.display = 'none';
+                    importLabel.textContent = 'Importer le rapport';
+                    importHint.textContent = 'Choisissez d abord un etudiant.';
+                    if (themeField) {
+                        themeField.value = '';
+                    }
+                    return;
+                }
+
+                var nom = data.nom || 'Etudiant selectionne';
                 if (infoHeader) {
                     infoHeader.textContent = nom;
                 }
 
-                setText('info_matricule', option.getAttribute('data-num-carte'));
-                setText('info_identifiant', option.getAttribute('data-num-ident'));
-                setText('info_promotion', option.getAttribute('data-promotion'));
-                setText('info_annee', option.getAttribute('data-annee'));
-                setText('info_email', option.getAttribute('data-email'));
-                setText('info_candidature', option.getAttribute('data-candidature'));
-                setText('info_entreprise', option.getAttribute('data-entreprise'));
-                setText('info_maitre_stage', option.getAttribute('data-maitre'));
-                setText('info_stage_periode', option.getAttribute('data-periode'));
-                setText('info_sujet_stage', option.getAttribute('data-sujet'));
-                setText('info_nb_rapports', option.getAttribute('data-nb-rapports'));
+                setText('info_matricule', data.numCarte);
+                setText('info_identifiant', data.numIdent);
+                setText('info_promotion', data.promotion);
+                setText('info_annee', data.annee);
+                setText('info_email', data.email);
+                setText('info_candidature', data.candidature);
+                setText('info_entreprise', data.entreprise);
+                setText('info_maitre_stage', data.maitre);
+                setText('info_stage_periode', data.periode);
+                setText('info_sujet_stage', data.sujet);
+                setText('info_nb_rapports', data.nbRapports);
 
                 if (themeField) {
-                    themeField.value = option.getAttribute('data-sujet') || '';
+                    themeField.value = data.sujet || '';
                 }
 
                 infoBox.style.display = 'block';
 
-                if (option.getAttribute('data-existing-rapport') === '1') {
+                if (data.existingRapport) {
                     importLabel.textContent = 'Remplacer le rapport de ' + nom;
                     importHint.textContent = 'Le prochain fichier remplacera le rapport deja associe a ' + nom + '.';
                 } else {
@@ -744,41 +784,47 @@ if ($hasPrefill) {
             }
 
             function upsertOption(data) {
-                if (!select || !data || !data.numEtu) {
+                if (!selectHidden || !data || !data.numEtu) {
                     return null;
                 }
 
-                var option = null;
-                for (var index = 0; index < select.options.length; index += 1) {
-                    if (select.options[index].value === data.numEtu) {
-                        option = select.options[index];
-                        break;
+                // Ajouter/mettre à jour dans le data store
+                etudiantData[data.numEtu] = data;
+
+                // Vérifier si le bouton existe déjà dans la liste select-search
+                var list = root.querySelector('#num_etu_select_list');
+                var existingBtn = list ? list.querySelector('button[data-value="' + data.numEtu.replace(/"/g, '&quot;') + '"]') : null;
+
+                if (!existingBtn && list) {
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'cm-select-search__option';
+                    btn.setAttribute('data-value', data.numEtu);
+                    btn.setAttribute('data-label', data.nom + ' (' + (data.numCarte || data.numEtu) + ')');
+                    btn.setAttribute('role', 'option');
+                    btn.setAttribute('aria-selected', 'false');
+                    btn.textContent = data.nom + ' (' + (data.numCarte || data.numEtu) + ')';
+                    // Ajouter au début de la liste (après les options existantes)
+                    var emptyMsg = list.querySelector('.cm-select-search__empty');
+                    if (emptyMsg) {
+                        list.insertBefore(btn, emptyMsg);
+                    } else {
+                        list.appendChild(btn);
                     }
+                    existingBtn = btn;
                 }
 
-                if (!option) {
-                    option = document.createElement('option');
-                    option.value = data.numEtu;
-                    select.appendChild(option);
+                // Sélectionner dans le select-search
+                if (selectHidden) {
+                    selectHidden.value = data.numEtu;
+                    selectHidden.dispatchEvent(new Event('change', { bubbles: true }));
                 }
 
-                option.textContent = data.nom + ' (' + (data.numCarte || data.numEtu) + ')';
-                option.selected = true;
-                option.setAttribute('data-nom', data.nom || '');
-                option.setAttribute('data-num-carte', data.numCarte || '');
-                option.setAttribute('data-num-ident', data.numIdent || '');
-                option.setAttribute('data-email', data.email || '');
-                option.setAttribute('data-promotion', data.promotion || '');
-                option.setAttribute('data-annee', data.annee || '');
-                option.setAttribute('data-candidature', data.candidature || '');
-                option.setAttribute('data-entreprise', data.entreprise || '');
-                option.setAttribute('data-sujet', data.sujet || '');
-                option.setAttribute('data-maitre', data.maitre || '');
-                option.setAttribute('data-periode', data.periode || '');
-                option.setAttribute('data-nb-rapports', data.nbRapports || '');
-                option.setAttribute('data-existing-rapport', data.existingRapport ? '1' : '0');
+                if (selectSearchInput) {
+                    selectSearchInput.value = data.nom + ' (' + (data.numCarte || data.numEtu) + ')';
+                }
 
-                return option;
+                return existingBtn || { dataset: { value: data.numEtu } };
             }
 
             function focusForm(trigger) {
@@ -808,11 +854,11 @@ if ($hasPrefill) {
                 }
             }
 
-            if (select) {
-                select.addEventListener('change', updateStudentInfo);
+            if (selectHidden) {
+                selectHidden.addEventListener('change', updateStudentInfo);
                 updateStudentInfo();
 
-                if (root.getAttribute('data-cm-rapport-admin-focus') === '1' && select.value) {
+                if (root.getAttribute('data-cm-rapport-admin-focus') === '1' && selectHidden.value) {
                     if (uploadForm) {
                         try {
                             uploadForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -840,7 +886,7 @@ if ($hasPrefill) {
 
                 event.preventDefault();
 
-                var option = upsertOption({
+                upsertOption({
                     numEtu: trigger.getAttribute('data-num-etu') || '',
                     nom: trigger.getAttribute('data-nom') || 'Etudiant selectionne',
                     numCarte: trigger.getAttribute('data-num-carte') || '',
@@ -857,11 +903,6 @@ if ($hasPrefill) {
                     existingRapport: true
                 });
 
-                if (!option || !select) {
-                    return;
-                }
-
-                select.value = option.value;
                 focusForm(trigger);
             });
         }

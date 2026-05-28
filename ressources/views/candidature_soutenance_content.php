@@ -77,7 +77,7 @@ $buildStateClass = static function (string $status): string {
 
     .cm-cand-box {
         background: rgba(255, 255, 255, 0.12);
-        border: 1px solid rgba(43, 92, 132, 0.14);
+        border: none;
         border-radius: 18px;
         padding: 18px 20px;
     }
@@ -105,11 +105,17 @@ $buildStateClass = static function (string $status): string {
 
     .cm-cand-mini,
     .cm-cand-detail,
-    .cm-cand-step,
     .cm-cand-form,
     .cm-cand-actions-panel {
-        background: rgba(255, 255, 255, 0.18);
-        border: 1px solid rgba(43, 92, 132, 0.12);
+        background: rgba(255, 255, 255, 0.45);
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    }
+
+    .cm-cand-step {
+        background: transparent;
+        border: none;
         border-radius: 16px;
     }
 
@@ -190,7 +196,7 @@ $buildStateClass = static function (string $status): string {
         flex-wrap: wrap;
         margin-top: 18px;
         padding-top: 16px;
-        border-top: 1px solid rgba(43, 92, 132, 0.1);
+        border-top: none;
     }
 
     .cm-cand-btns-right,
@@ -266,13 +272,7 @@ $buildStateClass = static function (string $status): string {
     }
 
     .cm-cand-timeline::before {
-        content: "";
-        position: absolute;
-        top: 27px;
-        left: 24px;
-        right: 24px;
-        height: 3px;
-        background: rgba(60, 132, 197, 0.15);
+        display: none;
     }
 
     .cm-cand-step {
@@ -281,7 +281,7 @@ $buildStateClass = static function (string $status): string {
         padding: 20px 14px 16px;
     }
 
-    .cm-cand-step::before {
+    .cm-cand-timeline .cm-cand-step::before {
         content: "";
         position: absolute;
         top: 18px;
@@ -291,16 +291,35 @@ $buildStateClass = static function (string $status): string {
         border-radius: 999px;
         border: 4px solid rgba(60, 132, 197, 0.22);
         background: rgba(255, 255, 255, 0.95);
+        z-index: 2;
+    }
+
+    .cm-cand-timeline .cm-cand-step::after {
+        content: "";
+        position: absolute;
+        top: 29px;
+        left: 48px;
+        width: calc(100% - 20px);
+        height: 4px;
+        background: rgba(60, 132, 197, 0.15);
         z-index: 1;
     }
 
-    .cm-cand-step.is-done::before {
+    .cm-cand-timeline .cm-cand-step:last-child::after {
+        display: none !important;
+    }
+
+    .cm-cand-timeline .cm-cand-step.is-done::before {
         background: #16a34a;
         border-color: #16a34a;
         box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.14);
     }
 
-    .cm-cand-step.is-current::before {
+    .cm-cand-timeline .cm-cand-step.is-done::after {
+        background: #16a34a;
+    }
+
+    .cm-cand-timeline .cm-cand-step.is-current::before {
         background: #3c84c5;
         border-color: #3c84c5;
         box-shadow: 0 0 0 4px rgba(60, 132, 197, 0.14);
@@ -328,6 +347,51 @@ $buildStateClass = static function (string $status): string {
 
     .cm-cand-actions-panel {
         padding: 16px;
+    }
+
+    .cm-cand-box--confirmed {
+        border: none;
+        background: rgba(240, 253, 244, 0.6);
+    }
+
+    .cm-cand-confirmed-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .cm-cand-confirmed-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #15803d;
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
+
+    .cm-cand-confirmed-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px 20px;
+        margin-top: 16px;
+    }
+
+    .cm-cand-confirmed-sujet {
+        grid-column: 1 / -1;
+    }
+
+    .cm-cand-confirmed-footer {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: none;
+    }
+
+    @media (max-width: 920px) {
+        .cm-cand-confirmed-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     .cm-etu-autocomplete {
@@ -374,6 +438,10 @@ $buildStateClass = static function (string $status): string {
         .cm-cand-details {
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
+
+        .cm-cand-step:nth-child(3n)::after {
+            display: none;
+        }
     }
 
     @media (max-width: 920px) {
@@ -384,7 +452,7 @@ $buildStateClass = static function (string $status): string {
             grid-template-columns: 1fr;
         }
 
-        .cm-cand-timeline::before {
+        .cm-cand-step::after {
             display: none;
         }
     }
@@ -422,7 +490,133 @@ $buildStateClass = static function (string $status): string {
         </div>
     </section>
 
-    <?php if (!$trackingMode): ?>
+    <?php if (!$trackingMode && !empty($stage_info)): ?>
+        <section class="cm-cand-box cm-cand-box--confirmed">
+            <div class="cm-cand-confirmed-header">
+                <div class="cm-cand-confirmed-badge">
+                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="#16a34a"/><path d="M6 10.5l3 3 5-5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Informations de stage enregistrées
+                </div>
+                <?php if ($canCreateRapport): ?>
+                    <a href="?page=gestion_rapports&action=creer_rapport" class="cm-btn is-primary-dark">Déposer le rapport</a>
+                <?php endif; ?>
+            </div>
+            <div class="cm-cand-confirmed-grid">
+                <div>
+                    <div class="cm-cand-key">Entreprise</div>
+                    <div class="cm-cand-value"><?= htmlspecialchars($entrepriseValue !== '' ? $entrepriseValue : '—', ENT_QUOTES, 'UTF-8') ?></div>
+                </div>
+                <div>
+                    <div class="cm-cand-key">Maître de stage</div>
+                    <div class="cm-cand-value"><?= htmlspecialchars($encadrantValue !== '' ? $encadrantValue : '—', ENT_QUOTES, 'UTF-8') ?></div>
+                </div>
+                <div>
+                    <div class="cm-cand-key">E-mail encadrant</div>
+                    <div class="cm-cand-value"><?= htmlspecialchars($emailEncadrantValue !== '' ? $emailEncadrantValue : '—', ENT_QUOTES, 'UTF-8') ?></div>
+                </div>
+                <div>
+                    <div class="cm-cand-key">Téléphone</div>
+                    <div class="cm-cand-value"><?= htmlspecialchars($telephoneEncadrantValue !== '' ? $telephoneEncadrantValue : '—', ENT_QUOTES, 'UTF-8') ?></div>
+                </div>
+                <div>
+                    <div class="cm-cand-key">Période de stage</div>
+                    <div class="cm-cand-value"><?= htmlspecialchars($formatDate($dateDebutValue) . ' au ' . $formatDate($dateFinValue), ENT_QUOTES, 'UTF-8') ?></div>
+                </div>
+                <div class="cm-cand-confirmed-sujet">
+                    <div class="cm-cand-key">Thème de stage</div>
+                    <div class="cm-cand-value"><?= htmlspecialchars($sujetValue !== '' ? $sujetValue : '—', ENT_QUOTES, 'UTF-8') ?></div>
+                </div>
+            </div>
+            <?php if ($canEditStage): ?>
+                <div class="cm-cand-confirmed-footer">
+                    <button type="button" class="cm-btn is-secondary cm-cand-edit-toggle" id="toggleEditForm"
+                            aria-expanded="false" aria-controls="stageEditSection">Modifier les informations</button>
+                </div>
+            <?php endif; ?>
+        </section>
+
+        <section class="cm-cand-form" id="stageEditSection" hidden>
+            <form id="stageInfoForm" method="POST" action="?page=candidature_soutenance&action=info_stage" data-cm-ajax-form="true" novalidate>
+                <div class="cm-cand-grid">
+                    <div>
+                        <label class="cm-cand-label" for="entreprise">Entreprise <span class="cm-cand-required">*</span></label>
+                        <div class="cm-etu-autocomplete">
+                            <input type="text" id="entreprise" name="entreprise" class="cm-cand-input" autocomplete="off" required maxlength="50"
+                                   value="<?= htmlspecialchars($entrepriseValue, ENT_QUOTES, 'UTF-8') ?>" placeholder="Entreprise d'accueil">
+                            <div id="entrepriseSuggestions" class="cm-etu-autocomplete__list" aria-live="polite"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="cm-cand-label" for="encadrant">Maître de stage <span class="cm-cand-required">*</span></label>
+                        <div class="cm-etu-autocomplete">
+                            <input type="text" id="encadrant" name="encadrant" class="cm-cand-input" autocomplete="off" required maxlength="70"
+                                   value="<?= htmlspecialchars($encadrantValue, ENT_QUOTES, 'UTF-8') ?>" placeholder="Nom et prénoms">
+                            <div id="encadrantSuggestions" class="cm-etu-autocomplete__list" aria-live="polite"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="cm-cand-label" for="email_encadrant">E-mail <span class="cm-cand-required">*</span></label>
+                        <input type="email" id="email_encadrant" name="email_encadrant" class="cm-cand-input" required maxlength="80"
+                               value="<?= htmlspecialchars($emailEncadrantValue, ENT_QUOTES, 'UTF-8') ?>" placeholder="exemple@domaine.com">
+                    </div>
+
+                    <div>
+                        <label class="cm-cand-label" for="telephone_encadrant">Téléphone <span class="cm-cand-required">*</span></label>
+                        <input type="tel" id="telephone_encadrant" name="telephone_encadrant" class="cm-cand-input" required
+                               value="<?= htmlspecialchars($telephoneEncadrantValue, ENT_QUOTES, 'UTF-8') ?>" placeholder="0700000000">
+                    </div>
+
+                    <div>
+                        <label class="cm-cand-label" for="date_debut">Date début <span class="cm-cand-required">*</span></label>
+                        <input type="date" id="date_debut" name="date_debut" class="cm-cand-input" required max="<?= date('Y-m-d') ?>"
+                               value="<?= htmlspecialchars($dateDebutValue, ENT_QUOTES, 'UTF-8') ?>">
+                    </div>
+
+                    <div>
+                        <label class="cm-cand-label" for="date_fin">Date fin <span class="cm-cand-required">*</span></label>
+                        <input type="date" id="date_fin" name="date_fin" class="cm-cand-input" required max="<?= date('Y-m-d') ?>"
+                               value="<?= htmlspecialchars($dateFinValue, ENT_QUOTES, 'UTF-8') ?>">
+                    </div>
+
+                    <div class="cm-cand-full">
+                        <label class="cm-cand-label" for="sujet">Thème de stage <span class="cm-cand-required">*</span></label>
+                        <textarea id="sujet" name="sujet" class="cm-cand-input" required rows="4"
+                                  placeholder="Titre exact du stage ou du rapport"><?= htmlspecialchars($sujetValue, ENT_QUOTES, 'UTF-8') ?></textarea>
+                    </div>
+                </div>
+
+                <p id="stageDateError" class="cm-cand-sr-only" aria-live="polite"></p>
+
+                <div class="cm-cand-buttons">
+                    <button type="button" class="cm-btn is-light" id="cancelEditForm">Annuler</button>
+                    <div class="cm-cand-btns-right">
+                        <?php if ($canEditStage): ?>
+                            <button type="reset" class="cm-btn is-secondary">Réinitialiser</button>
+                            <button type="submit" name="btn_enregistrer" value="1" class="cm-btn is-primary">Enregistrer</button>
+                        <?php endif; ?>
+                        <?php if ($canCreateRapport): ?>
+                            <a href="?page=gestion_rapports&action=creer_rapport" class="cm-btn is-primary-dark">Déposer le rapport</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </form>
+        </section>
+        <div id="stageAlertModal" class="cm-cand-modal-overlay" hidden>
+            <div class="cm-cand-modal" role="dialog" aria-modal="true" aria-labelledby="stageAlertTitle" aria-describedby="stageAlertMessage">
+                <div class="cm-cand-modal__header">
+                    <h3 id="stageAlertTitle" class="cm-cand-modal__title">Alerte</h3>
+                </div>
+                <div class="cm-cand-modal__body">
+                    <p id="stageAlertMessage">La période de stage doit être de 3 à 6 mois.</p>
+                </div>
+                <div class="cm-cand-modal__footer">
+                    <button type="button" id="stageAlertClose" class="cm-btn is-primary">Compris</button>
+                </div>
+            </div>
+        </div>
+    <?php elseif (!$trackingMode): ?>
         <section class="cm-cand-form">
             <form id="stageInfoForm" method="POST" action="?page=candidature_soutenance&action=info_stage" data-cm-ajax-form="true" novalidate>
                 <div class="cm-cand-grid">
@@ -1160,6 +1354,27 @@ $buildStateClass = static function (string $status): string {
             openStageAlert('Erreur', errorMessage);
         } else if (successMessage) {
             openStageAlert('Succès', successMessage);
+        }
+
+        const toggleEditBtn = document.getElementById('toggleEditForm');
+        const cancelEditBtn = document.getElementById('cancelEditForm');
+        const stageEditSection = document.getElementById('stageEditSection');
+        if (toggleEditBtn && stageEditSection) {
+            toggleEditBtn.addEventListener('click', function () {
+                stageEditSection.hidden = false;
+                toggleEditBtn.setAttribute('aria-expanded', 'true');
+                stageEditSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                debugLog('edit_form_opened');
+            });
+        }
+        if (cancelEditBtn && stageEditSection) {
+            cancelEditBtn.addEventListener('click', function () {
+                stageEditSection.hidden = true;
+                if (toggleEditBtn) {
+                    toggleEditBtn.setAttribute('aria-expanded', 'false');
+                }
+                debugLog('edit_form_cancelled');
+            });
         }
     })();
 </script>

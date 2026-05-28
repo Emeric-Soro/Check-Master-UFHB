@@ -101,7 +101,7 @@ foreach ($rapportsRecents as $rapportItem) {
     }
 
     .cm-reports-section {
-        border: 1px solid rgba(26, 82, 118, 0.12);
+        border: none;
         border-radius: 18px;
         background: rgba(228, 240, 252, 0.3);
         padding: 1rem;
@@ -133,8 +133,9 @@ foreach ($rapportsRecents as $rapportItem) {
     .cm-reports-stat {
         padding: 0.95rem 1rem;
         border-radius: 16px;
-        background: rgba(255, 255, 255, 0.42);
-        border: 1px solid rgba(26, 82, 118, 0.08);
+        background: rgba(255, 255, 255, 0.45);
+        border: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
     }
 
     .cm-reports-stat__label {
@@ -163,7 +164,7 @@ foreach ($rapportsRecents as $rapportItem) {
 
     .cm-reports-focus {
         display: grid;
-        grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+        grid-template-columns: minmax(0, 1.2fr minmax(260px, 0.8fr));
         gap: 0.9rem;
         align-items: stretch;
     }
@@ -171,8 +172,9 @@ foreach ($rapportsRecents as $rapportItem) {
     .cm-reports-panel {
         padding: 1rem;
         border-radius: 16px;
-        background: rgba(255, 255, 255, 0.42);
-        border: 1px solid rgba(26, 82, 118, 0.08);
+        background: rgba(255, 255, 255, 0.45);
+        border: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
     }
 
     .cm-reports-panel__title {
@@ -239,7 +241,7 @@ foreach ($rapportsRecents as $rapportItem) {
         padding: 0.8rem 0.9rem;
         border-radius: 14px;
         background: rgba(233, 243, 252, 0.55);
-        border: 1px solid rgba(26, 82, 118, 0.06);
+        border: none;
     }
 
     .cm-reports-meta__label {
@@ -334,14 +336,14 @@ foreach ($rapportsRecents as $rapportItem) {
         min-height: 100%;
         padding: 1rem;
         border-radius: 16px;
-        background: rgba(255, 255, 255, 0.42);
-        border: 1px solid rgba(26, 82, 118, 0.08);
-        transition: border-color var(--cm-transition-fast), box-shadow var(--cm-transition-fast), transform var(--cm-transition-fast);
+        background: rgba(255, 255, 255, 0.45);
+        border: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        transition: box-shadow var(--cm-transition-fast), transform var(--cm-transition-fast);
     }
 
     .cm-report-card:hover {
         transform: translateY(-1px);
-        border-color: rgba(47, 136, 200, 0.18);
         box-shadow: 0 12px 24px rgba(17, 77, 120, 0.08);
     }
 
@@ -364,7 +366,7 @@ foreach ($rapportsRecents as $rapportItem) {
         padding: 0.85rem 0.9rem;
         border-radius: 14px;
         background: rgba(233, 243, 252, 0.55);
-        border: 1px solid rgba(26, 82, 118, 0.06);
+        border: none;
     }
 
     .cm-report-card__theme-label {
@@ -407,7 +409,7 @@ foreach ($rapportsRecents as $rapportItem) {
         flex-wrap: wrap;
         margin-top: auto;
         padding-top: 0.8rem;
-        border-top: 1px solid rgba(26, 82, 118, 0.08);
+        border-top: none;
     }
 
     .cm-btn {
@@ -474,7 +476,7 @@ foreach ($rapportsRecents as $rapportItem) {
         padding: 1.5rem;
         border-radius: 16px;
         background: rgba(255, 255, 255, 0.34);
-        border: 1px dashed rgba(26, 82, 118, 0.14);
+        border: none;
     }
 
     .cm-reports-empty__icon {
@@ -719,15 +721,24 @@ foreach ($rapportsRecents as $rapportItem) {
                                 </form>
                             <?php endif; ?>
 
-                            <?php if ($statutRapport !== 'en_cours' && $statutRapport !== 'valider'): ?>
-                                <a href="?page=gestion_rapports&action=creer_rapport&edit=<?= $rapportId ?>" class="cm-btn is-outline">
-                                    <i class="fas fa-edit"></i>
-                                    Modifier
-                                </a>
-                            <?php else: ?>
+                            <?php
+                            // Détecter si c'est un fichier uploadé (PDF/DOC/DOCX) vs éditeur HTML
+                            $cheminFichier = (string) ($rapport->chemin_fichier ?? '');
+                            $estFichierUpload = false;
+                            if ($cheminFichier !== '') {
+                                $extFichier = strtolower(pathinfo($cheminFichier, PATHINFO_EXTENSION));
+                                $estFichierUpload = ($extFichier !== 'html');
+                            }
+                            ?>
+                            <?php if ($estFichierUpload || $statutRapport === 'en_cours' || $statutRapport === 'valider'): ?>
                                 <a href="?page=gestion_rapports&action=creer_rapport&edit=<?= $rapportId ?>" class="cm-btn is-outline">
                                     <i class="fas fa-eye"></i>
                                     Voir
+                                </a>
+                            <?php else: ?>
+                                <a href="?page=gestion_rapports&action=creer_rapport&edit=<?= $rapportId ?>" class="cm-btn is-outline">
+                                    <i class="fas fa-edit"></i>
+                                    Modifier
                                 </a>
                             <?php endif; ?>
                         </div>

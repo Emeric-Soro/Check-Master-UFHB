@@ -98,47 +98,29 @@ $editNomValue = (string) ($utilisateurEdit->nom_utilisateur ?? '');
 $editLoginValue = (string) ($utilisateurEdit->login_utilisateur ?? '');
 
 $editTypeLabel = strtolower(trim((string) ($typeOptions[$editTypeValue] ?? '')));
-$initialNameOptions = [];
-if ($editTypeLabel !== '') {
-    if (strpos($editTypeLabel, 'etudiant') !== false) {
-        foreach ($etudiantsNonUtilisateurs as $row) {
-            $label = trim((string) (($row->nom_etu ?? '') . ' ' . ($row->prenom_etu ?? '')));
-            if ($label === '') {
-                continue;
-            }
-            $initialNameOptions[] = [
-                'id' => (string) ($row->num_etu ?? ''),
-                'label' => $label,
-                'email' => trim((string) ($row->email_etu ?? '')),
-            ];
-        }
-    } elseif (strpos($editTypeLabel, 'enseignant') !== false) {
-        foreach ($enseignantsNonUtilisateurs as $row) {
-            $label = trim((string) (($row->nom_enseignant ?? '') . ' ' . ($row->prenom_enseignant ?? '')));
-            if ($label === '') {
-                continue;
-            }
-            $initialNameOptions[] = [
-                'id' => (string) ($row->id_enseignant ?? ''),
-                'label' => $label,
-                'email' => trim((string) ($row->mail_enseignant ?? '')),
-            ];
-        }
-    } elseif (strpos($editTypeLabel, 'personnel') !== false || strpos($editTypeLabel, 'administratif') !== false) {
-        foreach ($personnelNonUtilisateurs as $row) {
-            $label = trim((string) (($row->nom_pers_admin ?? '') . ' ' . ($row->prenom_pers_admin ?? '')));
-            if ($label === '') {
-                continue;
-            }
-            $initialNameOptions[] = [
-                'id' => (string) ($row->id_pers_admin ?? ''),
-                'label' => $label,
-                'email' => trim((string) ($row->email_pers_admin ?? '')),
-            ];
-        }
-    }
+
+// Options combinées pour le select-search (tous types)
+$allNameOptions = [];
+$userDataMap = [];
+
+foreach ($etudiantsNonUtilisateurs as $row) {
+    $label = trim((string) (($row->nom_etu ?? '') . ' ' . ($row->prenom_etu ?? '')));
+    if ($label === '') { continue; }
+    $allNameOptions[$label] = $label . (trim((string) ($row->email_etu ?? '')) ? '' : ' (sans email)');
+    $userDataMap[$label] = ['id' => (string) ($row->num_etu ?? ''), 'email' => trim((string) ($row->email_etu ?? ''))];
 }
-$showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
+foreach ($enseignantsNonUtilisateurs as $row) {
+    $label = trim((string) (($row->nom_enseignant ?? '') . ' ' . ($row->prenom_enseignant ?? '')));
+    if ($label === '') { continue; }
+    $allNameOptions[$label] = $label . (trim((string) ($row->mail_enseignant ?? '')) ? '' : ' (sans email)');
+    $userDataMap[$label] = ['id' => (string) ($row->id_enseignant ?? ''), 'email' => trim((string) ($row->mail_enseignant ?? ''))];
+}
+foreach ($personnelNonUtilisateurs as $row) {
+    $label = trim((string) (($row->nom_pers_admin ?? '') . ' ' . ($row->prenom_pers_admin ?? '')));
+    if ($label === '') { continue; }
+    $allNameOptions[$label] = $label . (trim((string) ($row->email_pers_admin ?? '')) ? '' : ' (sans email)');
+    $userDataMap[$label] = ['id' => (string) ($row->id_pers_admin ?? ''), 'email' => trim((string) ($row->email_pers_admin ?? ''))];
+}
 ?>
 <?php if (!canView()): ?>
     <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => "Vous n'avez pas l'autorisation d'accéder à cette page."]); ?>
@@ -225,9 +207,20 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="cm-form-group<?= $showNameSelectInitially ? ' cm-user-name-hidden' : '' ?>" id="cmUserNameTextWrap"><?php cm_component('form/input-text', ['name' => $showNameSelectInitially ? '' : 'nom_utilisateur', 'id' => 'cmNomUtilisateurText', 'label' => 'Nom utilisateur', 'required' => true, 'value' => $editNomValue, 'placeholder' => 'Nom complet', 'control_class' => 'cm-field-lg']); ?></div>
-                    <div class="cm-form-group<?= $showNameSelectInitially ? '' : ' cm-user-name-hidden' ?>" id="cmUserNameSelectWrap"><label for="cmNomUtilisateurSelect" class="cm-form-label">Nom utilisateur</label><select id="cmNomUtilisateurSelect" class="cm-form-control cm-field-lg"<?= $showNameSelectInitially ? ' name="nom_utilisateur"' : '' ?>><?php foreach ($initialNameOptions as $index => $option): ?><option value="<?= htmlspecialchars($option['label'], ENT_QUOTES, 'UTF-8') ?>" data-source-id="<?= htmlspecialchars($option['id'], ENT_QUOTES, 'UTF-8') ?>" data-source-email="<?= htmlspecialchars($option['email'], ENT_QUOTES, 'UTF-8') ?>" <?= ($option['label'] === $editNomValue || ($editNomValue === '' && $index === 0)) ? 'selected' : '' ?>><?= htmlspecialchars($option['email'] !== '' ? $option['label'] : ($option['label'] . ' (sans email)'), ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select></div>
-                    <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'id' => 'cmNiveauAcces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'selected' => $editNiveauValue !== '' ? $editNiveauValue : (string) array_key_first($niveauOptions), 'control_class' => 'cm-field-lg']); ?>
+                    <?php
+                    cm_component('form/select-search', [
+                        'name' => 'nom_utilisateur',
+                        'id' => 'cmNomUtilisateurSelect',
+                        'label' => 'Nom utilisateur',
+                        'required' => true,
+                        'options' => $allNameOptions,
+                        'selected' => $editNomValue,
+                        'placeholder' => 'Nom complet',
+                        'search_placeholder' => 'Rechercher un utilisateur...',
+                        'show_selected_label' => false,
+                        'control_class' => 'cm-field-lg',
+                    ]);
+                    ?>
                     <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'id' => 'cmStatutUtilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif', 'Suspendu' => 'Suspendu'], 'selected' => $editStatutValue, 'control_class' => 'cm-field-sm']); ?>
                     <?php cm_component('form/input-text', ['name' => 'login_utilisateur', 'id' => 'cmLoginUtilisateur', 'label' => 'Login', 'required' => true, 'value' => $editLoginValue, 'placeholder' => 'login', 'control_class' => 'cm-field-md']); ?>
                 </div>
@@ -312,20 +305,23 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
 <?php endif; ?>
 
 <style>
-.cm-prd3-crud-screen #cmUserNameTextWrap.cm-user-name-hidden,
-.cm-prd3-crud-screen #cmUserNameSelectWrap.cm-user-name-hidden {
-    display: none !important;
-}
+/* Le select-search remplace l'ancien toggle text/select */
 </style>
 
 <script>
+<?php
+$allUserData = array_merge(
+    array_map(static fn($r) => ['id' => (string) ($r->num_etu ?? ''), 'label' => trim((string) (($r->nom_etu ?? '') . ' ' . ($r->prenom_etu ?? ''))), 'email' => trim((string) ($r->email_etu ?? ''))], $etudiantsNonUtilisateurs),
+    array_map(static fn($r) => ['id' => (string) ($r->id_enseignant ?? ''), 'label' => trim((string) (($r->nom_enseignant ?? '') . ' ' . ($r->prenom_enseignant ?? ''))), 'email' => trim((string) ($r->mail_enseignant ?? ''))], $enseignantsNonUtilisateurs),
+    array_map(static fn($r) => ['id' => (string) ($r->id_pers_admin ?? ''), 'label' => trim((string) (($r->nom_pers_admin ?? '') . ' ' . ($r->prenom_pers_admin ?? ''))), 'email' => trim((string) ($r->email_pers_admin ?? ''))], $personnelNonUtilisateurs)
+);
+?>
+window._allUserData = <?= json_encode($allUserData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+
 (function () {
     const typeSelect = document.getElementById('cmTypeUtilisateur');
     const groupSelect = document.getElementById('cmGroupeUtilisateur');
-    const nomTextWrap = document.getElementById('cmUserNameTextWrap');
-    const nomSelectWrap = document.getElementById('cmUserNameSelectWrap');
-    const nomText = document.getElementById('cmNomUtilisateurText');
-    const nomSelect = document.getElementById('cmNomUtilisateurSelect');
+    const nomSelectHidden = document.getElementById('cmNomUtilisateurSelect_hidden');
     const loginInput = document.getElementById('cmLoginUtilisateur');
     const loginHint = document.getElementById('cmLoginHint');
     const sourceIdInput = document.getElementById('cmSourceReferenceId');
@@ -344,23 +340,6 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
     const flashError = <?= json_encode($messageErreur) ?>;
     const flashSuccessType = <?= json_encode($messageSuccessType) ?>;
     let initialLoginSynced = false;
-    const dataSets = {
-        enseignant: <?= json_encode(array_map(static fn($r) => [
-            'id' => (string) ($r->id_enseignant ?? ''),
-            'label' => trim((string) (($r->nom_enseignant ?? '') . ' ' . ($r->prenom_enseignant ?? ''))),
-            'email' => trim((string) ($r->mail_enseignant ?? '')),
-        ], $enseignantsNonUtilisateurs), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
-        personnel: <?= json_encode(array_map(static fn($r) => [
-            'id' => (string) ($r->id_pers_admin ?? ''),
-            'label' => trim((string) (($r->nom_pers_admin ?? '') . ' ' . ($r->prenom_pers_admin ?? ''))),
-            'email' => trim((string) ($r->email_pers_admin ?? '')),
-        ], $personnelNonUtilisateurs), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
-        etudiant: <?= json_encode(array_map(static fn($r) => [
-            'id' => (string) ($r->num_etu ?? ''),
-            'label' => trim((string) (($r->nom_etu ?? '') . ' ' . ($r->prenom_etu ?? ''))),
-            'email' => trim((string) ($r->email_etu ?? '')),
-        ], $etudiantsNonUtilisateurs), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
-    };
 
     function n(v) { return String(v || '').toLowerCase(); }
     function mapTypeToMassPersonKinds(typeId) {
@@ -412,36 +391,17 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
         }
     }
 
-    function populateNameSelect(list) {
-        nomSelect.innerHTML = '';
-        const values = [];
-        list.forEach(function (item) {
-            if (!item || !item.label) {
-                return;
-            }
-            values.push(item);
-        });
-        values.forEach(function (item, index) {
-            const opt = document.createElement('option');
-            opt.value = item.label;
-            opt.textContent = item.email ? item.label : (item.label + ' (sans email)');
-            opt.setAttribute('data-source-id', item.id || '');
-            opt.setAttribute('data-source-email', item.email || '');
-            if (item.label === existingName || item.label === nomText.value || index === 0) opt.selected = true;
-            nomSelect.appendChild(opt);
-        });
-    }
-    function getSelectedSourceEmail() {
-        if (!nomSelect || nomSelectWrap.classList.contains('cm-user-name-hidden') || !nomSelect.selectedOptions.length) {
-            return '';
-        }
-        return nomSelect.selectedOptions[0].getAttribute('data-source-email') || '';
+    function getUserDataByName(name) {
+        if (!window._allUserData) return null;
+        return window._allUserData.find(function (item) {
+            return item.label === name;
+        }) || null;
     }
     function syncSourceMetadata() {
-        if (nomSelect && !nomSelectWrap.classList.contains('cm-user-name-hidden') && nomSelect.selectedOptions.length) {
-            const selectedOption = nomSelect.selectedOptions[0];
-            if (sourceIdInput) sourceIdInput.value = selectedOption.getAttribute('data-source-id') || '';
-            if (sourceEmailInput) sourceEmailInput.value = selectedOption.getAttribute('data-source-email') || '';
+        if (nomSelectHidden && nomSelectHidden.value) {
+            const data = getUserDataByName(nomSelectHidden.value);
+            if (sourceIdInput) sourceIdInput.value = (data && data.id) || '';
+            if (sourceEmailInput) sourceEmailInput.value = (data && data.email) || '';
             return;
         }
         if (sourceIdInput) sourceIdInput.value = '';
@@ -455,32 +415,6 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
             option.hidden = !!(optionType && selectedType && optionType !== selectedType && option.value !== '');
         });
         if (groupSelect.selectedOptions.length && groupSelect.selectedOptions[0].hidden) groupSelect.value = '';
-    }
-    function syncNameFieldByType() {
-        if (!typeSelect || !nomTextWrap || !nomSelectWrap || !nomText || !nomSelect) return;
-        const label = n(typeSelect.selectedOptions.length ? typeSelect.selectedOptions[0].textContent : '');
-        let list = null;
-        if (label.includes('etudiant')) list = dataSets.etudiant;
-        else if (label.includes('enseignant')) list = dataSets.enseignant;
-        else if (label.includes('personnel') || label.includes('administratif')) list = dataSets.personnel;
-
-        if (list && list.length) {
-            populateNameSelect(list);
-            nomText.removeAttribute('name'); nomSelect.setAttribute('name', 'nom_utilisateur');
-            nomTextWrap.classList.add('cm-user-name-hidden');
-            nomSelectWrap.classList.remove('cm-user-name-hidden');
-            nomText.value = nomSelect.value || nomText.value || '';
-            syncSourceMetadata();
-            applySuggestedLogin();
-        } else {
-            if (nomSelect.value) nomText.value = nomSelect.value;
-            nomSelect.removeAttribute('name'); nomText.setAttribute('name', 'nom_utilisateur');
-            nomTextWrap.classList.remove('cm-user-name-hidden');
-            nomSelectWrap.classList.add('cm-user-name-hidden');
-            syncSourceMetadata();
-            applySuggestedLogin();
-        }
-        bindGroupByType();
     }
     function generateLoginFromName(value) {
         const p = String(value || '').trim().split(/\s+/).filter(Boolean);
@@ -496,9 +430,10 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
             }
             return;
         }
-        const sourceEmail = String(getSelectedSourceEmail() || '').trim();
-        const currentName = !nomSelectWrap.classList.contains('cm-user-name-hidden') ? nomSelect.value : nomText.value;
-        const suggestedLogin = generateLoginFromName(currentName);
+        const selectedName = nomSelectHidden ? nomSelectHidden.value : '';
+        const userData = getUserDataByName(selectedName);
+        const sourceEmail = (userData && userData.email) || '';
+        const suggestedLogin = generateLoginFromName(selectedName);
         initialLoginSynced = true;
         loginInput.value = suggestedLogin;
         if (loginHint) {
@@ -510,17 +445,22 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
             checkLoginAvailability(suggestedLogin.trim());
         }
     }
+    function getSourceEmail() {
+        if (!nomSelectHidden || !nomSelectHidden.value) return '';
+        const data = getUserDataByName(nomSelectHidden.value);
+        return (data && data.email) || '';
+    }
     function checkLoginAvailability(login) {
         if (!login || !loginHint) return;
         fetch('?page=gestion_utilisateurs&ajax=checkLogin&login=' + encodeURIComponent(login))
             .then(r => r.json())
             .then(function (data) {
-                const prefix = String(getSelectedSourceEmail() || '').trim()
+                const prefix = String(getSourceEmail() || '').trim()
                     ? "Email entité détecté. "
                     : "Info: aucun email source valide. ";
                 if (!data || !data.success) { loginHint.textContent = prefix + 'Verification login impossible.'; return; }
                 if (data.available) {
-                    loginHint.textContent = prefix + (String(getSelectedSourceEmail() || '').trim()
+                    loginHint.textContent = prefix + (String(getSourceEmail() || '').trim()
                         ? 'Login disponible.'
                         : "Login disponible. Le compte sera créé sans envoi d'accès.");
                     return;
@@ -530,7 +470,7 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
             .catch(function () { loginHint.textContent = ''; });
     }
 
-    if (typeSelect) { typeSelect.addEventListener('change', syncNameFieldByType); syncNameFieldByType(); }
+    if (typeSelect) { typeSelect.addEventListener('change', bindGroupByType); bindGroupByType(); }
     if (massTypeSelect) {
         massTypeSelect.addEventListener('change', function () {
             syncMassGroupsByType();
@@ -539,8 +479,7 @@ $showNameSelectInitially = !$isMassMode && count($initialNameOptions) > 0;
         syncMassGroupsByType();
         syncMassPersonsByType();
     }
-    if (nomText) nomText.addEventListener('blur', function () { if (loginInput && loginInput.value.trim() === '') { applySuggestedLogin(); } });
-    if (nomSelect) nomSelect.addEventListener('change', function () { syncSourceMetadata(); applySuggestedLogin(); });
+    if (nomSelectHidden) nomSelectHidden.addEventListener('change', function () { syncSourceMetadata(); applySuggestedLogin(); });
     if (loginInput) loginInput.addEventListener('blur', function () { checkLoginAvailability(loginInput.value.trim()); });
     if (userForm) {
         userForm.addEventListener('submit', function (event) {

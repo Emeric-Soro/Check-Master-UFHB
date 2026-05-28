@@ -8,9 +8,11 @@ $contenuRapport = $GLOBALS['contenuRapport'] ?? '';
 $contenuRapport = is_string($contenuRapport) ? $contenuRapport : '';
 $erreurs = $GLOBALS['erreurs'] ?? [];
 $erreurs = is_array($erreurs) ? $erreurs : [];
+$rapportEstUpload = !empty($GLOBALS['rapportEstUpload']);
+$rapportUploadChemin = (string) ($GLOBALS['rapportUploadChemin'] ?? '');
 
 $isEditingExisting = $isEditMode && is_array($rapport) && !empty($rapport);
-$isReadOnly = !empty($GLOBALS['rapportDejaDepose']);
+$isReadOnly = !empty($GLOBALS['rapportDejaDepose']) || $rapportEstUpload;
 
 $numEtu = $_SESSION['num_etu'] ?? '';
 $nomEtu = $_SESSION['nom_etu'] ?? '';
@@ -77,7 +79,7 @@ $studentLabel = $nomCompletEtu !== '' ? $nomCompletEtu : 'Etudiant non renseign�
 $themeLabel = $themeRapportInitial !== '' ? $themeRapportInitial : 'Thème non renseigné';
 $mentorLabel = $maitreStage !== '' ? $maitreStage : 'Maître de stage non renseigné';
 $companyLabel = $nomEntreprise !== '' ? $nomEntreprise : '';
-$statusLabel = $isReadOnly ? 'Déposé' : ($isEditingExisting ? 'Brouillon' : 'Nouveau');
+$statusLabel = $rapportEstUpload ? 'Téléversé' : ($isReadOnly ? 'Déposé' : ($isEditingExisting ? 'Brouillon' : 'Nouveau'));
 $mentorWithCompany = $mentorLabel . ($companyLabel !== '' ? ' (' . $companyLabel . ')' : '');
 
 if (!function_exists('cm_etu_escape')) {
@@ -564,17 +566,19 @@ if ($contenuRapportJson === false) {
             <a href="?page=gestion_rapports" class="fm-back-btn" title="Retour à la liste">
                 <i class="fas fa-arrow-left"></i>
             </a>
-            <span class="fm-header__title">Rédaction du rapport</span>
-            <span class="fm-badge <?= $isReadOnly ? 'is-success' : ($isEditingExisting ? 'is-warning' : 'is-info') ?>">
-                <i class="fas <?= $isReadOnly ? 'fa-lock' : ($isEditingExisting ? 'fa-pen' : 'fa-plus') ?>"></i>
+            <span class="fm-header__title"><?= $rapportEstUpload ? 'Consultation du rapport' : 'Rédaction du rapport' ?></span>
+            <span class="fm-badge <?= $rapportEstUpload ? 'is-info' : ($isReadOnly ? 'is-success' : ($isEditingExisting ? 'is-warning' : 'is-info')) ?>">
+                <i class="fas <?= $rapportEstUpload ? 'fa-cloud-upload-alt' : ($isReadOnly ? 'fa-lock' : ($isEditingExisting ? 'fa-pen' : 'fa-plus')) ?>"></i>
                 <?= cm_etu_escape($statusLabel) ?>
             </span>
         </div>
         <div class="fm-header__right">
             <?php if (!$isReadOnly): ?>
-                <button id="saveBtn" type="button" class="fm-btn is-save">
-                    <i class="fas fa-save"></i> Enregistrer
-                </button>
+                <?php if (!$rapportEstUpload): ?>
+                    <button id="saveBtn" type="button" class="fm-btn is-save">
+                        <i class="fas fa-save"></i> Enregistrer
+                    </button>
+                <?php endif; ?>
                 <button id="deposerBtn" type="button" class="fm-btn is-deposit">
                     <i class="fas fa-paper-plane"></i> Déposer
                 </button>
@@ -584,7 +588,12 @@ if ($contenuRapportJson === false) {
 
     <!-- ═══ ZONE B: Corps central ═══ -->
     <div class="fm-body">
-        <?php if ($isReadOnly): ?>
+        <?php if ($rapportEstUpload): ?>
+            <div class="fm-readonly-banner">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>Rapport téléversé — le document original est affiché ci-dessous.</span>
+            </div>
+        <?php elseif ($isReadOnly): ?>
             <div class="fm-readonly-banner">
                 <i class="fas fa-lock"></i>
                 <span>Mode consultation — le rapport a été déposé et ne peut plus être modifié.</span>
@@ -622,30 +631,69 @@ if ($contenuRapportJson === false) {
             <input type="text" id="reportTitleInput" class="fm-title-input"
                    placeholder="Saisissez le thème du rapport..."
                    value="<?= cm_etu_escape($themeLabel) ?>"
-                   <?= $isReadOnly ? 'readonly' : '' ?>>
+                   <?= ($isReadOnly || $rapportEstUpload) ? 'readonly' : '' ?>>
         </div>
 
-        <!-- Editeur WYSIWYG -->
-        <div class="fm-editor-zone">
-            <textarea id="jodit-editor"></textarea>
-        </div>
+        <?php if ($rapportEstUpload): ?>
+            <!-- Visualiseur du fichier téléversé -->
+            <div class="fm-editor-zone">
+                <?php
+                $uploadExt = strtolower(pathinfo($rapportUploadChemin, PATHINFO_EXTENSION));
+                $downloadUrl = '?page=gestion_rapports&action=download_fichier_rapport&id=' . ($rapport['id_rapport'] ?? 0);
+                if ($uploadExt === 'pdf'): ?>
+                    <iframe src="<?= htmlspecialchars($downloadUrl, ENT_QUOTES, 'UTF-8') ?>"
+                            style="width:100%;height:calc(100vh - 220px);border:none;border-radius:8px;" frameborder="0"
+                            title="Aperçu du rapport PDF"></iframe>
+                <?php else: ?>
+                    <div style="text-align:center;padding:80px 20px;">
+                        <i class="fas fa-file-word" style="font-size:3rem;color:#2b6cb0;margin-bottom:20px;display:block;"></i>
+                        <p style="color:#4a5568;font-size:1.1rem;margin-bottom:8px;">
+                            Document <?= htmlspecialchars(strtoupper($uploadExt), ENT_QUOTES, 'UTF-8') ?> téléversé
+                        </p>
+                        <p style="color:#718096;font-size:0.85rem;margin-bottom:24px;">
+                            <?= htmlspecialchars($rapportUploadChemin, ENT_QUOTES, 'UTF-8') ?>
+                        </p>
+                        <a href="<?= htmlspecialchars($downloadUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn is-primary" style="display:inline-flex;">
+                            <i class="fas fa-download"></i> Télécharger le document
+                        </a>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php else: ?>
+            <!-- Editeur WYSIWYG -->
+            <div class="fm-editor-zone">
+                <textarea id="jodit-editor"></textarea>
+            </div>
+        <?php endif; ?>
     </div>
 
     <!-- ═══ ZONE C: Footer ═══ -->
     <footer class="fm-footer">
         <div class="fm-footer__left">
-            <span id="wordCount">0 mots</span>
+            <?php if (!$rapportEstUpload): ?>
+                <span id="wordCount">0 mots</span>
+            <?php endif; ?>
         </div>
         <div class="fm-footer__center">
-            <button id="previewPdfBtn" type="button" class="fm-btn-preview" title="Ouvrir l'aperçu PDF dans un nouvel onglet">
-                <i class="fas fa-eye"></i> Aperçu PDF
-            </button>
-            <button id="downloadPdfBtn" type="button" class="fm-btn-download" title="Télécharger le PDF officiel">
-                <i class="fas fa-file-pdf"></i> Télécharger
-            </button>
+            <?php if (!$rapportEstUpload): ?>
+                <button id="previewPdfBtn" type="button" class="fm-btn-preview" title="Ouvrir l'aperçu PDF dans un nouvel onglet">
+                    <i class="fas fa-eye"></i> Aperçu PDF
+                </button>
+                <button id="downloadPdfBtn" type="button" class="fm-btn-download" title="Télécharger le PDF officiel">
+                    <i class="fas fa-file-pdf"></i> Télécharger
+                </button>
+            <?php else: ?>
+                <?php
+                $uploadExt = strtolower(pathinfo($rapportUploadChemin, PATHINFO_EXTENSION));
+                $dlUrl = '?page=gestion_rapports&action=download_fichier_rapport&id=' . ($rapport['id_rapport'] ?? 0);
+                ?>
+                <a href="<?= htmlspecialchars($dlUrl, ENT_QUOTES, 'UTF-8') ?>" class="fm-btn-download" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                    <i class="fas fa-download"></i> Télécharger le fichier
+                </a>
+            <?php endif; ?>
         </div>
         <div class="fm-footer__right">
-            <span id="saveStatus" class="fm-save-status"><?= $isReadOnly ? 'Lecture seule' : 'Auto-save toutes les 60s' ?></span>
+            <span id="saveStatus" class="fm-save-status"><?= $rapportEstUpload ? 'Document téléversé' : ($isReadOnly ? 'Lecture seule' : 'Auto-save toutes les 60s') ?></span>
         </div>
     </footer>
 </div>
@@ -663,6 +711,7 @@ if ($contenuRapportJson === false) {
 (function () {
 function initRapportEditorPage() {
     var isReadOnly = <?= $isReadOnly ? 'true' : 'false' ?>;
+    var isUploadedFile = <?= $rapportEstUpload ? 'true' : 'false' ?>;
     var editorMeta = <?= $editorMetaJson ?>;
     var rawContent = <?= $contenuRapportJson ?>;
     if (typeof editorMeta !== 'object' || editorMeta === null) editorMeta = {};
@@ -678,6 +727,36 @@ function initRapportEditorPage() {
     var saveStatusEl = document.getElementById('saveStatus');
     var pdfLoading = document.getElementById('pdfLoading');
     var reportEndpoint = window.location.pathname + '?page=gestion_rapports';
+
+    // Pour les fichiers uploadés, on ne initialise pas l'éditeur Jodit
+    if (isUploadedFile) {
+        // Configurer uniquement le dépôt si le bouton existe
+        if (rapportForm) {
+            rapportForm.setAttribute('action', reportEndpoint);
+        }
+        if (deposerBtn) {
+            deposerBtn.addEventListener('click', function (event) {
+                event.preventDefault();
+                if (deposerBtn.disabled) return;
+                requestDepositConfirmation()
+                    .then(function (confirmed) {
+                        if (!confirmed) return null;
+                        deposerBtn.disabled = true;
+                        var reportId = getEditId();
+                        if (!reportId) return null;
+                        applyFormPayload('deposer_rapport');
+                        syncReportId(reportId);
+                        rapportForm.submit();
+                        return null;
+                    })
+                    .catch(function (error) {
+                        deposerBtn.disabled = false;
+                        showNotification('error', error.message || 'Erreur lors du dépôt.');
+                    });
+            });
+        }
+        return;
+    }
     var editorTextarea = document.getElementById('jodit-editor');
     var joditEditor = null;
     var fallbackEditorMode = false;

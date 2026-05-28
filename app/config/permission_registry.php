@@ -686,6 +686,25 @@ $addFeature([
 ]);
 
 $addFeature([
+    'slug' => 'cycle_etudiant',
+    'code' => 'CYCLE_ETUDIANT',
+    'label' => 'Parcours étudiant complet',
+    'category_code' => 'ETUDIANT_ENV',
+    'menu_url' => '?page=cycle_etudiant',
+    'routes' => [
+        ['pattern' => 'page=cycle_etudiant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=cycle_etudiant&action=show', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=cycle_etudiant&action=search', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=cycle_etudiant&action=progression', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=cycle_etudiant&action=module', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['admin_responsable_filiere'] => $view,
+    ],
+]);
+
+$addFeature([
     'slug' => 'telechargement_rapport_etudiant_admin',
     'code' => 'RAPPORT_ADMIN',
     'label' => 'Téléchargement rapport étudiant (vue administration)',
@@ -1476,6 +1495,7 @@ return [
         'fiche_etudiant_complete' => 'archives_etudiants',
         'fiche_etudiant' => 'fiche_etudiant_complete',
         'timeline_parcours_etudiant' => 'archives_etudiants',
+        'parcours_etudiant' => 'cycle_etudiant',
     ],
     'category_defaults' => $categoryDefaults,
     'features' => $features,

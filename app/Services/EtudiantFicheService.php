@@ -1,5 +1,20 @@
 <?php
 
+namespace CheckMaster\Services;
+
+use Database;
+use Etudiant;
+use Inscription;
+use InfoStage;
+use RapportEtudiant;
+use Note;
+use Reclamation;
+use Soutenance;
+use AnneeAcademique;
+use PDO;
+use PDOException;
+use DocumentRegistry;
+
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/Inscription.php';
 require_once __DIR__ . '/../models/InfoStage.php';
